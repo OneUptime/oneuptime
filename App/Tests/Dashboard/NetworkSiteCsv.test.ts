@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import DefaultNetworkSiteType from "Common/Types/NetworkSite/DefaultNetworkSiteType";
 import {
+  DefaultNetworkSiteTypeCreationOrder,
+  DefaultNetworkSiteTypeParent,
+} from "Common/Types/NetworkSite/DefaultNetworkSiteTypeHierarchy";
+import {
   NetworkSiteTypeOption,
   ParsedSiteRow,
   SiteCsvParseResult,
@@ -34,6 +38,35 @@ const DEFAULT_SITE_TYPES: Array<NetworkSiteTypeOption> = Object.values(
 ).map((name: DefaultNetworkSiteType, index: number): NetworkSiteTypeOption => {
   return { id: `type-${index}`, name: name };
 });
+
+const DEFAULT_SITE_TYPE_ID_BY_NAME: Map<DefaultNetworkSiteType, string> =
+  new Map<DefaultNetworkSiteType, string>(
+    DEFAULT_SITE_TYPES.map((siteType: NetworkSiteTypeOption) => {
+      return [siteType.name as DefaultNetworkSiteType, siteType.id];
+    }),
+  );
+
+/*
+ * The actual seeded parent graph. Most long-standing parser tests only need
+ * name-to-id resolution, so DEFAULT_SITE_TYPES intentionally omits optional
+ * hierarchy metadata. Placement tests use this full representation, matching
+ * what the import modal supplies.
+ */
+const HIERARCHICAL_DEFAULT_SITE_TYPES: Array<NetworkSiteTypeOption> =
+  DefaultNetworkSiteTypeCreationOrder.map(
+    (name: DefaultNetworkSiteType): NetworkSiteTypeOption => {
+      const parentName: DefaultNetworkSiteType | null =
+        DefaultNetworkSiteTypeParent[name];
+
+      return {
+        id: DEFAULT_SITE_TYPE_ID_BY_NAME.get(name)!,
+        name,
+        parentNetworkSiteTypeId: parentName
+          ? DEFAULT_SITE_TYPE_ID_BY_NAME.get(parentName)!
+          : null,
+      };
+    },
+  );
 
 type SiteTypeIdOfFunction = (name: DefaultNetworkSiteType) => string;
 
@@ -374,6 +407,203 @@ describe("parseSiteCsv", () => {
     expect(result.errors[0]!.message).toContain("no site types configured");
   });
 
+  test("accepts the complete default hierarchy even when children precede parents", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [
+        HEADER,
+        "Unit 1042,Unit,Springfield Market,,39.7817,-89.6501",
+        "Springfield Market,Market,Franchise East,,,",
+        "Franchise East,Franchisee,East Region,,,",
+        "East Region,Region,Acme Account,,,",
+        "Acme Account,Account Type,,,,",
+      ].join("\n"),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(5);
+    expect(result.rows[0]).toMatchObject({
+      siteType: DefaultNetworkSiteType.Unit,
+      networkSiteTypeId: siteTypeIdOf(DefaultNetworkSiteType.Unit),
+      parentName: "Springfield Market",
+    });
+  });
+
+  /*
+   * The regression suite for GitHub issue #3744. Every one of these files was
+   * refused before the placement rule was relaxed, and each is a shape real
+   * estates are actually built in.
+   */
+  test("a nested type may be imported without a parentName", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nEast Region,Region,,,,\n`,
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toMatchObject({
+      name: "East Region",
+      siteType: DefaultNetworkSiteType.Region,
+      parentName: "",
+    });
+  });
+
+  test("a top-level type may supply a parentName", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [HEADER, "Somewhere,Other,,,,", "HQ,Data Center,Somewhere,,,"].join("\n"),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.name;
+      }),
+    ).toEqual(["Somewhere", "HQ"]);
+  });
+
+  // The exact file from the issue: a Market nested under an Other.
+  test("a Market may be imported under an Other, as reported in the issue", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [HEADER, "Aramark,Other,,,,", "6241 Daikin Park,Market,Aramark,,,"].join(
+        "\n",
+      ),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.name;
+      }),
+    ).toEqual(["Aramark", "6241 Daikin Park"]);
+  });
+
+  test("a level may be skipped: a Market directly under a Region", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [
+        HEADER,
+        "Acme Account,Account Type,,,,",
+        "East Region,Region,Acme Account,,,",
+        "Springfield Market,Market,East Region,,,",
+      ].join("\n"),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(3);
+  });
+
+  test("the same type may appear on both sides of an edge", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [
+        HEADER,
+        "North Campus,Other,,,,",
+        "North Annexe,Other,North Campus,,,",
+      ].join("\n"),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(2);
+  });
+
+  test("rejects an imported parent whose type sits below the child's type", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [
+        HEADER,
+        "Acme Account,Account Type,,,,",
+        "East Region,Region,Acme Account,,,",
+        // A Region cannot sit under a Market: Market is below Region.
+        "Springfield Market,Market,East Region,,,",
+        "Wrong Way Region,Region,Springfield Market,,,",
+      ].join("\n"),
+      HIERARCHICAL_DEFAULT_SITE_TYPES,
+    );
+
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.name;
+      }),
+    ).toEqual(["Acme Account", "East Region", "Springfield Market"]);
+    expect(result.errors).toEqual([
+      {
+        line: 5,
+        message:
+          'Parent site "Springfield Market" uses siteType "Market", which sits below "Region" in the site type hierarchy.',
+      },
+    ]);
+  });
+
+  test("rejects a parent whose type is the unit level", () => {
+    const unitLevelTypes: Array<NetworkSiteTypeOption> =
+      HIERARCHICAL_DEFAULT_SITE_TYPES.map(
+        (siteType: NetworkSiteTypeOption): NetworkSiteTypeOption => {
+          return {
+            ...siteType,
+            isUnitLevel: siteType.name === DefaultNetworkSiteType.Unit,
+          };
+        },
+      );
+
+    const result: SiteCsvParseResult = parseSiteCsv(
+      [HEADER, "Unit 1042,Unit,,,,", "Closet A,Other,Unit 1042,,,"].join("\n"),
+      unitLevelTypes,
+    );
+
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.name;
+      }),
+    ).toEqual(["Unit 1042"]);
+    expect(result.errors).toEqual([
+      {
+        line: 3,
+        message:
+          'Parent site "Unit 1042" uses siteType "Unit", which is the unit level of the hierarchy and cannot have child sites.',
+      },
+    ]);
+  });
+
+  test("a cyclic type catalog is survived rather than hung on", () => {
+    const cyclicTypes: Array<NetworkSiteTypeOption> = [
+      { id: "a-id", name: "A", parentNetworkSiteTypeId: "b-id" },
+      { id: "b-id", name: "B", parentNetworkSiteTypeId: "a-id" },
+      { id: "c-id", name: "C", parentNetworkSiteTypeId: null },
+    ];
+
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nOuter,C,,,,\nInner,C,Outer,,,\n`,
+      cyclicTypes,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(2);
+  });
+
+  test("uses configured ids rather than default names for custom hierarchies", () => {
+    const customTypes: Array<NetworkSiteTypeOption> = [
+      { id: "brand-id", name: "Brand", parentNetworkSiteTypeId: null },
+      {
+        id: "store-id",
+        name: "Store",
+        parentNetworkSiteTypeId: "brand-id",
+      },
+    ];
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nAcme,Brand,,,,\nDowntown,Store,Acme,,,\n`,
+      customTypes,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.rows[1]).toMatchObject({
+      networkSiteTypeId: "store-id",
+      siteType: "Store",
+      parentName: "Acme",
+    });
+  });
+
   test("non-numeric latitude is a row error", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,abc,-89.65\n`,
@@ -542,5 +772,185 @@ describe("planSiteImport", () => {
     expect(plan.skipped).toHaveLength(1);
     expect(plan.skipped[0]!.row).toBe(dupe);
     expect(plan.skipped[0]!.reason).toContain("already exists");
+  });
+
+  /*
+   * The planner is the last gate before the first POST, so it re-checks
+   * placement against the sites that already exist in the project. Its rule is
+   * the parser's rule: only an inversion is refused.
+   */
+  const PLANNER_SITE_TYPES: Array<NetworkSiteTypeOption> = [
+    { id: "type-region", name: "Region", parentNetworkSiteTypeId: null },
+    {
+      id: "type-franchisee",
+      name: "Franchisee",
+      parentNetworkSiteTypeId: "type-region",
+    },
+    {
+      id: "type-market",
+      name: "Market",
+      parentNetworkSiteTypeId: "type-franchisee",
+    },
+    {
+      id: "type-unit",
+      name: "Unit",
+      parentNetworkSiteTypeId: "type-market",
+      isUnitLevel: true,
+    },
+    { id: "type-other", name: "Other", parentNetworkSiteTypeId: null },
+  ];
+
+  test("accepts an existing parent of the preferred type", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "Unit 1042",
+      networkSiteTypeId: "type-unit",
+      parentName: "Springfield Market",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["Springfield Market"],
+      new Map<string, string | null>([["Springfield Market", "type-market"]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([[child]]);
+    expect(plan.skipped).toEqual([]);
+  });
+
+  test("accepts an existing parent of an unrelated type", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "6241 Daikin Park",
+      networkSiteTypeId: "type-market",
+      siteType: "Market",
+      parentName: "Aramark",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["Aramark"],
+      new Map<string, string | null>([["Aramark", "type-other"]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([[child]]);
+    expect(plan.skipped).toEqual([]);
+  });
+
+  test("accepts an existing parent that skips a level", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "Springfield Market",
+      networkSiteTypeId: "type-market",
+      siteType: "Market",
+      parentName: "East Region",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["East Region"],
+      new Map<string, string | null>([["East Region", "type-region"]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([[child]]);
+    expect(plan.skipped).toEqual([]);
+  });
+
+  test("accepts an untyped existing parent", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "Unit 1042",
+      networkSiteTypeId: "type-unit",
+      parentName: "Legacy Market",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["Legacy Market"],
+      new Map<string, string | null>([["Legacy Market", null]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([[child]]);
+    expect(plan.skipped).toEqual([]);
+  });
+
+  test("skips an existing parent whose type sits below the child's type", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "East Region",
+      networkSiteTypeId: "type-region",
+      siteType: "Region",
+      parentName: "Springfield Market",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["Springfield Market"],
+      new Map<string, string | null>([["Springfield Market", "type-market"]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([]);
+    expect(plan.skipped).toEqual([
+      {
+        row: child,
+        reason:
+          'Parent site "Springfield Market" uses siteType "Market", which sits below "Region" in the site type hierarchy.',
+      },
+    ]);
+  });
+
+  test("skips an existing parent of a unit-level type", () => {
+    const child: ParsedSiteRow = makeRow({
+      name: "Closet A",
+      networkSiteTypeId: "type-other",
+      siteType: "Other",
+      parentName: "Unit 1042",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [child],
+      ["Unit 1042"],
+      new Map<string, string | null>([["Unit 1042", "type-unit"]]),
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([]);
+    expect(plan.skipped[0]!.reason).toContain(
+      "which is the unit level of the hierarchy",
+    );
+  });
+
+  test("re-checks an in-file parent defensively, without the parser", () => {
+    const parent: ParsedSiteRow = makeRow({
+      name: "Springfield Market",
+      networkSiteTypeId: "type-market",
+      siteType: "Market",
+    });
+    const child: ParsedSiteRow = makeRow({
+      name: "East Region",
+      networkSiteTypeId: "type-region",
+      siteType: "Region",
+      parentName: "Springfield Market",
+    });
+    const plan: SiteImportPlan = planSiteImport(
+      [parent, child],
+      [],
+      undefined,
+      PLANNER_SITE_TYPES,
+    );
+
+    expect(plan.batches).toEqual([[parent]]);
+    expect(plan.skipped).toHaveLength(1);
+    expect(plan.skipped[0]!.row).toBe(child);
+  });
+
+  test("without the type catalog the planner only orders rows", () => {
+    const parent: ParsedSiteRow = makeRow({
+      name: "Springfield Market",
+      networkSiteTypeId: "type-market",
+    });
+    const child: ParsedSiteRow = makeRow({
+      name: "East Region",
+      networkSiteTypeId: "type-region",
+      parentName: "Springfield Market",
+    });
+    const plan: SiteImportPlan = planSiteImport([parent, child], []);
+
+    expect(plan.batches).toEqual([[parent], [child]]);
+    expect(plan.skipped).toEqual([]);
   });
 });

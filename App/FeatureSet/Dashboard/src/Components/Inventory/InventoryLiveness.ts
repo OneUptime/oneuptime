@@ -1,4 +1,15 @@
-import { sourceHasLivenessSignal } from "./InventorySource";
+import {
+  InventoryLiveness,
+  InventoryLivenessInput,
+  getInventoryLivenessState,
+} from "Common/Types/Telemetry/InventoryLiveness";
+
+export {
+  InventoryLiveness,
+  INVENTORY_LIVE_WINDOW_MINUTES,
+  INVENTORY_STALE_AFTER_MINUTES,
+} from "Common/Types/Telemetry/InventoryLiveness";
+export type { InventoryLivenessInput } from "Common/Types/Telemetry/InventoryLiveness";
 
 /*
  * "Is this thing still there?" — the question the Inventory list is really
@@ -16,41 +27,6 @@ import { sourceHasLivenessSignal } from "./InventorySource";
  * `now` is always passed in rather than read from the clock, so the tests can
  * pin every boundary exactly.
  */
-
-export enum InventoryLiveness {
-  /** Seen inside the live window — actively sending data right now. */
-  Live = "live",
-  /** Seen today, but not in the last few minutes. */
-  Recent = "recent",
-  /** Nothing for over a day. Either gone, or it stopped reporting. */
-  Stale = "stale",
-  /** Has a heartbeat, but has never reported one. */
-  Never = "never",
-  /** Nothing bumps this row's `lastSeenAt`, so its age means nothing. */
-  NotTracked = "not-tracked",
-}
-
-/**
- * Seen this recently and the thing is considered live. Sized against the
- * ingest reconcile throttle rather than picked round: a discovered entity
- * that is emitting continuously still only re-registers once per throttle
- * window, so a window shorter than that would flap healthy entities into
- * "Recent" between bumps.
- */
-export const INVENTORY_LIVE_WINDOW_MINUTES: number = 30;
-
-/**
- * Past this, the row is called stale. A full day is deliberately generous:
- * this badge is read as "something is wrong", so it should not fire for a
- * batch job that runs hourly or a service that idles overnight.
- */
-export const INVENTORY_STALE_AFTER_MINUTES: number = 24 * 60;
-
-export interface InventoryLivenessInput {
-  source?: string | undefined;
-  lastSeenAt?: Date | string | undefined | null;
-  now: Date;
-}
 
 export interface InventoryLivenessResult {
   liveness: InventoryLiveness;
@@ -79,7 +55,9 @@ export type GetInventoryLivenessFunction = (
 export const getInventoryLiveness: GetInventoryLivenessFunction = (
   input: InventoryLivenessInput,
 ): InventoryLivenessResult => {
-  if (!sourceHasLivenessSignal(input.source)) {
+  const liveness: InventoryLiveness = getInventoryLivenessState(input);
+
+  if (liveness === InventoryLiveness.NotTracked) {
     return NOT_TRACKED;
   }
 
@@ -121,7 +99,7 @@ export const getInventoryLiveness: GetInventoryLivenessFunction = (
     Math.floor((input.now.getTime() - lastSeenAt.getTime()) / (60 * 1000)),
   );
 
-  if (minutesSinceLastSeen <= INVENTORY_LIVE_WINDOW_MINUTES) {
+  if (liveness === InventoryLiveness.Live) {
     return {
       liveness: InventoryLiveness.Live,
       minutesSinceLastSeen,
@@ -131,7 +109,7 @@ export const getInventoryLiveness: GetInventoryLivenessFunction = (
     };
   }
 
-  if (minutesSinceLastSeen <= INVENTORY_STALE_AFTER_MINUTES) {
+  if (liveness === InventoryLiveness.Recent) {
     return {
       liveness: InventoryLiveness.Recent,
       minutesSinceLastSeen,

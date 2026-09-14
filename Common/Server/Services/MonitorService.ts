@@ -10,6 +10,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import CustomFieldMappingService from "./CustomFieldMappingService";
+import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
 import MonitorOwnerRuleEngineService from "./MonitorOwnerRuleEngineService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
@@ -19,6 +21,8 @@ import MonitorStatusService from "./MonitorStatusService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
@@ -27,6 +31,7 @@ import ServerException from "../../Types/Exception/ServerException";
 import Sleep from "../../Types/Sleep";
 import ProbeService from "./ProbeService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import TeamMemberService from "./TeamMemberService";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -44,6 +49,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
@@ -89,6 +95,14 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import MonitorTemplateService from "./MonitorTemplateService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+
+const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
+  "monitorTemplateId",
+  "monitorTemplate",
+];
 
 export interface MonitorDestinationInfo {
   monitorDestination: string;
@@ -99,6 +113,55 @@ export interface MonitorDestinationInfo {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  private async validateMonitorTemplateReference(data: {
+    monitorTemplateId: ObjectID;
+    projectId: ObjectID | undefined;
+    monitorType: MonitorType | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "Project ID is required when linking a monitor template.",
+      );
+    }
+
+    const monitorTemplate: MonitorTemplate | null =
+      await MonitorTemplateService.findOneById({
+        id: data.monitorTemplateId,
+        select: {
+          _id: true,
+          projectId: true,
+          monitorType: true,
+        },
+        /*
+         * Linking is also a read of the template. Keep the caller's tenant,
+         * ownership and label scopes so a generic Monitor write cannot attach
+         * a hidden template and expose its configuration through a later sync.
+         * Internal callers already use root props and retain that behavior.
+         */
+        props: data.props,
+      });
+
+    if (!monitorTemplate) {
+      throw new BadDataException("Monitor template not found.");
+    }
+
+    if (
+      !monitorTemplate.projectId ||
+      monitorTemplate.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "Monitor template must belong to the same project as the monitor.",
+      );
+    }
+
+    if (!data.monitorType || monitorTemplate.monitorType !== data.monitorType) {
+      throw new BadDataException(
+        "Monitor template type must match the monitor type.",
+      );
+    }
   }
 
   public getMonitorDestinationInfo(monitor: Model): MonitorDestinationInfo {
@@ -179,6 +242,21 @@ export class Service extends DatabaseService<Model> {
             monitorDestination = `${sql.host}:${sql.port}/${sql.databaseName}`;
           }
         }
+
+        // For Database Health monitors, show host:port/database (never the credentials).
+        if (
+          monitorType === MonitorType.Database &&
+          firstStep?.data?.databaseMonitor
+        ) {
+          const database: {
+            host: string;
+            port: number;
+            databaseName: string;
+          } = firstStep.data.databaseMonitor;
+          if (database.host) {
+            monitorDestination = `${database.host}:${database.port}/${database.databaseName}`;
+          }
+        }
       }
     }
 
@@ -238,6 +316,7 @@ export class Service extends DatabaseService<Model> {
       id: monitorId,
       select: {
         _id: true,
+        projectId: true,
         currentMonitorStatusId: true,
       },
       props: {
@@ -255,6 +334,7 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           monitorStatusId: true,
+          projectId: true,
         },
         props: {
           isRoot: true,
@@ -285,6 +365,39 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * The update above is root (no tenantId), so onUpdateSuccess's
+       * tenant-gated changeMonitorStatus does not run for it and nothing
+       * else re-stamps the network devices bound to this monitor. Bridge
+       * them here, and only when the id actually moved - an unchanged
+       * status must not churn every site rollup above the device.
+       */
+      const projectId: ObjectID | undefined =
+        monitor.projectId || lastMonitorStatus.projectId;
+
+      if (!projectId) {
+        logger.warn(
+          `refreshMonitorCurrentStatus: monitor ${monitorId.toString()} has no projectId; skipping the network site rollup bridge.`,
+        );
+        return;
+      }
+
+      try {
+        await NetworkSiteService.onMonitorStatusChanged({
+          projectId: projectId,
+          monitorIds: [monitorId],
+          monitorStatusId: lastMonitorStatus.monitorStatusId,
+        });
+      } catch (err) {
+        logger.error(
+          `refreshMonitorCurrentStatus: failed to update network site rollups for monitor ${monitorId.toString()}: ${err}`,
+          {
+            projectId: projectId.toString(),
+            monitorId: monitorId.toString(),
+          } as LogAttributes,
+        );
+      }
     }
   }
 
@@ -350,10 +463,65 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * Network devices bound to these monitors (NetworkDevice.monitorId, the
+     * monitor-backed path). The FK is ON DELETE SET NULL, so the binding
+     * disappears with the monitor - but the device's stamped
+     * currentMonitorStatusId / isReachable do not, and nothing else ever
+     * clears them: the device would keep reporting the dead monitor's last
+     * status forever. The ids have to be read BEFORE the delete, because
+     * after it the column that links them is already NULL.
+     *
+     * A lookup failure degrades to "no re-stamp" rather than blocking the
+     * delete itself: a device carrying a stale stamp is a cosmetic bug, a
+     * monitor the operator cannot delete is not.
+     */
+    let networkDeviceIdsToRefresh: Array<ObjectID> = [];
+
+    const monitorIdsPendingDeletion: Array<ObjectID> = monitorsPendingDeletion
+      .map((monitor: Model) => {
+        return monitor.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (monitorIdsPendingDeletion.length > 0) {
+      try {
+        const boundDevices: Array<NetworkDevice> =
+          await NetworkDeviceService.findBy({
+            query: {
+              monitorId: QueryHelper.any(monitorIdsPendingDeletion),
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        networkDeviceIdsToRefresh = boundDevices
+          .map((device: NetworkDevice) => {
+            return device.id;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          });
+      } catch (error) {
+        logger.error(
+          `Error while looking up network devices bound to monitors pending deletion: ${error}`,
+        );
+      }
+    }
+
     return {
       deleteBy,
       carryForward: {
         monitors: monitorsPendingDeletion,
+        networkDeviceIdsToRefresh: networkDeviceIdsToRefresh,
       },
     };
   }
@@ -376,6 +544,34 @@ export class Service extends DatabaseService<Model> {
      * A synchronous ALTER TABLE … DELETE on every monitor deletion is both
      * redundant and expensive.
      */
+
+    /*
+     * Re-derive the stamp of every device that was bound to a deleted
+     * monitor. The FK has nulled NetworkDevice.monitorId by now, so for a
+     * monitor-backed device this resolves to "nothing bound": stamp and
+     * isReachable both go to NULL (the device honestly reads Pending) and
+     * its site chain is recomputed. clearWhenNotMonitorBacked is false on
+     * purpose - an SNMP device's stamp comes from the Network Device monitor
+     * watching its walk, not from this column, and is not ours to clear.
+     * Per device and never propagating: one failed refresh must not stop the
+     * rest, nor fail a delete that has already happened.
+     */
+    const networkDeviceIdsToRefresh: Array<ObjectID> =
+      onDelete.carryForward?.networkDeviceIdsToRefresh || [];
+
+    for (const deviceId of networkDeviceIdsToRefresh) {
+      try {
+        await NetworkDeviceService.refreshStampedMonitorStatus({
+          deviceId: deviceId,
+          clearWhenNotMonitorBacked: false,
+        });
+      } catch (error) {
+        logger.error(
+          `Error while refreshing the stamped monitor status of network device ${deviceId.toString()} after its monitor was deleted: ${error}`,
+        );
+      }
+    }
+
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       try {
         await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
@@ -407,7 +603,15 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
       resolveReferenceId(updateBy.data.currentMonitorStatus);
 
-    if (updateBy.data.monitorSteps) {
+    const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
+    const isMonitorStepsWritten: boolean =
+      updateDataKeys.includes("monitorSteps");
+    const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
+      updateDataKeys,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+    );
+
+    if (isMonitorStepsWritten || isMonitorTemplateWritten) {
       /*
        * Validated per matched monitor rather than per distinct project, because
        * the check needs that monitor's CURRENT monitorSteps: a reference id it
@@ -416,10 +620,16 @@ export class Service extends DatabaseService<Model> {
        * MonitorStepsProjectValidator.
        */
       const monitors: Array<Model> = await this.findBy({
-        query: updateBy.query,
+        query:
+          !updateBy.props.isRoot && updateBy.props.tenantId
+            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+            : updateBy.query,
         select: {
           projectId: true,
+          monitorType: true,
           monitorSteps: true,
+          monitorTemplateId: true,
+          autoProvisionedNetworkDeviceId: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -429,16 +639,66 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      const writtenMonitorTemplateId: ObjectID | null =
+        RelationIdUtil.readConsistent(
+          updateBy.data as unknown as Record<string, unknown>,
+          MONITOR_TEMPLATE_RELATION_KEYS,
+          "Monitor Template",
+        );
+
       for (const monitor of monitors) {
-        await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
-          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-          /*
-           * Root/API updates do not always carry a tenantId, so fall back to
-           * the project of the monitor being updated.
-           */
-          projectId: updateBy.props.tenantId || monitor.projectId,
-          alreadyStoredMonitorSteps: monitor.monitorSteps,
-        });
+        if (isMonitorStepsWritten) {
+          if (updateBy.data.monitorSteps) {
+            await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
+              {
+                monitorSteps: updateBy.data.monitorSteps as
+                  | MonitorSteps
+                  | JSONObject,
+                /*
+                 * Root/API updates do not always carry a tenantId, so fall back
+                 * to the project of the monitor being updated.
+                 */
+                projectId: updateBy.props.tenantId || monitor.projectId,
+                alreadyStoredMonitorSteps: monitor.monitorSteps,
+              },
+            );
+          }
+
+          if (monitor.autoProvisionedNetworkDeviceId) {
+            NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice(
+              {
+                monitorSteps: updateBy.data.monitorSteps as
+                  | MonitorSteps
+                  | JSONObject,
+                networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+              },
+            );
+          }
+        }
+
+        if (isMonitorTemplateWritten) {
+          if (monitor.autoProvisionedNetworkDeviceId) {
+            const storedTemplateId: string =
+              monitor.monitorTemplateId?.toString() || "";
+            const writtenTemplateId: string =
+              writtenMonitorTemplateId?.toString() || "";
+
+            if (storedTemplateId !== writtenTemplateId) {
+              throw new BadDataException(
+                "An auto-provisioned monitor cannot be relinked or unlinked from its template. Delete it and let the intended rule recreate it, or create a manual monitor instead.",
+              );
+            }
+          }
+
+          if (writtenMonitorTemplateId) {
+            await this.validateMonitorTemplateReference({
+              monitorTemplateId: writtenMonitorTemplateId,
+              projectId: updateBy.props.tenantId || monitor.projectId,
+              monitorType: monitor.monitorType,
+              props: updateBy.props,
+            });
+          }
+        }
       }
     }
 
@@ -502,6 +762,46 @@ export class Service extends DatabaseService<Model> {
         proposedSuppressionStatuses:
           updateBy.data.suppressAlertsWhenParentMonitorStatuses,
       });
+    }
+
+    if (
+      IsBillingEnabled &&
+      ((updateBy.data.monitorType &&
+        updateBy.data.monitorType !== MonitorType.Manual) ||
+        updateBy.data.disableActiveMonitoring === false)
+    ) {
+      const monitors: Array<Model> = await this.findBy({
+        query:
+          !updateBy.props.isRoot && updateBy.props.tenantId
+            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+            : updateBy.query,
+        select: { projectId: true, monitorType: true },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+      const checkedProjects: Set<string> = new Set<string>();
+
+      for (const monitor of monitors) {
+        const monitorType: MonitorType | undefined =
+          (updateBy.data.monitorType as MonitorType | undefined) ||
+          monitor.monitorType;
+
+        if (monitorType === MonitorType.Manual) {
+          continue;
+        }
+
+        if (!monitor.projectId) {
+          throw new BadDataException(
+            "ProjectId required to enable monitoring.",
+          );
+        }
+
+        if (!checkedProjects.has(monitor.projectId.toString())) {
+          await PayAsYouGoBillingService.requirePayAsYouGo(monitor.projectId);
+          checkedProjects.add(monitor.projectId.toString());
+        }
+      }
     }
 
     return { updateBy, carryForward: null };
@@ -842,6 +1142,36 @@ export class Service extends DatabaseService<Model> {
           });
         }
 
+        /*
+         * The "stays in sync" half of custom field value mapping
+         * (OneUptime/oneuptime#3549): alerts, incidents and maintenance events
+         * attached to this monitor whose custom fields are configured to
+         * inherit from it are brought back in line.
+         *
+         * `!== undefined` rather than truthiness: clearing the bag arrives as
+         * `{}` or null, and is exactly the edit worth reacting to. In its own
+         * try/catch because a propagation failure must never fail the
+         * operator's save — the house rule for every side effect in this hook.
+         */
+        if (onUpdate.updateBy.data.customFields !== undefined) {
+          try {
+            await CustomFieldMappingService.propagateFromSourceRecord({
+              resource: CustomFieldMappingSourceResource.Monitor,
+              sourceId: monitorId,
+              projectId: projectId,
+            });
+          } catch (error) {
+            logger.error(
+              "Custom field value mapping: propagating monitor custom fields failed in MonitorService.onUpdateSuccess",
+              {
+                projectId: projectId?.toString(),
+                monitorId: monitorId?.toString(),
+              } as LogAttributes,
+            );
+            logger.error(error as Error);
+          }
+        }
+
         if (onUpdate.updateBy.data.monitorSteps) {
           const validMonitorStepIds: Array<string> = this.extractMonitorStepIds(
             onUpdate.updateBy.data.monitorSteps as MonitorSteps | JSONObject,
@@ -1023,12 +1353,48 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    if (!createBy.props.tenantId) {
+      throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    /*
+     * Validate the request's shape before consulting billing. A conflicting
+     * Monitor Template reference, or one hidden by the caller's read scope, is
+     * a bad request regardless of the project's plan - and resolving it here,
+     * ahead of the plan lookup, keeps the checks reachable without a database
+     * (the billing lookup queries the DB) and mirrors onBeforeUpdate, which
+     * validates the template before any other work.
+     */
+    const monitorTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+      "Monitor Template",
+    );
+
+    if (monitorTemplateId) {
+      await this.validateMonitorTemplateReference({
+        monitorTemplateId: monitorTemplateId,
+        projectId: createBy.props.tenantId,
+        monitorType: createBy.data.monitorType,
+        props: createBy.props,
+      });
+    }
+
     if (IsBillingEnabled && createBy.props.tenantId) {
+      if (createBy.data.monitorType !== MonitorType.Manual) {
+        await PayAsYouGoBillingService.requirePayAsYouGo(
+          createBy.props.tenantId,
+        );
+      }
+
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
         createBy.props.tenantId,
       );
 
-      if (currentPlan.isSubscriptionUnpaid) {
+      if (
+        currentPlan.isSubscriptionUnpaid &&
+        createBy.data.monitorType !== MonitorType.Manual
+      ) {
         throw new BadDataException(
           "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.",
         );
@@ -1070,8 +1436,23 @@ export class Service extends DatabaseService<Model> {
       createBy.data.incomingEmailSecretKey = ObjectID.generate();
     }
 
-    if (!createBy.props.tenantId) {
-      throw new BadDataException("ProjectId required to create monitor.");
+    if (createBy.data.autoProvisionedNetworkDeviceId) {
+      if (!monitorTemplateId) {
+        throw new BadDataException(
+          "An auto-provisioned Network Device monitor must be linked to a monitor template.",
+        );
+      }
+
+      if (createBy.data.monitorType !== MonitorType.NetworkDevice) {
+        throw new BadDataException(
+          "Only Network Device monitors can carry auto-provisioning provenance.",
+        );
+      }
+
+      NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
+        monitorSteps: createBy.data.monitorSteps,
+        networkDeviceId: createBy.data.autoProvisionedNetworkDeviceId,
+      });
     }
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
@@ -2414,33 +2795,20 @@ ${createdItem.description?.trim() || "No description provided."}
         statusTimeline.startsAt = startsAt;
       }
 
+      /*
+       * The network-site rollup bridge (stamping the NetworkDevices these
+       * monitors report on and refreshing their sites) is NOT called from
+       * here. It runs inside MonitorStatusTimelineService.onCreateSuccess,
+       * which this create reaches, so calling it here as well stamped every
+       * device twice - and that hook is the only place the PROBE path
+       * (which never comes through changeMonitorStatus) passes through.
+       */
       await this.createStatusTimelineWithRetry({
         statusTimeline: statusTimeline,
         props: props,
         projectId: projectId,
         monitorId: monitorId,
       });
-    }
-
-    /*
-     * Bridge to the network-site rollup engine: stamp the NetworkDevices
-     * these monitors poll and refresh their sites' worst-of status.
-     * Resilient by contract - a rollup failure can never break a monitor
-     * status change (onMonitorStatusChanged also catches internally).
-     */
-    try {
-      await NetworkSiteService.onMonitorStatusChanged({
-        projectId: projectId,
-        monitorIds: monitorIds,
-        monitorStatusId: monitorStatusId,
-      });
-    } catch (err) {
-      logger.error(
-        `changeMonitorStatus: failed to update network site rollups: ${err}`,
-        {
-          projectId: projectId.toString(),
-        } as LogAttributes,
-      );
     }
   }
 

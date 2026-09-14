@@ -1,18 +1,15 @@
 import AppLink from "../AppLink/AppLink";
 import React, { FunctionComponent, ReactElement } from "react";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
+import { buildReplayLinkRoute, ReplayLinkRouteProps } from "./ReplayLinkRoute";
 
-export interface ComponentProps {
-  rumApplicationId?: ObjectID | undefined;
-  sessionId?: string | undefined;
-  /* Deep-links into a moment. The player reads it off the ?t= query param. */
-  atOffsetMs?: number | undefined;
-  label?: string | undefined;
-  className?: string | undefined;
-}
+/*
+ * The props and the route builder live in ReplayLinkRoute.ts, which has no
+ * React import, so a node test can pin the URL grammar. Re-exported under
+ * the names callers already use.
+ */
+export { buildReplayLinkRoute };
+export type ComponentProps = ReplayLinkRouteProps;
 
 /*
  * Cross-link from anything carrying a sessionId to the recording of it.
@@ -23,29 +20,35 @@ export interface ComponentProps {
 const ReplayLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.sessionId || !props.rumApplicationId) {
+  const {
+    rumApplicationId,
+    sessionId,
+    atTime,
+    atOffsetMs,
+    signal,
+    rail,
+    label,
+    className,
+  } = props;
+
+  const route: Route | null = buildReplayLinkRoute({
+    rumApplicationId,
+    sessionId,
+    atTime,
+    atOffsetMs,
+    signal,
+    rail,
+  });
+
+  if (!route) {
     return <></>;
   }
 
-  let route: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
-    {
-      modelId: props.rumApplicationId,
-      subModelId: props.sessionId,
-    },
-  );
-
-  if (props.atOffsetMs !== undefined && props.atOffsetMs >= 0) {
-    route = route.addQueryParams({
-      t: String(Math.floor(props.atOffsetMs / 1000)),
-    });
-  }
-
   return (
-    <div className="flex space-x-2">
+    <div className="flex space-x-2" data-testid="replay-link">
       <div className="hover:underline">
-        <AppLink to={route} className={props.className}>
-          <p>{props.label || "Watch session replay"}</p>
+        <AppLink to={route} className={className}>
+          <p>{label || "Watch session replay"}</p>
         </AppLink>
       </div>
     </div>

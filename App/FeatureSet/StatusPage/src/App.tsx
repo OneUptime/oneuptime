@@ -197,6 +197,21 @@ const PageForbidden: React.LazyExoticComponent<
   });
 });
 
+/*
+ * The token-free form of a token-bearing route.
+ *
+ * Common/Server/Views/Partials/SensitiveUrlToken.ejs takes the reset token out
+ * of the path in <head>, before any third-party tag can report the URL, so by
+ * the time the router runs the visitor is on /reset-password rather than
+ * /reset-password/<token>. Both forms have to resolve to the same page: the
+ * :token form is what remains when that bootstrap could not run.
+ */
+type TokenFreeRouteFunction = (route: string) => string;
+
+const tokenFreeRoute: TokenFreeRouteFunction = (route: string): string => {
+  return route.replace(/\/:token$/, "");
+};
+
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
@@ -446,6 +461,19 @@ const App: () => JSX.Element = () => {
               <Sso
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.RESET_PASSWORD]?.toString() || "",
+            )}
+            element={
+              <ResetPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
               />
             }
           />
@@ -1007,6 +1035,19 @@ const App: () => JSX.Element = () => {
               <MasterPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.PREVIEW_RESET_PASSWORD]?.toString() || "",
+            )}
+            element={
+              <ResetPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
               />
             }
           />

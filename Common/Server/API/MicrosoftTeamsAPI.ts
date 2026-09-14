@@ -32,14 +32,6 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsRequest,
-} from "../Utils/Workspace/MicrosoftTeams/Actions/Auth";
-import MicrosoftTeamsIncidentActions from "../Utils/Workspace/MicrosoftTeams/Actions/Incident";
-import MicrosoftTeamsAlertActions from "../Utils/Workspace/MicrosoftTeams/Actions/Alert";
-import MicrosoftTeamsScheduledMaintenanceActions from "../Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
-import MicrosoftTeamsMonitorActions from "../Utils/Workspace/MicrosoftTeams/Actions/Monitor";
-import MicrosoftTeamsOnCallDutyActions from "../Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
@@ -927,67 +919,97 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Microsoft Teams webhook endpoint for interactive messages (legacy)
-    router.post(
-      "/microsoft-teams/webhook",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug(
-          "Microsoft Teams Webhook Request: ",
-          getLogAttributesFromRequest(req as any),
-        );
-        logger.debug(req.body, getLogAttributesFromRequest(req as any));
+    /*
+     * The same path, answering the browser.
+     *
+     * Azure Bot Service only ever POSTs here, so for a long time GET fell
+     * through to the catch-all 404 in StartServer and answered
+     * "Page not found - /api/microsoft-bot/messages". That is the single
+     * cheapest thing an admin can do to check their messaging endpoint, and
+     * OneUptime replied with the words for "this route does not exist" — so
+     * admins concluded the route had been dropped from the build and went
+     * looking for a regression, while the actual fault (Azure cannot reach
+     * this deployment) sat untouched. The 404 was true of the method and false
+     * of the endpoint, and nothing in the response said which.
+     *
+     * 405 is the honest answer, and it is honest in a way a human reads at a
+     * glance: the route is here, the deployment is reachable from wherever the
+     * request came from, and POST is what it wants. Everything else in the
+     * body exists to redirect the next hour of debugging away from OneUptime's
+     * routing table and towards the network path Azure has to traverse.
+     */
+    router.get(
+      "/microsoft-bot/messages",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Allow", "POST");
 
-        try {
-          const authResult: MicrosoftTeamsRequest =
-            await MicrosoftTeamsAuthAction.isAuthorized({
-              req: req,
-            });
-
-          logger.debug(
-            "Microsoft Teams Auth Result: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(authResult, getLogAttributesFromRequest(req as any));
-
-          if (authResult.isAuthorized === false) {
-            return Response.sendTextResponse(req, res, "");
-          }
-
-          // Handle different types of Teams activities
-          const activity: JSONObject = req.body as JSONObject;
-          const activityType: string = activity["type"] as string;
-
-          if (activityType === "message") {
-            // Handle bot mentions or direct messages
-            return MicrosoftTeamsAPI.handleMessageActivity(
-              req,
-              res,
-              authResult,
-              activity,
-            );
-          } else if (activityType === "invoke") {
-            // Handle adaptive card actions
-            return MicrosoftTeamsAPI.handleInvokeActivity(
-              req,
-              res,
-              authResult,
-              activity,
-            );
-          }
-
-          return Response.sendTextResponse(req, res, "");
-        } catch (error) {
-          logger.error(
-            "Error processing Teams webhook:",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(error, getLogAttributesFromRequest(req as any));
-          return Response.sendTextResponse(req, res, "");
-        }
+        /*
+         * Written straight onto the response rather than through
+         * Response.sendJsonObjectResponse, whose ?output-type=csv branch
+         * answers 200 regardless of the status code it was handed. The status
+         * code is the entire point of this route — it is what distinguishes
+         * "wrong method" from "no such route" — so no query parameter gets to
+         * rewrite it.
+         */
+        res.status(405).json({
+          status:
+            "This is the OneUptime Microsoft Teams bot messaging endpoint. It exists, and it accepts POST only.",
+          allow: ["POST"],
+          messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
+          /*
+           * Stated as a fact about this response rather than as advice,
+           * because it is the one thing the admin has actually proven by
+           * getting here and it is easy to under-read.
+           */
+          whatThisProves:
+            "You reached OneUptime. This endpoint is registered and this deployment served your request, so the messaging endpoint is not missing.",
+          whatThisDoesNotProve:
+            "That Azure Bot Service can reach this URL. Azure calls it from the public internet, and your browser or terminal may not be on the same path.",
+          /*
+           * A 404 on this path does NOT mean the request failed to arrive, and
+           * saying so would repeat the mistake this endpoint exists to end.
+           * OneUptime's own catch-all (StartServer's app.get("*")) answers an
+           * unmatched GET with a 404 whose body is
+           * {"message":"Page not found - <path>"} — 58 bytes for this path,
+           * which is exactly the `404 58` an admin sees in their access log.
+           * That 404 is proof the request arrived, not proof it did not. Only
+           * the body separates it from a proxy's own 404, so point at the body.
+           */
+          ifYouGetA404InsteadOfThis:
+            'Read the body, not just the status code. A body of {"message":"Page not found - /api/microsoft-bot/messages"} comes from OneUptime itself, which means the request DID arrive: either this deployment predates this 405 response (the path was POST-only, so a GET fell through to the generic not-found handler), or something in front of OneUptime rewrote the path and stripped the /api prefix before the app saw it. An HTML error page from nginx, your ingress or a load balancer means the opposite — the request never reached OneUptime.',
+          /*
+           * Ordered by what actually goes wrong on self-hosted deployments.
+           * Outbound-works-inbound-fails leads because it is the state that
+           * makes people doubt the route: alerts arrive in Teams, so the
+           * integration looks live, and only the interactive half is dead.
+           */
+          ifTeamsSaysUnableToReachApp: [
+            "Working outbound alerts prove nothing here. OneUptime posts cards by calling Microsoft, which needs no inbound access. Card buttons, bot commands and chat registration all travel the other way — Azure Bot Service POSTs to this URL — and that is the direction that is failing.",
+            "Confirm this exact URL is set as the messaging endpoint on the Azure Bot resource, then check that it resolves publicly. A private DNS name or an internal-only ingress is the most common cause.",
+            "Azure requires HTTPS with a publicly trusted certificate served with its full chain. A self-signed certificate, an internal CA, or a missing intermediate fails the TLS handshake before OneUptime ever sees the request, so nothing appears in your access log.",
+            "Then look for the POST, not the 404, in your access log: `grep 'POST /api/microsoft-bot/messages' <access log>`. No POST lines at all means Azure never got through, and the fault is the network path rather than OneUptime.",
+          ],
+          nextStep: `GET ${AppApiClientUrl.toString()}/microsoft-bot/test to see this deployment's bot id, and compare it with the bot id of the OneUptime app package installed in Microsoft Teams.`,
+        });
       },
     );
 
-    // Test endpoint to verify Bot Framework setup
+    /*
+     * Echoes this deployment's bot configuration.
+     *
+     * It reads local environment variables and nothing else — it does not call
+     * Azure, so it cannot tell you the Azure Bot resource exists, that its
+     * messaging endpoint points back here, that the Teams channel is enabled, or
+     * that the installed Teams app package belongs to this deployment. It used
+     * to answer "Bot Framework endpoint is configured", which admins reasonably
+     * read as "the bot works" — and then spent days debugging a setup this
+     * endpoint had already blessed. It now says what it checked and, more
+     * importantly, what it did not.
+     *
+     * The one genuinely useful thing here is botId: it is the value that must
+     * appear in the installed Teams app package, and comparing the two is what
+     * settles the most common self-hosted failure.
+     */
     router.get(
       "/microsoft-bot/test",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -1004,9 +1026,32 @@ export default class MicrosoftTeamsAPI {
         }
 
         return Response.sendJsonObjectResponse(req, res, {
-          status: "Bot Framework endpoint is configured",
+          status:
+            "Local configuration is present. This does NOT confirm the integration works.",
           clientId: MicrosoftTeamsAppClientId,
+          botId: MicrosoftTeamsAppClientId,
           messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
+          verified: [
+            "MICROSOFT_TEAMS_APP_CLIENT_ID is set",
+            "MICROSOFT_TEAMS_APP_CLIENT_SECRET is set",
+          ],
+          notVerified: [
+            "That an Azure Bot resource exists for this client id",
+            "That the Azure Bot's messaging endpoint points at this deployment",
+            /*
+             * Reachability is listed separately from the endpoint being
+             * configured, because they fail separately and look identical from
+             * in here. A correctly configured endpoint on a deployment Azure
+             * cannot dial produces working outbound alerts and a completely
+             * dead bot, which reads as a half-broken integration rather than a
+             * network problem.
+             */
+            "That Azure Bot Service can actually reach this deployment over the public internet — outbound notifications work without it, so a working alert does not test this",
+            "That the Azure Bot has the Microsoft Teams channel enabled",
+            "That the client secret is valid and has not expired",
+            "That the Teams app package installed in your teams was built from this deployment",
+          ],
+          nextStep: `Open the installed OneUptime app in Microsoft Teams and confirm its bot id is ${MicrosoftTeamsAppClientId}. If it is not, that package cannot receive messages from this deployment — download the manifest from Project Settings > Workspace > Microsoft Teams and upload that instead.`,
         });
       },
     );
@@ -1208,120 +1253,5 @@ export default class MicrosoftTeamsAPI {
     );
 
     return router;
-  }
-
-  private static async handleMessageActivity(
-    _req: ExpressRequest,
-    res: ExpressResponse,
-    authResult: MicrosoftTeamsRequest,
-    activity: JSONObject,
-  ): Promise<void> {
-    // Handle direct messages to bot or @mentions
-    const messageText: string = (activity["text"] as string) || "";
-    const from: JSONObject = activity["from"] as JSONObject;
-
-    if (messageText.toLowerCase().includes("help")) {
-      // Send help message
-      const helpMessage: any = {
-        _type: "WorkspacePayloadText",
-        text: "Hello! I'm the OneUptime bot. I can help you:\n\n• Get notifications about incidents\n• Acknowledge alerts\n• View system status\n\nType 'status' to see current system status.",
-      };
-
-      await MicrosoftTeamsUtil.sendDirectMessageToUser({
-        authToken: authResult.authToken,
-        workspaceUserId: from["id"] as string,
-        messageBlocks: [helpMessage],
-      });
-    }
-
-    Response.sendTextResponse(_req, res, "");
-  }
-
-  private static async handleInvokeActivity(
-    req: ExpressRequest,
-    res: ExpressResponse,
-    authResult: MicrosoftTeamsRequest,
-    _activity: JSONObject,
-  ): Promise<void> {
-    /*
-     * Handle adaptive card button clicks
-     * const value: JSONObject = activity["value"] as JSONObject;
-     * const actionType: string = value["action"] as string;
-     */
-
-    for (const action of authResult.actions || []) {
-      if (!action.actionType) {
-        continue;
-      }
-
-      if (
-        MicrosoftTeamsIncidentActions.isIncidentAction({
-          actionType: action.actionType,
-        })
-      ) {
-        return MicrosoftTeamsIncidentActions.handleIncidentAction({
-          teamsRequest: authResult,
-          action: action,
-          req: req,
-          res: res,
-        });
-      }
-
-      if (
-        MicrosoftTeamsAlertActions.isAlertAction({
-          actionType: action.actionType,
-        })
-      ) {
-        return MicrosoftTeamsAlertActions.handleAlertAction({
-          teamsRequest: authResult,
-          action: action,
-          req: req,
-          res: res,
-        });
-      }
-
-      if (
-        MicrosoftTeamsScheduledMaintenanceActions.isScheduledMaintenanceAction({
-          actionType: action.actionType,
-        })
-      ) {
-        return MicrosoftTeamsScheduledMaintenanceActions.handleScheduledMaintenanceAction(
-          {
-            teamsRequest: authResult,
-            action: action,
-            req: req,
-            res: res,
-          },
-        );
-      }
-
-      if (
-        MicrosoftTeamsMonitorActions.isMonitorAction({
-          actionType: action.actionType,
-        })
-      ) {
-        return MicrosoftTeamsMonitorActions.handleMonitorAction({
-          teamsRequest: authResult,
-          action: action,
-          req: req,
-          res: res,
-        });
-      }
-
-      if (
-        MicrosoftTeamsOnCallDutyActions.isOnCallDutyAction({
-          actionType: action.actionType,
-        })
-      ) {
-        return MicrosoftTeamsOnCallDutyActions.handleOnCallDutyAction({
-          teamsRequest: authResult,
-          action: action,
-          req: req,
-          res: res,
-        });
-      }
-    }
-
-    Response.sendTextResponse(req, res, "");
   }
 }

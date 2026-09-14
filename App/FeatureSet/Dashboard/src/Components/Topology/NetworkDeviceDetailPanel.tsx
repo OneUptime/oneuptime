@@ -1,8 +1,14 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import Link from "Common/UI/Components/Link/Link";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   NetworkTopologyEdge,
+  NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,9 +25,17 @@ import {
   linkStateForEdge,
 } from "./NetworkTopologyMeta";
 import {
+  isUnclassifiedNode,
   roleLabelForNode,
-  roleOfNode,
 } from "../NetworkDevice/TopologyNodeShape";
+import {
+  FdbEdgeEnds,
+  LearnedAttachment,
+  fdbEdgeEnds,
+  isFdbEdge,
+  learnedAttachmentForNode,
+  portLabelForEdgeEnd,
+} from "../NetworkDevice/EndpointNodeUtil";
 
 /*
  * Right-hand detail drawer for a topology device node. Keeps the user on
@@ -43,6 +57,14 @@ export interface ComponentProps {
    * still renders for a viewer who cannot create suppressions.
    */
   onHideNode?: ((node: NetworkTopologyNode) => void) | undefined;
+  /*
+   * Turn this unmanaged neighbour into a monitored NetworkDevice. Optional
+   * for the same reason as onHideNode — a viewer without create permission
+   * is shown the panel without the action rather than an action that fails
+   * — and the caller decides adoptability, so the panel does not have to
+   * know which node kinds qualify.
+   */
+  onAddToMonitoring?: ((node: NetworkTopologyNode) => void) | undefined;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,6 +89,15 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
     return isolationReasonForNode(node, attachedEdges.length > 0);
   }, [node, attachedEdges.length]);
 
+  /*
+   * Read from the edges already narrowed to this node: the attachment is
+   * one of them, and a device with a hundred links should not scan the
+   * whole graph again to find it.
+   */
+  const learnedAttachment: LearnedAttachment | undefined = useMemo(() => {
+    return learnedAttachmentForNode(node, attachedEdges, props.nodeById);
+  }, [node, attachedEdges, props.nodeById]);
+
   const isEndpoint: boolean = node.kind === "endpoint";
 
   const detailRows: Array<{ label: string; value: string }> = [];
@@ -75,7 +106,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
    * drawer is where somebody comes to check that claim. Omitted when the
    * evidence named no role — "Unknown type" is not worth a row.
    */
-  if (roleOfNode(node) !== "unknown") {
+  if (!isUnclassifiedNode(node)) {
     detailRows.push({
       label: translateString("Type") || "Type",
       value: roleLabelForNode(node),
@@ -214,6 +245,53 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+         * Where the network says this device is plugged in, when nobody
+         * drew it. A register or a handset that only answers ping has no
+         * LLDP to report, so its cable used to be a line somebody typed
+         * under Device Links; now it is the port the switch learned the
+         * device's MAC on. This is where the operator finds that out —
+         * and finds out that the line moves with the device when it is
+         * re-cabled, which a typed one never did.
+         */}
+        {learnedAttachment ? (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translateString("Connected to") || "Connected to"}
+            </h3>
+            <p
+              className="mt-2 text-sm font-medium text-gray-900"
+              data-testid="network-topology-learned-attachment"
+            >
+              {[
+                learnedAttachment.switchName,
+                learnedAttachment.port,
+                typeof learnedAttachment.vlanId === "number"
+                  ? `VLAN ${learnedAttachment.vlanId}`
+                  : undefined,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              {translateString(
+                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to.",
+              ) ||
+                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to."}
+            </p>
+            {learnedAttachment.isSwitchPortDown ? (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {translateString("The switch reports that port down.") ||
+                  "The switch reports that port down."}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
             {translateString("Links") || "Links"} ({attachedEdges.length})
@@ -251,10 +329,34 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 const other: NetworkTopologyNode | undefined =
                   props.nodeById.get(otherId);
                 const state: NetworkLinkState = linkStateForEdge(edge);
-                const localSummary: string = describeEndpoint(
-                  isFromEnd ? edge.fromInterface : edge.toInterface,
-                  isFromEnd ? edge.fromPort : edge.toPort,
-                );
+                const localEnd: NetworkTopologyEdgeEndpoint | undefined =
+                  isFromEnd ? edge.fromInterface : edge.toInterface;
+                const localPort: string | undefined = isFromEnd
+                  ? edge.fromPort
+                  : edge.toPort;
+                /*
+                 * A forwarding-table edge names the SWITCH end only: the
+                 * device it learned answers ping and nothing else, so its
+                 * own end has nothing to say and this line used to print
+                 * "?". Show the port the switch learned it on instead —
+                 * the one fact the table established — unless this end is
+                 * known after all, which happens when LLDP also reported
+                 * the pair and the merged edge carries both.
+                 */
+                const learnedEnds: FdbEdgeEnds | undefined = isFdbEdge(edge)
+                  ? fdbEdgeEnds(edge)
+                  : undefined;
+                const describesSwitchEnd: boolean =
+                  learnedEnds !== undefined &&
+                  learnedEnds.learnedId === node.id &&
+                  portLabelForEdgeEnd(localEnd, localPort) === undefined;
+                const localSummary: string =
+                  describesSwitchEnd && learnedEnds
+                    ? describeEndpoint(
+                        learnedEnds.learnerInterface,
+                        learnedEnds.learnerPort,
+                      )
+                    : describeEndpoint(localEnd, localPort);
                 return (
                   <li key={edgeKeyForEdge(edge)} className="py-2">
                     <button
@@ -307,6 +409,37 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 </Link>
               </li>
             </ul>
+          </div>
+        ) : props.onAddToMonitoring ? (
+          /*
+           * The unmanaged counterpart of "Device details", and the answer to
+           * the dead end this drawer used to be: everything above is what
+           * the network reported about a device nobody is watching, and
+           * until now the only thing an operator could do about it was hide
+           * it from the map (issue #3435).
+           */
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translateString("Not monitored") || "Not monitored"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {translateString(
+                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows.",
+              ) ||
+                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows."}
+            </p>
+            <Button
+              title={
+                translateString("Add to Monitoring") || "Add to Monitoring"
+              }
+              icon={IconProp.Add}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="network-topology-add-to-monitoring"
+              onClick={() => {
+                props.onAddToMonitoring?.(node);
+              }}
+            />
           </div>
         ) : (
           <></>

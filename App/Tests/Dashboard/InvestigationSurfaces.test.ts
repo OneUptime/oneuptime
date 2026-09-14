@@ -38,6 +38,18 @@ describe("investigation drawer wiring", () => {
     );
     expect(widget).toContain("<InvestigationDrawer");
     expect(widget).toContain("setInvestigationWindow(zoomWindow)");
+    /*
+     * The zoom pill only renders in the widget's standalone fallback now
+     * that a drag retimes the whole dashboard (#3530), so the entry point a
+     * real board actually reaches is the header button — on whatever
+     * window the widget is charting.
+     */
+    expect(widget).toContain(
+      "setInvestigationWindow(effectiveStartAndEndDate)",
+    );
+    expect(widget).toContain(
+      'aria-label="Investigate this time window in a side panel"',
+    );
 
     const explorer: string = readSquashed(
       "App/FeatureSet/Dashboard/src/Components/Metrics/MetricExplorer.tsx",
@@ -52,13 +64,30 @@ describe("investigation drawer wiring", () => {
       "Common/UI/Components/Charts/ChartLibrary/AreaChart/AreaChart.tsx",
     ]) {
       const source: string = readSquashed(lib);
-      // exemplar + region + time-ref-line handlers all stop propagation.
+      /*
+       * Exemplars still stop propagation from the chart body. Event
+       * markers and regions moved into the shared annotation layer, which
+       * stops both the press and the click itself — the DOM-level proof
+       * lives in Common/Tests/UI/Components/Charts/ChartAnnotationRail.test.tsx.
+       */
       expect(
         source.match(/stopChartEventPropagation\(\.\.\.args\)/g)?.length,
-      ).toBe(3);
+      ).toBe(1);
       // Clicks that clear a selection never also pin.
       expect(source).toContain("onValueChange?.(null); return;");
+      // The annotation layer is fed the same drag-settling guard.
+      expect(source).toContain("isClickSuppressed");
     }
+
+    /*
+     * The layer is the one place all three charts get this from, so its
+     * guards are asserted once, here, rather than three times over.
+     */
+    const layer: string = readSquashed(
+      "Common/UI/Components/Charts/ChartLibrary/Annotations/ChartAnnotationLayer.tsx",
+    );
+    expect(layer).toContain("onMouseDown={stopPress}");
+    expect(layer).toContain("if (!canClick()) { return; }");
   });
 });
 

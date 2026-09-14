@@ -142,3 +142,62 @@ describe("PageSEOConfig", () => {
     expect(new Set(canonicals).size).toBe(canonicals.length);
   });
 });
+
+describe("the VMware product page entry", () => {
+  /*
+   * /product/vmware is the marketing surface for the VMware product. The
+   * template hard-codes its own <title> and meta description, and PageSEO is
+   * what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt and
+   * products.json — so the entry has to exist with the product shape and the
+   * exact breadcrumb trail, not merely pass the generic checks above.
+   */
+  const seo: PageSEOData | undefined = PageSEOConfig["/product/vmware"];
+
+  test("is registered as a product page", () => {
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/vmware");
+    expect(seo!.pageType).toBe("product");
+    expect(seo!.twitterCard).toBe("summary_large_image");
+  });
+
+  test("walks Home → Products → VMware", () => {
+    expect(seo!.breadcrumbs).toEqual([
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "VMware", url: "/product/vmware" },
+    ]);
+  });
+
+  test("describes vSphere, not Proxmox, in its copy", () => {
+    const copy: string = `${seo!.title} ${seo!.description}`;
+
+    expect(seo!.title).toMatch(/VMware Monitoring/);
+    expect(seo!.title).toMatch(/\| OneUptime$/);
+    for (const term of ["vCenter", "ESXi", "datastore"]) {
+      expect(copy).toContain(term);
+    }
+    // Proxmox-only concepts must not leak into the VMware entry.
+    expect(copy).not.toMatch(/proxmox|pve|quorum|replication|backup/i);
+  });
+
+  test("carries a SoftwareApplication schema with the product's features", () => {
+    expect(seo!.softwareApplication).toBeDefined();
+    expect(seo!.softwareApplication!.name).toBe("OneUptime VMware Monitoring");
+    expect(seo!.softwareApplication!.features.length).toBeGreaterThanOrEqual(8);
+
+    const features: string = seo!.softwareApplication!.features.join(" | ");
+    expect(features).toContain("vCenter");
+    expect(features).toMatch(/vSAN/);
+    expect(features).toMatch(/Open source/);
+    expect(features).not.toMatch(/proxmox|quorum|replication|backup/i);
+  });
+
+  test("the topology page counts VMware among its infrastructure sources", () => {
+    const topology: PageSEOData = PageSEOConfig["/product/topology"]!;
+
+    expect(topology.softwareApplication!.description).toContain("VMware");
+    expect(topology.softwareApplication!.features).toContain(
+      "Kubernetes, Proxmox, VMware, Ceph, Docker Swarm & hosts",
+    );
+  });
+});

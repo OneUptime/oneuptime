@@ -69,6 +69,32 @@ const serverState: { dashboardViewConfig: JSONObject | null } = {
 const getItemMock: jest.Mock<any, any> = jest.fn() as jest.Mock<any, any>;
 const updateByIdMock: jest.Mock<any, any> = jest.fn() as jest.Mock<any, any>;
 
+/*
+ * Editing the board is permission-gated (issue #3550), so the toolbar only
+ * offers "Edit Dashboard" to somebody who may write to it. These tests are
+ * about variables, not permissions, so they run as a user who can edit.
+ */
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      /*
+       * Permission.ProjectAdmin - a literal, because a jest.mock factory is
+       * hoisted above the imports and cannot close over the enum.
+       */
+      getAllPermissions: (): Array<string> => {
+        return ["ProjectAdmin"];
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

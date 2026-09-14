@@ -69,6 +69,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | हाँ    | आपका OneUptime इंस्टेंस URL (उदाहरण के लिए `https://oneuptime.com` या आपका स्वयं-होस्ट किया गया होस्ट)                      |
 | `ONEUPTIME_SERVICE_TOKEN` | हाँ    | _प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से Telemetry ingestion token                                                |
 | `DOCKER_HOST_NAME`        | नहीं   | इस होस्ट के लिए सुलभ नाम। डिफ़ॉल्ट रूप से `docker-host`। इसे प्रति होस्ट किसी स्थिर मान पर सेट करें (उदा. `prod-docker-01`) |
+| `DOCKER_API_VERSION`      | नहीं   | Docker Engine API का वह संस्करण जिसमें एजेंट बात करता है। डिफ़ॉल्ट रूप से `1.44`; पुराने daemon वाले होस्ट पर इसे कम करें, या स्वतः नेगोशिएट करने के लिए इसे खाली सेट करें (समस्या निवारण देखें) |
 
 ## इंस्टॉलेशन सत्यापित करें
 
@@ -141,6 +142,33 @@ docker compose down
 ### Docker Socket Permission Denied
 
 `/var/run/docker.sock` तक पहुँचने के लिए एजेंट कंटेनर को root (`--user 0:0`) के रूप में चलना चाहिए। सुनिश्चित करें कि `--user 0:0` फ़्लैग (या Compose में `user: "0:0"`) मौजूद है।
+
+### एजेंट "client version is too new" के साथ रीस्टार्ट होता है
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+daemon अपने स्वयं के अधिकतम से नए किसी क्लाइंट को अस्वीकार कर देता है, इसलिए receiver कभी शुरू ही
+नहीं होता और collector भी उसके साथ बंद हो जाता है। daemon का अधिकतम संस्करण जाँचें और उसे एजेंट को दें:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+फिर `docker run` में `-e DOCKER_API_VERSION=1.41` (या जो मान आपको मिला हो) जोड़ें, या Compose में
+`DOCKER_API_VERSION` सेट करें। नए daemon पुराने API संस्करणों को भी सेवा देते रहते हैं, इसलिए अपग्रेड
+के बाद भी यह सेटिंग वैध बनी रहती है।
+
+यदि आप यह संख्या ढूँढना नहीं चाहते, तो `DOCKER_API_VERSION` को **खाली स्ट्रिंग** पर सेट करें। तब एजेंट
+Docker SDK से कहता है कि वह daemon के साथ संस्करण नेगोशिएट करे (एक `HEAD /_ping`, फिर daemon का अपना
+अधिकतम), जो पुराने और नए दोनों तरह के daemon के साथ काम करता है:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### एजेंट डिसकनेक्टेड के रूप में दिखता है
 

@@ -237,6 +237,8 @@ export default tseslint.config(
         exports: true,
         NodeJS: true,
         PromiseSettledResult: true,
+        AsyncIterable: true,
+        AsyncIterator: true,
       },
       parserOptions: {
         projectService: true,

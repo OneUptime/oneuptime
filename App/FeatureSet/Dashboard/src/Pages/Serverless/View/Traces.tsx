@@ -72,12 +72,21 @@ const ServerlessFunctionTraces: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * The chip's filter value stays the functionIdentifier (what telemetry
+       * carries in faas.name); attributeFilterDisplayValues only swaps what
+       * the chip reads for the function's friendly name.
+       */}
       <TracesViewer
         attributeFilters={{
           "resource.faas.name": serverlessFunction.functionIdentifier,
         }}
         attributeFilterDisplayKeys={{
           "resource.faas.name": "Function",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.faas.name":
+            serverlessFunction.name || serverlessFunction.functionIdentifier,
         }}
       />
     </Fragment>

@@ -1,6 +1,4 @@
-// Set required env vars before importing modules that pull in Config.ts.
-process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
-process.env["PROBE_KEY"] = "test-probe-key";
+import "../../../TestingUtils/DiscoveryEnvironment";
 
 import {
   afterEach,
@@ -15,6 +13,8 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import snmp from "net-snmp";
+import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 
 /*
  * A fake net-snmp session whose `get` is scripted per test, so the probe's
@@ -25,6 +25,7 @@ import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 type SessionScript = {
   error: Error | null;
   varbinds: Array<unknown> | undefined;
+  stalled?: boolean;
 };
 
 const sessionScript: SessionScript = { error: null, varbinds: undefined };
@@ -55,7 +56,9 @@ jest.mock("net-snmp", () => {
           varbinds: Array<unknown> | undefined,
         ) => void,
       ): void => {
-        callback(sessionScript.error, sessionScript.varbinds);
+        if (!sessionScript.stalled) {
+          callback(sessionScript.error, sessionScript.varbinds);
+        }
       },
     };
   };
@@ -66,9 +69,6 @@ jest.mock("net-snmp", () => {
     createV3Session: jest.fn(makeSession),
   };
 });
-
-import snmp from "net-snmp";
-import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 
 function buildConfig(
   overrides?: Partial<MonitorStepSnmpMonitor>,
@@ -119,11 +119,13 @@ function systemGroupVarbinds(): Array<unknown> {
 
 beforeEach(() => {
   sessionScript.error = null;
+  sessionScript.stalled = false;
   sessionScript.varbinds = systemGroupVarbinds();
   sessionCloses.count = 0;
 });
 
 afterEach(() => {
+  jest.useRealTimers();
   jest.clearAllMocks();
 });
 
@@ -286,5 +288,108 @@ describe("SnmpMonitor.probeSystemInfo — callers that pass no callback", () => 
         buildConfig({ snmpVersion: SnmpVersion.V3, snmpV3Auth: undefined }),
       ),
     ).resolves.toBeNull();
+  });
+});
+
+describe("SnmpMonitor.probeSystemInfo whole-session deadlines (#3672)", () => {
+  test("closes a session whose GET callback never arrives", async () => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    sessionScript.stalled = true;
+    const errors: Array<unknown> = [];
+    const pending: Promise<SnmpSystemInfo | null> = SnmpMonitor.probeSystemInfo(
+      buildConfig(),
+      (error: unknown) => {
+        errors.push(error);
+      },
+    );
+    jest.advanceTimersByTime(2500);
+    await expect(pending).resolves.toBeNull();
+    expect(sessionCloses.count).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect((errors[0] as Error).message).toContain("timed out");
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("allows v3 engine discovery and time sync, but bounds the whole session", async () => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    sessionScript.stalled = true;
+    const pending: Promise<SnmpSystemInfo | null> = SnmpMonitor.probeSystemInfo(
+      buildConfig({
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: {
+          username: "discovery",
+          securityLevel: SnmpSecurityLevel.NoAuthNoPriv,
+        },
+      }),
+    );
+    jest.advanceTimersByTime(2500);
+    await Promise.resolve();
+    expect(sessionCloses.count).toBe(0);
+    jest.advanceTimersByTime(4000);
+    await expect(pending).resolves.toBeNull();
+    expect(sessionCloses.count).toBe(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("aborting the scan closes active sessions immediately", async () => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    sessionScript.stalled = true;
+    const controller: AbortController = new AbortController();
+    const pending: Promise<SnmpSystemInfo | null> = SnmpMonitor.probeSystemInfo(
+      buildConfig(),
+      undefined,
+      controller.signal,
+    );
+    const rejected: Promise<void> =
+      expect(pending).rejects.toThrow("scan expired");
+    controller.abort(new Error("scan expired"));
+    await rejected;
+    expect(sessionCloses.count).toBe(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("aborting a large worker pool closes every active session", async () => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    sessionScript.stalled = true;
+    const controller: AbortController = new AbortController();
+    const pending: Array<Promise<SnmpSystemInfo | null>> = [];
+    for (let i: number = 0; i < 128; i++) {
+      pending.push(
+        SnmpMonitor.probeSystemInfo(
+          buildConfig(),
+          undefined,
+          controller.signal,
+        ),
+      );
+    }
+    const results: Promise<Array<PromiseSettledResult<SnmpSystemInfo | null>>> =
+      Promise.allSettled(pending);
+    controller.abort(new Error("scan expired"));
+    const settled: Array<PromiseSettledResult<SnmpSystemInfo | null>> =
+      await results;
+    expect(
+      settled.every((result: PromiseSettledResult<SnmpSystemInfo | null>) => {
+        return result.status === "rejected";
+      }),
+    ).toBe(true);
+    expect(sessionCloses.count).toBe(128);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("does not open a session for an already-aborted scan", async () => {
+    const controller: AbortController = new AbortController();
+    controller.abort(new Error("scan expired"));
+    await expect(
+      SnmpMonitor.probeSystemInfo(buildConfig(), undefined, controller.signal),
+    ).rejects.toThrow("scan expired");
+    expect(snmp.createSession).not.toHaveBeenCalled();
+    expect(snmp.createV3Session).not.toHaveBeenCalled();
+  });
+
+  test("clears the whole-session timer after a healthy response", async () => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    await SnmpMonitor.probeSystemInfo(buildConfig());
+    expect(sessionCloses.count).toBe(1);
+    expect(jest.getTimerCount()).toBe(0);
   });
 });

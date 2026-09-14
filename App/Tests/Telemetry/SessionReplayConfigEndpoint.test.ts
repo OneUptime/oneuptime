@@ -3,6 +3,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -56,6 +58,9 @@ jest.mock("Common/Server/Middleware/TelemetryIngest", () => {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
+      forSurface: jest.fn(() => {
+        return jest.fn();
+      }),
     },
   };
 });
@@ -125,12 +130,48 @@ jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
   };
 });
 
+/*
+ * resolvePolicy is derived from getPolicy so the cases below can keep
+ * seeding one mock; a null policy resolves as "application-not-enabled"
+ * unless a test overrides resolvePolicy itself.
+ */
 jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCache", () => {
+  const getPolicy: ReturnType<typeof jest.fn> = jest.fn();
+
   return {
     __esModule: true,
     default: {
-      getPolicy: jest.fn(),
+      getPolicy: getPolicy,
+      resolvePolicy: jest.fn(async (data: unknown): Promise<unknown> => {
+        const policy: unknown = await getPolicy(data);
+
+        return {
+          policy: policy,
+          refusal: policy ? null : "application-not-enabled",
+        };
+      }),
       isOriginAllowed: jest.fn().mockReturnValue(true),
+    },
+    SessionReplayPolicyRefusal: {
+      ProjectNotAllowed: "project-not-allowed",
+      ApplicationNotEnabled: "application-not-enabled",
+      ApplicationUnknown: "application-unknown",
+      ProjectKilled: "project-killed",
+      IdentifierMissing: "app-identifier-missing",
+    },
+  };
+});
+
+/*
+ * The byte counters the config endpoint now consults before saying
+ * "enabled" (audit finding ingest-10). Default: nothing used.
+ */
+jest.mock("Common/Server/Utils/SessionReplay/SessionReplayUsage", () => {
+  return {
+    __esModule: true,
+    default: {
+      getProjectBytesUsedToday: jest.fn(),
+      getApplicationBytesUsedThisMonth: jest.fn(),
     },
   };
 });
@@ -155,7 +196,9 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
     default: {
+      getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
+      markUsed: jest.fn(),
     },
   };
 });
@@ -165,6 +208,7 @@ jest.mock("Common/Server/Services/RumApplicationService", () => {
     __esModule: true,
     default: {
       markSessionReplayChunkReceived: jest.fn(),
+      updateLastSeen: jest.fn(),
       markSessionReplayBudgetExceeded: jest.fn(),
     },
   };
@@ -213,6 +257,8 @@ jest.mock("../../FeatureSet/Telemetry/Config", () => {
     SESSION_REPLAY_ENABLED_BY_DEFAULT: true,
     SESSION_REPLAY_INGEST_ENABLED: true,
     SESSION_REPLAY_TRUSTED_GEO_HEADER: "",
+    SESSION_REPLAY_DEBUG: false,
+    SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: 1024 * 1024 * 1024,
   };
 });
 
@@ -229,18 +275,24 @@ jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
     RECORDER_VERSION_PATTERN: /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
     getArtifactFilePath: jest.fn(),
     getPinnedRecorderPath: jest.fn(),
-    getRecorderVersion: (): string => {
+    getRecorderVersion: jest.fn((): string | null => {
       return "11.7.3";
-    },
-    getRecorderIntegrity: (): string | null => {
+    }),
+    getRecorderIntegrity: jest.fn((): string | null => {
       return null;
-    },
+    }),
   };
 });
 
 import Response from "Common/Server/Utils/Response";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import SessionReplayGateCache from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
+import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
+import {
+  getRecorderIntegrity,
+  getRecorderVersion,
+} from "../../FeatureSet/BrowserRecorder/Manifest";
 // Importing the router module registers the routes on the mocked router.
 import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
 
@@ -248,15 +300,37 @@ type MockedFn = ReturnType<typeof jest.fn>;
 
 const getPolicyMock: MockedFn =
   SessionReplayGateCache.getPolicy as unknown as MockedFn;
+const resolvePolicyMock: MockedFn =
+  SessionReplayGateCache.resolvePolicy as unknown as MockedFn;
+const bytesUsedTodayMock: MockedFn =
+  SessionReplayUsage.getProjectBytesUsedToday as unknown as MockedFn;
+const bytesUsedThisMonthMock: MockedFn =
+  SessionReplayUsage.getApplicationBytesUsedThisMonth as unknown as MockedFn;
 const consumeTargetMock: MockedFn =
   SessionReplayTargeting.consumeTarget as unknown as MockedFn;
 const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
+const updateLastSeenMock: MockedFn =
+  RumApplicationService.updateLastSeen as unknown as MockedFn;
+const getRecorderVersionMock: MockedFn =
+  getRecorderVersion as unknown as MockedFn;
+const getRecorderIntegrityMock: MockedFn =
+  getRecorderIntegrity as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 const APP_IDENTIFIER: string = "checkout-web";
 const CONFIG_ROUTE: string = "/session-replay/v1/config";
+const EXPECTED_CONFIG_VARY: string = [
+  "Origin",
+  "x-oneuptime-token",
+  "x-oneuptime-service-token",
+  "x-oneuptime-ingestion-key",
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+].join(", ");
 
 function buildPolicy(overrides?: Record<string, unknown>): unknown {
   return {
@@ -341,7 +415,78 @@ async function callConfigRoute(
 describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
     consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * The config fetch is the ONLY request a healthy recorder makes under the
+   * shipped default policy - capture trigger OnErrorOrFrustration, sample
+   * percentage 0 - because nothing uploads until something goes wrong. So it
+   * is the only honest liveness signal replay has, and without it an
+   * application instrumented with the replay snippet alone sat on the
+   * Dashboard as "Disconnected" with a Last Seen days old while its recorders
+   * were fetching policy from this very route.
+   */
+  describe("RUM application liveness", () => {
+    test("an enabled application is kept connected by the policy fetch alone", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).toHaveBeenCalledTimes(1);
+      expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    });
+
+    /*
+     * A sample percentage of 0 is the SHIPPED DEFAULT, and it is what the
+     * reporter on #3527 was running. It must not make the application look
+     * dead: the recorder is running, it is just not uploading yet.
+     */
+    test("a 0% sample percentage still counts as alive", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ samplePercentage: 0 }) as never,
+      );
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    });
+
+    /*
+     * No policy means no application resolved at all, so there is nothing to
+     * mark alive - and nothing to auto-create from an unauthenticated-shaped
+     * identifier either.
+     */
+    test("a disabled or unknown application is not marked alive", async () => {
+      getPolicyMock.mockResolvedValue(null as never);
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).not.toHaveBeenCalled();
+    });
+
+    test("a failed liveness write still returns a usable config", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+      updateLastSeenMock.mockRejectedValue(new Error("postgres down") as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+    });
   });
 
   test("the live config mirrors the correlation and performance policy verbatim", async () => {
@@ -363,7 +508,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
 
     /* And Vary keeps a shared cache from reusing them for identified fetches. */
-    expect(res.headers["Vary"]).toBe(SESSION_REPLAY_USER_REF_HEADER);
+    expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
 
     /* No user-ref header arrived, so Redis was never consulted. */
     expect(consumeTargetMock).not.toHaveBeenCalled();
@@ -451,6 +596,225 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(consumeTargetMock).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * WHY a config says enabled:false.
+   *
+   * The disabled response is deliberately a well-formed config rather than an
+   * error, so a recorder that cannot parse one refuses to record. The cost of
+   * that was a single answer for five very different causes: from a browser,
+   * an instance kill switch, a deployment whose recorder bundle was never
+   * built, an application somebody switched off and a Redis outage were all
+   * "enabled: false" and nothing else - and no amount of dashboard
+   * configuration fixes three of them.
+   */
+  test("a disabled application says WHY it is disabled", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("not-enabled-for-application");
+  });
+
+  /*
+   * Fail closed AND say that it failed. A policy lookup that throws produced
+   * a response identical to "this application is switched off", which sent
+   * the customer to a settings page that was already correct.
+   */
+  test("a policy lookup that throws is reported as unavailable, not as disabled", async () => {
+    getPolicyMock.mockRejectedValue(new Error("redis down") as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("policy-unavailable");
+  });
+
+  /*
+   * A live config has nothing to explain, and a stray disabledReason on one
+   * would make the recorder log a warning about a policy that is working.
+   */
+  test("a live config carries no disabledReason", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["disabledReason"]).toBeUndefined();
+  });
+
+  /*
+   * Recorder diagnostics are off unless the deployment asks for them. This
+   * script runs on customers' sites in their end users' browsers, so the
+   * default has to be silence.
+   */
+  test("does not ask recorders to log when SESSION_REPLAY_DEBUG is unset", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const live: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(live["debug"]).toBeUndefined();
+
+    jest.clearAllMocks();
+    consumeTargetMock.mockResolvedValue(false as never);
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const disabled: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(disabled["debug"]).toBe(false);
+  });
+
+  describe("web and native recorder negotiation", () => {
+    test("an absent recorder-kind header preserves the web artifact contract", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
+      expect(getRecorderIntegrityMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("an explicit dom kind follows the same web path", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({ [SESSION_REPLAY_RECORDER_KIND_HEADER]: "dom" }),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("native config is enabled without loading a BrowserRecorder version or integrity", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const res: FakeResponse = buildResponse();
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.checkout",
+        }),
+        res,
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("");
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      expect(getRecorderIntegrityMock).not.toHaveBeenCalled();
+      expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
+    });
+
+    test("native config remains available when no BrowserRecorder artifact exists", async () => {
+      getRecorderVersionMock.mockImplementation((): null => {
+        return null;
+      });
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.checkout",
+        }),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["disabledReason"]).toBeUndefined();
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+    });
+
+    test("web config still fails closed when its BrowserRecorder artifact is missing", async () => {
+      getRecorderVersionMock.mockReturnValueOnce(null as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(false);
+      expect(body["disabledReason"]).toBe("recorder-not-built");
+      expect(getPolicyMock).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      "",
+      "DOM",
+      "RN-VIEW-TREE",
+      " rn-view-tree",
+      "rn-view-tree ",
+      "mobile",
+      "unknown",
+    ])("rejects unsupported recorder-kind header %j", async (kind: string) => {
+      const res: FakeResponse = buildResponse();
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({ [SESSION_REPLAY_RECORDER_KIND_HEADER]: kind }),
+        res,
+      );
+
+      expect(body["error"]).toBe("unsupported-recorder-kind");
+      expect(
+        (
+          sendJsonMock.mock.calls[0]?.[3] as {
+            statusCode: { toNumber: () => number };
+          }
+        ).statusCode.toNumber(),
+      ).toBe(400);
+      expect(getPolicyMock).not.toHaveBeenCalled();
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
+    });
+
+    test.each([
+      ["missing", undefined],
+      ["empty", ""],
+      ["single-label", "checkout"],
+      ["path-shaped", "../checkout"],
+      ["wildcard", "com.example.*"],
+    ])(
+      "rejects a %s native mobile app identifier",
+      async (_name: string, identifier: string | undefined) => {
+        const headers: Record<string, string> = {
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+        };
+
+        if (identifier !== undefined) {
+          headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER] = identifier;
+        }
+
+        const body: JSONObject = await callConfigRoute(
+          buildRequest(headers),
+          buildResponse(),
+        );
+
+        expect(body["error"]).toBe("invalid-mobile-app-identifier");
+        expect(getPolicyMock).not.toHaveBeenCalled();
+        expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   test("malformed percent-encoding matches the literal header value instead of erroring", async () => {
     getPolicyMock.mockResolvedValue(buildPolicy() as never);
 
@@ -465,5 +829,169 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       appIdentifier: APP_IDENTIFIER,
       userRef: "user-%E0%A4%A",
     });
+  });
+});
+
+/*
+ * Audit finding ingest-9: "not-enabled-for-application" covered four
+ * different switches. The disabledReason keeps the recorder's closed
+ * vocabulary and an additive disabledDetail names the switch.
+ */
+describe("GET /session-replay/v1/config names the switch that is off", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("a switched-off project is reported as project-not-allowed", async () => {
+    resolvePolicyMock.mockResolvedValueOnce({
+      policy: null,
+      refusal: "project-not-allowed",
+    } as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("not-enabled-for-application");
+    expect(body["disabledDetail"]).toBe("project-not-allowed");
+  });
+
+  test("a switched-off application is reported as application-not-enabled", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledDetail"]).toBe("application-not-enabled");
+  });
+
+  test("a live config carries no disabledDetail", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["disabledDetail"]).toBeUndefined();
+  });
+});
+
+/*
+ * Audit finding ingest-10. Once a byte budget is spent every chunk is
+ * refused, so a config that still said "enabled" made every page load run
+ * rrweb, buffer, gzip and POST just to be told no. The config now answers a
+ * complete disabled response with its own reason, the reset instant, and a
+ * short cache so the first page load after the reset records.
+ */
+describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("the project's daily budget spent means enabled:false with budget-exhausted", async () => {
+    bytesUsedTodayMock.mockResolvedValue((1024 * 1024 * 1024) as never);
+
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["directive"]).toBe("stop");
+    expect(body["disabledReason"]).toBe("budget-exhausted");
+    expect(body["disabledDetail"]).toBe("project-daily-budget-exhausted");
+
+    /* Resets at the next UTC midnight. */
+    const resetsAt: Date = new Date(String(body["budgetResetsAt"]));
+    expect(resetsAt.getTime()).toBeGreaterThan(Date.now());
+    expect(resetsAt.getUTCHours()).toBe(0);
+    expect(resetsAt.getUTCMinutes()).toBe(0);
+
+    /* Short cache, so the pause lifts within a minute of the reset. */
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=60");
+    expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
+  });
+
+  test("the application's monthly budget spent is reported with its own detail", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 2 }) as never,
+    );
+    bytesUsedThisMonthMock.mockResolvedValue((2 * 1024 * 1024 * 1024) as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("budget-exhausted");
+    expect(body["disabledDetail"]).toBe("app-monthly-budget-exhausted");
+
+    const resetsAt: Date = new Date(String(body["budgetResetsAt"]));
+    expect(resetsAt.getUTCDate()).toBe(1);
+    expect(bytesUsedThisMonthMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      rumApplicationId: RUM_APPLICATION_ID,
+    });
+  });
+
+  test("an application with no monthly budget never consults the monthly counter", async () => {
+    await callConfigRoute(buildRequest(), buildResponse());
+
+    expect(bytesUsedThisMonthMock).not.toHaveBeenCalled();
+  });
+
+  test("an unreadable counter does NOT disable: the chunk gate fails closed on its own", async () => {
+    bytesUsedTodayMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+  });
+
+  test("usage under the budget is enabled, with the ordinary 5-minute cache", async () => {
+    bytesUsedTodayMock.mockResolvedValue((512 * 1024 * 1024) as never);
+
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
+
+    expect(body["enabled"]).toBe(true);
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+  });
+
+  test("a budget pause still counts as the recorder being alive", async () => {
+    bytesUsedTodayMock.mockResolvedValue((1024 * 1024 * 1024) as never);
+
+    await callConfigRoute(buildRequest(), buildResponse());
+
+    expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
   });
 });

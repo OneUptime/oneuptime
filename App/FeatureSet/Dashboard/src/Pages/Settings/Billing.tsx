@@ -96,13 +96,17 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   const [balance, setBalance] = useState<number>(0);
 
-  const [paymentMethodsCount, setPaymentMethodsCount] = useState<number>(0);
+  const [paymentMethodsCount, setPaymentMethodsCount] = useState<number | null>(
+    null,
+  );
+  const [paymentMethodsRefresh, setPaymentMethodsRefresh] = useState<number>(0);
   const [showNoPaymentMethodModal, setShowNoPaymentMethodModal] =
     useState<boolean>(false);
 
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
-  const formRef: any = useRef<any>(null);
+  const formRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const projectCrudRoute: Route | null = new Project().getCrudApiPath();
@@ -131,7 +135,23 @@ const Settings: FunctionComponent<ComponentProps> = (
           });
         setPaymentMethodsCount(result.count);
       } catch {
-        setPaymentMethodsCount(0);
+        setPaymentMethodsCount(null);
+      }
+    };
+
+  const countSyncedPaymentMethods: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        // Listing again would replace the row IDs already held by the table.
+        const count: number = await ModelAPI.count<BillingPaymentMethod>({
+          modelType: BillingPaymentMethod,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+        });
+        setPaymentMethodsCount(count);
+      } catch {
+        setPaymentMethodsCount(null);
       }
     };
 
@@ -341,6 +361,9 @@ const Settings: FunctionComponent<ComponentProps> = (
   const fetchSetupIntent: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsModalLoading(true);
+      setIsModalSubmitButtonLoading(false);
+      setModalError(null);
+      setSetupIntent("");
 
       const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
         {
@@ -391,9 +414,10 @@ const Settings: FunctionComponent<ComponentProps> = (
               name="Plan Details"
               cardProps={{
                 title: "Current Plan",
-                description: "Here is the plan this project is subscribed to.",
+                description:
+                  "Your subscription plan controls included features. Pay as you go usage is billed separately.",
               }}
-              isEditable={true}
+              isEditable={paymentMethodsCount !== null}
               editButtonText={"Change Plan"}
               onBeforeEdit={() => {
                 if (paymentMethodsCount === 0) {
@@ -434,14 +458,16 @@ const Settings: FunctionComponent<ComponentProps> = (
                       isSubscriptionPlanYearly &&
                       plan.getYearlySubscriptionAmountInUSD() === 0
                     ) {
-                      description = "This plan is free, forever. ";
+                      description =
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
                     }
 
                     if (
                       !isSubscriptionPlanYearly &&
                       plan.getMonthlySubscriptionAmountInUSD() === 0
                     ) {
-                      description = "This plan is free, forever. ";
+                      description =
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
                     }
 
                     return {
@@ -512,14 +538,16 @@ const Settings: FunctionComponent<ComponentProps> = (
                         isYearlyPlan &&
                         plan.getYearlySubscriptionAmountInUSD() === 0
                       ) {
-                        description = "This plan is free, forever. ";
+                        description =
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
                       }
 
                       if (
                         !isYearlyPlan &&
                         plan.getMonthlySubscriptionAmountInUSD() === 0
                       ) {
-                        description = "This plan is free, forever. ";
+                        description =
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
                       }
 
                       return (
@@ -644,6 +672,10 @@ const Settings: FunctionComponent<ComponentProps> = (
             isEditable={false}
             isCreateable={false}
             isViewable={false}
+            refreshToggle={paymentMethodsRefresh.toString()}
+            onItemDeleted={countSyncedPaymentMethods}
+            // Table filters can hide saved methods; plan controls need the unfiltered count.
+            onFetchSuccess={countSyncedPaymentMethods}
             name="Settings > Billing > Add Payment Method"
             cardProps={{
               buttons: [
@@ -659,7 +691,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               ],
               title: "Payment Methods",
               description:
-                "Here is a list of payment methods attached to this project.",
+                "Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
             }}
             noItemsMessage={"No payment methods found."}
             query={{
@@ -716,7 +748,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             <ConfirmModal
               title={`Add a Payment Method`}
               description={
-                "You need to add a payment method before you can change your plan. Please add a payment method to continue."
+                "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates."
               }
               submitButtonText={"Add Payment Method"}
               onSubmit={async () => {
@@ -736,19 +768,24 @@ const Settings: FunctionComponent<ComponentProps> = (
             <Modal
               title={`Add Payment Method`}
               onSubmit={async () => {
+                if (!formRef.current) {
+                  return;
+                }
+                setModalError(null);
                 setIsModalSubmitButtonLoading(true);
                 formRef.current.click();
               }}
               isLoading={isModalSubmitButtonLoading}
+              disableSubmitButton={isModalLoading || !setupIntent || !stripe}
               onClose={() => {
                 setShowPaymentMethodModal(false);
               }}
-              submitButtonText={`Save`}
+              submitButtonText={`Save payment method`}
               error={modalError || ""}
               isBodyLoading={isModalLoading}
               submitButtonType={ButtonType.Submit}
             >
-              {setupIntent && !modalError && stripe ? (
+              {setupIntent && stripe ? (
                 <Elements
                   stripe={stripe}
                   options={{
@@ -777,6 +814,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                     onSuccess={async () => {
                       setIsModalSubmitButtonLoading(false);
                       await fetchPaymentMethodsCount();
+                      setPaymentMethodsRefresh((value: number) => {
+                        return value + 1;
+                      });
+                      setShowPaymentMethodModal(false);
                     }}
                     onError={(errorMessage: string) => {
                       setModalError(errorMessage);

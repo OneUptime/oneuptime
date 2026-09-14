@@ -1,4 +1,10 @@
-import { MutableRefObject, useCallback, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -36,8 +42,28 @@ export function useUserEmailRegistrationStatus(options?: {
   > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestEmail: MutableRefObject<string> = useRef<string>("");
 
-  const getRequestHeaders: (() => Dictionary<string>) | undefined =
-    options?.getRequestHeaders;
+  /*
+   * Held in a ref so a caller that writes its options inline - which is every
+   * caller - does not get a new checkEmail on every render, and through it a
+   * new field definition and a new re-render of the form it is attached to.
+   */
+  const getRequestHeaders: MutableRefObject<
+    (() => Dictionary<string>) | undefined
+  > = useRef<(() => Dictionary<string>) | undefined>(
+    options?.getRequestHeaders,
+  );
+
+  getRequestHeaders.current = options?.getRequestHeaders;
+
+  // A check still in flight when the form closes has nowhere to report to.
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = null;
+      }
+    };
+  }, []);
 
   const checkEmail: (email: string) => void = useCallback(
     (email: string): void => {
@@ -64,7 +90,9 @@ export function useUserEmailRegistrationStatus(options?: {
               data: {
                 email: trimmedEmail,
               },
-              ...(getRequestHeaders ? { headers: getRequestHeaders() } : {}),
+              ...(getRequestHeaders.current
+                ? { headers: getRequestHeaders.current() }
+                : {}),
             });
 
           if (latestEmail.current !== trimmedEmail) {
@@ -86,7 +114,7 @@ export function useUserEmailRegistrationStatus(options?: {
         }
       }, 400);
     },
-    [getRequestHeaders],
+    [],
   );
 
   return { isEmailRegistered, checkEmail };

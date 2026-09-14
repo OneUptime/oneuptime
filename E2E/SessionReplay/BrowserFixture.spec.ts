@@ -1,0 +1,1347 @@
+import {
+  BrowserContext,
+  FrameLocator,
+  Locator,
+  Page,
+  expect,
+  test,
+} from "@playwright/test";
+import { mkdir } from "fs/promises";
+import path from "path";
+
+const artifacts: string = path.resolve(
+  __dirname,
+  "../../output/playwright/session-replay-ui",
+);
+const applicationRoute: string =
+  "/dashboard/10000000-0000-4000-8000-000000000001/rum/20000000-0000-4000-8000-000000000001";
+const listRoute: string = `${applicationRoute}/session-replay`;
+const usersRoute: string = `${applicationRoute}/session-replay-users`;
+const healthRoute: string = `${applicationRoute}/session-replay-health`;
+const policyRoute: string = `${applicationRoute}/session-replay-settings`;
+const documentationRoute: string = `${applicationRoute}/session-replay-documentation`;
+const playerRoute: string = `${listRoute}/${"a".repeat(32)}`;
+interface FixtureRequest {
+  route: string;
+  data: Record<string, unknown>;
+}
+interface FixtureState {
+  requests: Array<FixtureRequest>;
+  failList: boolean;
+}
+const state: (page: Page) => Promise<FixtureState> = async (
+  page: Page,
+): Promise<FixtureState> => {
+  return page.evaluate((): FixtureState => {
+    return (window as unknown as { __sessionReplayFixture: FixtureState })
+      .__sessionReplayFixture;
+  });
+};
+const lastListRequest: (
+  page: Page,
+) => Promise<Record<string, unknown>> = async (
+  page: Page,
+): Promise<Record<string, unknown>> => {
+  const requests: Array<FixtureRequest> = (await state(page)).requests.filter(
+    (request: FixtureRequest): boolean => {
+      return request.route === "list";
+    },
+  );
+  return requests[requests.length - 1]!.data;
+};
+const rows: (page: Page) => Locator = (page: Page): Locator => {
+  return page.locator('[data-testid="session-row"]:visible');
+};
+const openList: (page: Page, query?: string) => Promise<void> = async (
+  page: Page,
+  query: string = "",
+): Promise<void> => {
+  await page.goto(`${listRoute}${query}`);
+  await expect(page.getByTestId("session-search-input")).toBeVisible();
+};
+const openHealth: (page: Page, scenario?: string) => Promise<void> = async (
+  page: Page,
+  scenario: string = "",
+): Promise<void> => {
+  await page.goto(`${healthRoute}${scenario ? `?health=${scenario}` : ""}`);
+  await expect(page.getByTestId("health-hero")).toBeVisible();
+  await expect(page.getByTestId("health-level")).not.toHaveText("loading");
+};
+const openPlayer: (page: Page, query?: string) => Promise<void> = async (
+  page: Page,
+  query: string = "",
+): Promise<void> => {
+  await page.goto(`${playerRoute}${query}`);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .getByText("Complete your order"),
+  ).toBeVisible();
+};
+const openMobilePlayer: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.goto(`${playerRoute}?recorder=mobile`);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .locator('[data-oneuptime-mobile-view="view"]')
+      .first(),
+  ).toBeVisible();
+};
+const facet: (
+  page: Page,
+  field: string,
+  option: string,
+) => Promise<void> = async (
+  page: Page,
+  field: string,
+  option: string,
+): Promise<void> => {
+  await page
+    .getByTestId(`session-facet-${field}`)
+    .getByRole("button")
+    .first()
+    .click();
+  await page
+    .getByRole("option")
+    .filter({ has: page.getByText(option, { exact: true }) })
+    .click();
+};
+const screenshot: (page: Page, name: string) => Promise<void> = async (
+  page: Page,
+  name: string,
+): Promise<void> => {
+  await mkdir(artifacts, { recursive: true });
+  await page.screenshot({
+    path: path.join(artifacts, `${name}.png`),
+    fullPage: true,
+  });
+};
+const clockSeconds: (text: string) => number = (text: string): number => {
+  const match: RegExpMatchArray | null = text.match(
+    /(\d+):(\d+(?:\.\d+)?)\s*\//,
+  );
+  if (!match) {
+    throw new Error(`Unreadable replay clock: ${text}`);
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+const noHorizontalOverflow: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  expect(
+    await page.evaluate((): number => {
+      return document.documentElement.scrollWidth - window.innerWidth;
+    }),
+  ).toBeLessThanOrEqual(1);
+};
+
+test("uses the shared table and groups replay navigation in its own category", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+  await expect(rows(page)).toHaveCount(8);
+  await expect(
+    page.getByTestId("session-table").getByRole("table"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "User & device", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("session-replay-facets")).toBeVisible();
+  await expect(page.getByTestId("session-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
+  await expect(
+    page.getByTestId("pagination-items-on-page-select").locator("option"),
+  ).toHaveText(["20", "50", "100"]);
+  await expect(
+    page.getByRole("button", { name: "Users", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Set up recording", exact: true }),
+  ).toHaveCount(0);
+  const section: Locator = page
+    .locator("h6")
+    .filter({ hasText: /^Session Replay$/ })
+    .locator("../..")
+    .locator("..");
+  await expect(section.getByRole("link")).toHaveText([
+    "Session Replay",
+    "Replay Users",
+    "Health",
+    "Replay Policy",
+    "Replay Access Log",
+    "Documentation",
+  ]);
+  await expect(
+    section.getByRole("link", { name: "Replay Users" }),
+  ).toHaveAttribute("href", usersRoute);
+  await expect(
+    section.getByRole("link", { name: "Documentation" }),
+  ).toHaveAttribute("href", documentationRoute);
+  await expect(
+    section.getByRole("link", { name: "Health", exact: true }),
+  ).toHaveAttribute("href", healthRoute);
+  /* Recording health lives on its own page now, not above the list. */
+  await expect(page.getByTestId("health-strip")).toHaveCount(0);
+  await expect(page.getByTestId("health-hero")).toHaveCount(0);
+  await expect(
+    section.getByRole("link", { name: "Replay Policy" }),
+  ).toHaveAttribute("href", `${applicationRoute}/session-replay-settings`);
+  await expect(
+    section.getByRole("link", { name: "Replay Access Log" }),
+  ).toHaveAttribute("href", `${applicationRoute}/session-replay-audit`);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-list");
+  await page
+    .getByRole("button", { name: "Session Replay", exact: true })
+    .click();
+  await expect(
+    section.getByRole("button", { name: "Session Replay", exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await page
+    .getByRole("button", { name: "Session Replay", exact: true })
+    .click();
+  await expect(
+    section.getByRole("button", { name: "Session Replay", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
+});
+
+test("the health page reads a healthy application stage by stage", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page);
+  await expect(page.getByTestId("health-level")).toHaveText("healthy");
+  await expect(page.getByTestId("health-title")).toHaveText(
+    "Recording healthy",
+  );
+  await expect(page.getByTestId("health-action")).toHaveCount(0);
+  const stages: Locator = page
+    .getByTestId("health-pipeline")
+    .getByRole("listitem");
+  await expect(stages).toHaveCount(4);
+  for (const key of ["recorder", "policy", "uploads", "sessions"]) {
+    await expect(page.getByTestId(`health-stage-${key}`)).toHaveAttribute(
+      "data-tone",
+      "ok",
+    );
+  }
+  await expect(page.getByTestId("health-stage-sessions-value")).toHaveText("8");
+  await expect(page.getByTestId("health-refusals")).toHaveAttribute(
+    "data-kind",
+    "none",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toContainText(
+    "of 1 GB",
+  );
+  await expect(page.getByTestId("health-policy-consent")).toContainText(
+    "Not required",
+  );
+  await expect(page.getByTestId("health-capabilities")).toContainText(
+    "frustration",
+  );
+  await expect(page.getByTestId("diagnostics-paste-box")).toBeVisible();
+  /* Every stage sits side by side on a laptop-wide viewport. */
+  const tops: Array<number> = await stages.evaluateAll(
+    (items: Array<Element>): Array<number> => {
+      return items.map((item: Element): number => {
+        return Math.round(item.getBoundingClientRect().top);
+      });
+    },
+  );
+  expect(new Set(tops).size).toBe(1);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-health");
+  /* Refresh reads the status again. */
+  const before: number = (await state(page)).requests.filter(
+    (request: FixtureRequest): boolean => {
+      return request.route === "ingest-status";
+    },
+  ).length;
+  await page.getByTestId("health-refresh").click();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await state(page)).requests.filter(
+        (request: FixtureRequest): boolean => {
+          return request.route === "ingest-status";
+        },
+      ).length;
+    })
+    .toBeGreaterThan(before);
+  await expect(page.getByTestId("health-level")).toHaveText("healthy");
+});
+
+test("the health page names refusals, the stage they stop and the fix", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page, "refusing");
+  await expect(page.getByTestId("health-level")).toHaveText("refusing");
+  await expect(page.getByTestId("health-title")).toHaveText(
+    "212 uploads refused in 24h: origin not allowed",
+  );
+  await expect(page.getByTestId("health-stage-uploads")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.getByTestId("health-stage-uploads-value")).toHaveText(
+    "221 refused",
+  );
+  const refusalRows: Locator = page.getByTestId("health-refusals-row");
+  await expect(refusalRows).toHaveCount(2);
+  await expect(refusalRows.first()).toHaveAttribute(
+    "data-reason",
+    "origin-not-allowed",
+  );
+  await expect(refusalRows.first()).toContainText("Origin not allowed");
+  await expect(page.getByTestId("health-drops-row")).toContainText(
+    "scrub-incomplete",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.getByTestId("health-policy-origins")).toContainText(
+    "Any origin the ingestion key allows",
+  );
+  await screenshot(page, "session-replay-health-refusing");
+  /* The one action goes to the page that owns allowed origins. */
+  await expect(
+    page.getByTestId("health-action").locator("xpath=ancestor::a"),
+  ).toHaveAttribute("href", policyRoute);
+  await page.getByTestId("health-action").click();
+  await expect(page).toHaveURL(new RegExp(`${policyRoute}$`));
+  /* The policy page keeps only the summary, and links back. */
+  await expect(page.getByTestId("health-card")).toHaveAttribute(
+    "data-state",
+    "refusing",
+  );
+  await expect(page.getByTestId("health-pipeline")).toHaveCount(0);
+  await page.getByRole("button", { name: "View health details" }).click();
+  await expect(page).toHaveURL(new RegExp(`${healthRoute}`));
+  await expect(page.getByTestId("health-hero")).toBeVisible();
+});
+
+test("the health page separates a switched-off project from a recorder that never loaded", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page, "disabled");
+  await expect(page.getByTestId("health-level")).toHaveText("disabled-project");
+  await expect(page.getByTestId("health-stage-policy")).toHaveAttribute(
+    "data-tone",
+    "error",
+  );
+  await expect(page.getByTestId("health-action")).toHaveText("Turn it on");
+  await openHealth(page, "never");
+  await expect(page.getByTestId("health-level")).toHaveText("never-loaded");
+  await expect(page.getByTestId("health-stage-recorder-value")).toHaveText(
+    "Never",
+  );
+  await expect(page.getByTestId("health-stage-uploads")).toHaveAttribute(
+    "data-tone",
+    "neutral",
+  );
+  await expect(page.getByTestId("health-refusals")).toHaveAttribute(
+    "data-kind",
+    "unknown",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toContainText(
+    "Unknown",
+  );
+  await expect(page.getByTestId("health-capabilities")).toContainText(
+    "not reported yet",
+  );
+  await expect(page.getByTestId("health-action")).toHaveText(
+    "Open the setup guide",
+  );
+  await screenshot(page, "session-replay-health-never-loaded");
+});
+
+test("the health page fits a narrow viewport", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHealth(page, "refusing");
+  await expect(page.getByTestId("health-pipeline")).toBeVisible();
+  await expect(page.getByTestId("health-refresh")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-health-mobile");
+});
+
+test("the users page rolls the window up by person and hands one person to the list", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(usersRoute);
+  await expect(
+    page.locator('[data-testid="session-user-row"]:visible').first(),
+  ).toBeVisible();
+  await expect(page.getByTestId("session-search-input")).toHaveCount(0);
+  await expect(
+    page.getByRole("columnheader", { name: "Last seen", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("session-users-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-users-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-users");
+  /*
+   * A visitor row: its id crosses as visitor= and the request sends it
+   * back as visitorId, the one hand-off with nothing to look up on the
+   * way (an identified row's parked label is swapped in as the list
+   * mounts; its userKey= stays in the URL, see the list's unit tests).
+   */
+  await page
+    .locator('[data-testid="session-user-row"][data-group-key^="v:"]')
+    .first()
+    .getByTestId("session-user-view-sessions")
+    .click();
+  await expect(page).toHaveURL(/session-replay\?(.*&)?visitor=[0-9a-f]{32}/);
+  await expect(rows(page).first()).toBeVisible();
+  const request: Record<string, unknown> = await lastListRequest(page);
+  const filters: Record<string, unknown> = request["filters"] as Record<
+    string,
+    unknown
+  >;
+  expect(typeof filters["visitorId"]).toBe("string");
+  expect(filters["identifiedUserRef"]).toBeUndefined();
+  await page.getByRole("link", { name: "Replay Users", exact: true }).click();
+  /* The default window crosses as absence: the bare route, no query. */
+  await expect(page).toHaveURL(new RegExp(`${usersRoute}$`));
+});
+
+test("combines facets, synchronizes URL and clears filters across the entire result", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+  await facet(page, "browserName", "Chrome");
+  await expect(rows(page)).toHaveCount(3);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
+    .toMatchObject({ browserNames: ["Chrome"] });
+  await facet(page, "signal", "Errors");
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
+    .toMatchObject({ browserNames: ["Chrome"], hasError: true });
+  await expect(page).toHaveURL(/browser=Chrome/);
+  await expect(page).toHaveURL(/signal=errors/);
+  await screenshot(page, "session-replay-filtered");
+  await page.reload();
+  await expect(page.getByTestId("session-facet-browserName")).toContainText(
+    "Chrome",
+  );
+  await expect(page.getByTestId("session-facet-signal")).toContainText(
+    "Errors",
+  );
+  await page.getByTestId("session-clear-filters").click();
+  await expect(rows(page)).toHaveCount(8);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
+    .toEqual({});
+});
+
+test("country search and duration facets issue the expected endpoint values", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+  await page
+    .getByTestId("session-facet-countryCode")
+    .getByRole("button")
+    .first()
+    .click();
+  await page.getByRole("dialog").getByRole("textbox").fill("United Kingdom");
+  await screenshot(page, "session-replay-facet");
+  await page
+    .getByRole("option", { name: "United Kingdom (GB)", exact: true })
+    .click();
+  await expect(rows(page)).toHaveCount(3);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
+    .toMatchObject({ countryCodes: ["GB"] });
+  await facet(page, "minDurationSeconds", "At least 2 minutes");
+  await expect(rows(page)).toHaveCount(1);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
+    .toMatchObject({ countryCodes: ["GB"], minDurationMs: 120000 });
+  await page
+    .getByRole("button", { name: "Clear Country filter", exact: true })
+    .click();
+  await expect(rows(page)).toHaveCount(3);
+});
+
+test("search guidance is optional and an empty result offers a direct reset", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+  await expect(page.getByTestId("session-search-hint")).toHaveCount(0);
+  await page.getByRole("button", { name: "Search help", exact: true }).click();
+  await expect(page.getByTestId("session-search-hint")).toBeVisible();
+  await page.getByTestId("session-search-input").fill("absent-customer");
+  await page.getByTestId("session-search-input").press("Enter");
+  await expect(page.getByTestId("list-empty")).toBeVisible();
+  await expect(page.getByTestId("list-empty-title")).toContainText(
+    /No sessions match/i,
+  );
+  await expect(page.getByTestId("list-empty")).not.toContainText(
+    "Create a telemetry ingestion key",
+  );
+  await page
+    .getByTestId("list-empty")
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
+  await expect(rows(page)).toHaveCount(8);
+});
+
+test("the first recording empty state keeps setup documentation on the session replay documentation page", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page, "?fixture=empty");
+  await expect(page.getByTestId("list-empty-title")).toHaveText(
+    "No recordings yet",
+  );
+  await expect(page.getByTestId("list-empty")).not.toContainText(
+    "Create a telemetry ingestion key",
+  );
+  await expect(page.locator("pre")).toHaveCount(0);
+  await expect(page.getByTestId("session-replay-facets")).toBeVisible();
+  await screenshot(page, "session-replay-empty");
+  await expect(page.getByTestId("list-empty-action")).toHaveText(
+    "Open the setup guide",
+  );
+  await page.getByTestId("list-empty-action").click();
+  await expect(page).toHaveURL(documentationRoute);
+  await expect(
+    page.getByText("Create a telemetry ingestion key", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("session-replay-docs-reference")).toBeVisible();
+  await expect(page.getByTestId("list-empty")).toHaveCount(0);
+});
+
+test("a failed list request has a working retry without discarding the filters", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page, "?fixture=error&browser=Chrome");
+  await expect(page.getByTestId("list-error")).toBeVisible();
+  await page.evaluate((): void => {
+    (
+      window as unknown as { __sessionReplayFixture: FixtureState }
+    ).__sessionReplayFixture.failList = false;
+  });
+  await page.getByTestId("list-error-retry").click();
+  await expect(rows(page)).toHaveCount(3);
+  await expect(page.getByTestId("list-error")).toHaveCount(0);
+  await expect(page.getByTestId("session-facet-browserName")).toContainText(
+    "Chrome",
+  );
+});
+
+test("pagination forwards the opaque cursor and changing the sort resets it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page, "?count=25");
+  await expect(rows(page)).toHaveCount(20);
+  await page
+    .getByTestId("session-pagination")
+    .getByTestId("pagination-next-button")
+    .click();
+  await expect(rows(page)).toHaveCount(5);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["cursor"];
+    })
+    .toMatchObject({ sessionId: "00000000000000000000000000000014" });
+  await page.getByRole("combobox", { name: "Sort sessions" }).click();
+  await page.getByRole("option", { name: "Longest", exact: true }).click();
+  await expect(rows(page)).toHaveCount(20);
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["sortBy"];
+    })
+    .toBe("durationMs");
+  expect(await lastListRequest(page)).not.toHaveProperty("cursor");
+});
+
+test("watch opens real footage and the return link restores list filters", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+  await facet(page, "browserName", "Chrome");
+  await rows(page).first().getByTestId("session-row-watch").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(
+    page.getByRole("heading", { name: "Session recording", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("replay-header-user")).toHaveText(
+    "alex@example.com",
+  );
+  const toolbar: Locator = page.getByRole("group", {
+    name: "Session recording controls",
+  });
+  const recordingActions: Locator = toolbar.getByRole("group", {
+    name: "Recording actions",
+  });
+  const playerLayout: Locator = toolbar.getByRole("group", {
+    name: "Player layout",
+  });
+
+  await expect(toolbar).toBeVisible();
+  await expect(recordingActions.getByRole("button")).toHaveText([
+    "Pin recording",
+    "Copy link",
+    "Session details",
+  ]);
+  await expect(playerLayout.getByRole("button")).toHaveText([
+    "Wide",
+    "Theater",
+  ]);
+
+  const controlHeights: Array<number> = await toolbar
+    .getByRole("button")
+    .evaluateAll((buttons: Array<HTMLElement>): Array<number> => {
+      return buttons.map((button: HTMLElement): number => {
+        return button.getBoundingClientRect().height;
+      });
+    });
+
+  expect(
+    Math.max(...controlHeights) - Math.min(...controlHeights),
+  ).toBeLessThanOrEqual(1);
+  await page.getByTestId("replay-back-link").click();
+  await expect(page).toHaveURL(/browser=Chrome/);
+  await expect(rows(page)).toHaveCount(3);
+});
+
+test("select text mode copies recorded DOM text while keeping the replay read-only", async ({
+  page,
+  context,
+}: {
+  page: Page;
+  context: BrowserContext;
+}) => {
+  test.setTimeout(120000);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:4212",
+  });
+  await openPlayer(page);
+
+  const toggle: Locator = page.getByTestId("replay-select-text");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await expect(page.getByTestId("replay-overlay-paused")).toHaveCount(0);
+
+  const frame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  const body: Locator = frame.locator("body");
+  await body.evaluate((element: HTMLElement): void => {
+    const textarea: HTMLTextAreaElement = document.createElement("textarea");
+    textarea.id = "fixture-readonly-textarea";
+    textarea.style.setProperty("resize", "both", "important");
+    textarea.style.setProperty("user-select", "none", "important");
+    textarea.value = "Recorded note";
+    element.appendChild(textarea);
+
+    const audio: HTMLAudioElement = document.createElement("audio");
+    audio.id = "fixture-readonly-audio";
+    audio.controls = true;
+    audio.style.setProperty("pointer-events", "auto", "important");
+    element.appendChild(audio);
+
+    const host: HTMLElement = document.createElement("div");
+    host.id = "fixture-shadow-host";
+    const shadowRoot: ShadowRoot = host.attachShadow({ mode: "open" });
+    shadowRoot.innerHTML = `
+      <style>span { user-select: none !important; }</style>
+      <span id="fixture-shadow-text" style="user-select: none !important">Recorded shadow text</span>
+      <input id="fixture-shadow-range" type="range" min="0" max="100" value="10" />
+    `;
+    element.appendChild(host);
+
+    const scrollBox: HTMLDivElement = document.createElement("div");
+    scrollBox.id = "fixture-readonly-scroll";
+    scrollBox.style.cssText =
+      "height:40px;overflow:auto;scroll-behavior:smooth";
+    scrollBox.innerHTML = `
+      <button id="fixture-scroll-start">Start</button>
+      <div style="height:180px"></div>
+      <button id="fixture-scroll-end">End</button>
+    `;
+    element.appendChild(scrollBox);
+    scrollBox.scrollTop = 0;
+  });
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await frame
+        .locator("#fixture-readonly-textarea")
+        .evaluate((element: HTMLTextAreaElement): string => {
+          return getComputedStyle(element).resize;
+        });
+    })
+    .toBe("none");
+  expect(
+    await frame
+      .locator("#fixture-readonly-audio")
+      .evaluate((element: HTMLAudioElement): string => {
+        return getComputedStyle(element).pointerEvents;
+      }),
+  ).toBe("none");
+
+  const shadowText: Locator = frame.locator("#fixture-shadow-text");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await shadowText.evaluate((element: HTMLElement): string => {
+        return getComputedStyle(element).userSelect;
+      });
+    })
+    .toBe("text");
+  const shadowRange: Locator = frame.locator("#fixture-shadow-range");
+  await shadowRange.scrollIntoViewIfNeeded();
+  const shadowRangeBox: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await shadowRange.boundingBox();
+  expect(shadowRangeBox).not.toBeNull();
+  await page.mouse.click(
+    shadowRangeBox!.x + shadowRangeBox!.width - 2,
+    shadowRangeBox!.y + shadowRangeBox!.height / 2,
+  );
+  await expect(shadowRange).toHaveValue("10");
+
+  const scrollBox: Locator = frame.locator("#fixture-readonly-scroll");
+  await frame.locator("#fixture-scroll-start").focus();
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await scrollBox.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBeGreaterThan(0);
+
+  const heading: Locator = frame.getByRole("heading", {
+    name: "Complete your order",
+  });
+
+  /* The fixture itself says user-select:none; the viewer must override it. */
+  expect(
+    await heading.evaluate((element: HTMLElement): string => {
+      return getComputedStyle(element).userSelect;
+    }),
+  ).toBe("text");
+  expect(
+    await heading.evaluate((element: HTMLElement): boolean => {
+      return element.hasAttribute("style");
+    }),
+  ).toBe(false);
+
+  const recordedSearch: Locator = frame.locator("#fixture-recorded-search");
+  await recordedSearch.focus();
+  await page.keyboard.press("Escape");
+  await expect(recordedSearch).toHaveValue("recorded search");
+
+  /* Stateful controls remain inert during pointer and keyboard inspection. */
+  const range: Locator = frame.locator("#fixture-readonly-range");
+  await range.scrollIntoViewIfNeeded();
+  const rangeBox: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await range.boundingBox();
+  expect(rangeBox).not.toBeNull();
+  await page.mouse.click(
+    rangeBox!.x + rangeBox!.width - 2,
+    rangeBox!.y + rangeBox!.height / 2,
+  );
+  await expect(range).toHaveValue("25");
+  await range.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(range).toHaveValue("25");
+
+  /* Tab must escape the inspected control instead of being trapped. */
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await range.evaluate((): string => {
+        return (document.activeElement as HTMLElement | null)?.id ?? "";
+      });
+    })
+    .toBe("place-order");
+
+  await heading.scrollIntoViewIfNeeded();
+  const box: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await heading.boundingBox();
+  expect(box).not.toBeNull();
+
+  await heading.click({
+    clickCount: 3,
+    position: { x: 10, y: box!.height / 2 },
+  });
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await heading.evaluate((): string => {
+        return window.getSelection()?.toString() ?? "";
+      });
+    })
+    .toContain("Complete your order");
+
+  await page.evaluate(async (): Promise<void> => {
+    await navigator.clipboard.writeText("oneuptime-copy-sentinel");
+  });
+  expect(
+    await page.evaluate(async (): Promise<string> => {
+      return await navigator.clipboard.readText();
+    }),
+  ).toBe("oneuptime-copy-sentinel");
+  await page.keyboard.press("ControlOrMeta+C");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await page.evaluate(async (): Promise<string> => {
+        return await navigator.clipboard.readText();
+      });
+    })
+    .toContain("Complete your order");
+
+  /* Pointer access is for inspection only: recorded links cannot navigate. */
+  const accountLink: Locator = frame.getByRole("link", {
+    name: "View account details",
+  });
+  const frameUrlBeforeClick: string = await accountLink.evaluate((): string => {
+    return window.location.href;
+  });
+  await accountLink.click();
+  expect(
+    await accountLink.evaluate((): string => {
+      return window.location.href;
+    }),
+  ).toBe(frameUrlBeforeClick);
+
+  /* Prove the copied text can leave the iframe and be pasted for debugging. */
+  const railSearch: Locator = page.getByTestId("rail-search-input");
+  await railSearch.focus();
+  await page.keyboard.press("ControlOrMeta+V");
+  await expect(railSearch).toHaveValue(/Complete your order/);
+
+  /* Starting playback itself exits inspection mode. */
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await page
+        .locator('[data-testid="replay-stage"] iframe')
+        .evaluate((iframe: HTMLIFrameElement): string => {
+          return iframe.style.pointerEvents;
+        });
+    })
+    .toBe("none");
+  expect(
+    await scrollBox.evaluate((element: HTMLElement): number => {
+      return element.scrollTop;
+    }),
+  ).toBe(0);
+  expect(
+    await frame
+      .locator("#fixture-readonly-textarea")
+      .evaluate((element: HTMLTextAreaElement): Array<string> => {
+        return [
+          element.style.getPropertyValue("resize"),
+          element.style.getPropertyPriority("resize"),
+          element.style.getPropertyValue("user-select"),
+          element.style.getPropertyPriority("user-select"),
+        ];
+      }),
+  ).toEqual(["both", "important", "none", "important"]);
+  expect(
+    await frame
+      .locator("#fixture-readonly-audio")
+      .evaluate((element: HTMLAudioElement): Array<string> => {
+        return [
+          element.style.getPropertyValue("pointer-events"),
+          element.style.getPropertyPriority("pointer-events"),
+        ];
+      }),
+  ).toEqual(["auto", "important"]);
+  expect(
+    await shadowText.evaluate((element: HTMLElement): Array<string> => {
+      return [
+        element.style.getPropertyValue("user-select"),
+        element.style.getPropertyPriority("user-select"),
+      ];
+    }),
+  ).toEqual(["none", "important"]);
+  expect(
+    await heading.evaluate((element: HTMLElement): boolean => {
+      return element.hasAttribute("style");
+    }),
+  ).toBe(false);
+});
+
+test("seeking exits selection before applying the target's recorded scroll", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  test.setTimeout(120000);
+  await openPlayer(page, "?t=0");
+
+  const toggle: Locator = page.getByTestId("replay-select-text");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+
+  const frame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  const recordedScroll: Locator = frame.locator("#fixture-recorded-scroll");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(0);
+  await recordedScroll.evaluate((element: HTMLElement): void => {
+    element.scrollTop = 35;
+  });
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(35);
+
+  await page.getByTestId("replay-seek-forward").click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(120);
+});
+
+test("plays incremental frames, pauses, seeks and keeps speed options visible above controls", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page);
+  const frame: Locator = page
+    .frameLocator('[data-testid="replay-stage"] iframe')
+    .locator("#fixture-stage-step");
+  const firstFrame: string = await frame.innerText();
+  await expect(frame).not.toHaveText(firstFrame, { timeout: 10000 });
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  const before: number = clockSeconds(
+    await page.getByTestId("replay-time").innerText(),
+  );
+  await page.getByTestId("replay-seek-forward").click();
+  await expect
+    .poll(async (): Promise<number> => {
+      return clockSeconds(await page.getByTestId("replay-time").innerText());
+    })
+    .toBeGreaterThanOrEqual(before + 10);
+  await page.getByTestId("replay-speed").click();
+  const option: Locator = page.getByTestId("replay-speed-option-2");
+  await expect(option).toBeVisible();
+  expect(
+    await option.evaluate((element: HTMLElement): boolean => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      const hit: Element | null = document.elementFromPoint(
+        rect.x + rect.width / 2,
+        rect.y + rect.height / 2,
+      );
+      return hit === element || element.contains(hit);
+    }),
+  ).toBe(true);
+  await option.click();
+  await expect(page.getByTestId("replay-speed")).toContainText("2x");
+  await page.getByTestId("replay-speed").click();
+  await screenshot(page, "session-replay-speed-menu");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing");
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-player");
+});
+
+test("plays a React Native view tree while keeping text, images and webviews private", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openMobilePlayer(page);
+  const replayFrame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="image"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="webview"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="masked"]'),
+  ).toBeVisible();
+  const replayedText: string = await replayFrame.locator("body").innerText();
+  expect(replayedText).toContain("•••");
+  expect(replayedText).not.toContain("Place order");
+  expect(replayedText).not.toContain("alex@example.com");
+  await expect(page.getByTestId("replay-time")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-react-native-player");
+});
+
+test("event search, error selection, details and rail collapse keep their state", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page);
+  await page.getByTestId("replay-play-pause").click();
+  await page.getByTestId("rail-tab-errors").click();
+  await expect(page.getByTestId("rail-row")).toHaveCount(1);
+  await page.getByTestId("rail-search-input").fill("does-not-exist");
+  await expect(page.getByTestId("rail-empty")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Clear event search", exact: true })
+    .click();
+  await expect(page.getByTestId("rail-search-input")).toBeFocused();
+  await expect(page.getByTestId("rail-row")).toHaveCount(1);
+  await page
+    .getByTestId("rail-row")
+    .getByText("Payment request failed", { exact: true })
+    .click();
+  // Event selection includes one second of context before the error.
+  await expect(page.getByTestId("replay-time")).toContainText("0:11");
+  await page.getByTestId("replay-rail-collapse").click();
+  await expect(page.getByTestId("replay-rail")).not.toBeVisible();
+  await page.getByTestId("replay-rail-expand").click();
+  await expect(page.getByTestId("rail-tab-errors")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page
+    .getByRole("button", { name: "Session details", exact: true })
+    .click();
+  await expect(page.getByTestId("details-tab-session")).toBeVisible();
+  await expect(page.getByTestId("details-tab-session")).toContainText(
+    "alex@example.com",
+  );
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("tab", { name: "Session" }),
+  ).toBeFocused();
+  await expect(
+    detailsDialog.getByRole("heading", { name: "Journey", exact: true }),
+  ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("heading", {
+      name: "Related telemetry",
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  const sectionBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      [
+        "details-section-session",
+        "details-section-journey",
+        "details-section-environment",
+        "details-section-telemetry",
+      ].map((testId: string) => {
+        return page.getByTestId(testId).boundingBox();
+      }),
+    );
+
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(600);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(610);
+  expect(sectionBounds.every(Boolean)).toBe(true);
+
+  for (let index: number = 0; index < sectionBounds.length; index++) {
+    expect(sectionBounds[index]!.x).toBeCloseTo(sectionBounds[0]!.x, 0);
+    expect(sectionBounds[index]!.width).toBeCloseTo(sectionBounds[0]!.width, 0);
+
+    if (index > 0) {
+      expect(sectionBounds[index]!.y).toBeGreaterThan(
+        sectionBounds[index - 1]!.y + sectionBounds[index - 1]!.height,
+      );
+    }
+  }
+
+  const railCardBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      ["traces", "errors", "logs"].map((railTab: string) => {
+        return page.getByTestId(`details-rail-${railTab}`).boundingBox();
+      }),
+    );
+
+  expect(railCardBounds.every(Boolean)).toBe(true);
+  expect(railCardBounds[1]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  expect(railCardBounds[2]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  await detailsDialog.getByRole("tab", { name: "Privacy" }).click();
+  await expect(
+    page.getByTestId("details-section-capture-policy"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: /Fidelity/ }).click();
+  await expect(
+    page.getByTestId("details-section-recording-status"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: "Session" }).click();
+  await screenshot(page, "session-replay-details");
+  await page.getByTestId("details-open-rail-logs").click();
+  await expect(detailsDialog).toHaveCount(0);
+  await expect(page.getByTestId("rail-tab-logs")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+});
+
+test("recording tabs support keyboard selection while skipping tabs without footage", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?tabs=multiple");
+  const tabs: Locator = page.getByTestId("replay-tab-pill");
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.nth(2)).toBeDisabled();
+  await tabs.first().focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tabs.nth(1)).toBeFocused();
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowRight");
+  await expect(tabs.first()).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(tabs.nth(1)).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(tabs.first()).toBeFocused();
+});
+
+test("the mobile list, filters, recording and event search fit a narrow viewport", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openList(page);
+  await expect(rows(page)).toHaveCount(8);
+  await noHorizontalOverflow(page);
+  await facet(page, "deviceType", "Mobile");
+  await expect(rows(page)).toHaveCount(3);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-list-mobile");
+  await openPlayer(page);
+  await expect(page.getByTestId("replay-play-pause")).toBeVisible();
+  await expect(page.getByTestId("replay-speed")).toBeVisible();
+  await expect(page.getByTestId("rail-search-input")).toBeVisible();
+  const headerToolbar: Locator = page.getByTestId("replay-header-toolbar");
+
+  await expect(headerToolbar).toBeVisible();
+  await expect(page.getByTestId("replay-pin-button")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+
+  const headerGeometry: {
+    viewportWidth: number;
+    scrollWidth: number;
+    clientWidth: number;
+    childBounds: Array<{ left: number; right: number }>;
+  } = await headerToolbar.evaluate(
+    (
+      toolbar: HTMLElement,
+    ): {
+      viewportWidth: number;
+      scrollWidth: number;
+      clientWidth: number;
+      childBounds: Array<{ left: number; right: number }>;
+    } => {
+      return {
+        viewportWidth: window.innerWidth,
+        scrollWidth: toolbar.scrollWidth,
+        clientWidth: toolbar.clientWidth,
+        childBounds: Array.from(
+          toolbar.querySelectorAll("button, [role='group']"),
+        ).map((element: Element): { left: number; right: number } => {
+          const bounds: DOMRect = element.getBoundingClientRect();
+
+          return { left: bounds.left, right: bounds.right };
+        }),
+      };
+    },
+  );
+
+  expect(headerGeometry.scrollWidth).toBeLessThanOrEqual(
+    headerGeometry.clientWidth + 1,
+  );
+  headerGeometry.childBounds.forEach(
+    (bounds: { left: number; right: number }): void => {
+      expect(bounds.left).toBeGreaterThanOrEqual(-1);
+      expect(bounds.right).toBeLessThanOrEqual(
+        headerGeometry.viewportWidth + 1,
+      );
+    },
+  );
+  await noHorizontalOverflow(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noHorizontalOverflow(page);
+  const legendBottom: number = await page
+    .getByTestId("timeline-legend")
+    .evaluate((legend: HTMLElement): number => {
+      return Math.max(
+        ...Array.from(legend.children).map((item: Element): number => {
+          return item.getBoundingClientRect().bottom;
+        }),
+      );
+    });
+  const controlsTop: number = await page
+    .getByTestId("replay-controls")
+    .evaluate((controls: HTMLElement): number => {
+      return controls.getBoundingClientRect().top;
+    });
+  expect(legendBottom).toBeLessThanOrEqual(controlsTop);
+  await page.getByTestId("rail-search-input").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("rail-row").first()).toBeVisible();
+  await screenshot(page, "session-replay-player-mobile");
+  await page
+    .getByRole("button", { name: "Session details", exact: true })
+    .click();
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(390);
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(360);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(372);
+  await expect(page.getByTestId("details-section-session")).toBeVisible();
+
+  const browserTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await page.getByTestId("replay-details-browser").boundingBox();
+  const osTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-details-os")
+    .boundingBox();
+
+  expect(browserTileBounds).not.toBeNull();
+  expect(osTileBounds).not.toBeNull();
+  expect(osTileBounds!.y).toBeGreaterThan(
+    browserTileBounds!.y + browserTileBounds!.height,
+  );
+  expect(osTileBounds!.width).toBeCloseTo(browserTileBounds!.width, 0);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-details-mobile");
+
+  await page.evaluate((): void => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  const exitUrl: Locator = page.getByTestId("replay-details-exit-url");
+  await exitUrl
+    .getByRole("button", { name: "Copy Exit URL", exact: true })
+    .click();
+  const manualCopyInput: Locator = exitUrl.getByRole("textbox", {
+    name: "Manual copy Exit URL",
+    exact: true,
+  });
+  await expect(manualCopyInput).toBeVisible();
+  await expect(manualCopyInput).toBeFocused();
+  expect(
+    await manualCopyInput.evaluate((input: HTMLInputElement): boolean => {
+      const rect: DOMRect = input.getBoundingClientRect();
+      const hit: Element | null = document.elementFromPoint(
+        rect.x + rect.width / 2,
+        rect.y + rect.height / 2,
+      );
+
+      return hit === input || input.contains(hit);
+    }),
+  ).toBe(true);
+  await exitUrl.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(
+    exitUrl.getByRole("button", { name: "Copy Exit URL", exact: true }),
+  ).toBeFocused();
+});
+
+test("playback controls fit the initial laptop viewport without scrolling", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+  const stage: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-stage")
+    .boundingBox();
+  const controls: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-play-pause")
+    .boundingBox();
+  expect(stage).not.toBeNull();
+  expect(stage!.height).toBeGreaterThanOrEqual(256);
+  expect(controls).not.toBeNull();
+  expect(controls!.y).toBeGreaterThan(0);
+  expect(controls!.y + controls!.height).toBeLessThanOrEqual(900);
+  expect(
+    await page.evaluate((): number => {
+      return window.scrollY;
+    }),
+  ).toBe(0);
+  await screenshot(page, "session-replay-player-laptop");
+});

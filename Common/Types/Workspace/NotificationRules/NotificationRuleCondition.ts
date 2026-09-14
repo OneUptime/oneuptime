@@ -195,6 +195,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
       case NotificationRuleConditionCheckOn.IncidentEpisodeLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
       case NotificationRuleConditionCheckOn.Monitors:
         return true;
       default:
@@ -287,7 +288,8 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeLabels ||
       data.checkOn ===
-        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels
     ) {
       return data.labels.map((label: Label) => {
         return {
@@ -386,6 +388,12 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.MonitorLabels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
+      case NotificationRuleEventType.OnCallDutyPolicy:
+        return [
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        ];
       default:
         return [];
     }
@@ -406,6 +414,8 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.IncidentEpisodeDescription:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyName:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription:
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,
@@ -434,6 +444,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.IncidentLabels:
       case NotificationRuleConditionCheckOn.MonitorLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
         return [
           ConditionType.ContainsAny,
           ConditionType.NotContains,

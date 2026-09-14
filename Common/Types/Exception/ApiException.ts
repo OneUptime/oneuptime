@@ -1,5 +1,6 @@
 import Exception from "./Exception";
 import ExceptionCode from "./ExceptionCode";
+import ErrorClass from "../Telemetry/ErrorClass";
 
 export default class APIException extends Exception {
   private _error: Error | null = null;
@@ -15,5 +16,14 @@ export default class APIException extends Exception {
     if (error) {
       this.error = error;
     }
+  }
+
+  /*
+   * The environment failed, not our code and not the caller. Stays an
+   * Issue: it is a real failure worth a human, it is just never something the
+   * automatic fix lane should open a pull request for.
+   */
+  protected override getErrorClass(): ErrorClass {
+    return ErrorClass.Infrastructure;
   }
 }

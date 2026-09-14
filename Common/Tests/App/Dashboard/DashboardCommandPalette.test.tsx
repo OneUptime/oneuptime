@@ -1,5 +1,6 @@
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -70,6 +71,12 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     __esModule: true,
     default: {
+      isOnThisPage: () => {
+        return false;
+      },
+      isStartWith: () => {
+        return false;
+      },
       navigate: (...args: Array<unknown>) => {
         return navigateMock(...args);
       },
@@ -112,8 +119,8 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 /*
  * The real catalog hook walks the full RouteMap through useTranslation; the
- * host only needs SOME catalog, so a single-page one keeps the suite about
- * the host's event wiring rather than the NavBar's contents.
+ * host and dashboard NavBar only need a compact catalog, so one page plus one
+ * product keeps the suite about shortcut ownership rather than catalog data.
  */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Utils/NavigationItems",
@@ -137,7 +144,16 @@ jest.mock(
             route: new RouteClass("/dashboard/abc123/home"),
           },
         ],
-        moreMenuItems: [],
+        moreMenuItems: [
+          {
+            title: "Monitors",
+            description: "Monitor anything that can go down.",
+            icon: "AltGlobe",
+            iconColor: "blue",
+            category: "Essentials",
+            route: new RouteClass("/dashboard/abc123/monitors"),
+          },
+        ],
         rightElement: {
           id: "user-profile-nav-bar-item",
           title: "User Profile",
@@ -158,11 +174,25 @@ jest.mock(
 );
 
 import DashboardCommandPalette from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
+import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 
 function palette(): HTMLElement | null {
   return screen.queryByTestId("command-palette");
+}
+
+function productsMenu(): HTMLElement | null {
+  return screen.queryByRole("dialog", { name: "Products menu" });
+}
+
+function renderDashboardChrome(): void {
+  render(
+    <>
+      <DashboardNavbar show={true} />
+      <DashboardCommandPalette />
+    </>,
+  );
 }
 
 /*
@@ -172,6 +202,11 @@ function palette(): HTMLElement | null {
 function pressChord(init: KeyboardEventInit): void {
   fireEvent.keyDown(document.body, init);
 }
+
+beforeAll(() => {
+  // The products menu keeps its keyboard selection in view when it opens.
+  Element.prototype.scrollIntoView = (): void => {};
+});
 
 beforeEach(() => {
   /*
@@ -262,6 +297,75 @@ describe("DashboardCommandPalette Cmd/Ctrl+K chord", () => {
 
     expect(palette()).toBeNull();
   });
+});
+
+describe("dashboard Cmd/Ctrl+K ownership with the products menu mounted", () => {
+  test.each([
+    ["Cmd+K", { key: "k", metaKey: true }],
+    ["Ctrl+K", { key: "k", ctrlKey: true }],
+  ] as Array<[string, KeyboardEventInit]>)(
+    "%s opens Search only",
+    (_label: string, chord: KeyboardEventInit) => {
+      renderDashboardChrome();
+
+      pressChord(chord);
+
+      expect(palette()).toBeInTheDocument();
+      expect(productsMenu()).not.toBeInTheDocument();
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    },
+  );
+
+  test("the Products button still opens Products without advertising Cmd/Ctrl+K", () => {
+    renderDashboardChrome();
+
+    fireEvent.click(screen.getByRole("button", { name: /Products/i }));
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Products menu",
+    });
+    expect(palette()).not.toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+
+    /*
+     * The dashboard surrendered this chord to Search, so Products must not
+     * leave either the visible keycaps or their screen-reader label behind.
+     */
+    const commandKKeycaps: HTMLElement[] = Array.from(
+      dialog.querySelectorAll<HTMLElement>("kbd"),
+    ).filter((keycap: HTMLElement): boolean => {
+      return keycap.textContent === "K";
+    });
+    expect(commandKKeycaps).toHaveLength(0);
+    expect(dialog).not.toHaveTextContent(/(?:Command|Control) \+ K/);
+  });
+
+  test.each([
+    ["Cmd+K", { key: "k", metaKey: true }],
+    ["Ctrl+K", { key: "k", ctrlKey: true }],
+  ] as Array<[string, KeyboardEventInit]>)(
+    "%s replaces an open Products dialog with one Search dialog",
+    (_label: string, chord: KeyboardEventInit) => {
+      renderDashboardChrome();
+      fireEvent.click(screen.getByRole("button", { name: /Products/i }));
+
+      const productsDialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Products menu",
+      });
+      const productsSearch: HTMLElement = screen.getByRole("combobox", {
+        name: "navbar.search.placeholder",
+      });
+      expect(productsDialog).toBeInTheDocument();
+      expect(document.activeElement).toBe(productsSearch);
+
+      // Real keystrokes originate in the focused Products search input.
+      fireEvent.keyDown(productsSearch, chord);
+
+      expect(productsMenu()).not.toBeInTheDocument();
+      expect(palette()).toBeInTheDocument();
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    },
+  );
 });
 
 describe("DashboardCommandPalette global toggle event", () => {

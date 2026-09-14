@@ -14,9 +14,7 @@ Use it when: the choices are small and fixed. `environment` with values `prod, s
 
 ### Query
 
-The options come from a query against your data.
-
-Use it when: the choices change over time and you want the dropdown to keep up. "Every customer ID seen in the past 24 hours." The query runs against your project's data and the results become the dropdown.
+Existing query variable definitions are preserved, but loading dropdown options from a custom query is not supported. Use **Telemetry Attribute** for choices discovered from telemetry, or **Project Labels** for monitor label choices.
 
 ### Text Input
 
@@ -32,19 +30,31 @@ Configure the **attribute key** (for example, `service.name`, `host.name`, `k8s.
 
 Use it when: the choices match the tags you already send with your telemetry. This is the most common type because it updates automatically — when you ship a new service tagged `service.name = inventory`, that name appears in the dropdown without you editing the dashboard.
 
+### Project Labels
+
+Choose existing project labels to offer as a dashboard dropdown. For example, create a variable named `UNIT`, set its source to **Project Labels**, and choose the labels `0660` and `0661`.
+
+The dashboard saves the chosen label IDs and display names. Filtering uses IDs, so renaming a project label does not break its binding. Display names are saved with the dashboard; reselect a renamed label in the variable editor to update its displayed name. Public dashboards show these same saved choices.
+
+In a **Monitor List** widget, open **Filters → Label Variable** and select `UNIT`. Selecting `0660` now shows monitors carrying that label. Other widgets are unaffected unless they explicitly support and bind the variable.
+
+Fixed widget filters remain in effect. For example, with a fixed `network` label and `UNIT` set to `0660`, a monitor must carry both labels. Multiple selected units match any selected unit. Choosing **All** removes only the variable condition, keeping fixed label, status, and monitor-type filters.
+
+A missing variable or a selection outside its configured choices shows an error. A selected label with no matching monitors shows the empty list. Remove the widget binding explicitly when it is no longer needed.
+
 ## Multi-select
 
-Each variable can allow multiple selections. When on, the viewer can pick one or more values; the dashboard filters to any of them.
+Custom List, Telemetry Attribute, and Project Labels variables can allow multiple selections. When on, the viewer can pick one or more values; the dashboard filters to any of them. An empty selection means **All**.
 
 Use multi-select when: you want to compare "checkout and payments together" without leaving the dashboard. Avoid it when the math doesn't work across selected values (for example, averaging averages).
 
 ## Default values
 
-Every variable can have a default. The dashboard renders with the default until the viewer changes it. For public dashboards, the default is what visitors see first.
+Single-select variables can have a default. The dashboard renders with the default until the viewer changes it. Multi-select variables start on **All** and do not use a default. A shared URL's explicit selection takes precedence, including an explicit **All**.
 
 ## How to use a variable in a widget
 
-Anywhere a widget takes a filter — a metric's `WHERE`, a list's filter, a log stream's attribute match — you can use `{{variable_name}}`.
+Variable support depends on the widget and filter. Telemetry attribute variables bind to their configured attribute key; Monitor List label filters use the explicit **Label Variable** setting described above.
 
 For example, a chart filtered by service:
 
@@ -55,6 +65,8 @@ service.name = '{{service}}'
 When the dropdown is set to `checkout`, the chart filters to the checkout service. When the viewer switches to `payments`, the chart re-renders for payments.
 
 For **Telemetry Attribute** variables, OneUptime knows which attribute the variable maps to and applies the filter to every widget that uses the same attribute — you don't have to edit each widget by hand.
+
+Monitor List titles also support `{{variable_name}}`. For example, `{{UNIT}} NETWORK` displays `0660 NETWORK`, `0660, 0661 NETWORK`, or `All NETWORK`. A title controls displayed text; configure **Label Variable** to filter the monitor query.
 
 ## Time range
 

@@ -22,7 +22,24 @@ set -eu
 SOCKET="${DOCKER_INVENTORY_SOCKET:-/var/run/docker.sock}"
 LOG_PATH="${DOCKER_INVENTORY_LOG_PATH:-/var/log/oneuptime-docker-swarm-inventory.log}"
 INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"
-DOCKER_API="http://localhost/v1.44"
+API_VERSION="${DOCKER_API_VERSION-1.44}"
+
+# Follow the collector's DOCKER_API_VERSION so that a host which lowers the
+# docker_stats receiver's version for an older daemon lowers ours too.
+#
+# Note the "-" rather than ":-": unset means "use the shipped default", but an
+# explicitly EMPTY value is the documented "let the server pick" escape hatch.
+# The collector answers that by auto-negotiating; curl has no negotiation, so we
+# answer it by dropping the /v<version> prefix -- the Docker API serves those
+# unversioned paths at the daemon's own latest version, which is the same
+# outcome. A pinned modern default keeps newer daemons from rejecting us with
+# "client version too old".
+# docker-compose.yml passes the variable to this sidecar as well as the collector.
+if [ -n "${API_VERSION}" ]; then
+    DOCKER_API="http://localhost/v${API_VERSION}"
+else
+    DOCKER_API="http://localhost"
+fi
 
 TMP_DIR="$(dirname "${LOG_PATH}")"
 SERVICES_JSON="${TMP_DIR}/.oneuptime-swarm-services.json"

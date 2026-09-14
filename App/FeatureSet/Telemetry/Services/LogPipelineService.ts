@@ -9,6 +9,7 @@ import LogPipelineProcessorType, {
   AttributeRemapperConfig,
   SeverityRemapperConfig,
   CategoryProcessorConfig,
+  GrokParserConfig,
 } from "Common/Types/Log/LogPipelineProcessorType";
 import LogSeverity, {
   LogSeverityNumber,
@@ -18,9 +19,17 @@ import {
   compileFilter,
   CompiledFilter,
   evaluateCompiledFilter,
+  getRowFieldValue,
 } from "../Utils/LogFilterEvaluator";
+import {
+  CompiledGrokPattern,
+  GrokValue,
+  compileGrokPatternCached,
+  matchGrokPattern,
+} from "Common/Utils/Grok/Grok";
 import logger from "Common/Server/Utils/Logger";
-import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PipelineCache from "../Utils/PipelineCache";
+import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
 export interface LoadedPipeline {
   pipeline: LogPipeline;
@@ -47,22 +56,33 @@ interface CompiledCategoryConfig extends CategoryProcessorConfig {
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const MAX_CACHED_PROJECTS: number = 10_000;
 
-const pipelineCache: InMemoryTTLCache<Array<LoadedPipeline>> =
-  new InMemoryTTLCache<Array<LoadedPipeline>>(MAX_CACHED_PROJECTS);
+/*
+ * A grok pattern that does not compile cannot be fixed by retrying it,
+ * and applyProcessor runs once per record - logging the failure per
+ * record would turn one bad processor into an unbounded error stream.
+ * Save-time validation rejects most of these; this covers processors
+ * saved before that validation existed and ones written through the API
+ * with hooks skipped.
+ */
+const MAX_LOGGED_INVALID_GROK_PATTERNS: number = 1000;
+const loggedInvalidGrokPatterns: Set<string> = new Set<string>();
+
+const pipelineCache: PipelineCache<Array<LoadedPipeline>> = new PipelineCache<
+  Array<LoadedPipeline>
+>(MAX_CACHED_PROJECTS, CACHE_TTL_MS);
 
 export class LogPipelineService {
   public static async loadPipelines(
     projectId: ObjectID,
   ): Promise<Array<LoadedPipeline>> {
-    const cacheKey: string = projectId.toString();
-    const cached: Array<LoadedPipeline> | undefined =
-      pipelineCache.get(cacheKey);
+    return pipelineCache.getOrLoad(projectId.toString(), () => {
+      return LogPipelineService.loadPipelinesFromDatabase(projectId);
+    });
+  }
 
-    // Empty arrays are truthy — zero-pipeline projects stay negatively cached.
-    if (cached) {
-      return cached;
-    }
-
+  private static async loadPipelinesFromDatabase(
+    projectId: ObjectID,
+  ): Promise<Array<LoadedPipeline>> {
     const pipelineService: DatabaseService<LogPipeline> =
       new DatabaseService<LogPipeline>(LogPipeline);
 
@@ -123,7 +143,6 @@ export class LogPipelineService {
       });
     }
 
-    pipelineCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 
@@ -154,35 +173,11 @@ export class LogPipelineService {
     return result;
   }
 
-  /**
-   * Processor configuration is stored in a jsonb column but the UI's JSON
-   * form field persists it as a JSON string literal, so TypeORM hands us
-   * back a string that still needs parsing. Accept either shape.
-   */
-  private static normalizeProcessorConfig(raw: unknown): JSONObject {
-    if (raw && typeof raw === "object") {
-      return raw as JSONObject;
-    }
-    if (typeof raw === "string") {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          return parsed as JSONObject;
-        }
-      } catch {
-        // fall through
-      }
-    }
-    return {};
-  }
-
   private static applyProcessor(
     logRow: JSONObject,
     processor: LogPipelineProcessor,
   ): JSONObject {
-    const config: JSONObject = LogPipelineService.normalizeProcessorConfig(
-      processor.configuration,
-    );
+    const config: JSONObject = getPipelineProcessorConfig(processor);
 
     switch (processor.processorType) {
       case LogPipelineProcessorType.AttributeRemapper:
@@ -200,9 +195,142 @@ export class LogPipelineService {
           logRow,
           config as unknown as CompiledCategoryConfig,
         );
+      case LogPipelineProcessorType.GrokParser:
+        return LogPipelineService.applyGrokParser(
+          logRow,
+          config as unknown as GrokParserConfig,
+          processor.name || "",
+        );
       default:
         return logRow;
     }
+  }
+
+  /*
+   * Grok: pull structured fields out of an unstructured line.
+   *
+   * `source` names the field to parse and resolves the same way a filter
+   * query's field does ("body", "attributes.message", or a bare
+   * attribute key); it defaults to the log body, which is what a grok
+   * processor is for. Extracted fields land in the log's attributes,
+   * under `targetPrefix` when one is configured, so they are searchable
+   * and filterable like any other attribute.
+   *
+   * The pattern is compiled once per distinct pattern text and reused
+   * (see compileGrokPatternCached) - never per record.
+   */
+  private static applyGrokParser(
+    logRow: JSONObject,
+    config: GrokParserConfig,
+    processorName: string,
+  ): JSONObject {
+    const pattern: string = (config.pattern || "").trim();
+
+    if (!pattern) {
+      return logRow;
+    }
+
+    const sourceField: string = (config.source || "").trim() || "body";
+
+    let compiled: CompiledGrokPattern;
+
+    try {
+      compiled = compileGrokPatternCached(pattern);
+    } catch (err) {
+      LogPipelineService.logInvalidGrokPatternOnce(processorName, pattern, err);
+      return logRow;
+    }
+
+    const sourceValue: string = getRowFieldValue(logRow, sourceField);
+
+    if (!sourceValue) {
+      return logRow;
+    }
+
+    const extracted: Record<string, GrokValue> | null = matchGrokPattern(
+      compiled,
+      sourceValue,
+    );
+
+    /*
+     * No match is not an error - a pipeline filter is usually broader
+     * than the one line shape a pattern describes. The log passes
+     * through untouched.
+     */
+    if (!extracted) {
+      return logRow;
+    }
+
+    const fieldNames: Array<string> = Object.keys(extracted);
+
+    if (fieldNames.length === 0) {
+      return logRow;
+    }
+
+    const prefix: string = LogPipelineService.normalizeGrokTargetPrefix(
+      config.targetPrefix,
+    );
+
+    const attrs: Record<string, unknown> = {
+      ...((logRow["attributes"] as Record<string, unknown>) || {}),
+    };
+
+    for (const fieldName of fieldNames) {
+      attrs[`${prefix}${fieldName}`] = extracted[fieldName];
+    }
+
+    const attributeKeys: Array<string> = Object.keys(attrs);
+
+    return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
+  }
+
+  /*
+   * A prefix of "http" is meant as a namespace, not as a string to jam
+   * onto the front of the field name, so a separator is added unless the
+   * user already ended it with one: "http" + "status" => "http.status",
+   * while "http_" + "status" stays "http_status".
+   */
+  private static normalizeGrokTargetPrefix(
+    targetPrefix: string | undefined,
+  ): string {
+    const prefix: string = (targetPrefix || "").trim();
+
+    if (!prefix) {
+      return "";
+    }
+
+    if (
+      prefix.endsWith(".") ||
+      prefix.endsWith("_") ||
+      prefix.endsWith("-") ||
+      prefix.endsWith(":")
+    ) {
+      return prefix;
+    }
+
+    return `${prefix}.`;
+  }
+
+  private static logInvalidGrokPatternOnce(
+    processorName: string,
+    pattern: string,
+    err: unknown,
+  ): void {
+    if (loggedInvalidGrokPatterns.has(pattern)) {
+      return;
+    }
+
+    if (loggedInvalidGrokPatterns.size >= MAX_LOGGED_INVALID_GROK_PATTERNS) {
+      loggedInvalidGrokPatterns.clear();
+    }
+
+    loggedInvalidGrokPatterns.add(pattern);
+
+    logger.error(
+      `Grok processor "${processorName}" has a pattern that does not compile and will not run: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
   }
 
   private static applyAttributeRemapper(

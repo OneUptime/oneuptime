@@ -865,7 +865,7 @@ const AIInsightViewPage: FunctionComponent<
                   </div>
                 )}
 
-                {triageEvents.length > 0 ? (
+                {!insight.triageSummaryMarkdown && triageEvents.length > 0 ? (
                   <ChatActivityFeed
                     events={triageEvents}
                     title={isTriageActive ? "Triaging…" : "Activity"}

@@ -197,6 +197,10 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
         oneUptimeRequest.userGlobalAccessPermission?.globalPermissions,
       ).not.toContain(Permission.ProjectOwner);
 
+      expect(
+        oneUptimeRequest.userGlobalAccessPermission?.globalPermissions,
+      ).toContain(Permission.AuthenticatedRequest);
+
       const tenantAccessPermission:
         | Dictionary<UserTenantAccessPermission>
         | undefined = oneUptimeRequest.userTenantAccessPermission;
@@ -224,7 +228,10 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
 
       await runMiddleware(req);
 
-      expect(spyFindApiKeyPermissions).toHaveBeenCalledWith(apiKeyId);
+      expect(spyFindApiKeyPermissions).toHaveBeenCalledWith(
+        apiKeyId,
+        keyProjectId,
+      );
 
       const permissions: Array<UserPermission> =
         (req as OneUptimeRequest).userTenantAccessPermission?.[

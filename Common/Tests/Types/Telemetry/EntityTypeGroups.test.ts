@@ -46,6 +46,10 @@ describe("MANUAL_ENTITY_TYPES", () => {
     expect(MANUAL_ENTITY_TYPES.has(EntityType.Host)).toBe(false);
     expect(MANUAL_ENTITY_TYPES.has(EntityType.KubernetesPod)).toBe(false);
     expect(MANUAL_ENTITY_TYPES.has(EntityType.NetworkDevice)).toBe(false);
+    expect(MANUAL_ENTITY_TYPES.has(EntityType.VMwareVCenter)).toBe(false);
+    expect(MANUAL_ENTITY_TYPES.has(EntityType.VMwareVirtualMachine)).toBe(
+      false,
+    );
   });
 });
 
@@ -77,6 +81,21 @@ describe("INVENTORY_ENTITY_TYPES", () => {
       false,
     );
     expect(INVENTORY_ENTITY_TYPES.has(EntityType.ProxmoxGuest)).toBe(false);
+    /*
+     * VMware rows come purely from OTLP discovery (the vcenter receiver
+     * emits resources), not from a poller-fed inventory table — so they
+     * carry a heartbeat, are TTL-pruned, and must stay out of this set.
+     */
+    for (const entityType of [
+      EntityType.VMwareVCenter,
+      EntityType.VMwareCluster,
+      EntityType.VMwareHost,
+      EntityType.VMwareVirtualMachine,
+      EntityType.VMwareDatastore,
+    ]) {
+      expect(INVENTORY_ENTITY_TYPES.has(entityType)).toBe(false);
+      expect(isNonInventoryItemType(entityType)).toBe(false);
+    }
   });
 });
 

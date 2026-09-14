@@ -1,10 +1,12 @@
 import React from "react";
+import ProjectSwitcher from "../components/ProjectSwitcher";
 import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import SettingsScreen from "../screens/SettingsScreen";
 import ProjectsScreen from "../screens/settings/ProjectsScreen";
 import SSOProviderSelectScreen from "../screens/settings/SSOProviderSelectScreen";
+import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import type { SettingsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -17,16 +19,25 @@ export default function SettingsStackNavigator(): React.JSX.Element {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
+        headerTitle: () => {
+          return <ProjectSwitcher />;
         },
-        headerTintColor: theme.colors.textPrimary,
+        headerStyle: {
+          backgroundColor: theme.colors.backgroundSecondary,
+        },
+        headerTintColor: theme.colors.actionPrimary,
+        headerTitleStyle: {
+          fontSize: 17,
+          fontWeight: "600",
+          color: theme.colors.textPrimary,
+        },
         headerShadowVisible: false,
+        headerBackButtonDisplayMode: "minimal",
         ...(Platform.OS === "ios"
           ? {
-              headerLargeTitle: true,
+              headerLargeTitle: false,
               headerLargeStyle: {
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
               },
             }
           : {}),
@@ -46,6 +57,11 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         name="SSOProviderSelect"
         component={SSOProviderSelectScreen}
         options={{ title: "SSO Login" }}
+      />
+      <Stack.Screen
+        name="OnCallCalendarFeed"
+        component={OnCallCalendarFeedScreen}
+        options={{ title: "Calendar Feed" }}
       />
     </Stack.Navigator>
   );

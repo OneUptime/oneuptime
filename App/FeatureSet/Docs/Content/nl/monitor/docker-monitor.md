@@ -154,7 +154,7 @@ Naast metrics volgt de Docker Agent elk containerbestand `*-json.log` via de Ope
 - `resource.container.id` — het volledige container-ID
 - `resource.container.runtime` — altijd `docker`
 - `attributes["log.iostream"]` — `stdout` of `stderr`
-- `severityText` / `severityNumber` — afgeleid van de stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — gelezen uit een niveautrefwoord in de regel (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); regels zonder herkenbaar niveau vallen terug op de stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — de ruwe logregel die door het containerproces wordt uitgestoten
 - `time` — de tijdstempel van de Docker-daemon voor de regel
 

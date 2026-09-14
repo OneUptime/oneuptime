@@ -42,7 +42,7 @@ The docs are split into focused guides:
 |-------|---------------|
 | [Installation & Upgrades](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/installation.md) | Prerequisites, install, upgrade, and uninstall. |
 | [Configuration reference](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md) | Every `values.yaml` setting, grouped by topic. |
-| [Databases](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/databases.md) | PostgreSQL, Redis, and ClickHouse — built-in, external, and HA operators. |
+| [Databases](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/databases.md) | PostgreSQL, Valkey, and ClickHouse — built-in, external, and HA operators. |
 | [Local AI with vLLM](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) | Run local LLMs in-cluster for OneUptime's AI features. |
 | [Custom domains](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/custom-domains.md) | Custom status page domains and Let's Encrypt. |
 | [Production checklist](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/production-checklist.md) | Harden your install for production. |

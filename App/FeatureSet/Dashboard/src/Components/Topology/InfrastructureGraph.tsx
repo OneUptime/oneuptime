@@ -1,5 +1,4 @@
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -24,21 +23,11 @@ import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import Input from "Common/UI/Components/Input/Input";
-import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import Link from "Common/UI/Components/Link/Link";
-import IconProp from "Common/Types/Icon/IconProp";
-import Route from "Common/Types/API/Route";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import Navigation from "Common/UI/Utils/Navigation";
 import computeNestedLayout, {
   NestedLayoutBox,
 } from "../../Utils/NestedGraphLayout";
 import computeInfraParenting, { infraEdgeId } from "./InfrastructureNesting";
-import EntityDetailPanel from "./EntityDetailPanel";
 import ServiceNodeCard from "./ServiceNodeCard";
 import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
 import { getInfrastructureGraphNodeKeys } from "./TopologyInventoryData";
@@ -244,17 +233,10 @@ const INFRA_NODE_TYPES: Record<string, FunctionComponent<NodeProps>> = {
   infraLeaf: InfraLeafNode as FunctionComponent<NodeProps>,
 };
 
-const WORKLOAD_GROUPING_RELATIONSHIPS: Set<EntityRelationshipType> =
-  new Set<EntityRelationshipType>([
-    EntityRelationshipType.HostedOn,
-    EntityRelationshipType.RunsOn,
-  ]);
-
 export interface ComponentProps {
   entities: Array<InventoryItem>;
   relationships: Array<InventoryItemRelationship>;
-  /** Seconds the depends-on metrics were aggregated over (cron window). */
-  metricsWindowSeconds: number;
+  onSelectResource?: (key: string) => void;
 }
 
 const InfrastructureGraph: FunctionComponent<ComponentProps> = (
@@ -262,45 +244,6 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
-  /*
-   * Search and focus live in the URL (replaceState — no history flood) so
-   * a filtered/focused view is shareable. A focus key that does not identify
-   * a loaded inventory item (e.g. carried over from the other tab) is ignored.
-   */
-  const [searchText, setSearchTextState] = useState<string>(
-    Navigation.getQueryStringByName("infraSearch") || "",
-  );
-  const [excludedTypes, setExcludedTypes] = useState<Set<string>>(
-    new Set<string>(),
-  );
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [focusKey, setFocusKeyState] = useState<string | null>(
-    Navigation.getQueryStringByName("infraFocus"),
-  );
-
-  /*
-   * Debounce the URL mirror: per-keystroke replaceState trips Safari's
-   * rate limit; React state stays the source of truth. Params are
-   * namespaced per tab so Service Map state never leaks into this graph.
-   */
-  const searchUrlTimeout: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setSearchText: (value: string) => void = (value: string): void => {
-    setSearchTextState(value);
-    if (searchUrlTimeout.current) {
-      clearTimeout(searchUrlTimeout.current);
-    }
-    searchUrlTimeout.current = setTimeout(() => {
-      Navigation.setQueryString({ infraSearch: value || null });
-    }, 250);
-  };
-  const setFocusKey: (value: string | null) => void = (
-    value: string | null,
-  ): void => {
-    setFocusKeyState(value);
-    Navigation.setQueryString({ infraFocus: value });
-  };
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
@@ -335,76 +278,12 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     });
   }, [infraEdges, props.entities]);
 
-  // Types present among graphable nodes — drives the filter checkboxes.
-  const presentTypes: Array<string> = useMemo(() => {
-    const types: Set<string> = new Set<string>();
-    for (const key of graphNodeKeys) {
-      const entity: InventoryItem | undefined = entityByKey.get(key);
-      types.add(entity?.entityType || "unknown");
-    }
-    return Array.from(types).sort();
-  }, [graphNodeKeys, entityByKey]);
-
-  // Only honor a focus key that identifies a loaded Inventory item.
-  const effectiveFocusKey: string | null =
-    focusKey && entityByKey.has(focusKey) ? focusKey : null;
-
-  // Focus mode: everything connected to the focused node, both directions.
-  const focusedKeys: Set<string> | null = useMemo(() => {
-    if (!effectiveFocusKey) {
-      return null;
-    }
-    const neighbors: Map<string, Array<string>> = new Map<
-      string,
-      Array<string>
-    >();
-    for (const edge of infraEdges) {
-      neighbors.set(edge.fromEntityKey!, [
-        ...(neighbors.get(edge.fromEntityKey!) || []),
-        edge.toEntityKey!,
-      ]);
-      neighbors.set(edge.toEntityKey!, [
-        ...(neighbors.get(edge.toEntityKey!) || []),
-        edge.fromEntityKey!,
-      ]);
-    }
-    const reached: Set<string> = new Set<string>([effectiveFocusKey]);
-    const queue: Array<string> = [effectiveFocusKey];
-    while (queue.length > 0) {
-      const current: string = queue.shift()!;
-      for (const neighbor of neighbors.get(current) || []) {
-        if (!reached.has(neighbor)) {
-          reached.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    }
-    return reached;
-  }, [effectiveFocusKey, infraEdges]);
-
-  /*
-   * The layout is deliberately independent of searchText: search only dims
-   * non-matching nodes, so recomputing the two-pass parenting + nested
-   * layout on every keystroke (potentially ~1000 nodes) would be wasted
-   * work. Dimming is applied in a cheap downstream memo (displayNodes).
-   */
-  const { baseNodes, edges, appliedParent } = useMemo((): {
+  const { baseNodes, edges } = useMemo((): {
     baseNodes: Array<Node>;
     edges: Array<Edge>;
     appliedParent: Map<string, string>;
   } => {
-    const visibleKeys: Set<string> = new Set<string>();
-    for (const key of graphNodeKeys) {
-      const entity: InventoryItem | undefined = entityByKey.get(key);
-      const typeLabel: string = entity?.entityType || "unknown";
-      if (excludedTypes.has(typeLabel)) {
-        continue;
-      }
-      if (focusedKeys && !focusedKeys.has(key)) {
-        continue;
-      }
-      visibleKeys.add(key);
-    }
+    const visibleKeys: Set<string> = graphNodeKeys;
 
     const visibleEdges: Array<InventoryItemRelationship> = infraEdges.filter(
       (relationship: InventoryItemRelationship) => {
@@ -523,7 +402,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
 
     const builtNodes: Array<Node> = orderedKeys.map((key: string): Node => {
       const entity: InventoryItem | undefined = entityByKey.get(key);
-      const label: string = entity?.displayName || "Unnamed entity";
+      const label: string =
+        entity?.displayName || `Undiscovered resource · ${key}`;
       const typeMeta: { label: string; color: string } = metaForEntityType(
         entity?.entityType,
       );
@@ -580,33 +460,11 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
           relationship.relationshipType!,
           relationship.toEntityKey!,
         );
-        // Relationships expressed by the applied nesting are not drawn.
-        if (consumedEdgeIds.has(id)) {
-          return false;
-        }
         /*
-         * Suppress secondary workload edges: a host on several services
-         * nests under one of them, but the OTHER services' hosted-on/
-         * runs-on edges would otherwise pierce into that group's box and
-         * rebuild a mini-hairball. The extra memberships still show in the
-         * node's detail panel. Never draw an edge terminating on a node
-         * nested inside a different service's box.
+         * Nesting expresses one relationship. Keep every other connection,
+         * including a shared resource's links to services outside its group.
          */
-        const parentOfTarget: string | undefined = appliedParent.get(
-          relationship.toEntityKey!,
-        );
-        if (
-          WORKLOAD_GROUPING_RELATIONSHIPS.has(
-            relationship.relationshipType as EntityRelationshipType,
-          ) &&
-          entityByKey.get(relationship.fromEntityKey!)?.entityType ===
-            EntityType.Service &&
-          parentOfTarget &&
-          entityByKey.get(parentOfTarget)?.entityType === EntityType.Service
-        ) {
-          return false;
-        }
-        return true;
+        return !consumedEdgeIds.has(id);
       })
       .map((relationship: InventoryItemRelationship): Edge => {
         const id: string = infraEdgeId(
@@ -631,40 +489,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       });
 
     return { baseNodes: builtNodes, edges: builtEdges, appliedParent };
-  }, [infraEdges, graphNodeKeys, entityByKey, excludedTypes, focusedKeys]);
-
-  /*
-   * Apply search dimming here (cheap: no relayout). A container stays bright
-   * if it OR any descendant matches — React Flow multiplies a parent's
-   * opacity onto its children, so dimming a matched chip's container would
-   * hide the very node the search found.
-   */
-  const displayNodes: Array<Node> = useMemo(() => {
-    const lower: string = searchText.trim().toLowerCase();
-    if (!lower) {
-      return baseNodes;
-    }
-    const bright: Set<string> = new Set<string>();
-    for (const node of baseNodes) {
-      const title: string = (
-        (node.data as { title?: string } | undefined)?.title || ""
-      ).toLowerCase();
-      if (title.includes(lower)) {
-        let cursor: string | undefined = node.id;
-        while (cursor && !bright.has(cursor)) {
-          bright.add(cursor);
-          cursor = appliedParent.get(cursor);
-        }
-      }
-    }
-    return baseNodes.map((node: Node): Node => {
-      const dimmed: boolean = !bright.has(node.id);
-      return {
-        ...node,
-        data: { ...(node.data as Record<string, unknown>), dimmed },
-      } as Node;
-    });
-  }, [baseNodes, appliedParent, searchText]);
+  }, [infraEdges, graphNodeKeys, entityByKey]);
 
   /*
    * Hover labels live in a separate cheap memo: only the edges array
@@ -702,7 +527,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       const didFit: boolean = Boolean(
         flowInstance.current &&
           baseNodes.length > 0 &&
-          flowInstance.current.fitView({ padding: 0.12 }),
+          flowInstance.current.fitView({ padding: 0.15, maxZoom: 1 }),
       );
       if (!didFit && attempts > 0) {
         attempts--;
@@ -713,176 +538,52 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [focusKey, baseNodes.length]);
+  }, [baseNodes]);
 
-  const selectedEntity: InventoryItem | null =
-    (selectedKey && entityByKey.get(selectedKey)) || null;
-
-  if (graphNodeKeys.size === 0) {
+  if (baseNodes.length === 0) {
     return (
-      <EmptyState
-        id="topology-empty"
-        icon={IconProp.FlowDiagram}
-        title="No infrastructure topology discovered yet"
-        description="As telemetry carrying multiple entities (e.g. a service running in a Kubernetes pod on a node) is ingested, the relationships between them will appear here as a map — no configuration needed."
-        footer={
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
-            )}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            {translateString(
-              "View telemetry setup documentation to send OpenTelemetry data",
-            ) || ""}
-          </Link>
-        }
-      />
+      <div role="status" className="p-10 text-center text-sm text-gray-500">
+        {translateString("No resources in this map")}
+      </div>
     );
   }
 
   return (
-    <Fragment>
-      <div className="mb-3 bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="md:w-72">
-            <Input
-              dataTestId="topology-search"
-              placeholder={translateString("Search entities by name") || ""}
-              value={searchText}
-              onChange={(value: string) => {
-                setSearchText(value);
-              }}
-            />
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {presentTypes.map((typeLabel: string): ReactElement => {
-              return (
-                <CheckboxElement
-                  key={typeLabel}
-                  dataTestId={`topology-type-filter-${typeLabel}`}
-                  title={metaForEntityType(typeLabel).label}
-                  value={!excludedTypes.has(typeLabel)}
-                  onChange={(checked: boolean) => {
-                    setExcludedTypes((previous: Set<string>): Set<string> => {
-                      const next: Set<string> = new Set<string>(previous);
-                      if (checked) {
-                        next.delete(typeLabel);
-                      } else {
-                        next.add(typeLabel);
-                      }
-                      return next;
-                    });
-                  }}
-                />
-              );
-            })}
-          </div>
-          {effectiveFocusKey && (
-            <button
-              type="button"
-              data-testid="topology-clear-focus"
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700 hover:bg-indigo-100"
-              onClick={() => {
-                setFocusKey(null);
-              }}
-            >
-              {translateString("Focused on") || "Focused on"}{" "}
-              {entityByKey.get(effectiveFocusKey)?.displayName ||
-                effectiveFocusKey}
-              <span aria-hidden={true}>✕</span>
-            </button>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-          {presentTypes.map((typeLabel: string): ReactElement => {
-            const meta: { label: string; color: string } =
-              metaForEntityType(typeLabel);
-            return (
-              <span
-                key={typeLabel}
-                className="inline-flex items-center gap-1.5 text-xs text-gray-500"
-              >
-                <span
-                  className="inline-block"
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 3,
-                    backgroundColor: meta.color,
-                    boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
-                  }}
-                />
-                {meta.label}
-              </span>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-xs text-gray-500">
-          {translateString(
-            "Hosts and workloads are grouped inside what they run on. Search to find one; hover a connection to see how two entities relate; click anything for details.",
-          ) || ""}
-        </p>
-      </div>
-
-      {baseNodes.length === 0 ? (
-        <EmptyState
-          id="topology-filtered-empty"
-          icon={IconProp.FlowDiagram}
-          title="No entities match your filters"
-          description="Adjust the search text or re-enable entity types to see the map."
+    <div style={{ height: "min(65vh, 680px)", minHeight: 360, width: "100%" }}>
+      <ReactFlow
+        nodes={baseNodes}
+        edges={displayEdges}
+        nodeTypes={INFRA_NODE_TYPES}
+        fitView={true}
+        fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
+        minZoom={0.05}
+        maxZoom={2}
+        proOptions={{ hideAttribution: true }}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        onInit={(instance: ReactFlowInstance) => {
+          flowInstance.current = instance;
+        }}
+        onNodeClick={(_event: React.MouseEvent, node: Node) => {
+          props.onSelectResource?.(node.id);
+        }}
+        onEdgeMouseEnter={(_event: React.MouseEvent, edge: Edge) => {
+          setHoveredEdgeId(edge.id);
+        }}
+        onEdgeMouseLeave={() => {
+          setHoveredEdgeId(null);
+        }}
+      >
+        <Controls showInteractive={false} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color="var(--ou-chart-grid, #cbd5e1)"
         />
-      ) : (
-        <div style={{ height: "70vh", width: "100%" }}>
-          <ReactFlow
-            nodes={displayNodes}
-            edges={displayEdges}
-            nodeTypes={INFRA_NODE_TYPES}
-            fitView={true}
-            proOptions={{ hideAttribution: true }}
-            nodesDraggable={true}
-            nodesConnectable={false}
-            elementsSelectable={true}
-            onInit={(instance: ReactFlowInstance) => {
-              flowInstance.current = instance;
-            }}
-            onNodeClick={(_event: React.MouseEvent, node: Node) => {
-              setSelectedKey(node.id);
-            }}
-            onEdgeMouseEnter={(_event: React.MouseEvent, edge: Edge) => {
-              setHoveredEdgeId(edge.id);
-            }}
-            onEdgeMouseLeave={() => {
-              setHoveredEdgeId(null);
-            }}
-          >
-            <Controls showInteractive={false} />
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={16}
-              size={1}
-              color="var(--ou-chart-grid, #cbd5e1)"
-            />
-          </ReactFlow>
-        </div>
-      )}
-
-      {selectedEntity && (
-        <EntityDetailPanel
-          entity={selectedEntity}
-          relationships={props.relationships}
-          entityByKey={entityByKey}
-          metricsWindowSeconds={props.metricsWindowSeconds}
-          onClose={() => {
-            setSelectedKey(null);
-          }}
-          onFocus={(entityKey: string) => {
-            setFocusKey(entityKey);
-            setSelectedKey(null);
-          }}
-        />
-      )}
-    </Fragment>
+      </ReactFlow>
+    </div>
   );
 };
 

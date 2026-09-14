@@ -9,6 +9,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import Project from "../../../../Models/DatabaseModels/Project";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "../../../Services/PayAsYouGoBillingService";
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
   @CaptureSpan()
@@ -44,6 +47,19 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
       },
     });
 
+    /*
+     * This runs on every monitor create and delete, so each live check here
+     * is a payment-provider read on a request path. Check once, and hand the
+     * answer to the usage write instead of letting it read the same payment
+     * setup again a moment later.
+     */
+    const liveAuthorization: LiveUsageAuthorization | null =
+      await PayAsYouGoBillingService.authorizeUsageNow(projectId);
+
+    if (!liveAuthorization) {
+      return;
+    }
+
     // update this count in project as well.
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -67,6 +83,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
           (project.paymentProviderMeteredSubscriptionId as string),
         this,
         count.toNumber(),
+        { liveAuthorization: liveAuthorization },
       );
     }
   }

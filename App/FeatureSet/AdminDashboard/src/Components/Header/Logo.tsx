@@ -1,5 +1,4 @@
 // Tailwind
-import Route from "Common/Types/API/Route";
 import Image from "Common/UI/Components/Image/Image";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import { Theme, useTheme } from "Common/UI/Utils/Theme";
@@ -51,9 +50,7 @@ const Logo: FunctionComponent<ComponentProps> = (
               props.onClick();
             }
           }}
-          imageUrl={Route.fromString(
-            theme === Theme.Dark ? DarkOneUptimeLogo : OneUptimeLogo,
-          )}
+          imageUrl={theme === Theme.Dark ? DarkOneUptimeLogo : OneUptimeLogo}
           alt={"OneUptime"}
         />
       </div>

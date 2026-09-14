@@ -314,10 +314,18 @@ describe("the logs viewer seeds its time range from the query's window", () => {
     /*
      * A saved view carries its own time range and would move an embedded
      * preview off the moment it is about.
+     *
+     * The check now reads as `hostOwnsView` fed to resolveInitialSavedView,
+     * which returns no view when it is set — the precedence moved into that
+     * shared resolver when the Viewer and Insights tabs started handing each
+     * other a scope. The guarantee is unchanged and, if anything, wider:
+     * every embedded viewer (`!syncUrlState`) is covered now, not only the
+     * ones a host pinned a window on.
      */
     expect(LOGS_VIEWER).toContain(
-      "if (pinnedTimeRange || props.timeRangeOverride) { return; }",
+      "hostOwnsView: Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, )",
     );
+    expect(LOGS_VIEWER).toContain("if (resolution.savedView) {");
   });
 });
 
@@ -403,14 +411,30 @@ describe("the incident and alert pages rebuild the window's Date bounds", () => 
     ["incident", INCIDENT_VIEW],
     ["alert", ALERT_VIEW],
   ])(
-    "%s page stops the trace and exception tables restoring a filter over the pin",
+    "%s page stops the span and exception lists restoring a filter over the pin",
     (_name: string, source: string) => {
-      expect(source.split("disableUrlState={true}").length - 1).toBe(2);
+      /*
+       * The two dense tables became the same explorers the /traces and
+       * /exceptions pages use, so the opt-out is spelled the explorers' way
+       * — but the requirement is unchanged: a snapshot pinned to the moment
+       * the monitor fired must not have a filter restored over it from the
+       * host page's query string, and must not write its own state back into
+       * that query string either.
+       */
+      expect(source.split("disableUrlSync={true}").length - 1).toBe(2);
+      expect(source).not.toContain("disableUrlState");
     },
   );
 });
 
 describe("the tables and charts accept the pinned window", () => {
+  /*
+   * The incident / alert snapshot no longer uses these two tables — it embeds
+   * the span and exception explorers instead (see
+   * SnapshotSpanExceptionLists.test.ts). They are still mounted by the
+   * monitor-config previews, the trace detail page and the session-replay
+   * panel, all of which pass a pinned query, so the contract stands.
+   */
   test("trace and exception tables forward a header element and can opt out of URL state", () => {
     for (const source of [TRACE_TABLE, EXCEPTION_TABLE]) {
       expect(source).toContain("rightElement?: ReactElement | undefined;");

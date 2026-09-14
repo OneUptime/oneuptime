@@ -10,6 +10,9 @@ import IoTFleetService from "./IoTFleetService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class IoTFleetOwnerRuleEngineServiceClass {
   /**
@@ -35,6 +38,7 @@ class IoTFleetOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             iotFleetLabels: { _id: true },
             iotFleetNamePattern: true,
@@ -42,9 +46,15 @@ class IoTFleetOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IoTFleetOwnerRule",
+        projectId: iotFleet.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -149,6 +159,24 @@ class IoTFleetOwnerRuleEngineServiceClass {
   }
 
   private doesIoTFleetMatchRule(
+    iotFleet: IoTFleet,
+    rule: IoTFleetOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "iotFleetLabels",
+        "iotFleetNamePattern",
+        "iotFleetDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IoTFleetOwnerRule): boolean => {
+        return this.doesIoTFleetMatchLegacyRule(iotFleet, legacyRule);
+      },
+    });
+  }
+
+  private doesIoTFleetMatchLegacyRule(
     iotFleet: IoTFleet,
     rule: IoTFleetOwnerRule,
   ): boolean {

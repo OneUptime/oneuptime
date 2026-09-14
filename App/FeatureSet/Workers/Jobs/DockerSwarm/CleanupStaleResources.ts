@@ -26,8 +26,8 @@ import ObjectID from "Common/Types/ObjectID";
  *      threshold. Threshold and delete both live in
  *      DockerSwarmResourceService (getStaleThresholdDate /
  *      deleteStaleForCluster — default 15 minutes = 3x the snapshot
- *      interval; override with PVE_INVENTORY_STALE_MINUTES, minimum
- *      5) so this cron carries no duplicate policy. The cutoff is
+ *      interval; override with DOCKER_SWARM_INVENTORY_STALE_MINUTES,
+ *      minimum 5) so this cron carries no duplicate policy. The cutoff is
  *      anchored to each cluster's own lastSeenAt rather than wall-clock
  *      now: inventory rows ride the slower snapshot clock, so with the
  *      disconnect and prune thresholds both at 15 minutes a wall-clock

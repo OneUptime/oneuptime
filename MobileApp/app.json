@@ -6,22 +6,11 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D1117"
-    },
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
       "icon": "./assets/icon.png",
-      "splash": {
-        "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#0D1117"
-      },
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
@@ -33,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.oneuptime.oncall",
       "versionCode": 2,
       "googleServicesFile": "./google-services.json",
@@ -49,17 +37,17 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0D1117",
-          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#F6F7F9",
+          "image": "./assets/splash-light.png",
           "imageWidth": 200,
           "ios": {
-            "backgroundColor": "#0D1117",
-            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#F6F7F9",
+            "image": "./assets/splash-light.png",
             "imageWidth": 200
           },
           "android": {
-            "backgroundColor": "#0D1117",
-            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#F6F7F9",
+            "image": "./assets/splash-light.png",
             "imageWidth": 200
           }
         }

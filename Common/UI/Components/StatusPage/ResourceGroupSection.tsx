@@ -6,6 +6,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -40,6 +41,19 @@ export interface ComponentProps {
   /* Hex or css colour for the rollup, from the rolled up status. */
   rollupColor?: string | undefined;
   isInitiallyExpanded?: boolean | undefined;
+  /*
+   * Opens the section when it turns true, and puts back whatever the visitor
+   * had when it turns false again. The overview sets it while a search is
+   * running: a filtered page whose matches sit inside collapsed groups shows
+   * nothing, which reads as "no results" rather than as "found, but folded
+   * away".
+   *
+   * Deliberately a nudge rather than a lock. Pinning the section open would
+   * leave the header rendering as a working toggle that does nothing, and a
+   * visitor who wants a matched group out of the way while they read another
+   * one should be able to close it.
+   */
+  autoExpand?: boolean | undefined;
   /* The group's own resources. */
   resourcesElement?: ReactElement | undefined;
   /* Nested sections, normally one per sub group. */
@@ -76,6 +90,32 @@ const ResourceGroupSection: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setIsOpen(initiallyExpanded);
   }, [initiallyExpanded]);
+
+  /*
+   * Remembering the visitor's own choice across an autoExpand episode. Without
+   * this, clearing a search would leave every group on the page open - the
+   * search would have quietly rewritten the page's shape.
+   */
+  const wasAutoExpanded: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const openStateBeforeAutoExpand: React.MutableRefObject<boolean | null> =
+    useRef<boolean | null>(null);
+
+  const autoExpand: boolean = Boolean(props.autoExpand);
+
+  useEffect(() => {
+    if (autoExpand && !wasAutoExpanded.current) {
+      openStateBeforeAutoExpand.current = isOpen;
+      setIsOpen(true);
+    } else if (!autoExpand && wasAutoExpanded.current) {
+      if (openStateBeforeAutoExpand.current !== null) {
+        setIsOpen(openStateBeforeAutoExpand.current);
+        openStateBeforeAutoExpand.current = null;
+      }
+    }
+
+    wasAutoExpanded.current = autoExpand;
+  }, [autoExpand]);
 
   const generatedId: string = React.useId();
   const bodyId: string = `status-page-group-body-${generatedId}`;

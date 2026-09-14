@@ -22,7 +22,7 @@
 {{/ifCond}}
 {{/ifNotCond}}
 {{#ifNotCond rootCause ""}}
-{{> DetailBoxField title="Root Cause:" text=rootCause }}
+{{> DetailBoxField title="Root Cause:" blockText=rootCause }}
 {{/ifNotCond}}
 {{> DetailBoxField title="Status changed at:" text=statusChangedAt }}
 {{> DetailBoxField title="Description:" text=monitorDescription }}
@@ -33,8 +33,7 @@
 
 {{> ButtonBlock buttonUrl=monitorViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=monitorViewLink}}
+{{> LinkBlock linkUrl=monitorViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> InfoBlock info="You will be notified when the status of this monitor changes."}}
 

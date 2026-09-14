@@ -45,11 +45,12 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                             |
-| ------------------------- | -------- | ------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                             |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys) |
-| `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)    |
+| Variable                  | Required | Description                                                                                                                                            |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                                                                                                                            |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys)                                                                                                |
+| `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)                                                                                                   |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks (default: `1.44`). Set it to your daemon's maximum on older hosts, or to the empty string to auto-negotiate |
 
 ## Image Tags
 
@@ -70,7 +71,7 @@ docker compose up -d
 
 ## Collected Logs
 
-Container logs are automatically collected from `/var/lib/docker/containers/*/*-json.log` and enriched with container metadata (container id, image, runtime, host name) plus a derived severity — lines written to stderr become `ERROR` and lines written to stdout become `INFO`. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+Container logs are automatically collected from `/var/lib/docker/containers/*/*-json.log` and enriched with container metadata (container id, image, runtime, host name) plus a derived severity. The severity is read from a level keyword in the line itself (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`, `level=error`); only lines with no recognisable level fall back to the stream, where stderr becomes `ERROR` and stdout becomes `INFO`. The keyword is only believed where a level actually sits — in the line's leading preamble, or as the value of a level field (`level`, `lvl`, `severity`, `levelname`, `log.level`) anywhere in the line — so an ordinary message that merely mentions "error" or "panic" in passing is not classified by it and keeps the stream default. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
 
 ### Log Driver Requirement
 
@@ -150,6 +151,35 @@ docker build -f ./DockerAgent/Dockerfile -t oneuptime/docker-agent:local .
 ### Docker Socket Permission Denied
 
 The agent must run as root (`--user 0:0`) to access `/var/run/docker.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present.
+
+### Container Exits With "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+The daemon refuses a client newer than its own maximum, the receiver fails to start,
+and the collector exits with it — so the container restart-loops. Set
+`DOCKER_API_VERSION` to the daemon's maximum:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'   # e.g. 1.41 on Engine 20.10
+docker run -d ... -e DOCKER_API_VERSION=1.41 ...     # or set it in Compose
+```
+
+The value keeps working after the daemon is upgraded, since newer daemons still
+serve older API versions, so it can be removed on its own schedule.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then asks the Docker SDK to negotiate the version with the daemon
+(one `HEAD /_ping`, then the daemon's own maximum), which works against both old and
+new daemons:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### No Container Logs in the Dashboard
 

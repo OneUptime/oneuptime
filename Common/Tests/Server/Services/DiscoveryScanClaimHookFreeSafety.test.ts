@@ -3,12 +3,20 @@ import NetworkDeviceDiscoveryScanService, {
 } from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import { describe, expect, test } from "@jest/globals";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * The /probe-ingest/probe/discovery-scan/list route hands the requesting
  * probe its pending subnet scans and claims them (status "In Progress" +
- * startedAt, and a cleared statusMessage) via
+ * startedAt, and a current-run statusMessage) via
  * DatabaseService.updateColumnsByIdWithoutHooks — one raw
  * parameterized UPDATE that skips ALL on-update hooks: workflow HTTP
  * triggers, audit-log inserts, realtime events, service
@@ -21,6 +29,12 @@ import { describe, expect, test } from "@jest/globals";
  *   - App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts
  *       NetworkDeviceDiscoveryScan.status/startedAt/statusMessage when a
  *       probe claims a Pending scan
+ *   - App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts
+ *       discoveredDevices/respondedHostCount/scannedHostCount/statusMessage/
+ *       autoImportProcessedAt when a RUNNING sweep posts what it has found so
+ *       far (OneUptime issues #3598 and #3599). This one lands every 30
+ *       seconds for the whole length of a sweep, which is why it may not pay
+ *       for the full pipeline either.
  *
  * The conversion dropped NOTHING: the model declares no update workflow, no
  * audit logging and no realtime events. But the fast path skips hooks
@@ -44,6 +58,33 @@ import { describe, expect, test } from "@jest/globals";
  *
  * Pure model-metadata + class-shape tests — no Postgres, no Redis.
  */
+
+/*
+ * What a running sweep's progress write stamps: results, and the auto-import
+ * marker that makes them importable within the minute (OneUptime issue #3599).
+ *
+ * Deliberately NOT the run state — status, startedAt, completedAt, nextScanAt
+ * all belong to the run and are written once, by the final result. A progress
+ * write that touched any of them would end the run early.
+ */
+const PROGRESS_WRITE_COLUMNS: Array<string> = [
+  "discoveredDevices",
+  "respondedHostCount",
+  "scannedHostCount",
+  "statusMessage",
+  "autoImportProcessedAt",
+];
+
+/*
+ * The stale-scan reaper also writes atomically so a new progress report cannot
+ * race with its decision to fail a silent run. It skips the same service hooks.
+ */
+const REAPER_WRITE_COLUMNS: Array<string> = [
+  "status",
+  "statusMessage",
+  "completedAt",
+  "nextScanAt",
+];
 
 describe("discovery-scan claim hookless write safety preconditions", () => {
   describe("NetworkDeviceDiscoveryScan model (claim write in DiscoveryScan.ts)", () => {
@@ -84,6 +125,9 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         "status",
         "startedAt",
         "statusMessage",
+        // ...and every column the running-sweep progress write stamps.
+        ...PROGRESS_WRITE_COLUMNS,
+        ...REAPER_WRITE_COLUMNS,
       ];
       for (const column of fastPathColumns) {
         expect(scan.isTableColumn(column)).toBe(true);
@@ -97,17 +141,52 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     const updateHooks: Array<string> = ["onBeforeUpdate", "onUpdateSuccess"];
 
     /*
-     * onUpdateSuccess is still un-overridden: nothing runs AFTER the write
-     * that the fast path would drop. Only onBeforeUpdate is overridden, and
-     * the tests below pin that it is inert for the claim payload.
+     * The hook reads the rows an edit is about to change. Stubbed to nothing,
+     * so "did it read?" becomes an assertion rather than a database
+     * dependency.
      */
-    test("NetworkDeviceDiscoveryScanService does not override onUpdateSuccess", () => {
-      expect(
-        Object.prototype.hasOwnProperty.call(
-          NetworkDeviceDiscoveryScanServiceClass.prototype,
-          "onUpdateSuccess",
-        ),
-      ).toBe(false);
+    const findBy: jest.Mock = jest.fn() as unknown as jest.Mock;
+
+    beforeEach(() => {
+      findBy.mockReset();
+      findBy.mockResolvedValue([] as never);
+
+      jest
+        .spyOn(
+          NetworkDeviceDiscoveryScanService as unknown as {
+            findBy: () => Promise<unknown>;
+          },
+          "findBy",
+        )
+        .mockImplementation(findBy as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    /*
+     * BOTH hooks are overridden now, so neither can be dismissed as "there is
+     * nothing to skip" — which is what this suite used to assert about
+     * onUpdateSuccess. What licenses the claim's hook-free write today is
+     * narrower and is pinned below instead: the hooks look only at columns the
+     * claim payload does not carry, and onBeforeUpdate is demonstrably a
+     * pass-through when handed that payload.
+     *
+     * onUpdateSuccess re-queues a scan whose target, probe or credentials just
+     * changed, and re-derives nextScanAt from the recurrence pair (OneUptime
+     * issue #3444). None of those columns is in the claim.
+     */
+    test("both update hooks are overridden, so the disjointness below is what matters", () => {
+      for (const hook of updateHooks) {
+        expect(
+          Object.prototype.hasOwnProperty.call(
+            NetworkDeviceDiscoveryScanServiceClass.prototype,
+            hook,
+          ),
+        ).toBe(true);
+      }
+
       // The default export is an instance of the class checked above.
       expect(NetworkDeviceDiscoveryScanService).toBeInstanceOf(
         NetworkDeviceDiscoveryScanServiceClass,
@@ -128,28 +207,123 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     });
 
     /*
-     * The columns the claim write stamps and the column the onBeforeUpdate
-     * override validates must stay disjoint. This is the assertion that
-     * actually licenses the hookless claim write: if someone adds `cidr` to
-     * the claim payload, or teaches the hook to validate `status`, the
-     * overlap shows up here.
+     * The columns the claim write stamps and the columns the update hooks
+     * react to must stay disjoint. This is the assertion that actually
+     * licenses the hookless claim write.
+     *
+     * Asked of the HOOK, one column at a time, rather than of two lists of
+     * strings written down beside each other: a test that compares one
+     * literal against another literal passes whatever production does, and
+     * this is the one place in the suite where that would matter. An update
+     * carrying a single column takes the hook's early exit — nothing carried
+     * forward, and no row read — exactly when that column is none of the
+     * hook's business.
      */
-    test("the claim write's columns are disjoint from what onBeforeUpdate validates", () => {
+    test("the claim write's columns are none of the update hooks' business", async () => {
       const claimWriteColumns: Array<string> = [
         "status",
         "startedAt",
         "statusMessage",
+        /*
+         * The progress write's columns get the same treatment, and need it
+         * more: it lands every 30 seconds for the whole length of a sweep,
+         * where the claim lands once. If a hook ever grows to care about a
+         * result column, this fails before that write starts silently
+         * skipping it.
+         */
+        ...PROGRESS_WRITE_COLUMNS,
+        ...REAPER_WRITE_COLUMNS,
       ];
-      /*
-       * `name` joined `cidr` here when discovery scans became nameable
-       * (issue #3391): the hook validates and normalizes it on any update that
-       * carries it. The claim payload does not, which is what keeps the
-       * hookless write honest.
-       */
-      const columnsValidatedByHook: Array<string> = ["cidr", "name"];
 
       for (const column of claimWriteColumns) {
-        expect(columnsValidatedByHook).not.toContain(column);
+        findBy.mockClear();
+
+        const result: { carryForward: unknown } = await (
+          NetworkDeviceDiscoveryScanService as any
+        ).onBeforeUpdate({
+          query: { _id: "some-scan-id" },
+          data: { [column]: null },
+          props: { isRoot: true },
+          limit: 1,
+          skip: 0,
+        });
+
+        expect({
+          column: column,
+          carryForward: result.carryForward,
+          rowsRead: findBy.mock.calls.length,
+        }).toEqual({ column: column, carryForward: null, rowsRead: 0 });
+      }
+    });
+
+    /*
+     * The same question the other way round, so the assertion above cannot
+     * pass by the hook having quietly become inert: every column an edit can
+     * carry DOES make the hook read the row it is about to change.
+     */
+    const SETTING_VALUES: Record<string, string> = {
+      cidr: "10.0.0.0/24",
+      probeId: "44444444-4444-4444-8444-444444444444",
+    };
+
+    test("a settings column, by contrast, does make the hooks read the row", async () => {
+      const settingColumns: Array<string> = [
+        "cidr",
+        "probeId",
+        /*
+         * The ordered SNMP credential list (OneUptime issue #3458), and the
+         * column this list is likeliest to fall behind: it is the one the
+         * form actually posts now, the flattened columns below it are
+         * mirrored FROM it, and an update carrying it can retire the scan's
+         * run. If it ever stopped making the hook read the row, the claim's
+         * hookless write would be licensed by a disjointness this suite no
+         * longer checks.
+         *
+         * It needs no SETTING_VALUES entry, unlike `cidr` and `probeId`: a
+         * null list is not a refusal but a clear — the scan falls back to its
+         * flattened columns, which is exactly where a scan created before
+         * this column already is — so the empty box every other column here
+         * is given works for it too.
+         */
+        "snmpConfigs",
+        "snmpVersion",
+        "snmpCommunityString",
+        "snmpPort",
+        "snmpV3SecurityLevel",
+        "snmpV3Username",
+        "snmpV3AuthProtocol",
+        "snmpV3AuthKey",
+        "snmpV3PrivProtocol",
+        "snmpV3PrivKey",
+        "isRecurring",
+        "rescanIntervalInMinutes",
+      ];
+
+      for (const column of settingColumns) {
+        findBy.mockClear();
+
+        const result: { carryForward: unknown } = await (
+          NetworkDeviceDiscoveryScanService as any
+        ).onBeforeUpdate({
+          query: { _id: "some-scan-id" },
+          /*
+           * Two columns the hook refuses to CLEAR are given a value instead —
+           * the scan target, which it validates, and the probe, which the
+           * column cannot be without. Every other column accepts an empty box.
+           */
+          data: {
+            [column]: SETTING_VALUES[column] ?? null,
+          },
+          props: { isRoot: true },
+          limit: 1,
+          skip: 0,
+        });
+
+        expect({ column: column, rowsRead: findBy.mock.calls.length }).toEqual({
+          column: column,
+          rowsRead: 1,
+        });
+        expect(result.carryForward).not.toBeNull();
       }
     });
 
@@ -164,18 +338,26 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         data: {
           status: "In Progress",
           startedAt: new Date(0),
-          statusMessage: null,
+          statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
         },
         props: { isRoot: true },
         limit: 1,
         skip: 0,
       };
 
-      const result: { updateBy: unknown } = await (
+      const result: { updateBy: unknown; carryForward: unknown } = await (
         NetworkDeviceDiscoveryScanService as any
       ).onBeforeUpdate(claimUpdateBy);
 
       expect(result.updateBy).toBe(claimUpdateBy);
+
+      /*
+       * And nothing was carried forward, so onUpdateSuccess would have had
+       * nothing to reconcile even if the claim had gone the long way round.
+       * This is also the proof the hook did not read the database for a
+       * payload the probe polls with every minute.
+       */
+      expect(result.carryForward).toBeNull();
     });
 
     /*

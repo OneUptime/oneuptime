@@ -116,9 +116,9 @@ describe("MonitorCriteriaMessageBuilder — metric unit labelling", () => {
       });
 
     // Observed value carries the unit.
-    expect(message).toContain("latest 0.06 sec");
-    expect(message).toContain("min 0.06 sec");
-    expect(message).toContain("max 0.06 sec");
+    expect(message).toContain("latest 60 ms");
+    expect(message).toContain("min 60 ms");
+    expect(message).toContain("max 60 ms");
     // Threshold in the expectation clause carries the same unit.
     expect(message).toContain("greater than 5 sec");
   });
@@ -150,11 +150,20 @@ describe("MonitorCriteriaMessageBuilder — metric unit labelling", () => {
         matchMessage: null,
       });
 
-    expect(message).toContain("latest 0.50 sec");
+    expect(message).toContain("latest 500 ms");
     expect(message).toContain("greater than 2 sec");
   });
 
-  test("omits the unit for dimensionless ratio metrics (native unit '1')", () => {
+  /*
+   * A ratio metric carries OTel's dimensionless "1" over samples that are
+   * fractions in [0, 1]. Printing "0.06 1" is meaningless and printing a
+   * bare "0.06" reads as 0.06% when the value is 6%.
+   *
+   * The fired-alert email has rendered this as "6.00%" since CompareCriteria
+   * adopted MetricValueFormatter; this line — the monitor's own evaluation
+   * log for the SAME sample — used to say "0.06". Both now agree.
+   */
+  test("renders a dimensionless ratio metric as the percentage it means", () => {
     const criteriaFilter: CriteriaFilter = {
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.GreaterThan,
@@ -179,11 +188,49 @@ describe("MonitorCriteriaMessageBuilder — metric unit labelling", () => {
         matchMessage: null,
       });
 
-    expect(message).toContain("latest 0.06");
-    // No stray "0.06 1" and no unit on the threshold.
+    expect(message).toContain("latest 6.00%");
+    // Never the dimensionless marker, and never the unscaled fraction.
     expect(message).not.toContain("0.06 1");
-    expect(message).toContain("greater than 0.9");
+    expect(message).not.toContain("latest 0.06");
+    // The threshold is scaled the same way, so the two halves agree.
+    expect(message).toContain("greater than 90.00%");
     expect(message).not.toContain("greater than 0.9 1");
+  });
+
+  /*
+   * The control for the rule above: "1" is only a percentage when the
+   * metric NAME says the value is a fraction. A counter carrying "1" —
+   * cumulative layout shift is the canonical one — keeps its bare number.
+   */
+  test("a non-fraction metric carrying '1' keeps its bare number", () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "0.25",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.Average,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputs> = buildInputs({
+      metricNativeUnit: "1",
+      metricName: "browser.cumulative_layout_shift",
+      sampleValues: [0.31],
+      criteriaFilter,
+    });
+
+    const message: string =
+      MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
+        ...inputs,
+        didMeetCriteria: false,
+        matchMessage: null,
+      });
+
+    expect(message).toContain("latest 0.31");
+    expect(message).not.toContain("0.31 1");
+    expect(message).not.toContain("31.00%");
+    expect(message).toContain("greater than 0.25");
   });
 });
 
@@ -221,7 +268,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 0.06 sec (min 0.06 sec, max 0.06 sec) across 3 data points. (expected to be greater than 5 sec using average).",
+      "Metric Value (a) recorded latest 60 ms (min 60 ms, max 60 ms) across 3 data points. (expected to be greater than 5 sec using average).",
     );
   });
 
@@ -251,10 +298,10 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 10.00 sec (min 8.00 sec, max 12.00 sec) across 3 data points. (expected to be less than 5 sec using average).",
+      "Metric Value (a) recorded latest 10 sec (min 8 sec, max 12 sec) across 3 data points. (expected to be less than 5 sec using average).",
     );
     // The unit rides both the observed value and the "less than N unit" clause.
-    expect(message).toContain("latest 10.00 sec");
+    expect(message).toContain("latest 10 sec");
     expect(message).toContain("less than 5 sec");
   });
 
@@ -286,7 +333,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 3.50 sec (min 1.50 sec, max 3.50 sec) across 3 data points. (expected to be greater than 2 sec using maximum value).",
+      "Metric Value (a) recorded latest 3.5 sec (min 1.5 sec, max 3.5 sec) across 3 data points. (expected to be greater than 2 sec using maximum value).",
     );
     // The raw ms magnitudes never leak into the rendered line.
     expect(message).not.toContain("1500");
@@ -329,14 +376,14 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
      * observed value and the threshold, even though "1.00" appears in the text.
      */
     expect(message).toBe(
-      "Metric Value (a) recorded latest 1.00 (min 0.95, max 1.00) across 3 data points. (expected to be greater than 0.9 using average).",
+      "Metric Value (a) recorded latest 100.00% (min 95.00%, max 100.00%) across 3 data points. (expected to be greater than 90.00% using average).",
     );
     /*
      * Neither the value nor the threshold carries a unit: each number is
      * immediately followed by punctuation/wording, never a " 1" unit suffix.
      */
-    expect(message).toContain("latest 1.00 (min 0.95, max 1.00)");
-    expect(message).toContain("greater than 0.9 using average");
+    expect(message).toContain("latest 100.00% (min 95.00%, max 100.00%)");
+    expect(message).toContain("greater than 90.00% using average");
   });
 
   /*
@@ -375,11 +422,11 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 6.00 % across 1 data point. (expected to be greater than 90 % using average).",
+      "Metric Value (a) recorded latest 6.00% across 1 data point. (expected to be greater than 90.00% using average).",
     );
     // Both the converted observed value and the threshold carry the "%" unit.
-    expect(message).toContain("latest 6.00 %");
-    expect(message).toContain("greater than 90 %");
+    expect(message).toContain("latest 6.00%");
+    expect(message).toContain("greater than 90.00%");
     // The raw fraction magnitude never leaks into the rendered line.
     expect(message).not.toContain("0.06");
     // Singular grammar for the lone sample — no "(min .., max ..)" clause.
@@ -488,7 +535,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 7.00 sec across 1 data point. (expected to be greater than 5 sec using average).",
+      "Metric Value (a) recorded latest 7 sec across 1 data point. (expected to be greater than 5 sec using average).",
     );
     // Singular grammar, and no "(min .., max ..)" clause for a lone sample.
     expect(message).toContain("across 1 data point.");
@@ -522,7 +569,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 100.00 ms (min 100.00 ms, max 100.00 ms) across 3 data points. (expected to equal 100 ms using average).",
+      "Metric Value (a) recorded latest 100 ms (min 100 ms, max 100 ms) across 3 data points. (expected to equal 100 ms using average).",
     );
   });
 
@@ -552,7 +599,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 70.00 ms (min 55.00 ms, max 70.00 ms) across 3 data points. (expected to be greater than or equal to 50 ms using maximum value).",
+      "Metric Value (a) recorded latest 70 ms (min 55 ms, max 70 ms) across 3 data points. (expected to be greater than or equal to 50 ms using maximum value).",
     );
   });
 

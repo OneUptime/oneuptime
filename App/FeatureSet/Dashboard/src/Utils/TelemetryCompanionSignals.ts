@@ -3,7 +3,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
-import { JSONObject, ObjectType } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -20,6 +20,10 @@ import {
   buildCrossSignalScopeFromMetricViewData,
   extractScopeFiltersFromQueryConfigs,
 } from "./MetricsCrossSignalPivot";
+import {
+  getFilterStringValues,
+  isEmptyFilterValue,
+} from "./TelemetryQueryFilterValues";
 
 /*
  * Companion-signal derivation for the incident / alert "Telemetry snapshot"
@@ -149,104 +153,6 @@ function isPlainRecord(value: unknown): value is JSONObject {
     !(value instanceof ObjectID) &&
     !(value as JSONObject)["_type"]
   );
-}
-
-/*
- * Read the string values a query filter holds, across every shape the
- * store/load round trip can produce: an Includes instance, its serialized
- * `{ _type: "Includes", value: [...] }` form, a bare array, a single
- * string / number / ObjectID (instance or serialized).
- */
-function getFilterStringValues(value: unknown): Array<string> {
-  const collect: (items: Array<unknown>) => Array<string> = (
-    items: Array<unknown>,
-  ): Array<string> => {
-    const values: Array<string> = [];
-
-    for (const item of items) {
-      if (
-        typeof item === "string" ||
-        typeof item === "number" ||
-        item instanceof ObjectID
-      ) {
-        const stringValue: string = item.toString().trim();
-
-        if (stringValue.length > 0 && !values.includes(stringValue)) {
-          values.push(stringValue);
-        }
-      }
-    }
-
-    return values;
-  };
-
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  if (value instanceof Includes) {
-    return collect(value.values as Array<unknown>);
-  }
-
-  if (Array.isArray(value)) {
-    return collect(value);
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    value instanceof ObjectID
-  ) {
-    return collect([value]);
-  }
-
-  if (typeof value === "object") {
-    const json: JSONObject = value as JSONObject;
-
-    if (json["_type"] === ObjectType.Includes && Array.isArray(json["value"])) {
-      return collect(json["value"] as Array<unknown>);
-    }
-
-    if (
-      json["_type"] === ObjectType.ObjectID &&
-      typeof json["value"] === "string"
-    ) {
-      return collect([json["value"]]);
-    }
-  }
-
-  return [];
-}
-
-/*
- * Whether a filter value carries no scope AT ALL (an empty membership, an
- * empty string) — as opposed to a value we failed to read. The former is
- * omitted silently (it filters nothing), the latter must be reported.
- */
-function isEmptyFilterValue(value: unknown): boolean {
-  if (value instanceof Includes) {
-    return value.values.length === 0;
-  }
-
-  if (Array.isArray(value)) {
-    return value.length === 0;
-  }
-
-  if (typeof value === "string") {
-    return value.trim().length === 0;
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const json: JSONObject = value as JSONObject;
-
-    return (
-      json["_type"] === ObjectType.Includes &&
-      Array.isArray(json["value"]) &&
-      (json["value"] as Array<unknown>).length === 0
-    );
-  }
-
-  return false;
 }
 
 interface ExtractedPrimaryScope {

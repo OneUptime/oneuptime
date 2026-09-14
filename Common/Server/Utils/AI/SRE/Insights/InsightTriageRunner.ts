@@ -215,7 +215,9 @@ export default class InsightTriageRunner {
    *
    * 1. Stamp the verdict onto the exception group row (aiClassification)
    *    so the exceptions list can filter on it and the fix lane can skip
-   *    known-non-defects without re-triaging.
+   *    known-non-defects without re-triaging, and PROMOTE it into the
+   *    platform-wide errorClass when nothing better has claimed that field
+   *    yet (see below).
    * 2. code-fault → route the automatic fix (InsightFixRouting owns every
    *    gate: enableAi, enableInsightFixTasks, budget, readiness, dedupe)
    *    and flip the insight to FixOpened when a run was queued.
@@ -244,6 +246,12 @@ export default class InsightTriageRunner {
      * meantime gets no PR and keeps its terminal status.
      */
     if (insight.telemetryExceptionId) {
+      /*
+       * aiClassification is the AUDIT RECORD of what the LLM said and is
+       * written unconditionally — it must stay readable even when a
+       * stronger source owns errorClass, so a human comparing the two can
+       * see where the model disagreed.
+       */
       await TelemetryExceptionService.updateOneById({
         id: insight.telemetryExceptionId,
         data: {
@@ -251,6 +259,59 @@ export default class InsightTriageRunner {
         },
         props: { isRoot: true },
       });
+
+      /*
+       * errorClass is the ACTED-ON field (Issues scope, emit-path
+       * suppression, fix routing), and its precedence is
+       * declared > manual > ai > default. A class the throwing code
+       * declared for itself is a site-level statement by a developer, and
+       * 'manual' is a human's verdict on this exact group; a probabilistic
+       * LLM answer outranks neither. So the promotion is guarded on the
+       * source still being 'default' — nobody has classified this group.
+       *
+       * The guard is a WHERE clause rather than a read-then-write: the
+       * triage run has been in flight for minutes, so a 'declared' event
+       * ingesting or a human reclassifying between a read and this write
+       * is a real race, and a conditional UPDATE cannot clobber either.
+       * (Same conditional-flip idiom as the ActionRequired -> FixOpened
+       * write below.)
+       */
+      try {
+        const promotedRowCount: number =
+          await TelemetryExceptionService.updateOneBy({
+            query: {
+              _id: insight.telemetryExceptionId.toString(),
+              errorClassSource: "default",
+            },
+            data: {
+              errorClass: classification,
+              errorClassSource: "ai",
+            },
+            props: { isRoot: true },
+          });
+
+        if (promotedRowCount === 0) {
+          logger.debug(
+            `AI insights: kept the existing error class on exception ${insight.telemetryExceptionId.toString()} — a declared or manual classification outranks the AI verdict ${classification}.`,
+          );
+        }
+      } catch (err) {
+        /*
+         * Non-fatal on purpose. This is a secondary, self-healing write: the
+         * audit record above already landed, and live traffic re-stamps
+         * errorClass from the declared class on the group's next occurrence.
+         *
+         * The auto-archive decision below IS user-visible and irreversible by
+         * comparison, so it must not be lost to a failure here. Without this
+         * guard the two are coupled only by statement order, which is exactly
+         * the kind of coupling nobody notices until an incident.
+         */
+        logger.warn(
+          `AI insights: could not promote the error class on exception ${insight.telemetryExceptionId.toString()}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     const currentInsight: AIInsight | null = await AIInsightService.findOneById(

@@ -19,3 +19,7 @@
 
 4. **Configura las notificaciones de alertas y mantenimiento programado**
    - Se pueden aplicar reglas similares a las Alertas y el Mantenimiento programado navegando a sus páginas respectivas y configurando las reglas deseadas.
+
+## Acceso a la red para despliegues autoalojados
+
+Para las conexiones salientes, las llamadas de retorno entrantes y los despliegues privados, consulte la sección de acceso a la red de la [Integración con Slack](/docs/self-hosted/slack-integration).

@@ -55,10 +55,10 @@ export default function FeedTimeline({
                 flex: 1,
                 paddingBottom: 12,
                 marginBottom: 10,
-                borderRadius: 16,
-                padding: 12,
-                backgroundColor: theme.colors.backgroundElevated,
-                borderWidth: 1,
+                borderRadius: 0,
+                paddingHorizontal: 0,
+                backgroundColor: "transparent",
+                borderBottomWidth: isLast ? 0 : 1,
                 borderColor: theme.colors.borderGlass,
               }}
             >
@@ -70,7 +70,7 @@ export default function FeedTimeline({
               ) : null}
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   marginTop: 8,
                   color: theme.colors.textTertiary,
                 }}

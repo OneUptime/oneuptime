@@ -517,7 +517,18 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
    * template string, so a negative sign and any decimals survive verbatim
    * (no toFixed / number formatting), and the unit suffix still follows.
    */
-  describe("negative thresholds with a unit are interpolated raw", () => {
+  /*
+   * A threshold carrying a unit is rendered by the same formatter as the
+   * observed value beside it, so both halves of one sentence describe the
+   * quantity the same way. That means it can be RESCALED — "-0.5 sec" is
+   * written "-500 ms", the same number at the scale a reader reads it at,
+   * and the observation in that sentence uses milliseconds too.
+   *
+   * What must never happen is decimal PADDING: a threshold the user typed
+   * as "-5" must not come back as "-5.00", which is what the old raw
+   * interpolation was protecting against and what these still assert.
+   */
+  describe("negative thresholds with a unit are formatted, never padded", () => {
     test("GreaterThan '-5' with { unit: 'sec' } => 'to be greater than -5 sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.GreaterThan,
@@ -530,11 +541,11 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
         });
 
       expect(result).toBe("to be greater than -5 sec");
-      // Raw interpolation — never number-formatted.
+      // Integers keep their digits — never padded to "-5.00".
       expect(result).not.toContain("-5.00");
     });
 
-    test("LessThan '-0.5' with { unit: 'sec' } => 'to be less than -0.5 sec'", () => {
+    test("LessThan '-0.5' with { unit: 'sec' } rescales to milliseconds", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.LessThan,
         value: "-0.5",
@@ -545,9 +556,23 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be less than -0.5 sec");
-      // Raw interpolation — the decimal is kept as-is, not padded to "-0.50".
+      expect(result).toBe("to be less than -500 ms");
       expect(result).not.toContain("-0.50");
+    });
+
+    /*
+     * The boundary the formatter is gated on: with no unit resolved — every
+     * non-metric checkOn — the threshold is interpolated exactly as before.
+     */
+    test("a threshold with no unit is still interpolated raw", () => {
+      const filter: CriteriaFilter = makeFilter({
+        filterType: FilterType.LessThan,
+        value: "-0.5",
+      });
+
+      expect(
+        MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(filter),
+      ).toBe("to be less than -0.5");
     });
   });
 });

@@ -1,883 +1,1684 @@
 import React, {
+  CSSProperties,
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
-import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
-import ChunkLoader, { SessionReplayRecordedEvent } from "./ChunkLoader";
+import {
+  ReplayEngine,
+  ReplayEngineListener,
+  ReplayEngineReplayerEvent,
+  ReplayEngineSnapshot,
+  ReplayRecordedSize,
+  ReplayerLike,
+} from "./Engine/ReplayEngineTypes";
+import {
+  SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS,
+  SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
+} from "Common/Types/Rum/SessionReplay";
 
 /*
- * The playback surface: the sandboxed iframe, the rrweb Replayer lifecycle,
- * and the chunk-feeding state machine that refuses to cross a gap.
+ * The playback surface, as a thin React binding over the engine.
  *
- * This file never imports rrweb. The Replayer constructor is handed in as
- * `replayerFactory` by SessionReplayPlayer.tsx, which is the single file
- * allowed to reference the package and does so only behind a dynamic
- * import(). Common/UI/esbuild-config.js hardcodes minify:false, so one
- * accidental top-level import here would put ~450KB of Replayer into the
- * shared chunk for every user who never opens a replay.
+ * Everything about WHAT plays (chunk feeding, seeks, stalls, gaps, idle
+ * skips) lives in Engine/ReplayEngine.ts and is tested there without a
+ * DOM. This component owns only what needs one: mounting the engine's
+ * host element, measuring the box and scaling the picture to fit it,
+ * reserving the recorded aspect before the first frame, the phone frame
+ * for mobile recordings, the CSP meta injected into every rebuilt replay
+ * document, the touch ring, and the cursor/trail styles.
+ *
+ * This file never imports rrweb. The Replayer is constructed by the
+ * engine through a factory that SessionReplayPlayer.tsx - the single file
+ * allowed to reference the package, behind a dynamic import() - hands in.
  */
 
-/*
- * Structural subset of rrweb's Replayer that this component uses. Declared
- * rather than imported for the reason above; the factory casts on the way in.
- */
-export interface ReplayerLike {
-  readonly iframe: HTMLIFrameElement;
-  readonly wrapper: HTMLElement;
-  play: (timeOffsetMs?: number) => void;
-  pause: (timeOffsetMs?: number) => void;
-  destroy: () => void;
-  addEvent: (event: SessionReplayRecordedEvent) => void;
-  getCurrentTime: () => number;
-  setConfig: (config: Record<string, unknown>) => void;
-  on: (event: string, handler: (payload: unknown) => void) => unknown;
-}
-
-export type ReplayerFactory = (
-  events: Array<SessionReplayRecordedEvent>,
-  config: Record<string, unknown>,
-) => ReplayerLike;
-
-export interface ReplaySeekRequest {
-  offsetMs: number;
-  /*
-   * Monotonic token. Seeking twice to the same offset (clicking the same
-   * error marker again after drifting away) must still re-seek, and an
-   * offset alone cannot express that.
-   */
-  token: number;
-}
+export type ReplayStageFit = "contain" | "actual";
 
 export interface ReplayStageProps {
-  loader: ChunkLoader;
-  replayerFactory: ReplayerFactory;
-  isPlaying: boolean;
-  speed: number;
-  skipInactive: boolean;
-  seekRequest: ReplaySeekRequest | null;
-  onTimeUpdate: (offsetMs: number) => void;
-  onPlayingChange: (isPlaying: boolean) => void;
-  /* Fired when playback had to jump a hole. Never silent. */
-  onGapCrossed: (gap: SessionReplayGap) => void;
-  onLoadedChunkIndexesChange: (chunkIndexes: Array<number>) => void;
-  onError: (message: string) => void;
+  engine: ReplayEngine;
   /*
-   * True while a segment is being fetched and rebuilt (initial load, seek,
-   * gap jump). Lets the player show "buffering" instead of a stage that
-   * looks frozen for the length of a chunk fetch.
+   * The recorded viewport from the manifest header. Reserves the stage's
+   * aspect ratio before rrweb reports its first Meta, so the layout below
+   * the stage does not jump when the first frame lands.
    */
-  onBufferingChange?: ((isBuffering: boolean) => void) | undefined;
+  viewportWidth?: number | null | undefined;
+  viewportHeight?: number | null | undefined;
+  /* Native fullscreen: the height bound becomes 100vh instead of 70vh. */
+  isTheater?: boolean | undefined;
+  /* "contain" (Fit) scales to fit both axes; "actual" is 1:1 in a scroll box. */
+  fit?: ReplayStageFit | undefined;
+  /* Draw the phone frame. Defaults to "recorded width below 600px". */
+  isMobile?: boolean | undefined;
+  /* The scale in force, for the "1440x900 -> 62%" chip. */
+  onScaleChange?: ((scale: number) => void) | undefined;
+  /* Reserve space for the timeline and transport on desktop. */
+  reservedBottomHeightPx?: number | undefined;
+  /*
+   * Paused, read-only inspection mode. rrweb disables iframe hit-testing by
+   * default; this opt-in lets a viewer select and copy the captured text.
+   */
+  isTextSelectionEnabled?: boolean | undefined;
+  /*
+   * What the recorder said it could do, from the manifest. Only one entry
+   * matters here: whether mouse movement was sampled at the faster
+   * cadence, which sets how long the cursor takes to cross between two
+   * recorded positions.
+   */
+  recorderCapabilities?: ReadonlyArray<string> | undefined;
+  className?: string | undefined;
 }
+
+/* Contain-fit bounds, from the design: 70vh normally, 100vh in theater. */
+export const REPLAY_STAGE_MAX_HEIGHT_VH: number = 70;
+export const REPLAY_STAGE_THEATER_MAX_HEIGHT_VH: number = 100;
+export const REPLAY_STAGE_MIN_HEIGHT_REM: number = 24;
+
+/* Recordings narrower than this get the phone-shaped frame. */
+export const REPLAY_STAGE_MOBILE_MAX_WIDTH_PX: number = 600;
+
+/* rrweb draws a 28px ring where a TouchStart landed. */
+export const REPLAY_STAGE_TOUCH_RING_PX: number = 28;
+const TOUCH_RING_LIFETIME_MS: number = 700;
+
+/* Fallback aspect before any size is known. */
+const DEFAULT_ASPECT: ReplayRecordedSize = { width: 16, height: 9 };
 
 /*
  * The Content-Security-Policy injected INSIDE the replay document.
  *
- * Scope, precisely: this meta tag is inserted on construction (into the blank
- * document, which rrweb then discards) and again on every
- * "fullsnapshot-rebuilded" event. rrweb emits that event AFTER rebuild() has
- * built the whole DOM and after insertStyleRules, so any subresource the
- * snapshot itself references - img src, link href, srcset, font URLs - has
- * already been requested by the time these directives exist. What the tag
- * genuinely covers is everything the document does AFTER a rebuild: the
- * incremental mutations rrweb applies as playback advances.
+ * Scope, precisely: this meta tag is inserted on construction (into the
+ * blank document, which rrweb then discards) and again on every
+ * "fullsnapshot-rebuilded" event. rrweb emits that event AFTER rebuild()
+ * has built the whole DOM and after insertStyleRules, so any subresource
+ * the snapshot itself references - img src, link href, srcset, font URLs
+ * - has already been requested by the time these directives exist. What
+ * the tag genuinely covers is everything the document does AFTER a
+ * rebuild: the incremental mutations rrweb applies as playback advances.
  *
  * The real control is sandbox="allow-same-origin" with no allow-scripts,
- * which rrweb sets and which UNSAFE_replayCanvas: false keeps in place. The
- * outstanding hole - rebuild-time outbound requests to attacker-chosen hosts
- * from the Dashboard origin - is closed by stripping remote resource URLs
- * server-side, not here. See stillOpen in the review notes.
+ * which rrweb sets and which UNSAFE_replayCanvas: false keeps in place.
+ *
+ * What is NOT closed here, stated plainly so nobody reads this comment as
+ * a guarantee: rebuild-time outbound requests to hosts the recorded page
+ * referenced still leave the viewer's browser from the Dashboard origin.
+ * The referrer meta below stops the replay URL (with the session id)
+ * riding along on them; removing them entirely needs the recorded
+ * resource URLs neutralised at ingest, which is tracked as a follow-up
+ * and is not something this component can do after the fact.
  */
-const REPLAY_DOCUMENT_CSP: string =
+export const REPLAY_DOCUMENT_CSP: string =
   "script-src 'none'; default-src 'none'; img-src data: blob:; " +
   "style-src 'unsafe-inline'; font-src data:; media-src 'none'; connect-src 'none'";
+
+/*
+ * rrweb deliberately starts every replay iframe with pointer-events:none.
+ * That is a safe playback default, but it also means a viewer cannot select
+ * the already-recorded, already-masked DOM text to paste into a bug report.
+ *
+ * The attribute selector gives this rule enough specificity to beat common
+ * `.select-none` utility classes. It is injected after the recorded page's
+ * styles and uses !important because selection is a viewer affordance, not a
+ * visual property whose recorded value needs to be preserved.
+ */
+export const REPLAY_TEXT_SELECTION_CSS: string = `
+html[data-oneuptime-replay-text-selection],
+html[data-oneuptime-replay-text-selection] body,
+html[data-oneuptime-replay-text-selection] body * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+html[data-oneuptime-replay-text-selection] textarea {
+  resize: none !important;
+}
+html[data-oneuptime-replay-text-selection] audio,
+html[data-oneuptime-replay-text-selection] video,
+html[data-oneuptime-replay-text-selection] embed,
+html[data-oneuptime-replay-text-selection] object {
+  pointer-events: none !important;
+}
+`;
+const REPLAY_SHADOW_TEXT_SELECTION_CSS: string = `
+:host,
+:host * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+:host textarea {
+  resize: none !important;
+}
+:host audio,
+:host video,
+:host embed,
+:host object {
+  pointer-events: none !important;
+}
+`;
+
+const REPLAY_TEXT_SELECTION_ATTRIBUTE: string =
+  "data-oneuptime-replay-text-selection";
+const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+  "data-oneuptime-replay-text-selection-style";
+const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+  "data-oneuptime-replay-shadow-text-selection-style";
+
+const enabledReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
+const observedReplayFrames: WeakSet<HTMLIFrameElement> =
+  new WeakSet<HTMLIFrameElement>();
+const replayDocumentMutationObservers: WeakMap<Document, MutationObserver> =
+  new WeakMap<Document, MutationObserver>();
+const replayRootSelectionAttributes: WeakMap<
+  Document,
+  Map<HTMLElement, string | null>
+> = new WeakMap<Document, Map<HTMLElement, string | null>>();
+const replayDocumentSelectionStyles: WeakMap<
+  Document,
+  Set<HTMLStyleElement>
+> = new WeakMap<Document, Set<HTMLStyleElement>>();
+interface ReplayShadowRootState {
+  observer: MutationObserver | null;
+  style: HTMLStyleElement | null;
+}
+const replayShadowRootStates: WeakMap<
+  Document,
+  Map<ShadowRoot, ReplayShadowRootState>
+> = new WeakMap<Document, Map<ShadowRoot, ReplayShadowRootState>>();
+interface ReplayNavigationTargetAttributes {
+  href: string | null;
+  xlinkHref: string | null;
+}
+const replayNavigationTargetHrefs: WeakMap<
+  Document,
+  Map<Element, ReplayNavigationTargetAttributes>
+> = new WeakMap<Document, Map<Element, ReplayNavigationTargetAttributes>>();
+const XLINK_NAMESPACE: string = "http://www.w3.org/1999/xlink";
+/*
+ * A fixed no-op keeps :link selectors intact without giving native browser
+ * menus a destination. The replay iframe has no allow-scripts sandbox token
+ * and REPLAY_DOCUMENT_CSP also declares script-src 'none', so even a browser
+ * UI action that bypasses DOM events cannot evaluate this URL.
+ */
+const DISABLED_REPLAY_NAVIGATION_URL: string = "javascript:void(0)";
+interface ReplayScrollPosition {
+  left: number;
+  top: number;
+}
+const replayScrollPositions: WeakMap<
+  Document,
+  Map<Element, ReplayScrollPosition>
+> = new WeakMap<Document, Map<Element, ReplayScrollPosition>>();
+const replayInlineStyles: WeakMap<
+  Document,
+  Map<Element, string | null>
+> = new WeakMap<Document, Map<Element, string | null>>();
+interface ReplayFrameInteractionAttributes {
+  inert: string | null;
+  tabIndex: string | null;
+}
+const replayFrameInteractionAttributes: WeakMap<
+  Document,
+  Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+> = new WeakMap<
+  Document,
+  Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+>();
+
+function applyReplayInlineStyle(
+  doc: Document,
+  element: Element,
+  property: string,
+  value: string,
+): void {
+  const style: CSSStyleDeclaration | undefined = (
+    element as Element & { style?: CSSStyleDeclaration }
+  ).style;
+
+  if (!style) {
+    return;
+  }
+
+  let elements: Map<Element, string | null> | undefined =
+    replayInlineStyles.get(doc);
+
+  if (!elements) {
+    elements = new Map<Element, string | null>();
+    replayInlineStyles.set(doc, elements);
+  }
+
+  if (!elements.has(element)) {
+    /*
+     * Keep the complete attribute, including whether it existed at all.
+     * Chromium aliases user-select and -webkit-user-select in the style
+     * declaration, so restoring properties independently can preserve our
+     * second override. Restoring the exact attribute also avoids leaving
+     * style="" behind on a previously style-less recorded element.
+     */
+    elements.set(element, element.getAttribute("style"));
+  }
+
+  style.setProperty(property, value, "important");
+}
+
+function restoreReplayInlineStyles(doc: Document): void {
+  const elements: Map<Element, string | null> | undefined =
+    replayInlineStyles.get(doc);
+
+  if (!elements) {
+    return;
+  }
+
+  for (const [element, previous] of elements) {
+    if (previous === null) {
+      element.removeAttribute("style");
+    } else {
+      element.setAttribute("style", previous);
+    }
+  }
+
+  replayInlineStyles.delete(doc);
+}
+
+function getReplayFrameInteractionAttributes(
+  doc: Document,
+  frame: HTMLIFrameElement,
+): ReplayFrameInteractionAttributes {
+  let frames:
+    | Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+    | undefined = replayFrameInteractionAttributes.get(doc);
+
+  if (!frames) {
+    frames = new Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>();
+    replayFrameInteractionAttributes.set(doc, frames);
+  }
+
+  let attributes: ReplayFrameInteractionAttributes | undefined =
+    frames.get(frame);
+
+  if (!attributes) {
+    attributes = {
+      inert: frame.getAttribute("inert"),
+      tabIndex: frame.getAttribute("tabindex"),
+    };
+    frames.set(frame, attributes);
+  }
+
+  return attributes;
+}
+
+function restoreReplayFrameInteractionAttributes(doc: Document): void {
+  const frames:
+    | Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+    | undefined = replayFrameInteractionAttributes.get(doc);
+
+  if (!frames) {
+    return;
+  }
+
+  for (const [frame, attributes] of frames) {
+    for (const [name, value] of [
+      ["inert", attributes.inert],
+      ["tabindex", attributes.tabIndex],
+    ] as const) {
+      if (value === null) {
+        frame.removeAttribute(name);
+      } else {
+        frame.setAttribute(name, value);
+      }
+    }
+  }
+
+  replayFrameInteractionAttributes.delete(doc);
+}
+
+function markReplayDocumentRoot(doc: Document, root: HTMLElement): void {
+  let roots: Map<HTMLElement, string | null> | undefined =
+    replayRootSelectionAttributes.get(doc);
+
+  if (!roots) {
+    roots = new Map<HTMLElement, string | null>();
+    replayRootSelectionAttributes.set(doc, roots);
+  }
+
+  if (!roots.has(root)) {
+    roots.set(root, root.getAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE));
+  }
+
+  root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+}
+
+function restoreReplayDocumentRoots(doc: Document): void {
+  const roots: Map<HTMLElement, string | null> | undefined =
+    replayRootSelectionAttributes.get(doc);
+
+  if (!roots) {
+    return;
+  }
+
+  for (const [root, previous] of roots) {
+    if (previous === null) {
+      root.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
+    } else {
+      root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, previous);
+    }
+  }
+
+  replayRootSelectionAttributes.delete(doc);
+}
+
+function ensureReplayDocumentSelectionStyle(
+  doc: Document,
+  head: HTMLHeadElement,
+): void {
+  let styles: Set<HTMLStyleElement> | undefined =
+    replayDocumentSelectionStyles.get(doc);
+
+  if (!styles) {
+    styles = new Set<HTMLStyleElement>();
+    replayDocumentSelectionStyles.set(doc, styles);
+  }
+
+  for (const style of styles) {
+    if (style.parentNode === head) {
+      return;
+    }
+  }
+
+  const style: HTMLStyleElement = doc.createElement("style");
+  style.setAttribute(REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
+  style.textContent = REPLAY_TEXT_SELECTION_CSS;
+  head.appendChild(style);
+  styles.add(style);
+}
+
+function removeReplayDocumentSelectionStyles(doc: Document): void {
+  const styles: Set<HTMLStyleElement> | undefined =
+    replayDocumentSelectionStyles.get(doc);
+
+  if (!styles) {
+    return;
+  }
+
+  for (const style of styles) {
+    style.remove();
+  }
+
+  replayDocumentSelectionStyles.delete(doc);
+}
+
+function neutralizeReplayNavigationTargets(
+  doc: Document,
+  root: ParentNode,
+): void {
+  const targets: NodeListOf<Element> = root.querySelectorAll("a, area");
+  let hrefs: Map<Element, ReplayNavigationTargetAttributes> | undefined =
+    replayNavigationTargetHrefs.get(doc);
+
+  for (const target of Array.from(targets)) {
+    const href: string | null = target.getAttribute("href");
+    const xlinkHref: string | null = target.getAttributeNS(
+      XLINK_NAMESPACE,
+      "href",
+    );
+
+    if (href === null && xlinkHref === null) {
+      continue;
+    }
+
+    if (!hrefs) {
+      hrefs = new Map<Element, ReplayNavigationTargetAttributes>();
+      replayNavigationTargetHrefs.set(doc, hrefs);
+    }
+
+    if (!hrefs.has(target)) {
+      hrefs.set(target, { href: href, xlinkHref: xlinkHref });
+    }
+
+    /*
+     * Keep :link/:any-link/a[href] matching so the paused picture does not
+     * reflow, but replace native context-menu/callout destinations with a
+     * harmless document. Capture listeners remain the first line of defence.
+     */
+    if (href !== null) {
+      target.setAttribute("href", DISABLED_REPLAY_NAVIGATION_URL);
+    }
+
+    if (xlinkHref !== null) {
+      target.setAttributeNS(
+        XLINK_NAMESPACE,
+        "xlink:href",
+        DISABLED_REPLAY_NAVIGATION_URL,
+      );
+    }
+  }
+}
+
+function restoreReplayNavigationTargets(doc: Document): void {
+  const hrefs: Map<Element, ReplayNavigationTargetAttributes> | undefined =
+    replayNavigationTargetHrefs.get(doc);
+
+  if (!hrefs) {
+    return;
+  }
+
+  for (const [target, attributes] of hrefs) {
+    if (attributes.href !== null) {
+      target.setAttribute("href", attributes.href);
+    }
+
+    if (attributes.xlinkHref !== null) {
+      target.setAttributeNS(
+        XLINK_NAMESPACE,
+        "xlink:href",
+        attributes.xlinkHref,
+      );
+    }
+  }
+
+  replayNavigationTargetHrefs.delete(doc);
+}
+
+function getReplayScrollPositions(
+  doc: Document,
+): Map<Element, ReplayScrollPosition> {
+  const existing: Map<Element, ReplayScrollPosition> | undefined =
+    replayScrollPositions.get(doc);
+
+  if (existing) {
+    return existing;
+  }
+
+  const positions: Map<Element, ReplayScrollPosition> = new Map<
+    Element,
+    ReplayScrollPosition
+  >();
+  replayScrollPositions.set(doc, positions);
+  return positions;
+}
+
+function rememberReplayRootScrollPositions(
+  doc: Document,
+  root: ParentNode,
+): void {
+  const positions: Map<Element, ReplayScrollPosition> =
+    getReplayScrollPositions(doc);
+  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+
+  for (const element of Array.from(elements)) {
+    const tagName: string = element.tagName.toLowerCase();
+    const computedStyle: CSSStyleDeclaration | undefined =
+      doc.defaultView?.getComputedStyle(element);
+    const effectiveUserSelect: string | undefined =
+      computedStyle?.getPropertyValue("user-select") ||
+      computedStyle?.getPropertyValue("-webkit-user-select");
+
+    /*
+     * The injected !important rules handle normal recorded CSS. Only touch
+     * an element inline when its stronger recorded cascade still wins (most
+     * commonly an inline !important declaration), keeping the live replay
+     * DOM as close to the snapshot as possible.
+     */
+    if (effectiveUserSelect !== "text") {
+      applyReplayInlineStyle(doc, element, "user-select", "text");
+      applyReplayInlineStyle(doc, element, "-webkit-user-select", "text");
+    }
+
+    if (
+      tagName === "textarea" &&
+      computedStyle?.getPropertyValue("resize") !== "none"
+    ) {
+      applyReplayInlineStyle(doc, element, "resize", "none");
+    }
+
+    if (
+      ["audio", "video", "embed", "object"].includes(tagName) &&
+      computedStyle?.getPropertyValue("pointer-events") !== "none"
+    ) {
+      applyReplayInlineStyle(doc, element, "pointer-events", "none");
+    }
+
+    if (!positions.has(element)) {
+      positions.set(element, {
+        left: element.scrollLeft,
+        top: element.scrollTop,
+      });
+    }
+  }
+
+  const scrollingElement: Element | null = doc.scrollingElement;
+
+  if (scrollingElement && !positions.has(scrollingElement)) {
+    positions.set(scrollingElement, {
+      left: scrollingElement.scrollLeft,
+      top: scrollingElement.scrollTop,
+    });
+  }
+}
+
+function restoreReplayScrollPosition(
+  element: Element,
+  position: ReplayScrollPosition,
+): void {
+  if (
+    element.scrollLeft === position.left &&
+    element.scrollTop === position.top
+  ) {
+    return;
+  }
+
+  const style: CSSStyleDeclaration | undefined = (
+    element as Element & { style?: CSSStyleDeclaration }
+  ).style;
+  const previousStyleAttribute: string | null = element.getAttribute("style");
+
+  style?.setProperty("scroll-behavior", "auto", "important");
+  element.scrollLeft = position.left;
+  element.scrollTop = position.top;
+
+  if (previousStyleAttribute === null) {
+    element.removeAttribute("style");
+  } else {
+    element.setAttribute("style", previousStyleAttribute);
+  }
+}
+
+function preventReplayDefault(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
+  event.preventDefault();
+}
+
+function closestReplayElement(
+  target: EventTarget | null,
+  selector: string,
+): Element | null {
+  const closest: ((value: string) => Element | null) | undefined = (
+    target as Element | null
+  )?.closest;
+
+  return typeof closest === "function" ? closest.call(target, selector) : null;
+}
+
+function getReplayEventPath(event: Event): EventTarget[] {
+  if (typeof event.composedPath === "function") {
+    return event.composedPath();
+  }
+
+  return event.target ? [event.target] : [];
+}
+
+function closestReplayEventElement(
+  event: Event,
+  selector: string,
+): Element | null {
+  const path: EventTarget[] = getReplayEventPath(event);
+
+  for (const target of path) {
+    const match: Element | null = closestReplayElement(target, selector);
+
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+function isTextSelectableControl(element: Element | null): boolean {
+  if (!element) {
+    return false;
+  }
+
+  const tagName: string = element.tagName.toLowerCase();
+
+  if (tagName === "textarea") {
+    return true;
+  }
+
+  const contentEditable: string | null =
+    element.getAttribute("contenteditable");
+
+  if (contentEditable !== null) {
+    return contentEditable.toLowerCase() !== "false";
+  }
+
+  if (tagName !== "input") {
+    return false;
+  }
+
+  return ["email", "password", "search", "tel", "text", "url"].includes(
+    ((element as HTMLInputElement).type || "text").toLowerCase(),
+  );
+}
+
+function rememberReplayScrollPositions(event: Event): void {
+  const doc: Document = event.currentTarget as Document;
+  const positions: Map<Element, ReplayScrollPosition> =
+    getReplayScrollPositions(doc);
+
+  const path: EventTarget[] = getReplayEventPath(event);
+
+  for (const target of path) {
+    const element: Element = target as Element;
+
+    if (
+      typeof element.scrollLeft === "number" &&
+      typeof element.scrollTop === "number" &&
+      !positions.has(element)
+    ) {
+      positions.set(element, {
+        left: element.scrollLeft,
+        top: element.scrollTop,
+      });
+    }
+  }
+
+  const scrollingElement: Element | null = doc.scrollingElement;
+
+  if (scrollingElement && !positions.has(scrollingElement)) {
+    positions.set(scrollingElement, {
+      left: scrollingElement.scrollLeft,
+      top: scrollingElement.scrollTop,
+    });
+  }
+}
+
+/*
+ * A click guard is too late for sliders, colour/date pickers and similar
+ * controls: browsers may mutate them during pointer handling. Text fields and
+ * textareas remain pointer-selectable; every other native control is inert.
+ */
+function preventReplayControlPointerMutation(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
+  rememberReplayScrollPositions(event);
+  const control: Element | null = closestReplayEventElement(
+    event,
+    "input, select, option, audio, video, embed, object",
+  );
+
+  if (control && !isTextSelectableControl(control)) {
+    event.preventDefault();
+  }
+}
+
+/*
+ * Text selection may focus a recorded form control. Let the viewer use the
+ * native copy/select-all shortcuts and extend a selection with Shift+Arrow,
+ * but suppress keys that could edit or operate that recorded control.
+ */
+function preventReplayKeyboardMutation(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
+  const keyboardEvent: KeyboardEvent = event as KeyboardEvent;
+  const key: string = keyboardEvent.key.toLowerCase();
+  const interactive: Element | null = closestReplayEventElement(
+    keyboardEvent,
+    "input, textarea, select, button, a[href], summary, audio[controls], video[controls], embed, object, [contenteditable]",
+  );
+  const isStatefulControl: boolean =
+    interactive !== null &&
+    [
+      "input",
+      "select",
+      "button",
+      "summary",
+      "audio",
+      "video",
+      "embed",
+      "object",
+    ].includes(interactive.tagName.toLowerCase()) &&
+    !isTextSelectableControl(interactive);
+  const isCopyOrSelectAll: boolean =
+    (keyboardEvent.ctrlKey || keyboardEvent.metaKey) &&
+    (key === "c" || key === "a" || key === "insert");
+  const isExtendingSelection: boolean =
+    keyboardEvent.shiftKey &&
+    !isStatefulControl &&
+    ["arrowleft", "arrowright", "arrowup", "arrowdown", "home", "end"].includes(
+      key,
+    );
+  const isFocusTraversal: boolean = key === "tab";
+
+  if (isCopyOrSelectAll || isExtendingSelection || isFocusTraversal) {
+    return;
+  }
+
+  const scrollKeys: string[] = [
+    " ",
+    "spacebar",
+    "pageup",
+    "pagedown",
+    "arrowleft",
+    "arrowright",
+    "arrowup",
+    "arrowdown",
+    "home",
+    "end",
+  ];
+  const hasCommandModifier: boolean =
+    keyboardEvent.ctrlKey || keyboardEvent.metaKey || keyboardEvent.altKey;
+  const isEditingKey: boolean =
+    interactive !== null &&
+    ((!hasCommandModifier && key.length === 1) ||
+      ["backspace", "delete", "enter", "escape"].includes(key) ||
+      ((keyboardEvent.ctrlKey || keyboardEvent.metaKey) &&
+        ["v", "x", "y", "z"].includes(key)) ||
+      (isStatefulControl && scrollKeys.includes(key)));
+  const isPageScroll: boolean =
+    scrollKeys.includes(key) &&
+    (!isTextSelectableControl(interactive) ||
+      ["pageup", "pagedown"].includes(key));
+
+  if (isEditingKey || isPageScroll) {
+    keyboardEvent.preventDefault();
+  }
+}
+
+/*
+ * Keep the native copy menu available over ordinary text (including link
+ * text, whose destination is neutralised separately), but do not expose
+ * browser actions that can reload or navigate a captured frame.
+ */
+function preventReplayNavigationContextMenu(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
+  if (closestReplayEventElement(event, "iframe")) {
+    event.preventDefault();
+  }
+}
+
+const REPLAY_DEFAULT_GUARD_EVENTS: ReadonlyArray<string> = [
+  "click",
+  "auxclick",
+  "submit",
+  "beforeinput",
+  "paste",
+  "cut",
+  "dragstart",
+  "drop",
+  "wheel",
+  "touchmove",
+];
+const REPLAY_POINTER_GUARD_EVENTS: ReadonlyArray<string> = [
+  "pointerdown",
+  "mousedown",
+  "touchstart",
+];
+
+function removeReplayDocumentGuards(doc: Document): void {
+  for (const type of REPLAY_DEFAULT_GUARD_EVENTS) {
+    doc.removeEventListener(type, preventReplayDefault, true);
+  }
+
+  for (const type of REPLAY_POINTER_GUARD_EVENTS) {
+    doc.removeEventListener(type, preventReplayControlPointerMutation, true);
+  }
+
+  doc.removeEventListener("keydown", preventReplayKeyboardMutation, true);
+  doc.removeEventListener(
+    "contextmenu",
+    preventReplayNavigationContextMenu,
+    true,
+  );
+  replayDocumentMutationObservers.get(doc)?.disconnect();
+  replayDocumentMutationObservers.delete(doc);
+}
+
+function installReplayDocumentGuards(doc: Document): void {
+  /*
+   * rrweb rebuilds a FullSnapshot with document.open(). Chromium keeps the
+   * Document identity but removes its listeners, so a WeakSet cannot tell us
+   * whether guards still exist. Removing the stable callbacks first makes
+   * installation idempotent and also repairs that rebuild case.
+   */
+  removeReplayDocumentGuards(doc);
+
+  for (const type of REPLAY_DEFAULT_GUARD_EVENTS) {
+    doc.addEventListener(type, preventReplayDefault, {
+      capture: true,
+      passive: false,
+    });
+  }
+
+  for (const type of REPLAY_POINTER_GUARD_EVENTS) {
+    doc.addEventListener(type, preventReplayControlPointerMutation, {
+      capture: true,
+      passive: false,
+    });
+  }
+
+  doc.addEventListener("keydown", preventReplayKeyboardMutation, true);
+  doc.addEventListener("contextmenu", preventReplayNavigationContextMenu, true);
+
+  const MutationObserverClass: typeof MutationObserver | undefined =
+    doc.defaultView?.MutationObserver;
+
+  if (MutationObserverClass) {
+    const observer: MutationObserver = new MutationObserverClass((): void => {
+      if (enabledReplayDocuments.has(doc)) {
+        enableNestedReplayDocuments(doc);
+        enableReplayShadowRoots(doc, doc);
+      }
+    });
+    observer.observe(doc, { childList: true, subtree: true });
+    replayDocumentMutationObservers.set(doc, observer);
+  }
+}
+
+/* Recorded open shadow roots need their own cascade and mutation observer. */
+function enableReplayShadowRoots(root: ParentNode, doc: Document): void {
+  rememberReplayRootScrollPositions(doc, root);
+  neutralizeReplayNavigationTargets(doc, root);
+  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+
+  for (const element of Array.from(elements)) {
+    const shadowRoot: ShadowRoot | null = element.shadowRoot;
+
+    if (!shadowRoot) {
+      continue;
+    }
+
+    let states: Map<ShadowRoot, ReplayShadowRootState> | undefined =
+      replayShadowRootStates.get(doc);
+
+    if (!states) {
+      states = new Map<ShadowRoot, ReplayShadowRootState>();
+      replayShadowRootStates.set(doc, states);
+    }
+
+    let state: ReplayShadowRootState | undefined = states.get(shadowRoot);
+
+    if (!state) {
+      const MutationObserverClass: typeof MutationObserver | undefined =
+        doc.defaultView?.MutationObserver;
+      let observer: MutationObserver | null = null;
+
+      if (MutationObserverClass) {
+        observer = new MutationObserverClass((): void => {
+          if (enabledReplayDocuments.has(doc)) {
+            enableReplayShadowRoots(shadowRoot, doc);
+            enableNestedReplayDocuments(doc, shadowRoot);
+          }
+        });
+        observer.observe(shadowRoot, { childList: true, subtree: true });
+      }
+
+      state = { observer: observer, style: null };
+      states.set(shadowRoot, state);
+    }
+
+    if (!state.style || state.style.parentNode !== shadowRoot) {
+      const style: HTMLStyleElement = doc.createElement("style");
+      style.setAttribute(REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
+      style.textContent = REPLAY_SHADOW_TEXT_SELECTION_CSS;
+      shadowRoot.appendChild(style);
+      state.style = style;
+    }
+
+    enableNestedReplayDocuments(doc, shadowRoot);
+    enableReplayShadowRoots(shadowRoot, doc);
+  }
+}
+
+function disableReplayShadowRoots(doc: Document): void {
+  const states: Map<ShadowRoot, ReplayShadowRootState> | undefined =
+    replayShadowRootStates.get(doc);
+
+  if (!states) {
+    return;
+  }
+
+  for (const [shadowRoot, state] of states) {
+    state.observer?.disconnect();
+    state.style?.remove();
+    const frames: NodeListOf<HTMLIFrameElement> =
+      shadowRoot.querySelectorAll<HTMLIFrameElement>("iframe");
+
+    for (const frame of Array.from(frames)) {
+      try {
+        if (frame.contentDocument) {
+          disableReplayDocumentTextSelection(frame.contentDocument);
+        }
+      } catch {
+        // Cross-origin shadow children were never enabled.
+      }
+    }
+  }
+
+  replayShadowRootStates.delete(doc);
+}
+
+/*
+ * Make the replay a read-only text surface.
+ *
+ * We do not call rrweb's enableInteract(): besides pointer hit-testing it
+ * turns scrolling back on, and unrestricted interaction lets links navigate,
+ * controls toggle, forms submit and inputs diverge from the recording. Native
+ * selection only needs the iframe to receive pointer events. The capture
+ * guards below keep every state-changing browser default inert while leaving
+ * selection and copy alone. The context menu is available on ordinary text,
+ * but suppressed on recorded navigation targets.
+ */
+function enableReplayDocumentTextSelection(doc: Document): void {
+  enabledReplayDocuments.add(doc);
+  const root: HTMLElement | null = doc.documentElement;
+  const head: HTMLHeadElement | null = doc.head;
+
+  if (root) {
+    markReplayDocumentRoot(doc, root);
+  }
+
+  if (head) {
+    ensureReplayDocumentSelectionStyle(doc, head);
+  }
+
+  /*
+   * click/auxclick cover links, buttons, checkboxes, details and file inputs.
+   * submit covers keyboard-submitted forms. beforeinput plus clipboard and
+   * drag events keep inputs/contenteditable nodes read-only without disabling
+   * them (disabled fields cannot select text).
+   */
+  installReplayDocumentGuards(doc);
+
+  enableNestedReplayDocuments(doc);
+  enableReplayShadowRoots(doc, doc);
+}
+
+function enableNestedReplayDocuments(
+  doc: Document,
+  root: ParentNode = doc,
+): void {
+  const frames: NodeListOf<HTMLIFrameElement> =
+    root.querySelectorAll<HTMLIFrameElement>("iframe");
+
+  for (const frame of Array.from(frames)) {
+    if (!observedReplayFrames.has(frame)) {
+      frame.addEventListener("load", (): void => {
+        if (enabledReplayDocuments.has(doc)) {
+          enableNestedReplayFrame(doc, frame);
+        }
+      });
+      observedReplayFrames.add(frame);
+    }
+
+    enableNestedReplayFrame(doc, frame);
+  }
+}
+
+function enableNestedReplayFrame(
+  parentDocument: Document,
+  frame: HTMLIFrameElement,
+): void {
+  let childDocument: Document | null = null;
+
+  try {
+    childDocument = frame.contentDocument;
+  } catch {
+    // Cross-origin documents are intentionally opaque to the viewer.
+  }
+
+  if (!childDocument) {
+    /*
+     * Events inside an opaque child cannot reach the parent document's
+     * guards. Make the recorded frame inert instead of exposing its links or
+     * controls, and restore its exact inline style when inspection ends.
+     */
+    applyReplayInlineStyle(parentDocument, frame, "pointer-events", "none");
+    getReplayFrameInteractionAttributes(parentDocument, frame);
+    frame.blur();
+    frame.setAttribute("inert", "");
+    frame.setAttribute("tabindex", "-1");
+    return;
+  }
+
+  /* Recorded CSS must not prevent selection inside a safe same-origin child. */
+  const attributes: ReplayFrameInteractionAttributes =
+    getReplayFrameInteractionAttributes(parentDocument, frame);
+  frame.removeAttribute("inert");
+
+  if (attributes.tabIndex === null) {
+    frame.removeAttribute("tabindex");
+  } else {
+    frame.setAttribute("tabindex", attributes.tabIndex);
+  }
+
+  applyReplayInlineStyle(parentDocument, frame, "pointer-events", "auto");
+  enableReplayDocumentTextSelection(childDocument);
+}
+
+function disableReplayDocumentTextSelection(doc: Document): void {
+  if (!enabledReplayDocuments.delete(doc)) {
+    return;
+  }
+
+  removeReplayDocumentGuards(doc);
+
+  restoreReplayDocumentRoots(doc);
+  removeReplayDocumentSelectionStyles(doc);
+  doc.defaultView?.getSelection()?.removeAllRanges();
+
+  const positions: Map<Element, ReplayScrollPosition> | undefined =
+    replayScrollPositions.get(doc);
+
+  if (positions) {
+    for (const [element, position] of positions) {
+      restoreReplayScrollPosition(element, position);
+    }
+    replayScrollPositions.delete(doc);
+  }
+
+  restoreReplayInlineStyles(doc);
+  restoreReplayFrameInteractionAttributes(doc);
+  restoreReplayNavigationTargets(doc);
+
+  disableReplayShadowRoots(doc);
+
+  const frames: NodeListOf<HTMLIFrameElement> =
+    doc.querySelectorAll<HTMLIFrameElement>("iframe");
+
+  for (const frame of Array.from(frames)) {
+    try {
+      if (frame.contentDocument) {
+        disableReplayDocumentTextSelection(frame.contentDocument);
+      }
+    } catch {
+      // Cross-origin frames were never enabled and need no cleanup.
+    }
+  }
+}
+
+export function enableReplayTextSelection(replayer: ReplayerLike): void {
+  const iframe: HTMLIFrameElement = replayer.iframe;
+
+  try {
+    iframe.style.pointerEvents = "auto";
+    iframe.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+  } catch {
+    // A destroyed iframe has no text surface left to enable.
+    return;
+  }
+
+  const doc: Document | null = iframe.contentDocument;
+
+  if (doc) {
+    enableReplayDocumentTextSelection(doc);
+  }
+}
+
+/* Restore rrweb's non-interactive playback surface when inspection ends. */
+export function disableReplayTextSelection(replayer: ReplayerLike): void {
+  const iframe: HTMLIFrameElement = replayer.iframe;
+
+  try {
+    iframe.style.pointerEvents = "none";
+    iframe.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
+  } catch {
+    return;
+  }
+
+  const doc: Document | null = iframe.contentDocument;
+
+  if (!doc) {
+    return;
+  }
+
+  disableReplayDocumentTextSelection(doc);
+}
+
+function configureReplayTextSelection(
+  replayer: ReplayerLike,
+  isEnabled: boolean,
+): void {
+  if (isEnabled) {
+    enableReplayTextSelection(replayer);
+    return;
+  }
+
+  disableReplayTextSelection(replayer);
+}
 
 /*
  * The subset of rrweb/dist/style.css the player actually needs, inlined.
  *
  * Importing the package stylesheet would pull a CSS file into the lazily
  * loaded chunk, and the shared esbuild config has no CSS handling wired for
- * dynamically imported chunks. These four rules are the ones without which
- * the cursor and the stage are mispositioned; the mouse-tail canvas is
- * disabled outright (mouseTail: false) so its rules are not needed.
+ * dynamically imported chunks. These are the rules without which the
+ * cursor, its trail and the stage are mispositioned.
+ *
+ * The pointer rules are not decoration. rrweb records mouse movement, but
+ * a replay draws no system cursor of its own, so without a visible pointer
+ * a recording of somebody hunting around a page reads as a still image
+ * with occasional mutations. The cursor is drawn large, ringed and
+ * animated between samples (mousemove is sampled every 100ms, so the
+ * transition is what turns eight positions a second into a movement), and
+ * the tail canvas draws the path it took to get there.
+ *
+ * The transition duration is a CSS variable the stage sets from the
+ * recording's own mouse-sampling interval divided by the playback speed,
+ * so one segment ends exactly as the next begins: the pointer glides
+ * continuously instead of moving for part of the gap and parking for the
+ * rest (80ms against a 100ms sample) or lagging behind the click it
+ * caused. A recording that advertises the faster cadence is drawn from
+ * that cadence; older footage keeps the interval it was recorded at.
+ *
+ * The .active ripple is rrweb's click affordance: the class lands on the
+ * cursor for the length of a MouseInteraction, and without a rule for it a
+ * click is invisible on playback.
  */
-const REPLAY_STAGE_CSS: string = `
-.oneuptime-replay-stage .replayer-wrapper { position: relative; transform-origin: top left; }
+export const REPLAY_STAGE_CSS: string = `
+.oneuptime-replay-stage .oneuptime-replay-host { position: relative; transform-origin: top left; }
+.oneuptime-replay-stage .replayer-wrapper { position: absolute; top: 0; left: 0; transform-origin: top left; }
 .oneuptime-replay-stage .replayer-wrapper iframe { border: none; background: #ffffff; }
-.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.45); box-shadow: 0 0 0 2px rgba(73,80,246,0.8); transition: left 0.05s linear, top 0.05s linear; pointer-events: none; }
-.oneuptime-replay-stage .replayer-mouse.active { background: rgba(73,80,246,0.85); }
+.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.35); box-shadow: 0 0 0 2px rgba(73,80,246,0.9), 0 1px 6px rgba(15,23,42,0.35); transition: left var(--oneuptime-replay-cursor-ms, ${SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS}ms) linear, top var(--oneuptime-replay-cursor-ms, ${SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS}ms) linear; pointer-events: none; z-index: 2147483647; }
+.oneuptime-replay-stage .replayer-mouse::after { content: ""; display: inline-block; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.4); transform: translate(-50%, -50%); opacity: 0; }
+.oneuptime-replay-stage .replayer-mouse.active::after { animation: oneuptime-replay-click 0.4s ease-in-out 1; }
+.oneuptime-replay-stage .replayer-mouse-tail { position: absolute; pointer-events: none; top: 0; left: 0; z-index: 2147483646; }
+.oneuptime-replay-stage .oneuptime-replay-touch-ring { position: absolute; width: ${REPLAY_STAGE_TOUCH_RING_PX}px; height: ${REPLAY_STAGE_TOUCH_RING_PX}px; margin-left: -${REPLAY_STAGE_TOUCH_RING_PX / 2}px; margin-top: -${REPLAY_STAGE_TOUCH_RING_PX / 2}px; border-radius: 100%; border: 3px solid rgba(73,80,246,0.9); box-shadow: 0 0 0 2px rgba(255,255,255,0.7); pointer-events: none; z-index: 2147483647; animation: oneuptime-replay-touch 0.6s ease-out 1 forwards; }
+@keyframes oneuptime-replay-click { 0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.4); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(3); } }
+@keyframes oneuptime-replay-touch { 0% { opacity: 0.9; transform: scale(0.6); } 100% { opacity: 0; transform: scale(1.8); } }
 `;
 
-/* Playback clock resolution. Fine enough for a scrubber, cheap enough to run. */
-const TICK_INTERVAL_MS: number = 200;
-
 /*
- * How far ahead of the playhead the fed range is kept. One flush interval is
- * 15s, so 30s is two chunks of headroom - enough to absorb a slow /chunks
- * response without stalling, small enough that seeking away does not waste a
- * large fetch.
+ * Contain-fit: the largest scale at which the whole recorded viewport fits
+ * the box on both axes. Not capped at 1: theater on a wide display, and
+ * phone recordings on any display, are meant to grow. An unmeasured box
+ * (jsdom, or a container that is display:none) keeps the picture at 1:1
+ * rather than collapsing it to nothing.
  */
-const FEED_AHEAD_MS: number = 30 * 1000;
+export function computeContainScale(
+  containerWidth: number,
+  containerHeight: number,
+  recorded: ReplayRecordedSize,
+): number {
+  if (
+    !(containerWidth > 0) ||
+    !(containerHeight > 0) ||
+    !(recorded.width > 0) ||
+    !(recorded.height > 0)
+  ) {
+    return 1;
+  }
 
-/* Chunks either side of the playhead kept decoded after a seek. */
-const EVICTION_RADIUS_CHUNKS: number = 8;
-
-interface Segment {
-  anchorChunkIndex: number;
-  /* Session offset of the first event fed into this Replayer instance. */
-  baseOffsetMs: number;
-  lastFedChunkIndex: number;
-  /* End of the fed range, in session offset. */
-  fedUntilOffsetMs: number;
-  replayer: ReplayerLike;
+  return Math.min(
+    containerWidth / recorded.width,
+    containerHeight / recorded.height,
+  );
 }
 
 /*
- * A rebuild the tick loop still has to perform.
- *
- * `shouldReport` separates the two reasons we re-anchor: a genuine hole in
- * the chunk sequence, which the viewer MUST be told about, and a re-anchor
- * onto the very chunk that failed to decode, which is a retry and crossed
- * nothing. Reporting the retry as "0s of missing recording" would train
- * people to ignore the notice that matters.
+ * The capability a recorder advertises when it sampled mouse movement at
+ * the faster cadence. Older recordings carry no such entry and were
+ * sampled at the legacy interval, so their cursor must be given the
+ * longer transition or it arrives early and waits.
  */
-interface PendingJump {
-  gap: SessionReplayGap;
-  shouldReport: boolean;
+export const REPLAY_CURSOR_SAMPLE_CAPABILITY: string = "mousemove-50ms";
+
+/*
+ * How long the cursor takes to travel between two recorded positions:
+ * one sample interval, divided by the speed it is being played at. The
+ * 16ms floor is one frame - below that the transition cannot resolve and
+ * only delays rrweb's next re-target. Speed is clamped so a very slow
+ * playback does not produce a transition longer than the gap it spans.
+ */
+export function resolveCursorTransitionMs(
+  recorderCapabilities: ReadonlyArray<string> | undefined,
+  speed: number,
+): number {
+  const sampleMs: number = recorderCapabilities?.includes(
+    REPLAY_CURSOR_SAMPLE_CAPABILITY,
+  )
+    ? SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS
+    : SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS;
+
+  return Math.max(16, Math.round(sampleMs / Math.max(0.25, speed)));
+}
+
+/*
+ * Re-applied after every full-snapshot rebuild, which replaces <head>.
+ * Exported so the test can pin it against a fake Replayer.
+ */
+export function injectDocumentCsp(replayer: ReplayerLike): void {
+  const doc: Document | null = replayer.iframe.contentDocument;
+
+  if (!doc) {
+    return;
+  }
+
+  const head: HTMLHeadElement | null = doc.head;
+
+  if (!head) {
+    return;
+  }
+
+  if (!head.querySelector("meta[data-oneuptime-replay-csp]")) {
+    const meta: HTMLMetaElement = doc.createElement("meta");
+    meta.setAttribute("http-equiv", "Content-Security-Policy");
+    meta.setAttribute("content", REPLAY_DOCUMENT_CSP);
+    meta.setAttribute("data-oneuptime-replay-csp", "true");
+    head.insertBefore(meta, head.firstChild);
+  }
+
+  if (!head.querySelector("meta[data-oneuptime-replay-referrer]")) {
+    const referrer: HTMLMetaElement = doc.createElement("meta");
+    referrer.setAttribute("name", "referrer");
+    referrer.setAttribute("content", "no-referrer");
+    referrer.setAttribute("data-oneuptime-replay-referrer", "true");
+    head.insertBefore(referrer, head.firstChild);
+  }
+}
+
+interface TouchRing {
+  id: number;
+  x: number;
+  y: number;
+}
+
+interface BoxSize {
+  width: number;
+  height: number;
+}
+
+export function computeReplayStageHeight(
+  viewportHeight: number,
+  stageTop: number,
+  reservedBottomHeight: number,
+): number {
+  return Math.max(256, viewportHeight - stageTop - reservedBottomHeight);
 }
 
 const ReplayStage: FunctionComponent<ReplayStageProps> = (
   props: ReplayStageProps,
 ): ReactElement => {
-  const containerRef: React.RefObject<HTMLDivElement> =
+  const { engine } = props;
+  const fit: ReplayStageFit = props.fit ?? "contain";
+  const isTheater: boolean = props.isTheater ?? false;
+
+  /* Wrapped so a method-based engine keeps its `this`. */
+  /*
+   * The structural channel: this component reads recordedSize, speed and
+   * phase, none of which move with the playhead, so there is no reason
+   * for it to re-render thirty times a second alongside the clock.
+   */
+  const subscribe: (listener: ReplayEngineListener) => () => void = useCallback(
+    (listener: ReplayEngineListener): (() => void) => {
+      return engine.subscribeStructural
+        ? engine.subscribeStructural(listener)
+        : engine.subscribe(listener);
+    },
+    [engine],
+  );
+  const getSnapshot: () => ReplayEngineSnapshot =
+    useCallback((): ReplayEngineSnapshot => {
+      return engine.getStructuralSnapshot
+        ? engine.getStructuralSnapshot()
+        : engine.getSnapshot();
+    }, [engine]);
+
+  const snapshot: ReplayEngineSnapshot = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+  );
+
+  const outerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
-  const segmentRef: React.MutableRefObject<Segment | null> =
-    useRef<Segment | null>(null);
-  /*
-   * A gap discovered while extending the fed range. Held rather than acted on
-   * immediately: the viewer should watch out the footage that exists before
-   * being told the next stretch is missing.
-   */
-  const pendingGapRef: React.MutableRefObject<PendingJump | null> =
-    useRef<PendingJump | null>(null);
-  const isBuildingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-  const isExtendingRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-  /*
-   * Desired transport state, mirrored into refs.
-   *
-   * buildSegment is async and the effects that apply play/pause/speed bail
-   * out while it runs, so the state captured when the build STARTED is
-   * routinely stale by the time it finishes. Reading the refs at the end of
-   * a build is what stops a viewer who pressed Play during the first fetch
-   * from getting a "playing" button over a frozen stage.
-   */
-  const isPlayingRef: React.MutableRefObject<boolean> = useRef<boolean>(
-    props.isPlaying,
+  const mountRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const replayersRef: React.MutableRefObject<Set<ReplayerLike>> = useRef<
+    Set<ReplayerLike>
+  >(new Set<ReplayerLike>());
+  const isTextSelectionEnabled: boolean = props.isTextSelectionEnabled ?? false;
+  const isTextSelectionEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isTextSelectionEnabled);
+  isTextSelectionEnabledRef.current = isTextSelectionEnabled;
+
+  const [boxSize, setBoxSize] = useState<BoxSize | null>(null);
+  const [viewportHeightLimit, setViewportHeightLimit] = useState<number | null>(
+    null,
   );
-  const speedRef: React.MutableRefObject<number> = useRef<number>(props.speed);
-  const skipInactiveRef: React.MutableRefObject<boolean> = useRef<boolean>(
-    props.skipInactive,
-  );
-  /*
-   * Set when rrweb emitted Finish while there was still footage to feed.
-   * rrweb ends the cast whenever it drains its buffer, which with chunk
-   * streaming happens any time a /chunks fetch loses the race with the
-   * feed-ahead window. That is a stall, not the end of the recording.
-   */
-  const stalledRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-  /*
-   * Set once feeding has failed in a way no further attempt can fix. The
-   * tick fires every 200ms and the fed range never advances after such a
-   * failure, so without this the viewer would be handed the same error four
-   * hundred times a minute.
-   */
-  const isFeedHaltedRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-  /*
-   * Bumped by every rebuild and by unmount. An await that resumes against a
-   * stale generation must not touch the DOM or the current segment.
-   */
-  const generationRef: React.MutableRefObject<number> = useRef<number>(0);
-  const lastSeekTokenRef: React.MutableRefObject<number> = useRef<number>(-1);
-  const [recordedSize, setRecordedSize] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
-
-  const {
-    loader,
-    replayerFactory,
-    isPlaying,
-    speed,
-    skipInactive,
-    seekRequest,
-    onTimeUpdate,
-    onPlayingChange,
-    onGapCrossed,
-    onLoadedChunkIndexesChange,
-    onError,
-    onBufferingChange,
-  } = props;
+  const [touchRings, setTouchRings] = useState<Array<TouchRing>>([]);
+  const ringIdRef: React.MutableRefObject<number> = useRef<number>(0);
 
   /*
-   * Session offsets come from the manifest, never from event timestamps.
-   *
-   * An rrweb timestamp is a raw Date.now() from the end user's machine, and
-   * the manifest's chunkStartOffsetMs is what the recorder computed against
-   * its own session start. Subtracting the SERVER-CLAMPED start from a client
-   * timestamp mixes the two clocks, so on any skewed device the playhead
-   * would sit clockSkewMs away from the bands, markers and gaps the scrubber
-   * draws from that same manifest.
+   * The recorded size: rrweb's Meta once it has cast one, the header's
+   * viewport before that. Both are "what the end user's window was".
    */
-  const getChunkStartOffsetMs: (chunkIndex: number) => number = useCallback(
-    (chunkIndex: number): number => {
-      return loader.getEntry(chunkIndex)?.chunkStartOffsetMs ?? 0;
-    },
-    [loader],
-  );
-
-  const getChunkEndOffsetMs: (
-    chunkIndex: number,
-    fallbackMs: number,
-  ) => number = useCallback(
-    (chunkIndex: number, fallbackMs: number): number => {
-      return loader.getEntry(chunkIndex)?.chunkEndOffsetMs ?? fallbackMs;
-    },
-    [loader],
-  );
-
-  const destroySegment: () => void = useCallback((): void => {
-    const segment: Segment | null = segmentRef.current;
-
-    if (!segment) {
-      return;
-    }
-
-    segmentRef.current = null;
-
-    try {
-      segment.replayer.destroy();
-    } catch {
-      /*
-       * destroy() removes its wrapper from the root. If React already
-       * unmounted the root, that throws and there is nothing left to clean
-       * up - swallowing it is correct, rethrowing would break unmount.
-       */
-    }
-  }, []);
-
-  /* Re-applied after every full-snapshot rebuild, which replaces <head>. */
-  const injectDocumentCsp: (replayer: ReplayerLike) => void = useCallback(
-    (replayer: ReplayerLike): void => {
-      const doc: Document | null = replayer.iframe.contentDocument;
-
-      if (!doc) {
-        return;
+  const recorded: ReplayRecordedSize | null =
+    useMemo((): ReplayRecordedSize | null => {
+      if (snapshot.recordedSize) {
+        return snapshot.recordedSize;
       }
-
-      const head: HTMLHeadElement | null = doc.head;
-
-      if (!head) {
-        return;
-      }
-
-      if (head.querySelector("meta[data-oneuptime-replay-csp]")) {
-        return;
-      }
-
-      const meta: HTMLMetaElement = doc.createElement("meta");
-      meta.setAttribute("http-equiv", "Content-Security-Policy");
-      meta.setAttribute("content", REPLAY_DOCUMENT_CSP);
-      meta.setAttribute("data-oneuptime-replay-csp", "true");
-      head.insertBefore(meta, head.firstChild);
-    },
-    [],
-  );
-
-  /*
-   * Build (or rebuild) the Replayer anchored at a full-snapshot chunk.
-   *
-   * Every seek that leaves the current segment goes through here rather than
-   * through replayer.play(offset): rrweb resolves mutations against node ids
-   * from a prior snapshot, so a Replayer can only render forward from the
-   * snapshot it was constructed on.
-   */
-  const buildSegment: (
-    anchorChunkIndex: number,
-    seekOffsetMs: number,
-  ) => Promise<void> = useCallback(
-    async (anchorChunkIndex: number, seekOffsetMs: number): Promise<void> => {
-      const container: HTMLDivElement | null = containerRef.current;
-
-      if (!container) {
-        return;
-      }
-
-      generationRef.current += 1;
-      const generation: number = generationRef.current;
-      isBuildingRef.current = true;
-      pendingGapRef.current = null;
-      isFeedHaltedRef.current = false;
-      onBufferingChange?.(true);
-
-      try {
-        destroySegment();
-
-        const anchorEvents: Array<SessionReplayRecordedEvent> | null =
-          await loader.ensureChunk(anchorChunkIndex);
-
-        if (generation !== generationRef.current) {
-          return;
-        }
-
-        if (!anchorEvents || anchorEvents.length === 0) {
-          onError(
-            "This part of the recording could not be loaded. The chunk is present in the index but carried no events.",
-          );
-          return;
-        }
-
-        const events: Array<SessionReplayRecordedEvent> = [...anchorEvents];
-        let lastFedChunkIndex: number = anchorChunkIndex;
-
-        /*
-         * rrweb 2.1.1 throws "Replayer need at least 2 events." out of its
-         * constructor when liveMode is false and fewer than two events are
-         * handed in. A one-event anchor is not exotic: it is exactly what
-         * splitting an oversized FullSnapshot produces for the final part,
-         * and that final part is the one carrying hasFullSnapshot. Pull
-         * contiguous chunks forward until there are two, rather than letting
-         * a library string reach the viewer.
-         */
-        while (events.length < 2) {
-          const nextDecision: {
-            chunkIndex: number;
-            skippedGap: SessionReplayGap | null;
-          } | null = loader.getNextChunk(lastFedChunkIndex);
-
-          if (!nextDecision || nextDecision.skippedGap) {
-            // Nothing contiguous left to borrow from.
-            break;
-          }
-
-          const more: Array<SessionReplayRecordedEvent> | null =
-            await loader.ensureChunk(nextDecision.chunkIndex);
-
-          if (generation !== generationRef.current) {
-            return;
-          }
-
-          if (!more || more.length === 0) {
-            break;
-          }
-
-          events.push(...more);
-          lastFedChunkIndex = nextDecision.chunkIndex;
-        }
-
-        if (events.length < 2) {
-          onError(
-            "This recording is too short to play. The only footage that survived is a single frame, which the player cannot render.",
-          );
-          return;
-        }
-
-        const baseOffsetMs: number = getChunkStartOffsetMs(anchorChunkIndex);
-
-        const replayer: ReplayerLike = replayerFactory(events, {
-          root: container,
-          liveMode: false,
-          mouseTail: false,
-          /*
-           * Canvas replay is never enabled here. rrweb implements it by
-           * dropping the strict sandbox for "allow-same-origin allow-scripts",
-           * which is script execution inside a document built from
-           * attacker-influenceable HTML on the Dashboard's own origin.
-           */
-          UNSAFE_replayCanvas: false,
-          blockClass: "oneuptime-block",
-          useVirtualDom: true,
-          speed: speedRef.current,
-          skipInactive: skipInactiveRef.current,
-          showWarning: false,
-          showDebug: false,
-        });
-
-        replayer.on("fullsnapshot-rebuilded", (): void => {
-          injectDocumentCsp(replayer);
-        });
-
-        replayer.on("resize", (payload: unknown): void => {
-          const size: { width?: unknown; height?: unknown } =
-            (payload as { width?: unknown; height?: unknown }) || {};
-          const width: number = Number(size.width);
-          const height: number = Number(size.height);
-
-          if (isFinite(width) && isFinite(height) && width > 0 && height > 0) {
-            setRecordedSize({ width: width, height: height });
-          }
-        });
-
-        replayer.on("finish", (): void => {
-          const live: Segment | null = segmentRef.current;
-
-          /*
-           * Only a Finish with nothing left to feed is the end of the tab.
-           * Anything else is rrweb draining its buffer ahead of the next
-           * chunk; sending END there would stop playback permanently,
-           * because later addEvent calls append to a paused machine.
-           */
-          if (live && loader.getNextChunk(live.lastFedChunkIndex) !== null) {
-            stalledRef.current = true;
-            return;
-          }
-
-          stalledRef.current = false;
-          onPlayingChange(false);
-        });
-
-        injectDocumentCsp(replayer);
-
-        segmentRef.current = {
-          anchorChunkIndex: anchorChunkIndex,
-          baseOffsetMs: baseOffsetMs,
-          lastFedChunkIndex: lastFedChunkIndex,
-          fedUntilOffsetMs: getChunkEndOffsetMs(
-            lastFedChunkIndex,
-            baseOffsetMs,
-          ),
-          replayer: replayer,
-        };
-
-        stalledRef.current = false;
-        onLoadedChunkIndexesChange(loader.getDecodedChunkIndexes());
-
-        const withinSegment: number = Math.max(0, seekOffsetMs - baseOffsetMs);
-
-        /*
-         * The refs, not the values captured when this build started - the
-         * viewer may have pressed Play or changed speed during the fetch.
-         */
-        replayer.setConfig({
-          speed: speedRef.current,
-          skipInactive: skipInactiveRef.current,
-        });
-
-        if (isPlayingRef.current) {
-          replayer.play(withinSegment);
-        } else {
-          replayer.pause(withinSegment);
-        }
-      } catch (err) {
-        if (generation === generationRef.current) {
-          onError(
-            err instanceof Error
-              ? err.message
-              : "The recording could not be loaded.",
-          );
-        }
-      } finally {
-        if (generation === generationRef.current) {
-          isBuildingRef.current = false;
-          onBufferingChange?.(false);
-        }
-      }
-    },
-    /*
-     * Transport state is read from refs above, so it is deliberately absent
-     * here: including it would rebuild the Replayer - blanking the stage and
-     * losing the playhead - every time the viewer changed speed.
-     */
-    [
-      loader,
-      replayerFactory,
-      getChunkStartOffsetMs,
-      getChunkEndOffsetMs,
-      destroySegment,
-      injectDocumentCsp,
-      onError,
-      onPlayingChange,
-      onLoadedChunkIndexesChange,
-      onBufferingChange,
-    ],
-  );
-
-  /*
-   * Push the next contiguous chunk into the live Replayer, or record the gap
-   * that stops us. Never feeds across a hole - that is the whole contract of
-   * this component.
-   */
-  const extendFedRange: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      const segment: Segment | null = segmentRef.current;
 
       if (
-        !segment ||
-        isExtendingRef.current ||
-        pendingGapRef.current ||
-        isFeedHaltedRef.current
+        props.viewportWidth &&
+        props.viewportHeight &&
+        props.viewportWidth > 0 &&
+        props.viewportHeight > 0
       ) {
-        return;
+        return { width: props.viewportWidth, height: props.viewportHeight };
       }
 
-      const decision: {
-        chunkIndex: number;
-        skippedGap: SessionReplayGap | null;
-      } | null = loader.getNextChunk(segment.lastFedChunkIndex);
+      return null;
+    }, [snapshot.recordedSize, props.viewportWidth, props.viewportHeight]);
 
-      if (!decision) {
-        // End of the recording for this tab.
-        return;
-      }
+  const isMobile: boolean =
+    props.isMobile ??
+    (recorded !== null && recorded.width < REPLAY_STAGE_MOBILE_MAX_WIDTH_PX);
 
-      if (decision.skippedGap) {
-        pendingGapRef.current = {
-          gap: decision.skippedGap,
-          shouldReport: true,
-        };
-        return;
-      }
+  /* Mount the engine's host into this stage; unmount on the way out. */
+  useEffect(() => {
+    const mount: HTMLDivElement | null = mountRef.current;
 
-      isExtendingRef.current = true;
-      const generation: number = generationRef.current;
+    if (!mount) {
+      return;
+    }
 
-      try {
-        const events: Array<SessionReplayRecordedEvent> | null =
-          await loader.ensureChunk(decision.chunkIndex);
+    engine.attach(mount);
 
-        if (generation !== generationRef.current) {
+    return () => {
+      engine.detach();
+    };
+  }, [engine]);
+
+  /* CSP + iframe title/selection policy on every (re)built document; touch rings. */
+  useEffect(() => {
+    const timers: Set<ReturnType<typeof setTimeout>> = new Set<
+      ReturnType<typeof setTimeout>
+    >();
+
+    const unsubscribe: () => void = engine.onReplayer(
+      (event: ReplayEngineReplayerEvent): void => {
+        if (event.type === "destroyed") {
+          configureReplayTextSelection(event.replayer, false);
+          replayersRef.current.delete(event.replayer);
           return;
         }
 
-        const live: Segment | null = segmentRef.current;
-
-        if (!live || live !== segment) {
-          return;
-        }
-
-        if (!events || events.length === 0) {
-          /*
-           * The chunk is in the manifest but did not come back decodable: a
-           * TTL drop between manifest and read, a truncated response, the
-           * server's byte clamp, or a corrupt frame decodeFrames skipped.
-           *
-           * lastFedChunkIndex MUST NOT advance here. Advancing would feed
-           * chunk N+1 into a Replayer that never received N, and rrweb would
-           * resolve those mutations against stale node ids and render a
-           * plausible DOM the end user never saw. Re-anchor on the next full
-           * snapshot instead, through the same path a real hole takes.
-           */
-          const recoveryAnchor: number | undefined = loader
-            .getFullSnapshotChunkIndexes()
-            .find((index: number): boolean => {
-              return index >= decision.chunkIndex;
-            });
-
-          if (recoveryAnchor === undefined) {
-            isFeedHaltedRef.current = true;
-            onError(
-              "The next part of this recording could not be loaded, and there is no later snapshot to resume from.",
-            );
-            return;
-          }
-
-          const from: number = live.lastFedChunkIndex;
-          const missingMs: number = Math.max(
-            0,
-            getChunkStartOffsetMs(recoveryAnchor) -
-              getChunkEndOffsetMs(from, getChunkStartOffsetMs(from)),
+        if (
+          event.type === "created" ||
+          event.type === "fullsnapshot-rebuilded"
+        ) {
+          replayersRef.current.add(event.replayer);
+          injectDocumentCsp(event.replayer);
+          configureReplayTextSelection(
+            event.replayer,
+            isTextSelectionEnabledRef.current,
           );
 
-          pendingGapRef.current = {
-            gap: {
-              fromIndex: from,
-              toIndex: recoveryAnchor,
-              missingMs: missingMs,
-            },
-            /*
-             * Re-anchoring on the chunk that just failed is a retry of that
-             * chunk, not a jump over anything, so there is nothing to tell
-             * the viewer yet. If the retry fails too, buildSegment errors
-             * loudly.
-             */
-            shouldReport: recoveryAnchor > decision.chunkIndex,
+          try {
+            event.replayer.iframe.title = "Recorded page";
+          } catch {
+            // A destroyed iframe has nothing to name.
+          }
+          return;
+        }
+
+        if (event.type === "touch") {
+          ringIdRef.current += 1;
+          const ring: TouchRing = {
+            id: ringIdRef.current,
+            x: event.x,
+            y: event.y,
           };
 
-          return;
+          setTouchRings((current: Array<TouchRing>): Array<TouchRing> => {
+            return [...current, ring];
+          });
+
+          const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
+            timers.delete(timer);
+            setTouchRings((current: Array<TouchRing>): Array<TouchRing> => {
+              return current.filter((candidate: TouchRing): boolean => {
+                return candidate.id !== ring.id;
+              });
+            });
+          }, TOUCH_RING_LIFETIME_MS);
+
+          timers.add(timer);
         }
-
-        for (const event of events) {
-          live.replayer.addEvent(event);
-        }
-
-        live.lastFedChunkIndex = decision.chunkIndex;
-        live.fedUntilOffsetMs = getChunkEndOffsetMs(
-          decision.chunkIndex,
-          live.fedUntilOffsetMs,
-        );
-        onLoadedChunkIndexesChange(loader.getDecodedChunkIndexes());
-
-        /*
-         * rrweb ended the cast while waiting for these events. Resume from
-         * where it stopped now that there is more to play.
-         */
-        if (stalledRef.current && isPlayingRef.current) {
-          stalledRef.current = false;
-          live.replayer.play(live.replayer.getCurrentTime());
-        }
-
-        void loader.prefetchAfter(decision.chunkIndex);
-      } catch (err) {
-        if (generation === generationRef.current) {
-          onError(
-            err instanceof Error
-              ? err.message
-              : "The next part of this recording could not be loaded.",
-          );
-        }
-      } finally {
-        isExtendingRef.current = false;
-      }
-    }, [
-      loader,
-      getChunkStartOffsetMs,
-      getChunkEndOffsetMs,
-      onLoadedChunkIndexesChange,
-      onError,
-    ]);
-
-  /* Initial mount: anchor on the first playable chunk. */
-  useEffect(() => {
-    const first: number | null = loader.getFirstPlayableChunkIndex();
-
-    if (first === null) {
-      onError(
-        "This session has no full DOM snapshot, so it cannot be played. Every chunk that could anchor playback is missing.",
-      );
-      return;
-    }
-
-    void buildSegment(first, 0);
-
-    return () => {
-      generationRef.current += 1;
-      destroySegment();
-    };
-    /*
-     * Deliberately keyed on the loader alone, not on buildSegment. That
-     * callback closes over speed, skipInactive and isPlaying, so a full
-     * dependency list would tear down and rebuild the Replayer - blanking
-     * the stage and losing the playhead - every time the viewer changed
-     * speed.
-     */
-  }, [loader]);
-
-  /*
-   * Live playback controls are applied to the existing Replayer, not rebuilt.
-   * The refs are written FIRST and unconditionally, so a control changed
-   * while a segment is still being built is still honoured when it lands.
-   */
-  useEffect(() => {
-    speedRef.current = speed;
-    skipInactiveRef.current = skipInactive;
-
-    const segment: Segment | null = segmentRef.current;
-
-    if (!segment) {
-      return;
-    }
-
-    segment.replayer.setConfig({ speed: speed, skipInactive: skipInactive });
-  }, [speed, skipInactive]);
-
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-
-    const segment: Segment | null = segmentRef.current;
-
-    if (!segment || isBuildingRef.current) {
-      return;
-    }
-
-    if (isPlaying) {
-      stalledRef.current = false;
-      segment.replayer.play(segment.replayer.getCurrentTime());
-    } else {
-      segment.replayer.pause();
-    }
-  }, [isPlaying]);
-
-  /* Seeks. */
-  useEffect(() => {
-    if (!seekRequest || seekRequest.token === lastSeekTokenRef.current) {
-      return;
-    }
-
-    lastSeekTokenRef.current = seekRequest.token;
-
-    const targetChunkIndex: number | null = loader.getChunkIndexForOffset(
-      seekRequest.offsetMs,
+      },
     );
 
-    if (targetChunkIndex === null) {
-      return;
-    }
-
-    const anchor: number | null = loader.getSeekAnchor(targetChunkIndex);
-
-    if (anchor === null) {
-      /*
-       * No snapshot at or before the target. Refusing is correct: restarting
-       * from zero would silently show a different part of the session than
-       * the one the viewer asked for.
-       */
-      onError(
-        "There is no full snapshot before that point, so it cannot be played. Try a later position.",
-      );
-      return;
-    }
-
-    const segment: Segment | null = segmentRef.current;
-
-    /*
-     * Stay inside the current segment when the target is already rendered
-     * into it - one checkout interval of footage is typically 60s, and
-     * rebuilding for a 5-second nudge would blank the stage for no reason.
-     */
-    if (
-      segment &&
-      segment.anchorChunkIndex === anchor &&
-      seekRequest.offsetMs >= segment.baseOffsetMs &&
-      seekRequest.offsetMs <= segment.fedUntilOffsetMs
-    ) {
-      const within: number = seekRequest.offsetMs - segment.baseOffsetMs;
-
-      if (isPlaying) {
-        segment.replayer.play(within);
-      } else {
-        segment.replayer.pause(within);
-      }
-
-      return;
-    }
-
-    loader.evictOutsideWindow(anchor, EVICTION_RADIUS_CHUNKS);
-    void buildSegment(anchor, seekRequest.offsetMs);
-  }, [seekRequest, loader, isPlaying, buildSegment, onError]);
-
-  /* Clock, feed-ahead, and the gap jump. */
-  useEffect(() => {
-    const timer: ReturnType<typeof setInterval> = setInterval((): void => {
-      const segment: Segment | null = segmentRef.current;
-
-      if (!segment) {
-        return;
-      }
-
-      const offsetMs: number =
-        segment.baseOffsetMs + segment.replayer.getCurrentTime();
-
-      onTimeUpdate(offsetMs);
-
-      if (offsetMs + FEED_AHEAD_MS >= segment.fedUntilOffsetMs) {
-        void extendFedRange();
-      }
-
-      const pending: PendingJump | null = pendingGapRef.current;
-
-      /*
-       * Only jump once the viewer has actually watched out the footage we
-       * have. Jumping the moment the gap is discovered would cut the last
-       * 30 seconds of real footage off the end of the segment.
-       */
-      if (pending && offsetMs >= segment.fedUntilOffsetMs - 100) {
-        pendingGapRef.current = null;
-
-        if (pending.shouldReport) {
-          onGapCrossed(pending.gap);
-        }
-
-        loader.evictOutsideWindow(pending.gap.toIndex, EVICTION_RADIUS_CHUNKS);
-        void buildSegment(
-          pending.gap.toIndex,
-          loader.getEntry(pending.gap.toIndex)?.chunkStartOffsetMs ?? offsetMs,
-        );
-      }
-    }, TICK_INTERVAL_MS);
-
     return () => {
-      clearInterval(timer);
+      unsubscribe();
+
+      for (const replayer of replayersRef.current) {
+        configureReplayTextSelection(replayer, false);
+      }
+
+      replayersRef.current.clear();
+
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
     };
-  }, [onTimeUpdate, extendFedRange, onGapCrossed, buildSegment, loader]);
+  }, [engine]);
+
+  /* Apply a toolbar toggle to the Replayer that is already on screen. */
+  useLayoutEffect(() => {
+    for (const replayer of replayersRef.current) {
+      configureReplayTextSelection(replayer, isTextSelectionEnabled);
+    }
+  }, [isTextSelectionEnabled]);
 
   /*
-   * Scale the recorded viewport down to fit the stage. rrweb renders at the
-   * end user's real pixel dimensions, which are routinely wider than the
-   * Dashboard's content column.
-   *
-   * Recomputed on CONTAINER resizes too, not only when the recorded size
-   * changes: entering theater mode, collapsing the sidebar or resizing the
-   * window all change the available width, and a stale scale either crops
-   * the recording or leaves it postage-stamped in a wide stage.
+   * Measure the box. Recomputed on CONTAINER resizes too, not only when
+   * the recorded size changes: entering theater, collapsing the sidebar or
+   * resizing the window all change the available space, and a stale scale
+   * either crops the recording or leaves it postage-stamped.
    */
   useEffect(() => {
-    const container: HTMLDivElement | null = containerRef.current;
+    const outer: HTMLDivElement | null = outerRef.current;
 
-    if (!container) {
+    if (!outer) {
       return;
     }
 
-    const applyScale: () => void = (): void => {
-      const segment: Segment | null = segmentRef.current;
+    const measure: () => void = (): void => {
+      const width: number = outer.clientWidth;
+      const height: number = outer.clientHeight;
 
-      if (!segment || !recordedSize) {
-        return;
-      }
+      setViewportHeightLimit(
+        props.reservedBottomHeightPx !== undefined && window.innerWidth >= 1280
+          ? computeReplayStageHeight(
+              window.innerHeight,
+              outer.getBoundingClientRect().top +
+                (isTheater ? 0 : window.scrollY),
+              props.reservedBottomHeightPx,
+            )
+          : null,
+      );
 
-      const available: number = container.clientWidth;
+      setBoxSize((current: BoxSize | null): BoxSize | null => {
+        if (current && current.width === width && current.height === height) {
+          return current;
+        }
 
-      if (available <= 0) {
-        return;
-      }
-
-      const scale: number = Math.min(1, available / recordedSize.width);
-      segment.replayer.wrapper.style.transform = `scale(${scale})`;
-      container.style.height = `${Math.round(recordedSize.height * scale)}px`;
+        return { width: width, height: height };
+      });
     };
 
-    applyScale();
+    measure();
 
-    /*
-     * ResizeObserver where the platform has it (everywhere the Dashboard
-     * supports); the window listener is the jsdom-and-belt fallback and
-     * also catches zoom-driven reflows some engines do not surface as a
-     * container resize.
-     */
     let observer: ResizeObserver | null = null;
 
     if (typeof ResizeObserver !== "undefined") {
       observer = new ResizeObserver((): void => {
-        applyScale();
+        measure();
       });
-      observer.observe(container);
+      observer.observe(outer);
+
+      /*
+       * Header notices and clipboard fallbacks move the stage without
+       * resizing it. Observe that sibling even in a fixed-height theater.
+       */
+      const layout: Element | null = outer.closest("[data-replay-layout]");
+      const header: Element | null = layout?.querySelector("header") ?? null;
+      if (layout) {
+        observer.observe(layout);
+      }
+      if (header) {
+        observer.observe(header);
+      }
     }
 
-    window.addEventListener("resize", applyScale);
+    window.addEventListener("resize", measure);
 
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", applyScale);
+      window.removeEventListener("resize", measure);
     };
-  }, [recordedSize]);
+  }, [isTheater, fit, props.reservedBottomHeightPx]);
+
+  const scale: number = useMemo((): number => {
+    if (fit === "actual" || !recorded || !boxSize) {
+      return 1;
+    }
+
+    return computeContainScale(boxSize.width, boxSize.height, recorded);
+  }, [fit, recorded, boxSize]);
+
+  const { onScaleChange } = props;
+
+  useEffect(() => {
+    onScaleChange?.(scale);
+  }, [scale, onScaleChange]);
+
+  /*
+   * The engine's host holds every Replayer wrapper (old and new during a
+   * hold-last-frame rebuild), so scaling the host moves both together.
+   */
+  useEffect(() => {
+    const host: HTMLElement | null = engine.getHostElement();
+
+    if (!host) {
+      return;
+    }
+
+    if (recorded) {
+      host.style.width = `${recorded.width}px`;
+      host.style.height = `${recorded.height}px`;
+    }
+
+    host.style.transformOrigin = "top left";
+    host.style.transform = scale === 1 ? "" : `scale(${scale})`;
+  }, [engine, recorded, scale]);
+
+  const aspect: ReplayRecordedSize = recorded ?? DEFAULT_ASPECT;
+  const scaledWidth: number = Math.round(aspect.width * scale);
+  const scaledHeight: number = Math.round(aspect.height * scale);
+
+  const frameStyle: CSSProperties =
+    fit === "actual"
+      ? {
+          position: "relative",
+          width: `${aspect.width}px`,
+          height: `${aspect.height}px`,
+        }
+      : {
+          position: "absolute",
+          left: `${Math.max(
+            0,
+            Math.round(((boxSize?.width ?? scaledWidth) - scaledWidth) / 2),
+          )}px`,
+          top: `${Math.max(
+            0,
+            Math.round(((boxSize?.height ?? scaledHeight) - scaledHeight) / 2),
+          )}px`,
+          width: `${scaledWidth}px`,
+          height: `${scaledHeight}px`,
+        };
+
+  const outerStyle: CSSProperties & Record<string, string> = {
+    minHeight:
+      viewportHeightLimit !== null
+        ? "16rem"
+        : `${REPLAY_STAGE_MIN_HEIGHT_REM}rem`,
+    maxHeight:
+      viewportHeightLimit !== null
+        ? `${viewportHeightLimit}px`
+        : `${isTheater ? REPLAY_STAGE_THEATER_MAX_HEIGHT_VH : REPLAY_STAGE_MAX_HEIGHT_VH}vh`,
+    /* Aspect reserved from the recorded viewport before the first frame. */
+    aspectRatio: `${aspect.width} / ${aspect.height}`,
+    "--oneuptime-replay-cursor-ms": `${resolveCursorTransitionMs(
+      props.recorderCapabilities,
+      snapshot.speed,
+    )}ms`,
+  };
+
+  const isBusy: boolean =
+    snapshot.phase === "loading" ||
+    snapshot.phase === "seeking" ||
+    snapshot.phase === "buffering";
 
   return (
-    <div className="oneuptime-replay-stage w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+    <div
+      ref={outerRef}
+      data-testid="replay-stage"
+      data-replay-phase={snapshot.phase}
+      data-replay-fit={fit}
+      data-replay-frame={isMobile ? "phone" : "desktop"}
+      role="region"
+      aria-label="Session replay"
+      aria-busy={isBusy}
+      className={`oneuptime-replay-stage relative w-full bg-gray-100 ${
+        fit === "actual" ? "overflow-auto" : "overflow-hidden"
+      } ${props.className ?? ""}`}
+      style={outerStyle}
+    >
       <style>{REPLAY_STAGE_CSS}</style>
-      <div ref={containerRef} className="w-full" />
+      {/*
+       * The engine phase, as one word, for assistive tech and the E2E
+       * hooks. aria-live so a screen-reader user hears "buffering",
+       * "ended" or "error" when the picture changes state - the visible
+       * overlays are drawn by the player shell and are not announced.
+       */}
+      <span
+        data-testid="replay-phase"
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {snapshot.phase}
+      </span>
+      <div
+        data-testid="replay-stage-frame"
+        className={
+          isMobile
+            ? "overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
+            : "bg-white shadow-sm ring-1 ring-gray-200"
+        }
+        style={frameStyle}
+      >
+        <div ref={mountRef} className="absolute inset-0" />
+        {touchRings.map((ring: TouchRing): ReactElement => {
+          return (
+            <div
+              key={ring.id}
+              data-testid="replay-touch-ring"
+              className="oneuptime-replay-touch-ring"
+              style={{
+                left: `${Math.round(ring.x * scale)}px`,
+                top: `${Math.round(ring.y * scale)}px`,
+              }}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };

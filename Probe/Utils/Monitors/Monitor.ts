@@ -26,6 +26,9 @@ import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMoni
 import SqlMonitor from "./MonitorTypes/SqlMonitor";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
+import DatabaseMonitor from "./MonitorTypes/DatabaseMonitor";
+import DatabaseMonitorResponse from "Common/Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
+import MonitorStepDatabaseMonitor from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -53,6 +56,12 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
+import {
+  COMPONENT_ATTRIBUTE_KEY,
+  TelemetryComponent,
+  UNIT_OF_WORK_ATTRIBUTE_KEY,
+  UnitOfWork,
+} from "Common/Types/Telemetry/UnitOfWork";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
@@ -139,6 +148,14 @@ export default class MonitorUtil {
         monitorId: monitorTest.id?.toString(),
         projectId: monitorTest.projectId?.toString(),
         monitorType: monitorTest.monitorType?.toString(),
+        /*
+         * A probe check has no client to blame: if this code throws a
+         * user-error class, WE produced the bad input, so ErrorClassResolver
+         * promotes it back to code-fault. Set explicitly — runWithContext
+         * inherits the enclosing scope.
+         */
+        [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.ProbeCheck,
+        [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
         return this.probeMonitorTestInternal(monitorTest);
@@ -199,9 +216,7 @@ export default class MonitorUtil {
     return results;
   }
 
-  public static async probeMonitor(
-    monitor: Monitor,
-  ): Promise<Array<ProbeMonitorResponse | null>> {
+  public static async probeMonitor(monitor: Monitor): Promise<void> {
     /*
      * Seed telemetry context so every span/log for this check carries the
      * monitor + project identity.
@@ -211,6 +226,14 @@ export default class MonitorUtil {
         monitorId: monitor.id?.toString(),
         projectId: monitor.projectId?.toString(),
         monitorType: monitor.monitorType?.toString(),
+        /*
+         * A probe check has no client to blame: if this code throws a
+         * user-error class, WE produced the bad input, so ErrorClassResolver
+         * promotes it back to code-fault. Set explicitly — runWithContext
+         * inherits the enclosing scope.
+         */
+        [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.ProbeCheck,
+        [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
         return this.probeMonitorInternal(monitor);
@@ -218,17 +241,13 @@ export default class MonitorUtil {
     );
   }
 
-  private static async probeMonitorInternal(
-    monitor: Monitor,
-  ): Promise<Array<ProbeMonitorResponse | null>> {
-    const results: Array<ProbeMonitorResponse | null> = [];
-
+  private static async probeMonitorInternal(monitor: Monitor): Promise<void> {
     if (
       !monitor.monitorSteps ||
       monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
     ) {
       logger.debug("No monitor steps found");
-      return [];
+      return;
     }
 
     for (const monitorStep of monitor.monitorSteps.data
@@ -292,10 +311,14 @@ export default class MonitorUtil {
         });
       }
 
-      results.push(result);
+      /*
+       * The response has already been ingested. Log it now and release it
+       * before the next step, rather than keeping every body/screenshot in
+       * an array until the slowest monitor in the worker's batch finishes.
+       */
+      logger.debug("Probed monitor step:");
+      logger.debug(result);
     }
-
-    return results;
   }
 
   public static isHeadRequest(monitorStep: MonitorStep): boolean {
@@ -972,6 +995,40 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.sqlQueryMonitorResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
+    if (monitorType === MonitorType.Database) {
+      if (!monitorStep.data?.databaseMonitor) {
+        result.failureCause = "Database monitor configuration not specified";
+        return result;
+      }
+
+      const databaseConfig: MonitorStepDatabaseMonitor =
+        monitorStep.data.databaseMonitor;
+
+      if (!databaseConfig.host) {
+        result.failureCause = "Database host not specified";
+        return result;
+      }
+
+      const response: DatabaseMonitorResponse | null =
+        await DatabaseMonitor.execute(databaseConfig, {
+          retry: retryCount,
+          monitorId: monitorId,
+          timeout: requestTimeoutInMs,
+        });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.databaseMonitorResponse = response;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
     }

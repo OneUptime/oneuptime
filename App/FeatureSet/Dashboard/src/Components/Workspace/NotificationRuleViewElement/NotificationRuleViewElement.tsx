@@ -220,6 +220,11 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the scheduled maintenance is completed.`;
   }
 
+  if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the on call duty policy is deleted.`;
+  }
+
   // incident.
   if (props.eventType === NotificationRuleEventType.Incident) {
     archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;

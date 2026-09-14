@@ -17,7 +17,6 @@ import type OnCallDutyPolicyEscalationRuleModel from "Common/Models/DatabaseMode
 import type OnCallDutyPolicyScheduleModel from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule.js";
 import type ProjectModel from "Common/Models/DatabaseModels/Project.js";
 import type TeamModel from "Common/Models/DatabaseModels/Team.js";
-import type UserModel from "Common/Models/DatabaseModels/User.js";
 
 type Alert = InstanceType<typeof AlertModel>;
 type AlertEpisode = InstanceType<typeof AlertEpisodeModel>;
@@ -44,7 +43,6 @@ type OnCallDutyPolicySchedule = InstanceType<
 >;
 type Project = InstanceType<typeof ProjectModel>;
 type Team = InstanceType<typeof TeamModel>;
-type User = InstanceType<typeof UserModel>;
 
 type RequiredModelFields<T, K extends keyof T> = {
   [P in K]-?: NonNullable<T[P]>;
@@ -245,12 +243,11 @@ type NoteItemFromCommon = RequiredModelFields<
 export interface NoteItem
   extends Omit<NoteItemFromCommon, "createdAt" | "createdByUser"> {
   createdAt: string;
-  createdByUser:
-    | (RequiredModelFields<User, "_id" | "name"> & {
-        _id: string;
-        name: string;
-      })
-    | null;
+  createdByUser: {
+    _id: string;
+    // API values are serialized data, never Common's Name class instance.
+    name: string | { _type: "Name"; value: string };
+  } | null;
 }
 
 type FeedItemFromCommon = RequiredModelFields<
@@ -283,7 +280,9 @@ export interface MonitorItem {
   name: string;
   description?: string;
   monitorType?: string;
-  currentMonitorStatus?: NamedEntityWithColor;
+  currentMonitorStatus?: NamedEntityWithColor & {
+    isOperationalState?: boolean;
+  };
   disableActiveMonitoring?: boolean;
   createdAt: string;
   projectId?: string;
@@ -362,4 +361,222 @@ export interface ProjectOnCallAssignments {
   projectId: string;
   projectName: string;
   assignments: OnCallAssignmentItem[];
+}
+
+/*
+ * A person as the on-call screens need them: enough to render a row and to
+ * compare against the signed-in user, and nothing more. The API hands back
+ * `name` and `email` on a joined user; both are optional because a project
+ * member who has never set a name has only the email.
+ */
+export interface OnCallUserRef {
+  _id: string;
+  name?: string;
+  email?: string;
+}
+
+/**
+ * A schedule with its persisted roster: who is on it now, who is next, and the
+ * boundaries between them. Every date is nullable because a schedule with no
+ * layers - or one whose rotation has run out - has no computed roster at all.
+ */
+export interface OnCallScheduleItem {
+  _id: string;
+  name: string;
+  currentUserOnRoster: OnCallUserRef | null;
+  nextUserOnRoster: OnCallUserRef | null;
+  rosterStartAt: string | null;
+  rosterHandoffAt: string | null;
+  rosterNextStartAt: string | null;
+  rosterNextHandoffAt: string | null;
+}
+
+export type ProjectOnCallScheduleItem = WithProject<OnCallScheduleItem>;
+
+/**
+ * A stretch of time the signed-in user is (or will be) the on-call person for
+ * one schedule. Derived from `OnCallScheduleItem`, never fetched directly.
+ */
+export interface OnCallShift {
+  scheduleId: string;
+  scheduleName: string;
+  projectId: string;
+  projectName: string;
+  status: "active" | "upcoming";
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+/**
+ * A substitution: `overrideUser`'s pages go to `routeAlertsToUser` between
+ * `startsAt` and `endsAt`. `onCallDutyPolicy` is null for a project-wide
+ * override, which is the kind the app creates - covering somebody for one
+ * policy while leaving them paged by the rest is not what "cover for me"
+ * means to the person asking for it.
+ */
+export interface OnCallOverrideItem {
+  _id: string;
+  projectId: string;
+  projectName: string;
+  overrideUser: OnCallUserRef | null;
+  routeAlertsToUser: OnCallUserRef | null;
+  onCallDutyPolicy: { _id?: string; name?: string } | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+}
+
+export interface ProjectUserItem {
+  userId: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * One page that was sent to the signed-in user, with what triggered it and
+ * whether it was acknowledged. `status` is the server's
+ * UserNotificationExecutionStatus, kept as a plain string because the app only
+ * ever displays it.
+ */
+export interface OnCallPageItem {
+  _id: string;
+  projectId: string;
+  projectName: string;
+  createdAt: string;
+  status?: string;
+  statusMessage?: string;
+  acknowledgedAt: string | null;
+  policyName?: string;
+  triggeredByIncident: { _id?: string; title?: string } | null;
+  triggeredByAlert: { _id?: string; title?: string } | null;
+  triggeredByIncidentEpisode: { _id?: string; title?: string } | null;
+  triggeredByAlertEpisode: { _id?: string; title?: string } | null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * On-call calendar feeds (`/api/on-call-calendar/...`)
+ *
+ * These shapes mirror the server's JSON contract verbatim: dates are ISO
+ * strings, optional keys are simply absent. Nothing here is derived from a
+ * Common model because the feed routes are custom endpoints, not CRUD.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * The three ways a calendar app can be pointed at one feed. `webcal` is a
+ * `webcals://` URL when the server is served over https; `googleAdd` is the
+ * Google Calendar "add by URL" deep link, which only works from a browser.
+ */
+export interface OnCallCalendarFeedUrls {
+  https: string;
+  webcal: string;
+  googleAdd: string;
+}
+
+export interface OnCallCalendarFeedSettings {
+  includeCoveringShifts?: boolean;
+  includeCoverageGaps?: boolean;
+  minimumGapMinutes?: number;
+  pastDays: number;
+  futureDays: number;
+  rotateWhenMemberLeaves?: boolean;
+}
+
+/**
+ * What the server knows about one feed - personal, per-schedule or
+ * project-wide, the payload is the same. `exists` false means nothing has been
+ * generated yet; `urls` is null in that case and whenever the server cannot
+ * decrypt the token (then `needsRegeneration` is true and the only way forward
+ * is a new link).
+ */
+export interface OnCallCalendarFeedStatus {
+  exists: boolean;
+  feedId: string | null;
+  isEnabled: boolean;
+  needsRegeneration: boolean;
+  tokenHint: string | null;
+  rotatedAt: string | null;
+  previousTokenExpiresAt: string | null;
+  lastFetchedAt: string | null;
+  lastFetchedClient: string | null;
+  fetchCount: number;
+  lastRenderTruncated: boolean;
+  settings: OnCallCalendarFeedSettings;
+  urls: OnCallCalendarFeedUrls | null;
+
+  /* Set when the server's HOST is empty or localhost - its links are unusable. */
+  hostWarning: string | null;
+
+  /* Set when the server is served over plain http - the link travels in clear. */
+  protocolWarning: string | null;
+}
+
+/**
+ * Present on a shift that exists because of an override: the signed-in user
+ * is covering for `originalUserName`. `onCallDutyPolicyId` is set when the
+ * override was scoped to one policy.
+ */
+export interface MyOnCallShiftOverride {
+  originalUserId: string;
+  originalUserName: string;
+  overrideStartsAt: string;
+  overrideEndsAt: string;
+  onCallDutyPolicyId?: string;
+}
+
+/**
+ * A shift that only exists inside one escalation policy's context - a
+ * policy-scoped override made this user the on-call person for that policy
+ * while `globalUserId` still holds the schedule everywhere else.
+ */
+export interface MyOnCallShiftPolicyVariant {
+  policyId: string;
+  policyName: string;
+  globalUserId: string;
+}
+
+export interface MyOnCallShiftPolicy {
+  policyId: string;
+  policyName: string;
+  ruleId: string;
+  ruleName: string;
+  ruleOrder: number;
+}
+
+/**
+ * One materialized shift from `GET /api/on-call-calendar/my-shifts` - the
+ * server's own expansion of the schedule, with overrides applied, so unlike
+ * `OnCallShift` it is not limited to "current and next" per schedule.
+ */
+export interface MyOnCallShift {
+  shiftKey: string;
+  contentHash: string;
+  projectId: string;
+  projectName?: string;
+  scheduleId: string;
+  scheduleName: string;
+  scheduleTimezone: string | null;
+  userId: string;
+  userName: string;
+  start: string;
+  end: string;
+  coverageSeconds: number;
+  layerId?: string;
+  layerName?: string;
+  override?: MyOnCallShiftOverride;
+  policyVariantOf?: MyOnCallShiftPolicyVariant;
+  policies: MyOnCallShiftPolicy[];
+  isPast: boolean;
+  lastModifiedAt: string;
+  shiftConfigVersion: number;
+}
+
+export interface MyOnCallShiftsResponse {
+  shifts: MyOnCallShift[];
+
+  /* True when the server hit its expansion cap and the list is incomplete. */
+  truncated: boolean;
+
+  generatedAt: string;
 }

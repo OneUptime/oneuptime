@@ -98,6 +98,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.DNSSEC]: PayloadKind.Probe,
   [MonitorType.Domain]: PayloadKind.Probe,
   [MonitorType.SQLQuery]: PayloadKind.Probe,
+  [MonitorType.Database]: PayloadKind.Probe,
   [MonitorType.ExternalStatusPage]: PayloadKind.Probe,
   /*
    * Not a "probeable" monitor - the device owns its polling schedule - but
@@ -122,6 +123,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.Podman]: PayloadKind.Telemetry,
   [MonitorType.DockerSwarm]: PayloadKind.Telemetry,
   [MonitorType.Proxmox]: PayloadKind.Telemetry,
+  [MonitorType.VMware]: PayloadKind.Telemetry,
   [MonitorType.Ceph]: PayloadKind.Telemetry,
   [MonitorType.IoTDevice]: PayloadKind.Telemetry,
 };

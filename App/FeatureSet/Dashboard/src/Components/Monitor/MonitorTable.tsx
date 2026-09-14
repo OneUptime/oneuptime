@@ -20,6 +20,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Column from "Common/UI/Components/ModelTable/Column";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -33,6 +34,7 @@ import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField"
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import React, {
@@ -44,6 +46,13 @@ import React, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
+import MonitorTemplateElement from "./MonitorTemplateElement";
+import {
+  MONITOR_TEMPLATE_FACET_KEY,
+  MONITOR_TEMPLATE_FACET_QUERY_FIELD,
+  buildMonitorTemplateFacetQuery,
+  isQueryScopedToMonitorTemplate,
+} from "./MonitorFacets";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
@@ -91,6 +100,144 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
+
+  /*
+   * The template page's own Linked Monitors table is this table, scoped by
+   * `monitorTemplateId`. There, a Template chip would not narrow that scope —
+   * `mergeFiltersIntoQuery` builds one object, so the chip would overwrite it —
+   * and the column would repeat one value down every row. Read off the query
+   * rather than off a prop, so a caller that scopes the table cannot forget it.
+   */
+  const isScopedToTemplate: boolean = isQueryScopedToMonitorTemplate(
+    props.query,
+  );
+
+  const monitorTemplateFacet: ResourceFacet = {
+    key: MONITOR_TEMPLATE_FACET_KEY,
+    queryField: MONITOR_TEMPLATE_FACET_QUERY_FIELD,
+    label: "Template",
+    icon: IconProp.Template,
+    isMultiSelect: true,
+    searchPlaceholder: "Search templates...",
+    /*
+     * "is empty" is the one that earns its place: it lists every monitor that
+     * came from no template — the rows the Template column shows as "—", and
+     * the ones a template rollout has not reached.
+     */
+    supportedOperators: ["is", "is_not", "is_empty", "is_not_empty"],
+    loadOptions: async (
+      projectId: ObjectID,
+      searchTerm: string,
+    ): Promise<Array<FilterChipDropdownOption>> => {
+      const query: Query<MonitorTemplate> = {
+        projectId: projectId,
+      } as Query<MonitorTemplate>;
+
+      if (searchTerm.trim()) {
+        (query as unknown as Record<string, unknown>)["templateName"] =
+          new Search(searchTerm.trim());
+      }
+
+      const result: ListResult<MonitorTemplate> =
+        await ModelAPI.getList<MonitorTemplate>({
+          modelType: MonitorTemplate,
+          query: query,
+          limit: 50,
+          skip: 0,
+          select: { _id: true, templateName: true },
+          sort: { templateName: SortOrder.Ascending },
+        });
+
+      return result.data.map((template: MonitorTemplate) => {
+        return {
+          value: template.id?.toString() || "",
+          label: template.templateName?.toString() || "",
+        };
+      });
+    },
+    resolveOptions: async (
+      projectId: ObjectID,
+      values: Array<string>,
+    ): Promise<Array<FilterChipDropdownOption>> => {
+      if (values.length === 0) {
+        return [];
+      }
+
+      const result: ListResult<MonitorTemplate> =
+        await ModelAPI.getList<MonitorTemplate>({
+          modelType: MonitorTemplate,
+          query: {
+            projectId: projectId,
+            _id: new Includes(values),
+          } as Query<MonitorTemplate>,
+          limit: values.length,
+          skip: 0,
+          select: { _id: true, templateName: true },
+          sort: {},
+        });
+
+      return result.data.map((template: MonitorTemplate) => {
+        return {
+          value: template.id?.toString() || "",
+          label: template.templateName?.toString() || "",
+        };
+      });
+    },
+    toQueryValue: (
+      values: Array<string>,
+      operator: FilterOperator,
+    ): unknown => {
+      return buildMonitorTemplateFacetQuery(values, operator);
+    },
+  };
+
+  /*
+   * Paired with the chip above: the column answers "which template is this
+   * monitor on", the chip answers "which monitors are on that template", and
+   * the answer to the second is what a user does after editing a template.
+   *
+   * Off by default, because most monitors are not created from a template at
+   * all, so on a typical project this column is a stripe of dashes crowding
+   * out status and labels - the columns people actually open this list for.
+   * The chip covers the same ground for the projects that do use templates,
+   * and the picker turns the column back on.
+   *
+   * A stored layout only protects the viewers who arranged THIS column:
+   * `order` listing it beats isHiddenByDefault (see
+   * ColumnPreference.getCustomizableColumns), but a layout saved before
+   * #3491 added the column names it nowhere, so it falls through to this
+   * default and the column is off. That is everyone who customized the table
+   * before that release - the intended outcome, since they never had the
+   * column to lose, but not the same thing as "only affects people who never
+   * opened the picker".
+   */
+  const monitorTemplateColumn: Column<Monitor> = {
+    field: {
+      monitorTemplate: {
+        _id: true,
+        templateName: true,
+      },
+    },
+    title: "Template",
+    type: FieldType.Entity,
+    /*
+     * Deliberately NOT hideOnMobile. The two flags look complementary and are
+     * not: `hideOnMobile` is enforced at render (Table/TableHeader and
+     * Table/TableRow drop the column), while the picker knows nothing about
+     * it. Carrying both would let a phone viewer tick "Template", watch the
+     * shown-columns count go up, and get no column - and the picker is the
+     * only way back to a column that ships hidden. isHiddenByDefault already
+     * buys the screen space hideOnMobile was here for.
+     */
+    isHiddenByDefault: true,
+    description: "The monitor template this monitor is linked to, if any.",
+    getElement: (item: Monitor): ReactElement => {
+      return <MonitorTemplateElement monitorTemplate={item.monitorTemplate} />;
+    },
+    getExportValue: (item: Monitor): string => {
+      return item.monitorTemplate?.templateName || "";
+    },
+  };
 
   const monitorExtraFacets: Array<ResourceFacet> = [
     {
@@ -183,6 +330,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         return buildEnumFacetQuery(values, operator);
       },
     },
+    ...(isScopedToTemplate ? [] : [monitorTemplateFacet]),
   ];
 
   /*
@@ -512,7 +660,25 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         modelType={Monitor}
         enableJsonImportExport={!props.disableCreate}
         name="Monitors"
-        userPreferencesKey="monitors-table"
+        /*
+         * Two keys, because the two mounts declare two different column sets:
+         * the template page's Linked Monitors card drops the Template column
+         * (see monitorTemplateColumn below). A saved layout only records the
+         * columns the picker was showing, so saving from the scoped page over
+         * a shared key would write "monitorTemplate" out of both `order` and
+         * `hidden` - and a column in neither list falls back to its declared
+         * default, which is now hidden. Sharing the key would silently switch
+         * the Template column back off for anyone who had turned it on.
+         *
+         * Accepted cost of the split: anyone who had arranged the Linked
+         * Monitors card while it shared the monitors-list key loses that one
+         * arrangement once, and the card returns to its declared columns.
+         */
+        userPreferencesKey={
+          isScopedToTemplate
+            ? "monitor-template-monitors-table"
+            : "monitors-table"
+        }
         customFieldsModelType={MonitorCustomField}
         id="Monitors-table"
         saveFilterProps={props.saveFilterProps}
@@ -769,6 +935,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          ...(isScopedToTemplate ? [] : [monitorTemplateColumn]),
           {
             field: {
               labels: {

@@ -582,6 +582,15 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
         previousStateDurationText: `Was Identified for ${expectedDuration}`,
         alertDescription: convertedHtmlOf("**CPU** load is high"),
         resourcesAffected: "web-server-1",
+        /*
+         * Added when the resolution email learned to say WHY the state
+         * changed and to preview itself in the inbox. "" rather than absent
+         * for stateChangeRootCause: the template's guard is a presence check
+         * and the worker assigns it unconditionally.
+         */
+        stateChangeRootCause: "",
+        preheader:
+          "Acknowledged \u00b7 web-server-1 \u00b7 Was Identified for 2 hours",
         stateChangedAt: `formatted:${STATE_CHANGED_AT.toISOString()}:${timezones}`,
         alertSeverity: "Critical",
         alertViewLink: ALERT_LINK,

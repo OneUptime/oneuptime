@@ -11,6 +11,11 @@ type EnterpriseLicenseInstanceSummary = {
   instanceId: string;
   host: string | null;
   userCount: number | null;
+  /*
+   * Whether this row contributed to currentUserCount at the server's cutoff.
+   * Optional so installations remain compatible with older license servers.
+   */
+  isCountedTowardsUsage?: boolean | undefined;
   // ISO date string of the most recent usage report from this instance.
   lastReportedAt: string | null;
   /*

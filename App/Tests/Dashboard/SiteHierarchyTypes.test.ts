@@ -129,6 +129,8 @@ describe("parseSiteChildrenResponse", () => {
       },
       unitStats: { totalUnits: 12, operationalUnits: 11 },
       uptimePercent: 99.95,
+      dailyUptimePercent: null,
+      isUnderMaintenance: false,
     });
     expect(parsed.links[0]).toEqual({
       id: "l1",
@@ -170,7 +172,41 @@ describe("parseSiteChildrenResponse", () => {
       deviceStats: emptyDeviceHealthCounts(),
       unitStats: { totalUnits: 0, operationalUnits: 0 },
       uptimePercent: null,
+      dailyUptimePercent: null,
+      isUnderMaintenance: false,
     });
+  });
+
+  test("daily uptime and the maintenance flag are parsed like the 30-day figure", () => {
+    /*
+     * Issue #3431. Both are optional on the wire — a dashboard talking to a
+     * server that predates them must read "no daily figure" and "not under
+     * maintenance", not undefined, because the card branches on both.
+     */
+    const parsed: SiteChildrenResponse = parseSiteChildrenResponse({
+      children: [
+        {
+          id: "c1",
+          uptimePercent: 99.5,
+          dailyUptemePercent: 12,
+          dailyUptimePercent: 42.25,
+          isUnderMaintenance: true,
+        },
+        {
+          id: "c2",
+          uptimePercent: 99.5,
+          dailyUptimePercent: "42.25",
+          isUnderMaintenance: "yes",
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(parsed.children[0]!.dailyUptimePercent).toBe(42.25);
+    expect(parsed.children[0]!.isUnderMaintenance).toBe(true);
+
+    // A string percentage is not a percentage, and "yes" is not true.
+    expect(parsed.children[1]!.dailyUptimePercent).toBeNull();
+    expect(parsed.children[1]!.isUnderMaintenance).toBe(false);
   });
 
   test("malformed status objects and non-numeric uptime are neutralized", () => {

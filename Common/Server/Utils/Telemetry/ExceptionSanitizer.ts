@@ -204,6 +204,18 @@ export function sanitizeExceptionMessage(message: string): string {
 // Frame lines are indented; header/message lines are not.
 const INDENTED_FRAME_LINE_REGEX: RegExp = /^\s/;
 
+/*
+ * ...except in Firefox and Safari, which indent nothing: SpiderMonkey and
+ * JavaScriptCore write `fn@source:line:col` flush against column 0 and emit no
+ * header line at all. Without this second test every browser frame takes the
+ * header branch, where rule 19 rewrites the content hash in
+ * `entry.a1b2c3d4.js` to `<HEX_ID>` and rule 22 rewrites `:1:98217` to
+ * `:<LINE>:<COL>)` — destroying for Firefox and Safari exactly the file:line
+ * references the comment above promises to keep for V8 ones.
+ */
+const BROWSER_FRAME_LINE_REGEX: RegExp =
+  /^[^@:\n]{0,256}@(?:\[(?:native|wasm) code\]|self-hosted:\d{1,9}(?::\d{1,9})?|[A-Za-z][A-Za-z0-9+.-]{0,31}:[^\s]{1,2048}:\d{1,9}(?::\d{1,9})?)\r?$/;
+
 export function sanitizeStackTrace(stackTrace: string): string {
   if (!stackTrace) {
     return "";
@@ -212,7 +224,8 @@ export function sanitizeStackTrace(stackTrace: string): string {
   const normalized: string = stackTrace
     .split("\n")
     .map((line: string): string => {
-      return INDENTED_FRAME_LINE_REGEX.test(line)
+      return INDENTED_FRAME_LINE_REGEX.test(line) ||
+        BROWSER_FRAME_LINE_REGEX.test(line)
         ? line
         : normalizeExceptionText(line);
     })

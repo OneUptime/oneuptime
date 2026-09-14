@@ -13,6 +13,7 @@ import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
 
 const CloudArchivedPage: FunctionComponent<
   PageComponentProps
@@ -37,19 +38,21 @@ const CloudArchivedPage: FunctionComponent<
         bulkActions={{
           buttons: [...unarchiveBulkActions],
         }}
-        name="Archived Cloud Resources"
+        name="Archived Cloud Environments"
         cardProps={{
-          title: "Archived Cloud Resources",
+          title: "Archived Cloud Environments",
           description:
-            "Cloud resources you have archived. They are hidden from the main list but keep collecting telemetry. Select cloud resources to unarchive them.",
+            "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No archived cloud resources."}
+        noItemsMessage={"No archived cloud environments."}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         searchableFields={["name", "description"]}
         selectMoreFields={{
           cloudAccountId: true,
+          cloudPlatform: true,
+          cloudRegion: true,
         }}
         filters={[]}
         columns={[
@@ -80,6 +83,35 @@ const CloudArchivedPage: FunctionComponent<
                     <div className="text-xs text-gray-500 font-mono truncate">
                       account {account}
                     </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              cloudPlatform: true,
+            },
+            title: "Platform",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: CloudResource): ReactElement => {
+              const platform: string = (item.cloudPlatform as string) || "";
+              const region: string = (item.cloudRegion as string) || "";
+              if (!platform && !region) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              return (
+                <div className="text-sm text-gray-700">
+                  <span>
+                    {platform
+                      ? getManagedCloudPlatformLabel(platform)
+                      : "unknown"}
+                  </span>
+                  {region && (
+                    <span className="ml-1.5 text-xs text-gray-500 font-mono">
+                      {region}
+                    </span>
                   )}
                 </div>
               );

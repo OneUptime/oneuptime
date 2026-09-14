@@ -1,0 +1,8 @@
+{
+  "_id": "11111111-1111-4111-8111-111111111111",
+  "email": { "_type": "Email", "value": "passkey@example.com" },
+  "name": { "_type": "Name", "value": "Passkey Tester" },
+  "isMasterAdmin": false,
+  "isEmailVerified": true,
+  "isBlocked": false
+}

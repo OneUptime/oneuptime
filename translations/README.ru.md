@@ -12,6 +12,7 @@
   <a href="/translations/README.it.md">Italiano</a> ·
   <a href="/translations/README.ru.md">Русский</a> ·
   <a href="/translations/README.hi.md">हिन्दी</a> ·
+  <a href="/translations/README.fa.md">فارسی</a> ·
   <a href="/translations/README.nl.md">Nederlands</a> ·
   <a href="/translations/README.da.md">Dansk</a> ·
   <a href="/translations/README.sv.md">Svenska</a> ·
@@ -193,6 +194,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Docker** — единый агент автоматически обнаруживает каждый контейнер и доставляет метрики и логи. [Документация →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — то же автообнаружение одним агентом через Docker-совместимый сокет Podman. [Документация →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — узлы, VM, контейнеры, хранилище, состояние HA, покрытие резервным копированием и здоровье репликации. [Документация →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, хосты ESXi, виртуальные машины, хранилища данных, кластеры, пулы ресурсов и vSAN. [Документация →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — здоровье кластера, прогнозы по ёмкости и видимость OSD/пулов/PG/мониторов. [Документация →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

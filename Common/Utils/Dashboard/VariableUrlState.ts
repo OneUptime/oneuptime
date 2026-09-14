@@ -65,10 +65,25 @@ export default class DashboardVariableUrlState {
       if (!fromName) {
         return variable;
       }
+
+      /*
+       * The URL's comma syntax cannot distinguish one multi-select choice
+       * from a scalar. Resolve that ambiguity using the saved definition.
+       */
+      if (variable.isMultiSelect) {
+        return {
+          ...variable,
+          selectedValue: undefined,
+          selectedValues:
+            fromName.selectedValues ||
+            (fromName.selectedValue ? [fromName.selectedValue] : []),
+        };
+      }
       return {
         ...variable,
-        selectedValue: fromName.selectedValue,
-        selectedValues: fromName.selectedValues,
+        selectedValue:
+          fromName.selectedValue ?? fromName.selectedValues?.join(","),
+        selectedValues: undefined,
       };
     });
   }
@@ -110,11 +125,18 @@ export default class DashboardVariableUrlState {
         continue;
       }
       const paramKey: string = `${VAR_PREFIX}${name}`;
-      if (variable.selectedValues && variable.selectedValues.length > 0) {
-        params.set(paramKey, variable.selectedValues.join(","));
+      if (variable.isMultiSelect) {
+        if (Array.isArray(variable.selectedValues)) {
+          params.set(paramKey, variable.selectedValues.join(","));
+        }
         continue;
       }
-      if (variable.selectedValue && variable.selectedValue.length > 0) {
+
+      /*
+       * Keep an explicit All as `var-name=`. Omitting it would restore the
+       * saved selection or default when this URL is reopened.
+       */
+      if (typeof variable.selectedValue === "string") {
         params.set(paramKey, variable.selectedValue);
       }
     }

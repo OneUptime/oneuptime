@@ -3,15 +3,23 @@ import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import MailService from "../../../Server/Services/MailService";
+import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserNotificationEmailRollupItemService from "../../../Server/Services/UserNotificationEmailRollupItemService";
+import DatabaseConfig from "../../../Server/DatabaseConfig";
 import logger from "../../../Server/Utils/Logger";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import URL from "../../../Types/API/URL";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
@@ -60,6 +68,8 @@ const TEAMS_USER_ID: string = "entra-object-id-1";
 
 const EVENT_TYPE: NotificationSettingEventType =
   NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
+const MONITOR_STATUS_CHANGE_EVENT: NotificationSettingEventType =
+  NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
 
 type SendUserNotificationData = Parameters<
   typeof UserNotificationSettingService.sendUserNotification
@@ -114,6 +124,8 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
   let findSettings: jest.SpyInstance;
   let findSlacks: jest.SpyInstance;
   let findTeams: jest.SpyInstance;
+  let findEmails: jest.SpyInstance;
+  let sendMail: jest.SpyInstance;
   let sendDm: jest.SpyInstance;
   let loggerError: jest.SpyInstance;
 
@@ -132,6 +144,33 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
     jest
       .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
       .mockResolvedValue(undefined as never);
+
+    findEmails = jest.spyOn(UserEmailService, "findBy").mockResolvedValue([
+      {
+        email: "user@example.com",
+      } as unknown as UserEmail,
+    ] as never);
+
+    sendMail = jest
+      .spyOn(MailService, "sendMail")
+      .mockResolvedValue(undefined as never);
+
+    /*
+     * The email branch now runs through EmailRollupWriter, which counts this
+     * address's recent owner emails and writes a ledger row before sending.
+     * Both are stubbed here on purpose rather than left unmocked: an unmocked
+     * countBy rejects with no database, the writer's fail-open catch swallows
+     * that, and every email assertion in this suite would then be exercising
+     * the failure path. "Below the burst threshold nothing changed" has to be
+     * pinned deliberately, not by accident.
+     */
+    jest
+      .spyOn(UserNotificationEmailRollupItemService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+
+    jest
+      .spyOn(UserNotificationEmailRollupItemService, "create")
+      .mockResolvedValue(new UserNotificationEmailRollupItem() as never);
 
     findSlacks = jest.spyOn(UserSlackService, "findBy").mockResolvedValue([
       {
@@ -251,13 +290,37 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(findTeams).not.toHaveBeenCalled();
     });
 
-    test("no settings row at all sends nothing", async () => {
+    test("no monitor status-change setting sends nothing on any channel", async () => {
       findSettings.mockResolvedValue(null as never);
 
       await UserNotificationSettingService.sendUserNotification(
-        notificationData(),
+        notificationData({ eventType: MONITOR_STATUS_CHANGE_EVENT }),
       );
 
+      expect(findEmails).not.toHaveBeenCalled();
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(
+        ProjectCallSMSConfigService.getProjectDefaultTwilioConfig,
+      ).not.toHaveBeenCalled();
+      expect(findSlacks).not.toHaveBeenCalled();
+      expect(findTeams).not.toHaveBeenCalled();
+      expect(sendDm).not.toHaveBeenCalled();
+    });
+
+    test("an explicit monitor status-change email opt-in still delivers", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByEmail: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData({ eventType: MONITOR_STATUS_CHANGE_EVENT }),
+      );
+
+      expect(findEmails).toHaveBeenCalledTimes(1);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendMail.mock.calls[0]?.[0]).toMatchObject({
+        toEmail: "user@example.com",
+      });
       expect(sendDm).not.toHaveBeenCalled();
     });
   });
@@ -390,7 +453,94 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
 
   /*
    * ----------------------------------------------------------------------- *
-   * (D) Failure isolation.
+   * (D) The email hand-off preserves content and correlation ids.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("the email hand-off", () => {
+    /*
+     * Owner emails now pass through EmailRollupWriter on their way to
+     * MailService. Below the burst threshold the email keeps its content and
+     * gains a direct preferences link. The second argument is the correlation-id
+     * bag every downstream log line joins on, so a field silently dropped in the hand-off would
+     * detach incident emails from their incident with nothing failing.
+     */
+    test("MailService receives the original content and correlation ids with a direct preferences link", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByEmail: true }) as never,
+      );
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.example.com/dashboard"),
+        );
+
+      const data: SendUserNotificationData = notificationData();
+      await UserNotificationSettingService.sendUserNotification(data);
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+
+      expect(sendMail.mock.calls[0]?.[0]).toEqual({
+        subject: "Incident created: Checkout is down",
+        templateType: EmailTemplateType.BlankTemplate,
+        vars: {
+          notificationPreferencesUrl: `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/user-settings/notification-settings`,
+        },
+        toEmail: "user@example.com",
+      });
+      expect(data.emailEnvelope.vars).toEqual({});
+
+      expect(sendMail.mock.calls[0]?.[1]).toEqual({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertId: undefined,
+        alertEpisodeId: undefined,
+        incidentEpisodeId: undefined,
+        monitorId: undefined,
+        scheduledMaintenanceId: undefined,
+        statusPageId: undefined,
+        statusPageAnnouncementId: undefined,
+        userId: USER_ID,
+        teamId: undefined,
+        onCallPolicyId: undefined,
+        onCallPolicyEscalationRuleId: undefined,
+        onCallDutyPolicyExecutionLogTimelineId: undefined,
+        onCallScheduleId: undefined,
+      });
+
+      /*
+       * toEqual treats an explicitly-undefined property as absent, so the key
+       * set is pinned separately - otherwise the hand-off could quietly stop
+       * forwarding a field and this test would still pass.
+       */
+      const optionKeys: Array<string> = Object.keys(
+        sendMail.mock.calls[0]?.[1] as Record<string, unknown>,
+      ).sort();
+      expect(optionKeys).toEqual(
+        [
+          "alertEpisodeId",
+          "alertId",
+          "incidentEpisodeId",
+          "incidentId",
+          "monitorId",
+          "onCallDutyPolicyExecutionLogTimelineId",
+          "onCallPolicyEscalationRuleId",
+          "onCallPolicyId",
+          "onCallScheduleId",
+          "projectId",
+          "scheduledMaintenanceId",
+          "statusPageAnnouncementId",
+          "statusPageId",
+          "teamId",
+          "userId",
+        ].sort(),
+      );
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (E) Failure isolation.
    * -----------------------------------------------------------------------
    */
 

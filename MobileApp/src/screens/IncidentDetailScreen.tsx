@@ -1,17 +1,10 @@
 import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  Pressable,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Text, ScrollView, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useIncidentDetail,
   useIncidentStates,
@@ -27,9 +20,16 @@ import { toPlainText } from "../utils/text";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
-import SectionHeader from "../components/SectionHeader";
+import {
+  ResponseDetailHeader,
+  ResponseActions,
+  ResponseInfoRow,
+  ResponseSection,
+  type ResponseAction,
+} from "../components/ResponseDetailLayout";
 import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
 import MarkdownContent from "../components/MarkdownContent";
@@ -43,40 +43,50 @@ export default function IncidentDetailScreen({
 }: Props): React.JSX.Element {
   const { incidentId, projectId } = route.params;
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const queryClient: QueryClient = useQueryClient();
 
   const {
     data: incident,
     isLoading,
+    isError,
     refetch: refetchIncident,
   } = useIncidentDetail(projectId, incidentId);
-  const { data: states } = useIncidentStates(projectId);
+  const {
+    data: states,
+    isError: statesError,
+    refetch: refetchStates,
+  } = useIncidentStates(projectId);
   const { refetch: refetchTimeline } = useIncidentStateTimeline(
     projectId,
     incidentId,
   );
-  const { data: feed, refetch: refetchFeed } = useIncidentFeed(
-    projectId,
-    incidentId,
-  );
-  const { data: notes, refetch: refetchNotes } = useIncidentNotes(
-    projectId,
-    incidentId,
-  );
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useIncidentFeed(projectId, incidentId);
+  const {
+    data: notes,
+    isLoading: notesLoading,
+    isError: notesError,
+    refetch: refetchNotes,
+  } = useIncidentNotes(projectId, incidentId);
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchIncident(),
+      refetchStates(),
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
     ]);
-  }, [refetchIncident, refetchTimeline, refetchFeed, refetchNotes]);
+  });
 
   const handleStateChange: (
     stateId: string,
@@ -152,37 +162,84 @@ export default function IncidentDetailScreen({
 
   if (isLoading) {
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <SkeletonCard variant="detail" />
-      </View>
+      </ScrollView>
     );
   }
 
+  /*
+   * Nothing to show, and the two reasons for that are not the same reason.
+   *
+   * This screen is where a page lands: the responder tapped a push
+   * notification about an incident that is still burning. "Incident not
+   * found." was every one of those endings - the token expired, the gateway
+   * was down, the train went into a tunnel - and it told the responder the
+   * page they were woken for does not exist, with nothing to press. Checkout
+   * was still down.
+   *
+   * So a failure that might clear says so and offers another go, and only a
+   * request that succeeded and found nothing is allowed to say the incident is
+   * gone. Telling them apart takes no cleverness now: `fetchIncidentById`
+   * resolves `null` for an incident that is not there, so a deleted incident
+   * reaches us as settled data and `isError` means only that the request
+   * failed.
+   *
+   * Note the guard is inside `!incident`: a refresh that fails while the
+   * incident is already on screen must not replace it with an error page,
+   * because a stale incident is worth vastly more here than an apology.
+   */
   if (!incident) {
+    if (isError) {
+      return (
+        <ScrollView
+          style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
+        >
+          <EmptyState
+            title="Something went wrong"
+            subtitle="This incident could not be loaded, which is not the same as it no longer existing. Try again."
+            icon="incidents"
+            actionLabel="Retry"
+            onAction={() => {
+              return refetchIncident();
+            }}
+          />
+        </ScrollView>
+      );
+    }
+
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.backgroundPrimary,
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
         }}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Incident not found.
-        </Text>
-      </View>
+        <EmptyState
+          title="Incident not found"
+          subtitle="This incident no longer exists, or it is not part of this project."
+          icon="incidents"
+        />
+      </ScrollView>
     );
   }
 
   const stateColor: string = incident.currentIncidentState?.color
     ? rgbToHex(incident.currentIncidentState.color)
-    : theme.colors.textTertiary;
-
-  const severityColor: string = incident.incidentSeverity?.color
-    ? rgbToHex(incident.incidentSeverity.color)
     : theme.colors.textTertiary;
 
   const acknowledgeState: IncidentState | undefined = states?.find(
@@ -197,387 +254,137 @@ export default function IncidentDetailScreen({
   );
 
   const currentStateId: string | undefined = incident.currentIncidentState?._id;
-  const isResolved: boolean = resolveState?._id === currentStateId;
-  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
+  const isResolved: boolean = Boolean(
+    resolveState && resolveState._id === currentStateId,
+  );
+  const isAcknowledged: boolean = Boolean(
+    acknowledgeState && acknowledgeState._id === currentStateId,
+  );
   const rootCauseTextRaw: string = toPlainText(incident.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;
   const descriptionText: string = toPlainText(incident.description);
 
+  const actions: ResponseAction[] = [];
+  if (!isResolved && !isAcknowledged && acknowledgeState) {
+    actions.push({
+      label: "Acknowledge",
+      accessibilityLabel: "Acknowledge incident",
+      primary: true,
+      onPress: () => {
+        return handleStateChange(acknowledgeState._id, acknowledgeState.name);
+      },
+    });
+  }
+  if (!isResolved && resolveState) {
+    actions.push({
+      label: "Resolve",
+      accessibilityLabel: "Resolve incident",
+      primary: isAcknowledged || !acknowledgeState,
+      onPress: () => {
+        return handleStateChange(resolveState._id, resolveState.name);
+      },
+    });
+  }
+
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      testID="detail-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
       }
     >
-      {/* Header card */}
-      <View
+      <ResponseDetailHeader
+        title={incident.title}
+        kind="Incident"
+        number={
+          incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`
+        }
+        state={incident.currentIncidentState?.name}
+        stateColor={stateColor}
+        severity={incident.incidentSeverity?.name}
+      />
+      {statesError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest response actions."
+          retryLabel="Retry actions"
+          onRetry={refetchStates}
+        />
+      ) : null}
+      <Text
+        accessibilityLiveRegion="polite"
         style={{
-          borderRadius: 24,
-          overflow: "hidden",
-          marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          shadowColor: "#000",
-          shadowOpacity: 0.28,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
+          color: theme.colors.textSecondary,
+          fontSize: 15,
+          lineHeight: 23,
+          marginBottom: 22,
         }}
       >
-        <LinearGradient
-          colors={[stateColor + "26", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -50,
-            left: -10,
-            right: -10,
-            height: 190,
-          }}
-        />
-        <View
-          style={{
-            height: 3,
-            backgroundColor: stateColor,
-          }}
-        />
-        <View style={{ padding: 20 }}>
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "600",
-              marginBottom: 8,
-              color: stateColor,
-            }}
-          >
-            {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
-          </Text>
-
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: theme.colors.textPrimary,
-              letterSpacing: -0.6,
-            }}
-          >
-            {incident.title}
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            {incident.currentIncidentState ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: stateColor + "14",
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: stateColor,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: stateColor,
-                  }}
-                >
-                  {incident.currentIncidentState.name}
-                </Text>
-              </View>
-            ) : null}
-
-            {incident.incidentSeverity ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: severityColor + "14",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: severityColor,
-                  }}
-                >
-                  {incident.incidentSeverity.name}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Description */}
+        {isResolved
+          ? "This incident is resolved. Review the context and team notes below."
+          : isAcknowledged
+            ? "A responder has acknowledged this incident. Resolve it once recovery is confirmed."
+            : "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed."}
+      </Text>
+      {actions.length > 0 ? (
+        <ResponseActions actions={actions} busy={changingState} />
+      ) : null}
       {descriptionText ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Description" iconName="document-text-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <MarkdownContent content={descriptionText} />
-          </View>
-        </View>
+        <ResponseSection title="Description">
+          <MarkdownContent content={descriptionText} />
+        </ResponseSection>
       ) : null}
-
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Root Cause" iconName="bulb-outline" />
+      <ResponseSection title="Details">
+        {incident.declaredAt ? (
+          <ResponseInfoRow
+            label="Declared"
+            value={formatDateTime(incident.declaredAt)}
+          />
+        ) : null}
+        <ResponseInfoRow
+          label="Created"
+          value={formatDateTime(incident.createdAt)}
+        />
+        {incident.monitors?.length > 0 ? (
+          <ResponseInfoRow
+            label="Monitors"
+            value={incident.monitors
+              .map((monitor: NamedEntity) => {
+                return monitor.name;
+              })
+              .join(", ")}
+          />
+        ) : null}
+      </ResponseSection>
+      <ResponseSection title="Root Cause">
         <RootCauseCard rootCauseText={rootCauseText} />
-      </View>
-
-      {/* Details */}
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Details" iconName="information-circle-outline" />
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View style={{ padding: 16 }}>
-            {incident.declaredAt ? (
-              <View style={{ flexDirection: "row", marginBottom: 12 }}>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    width: 90,
-                    color: theme.colors.textTertiary,
-                  }}
-                >
-                  Declared
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {formatDateTime(incident.declaredAt)}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  width: 90,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Created
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {formatDateTime(incident.createdAt)}
-              </Text>
-            </View>
-
-            {incident.monitors?.length > 0 ? (
-              <View style={{ flexDirection: "row" }}>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    width: 90,
-                    color: theme.colors.textTertiary,
-                  }}
-                >
-                  Monitors
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    flex: 1,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {incident.monitors
-                    .map((m: NamedEntity) => {
-                      return m.name;
-                    })
-                    .join(", ")}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* State Change Actions */}
-      {!isResolved ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Actions" iconName="flash-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 12,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <View style={{ flexDirection: "row" }}>
-              {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <View style={{ flex: 1 }}>
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateAcknowledged,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        acknowledgeState._id,
-                        acknowledgeState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityRole="button"
-                    accessibilityLabel="Acknowledge incident"
-                  >
-                    {changingState ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={17}
-                          color="#FFFFFF"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: "#FFFFFF",
-                          }}
-                        >
-                          Acknowledge
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-
-              {resolveState ? (
-                <View
-                  style={{
-                    flex: 1,
-                    marginLeft:
-                      !isAcknowledged && !isResolved && acknowledgeState
-                        ? 12
-                        : 0,
-                  }}
-                >
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateResolved,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        resolveState._id,
-                        resolveState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityRole="button"
-                    accessibilityLabel="Resolve incident"
-                  >
-                    {changingState ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-done-outline"
-                          size={17}
-                          color="#FFFFFF"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: "#FFFFFF",
-                          }}
-                        >
-                          Resolve
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
+      </ResponseSection>
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
       ) : null}
-
-      {/* Activity Feed */}
       {feed && feed.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Activity Feed" iconName="list-outline" />
+        <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
-        </View>
+        </ResponseSection>
       ) : null}
-
-      {/* Internal Notes */}
-      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
-
+      <NotesSection
+        notes={notes}
+        setNoteModalVisible={setNoteModalVisible}
+        isLoading={notesLoading}
+        isError={notesError}
+        onRetry={refetchNotes}
+      />
       <AddNoteModal
         visible={noteModalVisible}
         onClose={() => {

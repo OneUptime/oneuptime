@@ -4,10 +4,12 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -29,7 +31,8 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
- * Podman Host, Proxmox / Ceph / Docker Swarm cluster and IoT Fleet.
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet and — for
+ * Scheduled Maintenance only — Network Site.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -50,9 +53,11 @@ type AffectedResourceType =
   | "dockerHost"
   | "podmanHost"
   | "proxmoxCluster"
+  | "vmwareVCenter"
   | "cephCluster"
   | "dockerSwarmCluster"
-  | "iotFleet";
+  | "iotFleet"
+  | "networkSite";
 
 interface ResourceTypeConfig {
   label: string;
@@ -104,6 +109,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
   },
+  vmwareVCenter: {
+    label: "vCenter",
+    pluralLabel: "vCenters",
+    icon: IconProp.VMware,
+    modelType: VMwareVCenter,
+  },
   cephCluster: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",
@@ -122,6 +133,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.IoT,
     modelType: IoTFleet,
   },
+  networkSite: {
+    label: "Network Site",
+    pluralLabel: "Network Sites",
+    icon: IconProp.BuildingOffice,
+    modelType: NetworkSite,
+  },
 };
 
 const RESOURCE_ORDER: Array<AffectedResourceType> = [
@@ -132,9 +149,16 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "dockerHost",
   "podmanHost",
   "proxmoxCluster",
+  "vmwareVCenter",
   "cephCluster",
   "dockerSwarmCluster",
   "iotFleet",
+  /*
+   * Only ScheduledMaintenance carries a networkSites relation, so this one
+   * is opt-in per table (see includeNetworkSite). Filtering Incidents by it
+   * would query a column Incident does not have.
+   */
+  "networkSite",
 ];
 
 /*
@@ -154,9 +178,11 @@ const RESOURCE_QUERY_FIELD: Record<
   dockerHost: "dockerHosts",
   podmanHost: "podmanHosts",
   proxmoxCluster: "proxmoxClusters",
+  vmwareVCenter: "vmwareVCenters",
   cephCluster: "cephClusters",
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",
+  networkSite: "networkSites",
 };
 
 /*
@@ -338,6 +364,13 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    * don't appear twice in the filter bar.
    */
   excludeMonitor?: boolean | undefined;
+  /**
+   * Offer the Network Site type. Off by default because
+   * ScheduledMaintenance is the only parent model with a `networkSites`
+   * relation — offering it elsewhere would build a filter query against a
+   * column that does not exist there.
+   */
+  includeNetworkSite?: boolean | undefined;
 }
 
 const buildAffectedResourcesFacet: <T extends BaseModel>(
@@ -348,11 +381,17 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
   const monitorField: "monitors" | "monitorId" =
     options.monitorQueryField || "monitors";
 
-  const includedTypes: Array<AffectedResourceType> = options.excludeMonitor
-    ? RESOURCE_ORDER.filter((t: AffectedResourceType): boolean => {
-        return t !== "monitor";
-      })
-    : RESOURCE_ORDER;
+  const includedTypes: Array<AffectedResourceType> = RESOURCE_ORDER.filter(
+    (t: AffectedResourceType): boolean => {
+      if (t === "monitor") {
+        return !options.excludeMonitor;
+      }
+      if (t === "networkSite") {
+        return Boolean(options.includeNetworkSite);
+      }
+      return true;
+    },
+  );
 
   return {
     key: "affectedResources",

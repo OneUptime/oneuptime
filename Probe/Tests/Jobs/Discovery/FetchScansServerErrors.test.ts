@@ -27,6 +27,7 @@ import {
   runScan,
   resetDiscoveryRunInProgress,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * What the probe does when the SERVER says no.
@@ -65,7 +66,15 @@ function makeScanResult(): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    /*
+     * The sweep reports the distinct ports it touched (a scan can carry
+     * several credential sets, and they may disagree about the port) and how
+     * many hosts each credential answered. This is the single-credential
+     * shape, which is what a scan configured through the flattened columns
+     * produces.
+     */
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 0 },
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     icmpFilteredFallbackHostCount: 0,
@@ -124,6 +133,15 @@ function loggedErrors(): string {
     })
     .join("\n");
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("getRejectionReason", () => {
   test("an accepted request produces no reason at all", () => {

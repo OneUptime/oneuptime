@@ -1,7 +1,7 @@
 # Troubleshooting Performance Issues
 
 If your OneUptime deployment is slow or unhealthy, run the bundled diagnostic
-script. It inspects pods, databases (PostgreSQL, ClickHouse, Redis), storage,
+script. It inspects pods, databases (PostgreSQL, ClickHouse, Valkey), storage,
 logs, autoscaling, and the ingress, then prints a ranked list of findings with
 concrete action steps.
 

@@ -44,7 +44,7 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overscroll-x-contain">
       <table className="w-full border-collapse text-left text-xs">
         <thead>
           <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">

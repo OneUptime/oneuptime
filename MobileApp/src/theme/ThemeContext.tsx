@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { View } from "react-native";
-import { ColorTokens, darkColors } from "./colors";
+import { ColorTokens, lightColors } from "./colors";
 
 export interface Theme {
   colors: ColorTokens;
@@ -10,7 +10,7 @@ interface ThemeContextValue {
   theme: Theme;
 }
 
-const theme: Theme = { colors: darkColors };
+const theme: Theme = { colors: lightColors };
 
 const ThemeContext: React.Context<ThemeContextValue> =
   createContext<ThemeContextValue>({ theme });

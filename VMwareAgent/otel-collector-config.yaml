@@ -1,0 +1,133 @@
+receivers:
+  # Poll vCenter Server (or a standalone ESXi host) through the vSphere
+  # SDK with the collector's native `vcenter` receiver. No exporter
+  # sidecar is needed: the receiver walks the inventory itself and emits
+  # one OTLP resource per vSphere object (datacenter, cluster, ESXi host,
+  # virtual machine, VM template, datastore, resource pool) with the
+  # object's identity in RESOURCE attributes (vcenter.datacenter.name,
+  # vcenter.cluster.name, vcenter.host.name, vcenter.vm.name / vcenter.vm.id,
+  # vcenter.datastore.name, vcenter.resource_pool.inventory_path, ...).
+  vcenter:
+    # Scheme + host only, e.g. https://vcsa.example.com — the receiver
+    # appends /sdk itself. Works against vCenter Server (normal case) and
+    # against a standalone ESXi host that is not managed by a vCenter.
+    endpoint: "${env:VCENTER_ENDPOINT}"
+    # A vSphere user holding the built-in Read-Only role, propagated from
+    # the vCenter root object to every child (see README.md).
+    username: "${env:VCENTER_USERNAME}"
+    password: "${env:VCENTER_PASSWORD}"
+    # How often the whole inventory is walked. 2m is a sensible default;
+    # raise it (5m, 10m) for vCenters with thousands of VMs — every
+    # collection is a full vSphere SDK round-trip.
+    collection_interval: "${env:VCENTER_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    # Maximum performance-counter entities per query. 256 matches the
+    # vpxd.stats.maxQueryMetrics default on vCenter; lowering it only helps
+    # when the vCenter administrator has tightened that setting.
+    max_query_metrics: 256
+    tls:
+      # vCenter appliances ship a self-signed (VMCA) certificate by
+      # default. Set VCENTER_INSECURE_SKIP_VERIFY=true to accept it, or
+      # keep verification on and trust the VMCA root on this machine.
+      # The placeholder is deliberately UNQUOTED: a quoted "${env:...}"
+      # is a string and fails this boolean field at startup.
+      insecure_skip_verify: ${env:VCENTER_INSECURE_SKIP_VERIFY}
+    metrics:
+      # Off by default upstream. OneUptime uses it as the denominator for
+      # host memory utilisation (usage / capacity) on the Hosts page, so
+      # it is enabled here. Do not disable it.
+      vcenter.host.memory.capacity:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   vcenter.vm.cpu.time                        (CPU time by cpu_state: idle/ready/wait)
+      #   vcenter.vm.memory.granted                  (memory granted to the VM, MiBy)
+      #   vcenter.host.memory.active                 (actively used host memory)
+      #   vcenter.host.memory.ballooned              (memory reclaimed by ballooning on the host)
+      #   vcenter.host.memory.granted                (memory granted to VMs on the host)
+      #   vcenter.vm.network.broadcast.packet.rate   (broadcast packets/s per vNIC)
+      #   vcenter.vm.network.multicast.packet.rate   (multicast packets/s per vNIC)
+
+  # Optional: receive syslog forwarded by ESXi hosts (and vCenter) — this
+  # is what powers the Logs tab of the vCenter dashboard. Off by default
+  # because it needs a listening port published on this machine. To
+  # enable it:
+  #   1. Uncomment the `syslog` receiver below, the `logs` pipeline at the
+  #      bottom of this file, and the port mapping in docker-compose.yml.
+  #   2. On every ESXi host set Syslog.global.logHost (Host → Configure →
+  #      System → Advanced System Settings) to udp://<agent-host>:5514 or
+  #      tcp://<agent-host>:5514, and open the outbound syslog firewall
+  #      rule on the host (Configure → System → Firewall → syslog).
+  # ESXi speaks classic BSD syslog (RFC 3164). The resource processor
+  # below stamps vmware.vcenter.name on these logs too, so they land on
+  # this vCenter. A syslog receiver honours only one of `tcp:` / `udp:`
+  # (tcp wins, udp is silently ignored), so TCP and UDP are two named
+  # receivers — uncomment both to accept either transport.
+  # syslog/tcp:
+  #   tcp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  # syslog/udp:
+  #   udp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+
+processors:
+  # Stamp every metric with the vCenter identity. OneUptime auto-registers
+  # the vCenter from `vmware.vcenter.name`, and every VMware page and
+  # monitor scopes on it — this attribute is what makes the data appear
+  # under the VMware section of the dashboard. Keep it stable: changing
+  # it later registers a brand-new vCenter. (It is deliberately NOT
+  # `vcenter.cluster.name`: the receiver already stamps that per vSphere
+  # compute cluster, and an upsert would overwrite the real cluster names.)
+  resource:
+    attributes:
+      - key: vmware.vcenter.name
+        value: "${env:VMWARE_VCENTER_NAME}"
+        action: upsert
+      # Defensive: the native vcenter receiver does not synthesize
+      # service.name / service.instance.id, but OTEL_RESOURCE_ATTRIBUTES
+      # or a customised pipeline could add them. OneUptime routes batches
+      # by service.name first, so if one slipped through it would register
+      # a phantom Service instead of routing this data to the vCenter
+      # discovered from `vmware.vcenter.name` (and break per-vCenter
+      # retention settings). Do not remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold one complete scrape of a big inventory. There
+    # is deliberately NO send_batch_max_size: a scrape must never be split
+    # across exports, because OneUptime reads a whole scrape per request
+    # to (a) sum inventory counts (host / VM / datastore counts fan out
+    # over status and power_state) and (b) infer VM power state from the
+    # presence of vcenter.vm.cpu.* datapoints next to the VM's memory and
+    # disk datapoints. Splitting would zero counts and flip VMs "off".
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # The receiver materialises the whole inventory on every collection;
+    # 512 MiB leaves ample headroom for vCenters with thousands of VMs.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [vcenter]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    # Uncomment together with the syslog receivers above to ship ESXi
+    # syslog (powers the Logs tab of the vCenter dashboard):
+    # logs:
+    #   receivers: [syslog/tcp, syslog/udp]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

@@ -13,6 +13,8 @@ import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTime
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeHistoryLabels from "Common/Types/Monitor/UptimeHistoryLabels";
+import { UptimeBarDaySummary } from "Common/UI/Components/Graphs/DayUptimeGraph";
 import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNestingLayout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,6 +57,39 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
   const [selectedDayIncidents, setSelectedDayIncidents] = useState<
     Array<UptimeBarTooltipIncident>
   >([]);
+  const [selectedDaySummary, setSelectedDaySummary] =
+    useState<UptimeBarDaySummary | null>(null);
+
+  /*
+   * Handed to both the strip and the dialog it opens, so a visitor reading a
+   * German status page is not read an English date summary by their screen
+   * reader.
+   */
+  const uptimeHistoryLabels: UptimeHistoryLabels = {
+    /*
+     * Interpolated here rather than from the bar count, and deliberately so.
+     * A rolling window of N times 24 hours touches N+1 calendar days, so the
+     * strip draws one more bar than the window it covers - and the axis under
+     * it already says "N days ago ... Today". The name a screen reader reads
+     * out has to agree with the one the page shows, not with the bar count.
+     */
+    graphLabel: t("uptimeHistory.graphLabel", {
+      total: props.uptimeHistoryDays || 90,
+    }),
+    dayLabel: t("uptimeHistory.dayLabel"),
+    dayLabelWithIncidents: t("uptimeHistory.dayLabelWithIncidents"),
+    dayLabelNoData: t("uptimeHistory.dayLabelNoData"),
+    dayLabelNoDataWithIncidents: t("uptimeHistory.dayLabelNoDataWithIncidents"),
+    uptime: t("uptimeHistory.uptime"),
+    noMonitoringData: t("uptimeHistory.noMonitoringData"),
+    incidents: t("uptimeHistory.incidents"),
+    noIncidents: t("uptimeHistory.noIncidents"),
+    noIncidentsDescription: t("uptimeHistory.noIncidentsDescription"),
+    declared: t("uptimeHistory.declared"),
+    oneIncidentOnThisDay: t("uptimeHistory.oneIncidentOnThisDay"),
+    incidentsOnThisDay: t("uptimeHistory.incidentsOnThisDay"),
+    close: t("common.close"),
+  };
 
   const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
     // if the current status is operational then show uptime Percent.
@@ -181,12 +216,15 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             height={props.uptimeGraphHeight}
             incidents={props.incidents}
             onIncidentClick={props.onIncidentClick}
+            labels={uptimeHistoryLabels}
             onBarClick={(
               date: Date,
               incidents: Array<UptimeBarTooltipIncident>,
+              summary: UptimeBarDaySummary,
             ) => {
               setSelectedDay(date);
               setSelectedDayIncidents(incidents);
+              setSelectedDaySummary(summary);
             }}
           />
         </div>
@@ -209,10 +247,15 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         <UptimeBarDayModal
           date={selectedDay}
           incidents={selectedDayIncidents}
+          uptimePercent={selectedDaySummary?.uptimePercent}
+          hasEvents={selectedDaySummary?.hasEvents}
+          statusDurations={selectedDaySummary?.statusDurations}
+          labels={uptimeHistoryLabels}
           onIncidentClick={props.onIncidentClick}
           onClose={() => {
             setSelectedDay(null);
             setSelectedDayIncidents([]);
+            setSelectedDaySummary(null);
           }}
         />
       )}

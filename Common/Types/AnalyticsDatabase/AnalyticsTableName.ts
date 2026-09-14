@@ -8,6 +8,14 @@ enum AnalyticsTableName {
    */
   SecurityEvent = "SecurityEventItemV1",
   /*
+   * Normalized IOC rows from STIX/TAXII threat-intel feeds. Keyed by
+   * (projectId, feedId, indicatorValue, stixId) on ReplacingMergeTree so
+   * a re-polled indicator upserts by its `version` (STIX modified
+   * timestamp) instead of duplicating; per-row retentionDate TTL expires
+   * indicators at valid_until.
+   */
+  ThreatIntelIndicator = "ThreatIntelIndicatorItemV1",
+  /*
    * Deploy/config-change markers posted by CI/CD, rendered as dashed
    * vertical lines on metric charts. Peer of LogItemV3 in layout (tenant
    * projectId, per-row retentionDate TTL, attributes Map + keys sidecar)

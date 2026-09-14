@@ -15,6 +15,10 @@ import ObjectID from "../../../Types/ObjectID";
  *   - the feed/workspace-notification side effects run only AFTER release,
  *     so third-party HTTP latency (Slack/Teams) can never extend the
  *     critical section,
+ *   - the network-site bridge (device stamps + site rollups, which can open
+ *     alerts and post their own notifications) ALSO runs only after release,
+ *     and before the feed item so a device stamp never waits on Slack; it is
+ *     skipped for a row that is already closed (endsAt set),
  *   - the ignoreHooks and missing-monitorId paths skip locking entirely.
  *
  * Semaphore is mocked at the module boundary; DatabaseService.prototype.create
@@ -86,6 +90,7 @@ const makeCreateBy: MakeCreateByFunction = (data?: {
 describe("MonitorStatusTimelineService.create mutex ownership", () => {
   let superCreateSpy: jest.SpyInstance;
   let feedItemSpy: jest.SpyInstance;
+  let bridgeSpy: jest.SpyInstance;
   let createdItem: MonitorStatusTimeline;
 
   // a unique object standing in for the redis-semaphore mutex.
@@ -124,11 +129,26 @@ describe("MonitorStatusTimelineService.create mutex ownership", () => {
         "createStatusChangeFeedItem",
       )
       .mockResolvedValue(undefined);
+
+    /*
+     * The network-site bridge stamps devices and recomputes site rollups
+     * through NetworkSiteService (database + possibly workspace HTTP); stub
+     * it and assert WHEN it runs relative to the release and the feed item.
+     */
+    bridgeSpy = jest
+      .spyOn(
+        MonitorStatusTimelineService as unknown as {
+          bridgeCurrentStatusToNetworkSites: () => Promise<void>;
+        },
+        "bridgeCurrentStatusToNetworkSites",
+      )
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     superCreateSpy.mockRestore();
     feedItemSpy.mockRestore();
+    bridgeSpy.mockRestore();
   });
 
   it("acquires the per-monitor lock, creates, then releases", async () => {
@@ -165,6 +185,51 @@ describe("MonitorStatusTimelineService.create mutex ownership", () => {
     );
   });
 
+  it("runs the network-site bridge only after the mutex is released", async () => {
+    await MonitorStatusTimelineService.create(makeCreateBy());
+
+    expect(bridgeSpy).toHaveBeenCalledTimes(1);
+
+    const bridgeArgs: {
+      projectId: ObjectID | undefined;
+      monitorId: ObjectID;
+      monitorStatusId: ObjectID;
+    } = bridgeSpy.mock.calls[0]![0];
+
+    // It bridges the created row's own ids, not something re-read later.
+    expect(bridgeArgs.monitorId.toString()).toBe(MONITOR_ID.toString());
+    expect(bridgeArgs.monitorStatusId.toString()).toBe(STATUS_ID.toString());
+    expect(bridgeArgs.projectId?.toString()).toBe(PROJECT_ID.toString());
+
+    /*
+     * release -> bridge -> feed item. The bridge must not hold the lock (a
+     * slow rollup would refuse concurrent status writes for this monitor past
+     * acquireTimeout), and it must not queue behind the feed item's Slack /
+     * Teams round trip either.
+     */
+    expect(superCreateSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      releaseMock.mock.invocationCallOrder[0]!,
+    );
+    expect(releaseMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      bridgeSpy.mock.invocationCallOrder[0]!,
+    );
+    expect(bridgeSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      feedItemSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("does not bridge a row that is already closed (endsAt set)", async () => {
+    // A backfilled historical row: onBeforeCreate closed it at the next row's startsAt.
+    createdItem.endsAt = new Date("2026-08-01T01:00:00.000Z");
+
+    await MonitorStatusTimelineService.create(makeCreateBy());
+
+    // Not the current status, so no device moves...
+    expect(bridgeSpy).not.toHaveBeenCalled();
+    // ...but the status change is still recorded in the feed.
+    expect(feedItemSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("fails closed with the exact lock error message and never inserts unlocked", async () => {
     lockMock.mockRejectedValue(new Error("redis unavailable"));
 
@@ -196,8 +261,9 @@ describe("MonitorStatusTimelineService.create mutex ownership", () => {
     expect(releaseMock).toHaveBeenCalledTimes(1);
     expect(releaseMock).toHaveBeenCalledWith(fakeMutex);
 
-    // and the feed side effect must not run for a failed create.
+    // and neither post-release side effect must run for a failed create.
     expect(feedItemSpy).not.toHaveBeenCalled();
+    expect(bridgeSpy).not.toHaveBeenCalled();
   });
 
   it("does not fail a successful create when the release itself fails", async () => {
@@ -219,8 +285,12 @@ describe("MonitorStatusTimelineService.create mutex ownership", () => {
     expect(result).toBe(createdItem);
     expect(lockMock).not.toHaveBeenCalled();
     expect(releaseMock).not.toHaveBeenCalled();
-    // no hooks -> no predecessor bookkeeping -> no feed side effect either.
+    /*
+     * no hooks -> onCreateSuccess never runs -> the monitor's current status
+     * is not moved -> nothing to bridge, and no feed side effect either.
+     */
     expect(feedItemSpy).not.toHaveBeenCalled();
+    expect(bridgeSpy).not.toHaveBeenCalled();
   });
 
   it("skips locking when monitorId is missing and lets onBeforeCreate reject it", async () => {

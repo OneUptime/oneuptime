@@ -13,6 +13,9 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class AlertEpisodeLabelRuleEngineServiceClass {
   /**
@@ -38,15 +41,22 @@ class AlertEpisodeLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             alertSeverities: { _id: true },
             episodeLabels: { _id: true },
             episodeTitlePattern: true,
             episodeDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "AlertEpisodeLabelRule",
+        projectId: episode.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -214,6 +224,25 @@ class AlertEpisodeLabelRuleEngineServiceClass {
   }
 
   private doesEpisodeMatchRule(
+    episode: AlertEpisode,
+    rule: AlertEpisodeLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "alertSeverities",
+        "episodeLabels",
+        "episodeTitlePattern",
+        "episodeDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: AlertEpisodeLabelRule): boolean => {
+        return this.doesEpisodeMatchLegacyRule(episode, legacyRule);
+      },
+    });
+  }
+
+  private doesEpisodeMatchLegacyRule(
     episode: AlertEpisode,
     rule: AlertEpisodeLabelRule,
   ): boolean {

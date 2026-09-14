@@ -121,7 +121,7 @@ describe("Monitor type picker", () => {
 
     /*
      * The whole point of the change. Every type used to render at once - nine
-     * headings and 29 cards, about six thousand pixels of them.
+     * headings and 31 cards, about six thousand pixels of them.
      */
     test("the long tail starts folded away behind its headings", () => {
       renderPicker();
@@ -175,7 +175,9 @@ describe("Monitor type picker", () => {
   describe("finding a type by the words a user already knows", () => {
     test.each([
       ["k8s", MonitorType.Kubernetes],
-      ["postgres", MonitorType.SQLQuery],
+      // An engine name means health series; "query" means the escape hatch.
+      ["postgres", MonitorType.Database],
+      ["query", MonitorType.SQLQuery],
       ["heartbeat", MonitorType.IncomingRequest],
       ["tls", MonitorType.SSLCertificate],
       ["snmp", MonitorType.NetworkDevice],

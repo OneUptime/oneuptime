@@ -1,5 +1,6 @@
 import ProjectService from "../../../Server/Services/ProjectService";
 import BillingService from "../../../Server/Services/BillingService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import Project from "../../../Models/DatabaseModels/Project";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
@@ -366,6 +367,7 @@ describe("ProjectService.reactiveSubscription", () => {
 
   interface ReactivationSpies {
     findOneById: jest.SpyInstance;
+    getUniqueTeamMemberCountInProject: jest.SpyInstance;
     changePlan: jest.SpyInstance;
     getSubscriptionStatus: jest.SpyInstance;
     updateOneById: jest.SpyInstance;
@@ -383,6 +385,10 @@ describe("ProjectService.reactiveSubscription", () => {
     const findOneById: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(data?.project || fakeReactivationProject());
+
+    const getUniqueTeamMemberCountInProject: jest.SpyInstance = jest
+      .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
+      .mockResolvedValue(6);
 
     jest
       .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
@@ -415,7 +421,13 @@ describe("ProjectService.reactiveSubscription", () => {
       .spyOn(ProjectService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
-    return { findOneById, changePlan, getSubscriptionStatus, updateOneById };
+    return {
+      findOneById,
+      getUniqueTeamMemberCountInProject,
+      changePlan,
+      getSubscriptionStatus,
+      updateOneById,
+    };
   }
 
   function getUpdatedData(spies: ReactivationSpies): Record<string, unknown> {
@@ -444,6 +456,92 @@ describe("ProjectService.reactiveSubscription", () => {
           }),
         }),
       );
+    });
+  });
+
+  describe("recovering a pending seat synchronization", () => {
+    it.each([null, undefined])(
+      "uses persisted memberships when acknowledged seats are %s",
+      async (seats: null | undefined) => {
+        const spies: ReactivationSpies = setupReactivation({
+          project: fakeReactivationProject({
+            paymentProviderSubscriptionSeats: seats,
+          }),
+        });
+
+        await ProjectService.reactiveSubscription(PROJECT_ID);
+
+        expect(spies.getUniqueTeamMemberCountInProject).toHaveBeenCalledWith(
+          PROJECT_ID,
+        );
+        expect(spies.changePlan).toHaveBeenCalledWith(
+          expect.objectContaining({ quantity: 6 }),
+        );
+      },
+    );
+
+    it("retains an existing positive seat count", async () => {
+      const spies: ReactivationSpies = setupReactivation();
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.getUniqueTeamMemberCountInProject).not.toHaveBeenCalled();
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ quantity: 4 }),
+      );
+    });
+
+    it("does not contact the provider when reading memberships fails", async () => {
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          paymentProviderSubscriptionSeats: null,
+        }),
+      });
+      const failure: Error = new Error("Membership lookup unavailable");
+      spies.getUniqueTeamMemberCountInProject.mockRejectedValue(failure);
+
+      await expect(
+        ProjectService.reactiveSubscription(PROJECT_ID),
+      ).rejects.toThrow(failure);
+
+      expect(spies.changePlan).not.toHaveBeenCalled();
+      expect(spies.getSubscriptionStatus).not.toHaveBeenCalled();
+      expect(spies.updateOneById).not.toHaveBeenCalled();
+    });
+
+    it.each([null, undefined])(
+      "rejects a project without members when acknowledged seats are %s",
+      async (seats: null | undefined) => {
+        const spies: ReactivationSpies = setupReactivation({
+          project: fakeReactivationProject({
+            paymentProviderSubscriptionSeats: seats,
+          }),
+        });
+        spies.getUniqueTeamMemberCountInProject.mockResolvedValue(0);
+
+        await expect(
+          ProjectService.reactiveSubscription(PROJECT_ID),
+        ).rejects.toThrow("Payment Provider subscription seats not found");
+
+        expect(spies.changePlan).not.toHaveBeenCalled();
+        expect(spies.updateOneById).not.toHaveBeenCalled();
+      },
+    );
+
+    it("preserves the existing rejection of an acknowledged zero count", async () => {
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          paymentProviderSubscriptionSeats: 0,
+        }),
+      });
+
+      await expect(
+        ProjectService.reactiveSubscription(PROJECT_ID),
+      ).rejects.toThrow("Payment Provider subscription seats not found");
+
+      expect(spies.getUniqueTeamMemberCountInProject).not.toHaveBeenCalled();
+      expect(spies.changePlan).not.toHaveBeenCalled();
+      expect(spies.updateOneById).not.toHaveBeenCalled();
     });
   });
 

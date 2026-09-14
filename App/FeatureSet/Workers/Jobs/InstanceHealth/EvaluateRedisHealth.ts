@@ -32,7 +32,7 @@ import {
 const JOB_NAME: string = "InstanceHealth:EvaluateRedisHealth";
 const LEASE_KEY: string = "oneuptime:instance-health:redis";
 const HEALTH_ROUTE: string = "/health/redis";
-const HEALTH_PAGE_BUTTON_TEXT: string = "View Redis Health";
+const HEALTH_PAGE_BUTTON_TEXT: string = "View Valkey Health";
 // Above this the memory ceiling is close enough that eviction is imminent.
 const CRITICAL_MEMORY_PERCENT: number = 95;
 const CRITICAL_CONNECTION_PERCENT: number = 95;
@@ -118,9 +118,9 @@ export function buildRedisMemoryCheck(data: {
 
   if (utilization === null) {
     return notApplicable({
-      subject: withHost("Redis memory notification no longer applies"),
+      subject: withHost("Valkey memory notification no longer applies"),
       resolvedMessage:
-        "The Redis memory notification was resolved because Redis has no maxmemory limit configured.",
+        "The Valkey memory notification was resolved because Valkey has no maxmemory limit configured.",
       snapshot: data.snapshot,
     });
   }
@@ -133,7 +133,7 @@ export function buildRedisMemoryCheck(data: {
   return {
     isBreaching,
     isCritical,
-    subject: withHost(`ACTION REQUIRED: Redis memory is ${used}% full`),
+    subject: withHost(`ACTION REQUIRED: Valkey memory is ${used}% full`),
     badgeText: isCritical ? "Memory Critical" : "Memory Warning",
     details: [
       { title: "Memory Used: ", text: `${used}% of maxmemory` },
@@ -154,17 +154,17 @@ export function buildRedisMemoryCheck(data: {
       },
     ],
     remediation: willEvict
-      ? "Once Redis reaches maxmemory it will start evicting keys under the " +
+      ? "Once Valkey reaches maxmemory it will start evicting keys under the " +
         `${data.snapshot.maxMemoryPolicy} policy, which silently drops cached data and queued job state. ` +
-        "Raise maxmemory, give the Redis host more memory, or reduce what OneUptime caches."
-      : "The maxmemory policy is noeviction, so once Redis reaches its limit it will reject " +
+        "Raise maxmemory, give the Valkey host more memory, or reduce what OneUptime caches."
+      : "The maxmemory policy is noeviction, so once Valkey reaches its limit it will reject " +
         "writes outright and background jobs will start failing. Raise maxmemory or give the " +
-        "Redis host more memory.",
+        "Valkey host more memory.",
     breachMessage:
-      `Redis memory reached ${used}%, meeting the ` +
+      `Valkey memory reached ${used}%, meeting the ` +
       `${data.thresholdPercent}% notification threshold.`,
     resolvedMessage:
-      `Redis memory returned to ${used}%, below the ` +
+      `Valkey memory returned to ${used}%, below the ` +
       `${data.thresholdPercent}% notification threshold.`,
     observedPercent: utilization,
     thresholdPercent: data.thresholdPercent,
@@ -201,8 +201,10 @@ export function buildRedisConnectionCheck(data: {
   const used: string =
     utilization === null ? "unknown" : utilization.toFixed(2);
   const subject: string = hasRejections
-    ? withHost("ACTION REQUIRED: Redis is rejecting client connections")
-    : withHost(`ACTION REQUIRED: Redis connections are ${used}% of maxclients`);
+    ? withHost("ACTION REQUIRED: Valkey is rejecting client connections")
+    : withHost(
+        `ACTION REQUIRED: Valkey connections are ${used}% of maxclients`,
+      );
 
   return {
     isBreaching,
@@ -238,18 +240,18 @@ export function buildRedisConnectionCheck(data: {
       },
     ],
     remediation:
-      "Redis refuses new connections once maxclients is reached, which stalls every OneUptime " +
+      "Valkey refuses new connections once maxclients is reached, which stalls every OneUptime " +
       "process that needs the cache or a job queue. Raise maxclients, or find the client that is " +
       "leaking connections and stop it.",
     breachMessage: hasRejections
-      ? `Redis rejected ${rejectedDelta} client connection(s) in ` +
+      ? `Valkey rejected ${rejectedDelta} client connection(s) in ` +
         `${describeCounterWindow(data.snapshot)}, with connections at ${used}% of maxclients.`
-      : `Redis connections reached ${used}% of maxclients, meeting the ` +
+      : `Valkey connections reached ${used}% of maxclients, meeting the ` +
         `${data.thresholdPercent}% notification threshold.`,
     resolvedMessage:
       utilization === null
-        ? "Redis is no longer rejecting client connections."
-        : `Redis connections returned to ${used}% of maxclients with no rejected connections, ` +
+        ? "Valkey is no longer rejecting client connections."
+        : `Valkey connections returned to ${used}% of maxclients with no rejected connections, ` +
           `below the ${data.thresholdPercent}% notification threshold.`,
     observedPercent: utilization ?? undefined,
     thresholdPercent: data.thresholdPercent,
@@ -285,7 +287,7 @@ export function buildRedisEvictionCheck(data: {
   return {
     isBreaching,
     isCritical: true,
-    subject: withHost("ACTION REQUIRED: Redis is evicting keys"),
+    subject: withHost("ACTION REQUIRED: Valkey is evicting keys"),
     badgeText: "Data Loss",
     details: [
       {
@@ -305,13 +307,13 @@ export function buildRedisEvictionCheck(data: {
       },
     ],
     remediation:
-      "Redis reached its memory limit and discarded keys to make room. Cached data and queued " +
-      "job state are lost without warning when this happens. Raise maxmemory, give the Redis " +
+      "Valkey reached its memory limit and discarded keys to make room. Cached data and queued " +
+      "job state are lost without warning when this happens. Raise maxmemory, give the Valkey " +
       "host more memory, or reduce what OneUptime caches.",
     breachMessage:
-      `Redis evicted ${evictedDelta} key(s) in ${describeCounterWindow(data.snapshot)} ` +
+      `Valkey evicted ${evictedDelta} key(s) in ${describeCounterWindow(data.snapshot)} ` +
       `because it reached its memory limit under the ${data.snapshot.maxMemoryPolicy} policy.`,
-    resolvedMessage: "Redis has stopped evicting keys.",
+    resolvedMessage: "Valkey has stopped evicting keys.",
     metadata: {
       snapshot: serializeForMetadata(data.snapshot),
     },
@@ -362,7 +364,7 @@ export function buildRedisPersistenceCheck(data: {
   return {
     isBreaching,
     isCritical: true,
-    subject: withHost("ACTION REQUIRED: Redis cannot persist to disk"),
+    subject: withHost("ACTION REQUIRED: Valkey cannot persist to disk"),
     badgeText: "Persistence Failing",
     details: [
       { title: "Last RDB Snapshot: ", text: data.snapshot.rdbLastBgsaveStatus },
@@ -381,11 +383,11 @@ export function buildRedisPersistenceCheck(data: {
       },
     ],
     remediation:
-      "Redis is serving from memory but cannot write to disk, so everything since the last " +
-      "successful write is lost if it restarts. The usual causes are a full disk on the Redis " +
+      "Valkey is serving from memory but cannot write to disk, so everything since the last " +
+      "successful write is lost if it restarts. The usual causes are a full disk on the Valkey " +
       "host or a permissions problem on its data directory.",
-    breachMessage: `Redis persistence is failing: ${failures.join(", ")}.`,
-    resolvedMessage: "Redis persistence is healthy again.",
+    breachMessage: `Valkey persistence is failing: ${failures.join(", ")}.`,
+    resolvedMessage: "Valkey persistence is healthy again.",
     metadata: {
       snapshot: serializeForMetadata(data.snapshot),
     },

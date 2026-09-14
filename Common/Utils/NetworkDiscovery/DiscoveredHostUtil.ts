@@ -1,4 +1,5 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
 /*
  * Normalisation for a scan's stored results, shared by every reader of the
@@ -40,7 +41,12 @@ function isDiscoveredHostObject(
  *     import, so whether a device already in the inventory got created a
  *     second time depended on which order the probe happened to list them in.
  *
- * All three are fixed here rather than at each call site, so the row the
+ * A fourth was added with reverse DNS (issue #3529) and is not a probe bug at
+ * all — `dnsHostname` is a value the SCANNED NETWORK chooses, so it is
+ * untrusted by construction rather than by accident, and it is normalised
+ * here for the same reason: one reading of the payload for every reader.
+ *
+ * All of them are fixed here rather than at each call site, so the row the
  * operator sees, the badge above it, the list Import walks, and the hosts an
  * auto-import rule evaluates can never be working from different readings of
  * the same payload.
@@ -60,13 +66,59 @@ export function normalizeDiscoveredHosts(
      * truthy, so it used to pass selectability and import as a Network Device
      * whose hostname was a single space.
      */
-    cleaned.push({
+    const normalized: DiscoveredNetworkDevice = {
       ...host,
       ipAddress:
         host.ipAddress === undefined || host.ipAddress === null
           ? ""
           : String(host.ipAddress).trim(),
-    });
+    };
+
+    /*
+     * `sysName` is read straight out of the jsonb, its declared type is not
+     * enforced by anything, and every reader calls a string method on it. A
+     * numeric sysName reached getDiscoveredHostDisplayName and threw inside
+     * the Review dialog's render, taking out the whole modal rather than one
+     * row — the same failure the null-row case above is about.
+     *
+     * A non-string is blanked rather than STRINGIFIED, which is where this
+     * differs from the address above. `String(null)` is "null" and
+     * `String({})` is "[object Object]", and both are truthy — so stringifying
+     * would not merely fail to name the host, it would win the naming contest
+     * outright and create a device called "null", beating a perfectly good PTR
+     * record on the very same row. An empty string is falsy, so naming falls
+     * through to `dnsHostname` and then to the address, which is exactly what
+     * a host with no readable system name deserves.
+     *
+     * Only rewritten when it is NOT already a string, so a host that never had
+     * the key does not gain an empty one — `sysName` is optional and
+     * `"sysName" in host` is a question other code is entitled to ask.
+     */
+    if (host.sysName !== undefined && typeof host.sysName !== "string") {
+      normalized.sysName = "";
+    }
+
+    /*
+     * The PTR name gets the same treatment, for a sharper version of the same
+     * reason (OneUptime issue #3529): unlike every other field here, its
+     * value was chosen by whoever runs DNS for the scanned subnet — routinely
+     * not this project — and it is stored verbatim in jsonb. So the rules
+     * about what a name may contain are applied on the way OUT of the column
+     * as well as on the way in, and anything that fails them is DELETED
+     * rather than blanked, so a reader that checks `if (host.dnsHostname)`
+     * and a reader that checks `"dnsHostname" in host` cannot disagree.
+     */
+    const dnsHostname: string | undefined = normalizeReverseDnsName(
+      host.dnsHostname,
+    );
+
+    if (dnsHostname) {
+      normalized.dnsHostname = dnsHostname;
+    } else {
+      delete normalized.dnsHostname;
+    }
+
+    cleaned.push(normalized);
   }
 
   // An address the scan reports as registered is registered on every row.

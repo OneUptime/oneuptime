@@ -25,6 +25,8 @@ export interface ComponentProps {
   /** Small gray stat lines under the name (already formatted). */
   statLines?: Array<ReactElement> | undefined;
   dimmed?: boolean | undefined;
+  /** Optional traffic explanation for the project-wide dependency map. */
+  statusLabel?: string | undefined;
 }
 
 const ServiceNodeCard: FunctionComponent<ComponentProps> = (
@@ -33,13 +35,15 @@ const ServiceNodeCard: FunctionComponent<ComponentProps> = (
   return (
     <div
       style={{
-        border: `2px solid ${props.borderColor || HEALTH_COLORS[props.health]}`,
-        borderRadius: 8,
-        padding: "8px 12px",
+        border: "1px solid var(--ou-border-primary, #e2e8f0)",
+        borderTop: `3px solid ${props.borderColor || HEALTH_COLORS[props.health]}`,
+        borderRadius: 10,
+        padding: "12px 14px",
         background: "var(--ou-surface-primary, #ffffff)",
         color: "var(--ou-text-primary, #111827)",
-        width: 200,
-        opacity: props.dimmed ? 0.25 : 1,
+        width: 210,
+        opacity: props.dimmed ? 0.6 : 1,
+        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.06)",
         cursor: "pointer",
       }}
     >
@@ -77,9 +81,10 @@ const ServiceNodeCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <span
+          title={props.label}
           style={{
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 650,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -88,6 +93,29 @@ const ServiceNodeCard: FunctionComponent<ComponentProps> = (
           {props.label}
         </span>
       </div>
+      {props.statusLabel && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            marginTop: 8,
+            fontSize: 10,
+            color: "#64748b",
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: HEALTH_COLORS[props.health],
+            }}
+            aria-hidden={true}
+          />
+          {props.statusLabel}
+        </div>
+      )}
       {(props.statLines || []).map(
         (line: ReactElement, index: number): ReactElement => {
           return (

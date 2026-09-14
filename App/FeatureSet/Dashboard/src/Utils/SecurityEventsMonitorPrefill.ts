@@ -6,6 +6,7 @@ import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_RULE_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import { THREAT_FEED_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -80,6 +81,52 @@ export function buildDetectionRuleMonitorPrefill(data: {
   return {
     name: `${data.ruleName} — detection findings`,
     description: `Watches Detection Finding events written by the "${data.ruleName}" detection rule. Fires on the rate of detections, not just their occurrence.`,
+    monitorType: MonitorType.SecurityEvents,
+    monitorSteps: monitorSteps.toJSON(),
+  };
+}
+
+/*
+ * The threat-intel twin: initial values for the monitor create page when
+ * reached from a threat intel feed's "Create Monitor" action — a Security
+ * Events monitor scoped to the Threat Intel finding rows the matcher
+ * writes for that feed. Same contract-and-pure-function rationale as the
+ * detection-rule prefill above, and the same one-hour window (findings
+ * arrive on the matcher's cadence, in bursts).
+ */
+export function buildThreatIntelFeedMonitorPrefill(data: {
+  feedId: string;
+  feedName: string;
+  operationalStatusId: ObjectID | null;
+}): JSONObject {
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+
+  const monitorStep: MonitorStep | undefined =
+    monitorSteps.data?.monitorStepsInstanceArray[0];
+
+  if (monitorStep?.data) {
+    monitorStep.data.securityEventsMonitor = {
+      ...MonitorStepSecurityEventsMonitorUtil.getDefault(),
+      classNames: [DETECTION_FINDING_CLASS_NAME],
+      /*
+       * Filter on the feed's ID, never its NAME — the detection-rule
+       * prefill's rename rationale applies verbatim: findings carry the
+       * feed's current name while a stored filter is frozen at creation.
+       */
+      attributes: {
+        [THREAT_FEED_ID_ATTRIBUTE]: data.feedId,
+      },
+      lastXSecondsOfEvents: DETECTION_FINDING_MONITOR_WINDOW_SECONDS,
+    };
+  }
+
+  if (data.operationalStatusId) {
+    monitorSteps.setDefaultMonitorStatusId(data.operationalStatusId);
+  }
+
+  return {
+    name: `${data.feedName} — threat intel matches`,
+    description: `Watches Threat Intel finding events written for the "${data.feedName}" feed. Fires on the rate of indicator matches, not just their occurrence.`,
     monitorType: MonitorType.SecurityEvents,
     monitorSteps: monitorSteps.toJSON(),
   };

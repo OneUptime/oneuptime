@@ -22,6 +22,17 @@ import {
 import { getErrorPatternSearchText } from "Common/Utils/Telemetry/LogErrorPattern";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
+import {
+  TelemetryFilterTuple,
+  buildTelemetryScopeFilterTuples,
+  buildTelemetryTimeRangeParams,
+  parseTelemetryFilterTuples,
+  readTelemetryTabScopeParams,
+  readTelemetryTimeRangeParams,
+  serializeTelemetryFilterTuplesAsLists,
+  splitTelemetryScopeFilters,
+  withRouteQueryParams,
+} from "./TelemetryTabScope";
 
 /*
  * The logic behind the Logs Insights page, kept free of React and of the
@@ -787,7 +798,22 @@ export function computeErrorPatternTrend(
   windowStart?: Date | undefined,
   windowEnd?: Date | undefined,
 ): ErrorPatternTrend {
-  if (!Array.isArray(timeline) || timeline.length < 2) {
+  /*
+   * One occupied bucket is a real answer, not a missing one.
+   *
+   * The timeline query is a plain GROUP BY with no zero-fill, so an error
+   * that fired inside a single bucket comes back as exactly one row. Reading
+   * that as "not enough data" meant the SHARPEST possible shape produced
+   * strictly weaker output than a blunter one: 500 occurrences in one bucket
+   * reported "Not enough data" and "steady, spread out", while the same 500
+   * split 480/20 across two buckets correctly reported a 100% rise and a
+   * 96% burst.
+   *
+   * A single row can still be placed against the window the caller supplies,
+   * which is what canSplitByTime below does. Only when there is no usable
+   * window AND fewer than two rows is there genuinely nothing to compare.
+   */
+  if (!Array.isArray(timeline) || timeline.length < 1) {
     return {
       direction: "unknown",
       changePercent: 0,
@@ -835,6 +861,21 @@ export function computeErrorPatternTrend(
     Number.isFinite(start) &&
     Number.isFinite(end) &&
     end > start;
+
+  /*
+   * The index split needs at least two rows to mean anything — with one row
+   * it puts everything in the "newer" half regardless of when it happened,
+   * which would invent a rising trend out of no information. With a window
+   * to measure against, canSplitByTime handles a single row correctly.
+   */
+  if (!canSplitByTime && timeline.length < 2) {
+    return {
+      direction: "unknown",
+      changePercent: 0,
+      recentCount: 0,
+      previousCount: 0,
+    };
+  }
 
   const midTime: number = start + (end - start) / 2;
   const midIndex: number = Math.floor(timeline.length / 2);
@@ -1010,46 +1051,6 @@ export function describeOccurrenceCount(
 
 // --- Deep links ---
 
-/*
- * Route-safe single encoding for one query-param value. encodeURIComponent
- * leaves "~" bare and Route's setter rejects it, so escape that one by
- * hand; every target explorer reads its params back through
- * URLSearchParams, which is a single decode.
- */
-function encodeRouteQueryParamValue(value: string): string {
-  return encodeURIComponent(value).replace(/~/g, "%7E");
-}
-
-function withQueryParams(
-  route: Route,
-  params: Dictionary<string>,
-): Route | null {
-  const keys: Array<string> = Object.keys(params);
-
-  if (keys.length === 0) {
-    return route;
-  }
-
-  const encoded: Dictionary<string> = {};
-
-  for (const key of keys) {
-    encoded[key] = encodeRouteQueryParamValue(params[key] as string);
-  }
-
-  try {
-    const result: Route = new Route(route.toString());
-    result.addQueryParams(encoded);
-
-    return result;
-  } catch {
-    /*
-     * These builders run inside row renderers: a value Route rejects must
-     * mean "no link", never an exception out of render.
-     */
-    return null;
-  }
-}
-
 /**
  * A Logs viewer link showing the raw occurrences behind one error pattern.
  *
@@ -1089,7 +1090,7 @@ export function buildErrorPatternLogsRoute(
   const serialized: CrossSignalQueryParams =
     toLogsExplorerQueryParams(crossSignalScope);
 
-  return withQueryParams(
+  return withRouteQueryParams(
     RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
     serialized.params,
   );
@@ -1113,4 +1114,121 @@ export function buildErrorPatternTraceRoute(traceId: string): Route | null {
   } catch {
     return null;
   }
+}
+
+// --- Tab hand-off ---
+
+/**
+ * The window both Logs tabs start from when the URL says nothing.
+ *
+ * Shared deliberately. The Viewer and the Insights tab now pass their scope
+ * to each other through the URL, and two different "no range means this"
+ * defaults would silently move the window on every tab switch made at rest.
+ */
+export const LOGS_TAB_DEFAULT_TIME_RANGE: TimeRange = TimeRange.PAST_ONE_HOUR;
+
+/**
+ * The Logs Insights page's view, as carried in the URL.
+ *
+ * `timeRange` is null when the link named no window, so the page can tell
+ * "the link asked for the past hour" apart from "the link asked for
+ * nothing" and keep its own default in the second case.
+ */
+export interface LogsInsightsUrlScope {
+  timeRange: RangeStartAndEndDateTime | null;
+  /** Encoded "<facetKey>:<id>" values — what the scope picker holds. */
+  scopeValues: Array<string>;
+  /**
+   * Chips the Viewer had applied that this page has no dimension for — a
+   * body-contains search, a trace id, a severity selection.
+   *
+   * They are neither applied nor discarded. Discarding them would make the
+   * round trip lossy (switch to Insights and back, and the search you typed
+   * is gone); applying them is impossible. So they ride along, the page says
+   * out loud that it is not applying them, and the link back to the Viewer
+   * restores them intact.
+   */
+  unappliedFilters: Array<TelemetryFilterTuple>;
+  /** The saved view the Viewer had selected, for naming and for the trip back. */
+  savedViewId: string | null;
+}
+
+/** Read the Insights page's scope out of a query string. */
+export function readLogsInsightsUrlScope(
+  search: string | null | undefined,
+): LogsInsightsUrlScope {
+  const params: Dictionary<string> = readTelemetryTabScopeParams(search);
+
+  const tuples: Array<TelemetryFilterTuple> = parseTelemetryFilterTuples(
+    params["filters"],
+  );
+
+  /*
+   * Logs support the resource-entity facets: LogService rewrites
+   * `resourceFilters` into entity-key predicates, so a host or cluster
+   * selection is a scope this page can genuinely apply.
+   */
+  const split: {
+    serviceIds: Array<string>;
+    resourceFilters: Dictionary<Array<string>>;
+    unsupported: Array<TelemetryFilterTuple>;
+  } = splitTelemetryScopeFilters(tuples, {
+    supportsResourceEntityFacets: true,
+  });
+
+  const scopeValues: Array<string> = [];
+
+  for (const serviceId of split.serviceIds) {
+    scopeValues.push(encodeScopeSelection("primaryEntityId", serviceId));
+  }
+
+  for (const facetKey of Object.keys(split.resourceFilters)) {
+    for (const value of split.resourceFilters[facetKey] || []) {
+      scopeValues.push(encodeScopeSelection(facetKey, value));
+    }
+  }
+
+  return {
+    timeRange: readTelemetryTimeRangeParams(params),
+    scopeValues,
+    unappliedFilters: split.unsupported,
+    savedViewId: params["savedView"] || null,
+  };
+}
+
+export interface LogsInsightsUrlScopeInput {
+  timeRange: RangeStartAndEndDateTime;
+  scopeValues: Array<string>;
+  unappliedFilters: Array<TelemetryFilterTuple>;
+  savedViewId: string | null;
+}
+
+/**
+ * Mirror the Insights page's scope into URL params, in the Logs explorer's
+ * own grammar.
+ *
+ * Writing the Viewer's grammar rather than a private one is what makes the
+ * hand-off symmetric: the Insights URL IS a Logs Viewer URL, so the tab link
+ * back needs no translation and a pasted link works either way round.
+ */
+export function buildLogsInsightsUrlParams(
+  input: LogsInsightsUrlScopeInput,
+): Dictionary<string | null> {
+  const selections: ParsedScopeSelections = parseScopeSelections(
+    input.scopeValues,
+  );
+
+  const tuples: Array<TelemetryFilterTuple> = buildTelemetryScopeFilterTuples({
+    serviceIds: selections.serviceIds || [],
+    resourceFilters: selections.resourceFilters || {},
+    unsupported: input.unappliedFilters,
+  });
+
+  const params: Dictionary<string | null> = {
+    ...buildTelemetryTimeRangeParams(input.timeRange),
+    filters: serializeTelemetryFilterTuplesAsLists(tuples),
+    savedView: input.savedViewId || null,
+  };
+
+  return params;
 }

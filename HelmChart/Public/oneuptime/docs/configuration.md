@@ -90,6 +90,46 @@ externalSecrets:
       passwordKey: register-probe-key
 ```
 
+### Probe and Runner identity keys
+
+`PROBE_KEY` and `ONEUPTIME_RUNNER_KEY` are not shared application secrets — each
+one is the *identity* of a single probe or of the Runner. The server registers a
+brand-new probe (or Runner) the first time it sees a key it does not recognise.
+They are configured per component rather than in `externalSecrets`, and follow
+the same three-way precedence:
+
+| Parameter                                    | Description                                                        | Default |
+|----------------------------------------------|--------------------------------------------------------------------|---------|
+| `probes.<key>.existingSecret.name`           | Name of an existing Secret holding this probe's `PROBE_KEY`.        | `nil`   |
+| `probes.<key>.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
+| `runner.existingSecret.name`                 | Name of an existing Secret holding `ONEUPTIME_RUNNER_KEY`.          | `nil`   |
+| `runner.existingSecret.passwordKey`          | Key inside that Secret.                                             | `nil`   |
+
+An inline `probes.<key>.key` / `runner.key` still wins; with neither set, the
+chart generates the value into `<release>-secrets` as before. As with
+`externalSecrets`, a key you serve yourself is not written into the chart-managed
+Secret at all.
+
+**Why this matters for GitOps.** `helm template` — what Argo CD and Flux render
+with — always takes the chart's install branch, so a chart-generated key is a new
+random value on every reconcile. For an identity key that means a new probe is
+registered each time and the previous one is orphaned. Because a monitor's probe
+list is fixed when the monitor is created and never back-filled, the monitor keeps
+pointing at a probe that no longer runs and **monitoring stops with no error
+anywhere**. Point these at Secrets you own to pin the identities.
+
+```yaml
+probes:
+  one:
+    existingSecret:
+      name: oneuptime-identities
+      passwordKey: probe-one-key
+runner:
+  existingSecret:
+    name: oneuptime-identities
+    passwordKey: runner-key
+```
+
 ## Networking & ingress
 
 | Parameter                    | Description                                                          | Default        |
@@ -135,6 +175,8 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.name`                               | Probe name.                                                            | `<key>` |
 | `probes.<key>.description`                         | Probe description.                                                     | `nil`   |
 | `probes.<key>.key`                                | Probe key. Set to a long random string to secure your probes.         | `nil`   |
+| `probes.<key>.existingSecret.name`                | Read this probe's `PROBE_KEY` from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil`   |
+| `probes.<key>.existingSecret.passwordKey`         | Key inside that Secret.                                               | `nil`   |
 | `probes.<key>.monitoringWorkers`                  | Number of parallel processes used to monitor resources.               | `3`     |
 | `probes.<key>.monitorFetchLimit`                  | Number of resources monitored in parallel.                            | `10`    |
 | `probes.<key>.automountServiceAccountToken`       | Mount a Kubernetes service-account token into Probe pods. Disabled by default because Probes do not require Kubernetes API credentials. | `false` |
@@ -205,6 +247,111 @@ Bitnami charts — you will need to set the security context for those as well.
 | `tolerations`              | Tolerations.               | `[]`    |
 | `affinity`                 | Affinity.                  | `{}`    |
 
+## Extra environment variables and volumes
+
+Every workload the chart runs takes `extraEnv`, `extraVolumes` and
+`extraVolumeMounts`. They are passed through to the pod spec verbatim, so
+anything Kubernetes accepts in an `EnvVar`, `Volume` or `VolumeMount` works.
+They are empty by default and render nothing at all, so an install that does not
+set them is unaffected.
+
+Set them at the top level to apply to every workload, or under a single service
+to apply to just that one:
+
+| Parameter                        | Description                                                                      | Default |
+|----------------------------------|----------------------------------------------------------------------------------|---------|
+| `extraEnv`                       | Extra environment variables added to every workload.                             | `[]`    |
+| `extraVolumes`                   | Extra pod volumes added to every workload.                                       | `[]`    |
+| `extraVolumeMounts`              | Extra container volume mounts added to every workload.                           | `[]`    |
+| `<service>.extraEnv`             | Extra environment variables for one service. Replaces the chart-wide list.        | `[]`    |
+| `<service>.extraVolumes`         | Extra pod volumes for one service. Replaces the chart-wide list.                  | `[]`    |
+| `<service>.extraVolumeMounts`    | Extra container volume mounts for one service. Replaces the chart-wide list.      | `[]`    |
+
+`<service>` is any of `app`, `worker`, `probes.<name>`, `runner`, `home`,
+`telemetryWriter`, `nginx`, `pgbouncer`, `testServer`, `migrate`, `vllm` or
+`cronJobs.e2e`.
+
+A service's list **replaces** the chart-wide one — the two are not merged. That
+is the precedence the chart already uses for `hostAliases`, `nodeSelector` and
+the security contexts, and for volumes it is the only safe one: concatenating
+would produce two volumes with the same `name` as soon as you narrowed a
+chart-wide volume for one service, and the API server rejects that pod outright.
+Setting a service's list to `[]` inherits the chart-wide list rather than
+clearing it, so a service cannot opt out of a chart-wide entry — scope the entry
+per-service instead of chart-wide when only some services should get it.
+
+`extraEnv` entries are appended after the variables the chart sets itself, so
+Kubernetes — which applies the last entry for a repeated name — uses yours. Two
+names are worth not repeating: `DISABLE_QUEUE_WORKERS` is what makes a pod a
+`worker` rather than an API pod (and the reverse on `telemetryWriter`), so
+setting it chart-wide silently changes what those tiers do.
+
+The cache variables are a trap of their own: since 13.0.0 the app reads
+`VALKEY_*` and only falls back to `REDIS_*`, so an `extraEnv` entry named
+`REDIS_HOST` still wins the `REDIS_HOST` slot and is then **ignored**, because
+the chart also sets `VALKEY_HOST` to its own cache. Override `VALKEY_HOST`,
+`VALKEY_PORT`, `VALKEY_PASSWORD`, `VALKEY_DB`, `VALKEY_USERNAME`,
+`VALKEY_IP_FAMILY` and `VALKEY_TLS_*` instead — or, better, use the
+`externalValkey:` block, which is the supported way to point at a cache this
+chart does not run. `helm install` warns about chart-wide `REDIS_*` entries it
+finds; it cannot see per-service ones.
+
+
+The bundled databases (`postgresql`, `valkey`, `clickhouse` and the ClickHouse
+Keeper) and the `cronJobs.cleanup` jobs deliberately do not take these. The
+databases are servers rather than clients, already expose their TLS and tuning
+settings as first-class values, and have operator-managed twins whose pods come
+from a CR rather than from these templates — so the setting would apply to only
+half of an install. The cleanup jobs run `bitnami/kubectl` against the
+in-cluster API server, which is trusted through the ServiceAccount CA.
+
+### Example: trust an internal CA
+
+The case these exist for. OneUptime's services are Node.js, so pointing
+`NODE_EXTRA_CA_CERTS` at a mounted bundle is enough for every outbound TLS call
+— webhooks, SMTP, custom monitors, an internal container registry, an
+OIDC provider with a private issuer.
+
+Put the bundle in a ConfigMap first:
+
+```console
+kubectl create configmap internal-ca-bundle -n oneuptime --from-file=ca.crt=/path/to/internal-ca.crt
+```
+
+Then, in your `values.yaml`:
+
+```yaml
+extraVolumes:
+  - name: internal-ca
+    configMap:
+      name: internal-ca-bundle
+extraVolumeMounts:
+  - name: internal-ca
+    mountPath: /etc/ssl/internal
+    readOnly: true
+extraEnv:
+  - name: NODE_EXTRA_CA_CERTS
+    value: /etc/ssl/internal/ca.crt
+```
+
+That reaches app, worker, every probe, runner, home, telemetry-writer, nginx,
+pgbouncer, test-server, the migrate Job and the e2e cron in one setting. The
+migrate Job matters here: it talks to Postgres and ClickHouse before any app pod
+does, so a CA it cannot see fails the install rather than degrading it.
+
+`NODE_EXTRA_CA_CERTS` covers Node.js, which is every outbound call OneUptime's
+own code makes. It does **not** reach the Chromium that probes drive for
+synthetic browser monitors, or the one the e2e cron uses: Chromium reads the OS
+trust store instead. Synthetic monitors against an internally-signed site need
+the certificate baked into the image's `/usr/local/share/ca-certificates` and
+`update-ca-certificates` run at build time.
+
+Confirm what an upgrade would actually change before you run it:
+
+```console
+helm template my-oneuptime oneuptime/oneuptime -f values.yaml | grep -c NODE_EXTRA_CA_CERTS
+```
+
 ## Local AI (vLLM)
 
 Run a local, OpenAI-compatible LLM server in-cluster for OneUptime's AI
@@ -237,7 +384,7 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.enabled`                            | Deploy the tier and route app/worker telemetry inserts through it.                                   | `false` |
 | `telemetryWriter.replicaCount`                       | Fixed pod count — a ClickHouse capacity decision, not a demand one. Never autoscaled on queue depth. | `2` |
 | `telemetryWriter.autoscaling.enabled`                | Opt-in CPU/memory HPA (explicit enable only — the global `autoscaling` block never applies here). Requires `resources.requests`. | `false` |
-| `telemetryWriter.keda.enabled`                       | Opt-in KEDA scaling on the tier-wide shed rate (429s over ~2 min, Redis-backed); optional CPU/memory triggers compose. | `false` |
+| `telemetryWriter.keda.enabled`                       | Opt-in KEDA scaling on the tier-wide shed rate (429s over ~2 min, Valkey-backed); optional CPU/memory triggers compose. | `false` |
 | `telemetryWriter.keda.shedCountThreshold`            | Sheds in the last ~2 minutes per replica before scaling up.                                          | `100` |
 | `telemetryWriter.telemetryFanInMaxConcurrentInserts` | Concurrent ClickHouse INSERTs per pod. Cluster-wide = replicas × this.                               | `4` |
 | `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
@@ -288,6 +435,37 @@ it directly is the peer, and no header setting compensates for that.
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
 
+## On-call calendar feeds
+
+People can subscribe Google Calendar, Outlook or Apple Calendar to their
+on-call shifts through a secret `.ics` URL of the form
+`https://<host>/api/on-call-calendar/user/<token>/shifts.ics` (schedule-wide
+and project-wide feeds live under `/schedule/` and `/project/`). The token in
+the path is the whole credential, so treat those URLs like passwords: the
+chart's own nginx does not write them to its access log, but any proxy, WAF or
+CDN you put in front will log the URI unless you tell it not to.
+
+`onCallCalendarFeed.disabled: true` switches every feed URL off. Clients get a
+`503` with `Retry-After: 3600`, keep the copy they already have and try again in
+an hour; nothing is deleted, and flipping it back resumes the feeds.
+
+The rate limits bound those public routes. `perTokenPerWindow` is the budget one
+subscribed calendar gets (keyed on token + client address); `perIpPerWindow` is
+the ceiling that survives a caller rotating tokens. Calendar clients poll about
+hourly -- Apple Calendar every five minutes at most -- so the defaults leave
+plenty of room for a whole team's clients behind one office address. The client
+address is the one `trustedProxyHops` selects, so a deployment behind an extra
+load balancer needs that set correctly for the per-address limit to mean
+anything. The limiter fails open when the cache is unreachable: it is load control,
+not the only thing guarding the token.
+
+| Parameter                                    | Description                                                                             | Default |
+|----------------------------------------------|-----------------------------------------------------------------------------------------|---------|
+| `onCallCalendarFeed.disabled`                | Set to `true` to answer every feed URL with `503` + `Retry-After: 3600`.                | `false` |
+| `onCallCalendarFeed.rateLimit.windowSeconds` | Length of the fixed rate-limit window.                                                  | `60`    |
+| `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
+| `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
+
 ## Other
 
 | Parameter                          | Description                              | Default |
@@ -300,6 +478,6 @@ it directly is the peer, and no header setting compensates for that.
 
 ## Related pages
 
-- [Databases](databases.md) — PostgreSQL, Redis, and ClickHouse (built-in, external, and HA operators).
+- [Databases](databases.md) — PostgreSQL, Valkey, and ClickHouse (built-in, external, and HA operators).
 - [Custom domains](custom-domains.md) — status page domains and Let's Encrypt.
 - [Production checklist](production-checklist.md) — hardening for real deployments.

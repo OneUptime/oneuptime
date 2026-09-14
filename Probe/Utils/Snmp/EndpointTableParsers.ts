@@ -160,11 +160,13 @@ export function toSixOctetMac(value: unknown): string | undefined {
 
 /*
  * Decodes a table-cell value into an integer (ifIndex, bridge port, status
- * code). net-snmp usually hands these over as plain numbers, but Integer32
- * cells occasionally arrive as short buffers and some agents stringify
- * them. Undefined means "not a number" — never throws.
+ * code, cdpCacheAddressType). net-snmp usually hands these over as plain
+ * numbers, but Integer32 cells occasionally arrive as short buffers and
+ * some agents stringify them. Undefined means "not a number" — never
+ * throws. Exported for the neighbor-table parsers, which face the same
+ * agents.
  */
-function toCellNumber(value: unknown): number | undefined {
+export function toCellNumber(value: unknown): number | undefined {
   if (typeof value === "number" && isFinite(value)) {
     return value;
   }
@@ -213,8 +215,10 @@ function macFromIndexParts(parts: Array<string>): string | undefined {
 /*
  * ipNetToMediaNetAddress cells arrive as dotted strings from net-snmp
  * (IpAddress varbinds) or, from some agents, as raw 4-byte buffers.
+ * Exported because cdpCacheAddress has exactly the same two shapes, and an
+ * address decoded two slightly different ways would not join.
  */
-function toIpAddressString(value: unknown): string | undefined {
+export function toIpAddressString(value: unknown): string | undefined {
   if (typeof value === "string") {
     const trimmed: string = value.trim();
     return DOTTED_IPV4_REGEX.test(trimmed) ? trimmed : undefined;

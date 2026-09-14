@@ -3,7 +3,7 @@ import fs from "fs";
 import nodePath from "path";
 
 /*
- * Session replay adds four pages under the RUM application, and reaching any
+ * Session replay adds five pages under the RUM application, and reaching any
  * of them takes six independent hand-written wirings: a PageMap key, a
  * RumRoutePath entry, an absolute RouteMap Route, a PageRoute in
  * RumApplicationRoutes.tsx, a SideMenuItem, and a breadcrumb. Nothing ties
@@ -70,15 +70,41 @@ const routeSource: string = fs.readFileSync(
   ),
   "utf8",
 );
-const replayStageSource: string = stripComments(
+/*
+ * The Replayer is configured by the engine now (Engine/ReplayEngine.ts);
+ * ReplayStage.tsx is a thin React binding that never constructs one.
+ */
+const replayEngineSource: string = stripComments(
   fs.readFileSync(
     nodePath.join(
       __dirname,
-      "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage.tsx",
+      "../../FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngine.ts",
     ),
     "utf8",
   ),
 );
+
+const sessionReplayComponentsDirectory: string = nodePath.join(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Components/SessionReplay",
+);
+
+/* Every .ts/.tsx under the session replay components, subfolders included. */
+function listSessionReplaySources(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath: string = nodePath.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...listSessionReplaySources(fullPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
 const sessionReplayPlayerSource: string = stripComments(
   fs.readFileSync(
     nodePath.join(
@@ -169,8 +195,11 @@ beforeAll(async () => {
   sessionReplayPageKeys = [
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
     PageMap.RUM_SETTINGS_SESSION_REPLAY,
   ];
 });
@@ -282,8 +311,11 @@ describe("Session replay page wiring", () => {
     for (const key of [
       "RUM_APPLICATION_VIEW_SESSION_REPLAY",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION",
     ]) {
       const occurrences: number = (
         routeSource.match(
@@ -312,16 +344,32 @@ describe("Session replay page wiring", () => {
     expect(occurrences).toBe(1);
   });
 
-  test("canvas replay stays disabled in the stage", () => {
+  test("canvas replay stays disabled wherever a Replayer is configured", () => {
     /*
      * rrweb implements canvas replay by dropping the strict sandbox for
      * "allow-same-origin allow-scripts", which is script execution inside a
      * document built from attacker-influenceable end-user HTML on the
      * Dashboard's own origin. This is a security invariant, and a comment is
-     * not a mechanism.
+     * not a mechanism: the engine must set it false, and nothing under the
+     * session replay components may ever set it true.
      */
-    expect(replayStageSource).toContain("UNSAFE_replayCanvas: false");
-    expect(replayStageSource).not.toMatch(/UNSAFE_replayCanvas:\s*true/);
+    expect(replayEngineSource).toContain("UNSAFE_replayCanvas: false");
+
+    const canvasEnabled: RegExp = /UNSAFE_replayCanvas:\s*true/;
+
+    for (const file of listSessionReplaySources(
+      sessionReplayComponentsDirectory,
+    )) {
+      const source: string = stripComments(fs.readFileSync(file, "utf8"));
+
+      expect([
+        nodePath.relative(sessionReplayComponentsDirectory, file),
+        canvasEnabled.test(source),
+      ]).toEqual([
+        nodePath.relative(sessionReplayComponentsDirectory, file),
+        false,
+      ]);
+    }
   });
 
   test("rrweb is reachable only through the dynamic import in the player", () => {
@@ -332,19 +380,14 @@ describe("Session replay page wiring", () => {
      * boundary is the whole reason ReplayStage takes a replayerFactory
      * instead of constructing one.
      */
-    const componentsDirectory: string = nodePath.join(
-      __dirname,
-      "../../FeatureSet/Dashboard/src/Components/SessionReplay",
-    );
-
-    for (const fileName of fs.readdirSync(componentsDirectory)) {
-      if (!fileName.endsWith(".ts") && !fileName.endsWith(".tsx")) {
-        continue;
-      }
-
-      const source: string = stripComments(
-        fs.readFileSync(nodePath.join(componentsDirectory, fileName), "utf8"),
+    for (const file of listSessionReplaySources(
+      sessionReplayComponentsDirectory,
+    )) {
+      const fileName: string = nodePath.relative(
+        sessionReplayComponentsDirectory,
+        file,
       );
+      const source: string = stripComments(fs.readFileSync(file, "utf8"));
 
       // A static import in any form: `from "rrweb"` or `require("rrweb")`.
       const staticImport: RegExp = /from\s+["']rrweb["']/;
@@ -380,6 +423,147 @@ describe("Session replay page wiring", () => {
     expect(auditPath.startsWith(playerPrefix)).toBe(false);
     expect(auditPath.endsWith("/session-replay-audit")).toBe(true);
     expect(auditPath.split("/").slice(-2)[0]).toBe(RouteParams.ModelID);
+  });
+
+  test("the users route ends with /session-replay-users and carries the model id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), the
+     * same as the audit and settings pages, which only resolves for a route
+     * shaped ":id/session-replay-users".
+     */
+    const path: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-users")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the users route cannot be shadowed by a session id", () => {
+    /*
+     * The obvious spelling, ":id/session-replay/users", is a session id to
+     * the player route registered beside it - a recording whose id was
+     * literally "users" would win or lose depending on registration order.
+     * A hyphenated sibling cannot collide at all.
+     */
+    const usersPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    const playerPrefix: string = playerPath.slice(
+      0,
+      playerPath.lastIndexOf("/") + 1,
+    );
+
+    expect(usersPath.startsWith(playerPrefix)).toBe(false);
+    expect(usersPath).not.toContain("/session-replay/");
+  });
+
+  test("the users page is registered like the audit page: one segment, no count", () => {
+    /*
+     * A single-segment sibling registers with the default count; passing
+     * 2 would register "app-1/session-replay-users"-shaped paths and the
+     * page would be unreachable.
+     */
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ),
+    ).toBe("session-replay-users");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS\s*,?\s*\)/,
+    );
+  });
+
+  test("the users breadcrumb names the page as the side menu does", () => {
+    setNavigationLocation("/dashboard/proj-1/rum/app-1/session-replay-users");
+
+    const trail: Array<Link> | undefined = getRumBreadcrumbs(
+      RouteUtil.getRouteString(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ),
+    );
+
+    expect(trail).toBeDefined();
+    expect(
+      trail!.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Replay Users",
+    ]);
+  });
+
+  test("the health route ends with /session-replay-health and carries the model id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), like
+     * the users, audit and settings pages.
+     */
+    const path: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-health")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the health route cannot be shadowed by a session id", () => {
+    /*
+     * ":id/session-replay/health" would be a session id to the player route:
+     * a recording whose id was literally "health" would open this page.
+     */
+    const healthPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    expect(
+      healthPath.startsWith(
+        playerPath.slice(0, playerPath.lastIndexOf("/") + 1),
+      ),
+    ).toBe(false);
+    expect(healthPath).not.toContain("/session-replay/");
+  });
+
+  test("the health page is registered with one segment and no count", () => {
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+      ),
+    ).toBe("session-replay-health");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH\s*,?\s*\)/,
+    );
+    expect(routeSource).toContain(
+      'from "../Pages/Rum/View/SessionReplayHealth"',
+    );
+    expect(routeSource).toContain("<RumApplicationSessionReplayHealth");
+  });
+
+  test("the health breadcrumb names the page", () => {
+    setNavigationLocation("/dashboard/proj-1/rum/app-1/session-replay-health");
+
+    const trail: Array<Link> | undefined = getRumBreadcrumbs(
+      RouteUtil.getRouteString(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+      ),
+    );
+
+    expect(trail).toBeDefined();
+    expect(
+      trail!.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Replay Health",
+    ]);
   });
 
   test("the per-application settings route is scoped to one application", () => {
@@ -420,6 +604,41 @@ describe("Session replay page wiring", () => {
     );
 
     expect(settingsPath.startsWith(playerPrefix)).toBe(false);
+  });
+
+  test("the documentation route is a one-segment sibling that cannot be shadowed by a session id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), and
+     * at ":id/session-replay/documentation" a recording whose id was
+     * literally "documentation" would collide with it.
+     */
+    const path: string =
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+      ]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-documentation")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+    expect(path).not.toContain("/session-replay/");
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+      ),
+    ).toBe("session-replay-documentation");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION\s*,?\s*\)/,
+    );
+  });
+
+  test("the documentation page does not collide with the application's own documentation page", () => {
+    expect(
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+      ]!.toString(),
+    ).not.toBe(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]!.toString(),
+    );
   });
 
   test("the project-level settings page lives under RUM settings, unscoped to an application", () => {

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor, within } from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -271,8 +271,18 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     expect(view.getByText("Monitors")).toBeVisible();
-    expect(view.getByText("Monitor Details")).toBeVisible();
-    expect(view.getByText("Advanced")).toBeVisible();
+
+    /*
+     * The step names are read off the progress nav rather than the whole
+     * modal: the form also renders the current step's name as a heading over
+     * its fields, so an unscoped query for "Monitor Details" matches twice.
+     */
+    const steps: HTMLElement = view.getByRole("navigation", {
+      name: "Progress",
+    });
+
+    expect(within(steps).getByText("Monitor Details")).toBeVisible();
+    expect(within(steps).getByText("Advanced")).toBeVisible();
     expect(view.queryByText("Display Name")).not.toBeInTheDocument();
     expect(view.queryByText("Description")).not.toBeInTheDocument();
   });

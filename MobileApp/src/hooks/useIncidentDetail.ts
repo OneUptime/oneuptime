@@ -12,10 +12,15 @@ import type {
   FeedItem,
 } from "../api/types";
 
+/*
+ * `IncidentItem | null`, because `fetchIncidentById` resolves `null` for an
+ * incident that is gone. That miss is settled DATA, so `isError` here means
+ * the request failed and a null `data` means there is no such incident.
+ */
 export function useIncidentDetail(
   projectId: string,
   incidentId: string,
-): UseQueryResult<IncidentItem, Error> {
+): UseQueryResult<IncidentItem | null, Error> {
   return useQuery({
     queryKey: ["incident", projectId, incidentId],
     queryFn: () => {

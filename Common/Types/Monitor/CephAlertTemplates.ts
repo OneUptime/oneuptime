@@ -2,13 +2,13 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import FilterCondition from "../Filter/FilterCondition";
 import {
-  CheckOn,
-  FilterType,
-  EvaluateOverTimeType,
-  NoDataPolicy,
-} from "./CriteriaFilter";
+  AdditionalCriteriaFilterSpec,
+  buildHealthyCriteriaInstance,
+  buildUnhealthyCriteriaInstance,
+} from "./Recommendation/RecommendationCriteriaBuilder";
+import FilterCondition from "../Filter/FilterCondition";
+import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepCephMonitor from "./MonitorStepCephMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -64,10 +64,14 @@ export function buildCephMonitorStep(args: {
   onlineCriteriaInstance: MonitorCriteriaInstance;
   /*
    * Optional extra unhealthy tiers, evaluated AFTER the primary offline
-   * instance and before the online instance. Criteria are first-match-
-   * wins, so pass tiers worst-first (e.g. ceph-mon-disk-space pairs a
-   * Critical MON_DISK_CRIT tier with a Warning MON_DISK_LOW tier in one
-   * template).
+   * instance and before the online instance. Criteria are first-match-wins,
+   * so pass tiers worst-first.
+   *
+   * Every tier in one template shares ONE severity: the create flow re-stamps
+   * each criteria instance with the recommendation's single declared severity
+   * (MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep), so a
+   * tier that means something milder than the template's own severity must be
+   * its own template instead. No shipped template uses this today.
    */
   additionalOfflineCriteriaInstances?: Array<MonitorCriteriaInstance>;
 }): MonitorStep {
@@ -136,78 +140,19 @@ export function buildCephOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
   /*
    * Extra OR'd filters (the instance is FilterCondition.Any) — fires when
    * EITHER the primary alias or any additional alias breaches, e.g.
    * PG_DAMAGED OR OSD_SCRUB_ERRORS.
    */
-  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const incidentTitle: string =
-    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
-  const incidentDescription: string =
-    args.incidentDescription ||
-    `${args.monitorName} has triggered an alert condition. See root cause for detailed Ceph cluster information.`;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-      ...(args.additionalFilters || []).map(
-        (filter: CephCriteriaFilterSpec) => {
-          return {
-            checkOn: CheckOn.MetricValue,
-            filterType: filter.filterType,
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias: filter.metricAlias,
-            },
-            value: filter.value,
-          };
-        },
-      ),
-    ],
-    incidents: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        incidentSeverityId: args.incidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        alertSeverityId: args.alertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
-    description:
-      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
-  };
-
-  return instance;
+  return buildUnhealthyCriteriaInstance({
+    ...args,
+    resourceNoun: "Ceph cluster",
+  });
 }
 
 export function buildCephOnlineCriteriaInstance(args: {
@@ -215,12 +160,16 @@ export function buildCephOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  recoveryValue?: number | undefined;
+  marginFraction?: number | undefined;
+  isBinaryMetric?: boolean | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
   /*
    * Extra filters for multi-alias recovery. Pass FilterCondition.All with
    * them so the monitor only recovers when EVERY watched health check has
    * cleared (the complement of the offline instance's Any).
    */
-  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
   /*
    * Health-detail series exist only while the check is active, so the
@@ -230,52 +179,7 @@ export function buildCephOnlineCriteriaInstance(args: {
    */
   treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const onNoDataPolicy: NoDataPolicy | undefined = args.treatNoDataAsZero
-    ? NoDataPolicy.TreatAsZero
-    : undefined;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: args.filterCondition || FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-          onNoDataPolicy: onNoDataPolicy,
-        },
-        value: args.value,
-      },
-      ...(args.additionalFilters || []).map(
-        (filter: CephCriteriaFilterSpec) => {
-          return {
-            checkOn: CheckOn.MetricValue,
-            filterType: filter.filterType,
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias: filter.metricAlias,
-              onNoDataPolicy: onNoDataPolicy,
-            },
-            value: filter.value,
-          };
-        },
-      ),
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: "Criteria for healthy state.",
-  };
-
-  return instance;
+  return buildHealthyCriteriaInstance(args);
 }
 
 export function buildCephMonitorConfig(args: {
@@ -338,14 +242,20 @@ export interface CephFormulaQuery {
  * cancels: `(Σnum × scrapes) / (Σden × scrapes)`. Every Ceph metric comes
  * from ONE receiver — the prometheus scrape of the active ceph-mgr — so
  * all Ceph ratios are same-receiver and use `Sum`/`Sum`. (`Avg`/`Avg` is
- * the cross-receiver variant; not needed here.) Difference formulas
- * compared against zero (e.g. pg_total − pg_active > 0) also use
- * `Sum`/`Sum`: the scrape multiple k scales both terms equally
- * (k·Σtotal − k·Σactive = k·Σinactive), so the sign of the difference —
- * and therefore the > 0 fire / = 0 recover thresholds — is preserved
- * exactly. `Max`/`Max` would be WRONG for ungrouped per-pool metrics:
- * each side collapses to the largest pool's value, hiding non-zero
- * differences in every other pool.
+ * the cross-receiver variant; not needed here.)
+ *
+ * DIFFERENCE formulas (e.g. pg_total − pg_active) are the exception and
+ * must be GROUPED and reduced with `Max`/`Max`. The scrape multiple k
+ * cancels in a ratio but merely scales a difference: ungrouped Sum/Sum
+ * preserves the SIGN (k·Σtotal − k·Σactive = k·Σinactive, so the > 0 fire
+ * / = 0 recover thresholds still trip correctly) while multiplying the
+ * VALUE the alert prints — a cluster with 3 inactive PGs alerted "6" at a
+ * 30s scrape interval. Grouping by the series label and reducing with
+ * `Max` de-duplicates the scrapes inside a (series, minute) bucket and
+ * makes the difference that series' exact count. Ungrouped `Max` would be
+ * WRONG for per-pool metrics — each side collapses to the largest pool's
+ * value, hiding non-zero differences in every other pool — so the
+ * group-by and the aggregation always change together.
  */
 export function buildCephFormulaMonitorConfig(args: {
   clusterIdentifier: string;
@@ -774,7 +684,7 @@ const pgDegradedTemplate: CephAlertTemplate = {
   id: "ceph-pg-degraded",
   name: "Degraded Placement Groups",
   description:
-    "Alert when any placement groups are degraded — objects have fewer replicas than configured.",
+    "Alert when any placement groups are degraded — objects have fewer replicas than configured. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
   severity: "Warning",
   getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
@@ -787,10 +697,19 @@ const pgDegradedTemplate: CephAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Per-pool series (pool_id label); Max-across-pools still fires
-         * the > 0 threshold when ANY pool has degraded PGs.
+         * Max PER POOL. ceph_pg_degraded is a per-pool gauge (pool_id
+         * label — CephMetricCatalog marks it defaultResourceScope Pool),
+         * never a cluster-wide total. Grouping is what makes the reported
+         * number the pool's OWN degraded count instead of the largest
+         * pool's count presented as a cluster total, and it is what lets
+         * the fan-out name the pool on the incident. Max (not Sum) is the
+         * right per-bucket reduction: the agent scrapes every 30s
+         * (CephAgent/otel-collector-config.yaml) and buckets are one
+         * minute wide, so a bucket holds two identical samples of the same
+         * gauge and Sum would double them.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "pool_id",
       }),
       offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -801,7 +720,7 @@ const pgDegradedTemplate: CephAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[Ceph] Degraded Placement Groups - ${args.monitorName}`,
-        incidentDescription: `The Ceph cluster has degraded placement groups — some objects currently have fewer replicas than the configured replication factor. This usually follows an OSD failure or restart and should clear as recovery completes. If the count does not trend down, run \`ceph pg dump_stuck degraded\` and \`ceph osd tree\` to find the OSDs blocking recovery.`,
+        incidentDescription: `This Ceph pool has degraded placement groups — some objects currently have fewer replicas than the configured replication factor. This usually follows an OSD failure or restart and should clear as recovery completes. If the count does not trend down, run \`ceph pg dump_stuck degraded\` and \`ceph osd tree\` to find the OSDs blocking recovery. The affected pool_id is on this alert; match it to a pool name with \`ceph df\`.`,
         criteriaName: "PG Degraded - Count > 0",
         criteriaDescription:
           "Triggers when the number of degraded placement groups is above zero.",
@@ -820,7 +739,7 @@ const pgUndersizedTemplate: CephAlertTemplate = {
   id: "ceph-pg-undersized",
   name: "Undersized Placement Groups",
   description:
-    "Alert when any placement groups are undersized — mapped to fewer OSDs than their replica count.",
+    "Alert when any placement groups are undersized — mapped to fewer OSDs than their replica count. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
   severity: "Warning",
   getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
@@ -833,10 +752,15 @@ const pgUndersizedTemplate: CephAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Per-pool series (pool_id label); Max-across-pools still fires
-         * the > 0 threshold when ANY pool has undersized PGs.
+         * Max PER POOL — same contract as ceph-pg-degraded above.
+         * ceph_pg_undersized is a per-pool gauge (pool_id label), so
+         * without the group-by the alert reported the worst single pool's
+         * count as a cluster total and could never name the pool. Max
+         * de-duplicates the two 30s scrapes that land in one minute
+         * bucket; Sum would double them.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "pool_id",
       }),
       offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -847,7 +771,7 @@ const pgUndersizedTemplate: CephAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[Ceph] Undersized Placement Groups - ${args.monitorName}`,
-        incidentDescription: `The Ceph cluster has undersized placement groups — they are mapped to fewer OSDs than their configured replica count, so full redundancy cannot be restored. Sustained undersized PGs usually mean the cluster lacks enough OSDs (or failure domains) to satisfy the CRUSH rule. Check for down/out OSDs with \`ceph osd tree\` and verify the pool's replication settings against available capacity.`,
+        incidentDescription: `This Ceph pool has undersized placement groups — they are mapped to fewer OSDs than their configured replica count, so full redundancy cannot be restored. Sustained undersized PGs usually mean the cluster lacks enough OSDs (or failure domains) to satisfy the CRUSH rule. Check for down/out OSDs with \`ceph osd tree\` and verify the pool's replication settings against available capacity. The affected pool_id is on this alert; match it to a pool name with \`ceph df\`.`,
         criteriaName: "PG Undersized - Count > 0",
         criteriaDescription:
           "Triggers when the number of undersized placement groups is above zero.",
@@ -866,7 +790,7 @@ const pgInactiveTemplate: CephAlertTemplate = {
   id: "ceph-pg-inactive",
   name: "Inactive Placement Groups",
   description:
-    "Alert when any placement groups are not active (ceph_pg_total − ceph_pg_active > 0). Inactive PGs cannot serve I/O — client requests to them hang.",
+    "Alert when any placement groups are not active (ceph_pg_total − ceph_pg_active > 0). Inactive PGs cannot serve I/O — client requests to them hang. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
   severity: "Critical",
   getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
@@ -882,19 +806,32 @@ const pgInactiveTemplate: CephAlertTemplate = {
         formula: "pg_total - pg_active",
         resultAlias: metricAlias,
         resultLegend: "Inactive PGs",
+        resultLegendUnit: "count",
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Sum/Sum difference — ceph_pg_total and ceph_pg_active are
-         * PER-POOL series (pool_id label, since Nautilus), not single
-         * cluster-wide gauges. Sum folds every pool into a cluster-wide
-         * count; both metrics ride the same mgr scrape, so the scrape
-         * multiple k scales both terms equally (k·Σtotal − k·Σactive =
-         * k·Σinactive) and the > 0 fire / = 0 recover thresholds stay
-         * exact. Max would collapse each side to the largest pool's
-         * value, so inactive PGs in any other pool would yield 0 and
-         * this Critical alert would never fire.
+         * Max/Max PER POOL.
+         *
+         * ceph_pg_total and ceph_pg_active are PER-POOL series (pool_id
+         * label, since Nautilus). The threshold comparison was always
+         * right under the old ungrouped Sum/Sum, but the NUMBER was not:
+         * an ungrouped one-minute bucket sums over pools AND over the
+         * scrapes inside that minute. The shipped agent scrapes every 30s
+         * (CephAgent/otel-collector-config.yaml), so a cluster with 3
+         * inactive PGs was alerted as "6" — and as a different multiple in
+         * each bucket, because bucket boundaries do not divide the scrape
+         * train evenly. The scrape multiple cancels for a RATIO; for a
+         * DIFFERENCE it scales the result.
+         *
+         * Grouping by pool_id and reducing with Max fixes both: Max
+         * de-duplicates the identical scrapes inside a (pool, minute)
+         * bucket, the difference is that pool's exact inactive count, and
+         * the fan-out names the pool the operator has to run
+         * `ceph pg dump_stuck inactive` against. Ungrouped Max would still
+         * be wrong — it collapses each side to the largest pool — which is
+         * why the group-by and the aggregation must change together.
          */
-        aggregationType: MetricsAggregationType.Sum,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "pool_id",
       }),
       offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -905,7 +842,7 @@ const pgInactiveTemplate: CephAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[Ceph] CRITICAL: Inactive Placement Groups - ${args.monitorName}`,
-        incidentDescription: `The Ceph cluster has placement groups that are not active. Inactive PGs cannot serve reads or writes — client I/O to them hangs until they recover. This typically follows the loss of too many OSDs in a failure domain. Run \`ceph pg dump_stuck inactive\` and \`ceph health detail\` to identify the stuck PGs and the OSDs they are waiting on, and restore those OSDs immediately.`,
+        incidentDescription: `This Ceph pool has placement groups that are not active. Inactive PGs cannot serve reads or writes — client I/O to them hangs until they recover. This typically follows the loss of too many OSDs in a failure domain. Run \`ceph pg dump_stuck inactive\` and \`ceph health detail\` to identify the stuck PGs and the OSDs they are waiting on, and restore those OSDs immediately. The affected pool_id is on this alert; match it to a pool name with \`ceph df\`.`,
         criteriaName: "PG Inactive - Count > 0",
         criteriaDescription:
           "Triggers when the number of inactive placement groups (total minus active) is above zero.",
@@ -1479,41 +1416,45 @@ const osdFullTemplate: CephAlertTemplate = {
 };
 
 const monDiskSpaceTemplate: CephAlertTemplate = {
+  /*
+   * Id kept so already-dismissed recommendations stay dismissed
+   * (`recommendationId` is `${resourceType}:${templateId}`). Name and
+   * description narrowed: this template is the Critical tier only.
+   *
+   * The Warning tier used to ride along here as an
+   * `additionalOfflineCriteriaInstances` entry. It could not work:
+   * `MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep`
+   * re-stamps EVERY criteria instance in the step with the ONE severity the
+   * recommendation declares, so a MON_DISK_LOW condition — a mon disk with
+   * days of headroom — opened an incident at the project's top severity and
+   * paged whatever on-call policy is attached to Critical, while the card
+   * promised Warning. One recommendation carries one severity; two tiers
+   * need two recommendations.
+   */
   id: "ceph-mon-disk-space",
-  name: "Monitor Disk Space",
+  name: "Monitor Disk Critically Low",
   description:
-    "Alert when a Ceph monitor's database disk runs low — Critical at the MON_DISK_CRIT threshold (default 5% free), Warning at MON_DISK_LOW (default 30% free), both tiers in one template. A full monitor disk crashes the monitor and risks quorum.",
+    "Alert when a Ceph monitor's database disk crosses the MON_DISK_CRIT threshold (default 5% free). A full monitor disk crashes the monitor and risks quorum. Pair with Monitor Disk Space Low for the earlier warning tier.",
   category: "Cluster Health",
   severity: "Critical",
   getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
-    const critAlias: string = "mon_disk_crit";
-    const lowAlias: string = "mon_disk_low";
+    const metricAlias: string = "mon_disk_crit";
 
     return buildCephMonitorStep({
-      cephMonitor: buildCephMultiQueryMonitorConfig({
+      cephMonitor: buildCephMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        queries: [
-          {
-            alias: critAlias,
-            metricName: "ceph_health_detail",
-            attributes: { name: "MON_DISK_CRIT" },
-          },
-          {
-            alias: lowAlias,
-            metricName: "ceph_health_detail",
-            attributes: { name: "MON_DISK_LOW" },
-          },
-        ],
+        metricName: "ceph_health_detail",
+        metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "MON_DISK_CRIT" },
       }),
-      // Critical tier first — criteria are evaluated first-match-wins.
       offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
-        metricAlias: critAlias,
+        metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[Ceph] CRITICAL: Monitor Disk Critically Low - ${args.monitorName}`,
@@ -1522,35 +1463,55 @@ const monDiskSpaceTemplate: CephAlertTemplate = {
         criteriaDescription:
           "Triggers when the MON_DISK_CRIT health check is active.",
       }),
-      additionalOfflineCriteriaInstances: [
-        buildCephOfflineCriteriaInstance({
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: lowAlias,
-          filterType: FilterType.GreaterThan,
-          value: 0,
-          incidentTitle: `[Ceph] Monitor Disk Space Low - ${args.monitorName}`,
-          incidentDescription: `A Ceph monitor's database disk is running low on space (MON_DISK_LOW health check; default 30% free). The monitor keeps working, but if the disk keeps filling it will cross the critical threshold and eventually crash, putting quorum at risk. Free space on the affected monitor host: compact the mon store (\`ceph tell mon.<id> compact\`), clean up logs, or grow the volume. Run \`ceph health detail\` to see which monitor is affected.`,
-          criteriaName: "Mon Disk Low - MON_DISK_LOW Active",
-          criteriaDescription:
-            "Triggers when the MON_DISK_LOW health check is active.",
-        }),
-      ],
       onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: critAlias,
+        metricAlias,
         filterType: FilterType.EqualTo,
         value: 0,
-        additionalFilters: [
-          {
-            metricAlias: lowAlias,
-            filterType: FilterType.EqualTo,
-            value: 0,
-          },
-        ],
-        filterCondition: FilterCondition.All,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const monDiskLowTemplate: CephAlertTemplate = {
+  id: "ceph-mon-disk-low",
+  name: "Monitor Disk Space Low",
+  description:
+    "Alert when a Ceph monitor's database disk crosses the MON_DISK_LOW threshold (default 30% free) — the warning tier before MON_DISK_CRIT.",
+  category: "Cluster Health",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "mon_disk_low";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "MON_DISK_LOW" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] Monitor Disk Space Low - ${args.monitorName}`,
+        incidentDescription: `A Ceph monitor's database disk is running low on space (MON_DISK_LOW health check; default 30% free). The monitor keeps working, but if the disk keeps filling it will cross the critical threshold and eventually crash, putting quorum at risk. Free space on the affected monitor host: compact the mon store (\`ceph tell mon.<id> compact\`), clean up logs, or grow the volume. Run \`ceph health detail\` to see which monitor is affected.`,
+        criteriaName: "Mon Disk Low - MON_DISK_LOW Active",
+        criteriaDescription:
+          "Triggers when the MON_DISK_LOW health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
         treatNoDataAsZero: true,
       }),
     });
@@ -1626,6 +1587,7 @@ export function getAllCephAlertTemplates(): Array<CephAlertTemplate> {
     osdBackfillfullTemplate,
     osdFullTemplate,
     monDiskSpaceTemplate,
+    monDiskLowTemplate,
     daemonSlowOpsTemplate,
   ];
 }

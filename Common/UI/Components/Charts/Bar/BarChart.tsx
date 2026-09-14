@@ -58,6 +58,11 @@ export interface ComponentProps {
    * indexed by series position (index % length), matching the default palette.
    */
   colors?: Array<ChartColorValue> | undefined;
+  /*
+   * Double-click on the plot: undoes a board-wide zoom. Bar panels have no
+   * drag-to-select of their own but share the dashboard's time range.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -92,8 +97,10 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       return TimeAnnotationUtil.formatTimeReferenceLines({
         timeReferenceLines: props.timeReferenceLines,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps marker indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.timeReferenceLines, props.xAxis]);
+    }, [props.timeReferenceLines, props.xAxis, props.data]);
 
   const formattedReferenceRegions: Array<FormattedReferenceRegion> =
     useMemo(() => {
@@ -103,8 +110,10 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       return TimeAnnotationUtil.formatReferenceRegions({
         referenceRegions: props.referenceRegions,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps region indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.referenceRegions, props.xAxis]);
+    }, [props.referenceRegions, props.xAxis, props.data]);
 
   const hasNoData: boolean =
     !props.data ||
@@ -152,6 +161,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
             ? formattedReferenceRegions
             : undefined
         }
+        onTimeRangeReset={props.onTimeRangeReset}
       />
       {hasNoData && <NoDataMessage />}
     </div>

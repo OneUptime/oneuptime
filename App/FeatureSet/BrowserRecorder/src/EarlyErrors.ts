@@ -74,6 +74,21 @@ export function installEarlyErrorBuffer(
   const errorListener: (event: ErrorEvent) => void = (
     event: ErrorEvent,
   ): void => {
+    /*
+     * A capture-phase "error" listener also hears RESOURCE load failures -
+     * an <img>, <script> or <link> that 404s - which arrive with an Element
+     * target, no message, no filename and no Error object. Buffering those
+     * as JavaScript errors filled the pre-load buffer with empty-message
+     * entries on any page with a broken image.
+     */
+    if (
+      event.target &&
+      typeof Element !== "undefined" &&
+      event.target instanceof Element
+    ) {
+      return;
+    }
+
     const record: EarlyErrorRecord = {
       kind: "error",
       message: event.message || "",

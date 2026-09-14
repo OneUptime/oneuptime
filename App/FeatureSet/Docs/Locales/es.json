@@ -91,6 +91,7 @@
     "FAQ & Troubleshooting": "Preguntas frecuentes y solución de problemas",
     "IP Addresses": "Direcciones IP",
     "SMTP": "SMTP",
+    "Notification Rollup": "Resumen de notificaciones",
     "SSO": "SSO",
     "SCIM": "SCIM",
     "Users, Teams & Permissions": "Usuarios, equipos y permisos",
@@ -139,6 +140,7 @@
     "Incident & Alert Templating": "Plantillas de incidentes y alertas",
     "Monitor Secrets": "Secretos del monitor",
     "AI SRE": "AI SRE",
+    "Calendar Feeds": "Feeds de calendario",
     "Incoming Call Policy": "Política de llamadas entrantes",
     "Phone Number Whitelist": "Lista blanca de números de teléfono",
     "Runbooks Overview": "Visión general de los Runbooks",
@@ -169,6 +171,7 @@
     "PagerDuty": "PagerDuty",
     "Opsgenie": "Opsgenie",
     "ServiceNow": "ServiceNow",
+    "Microsoft Dynamics 365": "Microsoft Dynamics 365",
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
@@ -188,6 +191,7 @@
     "Docker Agent": "Agente de Docker",
     "IoT Devices": "Dispositivos IoT",
     "Fix Tasks": "Fix Tasks",
+    "GitHub App": "GitHub App",
     "LLM Providers": "Proveedores de LLM",
     "MCP Server": "Servidor MCP",
     "OneUptime API Reference": "Referencia de la API de OneUptime",
@@ -196,6 +200,7 @@
     "GitHub Integration": "Integración con GitHub",
     "Push Notifications": "Notificaciones push",
     "SendGrid Inbound Email": "Correo entrante de SendGrid",
+    "Private Network Access": "Acceso a red privada",
     "Architecture": "Arquitectura",
     "Custom Fields": "Campos personalizados",
     "Exporting to a CMDB": "Exportar a una CMDB",
@@ -207,6 +212,7 @@
     "Status Pages Overview": "Visión general de las páginas de estado",
     "Status Page Resources & Groups": "Recursos y grupos de la página de estado",
     "Status Page Branding & Domains": "Marca y dominios de la página de estado",
-    "Subscribers & Announcements": "Suscriptores y anuncios"
+    "Subscribers & Announcements": "Suscriptores y anuncios",
+    "Twilio Integration": "Integración de Twilio"
   }
 }

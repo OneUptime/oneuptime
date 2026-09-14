@@ -4,7 +4,7 @@
 
 Den här integrationen är **utgående**: OneUptime anropar [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den använder ett OneUptime **[Arbetsflöde](/docs/workflows/index)** med en **Incident → On Create**-utlösare och en **API-komponent**.
 
-> **Letar du efter den djupare GitHub-anslutningen?** OneUptime har också en inbyggd **GitHub App**-integration för att ansluta kodrepon (används av AI-agenten och kodfunktioner). Den konfigureras med miljövariabler, inte arbetsflöden — se [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration). Den här sidan handlar specifikt om att _lägga ärenden från incidenter_.
+> **Letar du efter den djupare GitHub-anslutningen?** OneUptime har också en inbyggd **GitHub App**-integration för att ansluta kodrepon (används av AI-agenten och kodfunktioner). Du kan prata med den appen i ditt repo — nämn den i ett ärende eller en pull request så implementerar, reviderar eller granskar den; se [Arbeta med OneUptime från GitHub](/docs/ai/github-app), och [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) för hur du installerar den. Den här sidan handlar specifikt om att _lägga ärenden från incidenter_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,3 +74,10 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrationsöversikt](/docs/integrations/index) — mönster och autentiseringsfuskbladet.
 - [GitLab](/docs/integrations/gitlab) — samma idé för GitLab.
 - [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) — den inbyggda GitHub App-anslutningen.
+- [Arbeta med OneUptime från GitHub](/docs/ai/github-app) — att styra GitHub App:en från ett ärende eller en pull request.
+
+## Nätverksåtkomst för egenhostade installationer
+
+Arbetsflödet på den här sidan för att skapa ärenden kräver DNS-uppslagning och utgående HTTPS (TCP 443) från OneUptime till `api.github.com`. Det kräver inga inkommande återanrop från GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+Läs avsnittet om nätverksåtkomst i [GitHub-integration](/docs/self-hosted/github-integration) för information om utgående anslutningar, inkommande återanrop och privata installationer.

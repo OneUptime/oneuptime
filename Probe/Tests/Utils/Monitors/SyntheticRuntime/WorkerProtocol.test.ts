@@ -9,6 +9,9 @@ import {
   isWorkerResultEnvelope,
   isWorkerStartEnvelope,
 } from "../../../../Utils/Monitors/SyntheticRuntime/WorkerProtocol";
+import SyntheticRuntimeFault, {
+  SYNTHETIC_RUNTIME_FAULT_KIND,
+} from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticRuntimeFault";
 
 interface TestConfig {
   readonly monitorId: string;
@@ -165,5 +168,95 @@ describe("SyntheticRuntime WorkerProtocol", () => {
         result: {},
       });
     }).toThrow("nonce is invalid");
+  });
+
+  /*
+   * The worker raises the fault; the supervisor has to be able to tell it
+   * apart from the tenant's script failing. The Error object does not survive
+   * the fork, so the marker travels on the envelope.
+   */
+  test("marks a probe runtime fault on the failure envelope", () => {
+    const nonce: string = createWorkerNonce();
+    const envelope: ReturnType<typeof createWorkerFailureEnvelope> =
+      createWorkerFailureEnvelope({
+        nonce,
+        error: new SyntheticRuntimeFault({
+          message: "Synthetic monitor could not start on this probe.",
+          internalDetail: new Error("page.goto: Timeout 30000ms exceeded."),
+        }),
+      });
+
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+    expect(envelope.error.message).toBe(
+      "Synthetic monitor could not start on this probe.",
+    );
+    expect(
+      isWorkerResultEnvelope({ value: envelope, expectedNonce: nonce }),
+    ).toBe(true);
+  });
+
+  test("leaves the marker off a tenant script failure", () => {
+    const nonce: string = createWorkerNonce();
+    const envelope: ReturnType<typeof createWorkerFailureEnvelope> =
+      createWorkerFailureEnvelope({
+        nonce,
+        error: new Error("TypeError: page.clickk is not a function"),
+      });
+
+    expect(envelope.error.kind).toBeUndefined();
+    expect(Object.keys(envelope.error).sort()).toEqual(["message", "stack"]);
+    expect(
+      isWorkerResultEnvelope({ value: envelope, expectedNonce: nonce }),
+    ).toBe(true);
+  });
+
+  test("does not carry the fault's internal detail across the boundary", () => {
+    /*
+     * internalDetail is for the probe's own logs on this side of the fork.
+     * The envelope carries only what the supervisor needs.
+     */
+    const nonce: string = createWorkerNonce();
+    const envelope: ReturnType<typeof createWorkerFailureEnvelope> =
+      createWorkerFailureEnvelope({
+        nonce,
+        error: new SyntheticRuntimeFault({
+          message: "Synthetic monitor could not start on this probe.",
+          internalDetail: "a very long playwright call log",
+        }),
+      });
+
+    expect(Object.keys(envelope.error).sort()).toEqual([
+      "kind",
+      "message",
+      "stack",
+    ]);
+  });
+
+  test("rejects an envelope carrying an unknown error kind", () => {
+    const nonce: string = createWorkerNonce();
+    const forged: unknown = {
+      ...createWorkerFailureEnvelope({ nonce, error: new Error("boom") }),
+      error: { message: "boom", kind: "tenant-fault" },
+    };
+
+    expect(
+      isWorkerResultEnvelope({ value: forged, expectedNonce: nonce }),
+    ).toBe(false);
+  });
+
+  test("accepts a marked envelope that has no stack", () => {
+    const nonce: string = createWorkerNonce();
+    const envelope: unknown = {
+      ...createWorkerFailureEnvelope({ nonce, error: new Error("boom") }),
+      error: {
+        message: "Synthetic monitor could not start on this probe.",
+        kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+      },
+    };
+
+    expect(
+      isWorkerResultEnvelope({ value: envelope, expectedNonce: nonce }),
+    ).toBe(true);
   });
 });

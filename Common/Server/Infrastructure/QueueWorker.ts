@@ -1,19 +1,17 @@
 import { QueueJob, QueueName } from "./Queue";
 import TimeoutException from "../../Types/Exception/TimeoutException";
-import {
-  PromiseRejectErrorFunction,
-  PromiseVoidFunction,
-  VoidFunction,
-} from "../../Types/FunctionTypes";
+import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
-import Telemetry, {
-  Span,
-  SpanException,
-  SpanStatusCode,
-} from "../Utils/Telemetry";
+import {
+  COMPONENT_ATTRIBUTE_KEY,
+  TelemetryComponent,
+  UNIT_OF_WORK_ATTRIBUTE_KEY,
+  UnitOfWork,
+} from "../../Types/Telemetry/UnitOfWork";
+import Telemetry, { Span, SpanStatusCode } from "../Utils/Telemetry";
 import Redis from "./Redis";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 import logger from "../Utils/Logger";
@@ -62,6 +60,14 @@ export default class QueueWorker {
           {
             queueName: queueName,
             jobName: job.name || "unknown",
+            /*
+             * Set EXPLICITLY, never inherited. A job enqueued from inside an
+             * HTTP request would otherwise inherit that request's
+             * "http-request" marker, and ErrorClassResolver would then trust a
+             * user-error classification for work that has no client behind it.
+             */
+            [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.WorkerJob,
+            [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Worker,
             ...TelemetryContext.pickKnownAttributes(job.data),
           },
           () => {
@@ -77,11 +83,31 @@ export default class QueueWorker {
                   await onJobInQueue(job);
                   span.setStatus({ code: SpanStatusCode.OK });
                 } catch (err) {
-                  span.recordException(err as SpanException);
-                  span.setStatus({ code: SpanStatusCode.ERROR });
+                  /*
+                   * Route through the normalizer rather than calling
+                   * span.recordException directly. Two reasons, both real:
+                   *
+                   * 1. The SDK reads `exception.code` before `exception.name`,
+                   *    and every OneUptime ExceptionCode IS an HTTP status, so
+                   *    the raw call typed every failed job's event "400" /
+                   *    "422" — collapsing unrelated failures into a handful of
+                   *    meaningless Issue groups.
+                   * 2. This is the one exception-producing site the ingest
+                   *    drop filter cannot reach, because the raw call set no
+                   *    span attributes for a filter to match on.
+                   *
+                   * Because worker jobs run under unit_of_work="worker-job", a
+                   * user-error class escaping a job is promoted back to
+                   * code-fault — worker BUGS get louder while tenant-config
+                   * noise gets quieter, which is the correct direction.
+                   */
+                  Telemetry.recordExceptionOnSpan({
+                    span,
+                    exception: err,
+                  });
                   throw err;
                 } finally {
-                  span.end();
+                  Telemetry.endSpan(span);
                 }
               },
             });
@@ -222,18 +248,28 @@ export default class QueueWorker {
     timeoutInMS: number,
     jobCallback: PromiseVoidFunction,
   ): Promise<void> {
-    type TimeoutPromise = (ms: number) => Promise<void>;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const timeoutPromise: TimeoutPromise = (ms: number): Promise<void> => {
-      return new Promise(
-        (_resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
-          setTimeout(() => {
-            return reject(new TimeoutException("Job Timeout"));
-          }, ms);
+    try {
+      const timeoutPromise: Promise<void> = new Promise<void>(
+        (_resolve: () => void, reject: (reason: Error) => void) => {
+          timeout = setTimeout(() => {
+            reject(new TimeoutException("Job Timeout"));
+          }, timeoutInMS);
         },
       );
-    };
 
-    return await Promise.race([timeoutPromise(timeoutInMS), jobCallback()]);
+      await Promise.race([timeoutPromise, jobCallback()]);
+    } finally {
+      /*
+       * A settled job no longer needs its deadline. Leaving this timer alive
+       * retains its async context until the timeout and schedules needless
+       * callbacks for every completed job. This also covers synchronous throws
+       * from jobCallback. A timeout still does not cancel the underlying job.
+       */
+      if (timeout !== undefined) {
+        clearTimeout(timeout);
+      }
+    }
   }
 }

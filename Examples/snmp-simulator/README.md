@@ -9,23 +9,43 @@ answers SNMP works as a "device". This compose file starts three:
 
 | Container   | IP              | What it is                                                        | Credentials                                             |
 | ----------- | --------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
-| `switch-a`  | `172.30.99.11`  | snmpsim replaying a fake 3-port switch (LLDP, live counters)       | v2c, community `public`                                  |
+| `switch-a`  | `172.30.99.11`  | snmpsim replaying a fake 4-port switch (LLDP, FDB, ARP, live counters) | v2c, community `public`                                  |
 | `switch-b`  | `172.30.99.12`  | Same, LLDP-adjacent to `switch-a` (renders a topology edge)        | v2c, community `public`                                  |
 | `router-v3` | `172.30.99.13`  | Real `snmpd` agent, for exercising the SNMPv3 code path            | v3 user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123` (also v2c `public`) |
 
 What the fake switches serve:
 
 - System group (`sysDescr`, `sysName`, etc.)
-- `ifTable` + `ifXTable` for 3 gigabit ports, with octet/error counters that
-  grow in real time (via snmpsim's `numeric` variation module), so interface
-  bandwidth, utilization and errors-per-second get real values after two polls.
+- `ifTable` + `ifXTable` for 3 gigabit ports (4 on `switch-a`), with
+  octet/error counters that grow in real time (via snmpsim's `numeric`
+  variation module), so interface bandwidth, utilization and errors-per-second
+  get real values after two polls.
 - `switch-a` port Gi0/3 is operationally down (tests interfaces-down counts and
   the "interface is down" alert criteria).
 - LLDP `lldpRemTable`: `switch-a` and `switch-b` see each other on Gi0/2, and
   `switch-a` also sees an unregistered `core-router` (shows up as an unmanaged
   node on the Topology page).
+- LLDP `lldpRemManAddrTable`: each of those neighbours also advertises a
+  management address (`core-router` at `172.30.99.20`, `switch-b` at its own
+  `172.30.99.12`). This is what lets the Topology page's "Add to Monitoring"
+  action pre-fill a hostname instead of leaving the operator to find one.
+- CDP `cdpCacheTable`: `switch-a` sees a Cisco IP phone, `SEP0011AA22BB33`
+  (platform `Cisco IP Phone 8811`, address `172.30.99.21`), on Gi0/3 - a leaf
+  device that speaks CDP and not LLDP, drawn as an unmanaged phone node.
+  Nothing answers at that address, which is the point: it is a device the
+  network reports and nobody is monitoring.
 - `hrProcessorLoad` (`1.3.6.1.2.1.25.3.3.1.2.1`) oscillating slowly between
   10-90%, handy for testing custom-OID alert criteria.
+- On `switch-a` only, the two tables endpoint collection reads: a BRIDGE-MIB
+  forwarding database (`dot1dTpFdbTable` + `dot1dBasePortTable`) and an ARP
+  cache (`ipNetToMediaTable`). Together they say a MAC `02:cc:00:00:00:13`
+  answering at `172.30.99.14` was learned on access port `Gi0/4` - a
+  register plugged into the switch. The forwarding database also lists
+  `switch-b`'s chassis MAC on the uplink `Gi0/2`, which the server drops
+  because LLDP says a switch is on that port. Nothing answers at
+  `172.30.99.14`: a device registered there reads Down, and the attachment
+  is drawn regardless, because it comes from the switch's tables and not
+  from the device.
 
 ## Quick start
 
@@ -61,12 +81,27 @@ ports and use `127.0.0.1` + that port as the device address instead.)
    bandwidth/utilization/error charts have data (rates are computed from the
    counter delta between two polls).
 3. **Topology** - once both switches have been polled, the Topology page shows
-   `switch-a <-> switch-b` (mutual LLDP adjacency, matched by sysName) plus an
-   unmanaged `core-router` node hanging off `switch-a`.
-4. **Discovery** - run a discovery scan with CIDR `172.30.99.0/28`, v2c,
+   `switch-a <-> switch-b` (mutual LLDP adjacency, matched by sysName) plus two
+   unmanaged nodes hanging off `switch-a`: `core-router` (LLDP) and the IP
+   phone `SEP0011AA22BB33` (CDP). Click either one: the drawer shows the
+   address its neighbour advertised for it and offers **Add to Monitoring**,
+   which opens the device create form pre-filled with that name, address, role
+   and the site and probe `switch-a` uses.
+4. **A ping-only device on its switch port** - register a device with
+   **no** SNMP credentials at `172.30.99.14` (say `register-01`, role Host,
+   same site as `switch-a` - or both with no site), and turn **Collect
+   Connected Endpoints** on for `switch-a`. After `switch-a`'s next walk its
+   ARP table fills in `register-01`'s MAC address, its forwarding table puts
+   that MAC on `Gi0/4`, and the Topology page draws `switch-a -> register-01`
+   as a learned (dashed) link with `register-01` beneath the switch in the
+   Parent-Child view; the device's Overview page shows the same under
+   **Connected to**. Nothing about `register-01` was typed but its address.
+   The address must be registered on exactly one device in that site: two
+   devices at one address are refused as ambiguous rather than guessed at.
+5. **Discovery** - run a discovery scan with CIDR `172.30.99.0/28`, v2c,
    community `public`. It should find all three devices (and offer to import
    the unregistered ones).
-5. **Traps** - the probe listens on UDP/162. Send a linkDown trap *from* a
+6. **Traps** - the probe listens on UDP/162. Send a linkDown trap *from* a
    device container so the source IP matches the registered hostname:
 
    ```bash

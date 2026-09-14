@@ -50,6 +50,9 @@ import MonitorStepDnssecMonitor, {
 import MonitorStepSqlMonitor, {
   MonitorStepSqlMonitorUtil,
 } from "./MonitorStepSqlMonitor";
+import MonitorStepDatabaseMonitor, {
+  MonitorStepDatabaseMonitorUtil,
+} from "./MonitorStepDatabaseMonitor";
 import SqlDatabaseType from "./SqlDatabaseType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
@@ -69,6 +72,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "./MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+} from "./MonitorStepVMwareMonitor";
 import MonitorStepDockerSwarmMonitor, {
   MonitorStepDockerSwarmMonitorUtil,
 } from "./MonitorStepDockerSwarmMonitor";
@@ -79,7 +85,9 @@ import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "./MonitorStepIoTMonitor";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
+import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -116,6 +124,8 @@ export const clampMonitorRetryCount: (value: number) => number = (
 
 export interface MonitorStepType {
   id: string;
+  // Template policy: keep these fields from each linked monitor during sync.
+  doNotSyncFields?: Array<string> | undefined;
   monitorDestination?: URL | IP | Hostname | undefined;
 
   monitorCriteria: MonitorCriteria;
@@ -203,6 +213,9 @@ export interface MonitorStepType {
   // SQL Query monitor
   sqlMonitor?: MonitorStepSqlMonitor | undefined;
 
+  // Database Health monitor (built-in catalog metrics, no user query)
+  databaseMonitor?: MonitorStepDatabaseMonitor | undefined;
+
   // External Status Page monitor
   externalStatusPageMonitor?: MonitorStepExternalStatusPageMonitor | undefined;
 
@@ -220,6 +233,9 @@ export interface MonitorStepType {
 
   // Proxmox monitor
   proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
+
+  // VMware monitor
+  vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
 
   // Docker Swarm monitor
   dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
@@ -268,12 +284,14 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       dnssecMonitor: undefined,
       sqlMonitor: undefined,
+      databaseMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       iotMonitor: undefined,
@@ -344,12 +362,23 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       dnssecMonitor: undefined,
       sqlMonitor: undefined,
+      /*
+       * Seeded, unlike sqlMonitor. The SQL form always writes its config
+       * because the query field is required; a Database Health step has no
+       * required field, so an untouched step would reach the probe with no
+       * connection details at all and the monitor would never run.
+       */
+      databaseMonitor:
+        arg.monitorType === MonitorType.Database
+          ? MonitorStepDatabaseMonitorUtil.getDefault()
+          : undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       iotMonitor: undefined,
@@ -385,8 +414,57 @@ export default class MonitorStep extends DatabaseProperty {
       data.hostMonitor?.metricViewConfig ||
       data.podmanMonitor?.metricViewConfig ||
       data.proxmoxMonitor?.metricViewConfig ||
+      data.vmwareMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig
     );
+  }
+
+  /**
+   * The union of `groupByAttributeKeys` across every metric query config
+   * on this step — i.e. the attributes the monitor is grouped by.
+   *
+   * This is the single source of truth for "is this monitor grouped?".
+   * The telemetry worker uses it to decide whether to build a
+   * `seriesBreakdown`, and the criteria evaluator uses it to decide
+   * whether a criteria is *meant* to fan out one alert/incident per
+   * series. Those two answers must never disagree: when they did, a
+   * grouped monitor that produced no per-series match silently fell
+   * back to a single whole-monitor alert whose dedupe key carries no
+   * series, and every host after the first was skipped for as long as
+   * that alert stayed open.
+   */
+  public static getGroupByAttributeKeys(
+    monitorStep: MonitorStep | undefined,
+  ): Array<string> {
+    return MonitorStep.getGroupByAttributeKeysFromQueryConfigs(
+      MonitorStep.getMetricsViewConfig(monitorStep)?.queryConfigs || [],
+    );
+  }
+
+  /**
+   * The query-config-level half of `getGroupByAttributeKeys`, for the
+   * telemetry worker which already holds the configs and never
+   * reconstructs the step. Per-series alerting needs a consistent key
+   * set across queries so formula series line up — otherwise `a + b`
+   * would split differently for `a` and for `b` and the per-series
+   * formula evaluation would not align — hence the union rather than
+   * per-query keys.
+   */
+  public static getGroupByAttributeKeysFromQueryConfigs(
+    queryConfigs: Array<MetricQueryConfigData>,
+  ): Array<string> {
+    const keys: Set<string> = new Set<string>();
+
+    for (const queryConfig of queryConfigs) {
+      for (const key of queryConfig?.metricQueryData?.groupByAttributeKeys ||
+        []) {
+        if (key) {
+          keys.add(key);
+        }
+      }
+    }
+
+    return Array.from(keys);
   }
 
   public get id(): ObjectID {
@@ -571,6 +649,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDatabaseMonitor(
+    databaseMonitor: MonitorStepDatabaseMonitor,
+  ): MonitorStep {
+    this.data!.databaseMonitor = databaseMonitor;
+    return this;
+  }
+
   public setExternalStatusPageMonitor(
     externalStatusPageMonitor: MonitorStepExternalStatusPageMonitor,
   ): MonitorStep {
@@ -608,6 +693,13 @@ export default class MonitorStep extends DatabaseProperty {
     proxmoxMonitor: MonitorStepProxmoxMonitor,
   ): MonitorStep {
     this.data!.proxmoxMonitor = proxmoxMonitor;
+    return this;
+  }
+
+  public setVMwareMonitor(
+    vmwareMonitor: MonitorStepVMwareMonitor,
+  ): MonitorStep {
+    this.data!.vmwareMonitor = vmwareMonitor;
     return this;
   }
 
@@ -668,6 +760,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
+        vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
         iotMonitor: undefined,
@@ -681,6 +774,15 @@ export default class MonitorStep extends DatabaseProperty {
   ): string | null {
     if (!value.data) {
       return "Monitor Step is required.";
+    }
+
+    try {
+      MonitorTemplateSyncFieldUtil.parse(
+        value.data.doNotSyncFields,
+        monitorType,
+      );
+    } catch (error) {
+      return (error as Error).message;
     }
 
     // If the monitor type is incoming request, then the monitor destination is not required
@@ -827,6 +929,42 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Database) {
+      if (!value.data.databaseMonitor) {
+        return "Database monitor configuration is required";
+      }
+
+      if (!value.data.databaseMonitor.host) {
+        return "Database host is required";
+      }
+
+      if (!value.data.databaseMonitor.databaseName) {
+        return "Database name is required";
+      }
+
+      /*
+       * Deliberately no query check - that is the difference between this
+       * monitor and the SQL Query monitor. Nor is a metric group required:
+       * an empty list is normalized back to every group rather than
+       * rejected, so a step can never be saved in a state that silently
+       * collects nothing.
+       */
+      if (
+        value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        value.data.databaseMonitor.databaseType !==
+          SqlDatabaseType.MicrosoftSqlServer
+      ) {
+        return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
+      }
+
+      if (
+        !value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        !value.data.databaseMonitor.username
+      ) {
+        return "Database username is required";
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       if (!value.data.externalStatusPageMonitor) {
         return "External status page configuration is required";
@@ -887,6 +1025,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.VMware) {
+      if (!value.data.vmwareMonitor) {
+        return "VMware monitor configuration is required";
+      }
+
+      if (!value.data.vmwareMonitor.vcenterIdentifier) {
+        return "vCenter is required";
+      }
+    }
+
     if (monitorType === MonitorType.DockerSwarm) {
       if (!value.data.dockerSwarmMonitor) {
         return "Docker Swarm monitor configuration is required";
@@ -926,24 +1074,26 @@ export default class MonitorStep extends DatabaseProperty {
         _type: ObjectType.MonitorStep,
         value: {
           id: this.data.id,
+          doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+            this.data.doNotSyncFields,
+          ),
           monitorDestination:
             this.data?.monitorDestination?.toJSON() || undefined,
-          doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
-          allowSelfSignedCertificates:
-            this.data.allowSelfSignedCertificates || undefined,
-          tlsClientCertificate: this.data.tlsClientCertificate || undefined,
-          tlsClientKey: this.data.tlsClientKey || undefined,
-          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase || undefined,
+          doNotFollowRedirects: this.data.doNotFollowRedirects,
+          allowSelfSignedCertificates: this.data.allowSelfSignedCertificates,
+          tlsClientCertificate: this.data.tlsClientCertificate,
+          tlsClientKey: this.data.tlsClientKey,
+          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
           requestType: this.data.requestType,
           requestHeaders: this.data.requestHeaders || undefined,
-          requestBody: this.data.requestBody || undefined,
-          customCode: this.data.customCode || undefined,
+          requestBody: this.data.requestBody,
+          customCode: this.data.customCode,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
-          retryCountOnError: this.data.retryCountOnError || undefined,
+          retryCountOnError: this.data.retryCountOnError,
           requestTimeoutInMs: this.data.requestTimeoutInMs || undefined,
           retryCount:
             this.data.retryCount === undefined
@@ -1000,6 +1150,9 @@ export default class MonitorStep extends DatabaseProperty {
           sqlMonitor: this.data.sqlMonitor
             ? MonitorStepSqlMonitorUtil.toJSON(this.data.sqlMonitor)
             : undefined,
+          databaseMonitor: this.data.databaseMonitor
+            ? MonitorStepDatabaseMonitorUtil.toJSON(this.data.databaseMonitor)
+            : undefined,
           externalStatusPageMonitor: this.data.externalStatusPageMonitor
             ? MonitorStepExternalStatusPageMonitorUtil.toJSON(
                 this.data.externalStatusPageMonitor,
@@ -1021,6 +1174,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          vmwareMonitor: this.data.vmwareMonitor
+            ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
             : undefined,
           dockerSwarmMonitor: this.data.dockerSwarmMonitor
             ? MonitorStepDockerSwarmMonitorUtil.toJSON(
@@ -1108,15 +1264,18 @@ export default class MonitorStep extends DatabaseProperty {
 
     monitorStep.data = JSONFunctions.deserialize({
       id: json["id"] as string,
+      doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+        json["doNotSyncFields"],
+      ),
       monitorDestination: monitorDestination || undefined,
-      doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
+      doNotFollowRedirects: json["doNotFollowRedirects"] ?? undefined,
       allowSelfSignedCertificates:
-        json["allowSelfSignedCertificates"] || undefined,
+        json["allowSelfSignedCertificates"] ?? undefined,
       tlsClientCertificate:
-        (json["tlsClientCertificate"] as string) || undefined,
-      tlsClientKey: (json["tlsClientKey"] as string) || undefined,
+        (json["tlsClientCertificate"] as string) ?? undefined,
+      tlsClientKey: (json["tlsClientKey"] as string) ?? undefined,
       tlsClientKeyPassphrase:
-        (json["tlsClientKeyPassphrase"] as string) || undefined,
+        (json["tlsClientKeyPassphrase"] as string) ?? undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,
@@ -1124,12 +1283,12 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: (json["requestType"] as HTTPMethod) || HTTPMethod.GET,
       requestHeaders:
         (json["requestHeaders"] as Dictionary<string>) || undefined,
-      requestBody: (json["requestBody"] as string) || undefined,
-      customCode: (json["customCode"] as string) || undefined,
+      requestBody: (json["requestBody"] as string) ?? undefined,
+      customCode: (json["customCode"] as string) ?? undefined,
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
-      retryCountOnError: (json["retryCountOnError"] as number) || undefined,
+      retryCountOnError: (json["retryCountOnError"] as number) ?? undefined,
       requestTimeoutInMs: (json["requestTimeoutInMs"] as number) || undefined,
       retryCount:
         json["retryCount"] === undefined || json["retryCount"] === null
@@ -1201,6 +1360,18 @@ export default class MonitorStep extends DatabaseProperty {
       sqlMonitor: json["sqlMonitor"]
         ? (json["sqlMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalized on the way in, like metricMonitor above: the group list
+       * and the timeouts are clamped here so no consumer downstream has to
+       * defend against a step written by an older build or by hand.
+       */
+      databaseMonitor: json["databaseMonitor"]
+        ? MonitorStepDatabaseMonitorUtil.toJSON(
+            MonitorStepDatabaseMonitorUtil.fromJSON(
+              json["databaseMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)
         : undefined,
@@ -1218,6 +1389,9 @@ export default class MonitorStep extends DatabaseProperty {
         : undefined,
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      vmwareMonitor: json["vmwareMonitor"]
+        ? (json["vmwareMonitor"] as JSONObject)
         : undefined,
       dockerSwarmMonitor: json["dockerSwarmMonitor"]
         ? (json["dockerSwarmMonitor"] as JSONObject)
@@ -1238,6 +1412,16 @@ export default class MonitorStep extends DatabaseProperty {
       _type: Zod.literal(ObjectType.MonitorStep),
       value: Zod.object({
         id: Zod.string(),
+        doNotSyncFields: Zod.array(
+          Zod.string().refine((value: string): boolean => {
+            try {
+              MonitorTemplateSyncFieldUtil.parse([value]);
+              return true;
+            } catch {
+              return false;
+            }
+          }, "Unsupported do not sync field"),
+        ).optional(),
         monitorDestination: Zod.any().optional(),
         monitorCriteria: Zod.any(),
         requestType: Zod.any(),
@@ -1266,12 +1450,14 @@ export default class MonitorStep extends DatabaseProperty {
         domainMonitor: Zod.any().optional(),
         dnssecMonitor: Zod.any().optional(),
         sqlMonitor: Zod.any().optional(),
+        databaseMonitor: Zod.any().optional(),
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),
         hostMonitor: Zod.any().optional(),
         podmanMonitor: Zod.any().optional(),
         proxmoxMonitor: Zod.any().optional(),
+        vmwareMonitor: Zod.any().optional(),
         dockerSwarmMonitor: Zod.any().optional(),
         cephMonitor: Zod.any().optional(),
         iotMonitor: Zod.any().optional(),

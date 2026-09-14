@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(configuração, estado, metadados)")]
       CH[("ClickHouse\n(métricas, rastreamentos, logs)")]
-      REDIS[("Redis\n(cache, filas, sessões)")]
+      REDIS[("Valkey\n(cache, filas, sessões)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## O que isso mostra
 
 - Os usuários finais acessam o OneUptime através do Ingress do seu cluster (NGINX), que roteia para a UI e API.
-- Os serviços principais leem/escrevem estado no PostgreSQL, Redis e ClickHouse.
+- Os serviços principais leem/escrevem estado no PostgreSQL, no Valkey (o fork do Redis 7.2 com licença BSD) e no ClickHouse.
 - As Probes podem ser executadas dentro do seu cluster (recomendado) e/ou em outros lugares da sua rede. Elas podem monitorar:
   - Serviços internos/privados atrás do seu firewall.
   - Recursos externos/públicos na internet.
-- Os resultados das Probes são enviados para a Ingestão de Probe dentro do seu cluster, enfileirados via Redis e processados pelo Worker em Segundo Plano em seus armazenamentos de dados.
+- Os resultados das Probes são enviados para a Ingestão de Probe dentro do seu cluster, enfileirados via Valkey e processados pelo Worker em Segundo Plano em seus armazenamentos de dados.
 - Telemetria (métricas/rastreamentos/logs) e dados de servidor/agente podem ser ingeridos via serviços dedicados de ingestão e armazenados no ClickHouse.
 
 > Nota: Se você usar PostgreSQL, Redis ou ClickHouse externos em vez dos integrados, as conexões de API/Worker/Ingest apontam para seus endpoints externos. O fluxo lógico permanece o mesmo.

@@ -55,6 +55,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.Ceph,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isTelemetryMonitor(monitorType)).toBe(true);
@@ -124,6 +125,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
+      MonitorType.Database,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isProbableMonitor(monitorType)).toBe(true);
     });

@@ -21,6 +21,10 @@ import MonitorStepMetricMonitor from "../../../Types/Monitor/MonitorStepMetricMo
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MonitorStepTraceMonitor from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExceptionMonitor";
+import {
+  ServiceAlertTemplate,
+  getAllServiceAlertTemplates,
+} from "../../../Types/Monitor/ServiceAlertTemplates";
 
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 
@@ -100,6 +104,74 @@ const WEB_VITAL_CASES: Array<WebVitalCase> = [
     severity: "Warning",
   },
 ];
+
+/*
+ * The category and severity of every template, pinned in one place.
+ *
+ * Before this table only the five web vitals had their severity asserted, and
+ * that gap is exactly how `rum-failed-user-operations` came to page Critical
+ * on a bar — "more than zero error-status spans in five minutes" — that the
+ * Service catalog had already decided was a Warning for the identical signal.
+ * `severity` is not cosmetic: MonitorRecommendationSeverityMapper maps
+ * Critical onto the project's most severe incident/alert severity and Warning
+ * onto the next one down.
+ */
+const SEVERITY_CASES: Array<{
+  id: string;
+  category: string;
+  severity: string;
+}> = [
+  { id: "rum-poor-lcp", category: "Core Web Vitals", severity: "Critical" },
+  { id: "rum-poor-inp", category: "Core Web Vitals", severity: "Critical" },
+  { id: "rum-poor-cls", category: "Core Web Vitals", severity: "Critical" },
+  { id: "rum-slow-fcp", category: "Core Web Vitals", severity: "Warning" },
+  { id: "rum-slow-ttfb", category: "Core Web Vitals", severity: "Warning" },
+  {
+    id: "rum-failed-user-operations",
+    category: "Errors",
+    severity: "Warning",
+  },
+  {
+    id: "rum-unhandled-exceptions",
+    category: "Errors",
+    severity: "Critical",
+  },
+];
+
+/*
+ * The community spellings `WEB_VITAL_DEFS` in telemetryMetrics.ts probes for,
+ * copied verbatim. The overview card tries all four and keeps whichever has
+ * data; a monitor holds exactly one name and matches it exactly, so a template
+ * pointed at `web_vital.*` is silent forever on an app emitting one of the
+ * others — with no error and nothing on screen to say why.
+ */
+const WEB_VITAL_ALTERNATE_NAMES: Record<string, Array<string>> = {
+  "rum-poor-lcp": [
+    "browser.largest_contentful_paint",
+    "largest_contentful_paint",
+    "web.vitals.lcp",
+  ],
+  "rum-poor-inp": [
+    "browser.interaction_to_next_paint",
+    "interaction_to_next_paint",
+    "web.vitals.inp",
+  ],
+  "rum-poor-cls": [
+    "browser.cumulative_layout_shift",
+    "cumulative_layout_shift",
+    "web.vitals.cls",
+  ],
+  "rum-slow-fcp": [
+    "browser.first_contentful_paint",
+    "first_contentful_paint",
+    "web.vitals.fcp",
+  ],
+  "rum-slow-ttfb": [
+    "browser.time_to_first_byte",
+    "time_to_first_byte",
+    "web.vitals.ttfb",
+  ],
+};
 
 describe("RumAlertTemplates", () => {
   test("registers every template exactly once", () => {
@@ -271,6 +343,70 @@ describe("RumAlertTemplates", () => {
       expect(recovery?.data?.alerts).toEqual([]);
     }
   });
+
+  test.each(SEVERITY_CASES)(
+    "$id is a $severity in $category",
+    (item: { id: string; category: string; severity: string }) => {
+      const template: RumAlertTemplate = getTemplate(item.id);
+
+      expect(template.category).toBe(item.category);
+      expect(template.severity).toBe(item.severity);
+    },
+  );
+
+  test("covers every shipped template in the severity table", () => {
+    expect(
+      SEVERITY_CASES.map((item: { id: string }) => {
+        return item.id;
+      }).sort(),
+    ).toEqual(
+      getAllRumAlertTemplates()
+        .map((template: RumAlertTemplate) => {
+          return template.id;
+        })
+        .sort(),
+    );
+  });
+
+  /*
+   * The two catalogs ship the same signal — a trace monitor counting
+   * error-status spans with a threshold of zero — against different resource
+   * types. They differ only in window (five minutes here, ten there). If one
+   * pages and the other does not, a team gets woken by their frontend for
+   * something their backend deliberately downgrades, and browser spans are the
+   * noisier of the two.
+   */
+  test("does not page harder than the Service catalog does on the identical signal", () => {
+    const serviceEquivalent: ServiceAlertTemplate | undefined =
+      getAllServiceAlertTemplates().find((template: ServiceAlertTemplate) => {
+        return template.id === "service-failed-operations";
+      });
+
+    expect(serviceEquivalent).toBeDefined();
+    expect(getTemplate("rum-failed-user-operations").severity).toBe(
+      serviceEquivalent!.severity,
+    );
+    expect(serviceEquivalent!.severity).toBe("Warning");
+  });
+
+  /*
+   * A silent monitor is indistinguishable from a healthy application, so a
+   * template that can only read one of four live spellings has to say which
+   * one it reads and what the others are. Retargeting is then one visible
+   * edit rather than a mystery.
+   */
+  test.each(WEB_VITAL_CASES)(
+    "$id names the metric it reads and every spelling it does not",
+    (item: WebVitalCase) => {
+      const template: RumAlertTemplate = getTemplate(item.id);
+
+      expect(template.description).toContain(item.metricName);
+
+      for (const alternate of WEB_VITAL_ALTERNATE_NAMES[item.id]!) {
+        expect(template.description).toContain(alternate);
+      }
+    },
+  );
 
   test("metric monitor serialization preserves the RUM application scope", () => {
     const original: MonitorStep =

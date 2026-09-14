@@ -15,6 +15,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardUserUtil from "../../../Utils/User";
+import ScheduleSubscribeCard from "../../../Components/OnCallPolicy/CalendarFeed/ScheduleSubscribeCard";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
@@ -203,6 +204,7 @@ const OnCallDutyScheduleView: FunctionComponent<
             rosterHandoffAt: true,
             rosterStartAt: true,
             rosterNextStartAt: true,
+            timezone: true,
           },
           onItemLoaded: (item: OnCallDutySchedule): void => {
             if (!onCallSchedule) {
@@ -260,6 +262,15 @@ const OnCallDutyScheduleView: FunctionComponent<
           }
         />
       )}
+
+      <ScheduleSubscribeCard
+        scheduleId={modelId}
+        scheduleTimezone={
+          onCallSchedule
+            ? onCallSchedule.timezone?.toString() || null
+            : undefined
+        }
+      />
 
       <FinalPreview
         onCallDutyPolicyScheduleId={modelId}

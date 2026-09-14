@@ -1,0 +1,66 @@
+{
+  "name": "@oneuptime/react-native-replay",
+  "version": "13.0.4",
+  "description": "Privacy-first OneUptime session replay recorder for React Native applications.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime",
+    "directory": "App/FeatureSet/MobileRecorder"
+  },
+  "license": "Apache-2.0",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "react-native": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "files": [
+    "android",
+    "ios",
+    "dist",
+    "OneUptimeReactNativeReplay.podspec",
+    "react-native.config.js",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "react-native": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.js && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "compile": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "node --max-old-space-size=4096 node_modules/.bin/jest --runInBand --config jest.config.js",
+    "test:coverage": "npm test -- --coverage",
+    "audit": "npm audit --audit-level=low",
+    "clear-modules": "rm -rf node_modules package-lock.json && npm install"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=1.20.0",
+    "react": ">=18.2.0",
+    "react-native": ">=0.73.0"
+  },
+  "devDependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@types/jest": "^29.5.14",
+    "@types/react": "^19.1.10",
+    "@types/react-test-renderer": "^19.1.0",
+    "esbuild": "^0.28.1",
+    "jest": "^29.7.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-test-renderer": "19.1.0",
+    "ts-jest": "^29.4.1",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

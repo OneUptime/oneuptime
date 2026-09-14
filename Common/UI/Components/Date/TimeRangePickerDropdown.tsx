@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -54,12 +55,15 @@ export const TIME_RANGE_PRESET_OPTIONS: Array<TimeRangePickerPresetOption> = [
   { range: TimeRange.PAST_THREE_MONTHS, label: "Past 3 Months" },
 ];
 
+/*
+ * Both ends of a custom window are written the way the user's machine writes
+ * times: on its 12- or 24-hour clock, in the timezone they configured. Reading
+ * the digits off the Date itself - which is what this used to do - pinned the
+ * label to a 24-hour clock in whatever zone the browser process happened to be
+ * in, so a machine set to AM/PM still got "Mar 1, 14:30" back.
+ */
 function formatDateShort(date: Date): string {
-  const month: string = date.toLocaleString("en-US", { month: "short" });
-  const day: number = date.getDate();
-  const hours: string = date.getHours().toString().padStart(2, "0");
-  const minutes: string = date.getMinutes().toString().padStart(2, "0");
-  return `${month} ${day}, ${hours}:${minutes}`;
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date);
 }
 
 export function getTimeRangeButtonLabel(

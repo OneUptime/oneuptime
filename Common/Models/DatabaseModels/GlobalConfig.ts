@@ -1153,9 +1153,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
-    title: "Redis Memory Notifications",
+    title: "Valkey Memory Notifications",
     description:
-      "Notify master administrators when Redis memory usage rises above the configured threshold.",
+      "Notify master administrators when Valkey memory usage rises above the configured threshold.",
     defaultValue: false,
     isDefaultValueColumn: true,
     required: true,
@@ -1174,9 +1174,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
-    title: "Redis Memory Notification Threshold (%)",
+    title: "Valkey Memory Notification Threshold (%)",
     description:
-      "Notify master administrators when Redis memory usage rises above this percentage of maxmemory.",
+      "Notify master administrators when Valkey memory usage rises above this percentage of maxmemory.",
     defaultValue: 80,
     isDefaultValueColumn: true,
     required: true,
@@ -1195,9 +1195,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
-    title: "Redis Connection Saturation Notifications",
+    title: "Valkey Connection Saturation Notifications",
     description:
-      "Notify master administrators when Redis client connections approach the maxclients limit or connections are being rejected.",
+      "Notify master administrators when Valkey client connections approach the maxclients limit or connections are being rejected.",
     defaultValue: false,
     isDefaultValueColumn: true,
     required: true,
@@ -1216,9 +1216,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
-    title: "Redis Connection Notification Threshold (%)",
+    title: "Valkey Connection Notification Threshold (%)",
     description:
-      "Notify master administrators when connected Redis clients rise above this percentage of maxclients.",
+      "Notify master administrators when connected Valkey clients rise above this percentage of maxclients.",
     defaultValue: 80,
     isDefaultValueColumn: true,
     required: true,
@@ -1237,9 +1237,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
-    title: "Redis Key Eviction Notifications",
+    title: "Valkey Key Eviction Notifications",
     description:
-      "Notify master administrators when Redis evicts keys because it reached its memory limit.",
+      "Notify master administrators when Valkey evicts keys because it reached its memory limit.",
     defaultValue: false,
     isDefaultValueColumn: true,
     required: true,
@@ -1258,9 +1258,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
-    title: "Redis Persistence Failure Notifications",
+    title: "Valkey Persistence Failure Notifications",
     description:
-      "Notify master administrators when a Redis RDB snapshot or AOF write fails.",
+      "Notify master administrators when a Valkey RDB snapshot or AOF write fails.",
     defaultValue: false,
     isDefaultValueColumn: true,
     required: true,

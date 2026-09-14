@@ -2,8 +2,13 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
+import {
+  AdditionalCriteriaFilterSpec,
+  buildHealthyCriteriaInstance,
+  buildUnhealthyCriteriaInstance,
+} from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
+import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepProxmoxMonitor from "./MonitorStepProxmoxMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -106,59 +111,22 @@ export function buildProxmoxOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * Extra comparisons combined with the primary one per `filterCondition`.
+   * On a grouped monitor they are combined WITHIN a series
+   * (MonitorCriteriaEvaluator.collectPerSeriesMatches buckets every
+   * filter's result by series fingerprint), so `All` means "this guest is
+   * down AND this same guest is meant to be up" rather than "some guest is
+   * down and some other guest has onboot set".
+   */
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  filterCondition?: FilterCondition | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const incidentTitle: string =
-    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
-  const incidentDescription: string =
-    args.incidentDescription ||
-    `${args.monitorName} has triggered an alert condition. See root cause for detailed Proxmox cluster information.`;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        incidentSeverityId: args.incidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        alertSeverityId: args.alertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
-    description:
-      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
-  };
-
-  return instance;
+  return buildUnhealthyCriteriaInstance({
+    ...args,
+    resourceNoun: "Proxmox resource",
+  });
 }
 
 export function buildProxmoxOnlineCriteriaInstance(args: {
@@ -166,34 +134,20 @@ export function buildProxmoxOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  recoveryValue?: number | undefined;
+  marginFraction?: number | undefined;
+  isBinaryMetric?: boolean | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * Extra recovery comparisons. Left on the builder default
+   * (FilterCondition.Any) they mean "any one of these clears the alert";
+   * pass FilterCondition.All to require every watched series to have
+   * cleared.
+   */
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  filterCondition?: FilterCondition | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: "Criteria for healthy state.",
-  };
-
-  return instance;
+  return buildHealthyCriteriaInstance(args);
 }
 
 export function buildProxmoxMonitorConfig(args: {
@@ -204,6 +158,20 @@ export function buildProxmoxMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  /*
+   * Display unit for this query's samples. The worker converts the metric's
+   * INGESTED native unit into it
+   * (MetricResultUnitConverter.convertQueryResultsToDisplayUnit), and the
+   * criteria evaluator then converts from it into the criteria's threshold
+   * unit. Pin it whenever the threshold is written in a different unit from
+   * the raw series: pinning removes the dependency on whatever unit string
+   * the exporter happened to ship (pve-exporter serves no OpenMetrics
+   * `# UNIT` metadata, so the ingested native unit can be empty and the
+   * fallback in MetricMonitorCriteria.buildMetricContext cannot be relied
+   * on). Use OTel's "1" for a dimensionless [0, 1] ratio. Leave undefined
+   * for counts and booleans.
+   */
+  legendUnit?: string | undefined;
 }): MonitorStepProxmoxMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -216,7 +184,7 @@ export function buildProxmoxMonitorConfig(args: {
             title: args.metricAlias,
             description: args.metricAlias,
             legend: args.metricAlias,
-            legendUnit: undefined,
+            legendUnit: args.legendUnit,
           },
           metricQueryData: {
             filterData: {
@@ -231,6 +199,61 @@ export function buildProxmoxMonitorConfig(args: {
           },
         },
       ],
+      formulaConfigs: [],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
+export interface ProxmoxQuery {
+  alias: string;
+  metricName: string;
+  attributes?: Record<string, string> | undefined;
+}
+
+/**
+ * Build a monitor that watches SEVERAL metrics with no formula, so one
+ * criteria can qualify another (Ceph's buildCephMultiQueryMonitorConfig is
+ * the same shape). Every query shares the group-by key, which is what lets
+ * the per-series evaluator line them up: series fingerprints are computed
+ * from the grouped LABELS alone (MetricSeriesFingerprint.computeFingerprint),
+ * so two queries grouped by `id` land on the same fingerprint and
+ * `FilterCondition.All` is satisfied by the SAME series — the same `id` —
+ * rather than merely somewhere in the cluster.
+ */
+export function buildProxmoxMultiQueryMonitorConfig(args: {
+  clusterIdentifier: string;
+  queries: Array<ProxmoxQuery>;
+  rollingTime: RollingTime;
+  aggregationType: MetricsAggregationType;
+  groupByAttributeKey?: string | undefined;
+}): MonitorStepProxmoxMonitor {
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: args.queries.map((query: ProxmoxQuery) => {
+        return {
+          metricAliasData: {
+            metricVariable: query.alias,
+            title: query.alias,
+            description: query.alias,
+            legend: query.alias,
+            legendUnit: undefined,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: query.metricName,
+              attributes: query.attributes || {},
+              aggegationType: args.aggregationType,
+              aggregateBy: {},
+            },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
+          },
+        };
+      }),
       formulaConfigs: [],
     },
     rollingTime: args.rollingTime,
@@ -370,6 +393,12 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 1,
+        /*
+         * `pve_up` is strictly 0 or 1, so the shared 10% recovery dead band
+         * would put this at `>= 1.1` — unreachable, leaving the monitor
+         * permanently unable to report healthy.
+         */
+        isBinaryMetric: true,
       }),
     });
   },
@@ -379,24 +408,57 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
   id: "pve-guest-down",
   name: "Guest Down",
   description:
-    "Alert when any VM or container reports as down (pve_up = 0, scoped to guests via pve.scope). One incident per guest. Intentionally stopped guests also report 0 — add a pve.id filter to scope to guests that should always run.",
+    "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. Guests you stopped on purpose are excluded automatically — a guest with onboot disabled never fires.",
   category: "Availability",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "guest_up";
+    const onbootAlias: string = "guest_onboot";
 
+    /*
+     * "Down" alone is not an incident on a hypervisor. pve_up reads 0 for
+     * every intentionally stopped template VM and powered-down test
+     * container, so a one-click "Guest Down" monitor scoped only by
+     * pve.scope opens a Warning for each of them — and the alert body used
+     * to tell the recipient to go and re-scope the monitor themselves.
+     *
+     * pve_onboot_status is Proxmox's own declaration of which guests are
+     * supposed to be running (`onboot: 1` in the guest config). Requiring
+     * it turns the criteria into "a guest Proxmox says should be running is
+     * not running", which is the only version of this that is safe to
+     * enable with one click.
+     *
+     * Fail-closed on purpose: buildSeriesBreakdown emits every fingerprint
+     * seen across BOTH queries and hands an absent query an empty slot, so
+     * a guest with no pve_onboot_status series evaluates that filter under
+     * NoDataPolicy.Ignore to "not breaching", FilterCondition.All is not
+     * satisfied, and nothing fires. A missed Warning on a non-default
+     * exporter beats a permanent false page on every default install.
+     */
     return buildProxmoxMonitorStep({
-      proxmoxMonitor: buildProxmoxMonitorConfig({
+      proxmoxMonitor: buildProxmoxMultiQueryMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "pve_up",
-        metricAlias,
+        queries: [
+          {
+            alias: metricAlias,
+            metricName: "pve_up",
+            attributes: { "pve.scope": "guest" },
+          },
+          {
+            alias: onbootAlias,
+            metricName: "pve_onboot_status",
+            attributes: { "pve.scope": "guest" },
+          },
+        ],
         rollingTime: RollingTime.Past5Minutes,
         /*
          * Min per guest — a single down scrape trips the threshold instead
-         * of being masked by scrapes where the guest was still up.
+         * of being masked by scrapes where the guest was still up. Min is
+         * also the catalog default for pve_onboot_status, and is the
+         * conservative reading there: the guest must have been marked
+         * start-on-boot in every scrape of the window.
          */
         aggregationType: MetricsAggregationType.Min,
-        attributes: { "pve.scope": "guest" },
         groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
@@ -407,17 +469,53 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
         metricAlias,
         filterType: FilterType.LessThan,
         value: 1,
+        /*
+         * Both must hold for the SAME guest: down AND meant to be running.
+         * Per-series All is what makes "same guest" true rather than "some
+         * guest is down and some other guest has onboot set" — the two
+         * queries share the `id` group-by, so they land on one fingerprint.
+         */
+        filterCondition: FilterCondition.All,
+        additionalFilters: [
+          {
+            metricAlias: onbootAlias,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
         incidentTitle: `[Proxmox] Guest Down - ${args.monitorName}`,
-        incidentDescription: `A Proxmox guest (VM or container) is reporting as down (pve_up = 0). It has stopped or crashed. Check the root cause for the affected guest id. Note: intentionally stopped guests also report pve_up = 0 — add a pve.id attribute filter to scope this monitor to guests that should always be running.`,
-        criteriaName: "Guest Down - pve_up < 1",
+        incidentDescription: `A Proxmox guest (VM or container) configured to start on boot (onboot = 1) is reporting as down (pve_up = 0) for the whole evaluation window. It stopped or crashed rather than being shut down on purpose — guests with onboot disabled are excluded from this monitor. See the affected resource on this alert for the guest id, then check that node's task log for a failed start, a fenced HA resource, or an out-of-memory kill.`,
+        criteriaName: "Guest Down - pve_up < 1 while onboot = 1",
         criteriaDescription:
-          "Triggers when any guest reports pve_up below 1 over the monitoring window.",
+          "Triggers when a guest configured to start on boot reports pve_up below 1 for the whole monitoring window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 1,
+        /*
+         * `pve_up` is strictly 0 or 1, so the shared 10% recovery dead band
+         * would put this at `>= 1.1` — unreachable, leaving the monitor
+         * permanently unable to report healthy.
+         */
+        isBinaryMetric: true,
+        /*
+         * Recovery is FilterCondition.Any (the builder default), so either
+         * half clears it: the guest came back, or someone deliberately
+         * turned start-on-boot off and it is no longer this monitor's
+         * business. The onboot half is also required by the shared suite
+         * invariant that every firing alias has a recovering filter on the
+         * same alias; {> 0} / {= 0} is the zero-threshold pair, which gets
+         * no dead band.
+         */
+        additionalFilters: [
+          {
+            metricAlias: onbootAlias,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
       }),
     });
   },
@@ -574,7 +672,7 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
   id: "pve-guest-high-cpu",
   name: "High Guest CPU Usage",
   description:
-    "Alert when any VM or container uses more than 90% of its allocated vCPUs (pve_cpu_usage_ratio > 0.9, scoped to guests). One incident per guest.",
+    "Alert when a VM or container sits above 95% of its allocated vCPUs (pve_cpu_usage_ratio > 0.95, scoped to guests) for a sustained 15 minutes. One incident per guest. Deliberately higher and slower than the node template: a guest is SUPPOSED to use the vCPUs it was given, so only a guest that never comes down is worth a page.",
   category: "Guest",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -585,7 +683,16 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         metricName: "pve_cpu_usage_ratio",
         metricAlias,
-        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Fifteen minutes, not five. The criteria is sustained (AllValues),
+         * so this window IS the alert's patience: a build, a backup, a
+         * database vacuum or a batch job pegs a right-sized 2-vCPU guest
+         * for several minutes by design, and paging for it is the "a pod at
+         * 91% of its CPU limit is healthy" false positive. Fifteen
+         * consecutive minutes at the ceiling is starvation; five is a
+         * workload.
+         */
+        rollingTime: RollingTime.Past15Minutes,
         /*
          * Avg per guest — pve_cpu_usage_ratio is already a true 0-1 ratio
          * (one series per guest), so the per-minute average is the
@@ -602,18 +709,29 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 0.9,
-        incidentTitle: `[Proxmox] High Guest CPU Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `A guest (VM or container) is using more than 90% of its allocated vCPUs. The workload inside the guest may be CPU-starved. Check the root cause for the affected guest id, then consider allocating more vCPUs or investigating the workload inside the guest.`,
-        criteriaName: "High Guest CPU - Usage Ratio > 0.9",
+        /*
+         * 0.95, not 0.9. `pve_cpu_usage_ratio` is usage as a fraction of
+         * AVAILABLE CPU, and for a guest "available" is its own vCPU
+         * allocation — a right-sized 2-vCPU guest running a build sits at
+         * 1.0 by design. 90% of an allocation is the allocation working;
+         * only a guest pinned within 5% of its ceiling for a quarter of an
+         * hour is starved. The node template stays at 0.9/5min on purpose:
+         * a node at 90% degrades every guest on it, which is a different
+         * and faster question.
+         */
+        value: 0.95,
+        incidentTitle: `[Proxmox] Sustained High Guest CPU Usage (>95%) - ${args.monitorName}`,
+        incidentDescription: `A guest (VM or container) has stayed above 95% of its allocated vCPUs for 15 minutes without a break. At that point the workload inside the guest is CPU-starved rather than merely busy. See the affected resource on this alert for the guest id, then consider allocating more vCPUs or investigating what is running inside the guest.`,
+        criteriaName: "High Guest CPU - Usage Ratio > 0.95 sustained",
         criteriaDescription:
-          "Triggers when any guest's average CPU usage ratio exceeds 0.9 over the monitoring window.",
+          "Triggers when a guest's average CPU usage ratio stays above 0.95 (95% of its allocated vCPUs) for every minute of the 15-minute window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 0.9,
+        // Recovers at 0.855 — the shared 10% dead band inside 0.95.
+        value: 0.95,
       }),
     });
   },

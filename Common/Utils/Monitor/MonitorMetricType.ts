@@ -1,5 +1,16 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
-import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
+import { CheckOn, CriteriaFilter } from "../../Types/Monitor/CriteriaFilter";
+import {
+  DatabaseMetricCategory,
+  DatabaseMetricDefinition,
+  getAllDatabaseMetrics,
+  getDatabaseMetricByMetricType,
+  getDatabaseMetricCategoryDescription,
+  getDatabaseMetricCategoryOrder,
+  getDatabaseMetricsByCategory,
+  getDatabaseMetricsForEngine,
+} from "../../Types/Monitor/DatabaseMetricCatalog";
+import SqlDatabaseType from "../../Types/Monitor/SqlDatabaseType";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType, {
   MonitorTypeHelper,
@@ -20,6 +31,19 @@ class MonitorMetricTypeUtil {
   public static getAggregationTypeByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
   ): AggregationType {
+    /*
+     * Database Health series carry their own aggregation in the catalog, so
+     * they resolve here instead of adding ~40 cases to this switch (and to
+     * the four other switches in this file). The catalog is the one place a
+     * new database metric has to be declared.
+     */
+    const databaseMetric: DatabaseMetricDefinition | null =
+      getDatabaseMetricByMetricType(monitorMetricType);
+
+    if (databaseMetric) {
+      return databaseMetric.defaultAggregation;
+    }
+
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
         return AggregationType.Avg;
@@ -275,6 +299,22 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.Database) {
+      /*
+       * Availability first, then every catalog series in category order.
+       * Engine filtering happens in getDatabaseMetricCategories, which is
+       * the only caller that knows which engine the monitor points at - this
+       * list is the full capability set for the monitor type.
+       */
+      return [
+        MonitorMetricType.IsOnline,
+        MonitorMetricType.ResponseTime,
+        ...getAllDatabaseMetrics().map((metric: DatabaseMetricDefinition) => {
+          return metric.metricType;
+        }),
+      ];
+    }
+
     if (
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
@@ -308,6 +348,14 @@ class MonitorMetricTypeUtil {
    */
   public static getMonitorMetricCategoriesByMonitorType(
     monitorType: MonitorType,
+    /*
+     * Database Health only. When the caller knows which engine the monitor
+     * is pointed at, pass it and the cards drop the series that engine can
+     * never write - so a MySQL monitor does not show a permanently empty
+     * "Transaction ID Used" chart. Omitting it shows the full capability
+     * set, which is the right fallback when the engine is not loaded yet.
+     */
+    databaseType?: SqlDatabaseType | undefined,
   ): Array<MonitorMetricCategory> {
     if (monitorType === MonitorType.Server) {
       return [
@@ -375,6 +423,10 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.Database) {
+      return this.getDatabaseMetricCategories(databaseType);
+    }
+
     if (monitorType === MonitorType.NetworkDevice) {
       return [
         {
@@ -421,6 +473,13 @@ class MonitorMetricTypeUtil {
       monitorMetricType === MonitorMetricType.ResponseTime
     ) {
       return "Total Connection Time (DNS + TCP)";
+    }
+
+    const databaseMetric: DatabaseMetricDefinition | null =
+      getDatabaseMetricByMetricType(monitorMetricType);
+
+    if (databaseMetric) {
+      return databaseMetric.friendlyName;
     }
 
     switch (monitorMetricType) {
@@ -534,6 +593,13 @@ class MonitorMetricTypeUtil {
   public static getLegendUnitByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
   ): string {
+    const databaseMetric: DatabaseMetricDefinition | null =
+      getDatabaseMetricByMetricType(monitorMetricType);
+
+    if (databaseMetric) {
+      return databaseMetric.unit;
+    }
+
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
         return "ms";
@@ -617,6 +683,13 @@ class MonitorMetricTypeUtil {
       monitorMetricType === MonitorMetricType.ResponseTime
     ) {
       return "Total time spent resolving the hostname (when needed) and establishing the TCP connection.";
+    }
+
+    const databaseMetric: DatabaseMetricDefinition | null =
+      getDatabaseMetricByMetricType(monitorMetricType);
+
+    if (databaseMetric) {
+      return databaseMetric.description;
     }
 
     switch (monitorMetricType) {
@@ -713,6 +786,85 @@ class MonitorMetricTypeUtil {
       default:
         return "";
     }
+  }
+
+  /**
+   * One card per catalog category, in the order an operator walks them
+   * during an incident. When `databaseType` is given, a category whose
+   * metrics are all unsupported on that engine is dropped entirely rather
+   * than rendered as a card of empty charts.
+   */
+  public static getDatabaseMetricCategories(
+    databaseType?: SqlDatabaseType | undefined,
+  ): Array<MonitorMetricCategory> {
+    const supported: Array<MonitorMetricType> | null = databaseType
+      ? getDatabaseMetricsForEngine(databaseType).map(
+          (metric: DatabaseMetricDefinition) => {
+            return metric.metricType;
+          },
+        )
+      : null;
+
+    const categories: Array<MonitorMetricCategory> = [];
+
+    for (const category of getDatabaseMetricCategoryOrder()) {
+      const metrics: Array<MonitorMetricType> = getDatabaseMetricsByCategory(
+        category,
+      )
+        .filter((metric: DatabaseMetricDefinition) => {
+          return !supported || supported.includes(metric.metricType);
+        })
+        .map((metric: DatabaseMetricDefinition) => {
+          return metric.metricType;
+        });
+
+      /*
+       * Availability additionally carries the shared probe series, so it is
+       * never empty even if every catalog metric in it were filtered out.
+       */
+      if (category === DatabaseMetricCategory.Availability) {
+        metrics.unshift(
+          MonitorMetricType.IsOnline,
+          MonitorMetricType.ResponseTime,
+        );
+      }
+
+      if (metrics.length === 0) {
+        continue;
+      }
+
+      categories.push({
+        title: category,
+        description: getDatabaseMetricCategoryDescription(category),
+        metrics: metrics,
+      });
+    }
+
+    return categories;
+  }
+
+  /**
+   * The metric series a criteria filter reads.
+   *
+   * Database Health filters name their series in
+   * databaseMonitorOptions.metricType rather than in the CheckOn itself, so
+   * resolving from the CheckOn alone would return null and silently turn
+   * "evaluate over time" into an instantaneous comparison. Callers that hold
+   * the whole filter - EvaluateOverTime does - must use this instead of
+   * getMonitorMetricTypeByCheckOnOrNull.
+   */
+  public static getMonitorMetricTypeByCriteriaFilterOrNull(
+    criteriaFilter: CriteriaFilter,
+  ): MonitorMetricType | null {
+    if (criteriaFilter.checkOn === CheckOn.DatabaseMetric) {
+      return criteriaFilter.databaseMonitorOptions?.metricType || null;
+    }
+
+    if (criteriaFilter.checkOn === CheckOn.DatabaseIsOnline) {
+      return MonitorMetricType.IsOnline;
+    }
+
+    return this.getMonitorMetricTypeByCheckOnOrNull(criteriaFilter.checkOn);
   }
 }
 

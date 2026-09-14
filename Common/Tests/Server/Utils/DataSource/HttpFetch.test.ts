@@ -9,6 +9,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
+import OutboundUserAgent from "../../../../Server/Utils/OutboundUserAgent";
 import { DataSourceConnectionSettings } from "../../../../Server/Utils/DataSource/Types";
 import {
   DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
@@ -367,14 +368,17 @@ describe("DataSourceHttpFetch.fetch - egress guard runs before axios", () => {
 });
 
 describe("DataSourceHttpFetch.fetch - headers and body encoding", () => {
-  test("passes request headers through to axios untouched", async () => {
+  test("passes request headers through to axios untouched, plus our User-Agent", async () => {
     const headers: Dictionary<string> = {
       "X-Api-Key": "secret-key",
       Authorization: "Bearer token-123",
     };
     await DataSourceHttpFetch.fetch(makeRequest({ headers: headers }));
     const config: AxiosRequestConfig = getAxiosConfig();
-    expect(config.headers).toEqual(headers);
+    expect(config.headers).toEqual({
+      ...headers,
+      "User-Agent": OutboundUserAgent.get(),
+    });
   });
 
   test("GET requests never send a body, even when one is provided", async () => {
@@ -436,6 +440,96 @@ describe("DataSourceHttpFetch.fetch - headers and body encoding", () => {
     expect((config.headers as Dictionary<string>)["Content-Type"]).toBe(
       "application/json",
     );
+  });
+});
+
+/*
+ * Regression cover for issue #3555: a bare `axios/<version>` User-Agent got
+ * every outbound request 403'd by the target's WAF before it reached the
+ * API. The transport now names the product on every request unless the
+ * caller deliberately set its own UA.
+ */
+describe("DataSourceHttpFetch.fetch - outbound User-Agent", () => {
+  function getSentHeaders(callIndex: number = 0): Dictionary<string> {
+    return getAxiosConfig(callIndex).headers as Dictionary<string>;
+  }
+
+  test("sends a descriptive User-Agent when the caller set none", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest());
+    expect(getSentHeaders()["User-Agent"]).toBe(OutboundUserAgent.get());
+  });
+
+  test("the User-Agent names OneUptime and is never axios' default", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest());
+    const userAgent: string = getSentHeaders()["User-Agent"] as string;
+
+    expect(userAgent.startsWith("OneUptime")).toBe(true);
+    expect(userAgent).toContain("https://oneuptime.com");
+    expect(userAgent.toLowerCase()).not.toContain("axios");
+  });
+
+  test("axios is never left to pick the User-Agent itself — the header is always set", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ headers: {} }));
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ method: "POST", body: { q: "up" } }),
+    );
+
+    for (const callIndex of [0, 1]) {
+      const userAgent: string | undefined =
+        getSentHeaders(callIndex)["User-Agent"];
+      expect(typeof userAgent).toBe("string");
+      expect((userAgent as string).trim()).not.toBe("");
+    }
+  });
+
+  test("a caller's explicit User-Agent wins — a data source may demand its own", async () => {
+    await DataSourceHttpFetch.fetch(
+      makeRequest({
+        headers: { "User-Agent": "AcmeSOC/3.1 (soc@acme.example)" },
+      }),
+    );
+    expect(getSentHeaders()["User-Agent"]).toBe(
+      "AcmeSOC/3.1 (soc@acme.example)",
+    );
+  });
+
+  test("a caller's lowercase user-agent wins without a second casing being sent", async () => {
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ headers: { "user-agent": "AcmeSOC/3.1" } }),
+    );
+    const headers: Dictionary<string> = getSentHeaders();
+
+    expect(headers["user-agent"]).toBe("AcmeSOC/3.1");
+    expect(headers["User-Agent"]).toBeUndefined();
+  });
+
+  test("a blank User-Agent is replaced rather than sent as-is", async () => {
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ headers: { "User-Agent": "   " } }),
+    );
+    expect(getSentHeaders()["User-Agent"]).toBe(OutboundUserAgent.get());
+  });
+
+  test("it rides alongside auth headers rather than displacing them", async () => {
+    const headers: Dictionary<string> = DataSourceHttpFetch.buildAuthHeaders({
+      dataSourceType: DataSourceType.RestApi,
+      url: "https://api.example.com",
+      apiToken: "tok-abc",
+    });
+
+    await DataSourceHttpFetch.fetch(makeRequest({ headers: headers }));
+    const sent: Dictionary<string> = getSentHeaders();
+
+    expect(sent["Authorization"]).toBe("Bearer tok-abc");
+    expect(sent["User-Agent"]).toBe(OutboundUserAgent.get());
+  });
+
+  test("the caller's header dictionary is not mutated — pagination reuses it", async () => {
+    const headers: Dictionary<string> = { Accept: "application/json" };
+
+    await DataSourceHttpFetch.fetch(makeRequest({ headers: headers }));
+
+    expect(headers).toEqual({ Accept: "application/json" });
   });
 });
 

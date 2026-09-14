@@ -37,9 +37,12 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
  * an incoming payload reporting the key recovered nor by series absence,
  * with nothing logged to say why.
  *
- * The tests below fail on the pre-fix code and pin the exactness the fix
- * must keep: a NULL template id matches only an id-less auto-resolve
- * template on the same criteria, never an unrelated one that has an id.
+ * Every path now asks `isAutoResolveConfiguredForIncident`, which matches an
+ * incident with no template id against its creating criteria as a whole: the
+ * stored NULL cannot identify which of that criteria's templates raised it,
+ * so the criteria's opt-in is the only signal there is. The criteria itself
+ * still has to have opted in — an incident whose criteria is absent from the
+ * dictionary stays open.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -187,7 +190,14 @@ describe("Auto-resolve for id-less criteria incident templates", () => {
       ).toHaveBeenCalledTimes(1);
     });
 
-    it("does not resolve a NULL-template incident when every auto-resolve template on that criteria carries an id", async () => {
+    /*
+     * A NULL template id carries no information about which of the
+     * criteria's templates raised the incident, so it is matched against
+     * the criteria as a whole rather than against a template. Demanding an
+     * id-less entry in the dictionary would leave incidents raised before
+     * the criteria was edited unresolvable forever.
+     */
+    it("resolves a NULL-template incident against its criteria even when the opted-in template carries an id", async () => {
       await runPayloadResolution({
         incident: openIncident(undefined),
         autoResolveTemplates: AUTO_RESOLVE_TEMPLATE_WITH_ID,
@@ -195,7 +205,7 @@ describe("Auto-resolve for id-less criteria incident templates", () => {
 
       expect(
         monitorIncidentInternals.resolveOpenIncident,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledTimes(1);
     });
 
     it("does not resolve when the creating criteria did not opt into auto-resolve at all", async () => {
@@ -232,19 +242,6 @@ describe("Auto-resolve for id-less criteria incident templates", () => {
             AUTO_RESOLVE_ID_LESS_TEMPLATE,
           criteriaInstance: criteria(CRITERIA_ID, true),
           breachingSeriesFingerprints: new Set<string>([SERIES_FINGERPRINT]),
-          disableSeriesAbsenceResolution: false,
-        }),
-      ).toBe(false);
-    });
-
-    it("does not close a NULL-template incident when the opted-in template carries an id", () => {
-      expect(
-        monitorIncidentInternals.shouldCloseIncident({
-          openIncident: openIncident(undefined),
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-            AUTO_RESOLVE_TEMPLATE_WITH_ID,
-          criteriaInstance: criteria(CRITERIA_ID, true),
-          breachingSeriesFingerprints: new Set<string>(["some-other-series"]),
           disableSeriesAbsenceResolution: false,
         }),
       ).toBe(false);

@@ -183,7 +183,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
-    buttonStyleCssClass = `inline-flex items-center rounded-md border border-transparent ${
+    buttonStyleCssClass = `inline-flex rounded-md border border-transparent ${
       disabled ? "bg-indigo-300" : "bg-indigo-100 hover:bg-indigo-200"
     } text-sm font-medium text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }
@@ -244,6 +244,9 @@ const Button: FunctionComponent<ComponentProps> = ({
       disabled ? "" : "hover:bg-yellow-50"
     }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
+
+  // Center the icon against both desktop and taller mobile label lines.
+  buttonStyleCssClass += ` items-center`;
 
   /*
    * The one shared point every variant funnels through: hover/focus colour

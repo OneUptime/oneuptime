@@ -20,7 +20,7 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
@@ -196,7 +196,12 @@ export default class SmsService {
         options.customTwilioConfig || (await getTwilioConfig());
 
       if (!twilioConfig) {
-        throw new BadDataException("Twilio Config not found");
+        /*
+         * Nobody has filled in Twilio credentials in Global Settings (or the
+         * caller passed a project-level config that is empty). Failing to send
+         * is the correct behaviour, not a defect, so do not open an Issue.
+         */
+        throw new BadDataException("Twilio Config not found").asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -248,7 +253,8 @@ export default class SmsService {
         if (!project.enableSmsNotifications) {
           smsLog.status = SmsStatus.Error;
           smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
-          logger.error(smsLog.statusMessage);
+          // The project turned SMS off. Refusing to send is the setting working.
+          logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
           await SmsLogService.create({
             data: smsLog,
             props: {
@@ -291,7 +297,8 @@ export default class SmsService {
           if (!project.smsOrCallCurrentBalanceInUSDCents) {
             smsLog.status = SmsStatus.LowBalance;
             smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
-            logger.error(smsLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
             await SmsLogService.create({
               data: smsLog,
               props: {
@@ -325,7 +332,8 @@ export default class SmsService {
             smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
               project.smsOrCallCurrentBalanceInUSDCents / 100
             } USD. Required balance is ${smsCost} USD to send this SMS.`;
-            logger.error(smsLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
             await SmsLogService.create({
               data: smsLog,
               props: {

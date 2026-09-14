@@ -57,6 +57,36 @@
     "today": "Hoy",
     "notAvailable": "No disponible"
   },
+  "uptimeHistory": {
+    "graphLabel": "Historial de disponibilidad de los últimos {{total}} días",
+    "dayLabel": "{{date}}: {{uptime}} % de disponibilidad",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}} % de disponibilidad, {{total}} incidentes",
+    "dayLabelNoData": "{{date}}: sin datos",
+    "dayLabelNoDataWithIncidents": "{{date}}: sin datos, {{total}} incidentes",
+    "uptime": "Disponibilidad",
+    "noMonitoringData": "No hay datos de monitoreo para este día",
+    "incidents": "Incidentes",
+    "noIncidents": "Sin incidentes",
+    "noIncidentsDescription": "No se informaron incidentes en este día.",
+    "declared": "Declarado",
+    "oneIncidentOnThisDay": "1 incidente informado en este día",
+    "incidentsOnThisDay": "{{total}} incidentes informados en este día"
+  },
+  "liveStatus": {
+    "updated": "Actualizado {{time}}",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando",
+    "refreshFailed": "No se pudo actualizar. Se muestra el último estado conocido."
+  },
+  "search": {
+    "label": "Buscar recursos",
+    "placeholder": "Buscar recursos",
+    "clear": "Borrar búsqueda",
+    "resultCount": "{{matched}} de {{total}} recursos",
+    "noMatchesInGroup": "Ningún recurso aquí coincide con su búsqueda.",
+    "noResultsTitle": "No hay recursos coincidentes",
+    "noResultsDescription": "Nada en esta página coincide con «{{query}}». Pruebe una búsqueda más corta."
+  },
   "incidents": {
     "title": "Incidencias",
     "singular": "Incidencia",

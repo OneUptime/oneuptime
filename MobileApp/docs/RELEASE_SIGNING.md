@@ -2,6 +2,10 @@
 
 This guide explains how to generate and configure the signing credentials required for automated Android APK and iOS IPA builds in the GitHub Actions release workflow.
 
+For routine updates to the existing official apps, start with the
+[mobile publishing guide](../RELEASING.md) and reuse the established EAS signing
+credentials. The setup steps below are not required for each store release.
+
 ---
 
 ## Android Secrets

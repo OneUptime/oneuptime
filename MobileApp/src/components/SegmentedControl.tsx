@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, type ViewStyle } from "react-native";
 import { useTheme } from "../theme";
 
 interface Segment<T extends string> {
@@ -8,31 +8,34 @@ interface Segment<T extends string> {
 }
 
 interface SegmentedControlProps<T extends string> {
-  segments: [Segment<T>, Segment<T>];
+  segments: Array<Segment<T>>;
   selected: T;
   onSelect: (key: T) => void;
+  style?: ViewStyle;
 }
 
 export default function SegmentedControl<T extends string>({
   segments,
   selected,
   onSelect,
+  style,
 }: SegmentedControlProps<T>): React.JSX.Element {
   const { theme } = useTheme();
-  const activeContentColor: string = theme.colors.backgroundPrimary;
+  const activeContentColor: string = theme.colors.actionPrimary;
 
   return (
     <View
       style={{
         flexDirection: "row",
-        marginHorizontal: 16,
+        marginHorizontal: 20,
         marginTop: 12,
         marginBottom: 8,
-        borderRadius: 16,
-        padding: 6,
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
+        borderRadius: 12,
+        padding: 4,
+        backgroundColor: theme.colors.backgroundTertiary,
+        borderWidth: 0,
         borderColor: theme.colors.borderGlass,
+        ...style,
       }}
     >
       {segments.map((segment: Segment<T>, index: number) => {
@@ -41,23 +44,39 @@ export default function SegmentedControl<T extends string>({
           <TouchableOpacity
             key={segment.key}
             activeOpacity={0.7}
+            /*
+             * Which of the two segments is showing is conveyed visually by a
+             * filled background and nothing else, and a filled background is
+             * not something a screen reader can read out. Without the role and
+             * the selected state, VoiceOver and TalkBack announce two
+             * identical, unrelated buttons - "Alerts", "Episodes" - and give a
+             * responder no way to tell which list is under them.
+             */
+            accessibilityRole="tab"
+            accessibilityLabel={segment.label}
+            accessibilityState={{ selected: isActive }}
+            aria-selected={isActive}
             onPress={() => {
               return onSelect(segment.key);
             }}
             style={{
               flex: 1,
+              minHeight: 48,
+              justifyContent: "center",
               alignItems: "center",
               paddingVertical: 10,
-              borderRadius: 12,
+              paddingHorizontal: 8,
+              borderRadius: 9,
               marginLeft: index > 0 ? 4 : 0,
               backgroundColor: isActive
-                ? theme.colors.actionPrimary
+                ? theme.colors.backgroundElevated
                 : "transparent",
             }}
           >
             <Text
               style={{
                 fontSize: 14,
+                textAlign: "center",
                 fontWeight: "600",
                 color: isActive
                   ? activeContentColor

@@ -8,9 +8,11 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import APIException from "../../Types/Exception/ApiException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import GenericObject from "../../Types/GenericObject";
 import { JSONObject } from "../../Types/JSON";
 import API from "../../Utils/API";
+import { HTTPResponseBodyBudget } from "../../Utils/HTTPResponseBodyReader";
 import { expect, jest } from "@jest/globals";
 import axios, {
   AxiosError,
@@ -20,6 +22,7 @@ import axios, {
   AxiosStatic,
   Method,
 } from "axios";
+import { Readable } from "stream";
 
 const DEFAULT_HEADERS: Headers = {
   Accept: "application/json",
@@ -519,6 +522,311 @@ describe("API instance properties", () => {
 });
 
 describe("API.fetch with options", () => {
+  test("should forward response and request byte limits and disable implicit proxies", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+      options: {
+        maxContentLength: 1024,
+        maxBodyLength: 2048,
+        disableProxy: true,
+      },
+    });
+
+    expect(mockedAxios.mock.calls[0]![0]).toMatchObject({
+      maxContentLength: 1024,
+      maxBodyLength: 2048,
+      proxy: false,
+    });
+  });
+
+  test("should preserve explicit zero-byte limits", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+      options: {
+        maxContentLength: 0,
+        maxBodyLength: 0,
+      },
+    });
+
+    expect(mockedAxios.mock.calls[0]![0]).toMatchObject({
+      maxContentLength: 0,
+      maxBodyLength: 0,
+    });
+  });
+
+  test("should leave byte limits and proxy routing unset by default", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+    });
+
+    const requestConfig: AxiosRequestConfig = mockedAxios.mock
+      .calls[0]![0] as AxiosRequestConfig;
+    expect(requestConfig).not.toHaveProperty("maxContentLength");
+    expect(requestConfig).not.toHaveProperty("maxBodyLength");
+    expect(requestConfig).not.toHaveProperty("proxy");
+  });
+
+  test("should use an internal validated dispatch URL without normalizing its path or query", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+    const dispatchUrl: string = "https://api.example.com/a//b?tag=one&tag=two";
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("reported")),
+      options: { dispatchUrl: dispatchUrl },
+    });
+
+    expect((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url).toBe(
+      dispatchUrl,
+    );
+  });
+
+  test("should forward AbortSignal and normalize a budgeted JSON stream", async () => {
+    mockedAxios.mockClear();
+    const controller: AbortController = new AbortController();
+    const json: string = JSON.stringify(responseData);
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(1024);
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({
+        data: Readable.from([Buffer.from(json)]),
+        status: 200,
+      }),
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(
+        Protocol.HTTPS,
+        "api.example.com",
+        new Route("streamed-json"),
+      ),
+      options: {
+        signal: controller.signal,
+        responseBodyBudget: budget,
+        limitRedirectResponseBody: true,
+      },
+    });
+
+    expect(mockedAxios.mock.calls[0]![0]).toMatchObject({
+      signal: controller.signal,
+      responseType: "stream",
+      maxContentLength: -1,
+    });
+    expect(response.data).toEqual(responseData);
+    expect(budget.remainingBytes).toBe(1024 - Buffer.byteLength(json));
+  });
+
+  test("should strip a leading UTF-8 BOM before parsing a budgeted JSON stream", async () => {
+    mockedAxios.mockClear();
+    const bodyText: string = `\uFEFF${JSON.stringify(responseData)}`;
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(1024);
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({
+        data: Readable.from([Buffer.from(bodyText)]),
+        status: 200,
+      }),
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(
+        Protocol.HTTPS,
+        "api.example.com",
+        new Route("streamed-json-bom"),
+      ),
+      options: { responseBodyBudget: budget },
+    });
+
+    expect(response.data).toEqual(responseData);
+    expect(budget.remainingBytes).toBe(1024 - Buffer.byteLength(bodyText));
+  });
+
+  test("should enforce a per-response cap without lowering the shared budget", async () => {
+    mockedAxios.mockClear();
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(100);
+    const body: Readable = Readable.from([Buffer.from("12345")]);
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: body, status: 200 }),
+    );
+
+    await expect(
+      API.fetch({
+        method: HTTPMethod.GET,
+        url: new URL(
+          Protocol.HTTPS,
+          "api.example.com",
+          new Route("per-response-cap"),
+        ),
+        options: {
+          responseBodyBudget: budget,
+          maximumResponseBytes: 4,
+        },
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(body.destroyed).toBe(true);
+    expect(budget.remainingBytes).toBe(95);
+  });
+
+  test("should allow HEAD Content-Length to describe a larger hypothetical GET body", async () => {
+    mockedAxios.mockClear();
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(4);
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({
+        data: Readable.from([]),
+        status: 200,
+        headers: { "Content-Length": "1000000" },
+      }),
+    );
+
+    await expect(
+      API.fetch({
+        method: HTTPMethod.HEAD,
+        url: new URL(
+          Protocol.HTTPS,
+          "api.example.com",
+          new Route("head-content-length"),
+        ),
+        options: { responseBodyBudget: budget },
+      }),
+    ).resolves.toBeInstanceOf(HTTPResponse);
+    expect(budget.remainingBytes).toBe(4);
+  });
+
+  test("should normalize a streamed Axios error before constructing HTTPErrorResponse", async () => {
+    mockedAxios.mockClear();
+    HTTPErrorResponseMock.mockClear();
+    const errorBody: JSONObject = { message: "redirect response" };
+    const serializedBody: string = JSON.stringify(errorBody);
+    const responseHeaders: Headers = {
+      Location: "https://api.example.com/final",
+    };
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(100, 32);
+    mockedAxios.mockRejectedValueOnce(
+      createAxiosError({
+        response: createAxiosResponse({
+          status: 302,
+          data: Readable.from([Buffer.from(serializedBody)]),
+          headers: responseHeaders,
+        }),
+      }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("redirect")),
+      options: {
+        responseBodyBudget: budget,
+        limitRedirectResponseBody: true,
+      },
+    });
+
+    expect(HTTPErrorResponseMock).toHaveBeenCalledWith(
+      302,
+      errorBody,
+      responseHeaders,
+    );
+    expect(budget.remainingBytes).toBe(100 - Buffer.byteLength(serializedBody));
+  });
+
+  test("should preserve streamed non-JSON response text", async () => {
+    mockedAxios.mockClear();
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(20);
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({
+        data: Readable.from([Buffer.from("plain response")]),
+      }),
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(
+        Protocol.HTTPS,
+        "api.example.com",
+        new Route("streamed-text"),
+      ),
+      options: { responseBodyBudget: budget },
+    });
+
+    expect(response.data).toEqual({ data: "plain response" });
+    expect(budget.remainingBytes).toBe(6);
+  });
+
+  test("should never retry a successful response whose streamed body exceeds the budget", async () => {
+    mockedAxios.mockClear();
+    const oversizedBody: Readable = Readable.from([Buffer.from("12345")]);
+    mockedAxios.mockResolvedValue(
+      createAxiosResponse({ data: oversizedBody, status: 200 }),
+    );
+
+    await expect(
+      API.fetch({
+        method: HTTPMethod.GET,
+        url: new URL(Protocol.HTTPS, "api.example.com", new Route("oversized")),
+        options: {
+          retries: 5,
+          responseBodyBudget: new HTTPResponseBodyBudget(4),
+        },
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(mockedAxios).toHaveBeenCalledTimes(1);
+    expect(oversizedBody.destroyed).toBe(true);
+  });
+
+  test("should charge separate API calls against the same cumulative budget", async () => {
+    mockedAxios.mockClear();
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(6);
+    const secondBody: Readable = Readable.from([Buffer.from("defg")]);
+    mockedAxios
+      .mockResolvedValueOnce(
+        createAxiosResponse({ data: Readable.from([Buffer.from("abc")]) }),
+      )
+      .mockResolvedValueOnce(createAxiosResponse({ data: secondBody }));
+    const request: () => Promise<HTTPResponse<JSONObject>> = async (): Promise<
+      HTTPResponse<JSONObject>
+    > => {
+      return await API.fetch({
+        method: HTTPMethod.GET,
+        url: new URL(
+          Protocol.HTTPS,
+          "api.example.com",
+          new Route("cumulative"),
+        ),
+        options: { responseBodyBudget: budget },
+      });
+    };
+
+    await expect(request()).resolves.toMatchObject({
+      data: { data: "abc" },
+    });
+    expect(budget.remainingBytes).toBe(3);
+    await expect(request()).rejects.toBeInstanceOf(BadDataException);
+    expect(secondBody.destroyed).toBe(true);
+    expect(budget.remainingBytes).toBe(0);
+  });
+
   test("should make request with query parameters", async () => {
     mockedAxios.mockResolvedValueOnce(
       createAxiosResponse({ data: responseData }),

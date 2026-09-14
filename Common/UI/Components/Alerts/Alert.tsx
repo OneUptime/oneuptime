@@ -2,7 +2,13 @@ import Icon from "../Icon/Icon";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MouseEvent,
+  ReactElement,
+  useId,
+  useRef,
+} from "react";
 
 export enum AlertType {
   INFO,
@@ -46,113 +52,137 @@ const Alert: FunctionComponent<ComponentProps> = (
   const translatedTextOnRight: string | undefined = translateString(
     props.textOnRight,
   );
-  const type: AlertType = props.type || AlertType.INFO;
+  const type: AlertType = props.type ?? AlertType.INFO;
+  const messageId: string = useId();
+  const actionButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   const typeClassNames: {
     [key in AlertType]: {
-      text: string;
-      bg: string;
+      surface: string;
+      icon: string;
       hover: string;
     };
   } = {
     [AlertType.DANGER]: {
-      text: "text-red-200",
-      bg: "bg-red-700",
-      hover: "hover:bg-red-600",
+      surface: "border-red-200 bg-red-50 text-red-800",
+      icon: "bg-red-100 text-red-700",
+      hover: "hover:bg-red-100",
     },
     [AlertType.INFO]: {
-      text: "text-white",
-      bg: "bg-gray-700",
-      hover: "hover:bg-gray-600",
+      surface: "border-blue-200 bg-blue-50 text-blue-800",
+      icon: "bg-blue-100 text-blue-700",
+      hover: "hover:bg-blue-100",
     },
     [AlertType.WARNING]: {
-      text: "text-yellow-200",
-      bg: "bg-gray-700",
-      hover: "hover:bg-yellow-600",
+      surface: "border-amber-200 bg-amber-50 text-amber-900",
+      icon: "bg-amber-100 text-amber-700",
+      hover: "hover:bg-amber-100",
     },
     [AlertType.SUCCESS]: {
-      text: "text-green-200",
-      bg: "bg-gray-700",
-      hover: "hover:bg-green-600",
+      surface: "border-emerald-200 bg-emerald-50 text-emerald-800",
+      icon: "bg-emerald-100 text-emerald-700",
+      hover: "hover:bg-emerald-100",
     },
   };
 
-  let textClassName: string = typeClassNames[type].text;
-  const bgClassName: string = typeClassNames[type].bg;
-  const hoverClassName: string = typeClassNames[type].hover;
+  // Public status pages provide their own status color and use a filled banner.
+  const surfaceClassName: string = props.color
+    ? "border-transparent text-white"
+    : typeClassNames[type].surface;
+  const iconClassName: string = props.color
+    ? "bg-white/10 text-white"
+    : typeClassNames[type].icon;
+  const hoverClassName: string = props.color
+    ? "hover:bg-white/10"
+    : typeClassNames[type].hover;
+  const icon: IconProp =
+    props.icon ??
+    (type === AlertType.SUCCESS
+      ? IconProp.CheckCircle
+      : type === AlertType.INFO
+        ? IconProp.Info
+        : IconProp.Alert);
 
-  if (props.size === AlertSize.Large) {
-    // Add large size classes
-    textClassName += " text-lg";
-  }
+  const onClick: (event: MouseEvent<HTMLDivElement>) => void = (
+    event: MouseEvent<HTMLDivElement>,
+  ): void => {
+    /*
+     * Rich messages can contain their own links and controls. Activating one
+     * must not also activate the banner's action.
+     */
+    const control: Element | null =
+      event.target instanceof Element
+        ? event.target.closest(
+            "a, button, input, select, textarea, [role='button'], [role='link']",
+          )
+        : null;
+    if (control && control !== actionButtonRef.current) {
+      return;
+    }
+    props.onClick?.();
+  };
 
   return (
     <div
       id={props.id}
-      className={`alert rounded-md ${bgClassName} p-4 ${props.className}`}
+      className={`alert relative min-w-0 rounded-lg border p-4 ${surfaceClassName} ${props.onClick ? `cursor-pointer transition-colors ${hoverClassName}` : ""} ${props.className || ""}`}
       data-testid={props.dataTestId}
-      onClick={props.onClick}
+      onClick={props.onClick ? onClick : undefined}
       role="alert"
       aria-live="polite"
       style={props.color ? { backgroundColor: props.color.toString() } : {}}
     >
-      <div className="alert-content flex">
+      {props.onClick && (
+        <button
+          ref={actionButtonRef}
+          type="button"
+          aria-labelledby={messageId}
+          className="absolute inset-0 w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        />
+      )}
+      <div className="alert-content relative flex items-start gap-3">
         {!props.doNotShowIcon && (
-          <div className="alert-icon flex-shrink-0">
-            {type === AlertType.DANGER && (
-              <Icon
-                icon={props.icon || IconProp.Alert}
-                className={`h-5 w-5 ${textClassName}`}
-              />
-            )}
-            {type === AlertType.WARNING && (
-              <Icon
-                icon={props.icon || IconProp.Alert}
-                className={`h-5 w-5 ${textClassName}`}
-              />
-            )}
-            {type === AlertType.SUCCESS && (
-              <Icon
-                icon={props.icon || IconProp.CheckCircle}
-                className={`h-5 w-5 ${textClassName}`}
-              />
-            )}
-            {type === AlertType.INFO && (
-              <Icon
-                icon={props.icon || IconProp.Info}
-                className={`h-5 w-5 ${textClassName}`}
-              />
-            )}
+          <div
+            className={`alert-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}
+            aria-hidden="true"
+          >
+            <Icon icon={icon} className="h-5 w-5" />
           </div>
         )}
         <div
-          className={`alert-text ml-3 mr-3 flex-1 md:flex md:justify-between ${props.textClassName}`}
+          className={`alert-text min-w-0 flex-1 ${!props.doNotShowIcon && !(translatedStrongTitle && translatedTitle) ? "py-1" : ""} ${props.textClassName || ""}`}
         >
           <div
-            className={`alert-message text-sm flex justify-between w-full ${textClassName}`}
+            id={messageId}
+            className={`alert-message flex w-full min-w-0 flex-col gap-2 [overflow-wrap:anywhere] sm:flex-row sm:items-start sm:justify-between sm:gap-4 ${props.size === AlertSize.Large ? "text-lg leading-7" : "text-sm leading-6"}`}
           >
-            <div>
-              <span className="font-medium">
-                {translatedStrongTitle}{" "}
-                {translatedTitle && translatedStrongTitle ? "- " : ""}
-              </span>
-              {translatedTitle}
+            <div className="min-w-0 space-y-1">
+              {translatedStrongTitle && (
+                <div className="font-semibold">{translatedStrongTitle}</div>
+              )}
+              {translatedTitle && <div>{translatedTitle}</div>}
             </div>
-            {translatedTextOnRight && <div>{translatedTextOnRight}</div>}
+            {translatedTextOnRight && (
+              <div className="min-w-0 font-medium sm:ml-auto sm:text-right">
+                {translatedTextOnRight}
+              </div>
+            )}
           </div>
-          {props.onClose && (
-            <p className="alert-close mt-3 text-sm md:mt-0 md:ml-6">
-              <button
-                onClick={props.onClose}
-                role="alert-close-button"
-                className={`whitespace-nowrap font-medium ${textClassName} hover:${hoverClassName}`}
-              >
-                Close
-                <span aria-hidden="true"> &rarr;</span>
-              </button>
-            </p>
-          )}
         </div>
+        {props.onClose && (
+          <button
+            type="button"
+            onClick={(event: MouseEvent<HTMLButtonElement>): void => {
+              event.stopPropagation();
+              props.onClose?.();
+            }}
+            aria-label={translateString("Close")}
+            className={`alert-close flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${hoverClassName}`}
+          >
+            <Icon icon={IconProp.Close} className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );

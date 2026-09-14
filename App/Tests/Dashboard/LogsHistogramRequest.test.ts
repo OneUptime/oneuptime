@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -36,31 +45,35 @@ function build(
   });
 }
 
+/*
+ * Only Date needs faking; the sinon backend jest 28 uses cannot hijack the
+ * read-only `performance` global on current Node, so leave the timer/callback
+ * APIs alone.
+ */
+function freezeClock(): void {
+  jest.useFakeTimers({
+    doNotFake: [
+      "performance",
+      "hrtime",
+      "queueMicrotask",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "requestIdleCallback",
+      "cancelIdleCallback",
+      "setImmediate",
+      "clearImmediate",
+      "setInterval",
+      "clearInterval",
+      "setTimeout",
+      "clearTimeout",
+    ],
+  });
+  jest.setSystemTime(NOW);
+}
+
 describe("buildLogsHistogramRequest", () => {
   beforeEach(() => {
-    /*
-     * Only Date needs faking; the sinon backend jest 28 uses cannot hijack
-     * the read-only `performance` global on current Node, so leave the
-     * timer/callback APIs alone.
-     */
-    jest.useFakeTimers({
-      doNotFake: [
-        "performance",
-        "hrtime",
-        "queueMicrotask",
-        "requestAnimationFrame",
-        "cancelAnimationFrame",
-        "requestIdleCallback",
-        "cancelIdleCallback",
-        "setImmediate",
-        "clearImmediate",
-        "setInterval",
-        "clearInterval",
-        "setTimeout",
-        "clearTimeout",
-      ],
-    });
-    jest.setSystemTime(NOW);
+    freezeClock();
   });
 
   afterEach(() => {
@@ -420,5 +433,83 @@ describe("buildLogsHistogramRequest — body chips", () => {
     expect(request["bodySearchText"]).toBe("timeout");
     expect(request["severityTexts"]).toEqual(["Error"]);
     expect(request["serviceIds"]).toEqual(["svc-1"]);
+  });
+});
+
+describe("buildLogsHistogramRequest - attribute chips reach the chart", () => {
+  beforeEach(() => {
+    freezeClock();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("an attributes.<key> chip is forwarded", () => {
+    /*
+     * Only the host page's pinned `logQuery.attributes` used to be sent, so a
+     * chip the user could SEE applied narrowed the list while the chart above
+     * it kept counting every row in the project.
+     */
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ "attributes.platform.team": ["abc"] }),
+    });
+
+    expect(request["attributes"]).toEqual({ "platform.team": "abc" });
+  });
+
+  test("a wildcard chip is forwarded as the operator, not as literal text", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ "attributes.platform.team": ["a*"] }),
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["platform.team"]).toBeInstanceOf(Wildcard);
+    expect(
+      (attributes["platform.team"] as unknown as Wildcard<string>).toPatterns(),
+    ).toEqual(["a%"]);
+  });
+
+  test("the operator survives JSON.stringify, which is how it is POSTed", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ "attributes.k": ["a*"] }),
+    });
+
+    expect(JSON.parse(JSON.stringify(request))["attributes"]).toEqual({
+      k: { _type: "Wildcard", value: ["a*"] },
+    });
+  });
+
+  test("several values on one key become an any-of", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ "attributes.k": ["a", "b"] }),
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["k"]).toBeInstanceOf(Includes);
+  });
+
+  test("pinned attributes and chips merge rather than one replacing the other", () => {
+    const request: JSONObject = build({
+      attributes: { pinned: "yes" } as never,
+      appliedFacetFilters: facets({ "attributes.typed": ["a*"] }),
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["pinned"]).toBe("yes");
+    expect(attributes["typed"]).toBeInstanceOf(Wildcard);
+  });
+
+  test("no attribute filters at all sends no attributes field", () => {
+    expect(build()["attributes"]).toBeUndefined();
+  });
+
+  test("a non-attribute facet is not mistaken for one", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ severityText: ["Error"] }),
+    });
+
+    expect(request["attributes"]).toBeUndefined();
+    expect(request["severityTexts"]).toEqual(["Error"]);
   });
 });

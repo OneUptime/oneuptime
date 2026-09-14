@@ -252,6 +252,12 @@ const infraRecipes: Array<InfraMonitorRecipe> = [
     templateName: /Node Offline/,
   },
   {
+    label: "VMware",
+    cardValue: "VMware",
+    apiPath: "/api/vmware-vcenter",
+    templateName: /Host CPU Saturation/,
+  },
+  {
     label: "Ceph",
     cardValue: "Ceph",
     apiPath: "/api/ceph-cluster",

@@ -1,5 +1,6 @@
 import Skeleton from "../Skeleton/Skeleton";
 import Column from "./Types/Column";
+import { getTableCellClassName } from "./CellClassName";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
@@ -107,17 +108,16 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
                 </div>
               </td>
             )}
-            {visibleColumns.map((_column: Column<T>, columnIndex: number) => {
+            {visibleColumns.map((column: Column<T>, columnIndex: number) => {
               /*
-               * Cell classes copied from TableRow's real cells so the
-               * skeleton's rhythm and padding match the rows that replace it.
+               * The same classes TableRow gives its real cells, from the same
+               * helper, so the skeleton's rhythm and padding match the rows
+               * that replace it - and cannot drift from them again.
                */
-              let className: string =
-                "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              if (columnIndex === visibleColumns.length - 1) {
-                className =
-                  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              }
+              const className: string = getTableCellClassName<T>({
+                column: column,
+                isLastRenderedColumn: columnIndex === visibleColumns.length - 1,
+              });
 
               return (
                 <td key={columnIndex} className={className}>

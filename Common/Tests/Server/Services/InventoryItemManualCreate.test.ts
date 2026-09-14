@@ -246,3 +246,108 @@ describe("machine creates are left alone", () => {
     expect(createBy.data.source).toBe(EntitySource.Inventory);
   });
 });
+
+/*
+ * The escape hatch above is for the two machine writers, which reach the
+ * service directly with `props: { isRoot: true }`. It used to be keyed on the
+ * PAYLOAD instead — "did the caller send an entityKey" — which let anyone
+ * posting to the public CRUD endpoint skip every check in the hook simply by
+ * inventing one, and claim a source only ingest is supposed to write. A row
+ * that says `discovered` is a row the prune sweep is entitled to delete on a
+ * TTL, so this was not only a lie in the Source column.
+ */
+describe("non-root creates cannot impersonate a machine writer", () => {
+  function apiCreate(data: InventoryItem): CreateBy<InventoryItem> {
+    return { data, props: {} } as CreateBy<InventoryItem>;
+  }
+
+  function externalService(): InventoryItem {
+    const data: InventoryItem = new InventoryItem();
+    data.projectId = PROJECT_ID;
+    data.entityType = EntityType.ExternalService;
+    data.displayName = "Stripe Payments API";
+    return data;
+  }
+
+  test("a client-supplied entity key is discarded and the key re-derived", async () => {
+    const data: InventoryItem = externalService();
+    data.entityKey = "deadbeefdeadbeef";
+
+    const createBy: CreateBy<InventoryItem> = apiCreate(data);
+    await callOnBeforeCreate(createBy);
+
+    expect(createBy.data.entityKey).toBe(
+      keyForManualEntity(
+        PROJECT_ID.toString(),
+        EntityType.ExternalService,
+        "Stripe Payments API",
+      ),
+    );
+    expect(createBy.data.source).toBe(EntitySource.Manual);
+  });
+
+  test("a client-supplied source of discovered is overridden to manual", async () => {
+    const data: InventoryItem = externalService();
+    data.entityKey = "deadbeefdeadbeef";
+    data.source = EntitySource.Discovered;
+
+    const createBy: CreateBy<InventoryItem> = apiCreate(data);
+    await callOnBeforeCreate(createBy);
+
+    expect(createBy.data.source).toBe(EntitySource.Manual);
+  });
+
+  test("a client-supplied source of inventory is overridden to manual", async () => {
+    const data: InventoryItem = externalService();
+    data.entityKey = "deadbeefdeadbeef";
+    data.source = EntitySource.Inventory;
+
+    const createBy: CreateBy<InventoryItem> = apiCreate(data);
+    await callOnBeforeCreate(createBy);
+
+    expect(createBy.data.source).toBe(EntitySource.Manual);
+  });
+
+  test.each([
+    EntityType.Service,
+    EntityType.Host,
+    EntityType.KubernetesPod,
+    EntityType.KubernetesNode,
+    EntityType.NetworkDevice,
+  ])(
+    "the manual-type restriction still applies to %s when a key is supplied",
+    async (entityType: EntityType) => {
+      const data: InventoryItem = externalService();
+      data.entityType = entityType;
+      data.entityKey = "deadbeefdeadbeef";
+      data.source = EntitySource.Discovered;
+
+      await expect(callOnBeforeCreate(apiCreate(data))).rejects.toThrow(
+        /discovered automatically and cannot be created manually/,
+      );
+    },
+  );
+
+  test("the display-name requirement still applies when a key is supplied", async () => {
+    const data: InventoryItem = externalService();
+    data.displayName = "   ";
+    data.entityKey = "deadbeefdeadbeef";
+    data.source = EntitySource.Discovered;
+
+    await expect(callOnBeforeCreate(apiCreate(data))).rejects.toThrow(
+      /Name is required/,
+    );
+  });
+
+  test("firstSeenAt and lastSeenAt are stamped rather than left to the caller", async () => {
+    const data: InventoryItem = externalService();
+    data.entityKey = "deadbeefdeadbeef";
+    data.source = EntitySource.Discovered;
+
+    const createBy: CreateBy<InventoryItem> = apiCreate(data);
+    await callOnBeforeCreate(createBy);
+
+    expect(createBy.data.firstSeenAt).toBeInstanceOf(Date);
+    expect(createBy.data.lastSeenAt).toBeInstanceOf(Date);
+  });
+});

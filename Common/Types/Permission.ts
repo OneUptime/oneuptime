@@ -101,6 +101,25 @@ enum Permission {
   TelemetryMember = "TelemetryMember",
   TelemetryViewer = "TelemetryViewer",
 
+  /*
+   * SIEM data is its own domain, not a fourth telemetry signal. Security
+   * events, the Sigma detection rules over them, the threat-intel feeds and
+   * their indicators, and the SecOps connector credentials all read through
+   * these three tiers and through nothing else that is handed out broadly -
+   * not ProjectMember, not the project-wide Viewer, not the Telemetry tiers.
+   *
+   * That exclusion is the whole point of the family. A SIEM holds authentication
+   * failures, privilege escalations and the analyst's own investigation trail;
+   * "everyone who can open a dashboard can read it" is not an access policy an
+   * organisation deploying one can accept. Whoever should see it is given a
+   * Security tier deliberately, the same way BillingViewer is given
+   * deliberately, and everybody else - including a Telemetry Admin with the run
+   * of every log, metric and trace in the project - sees nothing.
+   */
+  SecurityAdmin = "SecurityAdmin",
+  SecurityMember = "SecurityMember",
+  SecurityViewer = "SecurityViewer",
+
   SettingsAdmin = "SettingsAdmin",
   SettingsMember = "SettingsMember",
   SettingsViewer = "SettingsViewer",
@@ -177,6 +196,12 @@ enum Permission {
   DeleteProjectDetectionRule = "DeleteProjectDetectionRule",
   EditProjectDetectionRule = "EditProjectDetectionRule",
   ReadProjectDetectionRule = "ReadProjectDetectionRule",
+
+  // Threat Intel Feeds (STIX/TAXII indicator feeds over security events)
+  CreateProjectThreatIntelFeed = "CreateProjectThreatIntelFeed",
+  DeleteProjectThreatIntelFeed = "DeleteProjectThreatIntelFeed",
+  EditProjectThreatIntelFeed = "EditProjectThreatIntelFeed",
+  ReadProjectThreatIntelFeed = "ReadProjectThreatIntelFeed",
 
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
@@ -259,6 +284,12 @@ enum Permission {
   DeleteTelemetryException = "DeleteTelemetryException",
   EditTelemetryException = "EditTelemetryException",
   ReadTelemetryException = "ReadTelemetryException",
+
+  // Source Maps (unminify browser exception stack traces)
+  CreateTelemetrySourceMap = "CreateTelemetrySourceMap",
+  DeleteTelemetrySourceMap = "DeleteTelemetrySourceMap",
+  EditTelemetrySourceMap = "EditTelemetrySourceMap",
+  ReadTelemetrySourceMap = "ReadTelemetrySourceMap",
 
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
@@ -605,6 +636,11 @@ enum Permission {
   EditNetworkDeviceAutoImportRule = "EditNetworkDeviceAutoImportRule",
   ReadNetworkDeviceAutoImportRule = "ReadNetworkDeviceAutoImportRule",
 
+  CreateNetworkDeviceOidTemplate = "CreateNetworkDeviceOidTemplate",
+  DeleteNetworkDeviceOidTemplate = "DeleteNetworkDeviceOidTemplate",
+  EditNetworkDeviceOidTemplate = "EditNetworkDeviceOidTemplate",
+  ReadNetworkDeviceOidTemplate = "ReadNetworkDeviceOidTemplate",
+
   // Podman Host Label Rule Permissions
   CreatePodmanHostLabelRule = "CreatePodmanHostLabelRule",
   DeletePodmanHostLabelRule = "DeletePodmanHostLabelRule",
@@ -667,11 +703,23 @@ enum Permission {
   EditCephClusterOwnerRule = "EditCephClusterOwnerRule",
   ReadCephClusterOwnerRule = "ReadCephClusterOwnerRule",
 
+  // vCenter (VMware) Owner Rule Permissions
+  CreateVMwareVCenterOwnerRule = "CreateVMwareVCenterOwnerRule",
+  DeleteVMwareVCenterOwnerRule = "DeleteVMwareVCenterOwnerRule",
+  EditVMwareVCenterOwnerRule = "EditVMwareVCenterOwnerRule",
+  ReadVMwareVCenterOwnerRule = "ReadVMwareVCenterOwnerRule",
+
   // Ceph Cluster Label Rule Permissions
   CreateCephClusterLabelRule = "CreateCephClusterLabelRule",
   DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
   EditCephClusterLabelRule = "EditCephClusterLabelRule",
   ReadCephClusterLabelRule = "ReadCephClusterLabelRule",
+
+  // vCenter (VMware) Label Rule Permissions
+  CreateVMwareVCenterLabelRule = "CreateVMwareVCenterLabelRule",
+  DeleteVMwareVCenterLabelRule = "DeleteVMwareVCenterLabelRule",
+  EditVMwareVCenterLabelRule = "EditVMwareVCenterLabelRule",
+  ReadVMwareVCenterLabelRule = "ReadVMwareVCenterLabelRule",
 
   // Runbook Owner Rule Permissions
   CreateRunbookOwnerRule = "CreateRunbookOwnerRule",
@@ -1022,6 +1070,47 @@ enum Permission {
   EditAlertFeed = "EditAlertFeed",
   ReadAlertFeed = "ReadAlertFeed",
 
+  // Feeds for infrastructure and catalog resources.
+  CreateKubernetesClusterFeed = "CreateKubernetesClusterFeed",
+  EditKubernetesClusterFeed = "EditKubernetesClusterFeed",
+  ReadKubernetesClusterFeed = "ReadKubernetesClusterFeed",
+
+  CreateDockerHostFeed = "CreateDockerHostFeed",
+  EditDockerHostFeed = "EditDockerHostFeed",
+  ReadDockerHostFeed = "ReadDockerHostFeed",
+
+  CreateDockerSwarmClusterFeed = "CreateDockerSwarmClusterFeed",
+  EditDockerSwarmClusterFeed = "EditDockerSwarmClusterFeed",
+  ReadDockerSwarmClusterFeed = "ReadDockerSwarmClusterFeed",
+
+  CreateCephClusterFeed = "CreateCephClusterFeed",
+  EditCephClusterFeed = "EditCephClusterFeed",
+  ReadCephClusterFeed = "ReadCephClusterFeed",
+
+  CreateVMwareVCenterFeed = "CreateVMwareVCenterFeed",
+  EditVMwareVCenterFeed = "EditVMwareVCenterFeed",
+  ReadVMwareVCenterFeed = "ReadVMwareVCenterFeed",
+
+  CreatePodmanHostFeed = "CreatePodmanHostFeed",
+  EditPodmanHostFeed = "EditPodmanHostFeed",
+  ReadPodmanHostFeed = "ReadPodmanHostFeed",
+
+  CreateProxmoxClusterFeed = "CreateProxmoxClusterFeed",
+  EditProxmoxClusterFeed = "EditProxmoxClusterFeed",
+  ReadProxmoxClusterFeed = "ReadProxmoxClusterFeed",
+
+  CreateHostFeed = "CreateHostFeed",
+  EditHostFeed = "EditHostFeed",
+  ReadHostFeed = "ReadHostFeed",
+
+  CreateCloudResourceFeed = "CreateCloudResourceFeed",
+  EditCloudResourceFeed = "EditCloudResourceFeed",
+  ReadCloudResourceFeed = "ReadCloudResourceFeed",
+
+  CreateServiceFeed = "CreateServiceFeed",
+  EditServiceFeed = "EditServiceFeed",
+  ReadServiceFeed = "ReadServiceFeed",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
   EditMonitorStatusTimeline = "EditMonitorStatusTimeline",
@@ -1320,6 +1409,21 @@ enum Permission {
   EditNetworkSiteType = "EditNetworkSiteType",
   ReadNetworkSiteType = "ReadNetworkSiteType",
 
+  CreateNetworkDeviceRole = "CreateNetworkDeviceRole",
+  DeleteNetworkDeviceRole = "DeleteNetworkDeviceRole",
+  EditNetworkDeviceRole = "EditNetworkDeviceRole",
+  ReadNetworkDeviceRole = "ReadNetworkDeviceRole",
+
+  CreateNetworkAlertPolicy = "CreateNetworkAlertPolicy",
+  DeleteNetworkAlertPolicy = "DeleteNetworkAlertPolicy",
+  EditNetworkAlertPolicy = "EditNetworkAlertPolicy",
+  ReadNetworkAlertPolicy = "ReadNetworkAlertPolicy",
+
+  CreateNetworkSnmpCredentialProfile = "CreateNetworkSnmpCredentialProfile",
+  DeleteNetworkSnmpCredentialProfile = "DeleteNetworkSnmpCredentialProfile",
+  EditNetworkSnmpCredentialProfile = "EditNetworkSnmpCredentialProfile",
+  ReadNetworkSnmpCredentialProfile = "ReadNetworkSnmpCredentialProfile",
+
   CreateRecommendationDismissal = "CreateRecommendationDismissal",
   DeleteRecommendationDismissal = "DeleteRecommendationDismissal",
   EditRecommendationDismissal = "EditRecommendationDismissal",
@@ -1419,6 +1523,11 @@ enum Permission {
   EditCephCluster = "EditCephCluster",
   ReadCephCluster = "ReadCephCluster",
 
+  CreateVMwareVCenter = "CreateVMwareVCenter",
+  DeleteVMwareVCenter = "DeleteVMwareVCenter",
+  EditVMwareVCenter = "EditVMwareVCenter",
+  ReadVMwareVCenter = "ReadVMwareVCenter",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
@@ -1452,10 +1561,20 @@ enum Permission {
   EditCephClusterOwnerTeam = "EditCephClusterOwnerTeam",
   ReadCephClusterOwnerTeam = "ReadCephClusterOwnerTeam",
 
+  CreateVMwareVCenterOwnerTeam = "CreateVMwareVCenterOwnerTeam",
+  DeleteVMwareVCenterOwnerTeam = "DeleteVMwareVCenterOwnerTeam",
+  EditVMwareVCenterOwnerTeam = "EditVMwareVCenterOwnerTeam",
+  ReadVMwareVCenterOwnerTeam = "ReadVMwareVCenterOwnerTeam",
+
   CreateCephClusterOwnerUser = "CreateCephClusterOwnerUser",
   DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
   EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
   ReadCephClusterOwnerUser = "ReadCephClusterOwnerUser",
+
+  CreateVMwareVCenterOwnerUser = "CreateVMwareVCenterOwnerUser",
+  DeleteVMwareVCenterOwnerUser = "DeleteVMwareVCenterOwnerUser",
+  EditVMwareVCenterOwnerUser = "EditVMwareVCenterOwnerUser",
+  ReadVMwareVCenterOwnerUser = "ReadVMwareVCenterOwnerUser",
 
   CreateHost = "CreateHost",
   DeleteHost = "DeleteHost",
@@ -2321,6 +2440,36 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.SecurityAdmin,
+        title: "Security Admin",
+        description:
+          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and Google SecOps connections. Security data is not readable through any other role.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.SecurityMember,
+        title: "Security Member",
+        description:
+          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure Google SecOps connections.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.SecurityViewer,
+        title: "Security Viewer",
+        description:
+          "Read-only access to security events, detection rules, threat intelligence feeds, and indicators.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
       },
       {
         permission: Permission.SettingsAdmin,
@@ -3255,6 +3404,316 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      {
+        permission: Permission.CreateKubernetesClusterFeed,
+        title: "Create Kubernetes Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterFeed,
+        title: "Edit Kubernetes Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterFeed,
+        title: "Read Kubernetes Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerHostFeed,
+        title: "Create Docker Host Feed",
+        description:
+          "This permission can create the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostFeed,
+        title: "Edit Docker Host Feed",
+        description:
+          "This permission can edit the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostFeed,
+        title: "Read Docker Host Feed",
+        description:
+          "This permission can read the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerSwarmClusterFeed,
+        title: "Create Docker Swarm Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerSwarmClusterFeed,
+        title: "Edit Docker Swarm Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerSwarmClusterFeed,
+        title: "Read Docker Swarm Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCephClusterFeed,
+        title: "Create Ceph Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterFeed,
+        title: "Edit Ceph Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterFeed,
+        title: "Read Ceph Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateVMwareVCenterFeed,
+        title: "Create vCenter Feed",
+        description:
+          "This permission can create the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterFeed,
+        title: "Edit vCenter Feed",
+        description:
+          "This permission can edit the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterFeed,
+        title: "Read vCenter Feed",
+        description:
+          "This permission can read the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreatePodmanHostFeed,
+        title: "Create Podman Host Feed",
+        description:
+          "This permission can create the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostFeed,
+        title: "Edit Podman Host Feed",
+        description:
+          "This permission can edit the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostFeed,
+        title: "Read Podman Host Feed",
+        description:
+          "This permission can read the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateProxmoxClusterFeed,
+        title: "Create Proxmox Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterFeed,
+        title: "Edit Proxmox Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterFeed,
+        title: "Read Proxmox Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostFeed,
+        title: "Create Host Feed",
+        description:
+          "This permission can create the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostFeed,
+        title: "Edit Host Feed",
+        description:
+          "This permission can edit the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostFeed,
+        title: "Read Host Feed",
+        description:
+          "This permission can read the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResourceFeed,
+        title: "Create Cloud Resource Feed",
+        description:
+          "This permission can create the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceFeed,
+        title: "Edit Cloud Resource Feed",
+        description:
+          "This permission can edit the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceFeed,
+        title: "Read Cloud Resource Feed",
+        description:
+          "This permission can read the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServiceFeed,
+        title: "Create Service Feed",
+        description:
+          "This permission can create the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceFeed,
+        title: "Edit Service Feed",
+        description:
+          "This permission can edit the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceFeed,
+        title: "Read Service Feed",
+        description:
+          "This permission can read the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
       },
 
       {
@@ -7143,6 +7602,48 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Threat Intel Feed Permissions
+      {
+        permission: Permission.CreateProjectThreatIntelFeed,
+        title: "Create Threat Intel Feed",
+        description:
+          "This permission can create Threat Intel Feeds in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteProjectThreatIntelFeed,
+        title: "Delete Threat Intel Feed",
+        description:
+          "This permission can delete Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditProjectThreatIntelFeed,
+        title: "Edit Threat Intel Feed",
+        description:
+          "This permission can edit Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadProjectThreatIntelFeed,
+        title: "Read Threat Intel Feed",
+        description:
+          "This permission can read Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Log Pipeline Permissions
       {
         permission: Permission.CreateProjectLogPipeline,
@@ -7729,6 +8230,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateTelemetrySourceMap,
+        title: "Create Telemetry Source Map",
+        description:
+          "This permission can upload source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetrySourceMap,
+        title: "Delete Telemetry Source Map",
+        description:
+          "This permission can delete source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetrySourceMap,
+        title: "Edit Telemetry Source Map",
+        description:
+          "This permission can edit source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetrySourceMap,
+        title: "Read Telemetry Source Map",
+        description:
+          "This permission can read source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateProbeOwnerTeam,
         title: "Create Probe Owner Team",
         description: "This permission can create owners for probes.",
@@ -8102,6 +8644,126 @@ export class PermissionHelper {
         title: "Read Network Site Type",
         description:
           "This permission can read Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceRole,
+        title: "Create Network Device Role",
+        description:
+          "This permission can create Network Device Role in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceRole,
+        title: "Delete Network Device Role",
+        description:
+          "This permission can delete Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceRole,
+        title: "Edit Network Device Role",
+        description:
+          "This permission can edit Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceRole,
+        title: "Read Network Device Role",
+        description:
+          "This permission can read Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSnmpCredentialProfile,
+        title: "Create SNMP Credential Profile",
+        description:
+          "This permission can create SNMP Credential Profile in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSnmpCredentialProfile,
+        title: "Delete SNMP Credential Profile",
+        description:
+          "This permission can delete SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSnmpCredentialProfile,
+        title: "Edit SNMP Credential Profile",
+        description:
+          "This permission can edit SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSnmpCredentialProfile,
+        title: "Read SNMP Credential Profile",
+        description:
+          "This permission can read SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkAlertPolicy,
+        title: "Create Network Alert Policy",
+        description:
+          "This permission can create Network Alert Policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkAlertPolicy,
+        title: "Delete Network Alert Policy",
+        description:
+          "This permission can delete Network Alert Policy of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkAlertPolicy,
+        title: "Edit Network Alert Policy",
+        description:
+          "This permission can edit Network Alert Policy of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkAlertPolicy,
+        title: "Read Network Alert Policy",
+        description:
+          "This permission can read Network Alert Policy of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8654,6 +9316,43 @@ export class PermissionHelper {
         permission: Permission.ReadCephCluster,
         title: "Read Ceph Cluster",
         description: "This permission can read Ceph Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateVMwareVCenter,
+        title: "Create vCenter",
+        description: "This permission can create vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenter,
+        title: "Delete vCenter",
+        description: "This permission can delete vCenter of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenter,
+        title: "Edit vCenter",
+        description: "This permission can edit vCenter of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenter,
+        title: "Read vCenter",
+        description: "This permission can read vCenter of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -9717,6 +10416,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateVMwareVCenterOwnerTeam,
+        title: "Create vCenter Team Owner",
+        description:
+          "This permission can create vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerTeam,
+        title: "Delete vCenter Team Owner",
+        description:
+          "This permission can delete vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerTeam,
+        title: "Edit vCenter Team Owner",
+        description:
+          "This permission can edit vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerTeam,
+        title: "Read vCenter Team Owner",
+        description:
+          "This permission can read vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateCephClusterOwnerUser,
         title: "Create Ceph Cluster User Owner",
         description:
@@ -9751,6 +10491,47 @@ export class PermissionHelper {
         title: "Read Ceph Cluster User Owner",
         description:
           "This permission can read Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateVMwareVCenterOwnerUser,
+        title: "Create vCenter User Owner",
+        description:
+          "This permission can create vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerUser,
+        title: "Delete vCenter User Owner",
+        description:
+          "This permission can delete vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerUser,
+        title: "Edit vCenter User Owner",
+        description:
+          "This permission can edit vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerUser,
+        title: "Read vCenter User Owner",
+        description:
+          "This permission can read vCenter User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -11930,6 +12711,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // OID Collection Template Permissions
+      {
+        permission: Permission.CreateNetworkDeviceOidTemplate,
+        title: "Create OID Collection Template",
+        description:
+          "This permission can create OID Collection Templates in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceOidTemplate,
+        title: "Delete OID Collection Template",
+        description:
+          "This permission can delete OID Collection Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditNetworkDeviceOidTemplate,
+        title: "Edit OID Collection Template",
+        description:
+          "This permission can edit OID Collection Templates of this project. Editing a template changes what every linked device collects on its next poll.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceOidTemplate,
+        title: "Read OID Collection Template",
+        description:
+          "This permission can read OID Collection Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Podman Host Label Rule Permissions
       {
         permission: Permission.CreatePodmanHostLabelRule,
@@ -12352,6 +13175,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // vCenter (VMware) Owner Rule Permissions
+      {
+        permission: Permission.CreateVMwareVCenterOwnerRule,
+        title: "Create vCenter Owner Rule",
+        description:
+          "This permission can create vCenter Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerRule,
+        title: "Delete vCenter Owner Rule",
+        description:
+          "This permission can delete vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerRule,
+        title: "Edit vCenter Owner Rule",
+        description:
+          "This permission can edit vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerRule,
+        title: "Read vCenter Owner Rule",
+        description:
+          "This permission can read vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Ceph Cluster Label Rule Permissions
       {
         permission: Permission.CreateCephClusterLabelRule,
@@ -12388,6 +13253,48 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Label Rule",
         description:
           "This permission can read Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // vCenter (VMware) Label Rule Permissions
+      {
+        permission: Permission.CreateVMwareVCenterLabelRule,
+        title: "Create vCenter Label Rule",
+        description:
+          "This permission can create vCenter Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterLabelRule,
+        title: "Delete vCenter Label Rule",
+        description:
+          "This permission can delete vCenter Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterLabelRule,
+        title: "Edit vCenter Label Rule",
+        description:
+          "This permission can edit vCenter Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterLabelRule,
+        title: "Read vCenter Label Rule",
+        description:
+          "This permission can read vCenter Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

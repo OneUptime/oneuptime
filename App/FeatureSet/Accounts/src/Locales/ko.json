@@ -31,8 +31,26 @@
     "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
   },
   "login": {
+    "passkey": {
+      "signIn": "패스키로 로그인",
+      "description": "지문, 얼굴 인식 또는 기기 PIN을 사용하세요.",
+      "passwordAlternative": "또는 비밀번호로 로그인",
+      "inProgress": "비밀번호를 사용하기 전에 패스키 로그인을 완료하거나 취소하세요.",
+      "title": "저장된 패스키 사용",
+      "helpTitle": "패스키가 처음이신가요?",
+      "help": "비밀번호 또는 SSO로 로그인한 다음 사용자 프로필 → 패스키 및 2단계 인증에서 첫 패스키를 만드세요.",
+      "preparing": "패스키를 준비하고 있어요…",
+      "waiting": "기기를 확인하세요",
+      "waitingDescription": "브라우저 또는 비밀번호 관리자의 안내를 따르세요.",
+      "verifying": "로그인하고 있어요…",
+      "cancelled": "패스키 로그인이 취소되었습니다. 다시 시도하거나 비밀번호를 사용하세요.",
+      "notCompleted": "패스키 로그인이 취소되었거나 시간이 초과되었습니다. 다시 시도하거나 비밀번호로 로그인하세요.",
+      "unsupported": "이 브라우저에서는 패스키를 사용할 수 없습니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
+      "insecure": "패스키를 사용하려면 보안 연결(HTTPS)이 필요합니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
+      "tryAgain": "패스키로 다시 시도"
+    },
     "title": "계정에 로그인",
-    "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "subtitle": "패스키, 비밀번호 또는 조직의 SSO로 로그인하세요.",
     "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "useSso": "대신 SSO (단일 로그인) 사용",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "보안 키 장치의 지침을 따르세요.",
       "codeFieldDescription": "인증 앱에서 코드를 입력하세요",
       "selectDifferentMethod": "다른 이중 인증 방법 선택",
-      "useBackupCode": "대신 백업 코드 사용",
       "backupCodeInstruction": "이중 인증을 설정할 때 저장한 백업 코드 중 하나를 입력하세요. 각 코드는 한 번만 사용할 수 있습니다.",
       "backupCodeFieldTitle": "백업 코드",
-      "backupCodeFieldDescription": "백업 코드는 ABCDE-12345 형식입니다. 대소문자와 하이픈은 상관없습니다."
+      "backupCodeFieldDescription": "백업 코드는 ABCDE-12345 형식입니다. 대소문자와 하이픈은 상관없습니다.",
+      "confirmSubtitle": "로그인을 완료하려면 본인임을 확인하세요.",
+      "recoverySubtitle": "백업 코드를 사용하거나, 백업 코드 없이 다시 로그인하는 방법을 알아보세요.",
+      "lostAccess": "인증 앱에 액세스할 수 없나요?",
+      "noBackupCodesStrong": "백업 코드가 없습니다.",
+      "noBackupCodes": "이 계정에는 백업 코드가 발급된 적이 없어 여기에 입력할 수 있는 코드가 없습니다.",
+      "noBackupCodesInstruction": "이 OneUptime 인스턴스의 관리자에게 계정의 이중 인증을 재설정해 달라고 요청하세요. 그런 다음 비밀번호로 로그인하여 새 인증 앱을 설정할 수 있으며, 이때 백업 코드도 함께 생성됩니다.",
+      "lostAccessSecurityKey": "보안 키에 액세스할 수 없나요?"
     },
     "twoFactorEnrolment": {
       "title": "2단계 인증 설정",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "인증 앱에 표시된 6자리 코드를 입력하세요.",
       "submitButton": "확인하고 로그인",
       "backToSignIn": "다른 사용자로 로그인"
+    },
+    "backupCodes": {
+      "title": "백업 코드 저장",
+      "subtitle": "인증 앱이나 보안 키에 액세스할 수 없게 되면 이 코드 중 하나로 로그인하세요.",
+      "showOnceStrong": "이 코드는 지금 한 번만 표시됩니다.",
+      "showOnce": "코드를 생성하는 기기가 아닌 다른 곳에 저장하세요. 각 코드는 한 번만 사용할 수 있습니다.",
+      "download": "텍스트 파일로 다운로드",
+      "savedConfirmation": "이 코드를 안전한 곳에 저장했습니다.",
+      "continue": "대시보드로 계속",
+      "fileHeading": "OneUptime 이중 인증 백업 코드",
+      "fileInstruction": "각 코드는 한 번만 사용할 수 있습니다. 이 파일은 인증 앱이 설치된 기기와 분리된 안전한 곳에 보관하세요.",
+      "setUpTitle": "백업 코드 설정",
+      "setUpSubtitle": "계속하기 전에 마지막으로 한 가지가 남았습니다.",
+      "noneStrong": "백업 코드가 없습니다.",
+      "none": "인증 앱이나 보안 키를 분실하면 관리자가 이중 인증을 재설정해야 다시 로그인할 수 있습니다.",
+      "generate": "백업 코드 생성",
+      "skip": "지금은 건너뛰기",
+      "generateFailed": "백업 코드가 반환되지 않았습니다. 사용자 프로필 > 이중 인증에서 다시 시도해 주세요."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "OneUptime On-Call에 로그인",
+    "description": "이 OneUptime 서버에 저장된 패스키를 사용하세요.",
+    "returnDescription": "승인하면 모바일 앱으로 돌아갑니다.",
+    "invalid": "OneUptime 모바일 앱에서 로그인을 시작하세요. 요청이 없거나 유효하지 않습니다.",
+    "insecure": "패스키에는 HTTPS가 필요합니다. 앱으로 돌아가 서버 주소를 확인하세요.",
+    "failed": "로그인을 완료하지 못했습니다. 앱으로 돌아가 다시 시도하세요.",
+    "complete": "패스키가 확인되었습니다. 앱으로 돌아가 로그인을 완료하세요.",
+    "returnToApp": "앱으로 돌아가기",
+    "cancel": "취소하고 앱으로 돌아가기",
+    "setup": "웹 대시보드의 사용자 프로필 → 패스키 및 2단계 인증에서 패스키를 만드세요."
+  },
+  "Use at least {{minimum}} characters.": "{{minimum}}자 이상 사용하세요.",
+  "Try a few unrelated words.": "서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password meets requirements": "비밀번호가 요구 사항을 충족합니다",
+  "Password must be at least 15 characters.": "비밀번호는 15자 이상이어야 합니다.",
+  "Password cannot be more than 100 characters.": "비밀번호는 100자를 초과할 수 없습니다.",
+  "Choose a less predictable password. Try a few unrelated words.": "추측하기 어려운 비밀번호를 선택하세요. 서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password cannot be blank.": "비밀번호는 공백으로만 구성할 수 없습니다.",
+  "Password is required.": "비밀번호는 필수입니다.",
+  "Password must be a string.": "비밀번호는 문자열이어야 합니다.",
+  "Account details": "계정 정보",
+  "Secure your account": "계정 보안",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}자 이상 {{maximum}}자 이하",
+  "Avoid common or repeated patterns": "흔하거나 반복되는 패턴 피하기",
+  "Password length": "비밀번호 길이",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}자 / 최소 {{minimum}}자",
+  "Complete:": "충족:",
+  "Incomplete:": "미충족:",
+  "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
+  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요."
 }

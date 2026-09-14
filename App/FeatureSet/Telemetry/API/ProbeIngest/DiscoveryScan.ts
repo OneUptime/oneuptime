@@ -4,13 +4,18 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+import {
+  MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  clampRescanIntervalInMinutes,
+} from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
+import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -22,15 +27,6 @@ import logger from "Common/Server/Utils/Logger";
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * Floor for recurring rescans. A discovery sweep is heavy (up to
- * ScanTargetUtil.MAX_SCAN_HOSTS addresses, one probe at a time), so anything
- * tighter than this would keep the probe permanently busy. Lower stored
- * intervals are clamped, not rejected — the scan still recurs, just no faster
- * than this.
- */
-const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
-
-/*
  * NetworkDeviceDiscoveryScan.statusMessage is a varchar(500). The probe's
  * summary now carries diagnostics (the ICMP-filtered fallback, the most common
  * SNMP error verbatim) and the clamp note below is appended on top of it, so
@@ -40,6 +36,7 @@ const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
  * it here instead: a clipped explanation beats a lost result.
  */
 const MAX_STATUS_MESSAGE_LENGTH: number = 500;
+const MAX_EXCLUDED_SCAN_IDS: number = 128;
 
 /*
  * Hands the requesting probe its pending subnet-discovery scans and marks
@@ -66,11 +63,50 @@ router.post(
         );
       }
 
+      const excludeScanIds: unknown = req.body["excludeScanIds"];
+
+      if (
+        excludeScanIds !== undefined &&
+        (!Array.isArray(excludeScanIds) ||
+          excludeScanIds.length > MAX_EXCLUDED_SCAN_IDS)
+      ) {
+        throw new BadDataException(
+          `excludeScanIds must be an array of at most ${MAX_EXCLUDED_SCAN_IDS} scan IDs.`,
+        );
+      }
+
+      const excludedIds: Array<ObjectID> = [];
+
+      if (Array.isArray(excludeScanIds)) {
+        for (const excludedId of excludeScanIds) {
+          if (
+            typeof excludedId !== "string" ||
+            !ObjectID.isValidUUID(excludedId)
+          ) {
+            throw new BadDataException(
+              "excludeScanIds must contain only valid scan ID strings.",
+            );
+          }
+
+          excludedIds.push(new ObjectID(excludedId));
+        }
+      }
+
       const scans: Array<NetworkDeviceDiscoveryScan> =
         await NetworkDeviceDiscoveryScanService.findBy({
           query: {
             probeId: probeId,
             status: "Pending",
+            /*
+             * A settings edit puts an active scan back in Pending. Keep its
+             * ID out of this claim while the probe finishes the old run:
+             * claiming it again would turn it In Progress and allow the old
+             * result past the Pending guard below. Deduplicating on the probe
+             * after this response would already be too late.
+             */
+            ...(excludedIds.length > 0
+              ? { _id: QueryHelper.notIn(excludedIds) }
+              : {}),
           },
           select: {
             _id: true,
@@ -82,6 +118,18 @@ router.post(
              */
             name: true,
             cidr: true,
+            /*
+             * The scan's method. Without it the probe cannot tell an ICMP-only
+             * scan from an SNMP one and would SNMP-probe both (issue #3445).
+             */
+            isSnmpEnabled: true,
+            /*
+             * The ordered credential list the sweep tries, first match wins.
+             * The flattened columns below it are still selected and still
+             * mirror this list's first entry: an older probe reads only those,
+             * and every scan written out of band has only those.
+             */
+            snmpConfigs: true,
             snmpVersion: true,
             snmpCommunityString: true,
             snmpPort: true,
@@ -96,7 +144,10 @@ router.post(
           sort: {
             createdAt: SortOrder.Ascending,
           },
-          // One subnet scan at a time per probe — sweeps are heavy.
+          /*
+           * Claim one scan per poll. The probe limits concurrent execution
+           * and keeps polling while it has capacity for another scan.
+           */
           limit: 1,
           skip: 0,
           props: {
@@ -129,14 +180,69 @@ router.post(
             status: "In Progress",
             startedAt: OneUptimeDate.getCurrentDate(),
             /*
-             * Clear the "nobody has picked this scan up" note the worker
-             * writes onto a long-unclaimed Pending scan
-             * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts).
-             * A probe claiming the scan is precisely the thing that note said
-             * was not happening, so leaving it would have the row explain, for
-             * the whole sweep, why it had not started.
+             * Replace a Pending diagnosis with a current-run marker. Recurring
+             * scans retain their previous inventory until new results arrive;
+             * the dashboard must not show those old counters as live progress.
+             * The first progress or final report replaces this message.
              */
-            statusMessage: null,
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          /*
+           * Claim ONLY IF everything just handed to the probe is still true.
+           *
+           * The SELECT above and this UPDATE are two statements, and the
+           * UPDATE addresses the row by id alone. A scan's settings became
+           * editable in OneUptime issue #3444, so a save landing in between
+           * would hand this probe one configuration and stamp the row with
+           * another — and, if the probe was reassigned, wedge the scan: the
+           * old probe's result is rejected on the probeId scope below, the new
+           * probe can never claim a row that is already In Progress, and it
+           * sits there until the two-hour reaper calls it a dead probe.
+           *
+           * Every expected column becomes `IS NOT DISTINCT FROM` in the
+           * UPDATE's WHERE, so a mismatch is simply zero rows affected: the
+           * scan stays Pending, this sweep's eventual result is discarded by
+           * the Pending guard in the result endpoint, and the next poll picks
+           * the scan up with its new settings. `name` is deliberately absent —
+           * a rename changes nothing about the sweep and must not cost one.
+           *
+           * The write reports no count, so the probe is still handed the scan
+           * and still sweeps it once for nothing when the guard bites. That is
+           * the cheap half of the trade: a wasted sweep in a race that needs a
+           * save to land inside a single round trip, against a scan wedged
+           * In Progress for two hours until the reaper gives up on it.
+           */
+          expectedData: {
+            status: "Pending",
+            probeId: probeId,
+            cidr: scan.cidr ?? null,
+            /*
+             * The METHOD, not only the credentials. Turning Check SNMP off
+             * between the SELECT above and this UPDATE changes what the sweep
+             * asks of every address — it is a sweep column for exactly that
+             * reason (SWEEP_COLUMNS in NetworkDeviceDiscoveryScanService) — so
+             * a claim that ignored it would hand this probe an SNMP sweep of a
+             * scan the operator had just turned into a ping sweep, and stamp
+             * the row In Progress against it.
+             */
+            isSnmpEnabled: scan.isSnmpEnabled ?? null,
+            /*
+             * Compared as JSON. `IS NOT DISTINCT FROM` on a jsonb column is a
+             * value comparison, and the value handed to the probe is the value
+             * read out of this same column moments ago, so it round-trips
+             * exactly — a re-save that did not change the credentials does not
+             * fail the guard.
+             */
+            snmpConfigs: scan.snmpConfigs ?? null,
+            snmpVersion: scan.snmpVersion ?? null,
+            snmpCommunityString: scan.snmpCommunityString ?? null,
+            snmpPort: scan.snmpPort ?? null,
+            snmpV3SecurityLevel: scan.snmpV3SecurityLevel ?? null,
+            snmpV3Username: scan.snmpV3Username ?? null,
+            snmpV3AuthProtocol: scan.snmpV3AuthProtocol ?? null,
+            snmpV3AuthKey: scan.snmpV3AuthKey ?? null,
+            snmpV3PrivProtocol: scan.snmpV3PrivProtocol ?? null,
+            snmpV3PrivKey: scan.snmpV3PrivKey ?? null,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         });
       }
@@ -212,9 +318,18 @@ router.post(
             projectId: true,
             // Needed to reject a result for a run that is no longer current.
             status: true,
+            // An older probe may report progress without its own message.
+            statusMessage: true,
             // Needed to schedule the next run of a recurring scan below.
             isRecurring: true,
             rescanIntervalInMinutes: true,
+            /*
+             * Needed to count what "responded" means for THIS scan — see
+             * respondedHostCount below. An ICMP-only sweep reports every host
+             * it found as snmpReachable:false, so counting SNMP responders
+             * would store a hard zero for a scan that worked perfectly.
+             */
+            isSnmpEnabled: true,
           },
           props: {
             isRoot: true,
@@ -256,61 +371,94 @@ router.post(
         });
       }
 
+      /*
+       * A PARTIAL result: what the sweep has found so far, sent while it is
+       * still running (OneUptime issues #3598 and #3599).
+       *
+       * A sweep used to be atomic — its hosts existed only in the probe's
+       * memory until the whole range was covered — so a 15,360-address scan
+       * read "0 of 15360" for as long as it ran, a sweep abandoned at the
+       * probe's deadline lost every host it had confirmed, and the
+       * auto-import worker (which looks for results to import) had nothing to
+       * look at until the very end.
+       *
+       * Refused for a scan that is not In Progress. A partial can only be
+       * about the run this row is currently executing: for a Completed or
+       * Failed row it is a straggler from a run that has already had its say,
+       * and storing it would replace the final result — reverse-DNS names and
+       * all — with the snapshot that preceded it.
+       */
+      const isPartial: boolean = req.body["isPartial"] === true;
+
+      if (isPartial && scan.status !== "In Progress") {
+        logger.debug(
+          `Discarding a partial discovery scan result for ${scanId}: the scan is "${scan.status}", so its run has already reported a final result.`,
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          result: "discarded",
+        });
+      }
+
+      const success: boolean = req.body["success"] !== false;
+
+      /*
+       * Whether this report SAYS anything about hosts.
+       *
+       * A run that finished always does, even when the answer is "nothing" —
+       * that is a finding, and the empty list is how it is recorded (a
+       * payload with no key at all, from an older probe, means the same
+       * thing there).
+       *
+       * A run that FAILED is the exception, and the reason this distinction
+       * exists. Its report used to carry `discoveredDevices: []`, which the
+       * server stores; that was harmless while a run's only report was its
+       * last one, but a sweep now uploads what it has found every 30 seconds,
+       * so a run abandoned at the probe's deadline would have its failure
+       * report erase the hundreds of hosts it had already sent — exactly the
+       * loss incremental results exist to prevent (OneUptime issue #3598).
+       *
+       * A failure or partial report states hosts only when it carries a list.
+       * A count-only heartbeat must preserve hosts already reported by this
+       * run. An explicit `[]` still replaces them with an empty result.
+       */
+      const hasHostReport: boolean =
+        (!isPartial && success) || Array.isArray(req.body["discoveredDevices"]);
+
       const discoveredDevices: Array<JSONObject> =
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
 
       /*
-       * Flag hosts that already have a NetworkDevice at that IP.
+       * Which of the addresses THIS SCAN found already have a device — asked
+       * of the database directly, not worked out from a copy of every
+       * hostname in the project.
        *
-       * Paged, because this used to be a single findBy at LIMIT_MAX (10,000)
-       * with no paging and no sort. A project with more devices than that got
-       * an arbitrary 10,000 of them, so every device past the cap was reported
-       * to the dashboard as NOT registered, and the reviewer's "import"
-       * re-created devices that already existed. A truncated answer here is
-       * worse than a slow one: it produces duplicates in the inventory.
+       * The walk this replaces paged `ORDER BY createdAt`, and a bulk
+       * discovery import stamps every device it creates with the same
+       * `createdAt`. On a large fleet every row shares one value, so
+       * `LIMIT/OFFSET` over that sort key returned an arbitrary slice per
+       * call: pages overlapped and skipped, a skipped hostname read as NOT
+       * registered, and the reviewer's "import" re-created a device that
+       * already existed — the exact duplicate the paging was added to
+       * prevent. It also cost eight sequential full-table scans inside the
+       * request the probe is synchronously waiting on.
        */
-      const existingHostnames: Set<string> = new Set<string>();
-
-      for (let skip: number = 0; ; skip += LIMIT_MAX) {
-        const existing: Array<NetworkDevice> =
-          await NetworkDeviceService.findBy({
-            query: {
-              projectId: scan.projectId!,
-            },
-            select: {
-              hostname: true,
-            },
-            /*
-             * Sorted, so paging is stable. Without an explicit order Postgres
-             * makes no promise across the two queries, and a row could be
-             * returned twice — or skipped entirely — between pages.
-             */
-            sort: {
-              createdAt: SortOrder.Ascending,
-            },
-            limit: LIMIT_MAX,
-            skip: skip,
-            props: {
-              isRoot: true,
-            },
-          });
-
-        for (const device of existing) {
-          existingHostnames.add(device.hostname || "");
-        }
-
-        if (existing.length < LIMIT_MAX) {
-          break;
-        }
-      }
+      const existingHostnames: Set<string> =
+        await NetworkDeviceService.getRegisteredHostnames({
+          projectId: scan.projectId!,
+          hostnames: discoveredDevices.map((device: JSONObject): string => {
+            return String(device["ipAddress"] || "");
+          }),
+          props: {
+            isRoot: true,
+          },
+        });
 
       for (const device of discoveredDevices) {
         device["isAlreadyRegistered"] = existingHostnames.has(
           String(device["ipAddress"] || ""),
         );
       }
-
-      const success: boolean = req.body["success"] !== false;
 
       /*
        * The probe now reports ping-only hosts too, tagged `snmpReachable:
@@ -327,16 +475,129 @@ router.post(
       ).length;
 
       /*
+       * What "responded" means depends on what the scan asked (issue #3445).
+       *
+       * On an SNMP scan it is the SNMP responders: the ping-only hosts are
+       * reported separately, and collapsing them together would hide the very
+       * distinction the "+N alive without SNMP" line exists to show.
+       *
+       * On an ICMP-only scan every host is snmpReachable:false by
+       * construction, so that same count is always zero — and the Discovery
+       * Scans list would render a perfect sweep of a busy subnet as
+       * "0 of 254 hosts", the exact false negative issue #3287 was about. The
+       * hosts DID respond; ping was the question. So count them.
+       */
+      const respondedHostCount: number = ScanModeUtil.isSnmpEnabled(scan)
+        ? snmpResponderCount
+        : discoveredDevices.length;
+
+      if (scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE) {
+        /*
+         * Until its first report, a recurring scan retains the preceding
+         * run's inventory. Retire it even when this run's first report is a
+         * failure or a heartbeat carrying only counts. Otherwise replacing
+         * the claim marker would present old hosts as this run's findings.
+         *
+         * Guard the reset in its own statement: another first report may
+         * have stored real partial results while the lookup above ran. Once
+         * it removes the marker, those results must never be cleared here.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+          id: scan.id!,
+          data: {
+            statusMessage: null,
+            discoveredDevices: null,
+            scannedHostCount: null,
+            respondedHostCount: null,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          expectedData: {
+            status: "In Progress",
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        });
+      }
+
+      if (isPartial) {
+        /*
+         * Results ONLY. The run state — status, completedAt, the recurrence
+         * schedule — belongs to the run and is written once, by the final
+         * result. A partial that touched any of it would end the run early.
+         *
+         * autoImportProcessedAt is cleared for the same reason the final write
+         * clears it: a NULL marker is the auto-import worker's "the results now
+         * on this row have not been processed" signal
+         * (Workers/Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules.ts). That
+         * is what makes each batch of partial results importable within a
+         * minute of arriving instead of after the whole sweep (issue #3599).
+         */
+        const partial: JSONObject = {
+          autoImportProcessedAt: null,
+        };
+
+        if (hasHostReport) {
+          partial["discoveredDevices"] = discoveredDevices;
+          partial["respondedHostCount"] = respondedHostCount;
+        }
+
+        if (req.body["statusMessage"]) {
+          partial["statusMessage"] = String(
+            req.body["statusMessage"],
+          ).substring(0, MAX_STATUS_MESSAGE_LENGTH);
+        }
+
+        /*
+         * Addresses swept so far, not the size of the range — the probe's
+         * progress message says which of the two the number is.
+         */
+        if (typeof req.body["scannedHostCount"] === "number") {
+          partial["scannedHostCount"] = req.body["scannedHostCount"] as number;
+        }
+
+        /*
+         * The hook-free single-statement write, for the same reasons the claim
+         * endpoint above uses it: this lands every 30 seconds for the whole
+         * length of a sweep, the probe waits on the response, and the full
+         * updateOneById pipeline (permission pre-fetch SELECT + row re-fetch +
+         * save() transaction) is three extra pool round trips for a payload no
+         * hook looks at. The service's only update hooks react to the sweep
+         * columns (cidr, probe, credentials) and the schedule columns, and this
+         * payload touches neither; the disjointness is pinned by
+         * Common/Tests/Server/Services/DiscoveryScanClaimHookFreeSafety.test.ts.
+         *
+         * Guarded on status so a final result landing between the read above
+         * and this write wins: the partial simply affects zero rows.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+          id: scan.id!,
+          // Cast: the model's JSON column makes DeepPartial recursion blow up.
+          data: partial as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          expectedData: {
+            status: "In Progress",
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        });
+
+        logger.debug(
+          hasHostReport
+            ? `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
+                (ScanModeUtil.isSnmpEnabled(scan)
+                  ? `, ${snmpResponderCount} answered SNMP.`
+                  : " (ICMP-only scan).")
+            : `Discovery scan ${scanId} progress received without a host list.`,
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          result: "partial",
+        });
+      }
+
+      /*
        * Plain object, NOT a model instance: a `new
        * NetworkDeviceDiscoveryScan()` payload carries non-column base props
        * (isPermissionIf) that made the update below throw and lose the
        * probe's results.
        */
       const completed: JSONObject = {
-        // Column is a JSON array of host suggestions, stored as-is.
         status: success ? "Completed" : "Failed",
-        discoveredDevices: discoveredDevices,
-        respondedHostCount: snmpResponderCount,
         completedAt: OneUptimeDate.getCurrentDate(),
         /*
          * New results, so the auto-import worker's bookkeeping starts over:
@@ -348,6 +609,18 @@ router.post(
          */
         autoImportProcessedAt: null,
       };
+
+      /*
+       * The column is a JSON array of host suggestions, stored as-is — and
+       * only when this report actually carries one. See hasHostReport: a
+       * failure report that mentions no hosts must leave the ones the run had
+       * already uploaded exactly where they are.
+       */
+      if (hasHostReport) {
+        completed["discoveredDevices"] = discoveredDevices;
+        completed["respondedHostCount"] = respondedHostCount;
+      }
+
       if (req.body["statusMessage"]) {
         completed["statusMessage"] = req.body["statusMessage"] as string;
       }
@@ -362,15 +635,13 @@ router.post(
        * RequeueRecurringScans.ts) resets the scan to Pending once nextScanAt
        * is due.
        */
-      if (
-        scan.isRecurring &&
-        scan.rescanIntervalInMinutes &&
-        scan.rescanIntervalInMinutes > 0
-      ) {
-        let intervalInMinutes: number = scan.rescanIntervalInMinutes;
+      const clampedIntervalInMinutes: number | null =
+        clampRescanIntervalInMinutes(scan.rescanIntervalInMinutes);
 
-        if (intervalInMinutes < MINIMUM_RESCAN_INTERVAL_IN_MINUTES) {
-          intervalInMinutes = MINIMUM_RESCAN_INTERVAL_IN_MINUTES;
+      if (scan.isRecurring && clampedIntervalInMinutes !== null) {
+        const intervalInMinutes: number = clampedIntervalInMinutes;
+
+        if (intervalInMinutes !== scan.rescanIntervalInMinutes) {
           logger.warn(
             `Discovery scan ${scanId} rescan interval of ${scan.rescanIntervalInMinutes} minute(s) is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum. Clamping.`,
           );
@@ -382,8 +653,18 @@ router.post(
             `Rescan interval is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum; rescanning every ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes instead.`;
         }
 
-        completed["nextScanAt"] =
-          OneUptimeDate.getSomeMinutesAfter(intervalInMinutes);
+        /*
+         * Measured from the completion this write is recording, not from
+         * "now", so the column holds exactly what
+         * RescanIntervalUtil.getNextScanAt would derive from the finished row.
+         * The service re-derives it whenever the schedule is edited, and two
+         * clocks a millisecond apart would make every such edit rewrite a
+         * value that had not actually changed.
+         */
+        completed["nextScanAt"] = OneUptimeDate.addRemoveMinutes(
+          completed["completedAt"] as Date,
+          intervalInMinutes,
+        );
       }
 
       // Last stop before the write — every append above has happened by now.
@@ -407,7 +688,10 @@ router.post(
       });
 
       logger.debug(
-        `Discovery scan ${scanId} completed: ${discoveredDevices.length} alive host(s), ${snmpResponderCount} answered SNMP.`,
+        `Discovery scan ${scanId} completed: ${discoveredDevices.length} alive host(s)` +
+          (ScanModeUtil.isSnmpEnabled(scan)
+            ? `, ${snmpResponderCount} answered SNMP.`
+            : " (ICMP-only scan)."),
       );
 
       return Response.sendJsonObjectResponse(req, res, { result: "ok" });

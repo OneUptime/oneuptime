@@ -1,5 +1,10 @@
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
+import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
+import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
+import { isAdoptableNode } from "./AdoptNeighborUtil";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
 import {
@@ -7,13 +12,12 @@ import {
   TopologyNodeKind,
   kindOfNode,
 } from "./NetworkTopologyViewModel";
-import StatusChipGroup, { StatusChipOption } from "../Filters/StatusChipGroup";
+import { StatusChipOption } from "../Filters/StatusChipGroup";
 import {
   TopologyHealthFilterMode,
   TopologyHealthSummary,
   buildHealthFilterOptions,
   healthCountForMode,
-  isHealthFilterActive,
   summarizeTopologyHealth,
 } from "./TopologyHealthFilter";
 import {
@@ -44,12 +48,8 @@ import NetworkTopology, {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import Card from "Common/UI/Components/Card/Card";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -190,11 +190,21 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [topology, setTopology] = useState<TopologyViewData>(EMPTY_TOPOLOGY);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchText, setSearchText] = useState<string>("");
   const [selectedVlan, setSelectedVlan] = useState<string>(ALL_VLANS);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
   const [suppressionError, setSuppressionError] = useState<string>("");
+  /*
+   * The unmanaged neighbour the "Add to Monitoring" dialog is open for.
+   * Held as the node rather than as a boolean so the dialog is mounted only
+   * once it has something to pre-fill from — its form reads its initial
+   * values exactly once, on the render in which it first appears.
+   */
+  const [nodeToAdopt, setNodeToAdopt] = useState<NetworkTopologyNode | null>(
+    null,
+  );
   const [layoutMode, setLayoutMode] = useState<TopologyLayoutMode>(
     props.layoutMode || "force",
   );
@@ -266,14 +276,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
 
           if (isMounted.current) {
             setTopology(parseTopologyResponse(response.data));
+            setLastUpdated(new Date());
             setError("");
           }
         } catch (err) {
           /*
            * A failed background poll keeps showing the last good graph —
-           * only a foreground load surfaces the error state.
+           * explain that it could not be refreshed without removing the map.
            */
-          if (isMounted.current && !isBackgroundRefresh) {
+          if (isMounted.current) {
             setError(API.getFriendlyMessage(err));
           }
         }
@@ -331,6 +342,19 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     },
     [fetchTopology],
   );
+
+  /*
+   * Whether this user may create a device at all. Checked here rather than
+   * inside the panel so the action is simply absent for a viewer, instead of
+   * opening a form that renders as a permission error — and hidden, not
+   * disabled, when the gate has nothing honest to say (the permission
+   * snapshot lands on a response header, so it is empty for the first paint
+   * after a login or a project switch).
+   */
+  const canCreateDevice: boolean = PermissionGate.check(
+    new NetworkDevice(),
+    ModelAction.Create,
+  ).isAllowed;
 
   const restoreAllHiddenNodes: () => void = useCallback((): void => {
     setSuppressionError("");
@@ -482,7 +506,6 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     );
   }, [visibleTopology, effectiveVisibleKinds]);
 
-  const isHealthFiltered: boolean = isHealthFilterActive(healthFilterMode);
   const healthFilterMatchCount: number = healthCountForMode(
     healthSummary,
     healthFilterMode,
@@ -643,68 +666,45 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }
 
   if (error && topology.nodes.length === 0) {
-    return <ErrorMessage message={error} />;
+    return (
+      <Card
+        title="We couldn't load your network"
+        description="Try loading the map again. Your saved arrangement is kept."
+        buttons={[
+          {
+            title: "Try again",
+            buttonStyle: ButtonStyleType.NORMAL,
+            icon: IconProp.Refresh,
+            onClick: () => {
+              void fetchTopology(false);
+            },
+          },
+        ]}
+      >
+        <ErrorMessage message={error} />
+      </Card>
+    );
   }
 
   return (
     <Card
       title="Network Topology"
-      description="A live map of your network built from LLDP and CDP neighbor data. Drag any device to arrange the map the way you think about it — your arrangement is saved for this site. Click a device or link for details."
+      description="See how your network devices connect. Select a device to inspect its health, or a connection to inspect its ports."
       rightElement={
-        <div
-          role="group"
-          aria-label={translateString("Topology layout") || "Topology layout"}
-          /*
-           * flex-wrap because five pills no longer fit a phone. The group
-           * is flex-shrink-0 inside a flex-shrink-0 header column, so
-           * without it the row simply grows past the card and the last
-           * option is unreachable rather than merely cramped — and
-           * "Parent-Child" is the widest label of the five, so it is the
-           * one that would be lost.
-           */
-          className="inline-flex flex-wrap flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+        <span
+          className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500"
+          role="status"
         >
-          {(
-            [
-              { mode: "force", label: "Force" },
-              { mode: "tiered", label: "Tiered" },
-              { mode: "radial", label: "Radial" },
-              { mode: "star", label: "Star" },
-              { mode: "parentChild", label: "Parent-Child" },
-            ] as Array<{ mode: TopologyLayoutMode; label: string }>
-          ).map(
-            (option: {
-              mode: TopologyLayoutMode;
-              label: string;
-            }): ReactElement => {
-              const isActive: boolean = layoutMode === option.mode;
-              return (
-                <button
-                  key={option.mode}
-                  type="button"
-                  title={`${option.label} layout`}
-                  aria-pressed={isActive}
-                  data-testid={`network-topology-layout-mode-${option.mode}`}
-                  /*
-                   * The ring is load-bearing in dark mode: the raised pill
-                   * is DARKER than the track behind it there, so without
-                   * an outline the selected option all but disappears.
-                   */
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isActive
-                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                  onClick={() => {
-                    setLayoutMode(option.mode);
-                  }}
-                >
-                  {translateString(option.label) || option.label}
-                </button>
-              );
-            },
-          )}
-        </div>
+          <span
+            aria-hidden="true"
+            className={`h-1.5 w-1.5 rounded-full ${error ? "bg-amber-500" : "bg-emerald-500"}`}
+          />
+          {error
+            ? "Refresh failed"
+            : lastUpdated
+              ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "Updates every minute"}
+        </span>
       }
       buttons={[
         {
@@ -719,146 +719,45 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
-      <div className="mb-3 flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <div className="md:w-72">
-            <Input
-              dataTestId="network-topology-search"
-              placeholder={
-                translateString("Search by name, sysName or vendor") ||
-                "Search by name, sysName or vendor"
+      <NetworkTopologyToolbar
+        searchText={searchText}
+        onSearchChange={setSearchText}
+        layoutMode={layoutMode}
+        onLayoutChange={setLayoutMode}
+        availableKinds={availableKinds}
+        visibleKinds={effectiveVisibleKinds}
+        onKindToggle={(kind: TopologyNodeKind) => {
+          setVisibleKinds(
+            (
+              current: ReadonlySet<TopologyNodeKind> | null,
+            ): ReadonlySet<TopologyNodeKind> => {
+              const next: Set<TopologyNodeKind> = new Set(
+                current || ALL_NODE_KINDS,
+              );
+              if (next.has(kind)) {
+                next.delete(kind);
+              } else {
+                next.add(kind);
               }
-              value={searchText}
-              onChange={(value: string) => {
-                setSearchText(value);
-              }}
-            />
-          </div>
-          {vlanOptions.length > 1 ? (
-            <div className="md:w-48" data-testid="network-topology-vlan-filter">
-              <Dropdown
-                value={
-                  vlanOptions.find((option: DropdownOption) => {
-                    return option.value === selectedVlan;
-                  }) || vlanOptions[0]
-                }
-                options={vlanOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setSelectedVlan(value ? value.toString() : ALL_VLANS);
-                }}
-              />
-            </div>
-          ) : (
-            <></>
-          )}
-          {/*
-           * Node-kind filters. The endpoint fan is what turns a busy site
-           * into a hairball, and until now the only way to hide it was a
-           * VLAN filter that exists only when endpoints happen to carry
-           * VLAN ids.
-           */}
-          <div
-            role="group"
-            aria-label={translateString("Node types") || "Node types"}
-            className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
-          >
-            {(
-              [
-                { kind: "device", label: "Devices" },
-                { kind: "unmanaged", label: "Peers" },
-                { kind: "endpoint", label: "Endpoints" },
-              ] as Array<{ kind: TopologyNodeKind; label: string }>
-            )
-              .filter((option: { kind: TopologyNodeKind; label: string }) => {
-                return availableKinds.has(option.kind);
-              })
-              .map(
-                (option: {
-                  kind: TopologyNodeKind;
-                  label: string;
-                }): ReactElement => {
-                  const isActive: boolean = effectiveVisibleKinds.has(
-                    option.kind,
-                  );
-                  return (
-                    <button
-                      key={option.kind}
-                      type="button"
-                      title={option.label}
-                      aria-pressed={isActive}
-                      data-testid={`network-topology-kind-filter-${option.kind}`}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                        isActive
-                          ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                          : "text-gray-500 hover:text-gray-800"
-                      }`}
-                      onClick={() => {
-                        setVisibleKinds(
-                          (
-                            current: ReadonlySet<TopologyNodeKind> | null,
-                          ): ReadonlySet<TopologyNodeKind> => {
-                            const next: Set<TopologyNodeKind> =
-                              new Set<TopologyNodeKind>(
-                                current || ALL_NODE_KINDS,
-                              );
-                            if (next.has(option.kind)) {
-                              next.delete(option.kind);
-                            } else {
-                              next.add(option.kind);
-                            }
-                            return next;
-                          },
-                        );
-                      }}
-                    >
-                      {translateString(option.label) || option.label}
-                    </button>
-                  );
-                },
-              )}
-          </div>
-          <p className="text-xs text-gray-500 md:ml-auto">
-            {translateString(
-              "Drag a device to arrange the map — your layout is saved. Updates automatically every minute.",
-            ) ||
-              "Drag a device to arrange the map — your layout is saved. Updates automatically every minute."}
-          </p>
-        </div>
-
-        {/*
-         * Issue #3261: the health row. Its own line under the identity
-         * controls rather than a fifth item beside them — "which of these
-         * needs me" is a different question from "which of these am I
-         * looking for", and the chips carry counts that make this row the
-         * map's status line as much as its filter.
-         */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <StatusChipGroup
-            dataTestId="network-topology-health-filter"
-            ariaLabel="Filter by device health"
-            options={healthChipOptions}
-            value={healthFilterMode}
-            onChange={(value: string) => {
-              setHealthFilterMode(value as TopologyHealthFilterMode);
-            }}
-          />
-          <p
-            className="text-xs text-gray-500"
-            data-testid="network-topology-health-filter-hint"
-          >
-            {isHealthFiltered
-              ? `${healthFilterMatchCount} of ${healthSummary.total} ${
-                  healthSummary.total === 1 ? "device needs" : "devices need"
-                } a look. Healthy devices are hidden; each match keeps its neighbouring devices on the map, dimmed, so you can see where it sits.`
-              : translateString(
-                  "Narrow the map to the devices that need a look — counts refresh every minute.",
-                ) ||
-                "Narrow the map to the devices that need a look — counts refresh every minute."}
-          </p>
-        </div>
-      </div>
+              return next;
+            },
+          );
+        }}
+        vlanOptions={vlanOptions}
+        selectedVlan={selectedVlan}
+        onVlanChange={setSelectedVlan}
+        healthSummary={healthSummary}
+        healthFilterMode={healthFilterMode}
+        healthChipOptions={healthChipOptions}
+        healthFilterMatchCount={healthFilterMatchCount}
+        onHealthChange={setHealthFilterMode}
+        onResetFilters={() => {
+          setSearchText("");
+          setSelectedVlan(ALL_VLANS);
+          setVisibleKinds(null);
+          setHealthFilterMode("all");
+        }}
+      />
 
       {error ? (
         <div
@@ -874,9 +773,9 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       {topology.isTruncated ? (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {translateString(
-            "This network is very large, so only part of it is shown. Use search to narrow it down.",
+            "This map shows part of a large network. Open a specific site to explore a smaller area.",
           ) ||
-            "This network is very large, so only part of it is shown. Use search to narrow it down."}
+            "This map shows part of a large network. Open a specific site to explore a smaller area."}
         </div>
       ) : (
         <></>
@@ -884,8 +783,9 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
 
       {topology.endpointsTruncated ? (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
-          {translateString("Endpoint list truncated — showing first 2000") ||
-            "Endpoint list truncated — showing first 2000"}
+          {translateString(
+            "Showing up to 2,000 endpoints because this network is large.",
+          ) || "Showing up to 2,000 endpoints because this network is large."}
         </div>
       ) : (
         <></>
@@ -1007,6 +907,17 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      <div
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500"
+        data-testid="network-topology-map-guide"
+      >
+        <span>
+          <span className="font-medium text-gray-700">Read the map:</span>{" "}
+          devices are nodes; lines are network connections.
+        </span>
+        <span>Click to inspect · Drag to arrange · Updates every minute</span>
+      </div>
+
       <NetworkDeviceGraph
         topology={visibleTopology}
         searchText={searchText}
@@ -1054,6 +965,52 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             setSelectedEdgeKey(edgeKeyForEdge(edge));
           }}
           onHideNode={hideNode}
+          onAddToMonitoring={
+            canCreateDevice && isAdoptableNode(selectedNode)
+              ? (node: NetworkTopologyNode) => {
+                  /*
+                   * Close the drawer first, the same way hiding a node
+                   * does: SideOver has no backdrop, so leaving it open
+                   * behind the dialog stacks two surfaces the user can
+                   * still click through to.
+                   */
+                  setSelectedNodeId(null);
+                  setNodeToAdopt(node);
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <></>
+      )}
+
+      {nodeToAdopt ? (
+        <AddNeighborToMonitoringModal
+          key={nodeToAdopt.id}
+          node={nodeToAdopt}
+          edges={visibleTopology.edges}
+          nodeById={nodeById}
+          onClose={() => {
+            setNodeToAdopt(null);
+          }}
+          onSuccess={() => {
+            setNodeToAdopt(null);
+            /*
+             * Refetch rather than patching local state, for the reason
+             * hiding a node refetches: whether the new device absorbs the
+             * unmanaged node is decided server-side, by re-deriving the
+             * whole graph from the neighbour reports. Guessing at it here
+             * would show this user a map nobody else has. The BACKGROUND
+             * variant, so the viewport and the saved arrangement survive
+             * the refresh the operator just triggered — and, like the
+             * minute-by-minute refresh, a failure keeps the last graph
+             * rather than reporting an error about a device that WAS
+             * created.
+             */
+            fetchTopology(true).catch(() => {
+              // Non-fatal: the next scheduled refresh picks the device up.
+            });
+          }}
         />
       ) : (
         <></>

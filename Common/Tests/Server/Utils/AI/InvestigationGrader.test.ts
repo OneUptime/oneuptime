@@ -2,14 +2,16 @@ import InvestigationGrader from "../../../../Server/Utils/AI/SRE/InvestigationGr
 import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import AIService, {
   AILogResponse,
 } from "../../../../Server/Services/AIService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
 import ObjectID from "../../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { beforeEach, describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * On-resolve investigation grading (Phase 2 measurement layer): when an
@@ -153,8 +155,44 @@ describe("InvestigationGrader.parseAutoGradeToken", () => {
 });
 
 describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
+  /*
+   * Grading reads the project's enableAi kill switch first and returns
+   * quietly when it is off (the backstop inside executeWithLogging would
+   * throw, and this lane runs detached inside a catch that logs at error
+   * level — a switched-off project would file an error on every resolve).
+   * Every case below is about the grading logic, so the switch is on.
+   */
+  beforeEach(() => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+    } as unknown as Project);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test("AI switched off for the project → skips silently, no LLM call", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: false,
+    } as unknown as Project);
+    const findRun: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
+    const executeWithLogging: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "executeWithLogging",
+    );
+
+    await expect(
+      InvestigationGrader.gradeInvestigationOnResolve({
+        incidentId,
+        projectId,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(findRun).not.toHaveBeenCalled();
+    expect(executeWithLogging).not.toHaveBeenCalled();
   });
 
   test("no completed investigation → skips before loading the incident, no LLM call", async () => {

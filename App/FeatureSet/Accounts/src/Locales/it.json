@@ -31,8 +31,26 @@
     "errorOnSignUp": "Completa il captcha prima di registrarti."
   },
   "login": {
+    "passkey": {
+      "signIn": "Accedi con una passkey",
+      "description": "Usa l’impronta digitale, il riconoscimento del volto o il PIN del dispositivo.",
+      "passwordAlternative": "oppure accedi con una password",
+      "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
+      "title": "Usa una passkey salvata",
+      "helpTitle": "Non conosci le passkey?",
+      "help": "Accedi con la password o l’SSO, poi apri Profilo utente → Passkey e autenticazione a due fattori per creare la tua prima passkey.",
+      "preparing": "Preparazione della passkey…",
+      "waiting": "Controlla il dispositivo",
+      "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
+      "verifying": "Accesso in corso…",
+      "cancelled": "L’accesso con passkey è stato annullato. Puoi riprovare o usare la password.",
+      "notCompleted": "L’accesso con passkey è stato annullato o è scaduto. Riprova oppure accedi con la password.",
+      "unsupported": "Le passkey non sono disponibili in questo browser. Puoi comunque accedere con la password o l’SSO.",
+      "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
+      "tryAgain": "Riprova con la passkey"
+    },
     "title": "Accedi al tuo account",
-    "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
+    "subtitle": "Usa una passkey, una password o l’SSO della tua organizzazione.",
     "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "useSso": "Usa invece il Single Sign-On (SSO)",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Segui le istruzioni sul tuo dispositivo a chiave di sicurezza.",
       "codeFieldDescription": "Inserisci il codice dalla tua app di autenticazione",
       "selectDifferentMethod": "Seleziona un metodo di autenticazione a due fattori diverso",
-      "useBackupCode": "Usa invece un codice di backup",
       "backupCodeInstruction": "Inserisci uno dei codici di backup che hai salvato durante la configurazione dell'autenticazione a due fattori. Ogni codice funziona una sola volta.",
       "backupCodeFieldTitle": "Codice di backup",
-      "backupCodeFieldDescription": "I codici di backup hanno questo aspetto: ABCDE-12345. Maiuscole, minuscole e il trattino non contano."
+      "backupCodeFieldDescription": "I codici di backup hanno questo aspetto: ABCDE-12345. Maiuscole, minuscole e il trattino non contano.",
+      "confirmSubtitle": "Conferma la tua identità per completare l'accesso.",
+      "recoverySubtitle": "Usa un codice di backup oppure scopri come riottenere l'accesso se non ne hai uno.",
+      "lostAccess": "Hai perso l'accesso alla tua app di autenticazione?",
+      "noBackupCodesStrong": "Non hai codici di backup.",
+      "noBackupCodes": "Non c'è nessun codice da inserire qui, perché a questo account non è mai stata assegnata una serie di codici.",
+      "noBackupCodesInstruction": "Chiedi a un amministratore di questa istanza di OneUptime di reimpostare l'autenticazione a due fattori sul tuo account. Potrai quindi accedere con la tua password e configurare una nuova app di autenticazione, e allo stesso tempo verranno creati per te i codici di backup.",
+      "lostAccessSecurityKey": "Hai perso l'accesso alla tua chiave di sicurezza?"
     },
     "twoFactorEnrolment": {
       "title": "Configura l'autenticazione a due fattori",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Inserisci il codice a sei cifre mostrato dalla tua app di autenticazione.",
       "submitButton": "Verifica e accedi",
       "backToSignIn": "Accedi come un altro utente"
+    },
+    "backupCodes": {
+      "title": "Salva i tuoi codici di backup",
+      "subtitle": "Usa uno di questi codici per accedere se dovessi perdere l'accesso alla tua app di autenticazione o alla tua chiave di sicurezza.",
+      "showOnceStrong": "Questa è l'unica volta in cui questi codici verranno mostrati.",
+      "showOnce": "Salvali in un luogo diverso dal dispositivo che genera i tuoi codici. Ogni codice può essere usato una sola volta.",
+      "download": "Scarica come file di testo",
+      "savedConfirmation": "Ho salvato questi codici in un luogo sicuro.",
+      "continue": "Continua alla Dashboard",
+      "fileHeading": "Codici di backup per l'autenticazione a due fattori di OneUptime",
+      "fileInstruction": "Ogni codice può essere usato una sola volta. Conserva questo file in un luogo sicuro e separato dal dispositivo su cui è installata la tua app di autenticazione.",
+      "setUpTitle": "Configura i codici di backup",
+      "setUpSubtitle": "Un'ultima cosa prima di continuare.",
+      "noneStrong": "Non hai codici di backup.",
+      "none": "Se perdi la tua app di autenticazione o la tua chiave di sicurezza, un amministratore dovrà reimpostare l'autenticazione a due fattori prima che tu possa accedere di nuovo.",
+      "generate": "Genera codici di backup",
+      "skip": "Salta per ora",
+      "generateFailed": "Non è stato restituito alcun codice di backup. Riprova da Profilo utente > Autenticazione a due fattori."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Accedi a OneUptime On-Call",
+    "description": "Usa una passkey salvata per questo server OneUptime.",
+    "returnDescription": "Dopo la conferma, tornerai all’app mobile.",
+    "invalid": "Avvia l’accesso dall’app mobile OneUptime. La richiesta è assente o non valida.",
+    "insecure": "Le passkey richiedono HTTPS. Torna all’app e controlla l’indirizzo del server.",
+    "failed": "Impossibile completare l’accesso. Torna all’app e riprova.",
+    "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
+    "returnToApp": "Torna all’app",
+    "cancel": "Annulla e torna all’app",
+    "setup": "Crea una passkey in Profilo utente → Passkey e autenticazione a due fattori nella dashboard web."
+  },
+  "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
+  "Try a few unrelated words.": "Prova con alcune parole non correlate.",
+  "Password meets requirements": "La password soddisfa i requisiti",
+  "Password must be at least 15 characters.": "La password deve contenere almeno 15 caratteri.",
+  "Password cannot be more than 100 characters.": "La password non può superare i 100 caratteri.",
+  "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
+  "Password cannot be blank.": "La password non può contenere solo spazi.",
+  "Password is required.": "La password è obbligatoria.",
+  "Password must be a string.": "La password deve essere una stringa di testo.",
+  "Account details": "Dettagli dell’account",
+  "Secure your account": "Proteggi il tuo account",
+  "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",
+  "Avoid common or repeated patterns": "Evita sequenze comuni o ripetute",
+  "Password length": "Lunghezza della password",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimo {{minimum}} caratteri",
+  "Complete:": "Soddisfatto:",
+  "Incomplete:": "Non soddisfatto:",
+  "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
+  "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $."
 }

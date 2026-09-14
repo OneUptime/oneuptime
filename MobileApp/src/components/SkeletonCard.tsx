@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Animated,
@@ -18,16 +18,45 @@ export default function SkeletonCard({
 }: SkeletonCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const opacity: Animated.Value = useRef(new Animated.Value(0.3)).current;
-  const reduceMotion: React.MutableRefObject<boolean> = useRef(false);
+
+  /*
+   * Three states, not two. The OS is asked asynchronously and does not answer
+   * until a tick after the first render, so a boolean seeded with `false`
+   * would start the pulse for everybody and only stop it once the answer
+   * landed - a flash of precisely the motion the setting exists to suppress,
+   * shown to a reader whose reason for setting it may be migraine, vertigo or
+   * seizure risk. `null` means "the OS has not answered yet", and nothing
+   * animates while the answer is unknown.
+   *
+   * It is state rather than a ref for the same reason: a ref mutated inside a
+   * promise callback does not re-render anything, so the effect below would go
+   * on reading the value it was born with.
+   */
+  const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled: boolean) => {
-      reduceMotion.current = enabled;
-    });
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled: boolean) => {
+        setReduceMotion(enabled);
+        return undefined;
+      })
+      .catch(() => {
+        /*
+         * The question itself failed, so the setting cannot be read. Resolve
+         * that the safe way round: a reader who wanted motion loses a shimmer
+         * on a placeholder, where a reader who asked for stillness and is
+         * animated at anyway loses considerably more.
+         */
+        setReduceMotion(true);
+      });
   }, []);
 
   useEffect(() => {
-    if (reduceMotion.current) {
+    if (reduceMotion === null) {
+      return;
+    }
+
+    if (reduceMotion) {
       opacity.setValue(0.5);
       return;
     }
@@ -52,7 +81,7 @@ export default function SkeletonCard({
     return () => {
       animation.stop();
     };
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   const lineWidths: DimensionValue[] = ["60%", "85%", "45%", "70%"];
 

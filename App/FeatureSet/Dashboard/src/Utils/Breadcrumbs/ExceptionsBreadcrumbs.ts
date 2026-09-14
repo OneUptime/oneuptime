@@ -14,7 +14,7 @@ export function getExceptionsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_OVERVIEW, [
       "Project",
       "Exceptions",
-      "Overview",
+      "Insights",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_UNRESOLVED, [
       "Project",
@@ -34,7 +34,38 @@ export function getExceptionsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW, [
       "Project",
       "Exceptions",
-      "Exception Details",
+      "Exception",
+      "Overview",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_STACK_TRACE, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "Stack Trace",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_OCCURRENCES, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "Occurrences",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_CONTEXT, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "Context",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "AI Assistance",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_SETTINGS, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_DOCUMENTATION, [
       "Project",

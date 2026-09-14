@@ -177,6 +177,7 @@ export default class EvaluateOverTime {
         data.criteriaFilter.checkOn === CheckOn.IsRequestTimeout ||
         data.criteriaFilter.checkOn === CheckOn.DnsIsOnline ||
         data.criteriaFilter.checkOn === CheckOn.SnmpIsOnline ||
+        data.criteriaFilter.checkOn === CheckOn.DatabaseIsOnline ||
         data.criteriaFilter.checkOn === CheckOn.ExternalStatusPageIsOnline;
 
       return {
@@ -220,9 +221,15 @@ export default class EvaluateOverTime {
       };
     }
 
+    /*
+     * Resolved from the whole filter, not from the CheckOn alone: a Database
+     * Metric filter names its series in databaseMonitorOptions.metricType, so
+     * the CheckOn-only lookup would return null for every one of them and
+     * silently downgrade the filter to an instantaneous comparison.
+     */
     const metricName: MonitorMetricType | null =
-      MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(
-        data.criteriaFilter.checkOn,
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+        data.criteriaFilter,
       );
 
     if (!metricName) {

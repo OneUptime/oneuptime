@@ -24,6 +24,33 @@ const TAB_STORAGE_KEY: string = "oneuptime.replay.tab";
 const CHUNK_INDEX_STORAGE_KEY: string = "oneuptime.replay.chunkIndex";
 const RELOAD_LOG_STORAGE_KEY: string = "oneuptime.replay.reloads";
 
+/*
+ * The anonymous visitor id: ONE random id per browser profile, minted the
+ * first time the recorder runs here and repeated on every meta-bearing
+ * chunk, so the dashboard can group the anonymous sessions of one browser
+ * for an application whose pages never call identify().
+ *
+ * Its own key, holding the bare id, rather than a field on the session
+ * record: readStoredSession / writeStoredSession rewrite that record on
+ * every touch and every rotation and would drop a field they do not know.
+ *
+ * Deliberately NOT touched by resolveSession, syncWithStorage or touch.
+ * A session id lives for one visit; this id is the thing that is supposed
+ * to outlive it, so surviving rotation is its entire purpose. clearAll()
+ * is the one place it is removed.
+ *
+ * Never REWRITTEN by the recorder's tick, but re-READ by it. localStorage
+ * is one store for every tab of the origin, so clearAll() in one tab
+ * removes the id under its siblings, and a sibling that kept the value it
+ * read at construction would stamp the withdrawn id on every session it
+ * recorded from then on - re-linking post-revoke recordings to the ones
+ * the user asked us to forget. subscribeToSessionChanges therefore fires
+ * for this key as well as the session's, and Recorder.maybeRotateSession
+ * re-reads it on every flush tick and storage event, so a revoke in one
+ * tab is honoured by all of them within a tick.
+ */
+const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
+
 /* Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute. */
 const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;
 const REFRESH_RAGE_THRESHOLD: number = 3;
@@ -98,15 +125,136 @@ export default class SessionId {
   }
 
   /*
+   * The session id currently in storage, without touching it. What a live
+   * recorder compares its own identity against: localStorage is shared by
+   * every tab of the origin, so a different id here means another tab has
+   * already rotated the session.
+   */
+  public static readStoredSessionId(): string | null {
+    const stored: StoredSessionState | null = SessionId.readStoredSession();
+
+    return stored ? stored.sessionId : null;
+  }
+
+  /*
+   * Has another tab moved the shared session on from `currentSessionId`?
+   *
+   * Two tabs both idle past the rollover: the first to tick rotates, writes
+   * a new id with fresh activity, and seals the old session with a final
+   * chunk. The second tab's tick then reads that fresh activity, decides
+   * "no rotation needed", and keeps posting chunks under the id the first
+   * tab just sealed - a "final" session that keeps growing, plus the other
+   * tab's footage in a session of its own. Nothing re-synced them until a
+   * reload.
+   *
+   * Returns the identity to ADOPT - the stored session, with its own start
+   * time and a chunk counter reset for this tab - when storage holds a
+   * different session that is itself still live. Returns null when storage
+   * agrees with the caller, is empty, is corrupt, or is due to rotate
+   * anyway; every one of those is shouldRotate()'s decision to make, and
+   * making it here too would mint a session the caller did not ask for.
+   */
+  public static syncWithStorage(
+    currentSessionId: string,
+    nowUnixMs: number,
+    tabId: string,
+  ): SessionIdentityState | null {
+    const stored: StoredSessionState | null = SessionId.readStoredSession();
+
+    if (!stored || stored.sessionId === currentSessionId) {
+      return null;
+    }
+
+    const decision: SessionRotationDecision =
+      SessionIdentity.shouldRotateSession(stored, nowUnixMs);
+
+    if (decision.shouldRotate) {
+      return null;
+    }
+
+    SessionId.resetChunkIndex(tabId);
+
+    return {
+      sessionId: stored.sessionId,
+      tabId: tabId,
+      sessionStartUnixMs: stored.sessionStartUnixMs,
+      previousSessionId: currentSessionId,
+    };
+  }
+
+  /*
+   * Be told when another tab writes the shared session record, or removes
+   * or rewrites the shared visitor id.
+   *
+   * The `storage` event fires in every OTHER tab of the origin when a key
+   * changes, which is exactly the tab that needs to know, and never in the
+   * tab that wrote. Returns the unsubscribe function. Registration itself
+   * cannot throw into the host page: a window without addEventListener
+   * simply gets no notifications and the flush-tick sync still runs.
+   *
+   * The visitor key is watched for the same reason as the session key: a
+   * sibling's revokeConsent() removes it, and a tab that kept stamping the
+   * copy it held would re-link every session it records from then on to
+   * the ones the user asked us to forget. The listener is handed the
+   * stored session id on either key, because what the recorder does about
+   * either is one and the same re-sync (Recorder.maybeRotateSession),
+   * which reads the visitor key for itself.
+   */
+  public static subscribeToSessionChanges(
+    listener: (storedSessionId: string | null) => void,
+    windowRef: Window = window,
+  ): () => void {
+    const onStorage: (event: StorageEvent) => void = (
+      event: StorageEvent,
+    ): void => {
+      if (
+        event.key !== SESSION_STORAGE_KEY &&
+        event.key !== VISITOR_STORAGE_KEY
+      ) {
+        return;
+      }
+
+      try {
+        listener(SessionId.readStoredSessionId());
+      } catch {
+        /* A listener that throws must not throw into the host page. */
+      }
+    };
+
+    try {
+      windowRef.addEventListener("storage", onStorage as EventListener);
+    } catch {
+      return (): void => {
+        /* Nothing was registered. */
+      };
+    }
+
+    return (): void => {
+      try {
+        windowRef.removeEventListener("storage", onStorage as EventListener);
+      } catch {
+        /* See above. */
+      }
+    };
+  }
+
+  /*
    * Resolve the session id, rotating when SessionIdentity says to.
    *
    * previousSessionId and rotationReason are returned (and later reported)
    * so a support engineer looking at two adjacent 20-minute sessions can
    * tell "the user went to lunch" from "the recorder lost its state".
+   *
+   * `currentSessionId` is the id the caller is rotating AWAY from. When it
+   * is given and storage already holds a DIFFERENT live session, that
+   * session is adopted rather than a third one minted: another tab won the
+   * race to rotate, and minting here would leave the two tabs on two ids
+   * for one person. A compare-and-set, in effect, on the stored record.
    */
   public static resolveSession(
     nowUnixMs: number,
     tabId: string,
+    currentSessionId?: string,
   ): SessionIdentityState {
     const stored: StoredSessionState | null = SessionId.readStoredSession();
 
@@ -120,10 +268,21 @@ export default class SessionId {
         lastActivityUnixMs: nowUnixMs,
       });
 
+      const adopted: boolean =
+        currentSessionId !== undefined && currentSessionId !== stored.sessionId;
+
+      if (adopted) {
+        /* Another tab's rotation: same reset a minted session gets. */
+        SessionId.resetChunkIndex(tabId);
+      }
+
       return {
         sessionId: stored.sessionId,
         tabId: tabId,
         sessionStartUnixMs: stored.sessionStartUnixMs,
+        ...(adopted && currentSessionId
+          ? { previousSessionId: currentSessionId }
+          : {}),
       };
     }
 
@@ -136,11 +295,12 @@ export default class SessionId {
     });
 
     /*
-     * A rotated session starts its own chunk sequence. This matters on a
-     * bfcache restore or an idle rollover, where the session id changes
-     * while the tab id does not: without the reset the new session's first
-     * chunk would claim an index the finalizer then reports as preceded by
-     * missing chunks.
+     * A rotated session starts its own chunk sequence. This matters on an
+     * idle or duration rollover inside a live page, where the session id
+     * changes while the tab id does not: without the reset the new session's
+     * first chunk would claim an index the finalizer then reports as
+     * preceded by missing chunks. (A bfcache restore mints a new tab id
+     * before it gets here, so its counter is new anyway.)
      */
     SessionId.resetChunkIndex(tabId);
 
@@ -199,6 +359,48 @@ export default class SessionId {
   }
 
   /*
+   * The visitor id, minting one when storage holds nothing usable.
+   *
+   * A stored value that fails validation - truncated by a broken storage
+   * sync, hand-edited, written by something that is not this recorder - is
+   * REPLACED, never repaired. The id is random and ours, so there is no
+   * "almost right" shape worth salvaging, and the server refuses anything
+   * off-pattern anyway; a fresh id costs one break in grouping, whereas
+   * repairing a value we did not write could file a stranger's sessions
+   * under this browser.
+   *
+   * Every access goes through the wrapped helpers, so a throwing
+   * localStorage (Safari private mode, blocked site data) degrades to a
+   * per-page-load id and never throws into the host page.
+   */
+  public static resolveVisitorId(): string {
+    const stored: string | null = SessionId.readVisitorId();
+
+    if (stored !== null) {
+      return stored;
+    }
+
+    const visitorId: string = SessionId.generateId();
+
+    SessionId.writeLocalStorage(VISITOR_STORAGE_KEY, visitorId);
+
+    return visitorId;
+  }
+
+  /*
+   * The stored visitor id, or null when there is none or it is not one the
+   * recorder could have minted. Never mints: a caller that only wants to
+   * LOOK - a test, a diagnostic - must not leave a token behind in storage
+   * it was not asked to write to, least of all after a consent revocation
+   * emptied it on purpose.
+   */
+  public static readVisitorId(): string | null {
+    const raw: string | null = SessionId.readLocalStorage(VISITOR_STORAGE_KEY);
+
+    return SessionIdentity.isVisitorId(raw) ? raw : null;
+  }
+
+  /*
    * Chunk indexes are counted per tab id and held in sessionStorage rather
    * than in memory, so a recorder that is torn down and re-created inside
    * the same page instance (a framework remount, a consent re-grant) does
@@ -208,6 +410,8 @@ export default class SessionId {
    */
   public static getNextChunkIndex(tabId: string): number {
     const next: number = SessionId.peekChunkIndex(tabId);
+
+    SessionId.highWaterChunkIndex.set(tabId, next + 1);
 
     SessionId.writeSessionStorage(
       SessionId.getChunkIndexKey(tabId),
@@ -224,12 +428,52 @@ export default class SessionId {
 
     const parsed: number = raw === null ? 0 : Number.parseInt(raw, 10);
 
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    const stored: number = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+
+    /*
+     * NEVER go backwards within a live recorder.
+     *
+     * The counter lives in sessionStorage so a recorder torn down and
+     * re-created inside the same page (a framework remount, a consent
+     * re-grant) does not reuse an index it has already posted. But
+     * sessionStorage is not ours: a host page that calls
+     * sessionStorage.clear() - which plenty do on sign-out - resets the
+     * counter under a recorder that is still running, and the next chunk
+     * goes out as index 0 again.
+     *
+     * That is not a duplicate, it is a DELETION. The chunk table is a
+     * ReplacingMergeTree keyed on (projectId, sessionId, tabId, chunkIndex)
+     * with the ingest timestamp as the version, so the second index 0
+     * REPLACES the first - and index 0 is the chunk that carries the
+     * session's opening full snapshot. The recording becomes unplayable
+     * from its own start, with nothing anywhere reporting a problem.
+     *
+     * The in-memory high-water mark is the source of truth while the
+     * recorder is alive; storage is only ever allowed to move it forward.
+     */
+    const inMemory: number = SessionId.highWaterChunkIndex.get(tabId) ?? 0;
+
+    return Math.max(stored, inMemory);
   }
 
   public static resetChunkIndex(tabId: string): void {
+    SessionId.highWaterChunkIndex.delete(tabId);
     SessionId.writeSessionStorage(SessionId.getChunkIndexKey(tabId), "0");
   }
+
+  /*
+   * Highest index this process has already handed out, per tab. See
+   * peekChunkIndex for why storage alone is not enough.
+   *
+   * Keyed by tab because the chunk counter is. A session rollover REUSES the
+   * tab id, and starts clean only because resolveSession calls
+   * resetChunkIndex, which deletes the entry - do not remove that call on
+   * the strength of the key shape.
+   */
+  private static readonly highWaterChunkIndex: Map<string, number> = new Map<
+    string,
+    number
+  >();
 
   private static getChunkIndexKey(tabId: string): string {
     return `${CHUNK_INDEX_STORAGE_KEY}.${tabId}`;
@@ -276,6 +520,25 @@ export default class SessionId {
     SessionId.removeLocalStorage(SESSION_STORAGE_KEY);
     SessionId.removeLocalStorage(RELOAD_LOG_STORAGE_KEY);
     SessionId.removeSessionStorage(TAB_STORAGE_KEY);
+
+    /*
+     * The visitor id goes with the session. It is the one token built to
+     * survive rotation, which is exactly why it must not survive THIS: a
+     * user who withdraws consent must not be re-linked to their earlier
+     * recordings the moment they come back. The "removes everything" test
+     * asserts localStorage is empty afterwards, and this is what keeps it
+     * true now that there is a second key.
+     */
+    SessionId.removeLocalStorage(VISITOR_STORAGE_KEY);
+
+    /*
+     * The in-memory high-water marks go too. clearAll is "forget this
+     * session entirely" - a consent revocation or a stop() - and a counter
+     * that outlived it would push the NEXT session's first chunk past index
+     * 0, leaving its opening full snapshot at an index the player's seek
+     * anchors do not expect.
+     */
+    SessionId.highWaterChunkIndex.clear();
 
     try {
       const keys: Array<string> = [];

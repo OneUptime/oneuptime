@@ -475,12 +475,12 @@ describe("User > Authentication translations", () => {
     expect(missing).toEqual([]);
   });
 
-  test("all sixteen locale files were found", () => {
+  test("all seventeen locale files were found", () => {
     /*
      * A guard on the directory read: an empty or half-read listing would make
      * the cross-locale assertion below pass without checking anything.
      */
-    expect(localeFileNames.length).toBeGreaterThanOrEqual(16);
+    expect(localeFileNames.length).toBeGreaterThanOrEqual(17);
     expect(localeFileNames).toContain("en.json");
   });
 
@@ -528,7 +528,7 @@ describe("User > Authentication translations", () => {
      * address the link went to - the one fact that tells them whether they
      * acted on the user they meant to. A translation that dropped {{email}}
      * renders a success message naming nobody. The i18n validator already
-     * enforces placeholder parity across the other fifteen files, so the
+     * enforces placeholder parity across the other sixteen files, so the
      * English source is the only place this has to be pinned.
      */
     expect(

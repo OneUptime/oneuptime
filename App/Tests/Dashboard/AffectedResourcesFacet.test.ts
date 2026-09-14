@@ -76,6 +76,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     ["dockerHost", "dockerHosts"],
     ["podmanHost", "podmanHosts"],
     ["proxmoxCluster", "proxmoxClusters"],
+    ["vmwareVCenter", "vmwareVCenters"],
     ["cephCluster", "cephClusters"],
     ["dockerSwarmCluster", "dockerSwarmClusters"],
     ["iotFleet", "iotFleets"],
@@ -171,6 +172,6 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
      * One lookup per offered type. Monitors are excluded here because the
      * alerts table carries a dedicated Monitor chip.
      */
-    expect(getListMock.mock.calls).toHaveLength(9);
+    expect(getListMock.mock.calls).toHaveLength(10);
   });
 });

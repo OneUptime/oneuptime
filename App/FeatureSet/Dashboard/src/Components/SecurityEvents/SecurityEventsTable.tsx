@@ -37,6 +37,33 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
   const [detailEvent, setDetailEvent] = useState<SecurityEvent | null>(null);
 
   /*
+   * Attribute keys for the advanced attributes filter. Fetched lazily on
+   * the first advanced-filters toggle (the TraceTable discipline) — the
+   * common list-and-scan visit never pays for the keys query.
+   */
+  const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
+  const [attributeKeysFetched, setAttributeKeysFetched] =
+    useState<boolean>(false);
+
+  const handleAdvancedFiltersToggle: (show: boolean) => void = (
+    show: boolean,
+  ): void => {
+    if (!show || attributeKeysFetched) {
+      return;
+    }
+
+    setAttributeKeysFetched(true);
+
+    SecurityEventAttributeUtil.getAttributeKeys()
+      .then((keys: Array<string>) => {
+        setAttributeKeys(keys);
+      })
+      .catch(() => {
+        // Recoverable: the filter still accepts hand-typed keys.
+      });
+  };
+
+  /*
    * The detail side-over renders straight off the row it was handed, so every
    * field it shows has to be on the wire whether or not a column for it is on
    * screen.
@@ -175,7 +202,23 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
             type: FieldType.DateTime,
             title: "Time",
           },
+          /*
+           * Arbitrary flattened source attributes — including the
+           * threat.* keys the threat-intel enricher stamps on matched
+           * events, so "show me everything threat intel flagged" is
+           * `threat.matched = true` right here.
+           */
+          {
+            field: {
+              attributes: true,
+            },
+            type: FieldType.JSON,
+            title: "Attributes",
+            jsonKeys: attributeKeys,
+            isAdvancedFilter: true,
+          },
         ]}
+        onAdvancedFiltersToggle={handleAdvancedFiltersToggle}
         columns={securityEventColumns}
         actionButtons={[
           {

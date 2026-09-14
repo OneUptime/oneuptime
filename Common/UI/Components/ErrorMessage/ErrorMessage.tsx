@@ -19,16 +19,27 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
     <div className="text-center my-10 text-gray-500 text-sm">
       {translatedMessage}
       {props.onRefreshClick ? (
-        <div
-          role={"refresh-button"}
-          onClick={() => {
-            if (props.onRefreshClick) {
-              props.onRefreshClick();
-            }
-          }}
-          className="underline cursor-pointer hover:text-gray-700 mt-3"
-        >
-          {translateString("Refresh?") ?? "Refresh?"}
+        /*
+         * This is the only recovery control on the app-wide failure and
+         * empty-state surface, and it used to be a <div role="refresh-button">
+         * - not focusable, and deaf to Enter and Space, so the single way out
+         * of a failed table was the mouse. It is a real <button> now; the
+         * data-testid keeps the hook the tests reach for, which the invented
+         * role was standing in for.
+         */
+        <div className="mt-3">
+          <button
+            type="button"
+            data-testid="refresh-button"
+            onClick={() => {
+              if (props.onRefreshClick) {
+                props.onRefreshClick();
+              }
+            }}
+            className="underline cursor-pointer hover:text-gray-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            {translateString("Refresh?") ?? "Refresh?"}
+          </button>
         </div>
       ) : (
         <></>

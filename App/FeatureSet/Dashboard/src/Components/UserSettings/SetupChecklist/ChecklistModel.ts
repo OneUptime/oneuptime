@@ -208,6 +208,12 @@ export interface CustomFieldProbe {
   filledFieldCount: number;
 }
 
+export interface CalendarFeedProbe {
+  isKnown: boolean;
+  /** An enabled personal calendar link exists for this project. */
+  hasEnabledLink: boolean;
+}
+
 export interface SetupChecklistInput {
   readiness: UserReadinessWire;
   /**
@@ -235,6 +241,11 @@ export interface SetupChecklistInput {
   slack: WorkspaceProbe;
   microsoftTeams: WorkspaceProbe;
   customFields: CustomFieldProbe;
+  /**
+   * Optional so that callers (and fixtures) written before calendar feeds
+   * existed keep working; absent reads as unknown, which produces no step.
+   */
+  calendarFeed?: CalendarFeedProbe | undefined;
 }
 
 /*
@@ -707,6 +718,31 @@ const buildOptionalSteps: BuildStepsFunction = (
       iconBackgroundClassName: "bg-blue-500",
       pageMap: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       actionTitle: "Connect Microsoft Teams",
+    });
+  }
+
+  /*
+   * Only when the probe answered: an older API has no calendar feeds at all,
+   * and a task pointing at a page that says "not supported" is a task nobody
+   * can complete.
+   */
+  if (input.calendarFeed && input.calendarFeed.isKnown) {
+    steps.push({
+      key: "calendar-feed",
+      title: "Add your on-call shifts to your calendar",
+      description:
+        "Subscribe to a private link from Google Calendar, Outlook or Apple Calendar so your shifts show up next to everything else.",
+      detail: input.calendarFeed.hasEnabledLink
+        ? ""
+        : "You have not generated a calendar link for this project yet.",
+      status: input.calendarFeed.hasEnabledLink
+        ? SetupStepStatus.Complete
+        : SetupStepStatus.Incomplete,
+      importance: SetupStepImportance.Optional,
+      icon: IconProp.Calendar,
+      iconBackgroundClassName: "bg-indigo-500",
+      pageMap: PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED,
+      actionTitle: "Generate a calendar link",
     });
   }
 

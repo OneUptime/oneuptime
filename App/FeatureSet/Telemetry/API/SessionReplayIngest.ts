@@ -2,6 +2,11 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -13,17 +18,27 @@ import Response from "Common/Server/Utils/Response";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
+  SessionReplayPolicyRefusal,
+  SessionReplayPolicyResolution,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
+import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import logger from "Common/Server/Utils/Logger";
 import StatusCode from "Common/Types/API/StatusCode";
 import ObjectID from "Common/Types/ObjectID";
+import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayChunkResponse,
   SessionReplayConfigResponse,
+  SessionReplayDisabledReason,
+  SessionReplayRecorderKind,
+  parseSessionReplayRecorderKindHeader,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -31,8 +46,10 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  SESSION_REPLAY_DEBUG,
   SESSION_REPLAY_ENABLED_BY_DEFAULT,
   SESSION_REPLAY_INGEST_ENABLED,
+  SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
   SESSION_REPLAY_TRUSTED_GEO_HEADER,
 } from "../Config";
 import {
@@ -53,7 +70,6 @@ import SessionReplayIngestService, {
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import SessionReplayEnvelopeParser, {
   ParsedSessionReplayFrame,
-  SessionReplayEnvelopeError,
   SessionReplayParseResult,
 } from "../Utils/SessionReplayEnvelopeParser";
 
@@ -72,15 +88,26 @@ const router: ExpressRouter = Express.getRouter();
  * Response vocabulary, and why each one:
  *
  *   202 - staged and enqueued. Only ever sent AFTER the enqueue succeeds.
- *   204 - deliberately not recording (disabled, unsampled, over budget),
- *         with a directive telling the recorder to stand down. Not an error.
- *   400 - malformed frame. Terminal for the recorder.
- *   401 - bad or missing ingestion key (from the shared auth middleware).
+ *         May carry directive "stop" (reason "session-chunk-cap") when the
+ *         request also held frames past the per-session cap: what was under
+ *         the cap landed, nothing after it ever will.
+ *   204 - not stored, with a directive. "stop" when the recorder should
+ *         stand down (disabled, unsampled, over budget, at the cap);
+ *         "continue" when only THIS request was refused (consent not yet
+ *         granted). Not an error.
+ *   400 - malformed frame, or a recorder that cannot be served (wire
+ *         version, identifier mismatch, missing header). Deterministic: the
+ *         next chunk from the same build gets the same answer, so the body
+ *         carries directive "stop" and a stable error code the recorder
+ *         disables on (audit finding ingest-11).
+ *   401 - bad or missing ingestion key (from the shared auth middleware,
+ *         which runs BEFORE the body is read - see the route table).
  *   403 - origin not on the application's allowlist. Terminal.
  *   413 - body over the cap (sent from the middleware, before it stops
- *         reading, and without destroying the socket).
- *   422 - an indivisible full snapshot that will not fit. The session
- *         survives with a fidelity notice instead of vanishing.
+ *         reading, and without destroying the socket). Per-chunk.
+ *   422 - a frame DECLARING a payload over the cap: the recorder's way of
+ *         saying an indivisible full snapshot will not fit. Per-chunk; the
+ *         session survives with a fidelity notice instead of vanishing.
  *   429 - over the per-minute rate. Carries Retry-After.
  *   503 - our storage could not accept it. Retryable, and never 202.
  */
@@ -164,6 +191,15 @@ const replayIngestMetricsMiddleware: ReplayMetricsMiddleware = (
       attributes["reason"] = gateReason;
     }
 
+    /* Which "not enabled" switch, when that was the reason. */
+    const gateReasonDetail: unknown = res.locals
+      ? res.locals["replayGateReasonDetail"]
+      : undefined;
+
+    if (typeof gateReasonDetail === "string" && gateReasonDetail.length > 0) {
+      attributes["reason.detail"] = gateReasonDetail;
+    }
+
     AppMetrics.getIngestCounter().add(1, attributes);
     AppMetrics.getIngestDuration().record(Number(elapsedNs) / 1e6, attributes);
   };
@@ -180,6 +216,27 @@ function readAppIdentifier(req: ExpressRequest): string {
       req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
     )?.trim() || ""
   );
+}
+
+/*
+ * Every request header that can change a config response. Keeping this in a
+ * single helper means early disabled/budget responses cannot accidentally
+ * omit one and be reused across web/mobile or across installed apps by an
+ * intermediary cache.
+ */
+const SESSION_REPLAY_CONFIG_VARY: string = [
+  "Origin",
+  "x-oneuptime-token",
+  "x-oneuptime-service-token",
+  "x-oneuptime-ingestion-key",
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+].join(", ");
+
+function setSessionReplayConfigVary(res: ExpressResponse): void {
+  res.setHeader("Vary", SESSION_REPLAY_CONFIG_VARY);
 }
 
 /*
@@ -268,6 +325,180 @@ function readCountryCode(req: ExpressRequest): string {
   return "";
 }
 
+/*
+ * Session replay traffic is telemetry, so it keeps the application ALIVE.
+ *
+ * RumApplicationService.updateLastSeen used to be reachable only from the
+ * OTel path (OtelIngestBaseService), so an application instrumented with the
+ * replay snippet alone never had its lastSeenAt refreshed at all:
+ * markDisconnectedApplications flipped it to "disconnected" fifteen minutes
+ * after whatever OTel batch last touched it, and the Dashboard showed
+ * "Disconnected" with a Last Seen days old while recorders on the customer's
+ * site were talking to this very process. That is issue #3527's headline
+ * symptom, and it is not a cosmetic one: "Disconnected" is what somebody
+ * reads before concluding their install is broken and giving up.
+ *
+ * Called from BOTH replay entry points. The config fetch is the one the
+ * health surface depends on: lastSeenAt is what /ingest-status reports as
+ * lastConfigFetchAt, and "the recorder loaded on your site" is decided from
+ * it. It is also the only request a page makes under a policy that records
+ * nothing by design - capture trigger OnErrorOrFrustration on a quiet day,
+ * sample percentage 0, consent never granted - so a chunk-only heartbeat
+ * would leave such an installation looking dead while working exactly as
+ * configured. (The shipped defaults are now Always at 100%, so a healthy
+ * page also posts a chunk every 15s; the config stamp still matters for the
+ * policies above.)
+ *
+ * Fire-and-forget, and throttled to one Postgres write per application per
+ * minute inside ResourceHeartbeat, which fails OPEN: an unreachable throttle
+ * cache means a write, not a skipped stamp. It must never delay or fail a
+ * response on either path.
+ */
+function markApplicationAlive(rumApplicationId: ObjectID): void {
+  RumApplicationService.updateLastSeen(rumApplicationId).catch(
+    (err: unknown) => {
+      logger.warn(
+        "Could not refresh RUM application liveness from session replay:",
+      );
+      logger.warn(err);
+    },
+  );
+}
+
+/*
+ * disabledReason answered when a byte budget is spent. Not (yet) a member
+ * of SessionReplayDisabledReason - that enum is a shared contract owned
+ * elsewhere - but the recorder logs whatever string arrives, so this is
+ * additive on the wire and lands in the customer's console verbatim.
+ */
+const SESSION_REPLAY_BUDGET_EXHAUSTED_DISABLED_REASON: string =
+  "budget-exhausted";
+
+interface SessionReplayBudgetPause {
+  /* Which ceiling: the operator's daily one or the customer's monthly one. */
+  detail: "project-daily-budget-exhausted" | "app-monthly-budget-exhausted";
+  /* When the exhausted counter's window rolls over (UTC). */
+  resetsAt: Date;
+}
+
+/*
+ * Is either byte budget already spent for this application? Read-only
+ * against the same counters the chunk gate charges, so config and gate
+ * can never disagree about the key. null means "not exhausted, or could
+ * not tell" - both answer "enabled".
+ */
+async function resolveBudgetPause(
+  projectId: ObjectID,
+  policy: SessionReplayGatePolicy,
+): Promise<SessionReplayBudgetPause | null> {
+  const now: Date = new Date();
+
+  try {
+    const dailyLimit: number = Number(
+      SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
+    );
+
+    if (Number.isFinite(dailyLimit) && dailyLimit > 0) {
+      const usedToday: number | null =
+        await SessionReplayUsage.getProjectBytesUsedToday(projectId);
+
+      if (usedToday !== null && usedToday >= dailyLimit) {
+        return {
+          detail: "project-daily-budget-exhausted",
+          resetsAt: new Date(
+            Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth(),
+              now.getUTCDate() + 1,
+            ),
+          ),
+        };
+      }
+    }
+
+    if (policy.monthlyBudgetInGB !== null && policy.monthlyBudgetInGB > 0) {
+      const usedThisMonth: number | null =
+        await SessionReplayUsage.getApplicationBytesUsedThisMonth({
+          projectId: projectId,
+          rumApplicationId: policy.rumApplicationId,
+        });
+
+      const monthlyLimit: number = Math.floor(
+        policy.monthlyBudgetInGB * 1024 * 1024 * 1024,
+      );
+
+      if (usedThisMonth !== null && usedThisMonth >= monthlyLimit) {
+        return {
+          detail: "app-monthly-budget-exhausted",
+          resetsAt: new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+          ),
+        };
+      }
+    }
+  } catch (err) {
+    logger.warn("Could not read the session replay budget for the config:");
+    logger.warn(err);
+  }
+
+  return null;
+}
+
+/*
+ * Stamp a disabled config with WHY, and with the debug flag.
+ *
+ * A helper rather than five inline spreads so no future disabled branch can
+ * quietly ship without a reason: the customer-visible symptom of a missing
+ * one is total silence in the browser, which is precisely the failure mode
+ * the field exists to end.
+ */
+function sendDisabledConfig(
+  disabledResponse: SessionReplayConfigResponse,
+  reason: SessionReplayDisabledReason,
+): JSONObject {
+  return {
+    ...disabledResponse,
+    disabledReason: reason,
+    debug: SESSION_REPLAY_DEBUG,
+  } as unknown as JSONObject;
+}
+
+/*
+ * A 400 the recorder should give up on.
+ *
+ * The recorder's 400 branch used to be "drop this chunk, keep going", which
+ * is right for a frame the server could not read once and wrong for a
+ * recorder the server can never serve: a wire version it does not speak,
+ * an identifier that does not match the header, a missing header. Such a
+ * recorder recorded, compressed and posted every 15s for the life of the
+ * page, got 400 every time, and stored nothing. The body now carries the
+ * same directive shape a 2xx does, plus a stable `error` code, so the
+ * recorder stops on it (audit finding ingest-11).
+ */
+function sendDeterministicRejection(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  data: { error: string; message: string; statusCode: number },
+): void {
+  if (res.locals) {
+    res.locals["replayGateReason"] = data.error;
+  }
+
+  Response.sendJsonObjectResponse(
+    req,
+    res,
+    {
+      error: data.error,
+      message: data.message,
+      directive: "stop",
+      reason: data.error,
+      /* No policy was resolved; 0 is "unknown" to the recorder. */
+      configEpoch: 0,
+    },
+    { statusCode: new StatusCode(data.statusCode) },
+  );
+}
+
 function sendChunkDirective(
   req: ExpressRequest,
   res: ExpressResponse,
@@ -287,6 +518,10 @@ function sendChunkDirective(
    */
   if (res.locals) {
     res.locals["replayGateReason"] = decision.reason;
+
+    if (decision.policyRefusal) {
+      res.locals["replayGateReasonDetail"] = decision.policyRefusal;
+    }
   }
 
   if (decision.retryAfterSeconds !== undefined) {
@@ -318,12 +553,20 @@ function sendChunkDirective(
   });
 }
 
+/*
+ * Middleware ORDER is load-bearing. The ingestion-key check reads headers
+ * only, so it runs BEFORE the body reader: an unauthenticated client is
+ * answered 401 without this process buffering 2 MiB per request into
+ * memory, and the ingest-bytes metric counts only bytes somebody with a
+ * key actually sent (audit finding ingest-2). The byte cap in parseBody
+ * still bounds every authenticated body.
+ */
 router.post(
   "/session-replay/v1/chunk",
   TelemetryIngestionDisabled.middleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SessionReplay),
   SessionReplayRequestMiddleware.parseBody,
   replayIngestMetricsMiddleware,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -337,16 +580,12 @@ router.post(
       const body: unknown = req.body;
 
       if (!Buffer.isBuffer(body)) {
-        Response.sendJsonObjectResponse(
-          req,
-          res,
-          {
-            error: "malformed-body",
-            message:
-              "Session replay chunks must be posted as a raw body. Received a parsed value instead, which means the request did not reach the replay body reader.",
-          },
-          { statusCode: new StatusCode(400) },
-        );
+        sendDeterministicRejection(req, res, {
+          error: "malformed-body",
+          message:
+            "Session replay chunks must be posted as a raw body. Received a parsed value instead, which means the request did not reach the replay body reader.",
+          statusCode: 400,
+        });
         return;
       }
 
@@ -359,16 +598,44 @@ router.post(
          * Moving the gates to the worker instead would mean the client has
          * already been told 202 and can never learn it was dropped.
          */
-        Response.sendJsonObjectResponse(
-          req,
-          res,
-          {
-            error: "missing-app-identifier",
-            message: `Send the RUM application identifier in the ${SESSION_REPLAY_APP_IDENTIFIER_HEADER} header.`,
-          },
-          { statusCode: new StatusCode(400) },
-        );
+        sendDeterministicRejection(req, res, {
+          error: "missing-app-identifier",
+          message: `Send the RUM application identifier in the ${SESSION_REPLAY_APP_IDENTIFIER_HEADER} header.`,
+          statusCode: 400,
+        });
         return;
+      }
+
+      const requestRecorderKind: SessionReplayRecorderKind | null =
+        parseSessionReplayRecorderKindHeader(
+          req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+        );
+
+      if (!requestRecorderKind) {
+        sendDeterministicRejection(req, res, {
+          error: "unsupported-recorder-kind",
+          message: `The ${SESSION_REPLAY_RECORDER_KIND_HEADER} header must be omitted, "dom", or "rn-view-tree".`,
+          statusCode: 400,
+        });
+        return;
+      }
+
+      if (requestRecorderKind === "rn-view-tree") {
+        const mobileAppIdentifier: string | undefined = headerValueToString(
+          req.headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER],
+        );
+
+        if (
+          !mobileAppIdentifier ||
+          !OriginAllowList.getMobileAppOrigin(mobileAppIdentifier)
+        ) {
+          sendDeterministicRejection(req, res, {
+            error: "invalid-mobile-app-identifier",
+            message: `Send a valid Android package name or iOS bundle identifier in the ${SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER} header.`,
+            statusCode: 400,
+          });
+          return;
+        }
       }
 
       const parsed: SessionReplayParseResult =
@@ -376,56 +643,92 @@ router.post(
 
       if (!parsed.isValid) {
         /*
-         * Running past the per-session chunk cap is a NORMAL end-of-session
-         * condition for a long-lived tab, not a malformed frame. The parser
-         * rejects the index before the gate can ever see it, so the orderly
-         * 204 + directive "stop" stand-down the design specifies has to be
-         * mapped here; answering 400 would tell the recorder its frames are
-         * broken and give it nothing to act on.
+         * 422 is the one PER-CHUNK parse answer: a frame declaring an
+         * over-cap payload is one indivisible snapshot that will not fit,
+         * and the next frame is fine. Every other parse error describes the
+         * recorder build (its framing, its wire version, its identifier),
+         * so it is answered as deterministic and carries a stop.
          */
-        if (parsed.error === SessionReplayEnvelopeError.ChunkIndexOutOfRange) {
-          sendChunkDirective(req, res, 204, {
-            outcome: SessionReplayGateOutcome.Stop,
-            /*
-             * configEpoch 0 because no policy was resolved for this request:
-             * the parse failed before the gate ran. The recorder treats 0 as
-             * "unknown", which is correct - it must not overwrite its cached
-             * epoch on the strength of a response that never read the policy.
-             */
-            directive: "stop",
-            configEpoch: 0,
-            reason: "session-chunk-cap",
-          });
+        if (
+          SessionReplayIngestService.isUnprocessableParseError(parsed.error)
+        ) {
+          if (res.locals) {
+            res.locals["replayGateReason"] = parsed.error;
+          }
+
+          Response.sendJsonObjectResponse(
+            req,
+            res,
+            {
+              error: parsed.error,
+              message: parsed.message,
+            },
+            { statusCode: new StatusCode(422) },
+          );
           return;
         }
 
-        Response.sendJsonObjectResponse(
-          req,
-          res,
-          {
-            error: parsed.error,
-            message: parsed.message,
-          },
-          {
-            statusCode: new StatusCode(
-              SessionReplayIngestService.isUnprocessableParseError(parsed.error)
-                ? 422
-                : 400,
-            ),
-          },
-        );
+        sendDeterministicRejection(req, res, {
+          error: parsed.error,
+          message: parsed.message,
+          statusCode: 400,
+        });
         return;
       }
 
+      /*
+       * Authentication selected its Origin identity from the request header
+       * before the body was read. Every frame must describe that same
+       * recorder surface; otherwise a request admitted as one trust boundary
+       * could be stored and presented as the other. Checking every frame also
+       * rejects a mixed catch-up batch rather than silently splitting it.
+       */
+      if (
+        parsed.frames.some((frame: ParsedSessionReplayFrame): boolean => {
+          return frame.envelope.recorderKind !== requestRecorderKind;
+        })
+      ) {
+        sendDeterministicRejection(req, res, {
+          error: "recorder-kind-mismatch",
+          message: `Every replay frame recorderKind must match the ${SESSION_REPLAY_RECORDER_KIND_HEADER} request header (${requestRecorderKind}).`,
+          statusCode: 400,
+        });
+        return;
+      }
+
+      /*
+       * Per-FRAME chunk cap. Reaching MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+       * is a normal end-of-session condition for a long-lived tab, and a
+       * catch-up post can straddle it. The frames under the cap are staged
+       * and the ones at or past it are set aside; the gate turns "some were
+       * set aside" into a 202 with a stop, and "all were" into a 204 with a
+       * stop (audit finding ingest-4).
+       */
+      const stagedFrames: Array<ParsedSessionReplayFrame> = [];
+      const overCapFrames: Array<ParsedSessionReplayFrame> = [];
+
+      for (const frame of parsed.frames) {
+        if (
+          frame.envelope.chunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+        ) {
+          overCapFrames.push(frame);
+        } else {
+          stagedFrames.push(frame);
+        }
+      }
+
+      const gatedFrames: Array<ParsedSessionReplayFrame> =
+        stagedFrames.length > 0 ? stagedFrames : overCapFrames;
+
       const sessionIds: Array<string> = Array.from(
         new Set(
-          parsed.frames.map((frame: ParsedSessionReplayFrame): string => {
+          gatedFrames.map((frame: ParsedSessionReplayFrame): string => {
             return frame.envelope.sessionId;
           }),
         ),
       );
 
-      const maxChunkIndex: number = parsed.frames.reduce(
+      const maxChunkIndex: number = gatedFrames.reduce(
         (highest: number, frame: ParsedSessionReplayFrame): number => {
           return Math.max(highest, frame.envelope.chunkIndex);
         },
@@ -436,22 +739,56 @@ router.post(
        * Carried into the gate so a frame uploaded because something actually
        * went wrong is not then re-judged by the sample percentage.
        */
-      const triggerReasons: Array<string> = parsed.frames.map(
+      const triggerReasons: Array<string> = gatedFrames.map(
         (frame: ParsedSessionReplayFrame): string => {
           return frame.envelope.triggerReason;
         },
       );
 
+      const consentStates: Array<string> = gatedFrames.map(
+        (frame: ParsedSessionReplayFrame): string => {
+          return frame.envelope.consentState;
+        },
+      );
+
+      /*
+       * The bytes that will actually be staged. Usually the whole body; a
+       * request that straddled the cap re-assembles the frames under it from
+       * their original bytes, so nothing is re-serialised.
+       */
+      const stagedBody: Buffer =
+        stagedFrames.length === parsed.frames.length
+          ? body
+          : Buffer.concat(
+              stagedFrames.map(
+                (frame: ParsedSessionReplayFrame): Uint8Array => {
+                  return new Uint8Array(frame.raw);
+                },
+              ),
+            );
+
       const decision: SessionReplayGateDecision =
         await SessionReplayIngestService.gateChunkRequest({
           projectId: projectId,
           appIdentifier: appIdentifier,
-          origin: headerValueToString(req.headers["origin"]),
+          /*
+           * The outer Browser-key guard already chose this identity and
+           * authorized it. Native replay stores a normalized app:// value
+           * here; web and Server-key requests retain their real Origin.
+           * Re-reading only the raw header would make the two allowlists
+           * disagree and refuse every authorized mobile chunk.
+           */
+          origin:
+            (req as TelemetryRequest).resolvedClientOrigin !== undefined
+              ? (req as TelemetryRequest).resolvedClientOrigin
+              : headerValueToString(req.headers["origin"]),
           sessionIds: sessionIds,
           triggerReasons: triggerReasons,
+          consentStates: consentStates,
           maxChunkIndex: maxChunkIndex,
-          chunkCount: parsed.frames.length,
-          payloadBytes: body.length,
+          chunkCount: gatedFrames.length,
+          overCapChunkCount: overCapFrames.length,
+          payloadBytes: stagedBody.length,
         });
 
       /*
@@ -474,6 +811,7 @@ router.post(
 
       switch (decision.outcome) {
         case SessionReplayGateOutcome.Stop:
+        case SessionReplayGateOutcome.Refused:
           sendChunkDirective(req, res, 204, decision);
           return;
 
@@ -509,7 +847,7 @@ router.post(
         await TelemetryQueueService.addSessionReplayIngestJob({
           projectId: projectId,
           appIdentifier: appIdentifier,
-          body: body,
+          body: stagedBody,
           serverReceiveUnixMs: serverReceiveUnixMs,
           samplePercentageAtCapture: decision.policy?.samplePercentage ?? 0,
           countryCode: readCountryCode(req),
@@ -531,17 +869,15 @@ router.post(
       }
 
       /*
-       * Recording health, written after the enqueue so "last chunk
-       * received" means "accepted", not merely "arrived". Throttled and
-       * fire-and-forget - it must never delay or fail the response.
+       * Liveness only. "Last chunk received" is NOT stamped here any more:
+       * a staged chunk can still be dropped in the worker (consent, scrub,
+       * decode), and a stamp taken at the enqueue told the Dashboard that
+       * recordings were arriving while none were being stored. The worker
+       * stamps it after the ClickHouse flush acknowledges (audit finding
+       * ingest-5). Liveness ("a recorder is talking to us") is true here.
        */
       if (decision.policy?.rumApplicationId) {
-        RumApplicationService.markSessionReplayChunkReceived(
-          decision.policy.rumApplicationId,
-        ).catch((err: unknown) => {
-          logger.warn("Could not record replay chunk receipt:");
-          logger.warn(err);
-        });
+        markApplicationAlive(decision.policy.rumApplicationId);
       }
 
       sendChunkDirective(req, res, 202, decision);
@@ -569,13 +905,15 @@ router.post(
  */
 router.get(
   "/session-replay/v1/config",
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SessionReplay),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
+      setSessionReplayConfigVary(res);
+
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const appIdentifier: string = readAppIdentifier(req);
 
@@ -590,6 +928,46 @@ router.get(
           { statusCode: new StatusCode(400) },
         );
         return;
+      }
+
+      const recorderKind: SessionReplayRecorderKind | null =
+        parseSessionReplayRecorderKindHeader(
+          req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+        );
+
+      if (!recorderKind) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: "unsupported-recorder-kind",
+            message: `The ${SESSION_REPLAY_RECORDER_KIND_HEADER} header must be omitted, "dom", or "rn-view-tree".`,
+          },
+          { statusCode: new StatusCode(400) },
+        );
+        return;
+      }
+
+      if (recorderKind === "rn-view-tree") {
+        const mobileAppIdentifier: string | undefined = headerValueToString(
+          req.headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER],
+        );
+
+        if (
+          !mobileAppIdentifier ||
+          !OriginAllowList.getMobileAppOrigin(mobileAppIdentifier)
+        ) {
+          Response.sendJsonObjectResponse(
+            req,
+            res,
+            {
+              error: "invalid-mobile-app-identifier",
+              message: `Send a valid Android package name or iOS bundle identifier in the ${SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER} header.`,
+            },
+            { statusCode: new StatusCode(400) },
+          );
+          return;
+        }
       }
 
       /*
@@ -611,7 +989,8 @@ router.get(
        * null means nothing has been built, in which case replay reports
        * itself disabled rather than advertising an artifact that is not there.
        */
-      const publishedRecorderVersion: string | null = getRecorderVersion();
+      const publishedRecorderVersion: string | null =
+        recorderKind === "dom" ? getRecorderVersion() : null;
 
       const disabledResponse: SessionReplayConfigResponse = {
         enabled: false,
@@ -639,20 +1018,35 @@ router.get(
       if (
         !SESSION_REPLAY_INGEST_ENABLED ||
         !SESSION_REPLAY_ENABLED_BY_DEFAULT ||
-        !publishedRecorderVersion
+        (recorderKind === "dom" && !publishedRecorderVersion)
       ) {
+        /*
+         * Three deployment-level causes that a customer cannot fix from the
+         * Dashboard, and which used to be indistinguishable from "somebody
+         * switched this application off". `recorder-not-built` in particular
+         * is a self-hosted install whose recorder bundle was never produced:
+         * there is no artifact to serve, replay has never worked there and
+         * never will until the build runs, and nothing anywhere said so.
+         */
         Response.sendJsonObjectResponse(
           req,
           res,
-          disabledResponse as unknown as JSONObject,
+          sendDisabledConfig(
+            disabledResponse,
+            !SESSION_REPLAY_INGEST_ENABLED
+              ? SessionReplayDisabledReason.IngestDisabled
+              : !SESSION_REPLAY_ENABLED_BY_DEFAULT
+                ? SessionReplayDisabledReason.DisabledByDefault
+                : SessionReplayDisabledReason.RecorderNotBuilt,
+          ),
         );
         return;
       }
 
-      let policy: SessionReplayGatePolicy | null = null;
+      let resolution: SessionReplayPolicyResolution;
 
       try {
-        policy = await SessionReplayGateCache.getPolicy({
+        resolution = await SessionReplayGateCache.resolvePolicy({
           projectId: projectId,
           appIdentifier: appIdentifier,
         });
@@ -668,23 +1062,74 @@ router.get(
         Response.sendJsonObjectResponse(
           req,
           res,
-          disabledResponse as unknown as JSONObject,
+          sendDisabledConfig(
+            disabledResponse,
+            SessionReplayDisabledReason.PolicyUnavailable,
+          ),
         );
         return;
       }
 
+      const policy: SessionReplayGatePolicy | null = resolution.policy;
+
       if (!policy) {
-        Response.sendJsonObjectResponse(
-          req,
-          res,
-          disabledResponse as unknown as JSONObject,
-        );
+        /*
+         * One disabledReason for the recorder's closed vocabulary, plus
+         * WHICH switch as an additive field: a customer whose PROJECT was
+         * switched off used to be told the APPLICATION was disabled and sent
+         * to the wrong settings page (audit finding ingest-9).
+         */
+        Response.sendJsonObjectResponse(req, res, {
+          ...sendDisabledConfig(
+            disabledResponse,
+            SessionReplayDisabledReason.NotEnabledForApplication,
+          ),
+          disabledDetail:
+            resolution.refusal ?? SessionReplayPolicyRefusal.ApplicationUnknown,
+        });
+        return;
+      }
+
+      /*
+       * A recorder asked this application for its policy, so a recorder is
+       * running on it right now. See markApplicationAlive: this stamp is
+       * what the health surface reads as "recorder loaded on your site".
+       */
+      markApplicationAlive(policy.rumApplicationId);
+
+      /*
+       * Budget exhaustion at CONFIG time. Every chunk would be refused
+       * anyway, so a page told "enabled" here loaded rrweb, buffered,
+       * compressed and posted just to be told no - once per page load, for
+       * the rest of the day (audit finding ingest-10). Answered as a
+       * complete disabled config with its own reason and a reset time, cached
+       * briefly so the first page load after the reset records. An unknown
+       * counter (Redis down) does NOT disable: the chunk gate fails closed on
+       * its own, and a config that said "off" on a Redis blip would lose
+       * five minutes of every visitor's recording.
+       */
+      const budgetPause: SessionReplayBudgetPause | null =
+        await resolveBudgetPause(projectId, policy);
+
+      if (budgetPause) {
+        res.setHeader("Cache-Control", "private, max-age=60");
+        setSessionReplayConfigVary(res);
+
+        Response.sendJsonObjectResponse(req, res, {
+          ...sendDisabledConfig(
+            disabledResponse,
+            SESSION_REPLAY_BUDGET_EXHAUSTED_DISABLED_REASON as unknown as SessionReplayDisabledReason,
+          ),
+          disabledDetail: budgetPause.detail,
+          budgetResetsAt: budgetPause.resetsAt.toISOString(),
+        });
         return;
       }
 
       const config: SessionReplayConfigResponse = {
         enabled: true,
-        recorderVersion: publishedRecorderVersion,
+        /* Native code is linked into the app; only web imports an artifact. */
+        recorderVersion: publishedRecorderVersion || "",
         maskingMode: policy.maskingMode,
         captureTrigger: policy.captureTrigger,
         consentMode: policy.consentMode,
@@ -736,7 +1181,16 @@ router.get(
        * server that cannot produce one yields a script tag without integrity
        * rather than no recording at all.
        */
-      const recorderIntegrity: string | null = getRecorderIntegrity();
+      /*
+       * Deployment-wide recorder diagnostics. Adds console output on the
+       * customer's page and changes no policy; see SESSION_REPLAY_DEBUG.
+       */
+      if (SESSION_REPLAY_DEBUG) {
+        config.debug = true;
+      }
+
+      const recorderIntegrity: string | null =
+        recorderKind === "dom" ? getRecorderIntegrity() : null;
 
       if (recorderIntegrity) {
         (config as unknown as Record<string, unknown>)["recorderIntegrity"] =
@@ -760,7 +1214,7 @@ router.get(
        * Anonymous fetches (no user ref on the page - the overwhelming
        * majority) keep the 5-minute private cache.
        */
-      res.setHeader("Vary", SESSION_REPLAY_USER_REF_HEADER);
+      setSessionReplayConfigVary(res);
 
       const hasUserRef: boolean = Boolean(
         headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]),
@@ -794,6 +1248,21 @@ router.get(
  * script or a "Test your installation" panel a real answer. It ingests
  * nothing and writes nothing, and reads the token from headers only so it
  * cannot leak into access logs.
+ *
+ * `valid` means "the chunk endpoint would accept this key", so it also
+ * accounts for the kill switch, the expiry and the browser-key surface rule.
+ * A key that resolves but is switched off answers false, because answering
+ * true would send someone away believing their install works while every
+ * chunk is refused. Existing keys are all enabled and never expire, so their
+ * answer is unchanged.
+ *
+ * What this deliberately does NOT check is the ORIGIN allowlist, even though
+ * ingest enforces it for a browser key. This probe is overwhelmingly run
+ * from curl, CI or a settings page - none of which sends the Origin the
+ * recorder will send - so enforcing it here would report a correctly
+ * configured key as broken and send customers hunting a problem they do not
+ * have. Origin is a property of the real recorder request, and that is where
+ * it is checked.
  */
 router.get(
   "/session-replay/v1/validate",
@@ -823,12 +1292,12 @@ router.get(
         return;
       }
 
-      const projectId: ObjectID | null =
-        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+      const keyPolicy: TelemetryIngestionKeyPolicy | null =
+        await TelemetryIngestionKeyService.getPolicyFromSecretKey(
           token.toString(),
         );
 
-      if (!projectId) {
+      if (!keyPolicy) {
         Response.sendJsonObjectResponse(
           req,
           res,
@@ -843,6 +1312,40 @@ router.get(
         return;
       }
 
+      /*
+       * The same kill-switch / expiry / browser-surface triad the ingest
+       * guard applies, evaluated against the session-replay surface so the
+       * probe and the chunk endpoint can never disagree about the same key.
+       *
+       * Session replay IS one of the surfaces a browser key may write to, so
+       * this rejects a browser key only if that ever stops being true. It is
+       * written as the shared check rather than an inline isEnabled/expiresAt
+       * pair precisely so that change lands here for free.
+       */
+      const refusal: TelemetryIngestionKeyRefusal | null =
+        TelemetryIngestionKeyGuard.getRefusal({
+          policy: keyPolicy,
+          surface: TelemetryIngestSurface.SessionReplay,
+        });
+
+      if (refusal) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            keyType: keyPolicy.keyType,
+            reason: refusal.reason,
+            message: refusal.message,
+          },
+          { statusCode: new StatusCode(401) },
+        );
+        return;
+      }
+
+      const projectId: ObjectID = keyPolicy.projectId;
+
       const appIdentifier: string = readAppIdentifier(req);
 
       /*
@@ -852,16 +1355,18 @@ router.get(
        * without this the customer has no way to tell the two apart.
        */
       let isSessionReplayEnabled: boolean = false;
+      let sessionReplayDisabledDetail: string | null = null;
 
       if (appIdentifier) {
         try {
-          const policy: SessionReplayGatePolicy | null =
-            await SessionReplayGateCache.getPolicy({
+          const resolution: SessionReplayPolicyResolution =
+            await SessionReplayGateCache.resolvePolicy({
               projectId: projectId,
               appIdentifier: appIdentifier,
             });
 
-          isSessionReplayEnabled = Boolean(policy);
+          isSessionReplayEnabled = Boolean(resolution.policy);
+          sessionReplayDisabledDetail = resolution.refusal;
         } catch (err) {
           logger.warn(
             "Error resolving the session replay policy during validation:",
@@ -876,7 +1381,21 @@ router.get(
         projectId: projectId.toString(),
         appIdentifierProvided: Boolean(appIdentifier),
         isSessionReplayEnabled: isSessionReplayEnabled,
+        /*
+         * Which switch is off when isSessionReplayEnabled is false
+         * (project-not-allowed / application-not-enabled / ...), so the
+         * install-test panel can point at the right settings page.
+         */
+        sessionReplayDisabledDetail: sessionReplayDisabledDetail,
         isIngestEnabledOnThisInstance: SESSION_REPLAY_INGEST_ENABLED,
+        /*
+         * A recorder snippet is meant to carry a Browser key, so unlike
+         * /otlp/v1/validate this is reported without editorialising - a
+         * Server key here still works and is not a misconfiguration, it just
+         * gives up the origin binding that makes a published key safe. The
+         * field lets a "Test your installation" panel say so.
+         */
+        keyType: keyPolicy.keyType,
         message: "Ingestion token is valid.",
       });
       return;

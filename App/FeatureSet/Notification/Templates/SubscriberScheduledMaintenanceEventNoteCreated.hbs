@@ -25,9 +25,9 @@
 
 
 {{#if detailsUrl}}
-{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
 {{else}}
-{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
 {{/if}}
 
 {{> UnsubscribeBlock this}}

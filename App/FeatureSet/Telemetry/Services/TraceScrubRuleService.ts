@@ -41,6 +41,29 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
 const SENSITIVE_KEY_REGEX: RegExp =
   /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
 
+/*
+ * The denormalized identity columns on the Span row.
+ *
+ * These are plain string columns that ingest COPIES out of the span
+ * attributes (user.email -> llmUserEmail, and so on — see
+ * Common/Server/Utils/Telemetry/LlmSpan.ts). The copy is made BEFORE
+ * scrubbing runs, so without the pass in scrubSpan below they would sail
+ * straight past every scrub rule: a project could have an Email redaction
+ * rule that visibly redacts "user.email" inside the attributes map while the
+ * identical address sits in the clear in llmUserEmail, indexed and queryable.
+ * That is not a cosmetic gap — it is a rule the customer configured, believes
+ * is in force, and which would be silently ineffective on the one column most
+ * likely to hold PII.
+ *
+ * The array is the key list rather than a per-column special case so adding
+ * another denormalized identity column is a one-line change here.
+ */
+const LLM_IDENTITY_COLUMN_KEYS: Array<string> = [
+  "llmUserId",
+  "llmUserEmail",
+  "llmTeam",
+];
+
 export class TraceScrubRuleService {
   public static async loadScrubRules(
     projectId: ObjectID,
@@ -375,6 +398,34 @@ export class TraceScrubRuleService {
           spanRow["attributes"] as JSONObject,
           singleRule,
         );
+      }
+
+      /*
+       * Denormalized identity columns.
+       *
+       * Scoped to Attributes (and All) because that is what they honestly
+       * are: values COPIED out of the attributes map at ingest, not a
+       * separate field a rule author would think to target. A rule scoped to
+       * Attributes must therefore reach them, and — just as importantly — a
+       * rule scoped to Name must NOT, or a "redact the span name" rule would
+       * start quietly deleting chargeback data.
+       *
+       * scrubString (not scrubAttributesInPlace) is the right helper: these
+       * are bare values, and their ClickHouse column names are not the
+       * attribute keys a SensitiveKeys rule matches against. SensitiveKeys
+       * rules are already forced to scrubAll above, and scrubString skips
+       * key-targeted rules internally, so such a rule correctly leaves the
+       * values alone here while still redacting the source attribute.
+       */
+      if (scrubAll || fieldsToScrub === TraceScrubField.Attributes) {
+        for (const columnKey of LLM_IDENTITY_COLUMN_KEYS) {
+          if (typeof spanRow[columnKey] === "string") {
+            spanRow[columnKey] = this.scrubString(
+              spanRow[columnKey] as string,
+              singleRule,
+            );
+          }
+        }
       }
 
       // Span event attributes — walk events[].attributes.

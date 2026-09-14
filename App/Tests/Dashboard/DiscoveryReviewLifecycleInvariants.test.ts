@@ -23,10 +23,9 @@ import path from "path";
  *   - An import of thousands of hosts runs for minutes. If it does not check
  *     which scan it belongs to when it lands, it pushes its errors onto — or
  *     closes — a different scan's dialog that the operator opened meanwhile.
- *   - `isAlreadyRegistered` is frozen into the scan's jsonb at probe-upload
- *     time and never recomputed, so if the page's own record of what it just
- *     imported is cleared or keyed wrong, a reopened dialog re-offers imported
- *     hosts pre-checked and Import creates duplicate Network Devices.
+ *   - Imports made after the review's inventory read must be overlaid until
+ *     the next successful refresh. A record cleared too early or keyed wrong
+ *     re-offers those hosts and Import creates duplicate Network Devices.
  *   - A row key taken from the filtered list's index changes on every filter
  *     click, remounting each row; CheckboxElement seeds itself from
  *     `initialValue` and only reconciles `value` in a passive effect, so the
@@ -370,16 +369,13 @@ describe("the page's record of what this sitting has imported", () => {
     );
   });
 
-  test("neither opening nor closing a review clears the store", () => {
-    /*
-     * Clearing it is what resurrects imported hosts: the scan's own
-     * `isAlreadyRegistered` flags were frozen at probe-upload time, so a
-     * reopened dialog with no overlay offers what was just imported, ticked,
-     * and Import duplicates every one of those devices.
-     */
-    expect(openReviewModalBody()).not.toContain(
-      "setImportedIpAddressesByScanId",
+  test("opening refreshes the scan's record after a successful current read", () => {
+    const body: string = openReviewModalBody();
+
+    expect(body.indexOf("setImportedIpAddressesByScanId")).toBeGreaterThan(
+      body.indexOf("await ModelAPI.getItem"),
     );
+    expect(body).toContain("return { ...current, ...refreshedImports }");
     expect(closeReviewModalBody()).not.toContain(
       "setImportedIpAddressesByScanId",
     );
@@ -415,7 +411,7 @@ describe("what the dialog opens with, imports, and resets", () => {
     const body: string = openReviewModalBody();
 
     expect(body).toContain(
-      "setSelectedIps(getInitialSelection(getReviewHosts(scan)))",
+      "getInitialSelection(getReviewHosts(freshScan, refreshedImports))",
     );
     expect(body).not.toContain("getInitialSelection(getDiscoveredHosts(");
     expect(body).toContain("setScanToReview(scan)");

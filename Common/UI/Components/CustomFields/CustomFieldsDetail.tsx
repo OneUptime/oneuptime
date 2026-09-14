@@ -5,7 +5,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
-import Card from "../Card/Card";
+import Card, { CardButtonSchema } from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import { DropdownOption } from "../Dropdown/Dropdown";
@@ -19,6 +19,12 @@ import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
 } from "../../../Types/CustomField/CustomFieldDropdownOption";
+import {
+  CustomFieldMappingSourceInfo,
+  getCustomFieldMappingRelationSelect,
+  getCustomFieldMappingSources,
+  hasCustomFieldMappingSource,
+} from "../../../Types/CustomField/CustomFieldMappingCatalog";
 import Color from "../../../Types/Color";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
@@ -73,6 +79,22 @@ export interface ComponentProps {
    * real reason.
    */
   hideIfEmpty?: boolean | undefined;
+  /*
+   * Card buttons that belong beside "Edit Fields" rather than on a card of
+   * their own — the Monitor Template's "Sync Custom Fields to Linked Monitors"
+   * being the one that exists. They render after the edit button and are not
+   * touched by the gating above: whether a push to other records is offered is
+   * the caller's decision, not this card's.
+   */
+  additionalButtons?: Array<CardButtonSchema> | undefined;
+  /*
+   * The record's stored bag, handed back after every load — including the
+   * reload that follows a save — so a caller whose extra button acts on those
+   * values can enable and word it from what is actually stored, rather than
+   * re-reading the record behind this card's back and going stale the moment
+   * somebody edits it here.
+   */
+  onValuesLoaded?: ((customFields: JSONObject) => void) | undefined;
 }
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
@@ -94,6 +116,74 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   const [model, setModel] = useState<BaseModel | null>(null);
   const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
+  /*
+   * Which related resources this resource's custom fields may inherit from.
+   * Empty for most of them, in which case everything below behaves exactly as
+   * it did before mapping existed.
+   */
+  const mappingSources: Array<CustomFieldMappingSourceInfo> =
+    getCustomFieldMappingSources(new props.customFieldType().tableName!);
+
+  /*
+   * A mapped field is a derived value, so it is shown rather than edited — but
+   * only on records that actually have a source to derive it from. On a record
+   * with none, the mapping can never fill it in and there is no reason to take
+   * the field away from the operator.
+   */
+  type IsMappedAndInheritedFunction = (schemaItem: BaseModel) => boolean;
+
+  const isMappedAndInherited: IsMappedAndInheritedFunction = (
+    schemaItem: BaseModel,
+  ): boolean => {
+    const resource: string | undefined = (schemaItem as any)
+      .mapFromResourceType;
+    const fieldName: string | undefined = (schemaItem as any)
+      .mapFromCustomFieldName;
+
+    if (!resource || !fieldName) {
+      return false;
+    }
+
+    const source: CustomFieldMappingSourceInfo | undefined =
+      mappingSources.find((candidate: CustomFieldMappingSourceInfo) => {
+        return candidate.resource === resource;
+      });
+
+    if (!source) {
+      return false;
+    }
+
+    return hasCustomFieldMappingSource({
+      source: source,
+      record: model as unknown as Record<string, unknown>,
+    });
+  };
+
+  type GetMappedDescriptionFunction = (
+    schemaItem: BaseModel,
+  ) => string | undefined;
+
+  const getMappedDescription: GetMappedDescriptionFunction = (
+    schemaItem: BaseModel,
+  ): string | undefined => {
+    const description: string | undefined = (schemaItem as any).description;
+
+    if (!isMappedAndInherited(schemaItem)) {
+      return description;
+    }
+
+    const source: CustomFieldMappingSourceInfo | undefined =
+      mappingSources.find((candidate: CustomFieldMappingSourceInfo) => {
+        return candidate.resource === (schemaItem as any).mapFromResourceType;
+      });
+
+    const note: string = `Copied from the ${source?.title} custom field "${
+      (schemaItem as any).mapFromCustomFieldName
+    }".`;
+
+    return description ? `${description} ${note}` : note;
+  };
+
   const onLoad: PromiseVoidFunction = async (): Promise<void> => {
     try {
       // load schema.
@@ -113,20 +203,43 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             customFieldType: true,
             description: true,
             dropdownOptions: true,
+            mapFromResourceType: true,
+            mapFromCustomFieldName: true,
           } as any,
           sort: {},
         });
 
+      /*
+       * The relation a mapped field would inherit through is read alongside
+       * the values, so the card can tell "this field is mapped and this record
+       * has a monitor" (show it, read-only) from "this field is mapped but
+       * this record has none" (leave it editable — an SLO or security-event
+       * alert has no monitor and would otherwise be locked out of the field
+       * entirely). Nothing extra is selected for the six resources that have
+       * no mapping sources at all.
+       */
+      const itemSelect: JSONObject = {
+        customFields: true,
+      };
+
+      for (const source of mappingSources) {
+        Object.assign(itemSelect, getCustomFieldMappingRelationSelect(source));
+      }
+
       const item: BaseModel | null = await ModelAPI.getItem<BaseModel>({
         modelType: props.modelType,
         id: props.modelId,
-        select: {
-          customFields: true,
-        } as any,
+        select: itemSelect as any,
       });
 
       setSchemaList(schemaList.data);
       setModel(item);
+
+      if (props.onValuesLoaded) {
+        props.onValuesLoaded(
+          ((item as any)?.["customFields"] as JSONObject) || {},
+        );
+      }
 
       setIsLoading(false);
     } catch (err) {
@@ -195,8 +308,19 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
    * take the button away, or the error message is telling the operator to
    * retry something they can no longer reach.
    */
+  /*
+   * A field whose value is copied from a related resource is not one the
+   * modal offers, so a card where EVERY field is mapped has nothing to edit
+   * and the button would open an empty form.
+   */
+  const editableSchemaCount: number = schemaList.filter(
+    (schemaItem: BaseModel) => {
+      return !isMappedAndInherited(schemaItem);
+    },
+  ).length;
+
   const canEdit: boolean =
-    isEditable && !isLoading && schemaList.length > 0 && Boolean(model);
+    isEditable && !isLoading && editableSchemaCount > 0 && Boolean(model);
 
   /*
    * Custom field values live on the record itself, so editing them is an
@@ -211,30 +335,33 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   const showEditButton: boolean =
     canEdit && (updateGate.isAllowed || Boolean(updateGate.disabledReason));
 
+  const cardButtons: Array<CardButtonSchema> = [
+    ...(showEditButton
+      ? [
+          {
+            title: "Edit Fields",
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.disabledReason,
+            onClick: () => {
+              if (!updateGate.isAllowed) {
+                return;
+              }
+
+              setShowModelForm(true);
+            },
+            icon: IconProp.Edit,
+          } as CardButtonSchema,
+        ]
+      : []),
+    ...(props.additionalButtons || []),
+  ];
+
   return (
     <Card
       title={props.title}
       description={props.description}
-      buttons={
-        showEditButton
-          ? [
-              {
-                title: "Edit Fields",
-                buttonStyle: ButtonStyleType.NORMAL,
-                disabled: !updateGate.isAllowed,
-                tooltip: updateGate.disabledReason,
-                onClick: () => {
-                  if (!updateGate.isAllowed) {
-                    return;
-                  }
-
-                  setShowModelForm(true);
-                },
-                icon: IconProp.Edit,
-              },
-            ]
-          : []
-      }
+      buttons={cardButtons}
     >
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
         {isLoading && !loadError && <ComponentLoader />}
@@ -269,7 +396,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               return {
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
-                description: (schemaItem as any).description,
+                description: getMappedDescription(schemaItem) as string,
                 fieldType: (schemaItem as any).customFieldType,
                 placeholder: "No data entered",
                 dropdownOptions: isDropdown
@@ -292,26 +419,42 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               initialValues: (model as any)?.["customFields"] || {},
-              fields: schemaList.map((schemaItem: BaseModel) => {
-                const isDropdown: boolean =
-                  (schemaItem as any).customFieldType ===
-                    CustomFieldType.Dropdown ||
-                  (schemaItem as any).customFieldType ===
-                    CustomFieldType.MultiSelectDropdown;
-                return {
-                  field: {
-                    [(schemaItem as any).name]: true,
-                  },
-                  title: (schemaItem as any).name,
-                  description: (schemaItem as any).description,
-                  fieldType: (schemaItem as any).customFieldType,
-                  required: false,
-                  placeholder: "",
-                  dropdownOptions: isDropdown
-                    ? parseDropdownOptions((schemaItem as any).dropdownOptions)
-                    : undefined,
-                };
-              }),
+              /*
+               * Mapped fields are left OUT of the form rather than rendered
+               * disabled: `Field.disabled` is honoured by only three of the
+               * form's input branches, so a disabled Dropdown, multi-select or
+               * toggle stays fully editable and the value would silently snap
+               * back on the next sync. Their stored values still survive the
+               * save — this form submits its whole values object, which starts
+               * from the record's existing bag — and the server re-applies the
+               * mapping on update either way.
+               */
+              fields: schemaList
+                .filter((schemaItem: BaseModel) => {
+                  return !isMappedAndInherited(schemaItem);
+                })
+                .map((schemaItem: BaseModel) => {
+                  const isDropdown: boolean =
+                    (schemaItem as any).customFieldType ===
+                      CustomFieldType.Dropdown ||
+                    (schemaItem as any).customFieldType ===
+                      CustomFieldType.MultiSelectDropdown;
+                  return {
+                    field: {
+                      [(schemaItem as any).name]: true,
+                    },
+                    title: (schemaItem as any).name,
+                    description: (schemaItem as any).description,
+                    fieldType: (schemaItem as any).customFieldType,
+                    required: false,
+                    placeholder: "",
+                    dropdownOptions: isDropdown
+                      ? parseDropdownOptions(
+                          (schemaItem as any).dropdownOptions,
+                        )
+                      : undefined,
+                  };
+                }),
             }}
           />
         )}

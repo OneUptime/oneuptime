@@ -1,4 +1,6 @@
 import ConfigLogLevel from "../../../Server/Types/ConfigLogLevel";
+import { inspect } from "util";
+import { QueryFailedError } from "typeorm";
 import {
   afterEach,
   beforeEach,
@@ -93,15 +95,7 @@ const collectSinkText: CollectSinkTextFunction = (): string => {
               return argument;
             }
 
-            if (argument instanceof Error) {
-              return `${argument.message} ${argument.stack || ""}`;
-            }
-
-            try {
-              return JSON.stringify(argument);
-            } catch {
-              return String(argument);
-            }
+            return inspect(argument, { depth: null });
           })
           .join(" "),
       );
@@ -233,6 +227,26 @@ describe("logger never writes credentials to any sink", () => {
     );
 
     expect(collectSinkText()).not.toContain(SENTINEL);
+  });
+
+  it("drops database bind parameters carried on QueryFailedError", () => {
+    const verificationToken: string = `0abc1234_${"A".repeat(43)}`;
+    const driverError: Error & { code?: string } = Object.assign(
+      new Error("database connection lost"),
+      { code: "ECONNRESET" },
+    );
+    const error: QueryFailedError = new QueryFailedError(
+      'UPDATE "UserTelegram" SET "isVerified" = $1 WHERE "verificationCode" = $2',
+      [true, verificationToken],
+      driverError,
+    );
+
+    logAtEveryLevel(error);
+
+    const output: string = collectSinkText();
+    expect(output).not.toContain(verificationToken);
+    expect(output).toContain("[REDACTED]");
+    expect(output).toContain("UserTelegram");
   });
 
   it("still logs an ordinary message unchanged", () => {

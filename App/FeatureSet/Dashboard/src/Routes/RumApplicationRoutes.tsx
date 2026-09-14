@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import RumApplications from "../Pages/Rum/RumApplications";
 import RumApplicationOverview from "../Pages/Rum/View/Overview";
+import RumApplicationSettings from "../Pages/Rum/View/Settings";
 import RumApplicationRecommendations from "../Pages/Rum/View/Recommendations";
 import RumApplicationMetrics from "../Pages/Rum/View/Metrics";
 import RumApplicationLogs from "../Pages/Rum/View/Logs";
@@ -17,7 +18,10 @@ import RumApplicationClients from "../Pages/Rum/View/Clients";
 import RumApplicationSessionReplay from "../Pages/Rum/View/SessionReplay";
 import RumApplicationSessionReplayView from "../Pages/Rum/View/SessionReplayView";
 import RumApplicationSessionReplayAudit from "../Pages/Rum/View/SessionReplayAudit";
+import RumApplicationSessionReplayUsers from "../Pages/Rum/View/SessionReplayUsers";
 import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
+import RumApplicationSessionReplayHealth from "../Pages/Rum/View/SessionReplayHealth";
+import RumApplicationSessionReplayDocumentation from "../Pages/Rum/View/SessionReplayDocumentation";
 import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
@@ -88,6 +92,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplicationOverview
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SETTINGS,
+          )}
+          element={
+            <RumApplicationSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_SETTINGS] as Route
+              }
             />
           }
         />
@@ -196,6 +214,22 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+          )}
+          element={
+            <RumApplicationSessionReplayUsers
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
           )}
           element={
@@ -212,6 +246,22 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+          )}
+          element={
+            <RumApplicationSessionReplayHealth
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
           )}
           element={
@@ -220,6 +270,22 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+          )}
+          element={
+            <RumApplicationSessionReplayDocumentation
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
                 ] as Route
               }
             />

@@ -1,6 +1,9 @@
 import Dictionary from "../../Types/Dictionary";
 import Includes from "../../Types/BaseDatabase/Includes";
 import JSONFunctions from "../../Types/JSONFunctions";
+import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
+import SerializableObjectDictionary from "../../Types/SerializableObjectDictionary";
+import { JSONObject } from "../../Types/JSON";
 import OneUptimeDate from "../../Types/Date";
 import MetricFormulaConfigData from "../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData, {
@@ -102,17 +105,22 @@ export interface SerializedMetricFormula {
 
 /*
  * One attribute filter value inside the serialized `metricQueries` param.
- * Scalars are equality filters; Includes is the "any of" membership the
- * UI's operator layer and the query layer both understand. It JSON-
- * serializes to {_type: "Includes", value: [...]} (its toJSON), which the
- * parse side rebuilds into a real instance — that round trip is how a
- * multi-service scope survives Copy Link and saved views.
+ * Scalars are equality filters; every other operator (Includes, Search,
+ * Wildcard, NotEqual, GreaterThan, ...) travels as its own
+ * {_type, value} JSON and is rebuilt into a real instance on the way back —
+ * that round trip is how a multi-service scope, or a `matches api-*` filter,
+ * survives Copy Link and saved views.
+ *
+ * This used to keep ONLY scalars and Includes, so every other operator was
+ * silently dropped from a copied link: the chart the recipient opened had
+ * fewer filters than the one that was shared, with nothing to say so.
  */
 export type SerializedMetricAttributeValue =
   | string
   | number
   | boolean
-  | Includes;
+  | Includes
+  | QueryOperator<string>;
 
 const MAX_SERVICES_PARAM_ENTRIES: number = 20;
 
@@ -654,23 +662,77 @@ export default class MetricExplorerUrl {
       }
 
       /*
-       * "Any of" membership filters. Live view state holds Includes
-       * INSTANCES; parsed URLs hold the plain {_type, value} JSON shape.
-       * Both normalize to a fresh instance so multi-value filters (e.g.
-       * a multi-service scope) survive Copy Link / saved views instead
-       * of being silently dropped — and downstream consumers (the query
-       * layer, the operator detector, the monitor evaluator's deep-link
-       * builder) all already speak Includes.
+       * Operator filters. Live view state holds INSTANCES; a parsed URL holds
+       * the plain {_type, value} JSON shape. Both normalize to a fresh
+       * instance, so the filter means the same thing on both sides of a Copy
+       * Link — and the downstream consumers (the query layer, the operator
+       * detector, the monitor evaluator's deep-link builder) all speak
+       * operator instances already.
+       *
+       * An empty membership list is the one shape that is dropped: it means
+       * "All", and carrying it would only add a no-op predicate.
+       */
+      /*
+       * Membership keeps its own branch because it also CLEANS: blank and
+       * non-scalar entries are dropped, and a list left empty by that means
+       * "All" and carries no predicate at all.
        */
       const membershipValues: Array<string> | null =
         MetricExplorerUrl.getIncludesShapeValues(attributeValue);
 
-      if (membershipValues !== null && membershipValues.length > 0) {
-        attributes[key] = new Includes(membershipValues);
+      if (membershipValues !== null) {
+        if (membershipValues.length > 0) {
+          attributes[key] = new Includes(membershipValues);
+        }
+
+        continue;
+      }
+
+      if (attributeValue instanceof QueryOperator) {
+        attributes[key] = attributeValue as QueryOperator<string>;
+        continue;
+      }
+
+      const rebuilt: QueryOperator<string> | null =
+        MetricExplorerUrl.rebuildOperator(attributeValue);
+
+      if (rebuilt) {
+        attributes[key] = rebuilt;
       }
     }
 
     return attributes;
+  }
+
+  /*
+   * Rebuild a `{_type, value}` JSON blob into its operator instance, using the
+   * same registry `JSONFunctions.deserialize` uses. An unknown `_type` yields
+   * null rather than a half-hydrated object — a plain object reaching the
+   * query layer is a silently wrong filter, not an error.
+   */
+  private static rebuildOperator(value: unknown): QueryOperator<string> | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return null;
+    }
+
+    const type: unknown = (value as Record<string, unknown>)["_type"];
+
+    if (typeof type !== "string" || !SerializableObjectDictionary[type]) {
+      return null;
+    }
+
+    try {
+      const hydrated: unknown = SerializableObjectDictionary[type].fromJSON(
+        value as JSONObject,
+      );
+
+      return hydrated instanceof QueryOperator
+        ? (hydrated as QueryOperator<string>)
+        : null;
+    } catch {
+      // Malformed payload in a hand-edited URL. Drop the filter, not the page.
+      return null;
+    }
   }
 
   private static getIncludesShapeValues(value: unknown): Array<string> | null {

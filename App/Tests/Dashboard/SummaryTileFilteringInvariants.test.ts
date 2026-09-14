@@ -111,6 +111,45 @@ const INFO_CARD: string = readSource(
   "InfoCard.tsx",
 );
 
+/*
+ * The strips' counts moved into Postgres, so half of every "the tile and the
+ * rows it opens agree" invariant now lives on the server. Read the two sources
+ * that own it, so those assertions keep pointing at the real mechanism instead
+ * of quietly going vacuous.
+ */
+const SITE_SUMMARY_ENDPOINT: string = readSource(
+  path.join(__dirname, "..", "..", "FeatureSet", "BaseAPI", "API"),
+  "NetworkSummary.ts",
+);
+
+const NETWORK_DEVICE_SERVICE: string = readSource(
+  path.join(__dirname, "..", "..", "..", "Common", "Server", "Services"),
+  "NetworkDeviceService.ts",
+);
+
+/*
+ * Just `getFleetSummary`'s aggregate — the file also holds several other
+ * queries, and an assertion made against the whole of it could pass on a
+ * predicate that belongs to a different one.
+ */
+const FLEET_SUMMARY_QUERY: string = ((): string | never => {
+  const start: number = NETWORK_DEVICE_SERVICE.indexOf(
+    "public async getFleetSummary(",
+  );
+  const end: number = NETWORK_DEVICE_SERVICE.indexOf(
+    "public async getVendorBreakdown(",
+    start + 1,
+  );
+
+  if (start === -1 || end === -1) {
+    throw new Error(
+      "Could not slice getFleetSummary out of NetworkDeviceService.ts — the shape of the file changed, so these assertions are no longer pointing at what they name.",
+    );
+  }
+
+  return NETWORK_DEVICE_SERVICE.slice(start, end);
+})();
+
 /**
  * The names a page destructures off useResourceOwners. Everything the facet bar
  * and the tiles need has to come from the hook — a locally re-declared
@@ -168,15 +207,48 @@ describe("the Devices page wires its table to the facet bar", () => {
    * Every count on the strip excludes archived devices, so the rows a tile opens
    * have to exclude them too — otherwise the tile says 3 and opens 5. No chip
    * writes isArchived, so the base query is the only place it can live.
+   *
+   * The counts moved into Postgres, so the other half of this pair is now the
+   * server's, in NetworkDeviceService.getFleetSummary — but it is the SAME
+   * invariant and the same failure, so it is still asserted here, against
+   * where the query actually lives.
    */
   test("the base query hides archived devices, as every count does", () => {
     expect(DEVICES_PAGE).toContain("isArchived: false");
+    expect(FLEET_SUMMARY_QUERY).toContain("isArchived: false");
+  });
 
-    const countQueries: number = DEVICE_CARDS.split("query: {").length - 1;
-    expect(countQueries).toBeGreaterThan(0);
-    expect(DEVICE_CARDS.split("isArchived: false").length - 1).toBe(
-      countQueries,
+  /*
+   * One statement, no rows.
+   *
+   * The strip used to issue three counts and a LIST of every device with a
+   * down interface, capped at LIMIT_PER_PROJECT and summed in the browser —
+   * which understated the fleet the moment more than ten thousand devices had
+   * dark ports, silently. The interfaces figure has to be a real SUM.
+   */
+  test("the strip counts in the database rather than fetching rows", () => {
+    expect(DEVICE_CARDS).toContain("fetchDeviceSummary()");
+    expect(DEVICE_CARDS).not.toContain("ModelAPI.getList");
+    expect(DEVICE_CARDS).not.toContain("ModelAPI.count");
+    expect(DEVICE_CARDS).not.toContain("LIMIT_PER_PROJECT");
+    expect(FLEET_SUMMARY_QUERY).toContain(
+      squash('COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)'),
     );
+  });
+
+  /*
+   * The three status counts still partition the fleet on the one column the
+   * Status chip filters by, which is the whole reason a tile can open exactly
+   * the rows it counted.
+   */
+  test("the counts still partition the fleet on isReachable", () => {
+    for (const predicate of [
+      '"NetworkDevice"."isReachable" = true',
+      '"NetworkDevice"."isReachable" = false',
+      '"NetworkDevice"."isReachable" IS NULL',
+    ]) {
+      expect(FLEET_SUMMARY_QUERY).toContain(squash(predicate));
+    }
   });
 
   /*
@@ -697,20 +769,42 @@ describe("SiteSummaryCards", () => {
    * tile never counted.
    */
   test("the unhealthy chip is built from the response the count came from", () => {
-    expect(SITE_CARDS).toContain("for (const site of siteResult.data) {");
+    /*
+     * Both now arrive in one payload, which is a stronger version of the same
+     * guarantee: the ids cannot be re-derived from anything else because there
+     * is nothing else on the client to derive them from.
+     */
+    expect(SITE_CARDS).toContain("setCounts(await fetchSiteSummary());");
     expect(SITE_CARDS).toContain(
       squash(
-        "if (!site.currentMonitorStatus.isOperationalState) { unhealthySites++; const statusId: string | null = getMonitorStatusId(site); if (statusId) { unhealthyIds.add(statusId); } }",
+        "const selection: FacetTileSelection | null = getSiteFacetSelectionForTile(tile, { unhealthyStatusIds: counts?.unhealthyStatusIds || [], });",
       ),
     );
-    expect(SITE_CARDS).toContain(
-      "setUnhealthyStatusIds(Array.from(unhealthyIds));",
+
+    /*
+     * And the server really does report the statuses IN USE, not every
+     * non-operational status the project defines. The difference is a lit
+     * "Unhealthy" tile whose chip opens sites the tile never counted.
+     */
+    expect(SITE_SUMMARY_ENDPOINT).toContain(
+      squash("unhealthyStatusIds: getUnhealthyStatusIdsInUse({"),
     );
-    expect(SITE_CARDS).toContain(
+    expect(SITE_SUMMARY_ENDPOINT).toContain(
       squash(
-        "const selection: FacetTileSelection | null = getSiteFacetSelectionForTile(tile, { unhealthyStatusIds: unhealthyStatusIds, });",
+        "if (!statusCount.monitorStatusId || statusCount.siteCount === 0) { continue; }",
       ),
     );
+  });
+
+  /*
+   * The strip counts sites in the database. It used to fetch every site in the
+   * project — status relation joined in — and classify them in the browser to
+   * produce three integers.
+   */
+  test("the site strip counts in the database rather than fetching rows", () => {
+    expect(SITE_CARDS).toContain("fetchSiteSummary()");
+    expect(SITE_CARDS).not.toContain("ModelAPI.getList");
+    expect(SITE_CARDS).not.toContain("LIMIT_PER_PROJECT");
   });
 
   test("keeps its test ids", () => {

@@ -1,0 +1,52 @@
+name: Dependency Audit
+
+on:
+  pull_request:
+    paths:
+      - "**/package.json"
+      - "**/package-lock.json"
+      - "**/npm-shrinkwrap.json"
+      - "npm-audit-check.sh"
+      - "npm-audit-exceptions.json"
+      - "Scripts/Security/ValidateNpmAudit.js"
+      - "Scripts/GHA/Tests/npm_audit_check_test.sh"
+      - ".github/workflows/dependency-audit.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "**/package.json"
+      - "**/package-lock.json"
+      - "**/npm-shrinkwrap.json"
+      - "npm-audit-check.sh"
+      - "npm-audit-exceptions.json"
+      - "Scripts/Security/ValidateNpmAudit.js"
+      - "Scripts/GHA/Tests/npm_audit_check_test.sh"
+      - ".github/workflows/dependency-audit.yml"
+  schedule:
+    # Advisories can be published without any lockfile changing. Recheck the
+    # current master tree weekly so new disclosures and expired exceptions
+    # cannot remain invisible until the next dependency update.
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Test repository-wide audit gate
+        run: bash Scripts/GHA/Tests/npm_audit_check_test.sh
+
+      - name: Audit every npm lockfile
+        run: bash npm-audit-check.sh

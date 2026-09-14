@@ -34,6 +34,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
+import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NotificationService from "./NotificationService";
 import PromoCodeService from "./PromoCodeService";
@@ -64,6 +65,7 @@ import {
 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
@@ -79,6 +81,15 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
 import DefaultNetworkSiteType from "../../Types/NetworkSite/DefaultNetworkSiteType";
+import NetworkDeviceRole from "../../Models/DatabaseModels/NetworkDeviceRole";
+import {
+  DEFAULT_NETWORK_DEVICE_ROLES,
+  DefaultNetworkDeviceRole,
+} from "../../Types/NetworkDevice/DefaultNetworkDeviceRole";
+import {
+  DefaultNetworkSiteTypeCreationOrder,
+  DefaultNetworkSiteTypeParent,
+} from "../../Types/NetworkSite/DefaultNetworkSiteTypeHierarchy";
 import Model from "../../Models/DatabaseModels/Project";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
@@ -102,6 +113,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import { IsNull, UpdateResult } from "typeorm";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -979,14 +991,20 @@ These are no longer recorded against the project and have to be cancelled by han
       properties["currency"] = "USD";
     }
 
+    /*
+     * Captured before the deferred builder below closes over it: the narrowing
+     * from the createdOwnerEmail guard above does not survive into a callback.
+     */
+    const ownerEmail: string = data.project.createdOwnerEmail.toString();
+
     ProductAnalytics.capture({
       event: "server/subscription_started",
-      distinctId: data.project.createdOwnerEmail.toString(),
+      distinctId: ownerEmail,
       properties: properties,
     });
 
-    MarketingEventUtil.emitInBackground(
-      MarketingEventUtil.buildEvent({
+    MarketingEventUtil.emitInBackground(() => {
+      return MarketingEventUtil.buildEvent({
         eventType: MarketingEventType.SubscriptionStarted,
         /*
          * Naturally unique: a project has exactly one first subscription, so a
@@ -996,11 +1014,11 @@ These are no longer recorded against the project and have to be cancelled by han
          */
         eventId: `${MarketingEventType.SubscriptionStarted}:${data.project.id?.toString()}`,
         occurredAt: data.project.createdAt || new Date(),
-        email: data.project.createdOwnerEmail.toString(),
+        email: ownerEmail,
         attributionSource: data.project,
         data: properties,
-      }),
-    );
+      });
+    });
   }
 
   /*
@@ -1138,8 +1156,8 @@ These are no longer recorded against the project and have to be cancelled by han
 
     const occurredAt: Date = new Date();
 
-    MarketingEventUtil.emitInBackground(
-      MarketingEventUtil.buildEvent({
+    MarketingEventUtil.emitInBackground(() => {
+      return MarketingEventUtil.buildEvent({
         eventType: eventType,
         /*
          * A project can legitimately upgrade, downgrade and upgrade again, so
@@ -1151,8 +1169,8 @@ These are no longer recorded against the project and have to be cancelled by han
         email: data.project.createdOwnerEmail?.toString(),
         attributionSource: data.project,
         data: data.properties,
-      }),
-    );
+      });
+    });
   }
 
   private async sendSubscriptionChangeWebhookSlackNotification(
@@ -1438,6 +1456,7 @@ These are no longer recorded against the project and have to be cancelled by han
       this.addDefaultAlertState(createdItem),
       this.addDefaultIncidentRoles(createdItem),
       this.addDefaultNetworkSiteTypes(createdItem),
+      this.addDefaultNetworkDeviceRoles(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -1635,6 +1654,28 @@ These are no longer recorded against the project and have to be cancelled by han
     return createdItem;
   }
 
+  /*
+   * NOTE ON THE TWO-TIER SCALE, and what it costs downstream.
+   *
+   * This seeds TWO alert severities (High 1 / Low 2) while
+   * `addDefaultIncidentSeverity` immediately below seeds THREE
+   * (Critical Incident 1 / Major Incident 2 / Minor Incident 3). That
+   * asymmetry is load-bearing for monitor recommendations:
+   * `MonitorRecommendationSeverityMapper` maps a recommendation's declared
+   * `Critical` onto rank 1 and `Warning` onto rank 2, so on a default project
+   * a Warning template opens a "Major Incident" but an alert whose severity
+   * reads "Low" — which is how an alert email can say SEVERITY: Low for a
+   * catalog card badged Warning.
+   *
+   * If a third alert tier is ever added here to close that gap, it CANNOT
+   * ship alone. This function only seeds names a project does not already
+   * have, so existing projects would keep the two-tier scale and map Warning
+   * differently from new ones indefinitely. It needs a paired data migration
+   * over every existing project — see
+   * App/FeatureSet/Workers/DataMigrations/AddDefaultAlertSeverityAndStateToExistingProjects.ts
+   * for the shape — and that migration has to decide what to do about the
+   * `order` of a "Low" row a project may have reordered or renamed itself.
+   */
   @CaptureSpan()
   public async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
@@ -1899,21 +1940,50 @@ These are no longer recorded against the project and have to be cancelled by han
    * addDefaultAlertSeverity / addDefaultAlertState.
    */
   @CaptureSpan()
-  public async addDefaultNetworkSiteTypes(createdItem: Model): Promise<Model> {
+  public async addDefaultNetworkSiteTypes(
+    createdItem: Model,
+    options?: { setParentRelationships?: boolean },
+  ): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
-    // Idempotent — see getExistingProjectScopedNames.
-    const existingNames: Set<string | undefined> =
-      await this.getExistingProjectScopedNames(
-        NetworkSiteTypeService,
-        projectId,
-      );
+    const existingNetworkSiteTypes: Array<NetworkSiteType> = [];
+    let networkSiteTypeSkip: number = 0;
+
+    while (true) {
+      const page: Array<NetworkSiteType> = await NetworkSiteTypeService.findBy({
+        query: { projectId },
+        select: { _id: true, name: true },
+        sort: { _id: SortOrder.Ascending },
+        limit: LIMIT_MAX,
+        skip: networkSiteTypeSkip,
+        props: { isRoot: true },
+      });
+
+      existingNetworkSiteTypes.push(...page);
+
+      if (page.length < LIMIT_MAX) {
+        break;
+      }
+
+      networkSiteTypeSkip += page.length;
+    }
+
+    const networkSiteTypeByName: Map<string, NetworkSiteType> = new Map<
+      string,
+      NetworkSiteType
+    >();
+
+    for (const networkSiteType of existingNetworkSiteTypes) {
+      if (networkSiteType.name) {
+        networkSiteTypeByName.set(networkSiteType.name, networkSiteType);
+      }
+    }
 
     /*
-     * Listed broadest-first: the array position is the hierarchy level, so the
-     * index drives `order` (1..7, lower = higher in the hierarchy). Names come
-     * from DefaultNetworkSiteType so that enum stays the single source of
-     * truth for the defaults, shared with the backfill data migration.
+     * DefaultNetworkSiteTypeCreationOrder lists parents before children, so a
+     * parent's ID is always available by the time its child is created. The
+     * parent mapping itself is shared with the data migration that repairs
+     * projects created before type parents existed.
      *
      * isUnitLevel is true for "Unit" only. It is load-bearing, not a label:
      * the network map drills sites of a unit-level type into their device
@@ -1921,77 +1991,178 @@ These are no longer recorded against the project and have to be cancelled by han
      * as units. Downstream code keys off this flag rather than the name,
      * because the name is user-editable once seeded.
      */
-    const defaultNetworkSiteTypes: Array<{
-      name: DefaultNetworkSiteType;
-      description: string;
-      isUnitLevel: boolean;
-    }> = [
-      {
-        name: DefaultNetworkSiteType.AccountType,
+    const defaultNetworkSiteTypes: Readonly<
+      Record<
+        DefaultNetworkSiteType,
+        {
+          description: string;
+          isUnitLevel: boolean;
+        }
+      >
+    > = {
+      [DefaultNetworkSiteType.AccountType]: {
         description:
           "Top level grouping - the kind of account the sites underneath it belong to.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Region,
+      [DefaultNetworkSiteType.Region]: {
         description:
           "A broad geographic region that groups markets and the sites within them.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Franchisee,
+      [DefaultNetworkSiteType.Franchisee]: {
         description:
           "An operator or franchise partner responsible for a group of sites.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Market,
+      [DefaultNetworkSiteType.Market]: {
         description: "A metro or trade area that groups the sites within it.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Unit,
+      [DefaultNetworkSiteType.Unit]: {
         description:
           "An individual location with network devices. This is the leaf level of the hierarchy.",
         isUnitLevel: true,
       },
-      {
-        name: DefaultNetworkSiteType.DataCenter,
+      [DefaultNetworkSiteType.DataCenter]: {
         description:
           "A data center or core facility that hosts shared infrastructure.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Other,
+      [DefaultNetworkSiteType.Other]: {
         description: "Any site that does not fit the other levels.",
         isUnitLevel: false,
       },
-    ];
+    };
 
-    for (
-      let index: number = 0;
-      index < defaultNetworkSiteTypes.length;
-      index++
-    ) {
+    /*
+     * `order` is a sibling display order, not a proxy for depth. Increment a
+     * separate counter per parent: the default chain's only child is 1 at each
+     * level, while the three roots are Account Type (1), Data Center (2), and
+     * Other (3).
+     */
+    const nextOrderByParent: Map<DefaultNetworkSiteType | null, number> =
+      new Map<DefaultNetworkSiteType | null, number>();
+
+    for (const name of DefaultNetworkSiteTypeCreationOrder) {
       const defaultNetworkSiteType: {
-        name: DefaultNetworkSiteType;
         description: string;
         isUnitLevel: boolean;
-      } = defaultNetworkSiteTypes[index]!;
+      } = defaultNetworkSiteTypes[name];
+      const parentName: DefaultNetworkSiteType | null =
+        options?.setParentRelationships === false
+          ? null
+          : DefaultNetworkSiteTypeParent[name];
+      const siblingOrder: number = (nextOrderByParent.get(parentName) || 0) + 1;
+      nextOrderByParent.set(parentName, siblingOrder);
 
-      if (existingNames.has(defaultNetworkSiteType.name)) {
+      if (networkSiteTypeByName.has(name)) {
         continue;
       }
 
       const networkSiteType: NetworkSiteType = new NetworkSiteType();
-      networkSiteType.name = defaultNetworkSiteType.name;
+      networkSiteType.name = name;
       networkSiteType.description = defaultNetworkSiteType.description;
       networkSiteType.isUnitLevel = defaultNetworkSiteType.isUnitLevel;
       networkSiteType.projectId = projectId;
-      networkSiteType.order = index + 1;
+      networkSiteType.order = siblingOrder;
 
-      await NetworkSiteTypeService.create({
-        data: networkSiteType,
+      if (parentName) {
+        const parent: NetworkSiteType | undefined =
+          networkSiteTypeByName.get(parentName);
+
+        if (!parent?.id) {
+          throw new BadDataException(
+            `Cannot create the default ${name} Network Site Type because its ${parentName} parent could not be resolved.`,
+          );
+        }
+
+        networkSiteType.parentNetworkSiteTypeId = parent.id;
+      }
+
+      const createdNetworkSiteType: NetworkSiteType =
+        await NetworkSiteTypeService.create({
+          data: networkSiteType,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      networkSiteTypeByName.set(name, createdNetworkSiteType);
+    }
+
+    return createdItem;
+  }
+
+  /**
+   * Seeds the per-project network device role lookup table.
+   *
+   * Device roles used to be a fixed union with the label, the silhouette and
+   * the "is this a core device?" flag hardcoded in three different modules.
+   * They are now a configurable per-project table, so a project can rename
+   * "Wireless AP" to "Access Point", draw firewalls as something else, or add
+   * a role of its own - which means every project needs its own seeded copy of
+   * the defaults.
+   *
+   * Public for the same reason addDefaultNetworkSiteTypes is: the
+   * BackfillNetworkDeviceRoles data migration calls it to seed roles into
+   * projects that existed before the table did, so the defaults are defined
+   * once and cannot drift between project creation and the backfill.
+   *
+   * The key is passed explicitly rather than derived from the name. It has to
+   * be exactly what the SNMP classifier emits - "wirelessAccessPoint", which
+   * no derivation from "Wireless AP" would produce - or a classified access
+   * point would match no row.
+   */
+  @CaptureSpan()
+  public async addDefaultNetworkDeviceRoles(
+    createdItem: Model,
+  ): Promise<Model> {
+    const projectId: ObjectID = createdItem.id!;
+
+    // Idempotent - see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(
+        NetworkDeviceRoleService,
+        projectId,
+      );
+
+    /*
+     * Also guarded on the key, not just the name: a project that renamed the
+     * seeded "Router" to "Edge Router" must not get a second row called
+     * "Router" the next time this runs, and the key is the identity that
+     * survives the rename.
+     */
+    const existingKeys: Set<string> =
+      await NetworkDeviceRoleService.getKeysInProject(projectId);
+
+    for (
+      let index: number = 0;
+      index < DEFAULT_NETWORK_DEVICE_ROLES.length;
+      index++
+    ) {
+      const defaultRole: DefaultNetworkDeviceRole =
+        DEFAULT_NETWORK_DEVICE_ROLES[index]!;
+
+      if (
+        existingNames.has(defaultRole.name) ||
+        existingKeys.has(defaultRole.key)
+      ) {
+        continue;
+      }
+
+      const networkDeviceRole: NetworkDeviceRole = new NetworkDeviceRole();
+      networkDeviceRole.name = defaultRole.name;
+      networkDeviceRole.key = defaultRole.key;
+      networkDeviceRole.description = defaultRole.description;
+      networkDeviceRole.topologyShape = defaultRole.topologyShape;
+      networkDeviceRole.isCoreLayer = defaultRole.isCoreLayer;
+      networkDeviceRole.isSnmpWalkable = defaultRole.isSnmpWalkable;
+      networkDeviceRole.projectId = projectId;
+      networkDeviceRole.order = index + 1;
+
+      await NetworkDeviceRoleService.create({
+        data: networkDeviceRole,
         props: {
           isRoot: true,
         },
@@ -2534,6 +2705,41 @@ These are no longer recorded against the project and have to be cancelled by han
     }
   }
 
+  /**
+   * Record seat synchronization state only for the subscription that was read.
+   * The normal update path locates rows first and then writes by id, which can
+   * overwrite a replacement subscription's state during a concurrent plan change.
+   */
+  @CaptureSpan()
+  public async updateSubscriptionSeats(data: {
+    projectId: ObjectID;
+    subscriptionId: string;
+    planId: string;
+    seats: number | null;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository().update(
+      {
+        _id: data.projectId.toString(),
+        paymentProviderSubscriptionId: data.subscriptionId,
+        paymentProviderPlanId: data.planId,
+        deletedAt: IsNull(),
+      },
+      {
+        paymentProviderSubscriptionSeats:
+          data.seats === null
+            ? () => {
+                return "NULL";
+              }
+            : data.seats,
+        version: () => {
+          return '"version" + 1';
+        },
+      },
+    );
+
+    return result.affected || 0;
+  }
+
   @CaptureSpan()
   public async reactiveSubscription(projectId: ObjectID): Promise<void> {
     logger.debug("Reactivating subscription for project " + projectId, {
@@ -2574,7 +2780,15 @@ These are no longer recorded against the project and have to be cancelled by han
       );
     }
 
-    if (!project.paymentProviderSubscriptionSeats) {
+    /*
+     * A pending seat synchronization leaves the acknowledged count empty.
+     * Reactivation can still use the memberships already stored in the project.
+     */
+    const seats: number =
+      project.paymentProviderSubscriptionSeats ??
+      (await TeamMemberService.getUniqueTeamMemberCountInProject(projectId));
+
+    if (!seats) {
       throw new BadDataException(
         "Payment Provider subscription seats not found",
       );
@@ -2622,7 +2836,7 @@ These are no longer recorded against the project and have to be cancelled by han
       meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
       serverMeteredPlans: AllMeteredPlans,
       newPlan: subscriptionPlan,
-      quantity: project.paymentProviderSubscriptionSeats,
+      quantity: seats,
       isYearly: SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId),
       endTrialAt: endTrialAt,
     });

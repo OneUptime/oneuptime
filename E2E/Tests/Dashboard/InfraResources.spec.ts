@@ -50,6 +50,12 @@ const recipes: Array<InfraResourceRecipe> = [
     metricResourceAttrKey: "proxmox.cluster.name",
   },
   {
+    label: "VMware",
+    listPath: "vmware",
+    apiPath: "/api/vmware-vcenter",
+    metricResourceAttrKey: "vmware.vcenter.name",
+  },
+  {
     label: "Docker Swarm",
     listPath: "docker-swarm",
     apiPath: "/api/docker-swarm-cluster",

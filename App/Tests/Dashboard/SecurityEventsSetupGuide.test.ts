@@ -11,12 +11,12 @@ import nodePath from "path";
  *  - the auth header is read by the telemetry ingest middleware,
  *  - the `?format=` dialects are the aliases SecurityEventNormalizer
  *    accepts,
- *  - and reaching the page at all takes five hand-written wirings (PageMap
+ *  - and reaching the page at all takes six hand-written wirings (PageMap
  *    key, SecurityEventsRoutePath entry, absolute RouteMap Route, a
- *    PageRoute in SecurityEventsRoutes.tsx, a nav tab, a breadcrumb).
+ *    PageRoute in SecurityEventsRoutes.tsx, a side-menu item, a breadcrumb).
  *
- * Every one of those fails silently. A renamed route leaves the tab
- * highlighted on the wrong page or the breadcrumb trail empty; a changed
+ * Every one of those fails silently. A renamed route leaves the menu link
+ * pointing at the wrong page or the breadcrumb trail empty; a changed
  * ingest path or a mistyped dialect leaves the guide confidently printing
  * a curl command that 404s or an event that is normalized as generic JSON.
  * Nothing about either looks wrong on screen, which is why they are pinned
@@ -85,10 +85,10 @@ const setupGuideSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsSetupGuide.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
+const sideMenuSource: string = readDashboardSource(
+  "Pages",
   "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+  "SideMenu.tsx",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -224,28 +224,17 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide has a nav tab pointing at the documentation route", () => {
-    expect(navTabsSource).toContain('"setup"');
-    expect(navTabsSource).toContain('label: "Setup Guide"');
-    expect(navTabsSource).toContain(
+  test("the setup guide is in the Help side-menu section", () => {
+    expect(sideMenuSource).toContain('title: "Help"');
+    expect(sideMenuSource).toContain('title: "Setup Guide"');
+    expect(sideMenuSource).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route",
     );
   });
 
-  /*
-   * The layout highlights a tab by substring-matching the live path. A
-   * renamed route segment would leave the guide open with the Events tab
-   * lit, so the literal it matches has to stay a suffix of the real route.
-   */
-  test("the layout's active-tab match follows the real route", () => {
-    const route: string =
-      RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION]!.toString();
-
-    expect(layoutSource).toContain('return "setup"');
-    expect(layoutSource).toContain(
-      'path.includes("/security-events/documentation")',
-    );
-    expect(route.endsWith("/security-events/documentation")).toBe(true);
+  test("the layout renders the Security Events side menu", () => {
+    expect(layoutSource).toContain('import SideMenu from "./SideMenu"');
+    expect(layoutSource).toContain("sideMenu={<SideMenu />}");
   });
 
   test("the setup guide has a breadcrumb trail", () => {

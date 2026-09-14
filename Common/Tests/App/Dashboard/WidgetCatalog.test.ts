@@ -206,6 +206,7 @@ describe("WidgetCatalog", () => {
         "Docker Swarm",
         "Podman",
         "Proxmox",
+        "VMware",
         "Ceph",
         "Network",
       ]) {
@@ -277,6 +278,7 @@ describe("WidgetCatalog", () => {
         "Docker Swarm",
         "Podman",
         "Proxmox",
+        "VMware",
         "Ceph",
         "Network",
       ]);

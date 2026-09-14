@@ -48,6 +48,11 @@ const KubernetesClusterContainerDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          /*
+           * The name is display-only: the Logs tab's locked cluster chip
+           * reads it instead of the machine identifier.
+           */
+          name: true,
         },
       });
       setCluster(item);
@@ -169,8 +174,15 @@ const KubernetesClusterContainerDetail: FunctionComponent<
           title="Container Logs"
           description="Logs for this container from the last 6 hours."
         >
+          {/*
+           * No pod on this page: the empty podName is dropped from the
+           * filter (see buildKubernetesLogsAttributeFilters), so the tab
+           * scopes by cluster + container rather than asking for logs that
+           * carry no pod name at all.
+           */}
           <KubernetesLogsTab
             clusterIdentifier={clusterIdentifier}
+            clusterName={cluster.name}
             podName=""
             containerName={containerName}
           />

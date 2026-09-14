@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import runMonitorSweep from "../../Utils/MonitorSweep";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -9,7 +10,6 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
@@ -23,77 +23,35 @@ RunCron(
         ),
     );
 
-    const newIncomingEmailMonitors: Array<Monitor> =
-      await MonitorService.findAllBy({
-        query: {
+    const sweepStartedAt: Date = OneUptimeDate.getCurrentDate();
+
+    await runMonitorSweep({
+      jobName: "IncomingEmailMonitor:CheckOnlineStatus",
+      queries: [
+        {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingEmail,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
+          project: { ...ProjectService.getActiveProjectStatusQuery() },
           incomingEmailMonitorHeartbeatCheckedAt: QueryHelper.isNull(),
         },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          monitorSteps: true,
-          incomingEmailMonitorRequest: true,
-          incomingEmailMonitorHeartbeatCheckedAt: true,
-          createdAt: true,
-          projectId: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-      });
-
-    const incomingEmailMonitors: Array<Monitor> =
-      await MonitorService.findAllBy({
-        query: {
+        {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingEmail,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
-          incomingEmailMonitorHeartbeatCheckedAt: QueryHelper.notNull(),
+          project: { ...ProjectService.getActiveProjectStatusQuery() },
+          // Exclude monitors stamped in the never-checked phase above.
+          incomingEmailMonitorHeartbeatCheckedAt:
+            QueryHelper.lessThan(sweepStartedAt),
         },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          monitorSteps: true,
-          incomingEmailMonitorRequest: true,
-          incomingEmailMonitorHeartbeatCheckedAt: true,
-          createdAt: true,
-          projectId: true,
-        },
-        sort: {
-          incomingEmailMonitorHeartbeatCheckedAt: SortOrder.Ascending,
-        },
-      });
-
-    const totalIncomingEmailMonitors: Array<Monitor> = [
-      ...newIncomingEmailMonitors,
-      ...incomingEmailMonitors,
-    ];
-
-    logger.debug(
-      `Found ${totalIncomingEmailMonitors.length} incoming email monitors`,
-    );
-
-    logger.debug(totalIncomingEmailMonitors);
-
-    for (const monitor of totalIncomingEmailMonitors) {
-      checkOnlineStatus(monitor).catch((error: Error) => {
-        logger.error(
-          `Error while processing incoming email monitor: ${monitor.id?.toString()}`,
-        );
-        logger.error(error);
-      });
-    }
+      ],
+      select: {
+        _id: true,
+        monitorSteps: true,
+        incomingEmailMonitorRequest: true,
+        createdAt: true,
+        projectId: true,
+      },
+      processMonitor: checkOnlineStatus,
+    });
   },
 );
 

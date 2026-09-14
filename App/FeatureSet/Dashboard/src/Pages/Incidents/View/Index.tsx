@@ -39,7 +39,7 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import TraceTable from "../../../Components/Traces/TraceTable";
+import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
@@ -65,6 +65,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
@@ -74,7 +75,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
+import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -542,14 +543,25 @@ const IncidentView: FunctionComponent<
                   {telemetryQuery.telemetryType === TelemetryType.Trace &&
                     telemetryQuery.telemetryQuery && (
                       <div>
-                        <TraceTable
-                          spanQuery={
-                            telemetryQuery.telemetryQuery as Query<Span>
-                          }
+                        <Card
+                          title={"Spans"}
+                          description={"Spans for this incident."}
                           rightElement={snapshotWindowAlert}
-                          // Pinned to the snapshot; a URL-restored filter must not replace it.
-                          disableUrlState={true}
-                        />
+                        >
+                          <TracesViewer
+                            spanQuery={
+                              telemetryQuery.telemetryQuery as Query<Span>
+                            }
+                            limit={10}
+                            /*
+                             * Pinned to the snapshot: this page owns the URL,
+                             * so the viewer neither reads a filter out of it
+                             * nor writes its own state back into it.
+                             */
+                            disableUrlSync={true}
+                            emptyMessage="No spans found"
+                          />
+                        </Card>
                       </div>
                     )}
 
@@ -580,16 +592,30 @@ const IncidentView: FunctionComponent<
 
                   {telemetryQuery.telemetryType === TelemetryType.Exception &&
                     telemetryQuery.telemetryQuery && (
-                      <ExceptionInstanceTable
-                        title="Exceptions"
-                        description="Exceptions related to this incident."
-                        query={
-                          telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                        }
+                      <Card
+                        title={"Exceptions"}
+                        description={"Exceptions related to this incident."}
                         rightElement={snapshotWindowAlert}
-                        // Pinned to the snapshot; a URL-restored filter must not replace it.
-                        disableUrlState={true}
-                      />
+                      >
+                        <ExceptionsViewer
+                          exceptionInstanceQuery={
+                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                          }
+                          /*
+                           * An event shows the exceptions it fired on,
+                           * whoever has since resolved them and whatever the
+                           * classifier made of them — the explorer's
+                           * "unresolved issues" defaults would hide exactly
+                           * those.
+                           */
+                          defaultStatus="all"
+                          defaultClassScope="all"
+                          limit={10}
+                          // Pinned to the snapshot; this page owns the URL.
+                          disableUrlSync={true}
+                          emptyMessage="No exceptions found"
+                        />
+                      </Card>
                     )}
                 </Fragment>
               }
@@ -889,6 +915,9 @@ const IncidentView: FunctionComponent<
                       proxmoxClusters={
                         values.proxmoxClusters as Array<ProxmoxCluster>
                       }
+                      vmwareVCenters={
+                        values.vmwareVCenters as Array<VMwareVCenter>
+                      }
                       cephClusters={values.cephClusters as Array<CephCluster>}
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
@@ -902,6 +931,7 @@ const IncidentView: FunctionComponent<
                         "DockerHost",
                         "PodmanHost",
                         "ProxmoxCluster",
+                        "VMwareVCenter",
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
@@ -929,6 +959,7 @@ const IncidentView: FunctionComponent<
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
                         proxmoxClusters: payload.proxmoxClusters,
+                        vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
@@ -980,6 +1011,15 @@ const IncidentView: FunctionComponent<
               },
               {
                 field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { vmwareVCenters: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1071,6 +1111,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1100,6 +1144,7 @@ const IncidentView: FunctionComponent<
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}

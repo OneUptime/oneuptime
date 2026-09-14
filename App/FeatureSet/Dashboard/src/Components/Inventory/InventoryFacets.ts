@@ -1,5 +1,6 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import IconProp from "Common/Types/Icon/IconProp";
+import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
   DATE_FACET_OPERATORS,
@@ -25,8 +26,8 @@ import {
  * compatibility decision rather than a presentation refactor. The module is
  * also React-free, which lets tests pin the exact query each chip produces.
  *
- * A scoped Inventory list can already own entityType, source or lastSeenAt in
- * its base query (Overview drill-downs do this). A facet must not write the
+ * An embedded Inventory list can already own a facet's query field in
+ * its base query. A facet must not write the
  * same field: ModelTable merges the two as one object, where the later value
  * would silently replace the page's scope. buildInventoryFacets therefore
  * omits only the dimensions the page has locked while leaving every other
@@ -38,15 +39,18 @@ export const INVENTORY_ARCHIVED_TABLE_ID: string = "inventory-archived-table";
 
 export const INVENTORY_TYPE_FACET_KEY: string = "inventoryType";
 export const INVENTORY_SOURCE_FACET_KEY: string = "inventorySource";
+export const INVENTORY_STATUS_FACET_KEY: string = "inventoryStatus";
 export const INVENTORY_LAST_SEEN_FACET_KEY: string = "inventoryLastSeen";
 
 export const INVENTORY_FACET_QUERY_FIELDS: {
   type: "entityType";
   source: "source";
+  status: "inventoryStatus";
   lastSeen: "lastSeenAt";
 } = {
   type: "entityType",
   source: "source",
+  status: "inventoryStatus",
   lastSeen: "lastSeenAt",
 };
 
@@ -79,6 +83,35 @@ export const INVENTORY_SOURCE_FACET_OPTIONS: Array<FilterChipDropdownOption> =
     },
   );
 
+export const INVENTORY_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
+  {
+    value: InventoryLiveness.Live,
+    label: "Live",
+    sublabel: "Sending data right now.",
+  },
+  {
+    value: InventoryLiveness.Recent,
+    label: "Recent",
+    sublabel: "Seen within the last day, but not in the last half hour.",
+  },
+  {
+    value: InventoryLiveness.Stale,
+    label: "Stale",
+    sublabel: "No telemetry received for over a day.",
+  },
+  {
+    value: InventoryLiveness.Never,
+    label: "Never seen",
+    sublabel: "Expected to report telemetry but has not been seen yet.",
+  },
+  {
+    value: InventoryLiveness.NotTracked,
+    label: "Not tracked",
+    sublabel:
+      "Mirrored or manually added items that do not report a heartbeat.",
+  },
+];
+
 const buildMultiOptionQuery: (
   values: Array<string>,
   operator: FilterOperator,
@@ -110,6 +143,17 @@ export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
     toQueryValue: buildMultiOptionQuery,
   },
   {
+    key: INVENTORY_STATUS_FACET_KEY,
+    queryField: INVENTORY_FACET_QUERY_FIELDS.status,
+    label: "Status",
+    icon: IconProp.CheckCircle,
+    isMultiSelect: true,
+    searchPlaceholder: "Search inventory statuses...",
+    options: INVENTORY_STATUS_FACET_OPTIONS,
+    supportedOperators: OPTION_OPERATORS,
+    toQueryValue: buildMultiOptionQuery,
+  },
+  {
     key: INVENTORY_LAST_SEEN_FACET_KEY,
     queryField: INVENTORY_FACET_QUERY_FIELDS.lastSeen,
     label: "Last Seen",
@@ -123,6 +167,7 @@ export interface InventoryFacetLockedQuery {
   entityType?: unknown;
   source?: unknown;
   lastSeenAt?: unknown;
+  inventoryStatus?: unknown;
   [key: string]: unknown;
 }
 

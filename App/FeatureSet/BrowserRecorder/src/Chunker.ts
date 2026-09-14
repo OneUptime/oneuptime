@@ -1,6 +1,7 @@
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_FLUSH_BYTES,
+  SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
   SessionReplayFidelityNotice,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
@@ -23,8 +24,59 @@ import { BufferedEvent } from "./RollingBuffer";
  */
 
 /* rrweb EventType values this module needs to recognise. */
+const EVENT_TYPE_DOM_CONTENT_LOADED: number = 0;
+const EVENT_TYPE_LOAD: number = 1;
 const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
 const EVENT_TYPE_META: number = 4;
+
+/*
+ * Events that carry nothing replayable. rrweb emits DomContentLoaded (0) and
+ * Load (1) when the recorder starts on a page that is still parsing, BEFORE
+ * the deferred first snapshot; the player ignores both. Treating them as
+ * content made the snapshot that followed them "mid-chunk" and cost chunk 0
+ * its hasFullSnapshot flag on every slow-loading page.
+ */
+function isLifecycleEvent(type: number): boolean {
+  return type === EVENT_TYPE_DOM_CONTENT_LOADED || type === EVENT_TYPE_LOAD;
+}
+
+/*
+ * Per-chunk caps on recorded URLs, by COUNT and by BYTES.
+ *
+ * The byte budget is the load-bearing one. The routes array rides the
+ * envelope JSON, and the server rejects any envelope over 8 KB outright -
+ * failing the WHOLE request, up to eight frames, which the transport
+ * classifies as a permanent rejection and never retries. A count-only cap
+ * cannot prevent that: 32 long URLs are more than 8 KB on their own, so a
+ * site with deep paths would silently lose its footage rather than lose a
+ * few route entries.
+ *
+ * 2 KB of routes plus 2 KB of trace ids leaves the rest of the envelope
+ * (ids, versions, signals, fidelity notices, and the meta that carries up to
+ * 3.3 KB of tags and 4.9 KB of traits) room inside the 8 KB ceiling only
+ * because the recorder ALSO measures the finished envelope and sheds
+ * optional fields that do not fit - see Recorder.fitEnvelope. A chunk covers
+ * ~15s, so a page doing more DISTINCT navigations than these caps allow is
+ * rewriting its URL programmatically rather than being navigated by a
+ * person; routeCount still counts every change past them.
+ */
+const MAX_ROUTES_PER_CHUNK: number = 32;
+const MAX_ROUTE_BYTES_PER_CHUNK: number = 2 * 1024;
+
+/*
+ * Per-chunk caps on trace ids, by COUNT and by BYTES, for the same reason.
+ *
+ * The count matches the ingest parser's own MAX_TRACE_IDS, so a legitimate
+ * chunk is never truncated on the way in. Uncapped, this Set grew for the
+ * whole record-into-memory period - a page with OpenTelemetry fetch
+ * instrumentation polling every few seconds reaches ~210 distinct ids long
+ * before an error fires under the default OnErrorOrFrustration policy, and
+ * 235 ids alone are 9.1 KB of envelope: chunk 0, the one carrying the
+ * opening snapshot and the capabilities, was refused with a 400 and the
+ * session was never listed at all.
+ */
+const MAX_TRACE_IDS_PER_CHUNK: number = 64;
+const MAX_TRACE_ID_BYTES_PER_CHUNK: number = 2 * 1024;
 
 /*
  * Disclosed on the last chunk of a session that hit the per-session chunk
@@ -76,62 +128,15 @@ export function utf8ByteLength(value: string): number {
   return bytes;
 }
 
-/*
- * Cut a string into pieces of at most maxBytes UTF-8 bytes each, never
- * between the two halves of a surrogate pair.
- *
- * Slicing by code unit split emoji and other astral characters down the
- * middle, and because each part is UTF-8 encoded INDEPENDENTLY before it goes
- * on the wire, both halves of a broken pair became U+FFFD - so the server's
- * reassembled snapshot was silently corrupted rather than failing loudly.
- * Cutting on code-point boundaries keeps every part independently valid,
- * which makes the reassembly correct whether the server concatenates the
- * decoded strings or the raw bytes.
- */
-export function splitByUtf8Bytes(
-  value: string,
-  maxBytes: number,
-): Array<string> {
-  if (value.length === 0) {
-    return [""];
-  }
-
-  const parts: Array<string> = [];
-  let start: number = 0;
-  let bytes: number = 0;
-  let index: number = 0;
-
-  while (index < value.length) {
-    const code: number = value.charCodeAt(index);
-    const isHighSurrogate: boolean =
-      code >= 0xd800 && code <= 0xdbff && index + 1 < value.length;
-    const next: number = isHighSurrogate ? value.charCodeAt(index + 1) : 0;
-    const isPair: boolean = isHighSurrogate && next >= 0xdc00 && next <= 0xdfff;
-
-    const width: number = isPair ? 2 : 1;
-    const cost: number = utf8ByteLength(value.slice(index, index + width));
-
-    if (bytes + cost > maxBytes && index > start) {
-      parts.push(value.slice(start, index));
-      start = index;
-      bytes = 0;
-    }
-
-    bytes += cost;
-    index += width;
-  }
-
-  parts.push(value.slice(start));
-
-  return parts;
-}
-
 export interface PendingChunk {
   /*
-   * The chunk body before compression. Normally a complete JSON array of
-   * rrweb events. For a split snapshot (see below) it is a FRAGMENT of that
-   * array's text, and the receiving side must concatenate the parts by
-   * chunkIndex before parsing.
+   * The chunk body before compression: always a COMPLETE JSON array of rrweb
+   * events, so a chunk can be decoded on its own.
+   *
+   * It used to be allowed to be a raw fragment of that array's text, for the
+   * one case of an oversized indivisible snapshot, on the understanding that
+   * the receiving side would concatenate the parts by chunkIndex before
+   * parsing. Nothing ever did — see emitOversizedEvent.
    */
   payload: string;
 
@@ -144,20 +149,64 @@ export interface PendingChunk {
   hasFullSnapshot: boolean;
   isFinal: boolean;
 
-  snapshotPart?: {
-    index: number;
-    total: number;
-  };
-
   signals: SessionReplaySignalCounts;
   fidelityNotices: Array<string>;
   traceIds: Array<string>;
+
+  /*
+   * Scrubbed URLs the page was on while this chunk was open, in first-seen
+   * order. routeCount already says HOW MANY route changes happened; this
+   * says WHICH pages, which is what the session header's routes[] column and
+   * the "sessions that hit /checkout" filter are built on. Without it the
+   * server can only see the URL the chunk was flushed from, so two
+   * navigations inside one flush window collapse to one.
+   *
+   * The order is meaningful only within a chunk, and nothing downstream
+   * depends on it: the session header's routes[] is a de-duplicated SET
+   * across every chunk and every tab, sorted for determinism, and the
+   * envelope's scalar `url` is what carries "where was this chunk flushed
+   * from" - which is how the finalizer resolves the exit page.
+   */
+  routes: Array<string>;
 }
 
 export type ChunkSink = (chunk: PendingChunk) => void;
 
+/*
+ * What a closeSplit had to give up on its newest piece, for the recorder's
+ * diagnostics. Older pieces dropped for the total budget are reported the
+ * way they always were (getDroppedEventCount); this is the separate, rarer
+ * loss of the footage right at the end.
+ */
+export interface SplitCloseResult {
+  /*
+   * Events of a FINAL newest piece that was over the total budget on its
+   * own and went out as an empty sealing piece instead; 0 when the sealing
+   * piece carried its footage.
+   */
+  emptiedSealEvents: number;
+
+  /* That piece's payload bytes, as the budget counted them; 0 likewise. */
+  emptiedSealBytes: number;
+}
+
+/*
+ * What an empty sealing piece costs the total budget: its "[]" payload.
+ * Its envelope is not charged here, for the same reason the envelope of the
+ * sealing piece never is: the total budget is a PAYLOAD budget, cut below
+ * the transport's frame quota by room for exactly one envelope, and that
+ * envelope is the sealing piece's own.
+ */
+const EMPTY_SEAL_PAYLOAD_BYTES: number = 2;
+
 interface OpenChunk {
-  events: Array<string>;
+  /*
+   * The buffered events themselves rather than their JSON alone: closeSplit
+   * needs each event's byte size and timestamp to cut the chunk into
+   * keepalive-sized pieces, and the objects already exist, so holding the
+   * references costs nothing extra.
+   */
+  events: Array<BufferedEvent>;
   bytes: number;
   eventCount: number;
   startTimestampMs: number;
@@ -195,6 +244,32 @@ export default class Chunker {
   private readonly fidelityNotices: Set<string> = new Set<string>();
   private traceIds: Set<string> = new Set<string>();
 
+  /* Running UTF-8 size of `traceIds`, for the envelope byte budget. */
+  private traceIdBytes: number = 0;
+
+  /*
+   * A Set for de-duplication, but iteration order is insertion order, so the
+   * emitted array is chronological - which is what makes the last element
+   * usable as the chunk's exit URL.
+   */
+  private routes: Set<string> = new Set<string>();
+
+  /* Running UTF-8 size of `routes`, for the envelope byte budget. */
+  private routeBytes: number = 0;
+
+  /*
+   * The furthest chunkEndOffsetMs handed to the sink so far. An EMPTY chunk
+   * (the seal with nothing open, the truncation disclosure) has no event to
+   * date it and is placed at "now" - but never before this. Two clocks can
+   * disagree about "now": the chunker reads Date.now() while rrweb stamps
+   * events through a reference it captured at load, and the wall clock
+   * itself can step backwards under an NTP correction. The server decides a
+   * tab has ended by comparing the final chunk's END with the starts of the
+   * chunks around it, so a seal dated before the footage it follows is not
+   * a cosmetic error.
+   */
+  private lastEmittedEndOffsetMs: number = 0;
+
   public constructor(options: {
     sessionStartUnixMs: number;
     sink: ChunkSink;
@@ -202,7 +277,19 @@ export default class Chunker {
     onTruncated?: () => void;
   }) {
     this.sessionStartUnixMs = options.sessionStartUnixMs;
-    this.sink = options.sink;
+
+    /*
+     * Every emitted chunk passes through here, so the latest end offset is
+     * known to the chunks that have no events of their own to date them.
+     */
+    this.sink = (chunk: PendingChunk): void => {
+      this.lastEmittedEndOffsetMs = Math.max(
+        this.lastEmittedEndOffsetMs,
+        chunk.chunkEndOffsetMs,
+      );
+
+      options.sink(chunk);
+    };
     this.maxPayloadBytes =
       options.maxPayloadBytes === undefined
         ? SESSION_REPLAY_FLUSH_BYTES
@@ -219,6 +306,15 @@ export default class Chunker {
       errorClickCount: 0,
       refreshRageCount: 0,
       routeCount: 0,
+
+      /*
+       * Sent as explicit zeros rather than omitted: this recorder DOES
+       * measure both, so 0 is a measurement, and the server reads absence
+       * as 0 anyway - the only difference is that an envelope from this
+       * build says so.
+       */
+      clickCount: 0,
+      customEventCount: 0,
     };
   }
 
@@ -234,16 +330,16 @@ export default class Chunker {
     }
 
     /*
-     * A FullSnapshot is ONE indivisible rrweb event: it cannot be split
-     * across chunks and still parse. On a large DOM it can exceed the flush
-     * threshold on its own, so it gets its own multi-part chunk sequence
-     * with hasFullSnapshot set on the final part only. Without this, a seek
-     * anchor would point at a chunk holding half a snapshot and the player
-     * would rebuild a partial DOM.
+     * A FullSnapshot is ONE indivisible rrweb event: it cannot be cut in half
+     * and still parse. On a large DOM it can exceed the flush threshold on its
+     * own, so it gets a chunk to ITSELF, over the threshold. The threshold is
+     * a flush cadence, not a wire limit — the wire limits are
+     * MAX_SESSION_REPLAY_CHUNK_BYTES post-compression and
+     * SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES raw, and the recorder gzips.
      */
     if (event.bytes + 2 > this.maxPayloadBytes) {
       this.close(false);
-      this.emitSplitEvent(event);
+      this.emitOversizedEvent(event);
       return;
     }
 
@@ -265,12 +361,13 @@ export default class Chunker {
 
     if (
       event.type !== EVENT_TYPE_META &&
-      event.type !== EVENT_TYPE_FULL_SNAPSHOT
+      event.type !== EVENT_TYPE_FULL_SNAPSHOT &&
+      !isLifecycleEvent(event.type)
     ) {
       this.open.sawContentEvent = true;
     }
 
-    this.open.events.push(event.json);
+    this.open.events.push(event);
     this.open.bytes += event.bytes;
     this.open.eventCount++;
     this.open.endTimestampMs = event.timestampMs;
@@ -322,7 +419,7 @@ export default class Chunker {
     this.closedChunkCount++;
 
     this.sink({
-      payload: `[${open.events.join(",")}]`,
+      payload: Chunker.joinPayload(open.events),
       rawBytes: open.bytes,
       eventCount: open.eventCount,
       chunkStartOffsetMs: this.getOffset(open.startTimestampMs),
@@ -332,13 +429,314 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
   }
 
+  /*
+   * Close the open chunk as a SERIES of chunks, none larger than
+   * maxPayloadBytes, with contiguous indexes and the final flag on the last.
+   *
+   * Exists for the pagehide path. A terminal flush goes out with
+   * fetch(keepalive), which browsers cap at 64 KB in flight, while the
+   * normal flush threshold is 256 KB - so a single close() at pagehide
+   * handed the transport a body it had to drop whole, and the last thing
+   * the user did before leaving was exactly the footage that vanished. Cut
+   * into keepalive-sized pieces, each piece is a complete JSON array that
+   * decodes on its own; whatever the browser's quota still admits arrives,
+   * and what does not is COUNTED by the transport rather than lost silently.
+   *
+   * An event that is on its own larger than the cap gets a piece to itself:
+   * it cannot be split and still parse, and dropping it here would only
+   * move the silent loss one layer down. The per-chunk counters, trace ids
+   * and routes ride the LAST piece - the finalizer sums and unions them
+   * across chunks, so carrying them on one piece keeps every total right.
+   *
+   * maxTotalBytes bounds what the WHOLE split may weigh, because the
+   * keepalive quota the pieces are cut for is counted per origin across
+   * every in-flight request: three 48 KB pieces are not three requests that
+   * fit, they are one request that fits and two the browser rejects. Past
+   * it the OLDEST pieces are dropped - the footage closest to the moment the
+   * user left is the footage the session was captured for - and their events
+   * are counted in droppedEvents, which rides the envelope. Cutting them
+   * here rather than in the transport is what keeps the chunk sequence
+   * contiguous: an index minted for a request that is never issued is a
+   * hole the player reports as a missing chunk forever.
+   *
+   * frameOverheadBytes is what every piece BESIDE the newest one costs the
+   * total budget on top of its payload: its own envelope. The total budget
+   * already leaves room for one envelope under the transport's frame quota,
+   * and that one belongs to the newest piece; each extra frame brings
+   * another, and a budget that counted payloads alone minted indexes for
+   * pieces the transport then had to leave out of the request.
+   *
+   * A FINAL newest piece that is over the total budget on its own - one
+   * indivisible event bigger than a keepalive request, such as a large DOM
+   * insertion just before the tab closed - is sealed EMPTY: its events are
+   * dropped and counted, and an empty final piece (payload "[]") takes its
+   * place, dated at the end of the footage it replaces. It is charged only
+   * that "[]", so the older pieces still fill the rest of the budget
+   * newest-first. Keeping the oversized piece whole instead spent the ENTIRE
+   * budget on footage no request could carry: every older piece was
+   * dropped, and the transport then sent a ~1 KB empty frame in its place
+   * anyway. (Transport.sendTerminal still swaps in an empty frame for a
+   * final one over the quota; that is now only the backstop for a piece
+   * pushed over by its envelope.) A NON-final newest piece over the budget
+   * is still minted whole: it seals nothing, so an empty stand-in would
+   * spend quota to say nothing.
+   */
+  public closeSplit(
+    isFinal: boolean,
+    maxPayloadBytes: number,
+    maxTotalBytes?: number,
+    frameOverheadBytes: number = 0,
+  ): SplitCloseResult {
+    const result: SplitCloseResult = {
+      emptiedSealEvents: 0,
+      emptiedSealBytes: 0,
+    };
+
+    const open: OpenChunk | null = this.open;
+
+    this.open = null;
+
+    if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents += open ? open.eventCount : 0;
+      this.emitTruncationChunk();
+      return result;
+    }
+
+    if (!open || open.eventCount === 0) {
+      if (isFinal) {
+        this.emitEmptyFinalChunk();
+      }
+      return result;
+    }
+
+    const pieces: Array<Array<BufferedEvent>> = [];
+    let current: Array<BufferedEvent> = [];
+    let currentBytes: number = 0;
+
+    for (const event of open.events) {
+      /* +2 for the surrounding brackets, +1 per separating comma. */
+      const projected: number = currentBytes + event.bytes + current.length + 2;
+
+      if (current.length > 0 && projected > maxPayloadBytes) {
+        pieces.push(current);
+        current = [];
+        currentBytes = 0;
+      }
+
+      current.push(event);
+      currentBytes += event.bytes;
+    }
+
+    if (current.length > 0) {
+      pieces.push(current);
+    }
+
+    /* Pieces dropped off the FRONT for the total budget; see below. */
+    let droppedPieces: number = 0;
+
+    /*
+     * The newest piece goes out as an empty seal rather than with its
+     * footage. Only ever set for a final split with a total budget.
+     */
+    let sealEmpty: boolean = false;
+
+    if (maxTotalBytes !== undefined) {
+      let budget: number = maxTotalBytes;
+      let keepFrom: number = pieces.length;
+      const newestIndex: number = pieces.length - 1;
+
+      for (let index: number = newestIndex; index >= 0; index--) {
+        const piece: Array<BufferedEvent> = pieces[
+          index
+        ] as Array<BufferedEvent>;
+
+        /* Exactly the payload's UTF-8 length: brackets, commas, events. */
+        let bytes: number = Chunker.getPiecePayloadBytes(piece);
+
+        if (index === newestIndex && isFinal && bytes > maxTotalBytes) {
+          /*
+           * Too big for any request on its own. Its events are dropped
+           * below and an empty seal is charged in its place. See the method
+           * comment.
+           */
+          sealEmpty = true;
+          result.emptiedSealEvents = piece.length;
+          result.emptiedSealBytes = bytes;
+          bytes = EMPTY_SEAL_PAYLOAD_BYTES;
+        } else if (index < newestIndex) {
+          bytes += frameOverheadBytes;
+        }
+
+        if (bytes > budget) {
+          break;
+        }
+
+        budget -= bytes;
+        keepFrom = index;
+      }
+
+      /*
+       * The newest piece is minted whatever it weighs: it is the one
+       * carrying isFinal and the per-chunk counters. A final one over the
+       * budget was emptied above, so only a NON-final one reaches this
+       * clamp with footage still in it, and it is kept whole: the
+       * budget counts payload bytes only, so a piece a little over it may
+       * still fit one request once the transport measures the real frame,
+       * and what does not is dropped and counted there.
+       */
+      if (keepFrom >= pieces.length) {
+        keepFrom = pieces.length - 1;
+      }
+
+      for (let index: number = 0; index < keepFrom; index++) {
+        this.droppedEvents += (pieces[index] as Array<BufferedEvent>).length;
+      }
+
+      if (sealEmpty) {
+        this.droppedEvents += result.emptiedSealEvents;
+      }
+
+      droppedPieces = keepFrom;
+      pieces.splice(0, keepFrom);
+    }
+
+    for (let index: number = 0; index < pieces.length; index++) {
+      const piece: Array<BufferedEvent> = pieces[index] as Array<BufferedEvent>;
+      const isLast: boolean = index === pieces.length - 1;
+
+      if (this.hasReachedSessionChunkCap()) {
+        this.droppedEvents += isLast && sealEmpty ? 0 : piece.length;
+        this.emitTruncationChunk();
+        continue;
+      }
+
+      const first: BufferedEvent = piece[0] as BufferedEvent;
+      const last: BufferedEvent = piece[piece.length - 1] as BufferedEvent;
+
+      if (isLast && sealEmpty) {
+        this.emitEmptySealInPlaceOf(last);
+        continue;
+      }
+
+      let bytes: number = 0;
+
+      for (const event of piece) {
+        bytes += event.bytes;
+      }
+
+      this.closedChunkCount++;
+
+      this.sink({
+        payload: Chunker.joinPayload(piece),
+        rawBytes: bytes,
+        eventCount: piece.length,
+        chunkStartOffsetMs: this.getOffset(first.timestampMs),
+        chunkEndOffsetMs: this.getOffset(last.timestampMs),
+
+        /*
+         * Only the chunk's OWN first piece can open on its snapshot; any
+         * later piece starts wherever the byte cap happened to fall, which
+         * is never a seek anchor - and neither is the first SURVIVING piece
+         * when the ones in front of it were dropped for the total budget.
+         */
+        hasFullSnapshot:
+          index === 0 && droppedPieces === 0 ? open.hasFullSnapshot : false,
+        isFinal: isFinal && isLast,
+        signals: isLast ? this.signals : Chunker.emptySignals(),
+        fidelityNotices: Array.from(this.fidelityNotices),
+        traceIds: isLast ? Array.from(this.traceIds) : [],
+        routes: isLast ? Array.from(this.routes) : [],
+      });
+    }
+
+    this.resetPerChunkCounters();
+
+    return result;
+  }
+
+  /*
+   * The UTF-8 length of a piece's payload as joinPayload builds it: every
+   * event, a comma between each two, and the two brackets.
+   */
+  private static getPiecePayloadBytes(piece: Array<BufferedEvent>): number {
+    let bytes: number = piece.length + 1;
+
+    for (const event of piece) {
+      bytes += event.bytes;
+    }
+
+    return bytes;
+  }
+
+  /*
+   * The sealing piece of a split whose newest footage was too large for any
+   * request (see closeSplit). Everything that makes it the SEALING piece
+   * stays - isFinal, the per-chunk signals, trace ids and routes the
+   * finalizer sums and unions, the fidelity notices - and only what
+   * describes footage goes: payload "[]", no events, no seek anchor.
+   *
+   * Both offsets sit at the END of the dropped footage, which is when the
+   * recording really stopped (it keeps the session's duration, and it is
+   * what the server's "has this tab ended" rule compares later chunks
+   * against), and never before the end of a piece this split already
+   * emitted, so the sequence stays monotonic. The caller has already
+   * counted the dropped events.
+   */
+  private emitEmptySealInPlaceOf(lastDropped: BufferedEvent): void {
+    const offsetMs: number = Math.max(
+      this.getOffset(lastDropped.timestampMs),
+      this.lastEmittedEndOffsetMs,
+    );
+
+    this.closedChunkCount++;
+
+    this.sink({
+      payload: "[]",
+      rawBytes: 0,
+      eventCount: 0,
+      chunkStartOffsetMs: offsetMs,
+      chunkEndOffsetMs: offsetMs,
+      hasFullSnapshot: false,
+      isFinal: true,
+      signals: this.signals,
+      fidelityNotices: Array.from(this.fidelityNotices),
+      traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
+    });
+  }
+
+  private static joinPayload(events: Array<BufferedEvent>): string {
+    let payload: string = "[";
+
+    for (let index: number = 0; index < events.length; index++) {
+      if (index > 0) {
+        payload += ",";
+      }
+
+      payload += (events[index] as BufferedEvent).json;
+    }
+
+    return `${payload}]`;
+  }
+
+  /*
+   * Does the chunk currently open begin on a full snapshot? The recorder
+   * asks before flushing the pre-roll: a chunk 0 cut before rrweb's deferred
+   * first snapshot has arrived would not be a seek anchor, and the whole
+   * value of chunk 0 is that it always is one.
+   */
+  public hasOpenFullSnapshot(): boolean {
+    return this.open !== null && this.open.hasFullSnapshot;
+  }
+
   private emitEmptyFinalChunk(): void {
-    const nowOffsetMs: number = this.getOffset(Date.now());
+    const nowOffsetMs: number = this.getEmptyChunkOffset();
 
     this.closedChunkCount++;
 
@@ -353,59 +751,82 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
   }
 
   /*
-   * Split one oversized event across as many chunks as it needs.
+   * Emit one indivisible event that is bigger than the flush threshold, whole,
+   * in a chunk of its own.
    *
-   * The parts carry raw slices of the array text, so only the concatenation
-   * of all parts is valid JSON. snapshotPart tells the receiving side how
-   * many to expect, and hasFullSnapshot is set only on the last one so no
-   * seek anchor ever points into the middle of a snapshot.
+   * This used to CUT the event into `maxPayloadBytes` slices of raw array
+   * text, tagged with snapshotPart {index, total}, on the stated
+   * understanding that "the receiving side must concatenate the parts by
+   * chunkIndex before parsing". Nothing on the receiving side ever did.
+   * SessionReplayIngestService.decodePayload JSON.parses every frame on its
+   * own, so each part threw and was dropped as an undecodable payload — and
+   * because the recorder had already minted a chunk index for each one, the
+   * indexes stayed missing forever. The dashboard reported them honestly ("8
+   * chunks missing", gaps on the scrubber) and the recording lost precisely
+   * the FullSnapshot it needed to be replayable, on every page whose DOM
+   * serialises to more than the flush threshold. Splitting could not be
+   * repaired in the recorder alone either: the parts arrive in separate
+   * requests, and a fragment cannot be scrubbed, so the server could not
+   * safely store one even if it did reassemble them.
+   *
+   * So: no fragments. A complete chunk over the flush threshold costs one
+   * larger POST and is decodable on its own. Past the ceiling the worker will
+   * actually inflate, the event is dropped WITH a disclosure — a snapshot the
+   * viewer is told about is strictly better than a hole nothing reports.
    */
-  private emitSplitEvent(event: BufferedEvent): void {
-    const body: string = `[${event.json}]`;
-    const slices: Array<string> = splitByUtf8Bytes(body, this.maxPayloadBytes);
-    const partCount: number = slices.length;
+  private emitOversizedEvent(event: BufferedEvent): void {
+    if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents++;
+      this.emitTruncationChunk();
+      return;
+    }
+
+    const payload: string = `[${event.json}]`;
+    const rawBytes: number = utf8ByteLength(payload);
+
+    if (rawBytes > SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES) {
+      /*
+       * No chunk index is minted here: add() has not called the sink, so the
+       * sequence stays contiguous and the session simply has one fewer seek
+       * anchor. The notice rides the next chunk that closes.
+       */
+      this.droppedEvents++;
+      this.addFidelityNotice(SessionReplayFidelityNotice.SnapshotTooLarge);
+      return;
+    }
+
     const offsetMs: number = this.getOffset(event.timestampMs);
 
-    for (let index: number = 0; index < partCount; index++) {
-      if (this.hasReachedSessionChunkCap()) {
-        this.droppedEvents++;
-        this.emitTruncationChunk();
-        return;
-      }
+    this.closedChunkCount++;
 
-      const slice: string = slices[index] as string;
+    this.sink({
+      payload: payload,
+      rawBytes: rawBytes,
+      eventCount: 1,
+      chunkStartOffsetMs: offsetMs,
+      chunkEndOffsetMs: offsetMs,
 
-      const isLastPart: boolean = index === partCount - 1;
+      /*
+       * The event is alone in this chunk, so nothing replayable precedes the
+       * snapshot and it is a valid seek anchor - the property the old
+       * last-part-only rule was reaching for.
+       */
+      hasFullSnapshot: event.type === EVENT_TYPE_FULL_SNAPSHOT,
+      isFinal: false,
+      signals: this.signals,
+      fidelityNotices: Array.from(this.fidelityNotices),
+      traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
+    });
 
-      this.closedChunkCount++;
-
-      this.sink({
-        payload: slice,
-        rawBytes: utf8ByteLength(slice),
-
-        /*
-         * Only the last part reports the event, so summing eventCount over
-         * the session does not multiply-count one snapshot.
-         */
-        eventCount: isLastPart ? 1 : 0,
-        chunkStartOffsetMs: offsetMs,
-        chunkEndOffsetMs: offsetMs,
-        hasFullSnapshot: isLastPart && event.type === EVENT_TYPE_FULL_SNAPSHOT,
-        isFinal: false,
-        snapshotPart: { index: index, total: partCount },
-        signals: this.signals,
-        fidelityNotices: Array.from(this.fidelityNotices),
-        traceIds: Array.from(this.traceIds),
-      });
-
-      this.resetPerChunkCounters();
-    }
+    this.resetPerChunkCounters();
   }
 
   /*
@@ -425,7 +846,7 @@ export default class Chunker {
 
     this.fidelityNotices.add(SESSION_REPLAY_TRUNCATED_NOTICE);
 
-    const nowOffsetMs: number = this.getOffset(Date.now());
+    const nowOffsetMs: number = this.getEmptyChunkOffset();
 
     this.sink({
       payload: "[]",
@@ -438,6 +859,7 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
@@ -465,6 +887,15 @@ export default class Chunker {
      */
     this.signals = Chunker.emptySignals();
     this.traceIds = new Set<string>();
+    this.traceIdBytes = 0;
+
+    /*
+     * Reset with the rest: the finalizer UNIONS routes across chunks, so
+     * carrying them forward would only make every chunk after the first
+     * repeat the whole history for no gain.
+     */
+    this.routes = new Set<string>();
+    this.routeBytes = 0;
   }
 
   public getOpenByteSize(): number {
@@ -480,6 +911,37 @@ export default class Chunker {
   }
 
   /*
+   * Start the chunk sequence of a NEW TAB of the same session: the recorder
+   * calls this when a page restored from the back/forward cache starts
+   * recording under a fresh tab id, whose chunk indexes start again at 0.
+   *
+   * The per-session chunk cap is really a cap per (session, tab) - it bounds
+   * the rows under one sort-key prefix, and the ingest gate counts it by
+   * chunk index, which is per tab - so the count behind it starts over with
+   * the index. Leaving it would stop a restored tab short; resetting the
+   * index without it would let a tab's indexes run past the cap while the
+   * chunker still thought it had room, posting chunks the server refuses
+   * after it has already judged the tab ended at the last permitted index.
+   *
+   * Anything still open belonged to the old tab and is dropped and counted
+   * (the recorder seals the old tab first, so there is normally nothing).
+   * The per-chunk counters go with it. What is kept is what describes the
+   * page or the session rather than the tab: the session start the offsets
+   * are measured from, the fidelity notices, the dropped-event count and
+   * the latest emitted end, below which no empty chunk is ever dated.
+   */
+  public beginNewTab(): void {
+    if (this.open) {
+      this.droppedEvents += this.open.eventCount;
+      this.open = null;
+    }
+
+    this.closedChunkCount = 0;
+    this.truncationEmitted = false;
+    this.resetPerChunkCounters();
+  }
+
+  /*
    * Hard stop per session. Prevents one pathological tab from writing an
    * unbounded row count under a single sort-key prefix.
    */
@@ -491,15 +953,67 @@ export default class Chunker {
     key: keyof SessionReplaySignalCounts,
     by: number = 1,
   ): void {
-    this.signals[key] += by;
+    /*
+     * The engagement counters are optional on the wire type, so a missing
+     * one reads as undefined; every counter this class emits starts at 0
+     * (emptySignals), but the arithmetic must not depend on that.
+     */
+    this.signals[key] = (this.signals[key] || 0) + by;
   }
 
   public addFidelityNotice(notice: SessionReplayFidelityNotice | string): void {
     this.fidelityNotices.add(notice);
   }
 
+  /*
+   * A correlation id for one request in this chunk. Capped by count and by
+   * bytes: these ride the envelope JSON, which the server refuses outright
+   * over 8 KB - a refusal that costs the WHOLE frame, not the trace ids.
+   * Past the cap the request is still recorded in-band; only the envelope's
+   * quick-join list stops growing.
+   */
   public addTraceId(traceId: string): void {
+    if (!traceId || this.traceIds.size >= MAX_TRACE_IDS_PER_CHUNK) {
+      return;
+    }
+
+    if (this.traceIds.has(traceId)) {
+      return;
+    }
+
+    const bytes: number = utf8ByteLength(traceId);
+
+    if (this.traceIdBytes + bytes > MAX_TRACE_ID_BYTES_PER_CHUNK) {
+      return;
+    }
+
+    this.traceIdBytes += bytes;
     this.traceIds.add(traceId);
+  }
+
+  /*
+   * Called for the entry URL at start and for the destination of every route
+   * change. Capped so a page that rewrites its path on every keystroke
+   * cannot grow one envelope without bound; the cap is per chunk, and
+   * routeCount still counts every change past it.
+   */
+  public addRoute(url: string): void {
+    if (!url || this.routes.size >= MAX_ROUTES_PER_CHUNK) {
+      return;
+    }
+
+    if (this.routes.has(url)) {
+      return;
+    }
+
+    const bytes: number = utf8ByteLength(url);
+
+    if (this.routeBytes + bytes > MAX_ROUTE_BYTES_PER_CHUNK) {
+      return;
+    }
+
+    this.routeBytes += bytes;
+    this.routes.add(url);
   }
 
   public getSignals(): SessionReplaySignalCounts {
@@ -512,5 +1026,14 @@ export default class Chunker {
 
   private getOffset(timestampMs: number): number {
     return Math.max(0, timestampMs - this.sessionStartUnixMs);
+  }
+
+  /*
+   * Where a chunk with no events sits: now, but never before the end of the
+   * chunk ahead of it. See lastEmittedEndOffsetMs. Its start and end are the
+   * same instant, so start <= end holds by construction.
+   */
+  private getEmptyChunkOffset(): number {
+    return Math.max(this.getOffset(Date.now()), this.lastEmittedEndOffsetMs);
   }
 }

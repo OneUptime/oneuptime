@@ -69,6 +69,7 @@ podman compose up -d
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _项目设置 → 遥测与 APM → 摄取密钥_                                                |
 | `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
+| `DOCKER_API_VERSION`      | No       | agent 与 Podman socket 通信时所使用的 Docker Engine API 版本。默认值为 `1.44`；如果该 socket 报告的最高版本更低，请将其调低，或将其设置为空以自动协商版本（参见 Troubleshooting） |
 
 ## Verify the Installation
 
@@ -145,6 +146,28 @@ The agent container must run as root (`--user 0:0`) to access `/run/podman/podma
 ### Podman Socket / Log Driver
 
 The Podman API socket must be enabled and reachable at `/run/podman/podman.sock`. On rootful systemd hosts, enable it with `systemctl enable --now podman.socket`. Container logs are read from `/var/lib/containers`, so make sure that path is mounted into the agent and that Podman is using a file-based log driver (for example `--log-driver=k8s-file` or `json-file`). If you run Podman rootless, the socket lives under `/run/user/<uid>/podman/podman.sock` instead — mount that path and adjust the volume accordingly.
+
+### Agent 反复重启并提示 "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+如果 Docker API 服务端对客户端版本设有上限，它就会拒绝版本更高的客户端（Docker Engine 报告的形式如上），于是该 receiver 永远无法启动，collector 也会随之退出。请先查询 Podman socket 所报告的 API 版本，再把它传给 agent：
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+```
+
+然后在 `podman run` 中加上 `-e DOCKER_API_VERSION=1.41`（或你查到的值），或者在 Compose 中设置 `DOCKER_API_VERSION`。较新的服务端仍然支持较旧的 API 版本，因此升级之后该设置依然有效。
+
+如果你不想去查这个版本号，可以把 `DOCKER_API_VERSION` 设置为**空字符串**。这样 agent 会与该 socket 协商版本（先发送一次 `HEAD /_ping`，然后采用该 socket 报告的最高版本），而不是固定使用某一个版本：
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

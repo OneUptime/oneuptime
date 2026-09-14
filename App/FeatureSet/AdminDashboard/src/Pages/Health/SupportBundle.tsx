@@ -22,7 +22,7 @@ const BUNDLE_CONTENTS: Array<string> = [
   "Component health & datastore capacity",
   "Database migration status",
   "Queue stats & failed jobs (full body, options & logs)",
-  "Application, Postgres, ClickHouse & Redis logs",
+  "Application, Postgres, ClickHouse & Valkey logs",
   "Postgres diagnostics (connections, table stats)",
   "ClickHouse diagnostics (mutations, parts)",
   "Postgres & ClickHouse schema (structure only)",

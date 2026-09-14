@@ -2,6 +2,9 @@ import React, { useMemo } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
 import EmptyState from "../components/EmptyState";
@@ -57,24 +60,45 @@ function getAssignmentBadge(
 
 export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact } = useHaptics();
-  const { projects, totalAssignments, isLoading, isError, refetch } =
-    useAllProjectOnCallPolicies();
+  const {
+    projects,
+    totalAssignments,
+    isLoading,
+    isError,
+    failedProjectCount,
+    isPartialFailure,
+    refetch,
+  } = useAllProjectOnCallPolicies();
 
   const projectCount: number = projects.length;
 
   const summaryText: string = useMemo(() => {
     const assignmentLabel: string =
       totalAssignments === 1 ? "assignment" : "assignments";
-    const projectLabel: string = projectCount === 1 ? "project" : "projects";
+    const summary: string = `You are currently on duty for ${totalAssignments} ${assignmentLabel} in the selected project.`;
 
-    return `You are currently on duty for ${totalAssignments} ${assignmentLabel} across ${projectCount} ${projectLabel}.`;
-  }, [projectCount, totalAssignments]);
+    if (failedProjectCount === 0) {
+      return summary;
+    }
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+    /*
+     * Some projects answered and some did not, so the count above is a floor,
+     * not a total. Stating it on its own would be a confident number built on
+     * a partial answer, and the responder has no way to tell from the screen
+     * that a project is missing from it.
+     */
+    const failedLabel: string =
+      failedProjectCount === 1 ? "project" : "projects";
+
+    return `${summary} ${failedProjectCount} ${failedLabel} did not answer, so this list may be incomplete.`;
+  }, [failedProjectCount, projectCount, totalAssignments]);
+
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await refetch();
-  };
+  });
 
   if (isLoading) {
     return (
@@ -83,11 +107,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 16, paddingBottom: 44 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
           <View
             style={{
-              borderRadius: 24,
+              borderRadius: 16,
               overflow: "hidden",
               padding: 20,
               marginBottom: 16,
@@ -106,136 +130,143 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
     );
   }
 
-  if (isError) {
+  /*
+   * "We asked, and you hold no duty" and "we could not ask" used to land on
+   * the same screen, and the gap between them is a responder who puts the
+   * phone down versus one who checks again. Two shapes of silence mean we do
+   * not know:
+   *
+   *   - isError: every project we asked failed, so there is no answer at all.
+   *   - a partial failure that left us with nothing to show: the projects
+   *     that answered hold no duty, and the only projects that could have
+   *     held some are exactly the ones that went missing. Rendering "Not
+   *     currently on-call" here states as fact the one thing we did not
+   *     manage to check.
+   *
+   * A partial failure WITH assignments to show is deliberately not here - the
+   * duty we did find is real and must stay on screen. That case is disclosed
+   * in the summary line instead.
+   */
+  const cannotEstablishDuty: boolean =
+    isError || (isPartialFailure && projectCount === 0);
+
+  if (cannotEstablishDuty) {
     return (
-      <View
+      <ScrollView
+        testID="oncall-policies-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
+        <ScreenIntro
+          title="My policies"
+          description="Understand how this project reaches you."
+        />
         <EmptyState
-          title="Could not load on-call assignments"
-          subtitle="Pull to refresh or try again."
+          title="Something went wrong"
+          subtitle="Your on-call duty could not be established, which is not the same as being off duty. Try again."
           icon="alerts"
           actionLabel="Retry"
-          onAction={() => {
-            return refetch();
-          }}
+          onAction={onRefresh}
         />
-      </View>
+      </ScrollView>
     );
   }
 
   return (
     <ScrollView
+      testID="oncall-policies-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
       }
     >
+      <ScreenIntro
+        title="My policies"
+        description="Understand how this project reaches you."
+      />
       <View
         style={{
-          borderRadius: 24,
-          padding: 20,
+          paddingVertical: 16,
+          paddingHorizontal: 18,
           marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderRadius: 12,
+          backgroundColor: theme.colors.cardAccent,
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 16,
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-                backgroundColor: theme.colors.oncallActiveBg,
-                borderWidth: 1,
-                borderColor: theme.colors.borderGlass,
-              }}
-            >
-              <Ionicons
-                name="call-outline"
-                size={20}
-                color={theme.colors.oncallActive}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "bold",
-                  color: theme.colors.textPrimary,
-                  letterSpacing: -0.4,
-                }}
-              >
-                On-Call Now
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  marginTop: 2,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Live duty assignments
-              </Text>
-            </View>
-          </View>
-
-          <View
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <Text
             style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 12,
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
+              flex: 1,
+              fontSize: 16,
+              fontWeight: "600",
+              color: theme.colors.textPrimary,
             }}
           >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                color: theme.colors.textPrimary,
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {totalAssignments}
-            </Text>
-          </View>
+            Active assignments
+          </Text>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              letterSpacing: -1,
+              color: theme.colors.actionPrimary,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {totalAssignments}
+          </Text>
         </View>
+        {projectCount > 0 ? (
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              marginTop: 8,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {summaryText}
+          </Text>
+        ) : null}
+      </View>
 
+      {projects.length > 0 ? (
         <Text
           style={{
-            fontSize: 13,
-            marginTop: 16,
-            lineHeight: 20,
+            fontSize: 14,
+            lineHeight: 21,
             color: theme.colors.textSecondary,
+            marginBottom: 20,
           }}
         >
-          {summaryText}
+          Direct assignments page you personally. Team assignments reach you
+          through a team. Schedule assignments apply while you are on its
+          roster.
         </Text>
-      </View>
+      ) : null}
 
       {projects.length === 0 ? (
         <View
           style={{
-            borderRadius: 24,
+            borderRadius: 16,
             overflow: "hidden",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
@@ -255,7 +286,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
               <View
                 key={projectData.projectId}
                 style={{
-                  borderRadius: 24,
+                  borderRadius: 16,
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
@@ -263,16 +294,16 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
               >
                 <View
                   style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 16,
+                    paddingHorizontal: 18,
+                    paddingVertical: 12,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.borderSubtle,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderTopLeftRadius: 23,
-                    borderTopRightRadius: 23,
+                    backgroundColor: theme.colors.backgroundTertiary,
+                    borderTopLeftRadius: 15,
+                    borderTopRightRadius: 15,
                   }}
                 >
                   <View
@@ -314,7 +345,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                   >
                     <Text
                       style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: "600",
                         color: theme.colors.textSecondary,
                       }}
@@ -337,8 +368,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           successBg: theme.colors.oncallActiveBg,
                           info: theme.colors.severityInfo,
                           infoBg: theme.colors.severityInfoBg,
-                          purple: "#A855F7",
-                          purpleBg: "rgba(168, 85, 247, 0.12)",
+                          purple: "#6B3AB8",
+                          purpleBg: "#F0EAF9",
                         },
                       );
 
@@ -346,8 +377,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                         <View
                           key={`${assignment.projectId}-${assignment.policyId ?? "unknown"}-${assignmentIndex}`}
                           style={{
-                            paddingHorizontal: 20,
-                            paddingVertical: 16,
+                            paddingHorizontal: 18,
+                            paddingVertical: 20,
                             ...(assignmentIndex !==
                             projectData.assignments.length - 1
                               ? {
@@ -366,22 +397,23 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           >
                             <Text
                               style={{
-                                fontSize: 15,
+                                fontSize: 18,
+                                lineHeight: 25,
                                 fontWeight: "600",
                                 flex: 1,
                                 marginRight: 12,
                                 color: theme.colors.textPrimary,
                               }}
-                              numberOfLines={1}
+                              numberOfLines={2}
                             >
                               {assignment.policyName}
                             </Text>
 
                             <View
                               style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 9999,
+                                paddingHorizontal: 8,
+                                paddingVertical: 5,
+                                borderRadius: 6,
                                 flexDirection: "row",
                                 alignItems: "center",
                                 backgroundColor: badge.background,
@@ -394,7 +426,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 13,
                                   fontWeight: "600",
                                   marginLeft: 4,
                                   color: badge.color,
@@ -419,11 +451,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  lineHeight: 21,
+                                  flex: 1,
                                   marginLeft: 6,
                                   color: theme.colors.textSecondary,
                                 }}
-                                numberOfLines={1}
+                                numberOfLines={2}
                               >
                                 Rule: {assignment.escalationRuleName}
                               </Text>
@@ -442,11 +476,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  lineHeight: 21,
+                                  flex: 1,
                                   marginLeft: 6,
                                   color: theme.colors.textSecondary,
                                 }}
-                                numberOfLines={1}
+                                numberOfLines={2}
                               >
                                 {assignment.assignmentDetail}
                               </Text>

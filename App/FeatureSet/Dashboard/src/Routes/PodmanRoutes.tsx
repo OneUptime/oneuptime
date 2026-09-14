@@ -22,6 +22,7 @@ import PodmanHostIncidents from "../Pages/Podman/View/Incidents";
 import PodmanHostAlerts from "../Pages/Podman/View/Alerts";
 import PodmanHostScheduledMaintenance from "../Pages/Podman/View/ScheduledMaintenance";
 import PodmanHostOwners from "../Pages/Podman/View/Owners";
+import PodmanHostFeed from "../Pages/Podman/View/Feed";
 import PodmanHostAuditLogs from "../Pages/Podman/View/AuditLogs";
 import PodmanHostSettings from "../Pages/Podman/View/Settings";
 import PodmanHostDelete from "../Pages/Podman/View/Delete";
@@ -231,6 +232,17 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             <PodmanHostOwners
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.PODMAN_HOST_VIEW_FEED)}
+          element={
+            <PodmanHostFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_FEED] as Route}
             />
           }
         />

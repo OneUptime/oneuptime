@@ -45,6 +45,16 @@ jest.mock("../../../Server/Utils/Telemetry", () => {
       recordExceptionMarkSpanAsErrorAndEndSpan: (data: unknown): unknown => {
         return recordExceptionMock(data);
       },
+      /*
+       * CaptureSpan ends spans through Telemetry.endSpan rather than calling
+       * span.end() directly, so that ending twice on the error path (the
+       * recorder's finally, then the decorator's) is a no-op instead of an SDK
+       * "You can only call end() on a span once" diagnostic. The real
+       * implementation guards on the span's endTime; the fake just forwards.
+       */
+      endSpan: (span: { end: () => void }): void => {
+        span.end();
+      },
     },
   };
 });
@@ -284,5 +294,140 @@ describe("Telemetry.isSpanExportEnabled (real module)", () => {
     ).default;
 
     expect(RealTelemetry.isSpanExportEnabled()).toBe(false);
+  });
+});
+
+/*
+ * THE MULTI-FRAME CONTRACT.
+ *
+ * One thrown error propagates through every decorated frame on its way out,
+ * and each frame's catch calls the recorder on its OWN span. Nothing here
+ * deduplicates — the report-once marker lives inside the recorder, where it
+ * can be asserted against real exception events (see
+ * Tests/Server/Utils/Telemetry.test.ts). What this file pins is the shape the
+ * recorder depends on: N frames means N recorder calls carrying the SAME
+ * object identity, and every frame still ends its own span exactly once.
+ *
+ * Nothing covered this before, which is why the N-fold occuranceCount
+ * inflation shipped.
+ */
+describe("CaptureSpan across nested frames", () => {
+  beforeEach(() => {
+    spanExportEnabled = true;
+  });
+
+  test("an error crossing three frames reaches the recorder three times, as one object", () => {
+    const boom: Error = new Error("one failure, three frames");
+
+    const inner: (...args: Array<any>) => any = decorate(
+      undefined,
+      () => {
+        throw boom;
+      },
+      "inner",
+    );
+    const middle: (...args: Array<any>) => any = decorate(
+      undefined,
+      () => {
+        return inner();
+      },
+      "middle",
+    );
+    const outer: (...args: Array<any>) => any = decorate(
+      undefined,
+      () => {
+        return middle();
+      },
+      "outer",
+    );
+
+    expect(() => {
+      return outer();
+    }).toThrow(boom);
+
+    expect(recordExceptionMock).toHaveBeenCalledTimes(3);
+
+    /*
+     * Identity, not equality. The report-once marker is a non-enumerable
+     * symbol written onto the thrown value itself, so it only works if every
+     * frame sees the very same object — a wrapped or copied error would
+     * report N times again.
+     */
+    for (const call of recordExceptionMock.mock.calls) {
+      expect((call[0] as { exception: unknown }).exception).toBe(boom);
+    }
+
+    // Three spans created, three ended. No double-end, no leak.
+    expect(startActiveSpanMock).toHaveBeenCalledTimes(3);
+    expect(fakeSpan.end).toHaveBeenCalledTimes(3);
+  });
+
+  test("the same holds for async frames", async () => {
+    const boom: Error = new Error("async, three frames");
+
+    const inner: (...args: Array<any>) => any = decorate(
+      undefined,
+      async (): Promise<never> => {
+        throw boom;
+      },
+      "inner",
+    );
+    const middle: (...args: Array<any>) => any = decorate(
+      undefined,
+      async (): Promise<unknown> => {
+        return inner();
+      },
+      "middle",
+    );
+    const outer: (...args: Array<any>) => any = decorate(
+      undefined,
+      async (): Promise<unknown> => {
+        return middle();
+      },
+      "outer",
+    );
+
+    await expect(outer()).rejects.toBe(boom);
+
+    expect(recordExceptionMock).toHaveBeenCalledTimes(3);
+    expect(fakeSpan.end).toHaveBeenCalledTimes(3);
+  });
+
+  /*
+   * A span that already carries an ERROR must not be downgraded to OK. That is
+   * reachable whenever a decorated method swallows an error and signals
+   * failure another way — Express middleware calling next(err) is the case
+   * that actually occurs — because the decorator then sees a normal return.
+   * The SDK's own setStatus guard does not help: it only early-returns when
+   * the CURRENT status is already OK.
+   */
+  test("a success return does not overwrite an ERROR status set from inside", () => {
+    const erroredSpan: FakeSpan & { status?: { code: number } } = {
+      setStatus: jest.fn(),
+      end: jest.fn(),
+      status: { code: 2 }, // SpanStatusCode.ERROR
+    };
+
+    startActiveSpanMock.mockImplementationOnce((data: any) => {
+      return data.fn(erroredSpan);
+    });
+
+    const wrapped: (...args: Array<any>) => any = decorate(undefined, () => {
+      return "swallowed the error and returned normally";
+    });
+
+    wrapped();
+
+    expect(erroredSpan.setStatus).not.toHaveBeenCalled();
+  });
+
+  test("a span with no observable status is still marked OK", () => {
+    const wrapped: (...args: Array<any>) => any = decorate(undefined, () => {
+      return "fine";
+    });
+
+    wrapped();
+
+    expect(fakeSpan.setStatus).toHaveBeenCalledWith({ code: 1 });
   });
 });

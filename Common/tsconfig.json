@@ -47,16 +47,54 @@
      * NOT in the Common Test CI job, which installs Common alone. The result
      * was a suite that passed locally and failed in CI.
      *
-     * "react-router-dom" and "react-i18next" are here for the same reason,
-     * one level out: those same App sources import them, and unlike "react"
-     * they are not covered by anything the type checker can already reach from
-     * Common. Node resolution walks up from the importing FILE, so from
-     * App/FeatureSet/<app>/src/... it only ever looks in App's and the repo
-     * root's node_modules - never in Common's, which is the only one installed
-     * in the Common Test CI job AND, for react-i18next, the only place it is
-     * installed at all. Common's jest moduleNameMapper already maps these
-     * specifiers to this same directory at runtime; this is the type checker's
-     * half of that.
+     * Everything below "Common/*" is a third-party package, here for the same
+     * reason one level out: those same App sources import it. Node resolution
+     * walks up from the importing FILE, so from App/FeatureSet/<app>/src/...
+     * it only ever looks in App's and the repo root's node_modules - never in
+     * Common's, which is the only one installed in the Common Test CI job.
+     *
+     * Which packages need an entry is not obvious, so the rule: a package
+     * lands here only if it SHIPS ITS OWN TYPES. When the node_modules walk
+     * comes up empty, TypeScript makes one last attempt out of `typeRoots`
+     * (./node_modules/@types, below) - a declaration-only fallback. That is
+     * why "react", "react-dom", "react-beautiful-dnd" and every other
+     * @types-backed package resolve from an App file with nothing here. A
+     * self-typed package - react-router-dom, react-i18next, i18next,
+     * use-async-effect, reactflow, recharts - never reaches that fallback, so
+     * without an entry it is TS2307 in CI and clean locally. A package Common
+     * does not install AT ALL is a third case and belongs in
+     * Typings/Index.d.ts as an ambient `declare module` instead (see
+     * i18next-browser-languagedetector there).
+     *
+     * The pairing with Common/jest.config.json's moduleNameMapper runs ONE
+     * WAY: every entry here needs a twin there, never the reverse. Most of
+     * that file's entries have no twin here and should not gain one - the
+     * @types-backed packages above, and every Tests/__mocks__ redirect.
+     *
+     * That asymmetry is the dangerous half, because it fails silently.
+     * typeRoots rescues an @types-backed package for the type CHECKER only;
+     * nothing rescues it at RUNTIME, where the App file still calls require()
+     * from a directory that cannot see Common/node_modules. An App file that
+     * imports react-big-calendar, react-color or react-toggle therefore
+     * compiles clean here and then throws "Cannot find module" from inside a
+     * render. The fix for that is a moduleNameMapper entry on its own - which
+     * is what "react", "react-dom" and "react-beautiful-dnd" already have.
+     *
+     * Which is why there is no catch-all `"*": ["./node_modules/*"]` here:
+     * resolving every specifier for the type checker would delete the TS2307
+     * that is the only early warning the runtime half is missing, turning
+     * every case above into the silent one. moduleNameMapper could not mirror
+     * a catch-all anyway - its regexes see the specifier, not the importing
+     * file - though jest's `resolver` hook could, being handed the importer as
+     * options.basedir; it would just take over resolution for every module in
+     * the suite, which these few pairs do not warrant.
+     *
+     * Both halves are exact-anchored, so a subpath needs its own entry:
+     * "recharts" does not cover "recharts/types/util/types", which four
+     * Common charts import and which is TS2307 from an App file - hence
+     * "recharts/*". A side-effect-only import needs neither half, since
+     * TypeScript does not report `import "reactflow/dist/style.css"` as
+     * unresolved and the mapper's css rule already catches it at runtime.
      *
      * Deliberately `paths` WITHOUT `baseUrl` (supported since TS 4.4, and
      * paths here are relative to this file). Setting baseUrl would change how
@@ -69,7 +107,9 @@
       "react-i18next": ["./node_modules/react-i18next"],
       "i18next": ["./node_modules/i18next"],
       "use-async-effect": ["./node_modules/use-async-effect"],
-      "reactflow": ["./node_modules/reactflow"]
+      "reactflow": ["./node_modules/reactflow"],
+      "recharts": ["./node_modules/recharts"],
+      "recharts/*": ["./node_modules/recharts/*"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [

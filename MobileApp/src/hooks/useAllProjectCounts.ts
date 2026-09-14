@@ -1,9 +1,9 @@
 import { useQuery, useQueries, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
-import { fetchAllIncidents } from "../api/incidents";
-import { fetchAllAlerts } from "../api/alerts";
-import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
-import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
+import { useActiveProject } from "./useProject";
+import { fetchIncidents } from "../api/incidents";
+import { fetchAlerts } from "../api/alerts";
+import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
+import { fetchAlertEpisodes } from "../api/alertEpisodes";
 import {
   fetchMonitorCount,
   fetchDisabledMonitorCount,
@@ -28,20 +28,22 @@ interface UseAllProjectCountsResult {
   disabledMonitorCount: number;
   inoperationalMonitorCount: number;
   isLoading: boolean;
+  isError: boolean;
   refetch: () => Promise<void>;
 }
 
 export function useAllProjectCounts(): UseAllProjectCountsResult {
-  const { projectList } = useProject();
-  const enabled: boolean = projectList.length > 0;
+  const { projectList, isLoadingProjects } = useActiveProject();
+  const projectId: string | undefined = projectList[0]?._id;
+  const enabled: boolean = Boolean(projectId) && !isLoadingProjects;
 
   const incidentQuery: UseQueryResult<
     ListResponse<IncidentItem>,
     Error
   > = useQuery({
-    queryKey: ["incidents", "unresolved-count", "all-projects"],
+    queryKey: ["incidents", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllIncidents({
+      return fetchIncidents(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -51,9 +53,13 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
   });
 
   const alertQuery: UseQueryResult<ListResponse<AlertItem>, Error> = useQuery({
-    queryKey: ["alerts", "unresolved-count", "all-projects"],
+    queryKey: ["alerts", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllAlerts({ skip: 0, limit: 1, unresolvedOnly: true });
+      return fetchAlerts(projectId!, {
+        skip: 0,
+        limit: 1,
+        unresolvedOnly: true,
+      });
     },
     enabled,
   });
@@ -62,9 +68,9 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     ListResponse<IncidentEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["incident-episodes", "unresolved-count", "all-projects"],
+    queryKey: ["incident-episodes", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllIncidentEpisodes({
+      return fetchIncidentEpisodes(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -77,9 +83,9 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     ListResponse<AlertEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["alert-episodes", "unresolved-count", "all-projects"],
+    queryKey: ["alert-episodes", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllAlertEpisodes({
+      return fetchAlertEpisodes(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -149,18 +155,81 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     0,
   );
 
+  /*
+   * What "loading" has to mean here, in three parts.
+   *
+   * `isPending` in react-query v5 means "there is no data yet", NOT "a request
+   * is in flight", and a query with enabled:false is pending forever. The four
+   * single queries above are disabled while the responder has no projects, so
+   * reading isPending pinned Home under a skeleton that could never resolve -
+   * for a brand new account, or for one whose project fetch failed, with
+   * nothing to retry. `isLoading` is isPending && isFetching, which is the
+   * question the screen is actually asking.
+   *
+   * The per-project queries are built FROM the project list, so before it
+   * lands there are none of them and `some()` is false. isLoadingProjects
+   * covers that window; without it Home reports settled cards while the list
+   * they are summed from is still being fetched.
+   *
+   * The disabled- and inoperational-monitor arrays belong here because their
+   * counts are returned. Leaving them out drew those two cards as a confident
+   * 0 before their requests had landed, which a responder reads as "nothing is
+   * down" - the single most expensive thing this screen can say wrongly.
+   */
   const isLoading: boolean =
-    incidentQuery.isPending ||
-    alertQuery.isPending ||
-    incidentEpisodeQuery.isPending ||
-    alertEpisodeQuery.isPending ||
+    isLoadingProjects ||
+    incidentQuery.isLoading ||
+    alertQuery.isLoading ||
+    incidentEpisodeQuery.isLoading ||
+    alertEpisodeQuery.isLoading ||
     monitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isLoading;
+      },
+    ) ||
+    disabledMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isLoading;
+      },
+    ) ||
+    inoperationalMonitorQueries.some(
       (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
         return q.isLoading;
       },
     );
 
+  /*
+   * Every count above falls back to 0 when its query has no data, so a request
+   * that FAILED arrives at Home as the same number as a project with genuinely
+   * nothing outstanding. Reporting the failure alongside the counts is what
+   * lets the screen say "we could not ask" instead of quietly claiming
+   * all-clear.
+   */
+  const isError: boolean =
+    incidentQuery.isError ||
+    alertQuery.isError ||
+    incidentEpisodeQuery.isError ||
+    alertEpisodeQuery.isError ||
+    monitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
+      },
+    ) ||
+    disabledMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
+      },
+    ) ||
+    inoperationalMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
+      },
+    );
+
   const refetch: () => Promise<void> = async (): Promise<void> => {
+    if (!projectId) {
+      return;
+    }
     await Promise.all([
       incidentQuery.refetch(),
       alertQuery.refetch(),
@@ -193,6 +262,7 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     disabledMonitorCount,
     inoperationalMonitorCount,
     isLoading,
+    isError,
     refetch,
   };
 }

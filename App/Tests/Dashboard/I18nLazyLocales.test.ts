@@ -12,7 +12,7 @@ import {
 } from "Common/Types/Dashboard/DashboardLanguage";
 
 /*
- * The dashboard used to bundle all sixteen locale JSONs into the eager entry
+ * The dashboard used to bundle all seventeen locale JSONs into the eager entry
  * chunk — 11.8MB of the 12.4MB Index.js, 94.9% of it never read by any given
  * user. The fix keeps English (the fallback) static and code-splits every
  * other locale behind a dynamic import that i18next's lazy backend resolves

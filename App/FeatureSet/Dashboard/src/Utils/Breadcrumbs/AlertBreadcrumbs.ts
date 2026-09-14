@@ -78,7 +78,69 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Description",
     ]),
 
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_CREATE, [
+      "Project",
+      "Alerts",
+      "Create Alert",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_NOTIFICATION_LOGS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "Notification Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_AI_LOGS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "AI Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_SETTINGS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_RUNBOOKS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "Runbooks",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_CREATE, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "Create Episode",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_REMEDIATION, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Remediation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Audit Logs",
+    ]),
+
     // Alert Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_MORE, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "More Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_STATE, [
       "Project",
       "Alerts",

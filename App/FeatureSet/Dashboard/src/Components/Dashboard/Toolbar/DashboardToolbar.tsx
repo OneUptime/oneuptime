@@ -26,6 +26,7 @@ import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
+import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -39,6 +40,14 @@ export interface ComponentProps {
   dashboardDescription?: string | undefined;
   startAndEndDate: RangeStartAndEndDateTime;
   onStartAndEndDateChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
+  /*
+   * A drag-selection on a time-series widget has narrowed the whole board.
+   * The picker then reads "Custom", which says nothing about there being a
+   * way back — so the toolbar spells one out next to it, alongside the
+   * double-click gesture on the panels themselves.
+   */
+  isTimeRangeZoomed?: boolean | undefined;
+  onResetTimeRangeZoom?: (() => void) | undefined;
   dashboardViewConfig: DashboardViewConfig;
   autoRefreshInterval: AutoRefreshInterval;
   onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
@@ -57,6 +66,20 @@ export interface ComponentProps {
     | ((variables: Array<DashboardVariable>) => void)
     | undefined;
   telemetryAttributeOptions?: Array<string> | undefined;
+  /*
+   * Whether the signed-in user may write to this dashboard. False hides or
+   * locks every affordance that leads to a save - the toolbar is the only
+   * way into edit mode, so this is where a reader is turned back.
+   */
+  canEditDashboard: boolean;
+  /*
+   * Why editing is locked, ready for the tooltip on the disabled menu item.
+   * Undefined means there is nothing honest to say yet (the permission
+   * snapshot has not landed), and the item is hidden instead of accusing the
+   * user of missing a permission they may well hold - same contract as
+   * PermissionGate.
+   */
+  editDashboardDisabledReason?: string | undefined;
 }
 
 interface CountdownCircleProps {
@@ -234,7 +257,16 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1">
+        <div
+          className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+          /*
+           * Issue #3660: this used to be `z-10`, which lost to a clicked
+           * widget's raise and left the picker opening behind the board. The
+           * canvas can no longer compete for the page's layers at all, and
+           * this puts the menu on the same layer as every other toolbar menu.
+           */
+          style={{ zIndex: DashboardStackingLayers.toolbarPopup }}
+        >
           {Object.values(AutoRefreshInterval).map(
             (interval: AutoRefreshInterval) => {
               const isSelected: boolean =
@@ -354,6 +386,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   }}
                 />
 
+                {props.isTimeRangeZoomed && props.onResetTimeRangeZoom && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    title="Reset the dashboard to the time range it had before the zoom"
+                    aria-label="Reset zoom"
+                    onClick={() => {
+                      props.onResetTimeRangeZoom?.();
+                    }}
+                  >
+                    <Icon
+                      icon={IconProp.MagnifyingGlassMinus}
+                      className="h-3.5 w-3.5"
+                    />
+                    Reset zoom
+                  </button>
+                )}
+
                 {/* Auto-refresh section */}
                 <AutoRefreshDropdown
                   autoRefreshInterval={props.autoRefreshInterval}
@@ -385,12 +435,22 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   </button>
                 }
               >
-                <MoreMenuItem
-                  text={"Edit Dashboard"}
-                  icon={IconProp.Pencil}
-                  key={"edit"}
-                  onClick={props.onEditClick}
-                />
+                {props.canEditDashboard || props.editDashboardDisabledReason ? (
+                  <MoreMenuItem
+                    text={"Edit Dashboard"}
+                    icon={IconProp.Pencil}
+                    key={"edit"}
+                    isDisabled={!props.canEditDashboard}
+                    tooltip={
+                      props.canEditDashboard
+                        ? undefined
+                        : props.editDashboardDisabledReason
+                    }
+                    onClick={props.onEditClick}
+                  />
+                ) : (
+                  <></>
+                )}
                 <MoreMenuItem
                   text={"Full Screen"}
                   icon={IconProp.Expand}
@@ -401,7 +461,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
 
             {/* Edit mode actions */}
-            {!isSaving && isEditMode && (
+            {!isSaving && isEditMode && props.canEditDashboard && (
               <div className="flex items-center gap-2">
                 {/* Construction tools — segmented pill */}
                 <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">

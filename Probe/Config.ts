@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
+import { HasRegisterProbeKey } from "Common/Server/EnvironmentConfig";
 import {
   MAX_NODE_TIMER_DELAY_IN_MS,
   MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
@@ -126,6 +127,42 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
     min: 1,
   });
 
+/*
+ * Whether HTTP-capable monitors on THIS probe may reach private network
+ * addresses. API and Website monitors enforce this policy at their socket
+ * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge.
+ *
+ * Probes are monitoring agents deliberately placed inside the networks they
+ * watch, so a self-managed probe often needs to check http://10.0.0.5/health.
+ * The permission is therefore owned by the probe operator, never by a monitor
+ * step or project member.
+ *
+ * Read from THIS PROCESS's environment, which is the right control surface:
+ * whoever deploys a probe controls its env, and that is the party who knows
+ * which network the probe can see. It is not inherited from the OneUptime
+ * instance - a custom probe is usually a different machine, often run by a
+ * different person, and never reads the API server's configuration.
+ *
+ * Off by default, and deliberately ignored by auto-registered global probes.
+ * A REGISTER_PROBE_KEY is the server-issued authority that creates a global
+ * probe, so a tenant-controlled monitor can never loosen that probe's policy
+ * by changing monitor data. Turning this on for a private probe still does
+ * NOT open loopback, link-local or the cloud metadata endpoint: those stay
+ * forbidden in every deployment.
+ */
+export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
+  !HasRegisterProbeKey &&
+  process.env["PROBE_ALLOW_PRIVATE_NETWORK_MONITORS"] === "true";
+
+/*
+ * Appended to a private-tier refusal from a Custom Code monitor. The guard's
+ * default sentence names the API server's webhook settings, which are neither
+ * read by this process nor usually editable by whoever runs this probe.
+ */
+export const PROBE_PRIVATE_NETWORK_HINT: string = HasRegisterProbeKey
+  ? " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."
+  : " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
+
 export const PROBE_MONITOR_RETRY_LIMIT: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_MONITOR_RETRY_LIMIT"],
@@ -211,35 +248,27 @@ export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
   });
 
 /*
- * Hard ceiling on ONE network discovery sweep, for exactly the reason
- * PROBE_MONITOR_CHECK_TIMEOUT_IN_MS exists — and the discovery job needs it
- * more, not less.
- *
- * The discovery cron holds a single-flight guard across the WHOLE cycle
- * (Jobs/Discovery/FetchScans.ts): list fetch, sweep, and result upload. Every
- * HTTP call in that cycle carries PROBE_API_REQUEST_TIMEOUT_IN_MS, but the
- * sweep between them had no deadline of any kind. A sweep opens one ICMP
- * child process and one UDP SNMP session per address — up to
- * ScanTargetUtil.MAX_SCAN_HOSTS of them — so it is exactly the kind of code
- * where one non-settling promise is plausible, and a single one of those
- * strands the guard set. Not for a cycle: FOREVER. Every later scan then sits
- * in "Pending" until someone restarts the probe container, with nothing in
- * the product to say why (OneUptime issue #3287).
+ * Hard ceiling on ONE network discovery sweep. Every HTTP call already has
+ * PROBE_API_REQUEST_TIMEOUT_IN_MS, but the sweep also needs a deadline so a
+ * wedged ICMP or SNMP operation cannot occupy a scheduler slot forever.
  *
  * The number is a wall-clock budget with two sides to fit between.
  *
  * The floor is the slowest sweep that is still legitimately working. At
- * MAX_SCAN_HOSTS (32,768) with SubnetScanner's 32 workers, the documented
- * worst case is a full 1s-per-host ICMP pass (~17 min) followed by a full
- * 2s-per-host SNMP pass over every address (~34 min) when the ICMP-filtered
- * fallback triggers — ~51 min, before SNMP v3's extra engine-discovery round
- * trip.
+ * MAX_SCAN_HOSTS (32,768) SubnetScanner sizes its worker pool to the target
+ * (getSweepConcurrency), so the documented worst case is a full 1s-per-host
+ * ICMP pass at 128 workers (~4.5 min) followed by a full 2s-per-host SNMP
+ * pass over every address at 256 (~4.5 min) when the ICMP-filtered fallback
+ * triggers — under 10 minutes, before SNMP v3's extra engine-discovery round
+ * trip and before a multi-credential scan multiplies the SNMP half. The
+ * budget stays generous rather than being tightened to match: several
+ * credential sets, a slow link and v3 can each stretch that figure, and the
+ * cost of a deadline that is too tight is a working sweep thrown away.
  *
  * The ceiling is the server: it declares an In Progress scan abandoned after
  * 2 hours (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). The
  * probe has to give up FIRST, or a wedged sweep is reaped server-side while
- * the probe is still holding its guard — the scan reads Failed while
- * discovery on that probe stays stopped.
+ * the probe is still occupying its slot.
  *
  * 90 minutes sits between the two: comfortably above any sweep that is
  * genuinely making progress, and comfortably below the server's window, so
@@ -252,6 +281,73 @@ export const PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS: number =
     defaultValue: 90 * 60 * 1000,
     min: 1000,
     max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Independent discovery scans allowed to run on this probe at once (#3597).
+ * The probe still claims one scan per minute, whenever capacity is available.
+ * This is separate from PROBE_DISCOVERY_SCAN_CONCURRENCY, which limits host
+ * probes WITHIN each sweep. Their resource costs multiply; small containers
+ * can lower either limit, and 1 restores sequential scan execution.
+ */
+export const PROBE_DISCOVERY_MAX_CONCURRENT_SCANS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_MAX_CONCURRENT_SCANS"],
+    defaultValue: 4,
+    min: 1,
+    max: 16,
+  });
+
+/*
+ * How often, at most, a running sweep uploads what it has found so far.
+ *
+ * A sweep used to be atomic: its hosts existed only in the probe's memory
+ * until the whole range was covered, so a 15,360-address scan showed
+ * "0 of 15360" for as long as it ran, an abandoned sweep lost every host it
+ * had confirmed, and auto-import — which only reads finished scans — could
+ * not touch a single one of them (OneUptime issues #3598 and #3599). The
+ * probe now posts a cumulative partial result as it goes.
+ *
+ * The interval is a trade between how fresh the Discovery page and the
+ * auto-import worker are, and how much the same host list is re-sent. Each
+ * upload carries every host found so far, so on a sweep that finds hundreds
+ * of devices it is a few hundred kilobytes; 30 seconds keeps that to a couple
+ * of megabytes an hour while still being faster than the every-minute
+ * auto-import sweep that consumes it.
+ *
+ * The floor is 5 seconds so a mis-set value cannot turn the sweep into an
+ * upload loop.
+ */
+export const PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS"],
+    defaultValue: 30 * 1000,
+    min: 5000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Fixed number of concurrent probes per sweep pass, overriding the size-derived
+ * value SubnetScanner works out for itself.
+ *
+ * Unset (or 0) means "work it out", which is what a probe should normally do:
+ * the scanner scales the pool with the target's size, capped lower for the
+ * ICMP pass (which forks a `ping` child process per worker) than for the SNMP
+ * one (a UDP socket per worker).
+ *
+ * The knob exists for the two ends this cannot know about: a probe on a tiny
+ * container that cannot afford 128 concurrent child processes, and a probe on
+ * a big host sweeping a large range that could comfortably run more. Raising
+ * it raises the peak process count and open file descriptors in step, so
+ * raise the container's limits with it.
+ */
+export const PROBE_DISCOVERY_SCAN_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_SCAN_CONCURRENCY"],
+    // 0 disables the override entirely; the scanner then sizes itself.
+    defaultValue: 0,
+    min: 0,
+    max: 1024,
   });
 
 export const PORT: Port = new Port(

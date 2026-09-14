@@ -27,7 +27,7 @@ import {
  * default avatar) and silent in every other suite, so they are pinned here.
  */
 
-const BLANK_PROFILE_PIC: string = "/blank-profile.svg";
+const BLANK_PROFILE_PIC: string = "data:image/svg+xml;base64,////YXZhdGFy";
 
 jest.mock("../../../UI/Images/users/blank-profile.svg", () => {
   return BLANK_PROFILE_PIC;

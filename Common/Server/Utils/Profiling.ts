@@ -111,12 +111,24 @@ export default class Profiling {
     /*
      * Strip /otlp suffix if present and append /pyroscope
      * The Pyroscope SDK appends /ingest, so the final URL will be /pyroscope/ingest
+     *
+     * Trailing slashes come off FIRST. An endpoint written as
+     * ".../otlp/" is ordinary -- the OTLP spec's own examples end that way --
+     * and checking for the suffix before trimming would leave the /otlp in
+     * place, producing /otlp/pyroscope. nginx routes /pyroscope, so every
+     * profile would be posted into a 404 with nothing to say so.
      */
     let baseUrl: string = endpoint;
+
+    while (baseUrl.endsWith("/")) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    }
+
     if (baseUrl.endsWith("/otlp")) {
       baseUrl = baseUrl.substring(0, baseUrl.length - 5);
     }
-    if (baseUrl.endsWith("/")) {
+
+    while (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
 

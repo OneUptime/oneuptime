@@ -18,8 +18,10 @@ import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigD
 import {
   CheckOn,
   CriteriaFilter,
+  EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import { ServiceLanguage } from "../../../Types/Service/ServiceLanguage";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -593,6 +595,215 @@ describe("ServiceAlertTemplates", () => {
         expect(new Set<string>(aliases).size).toBe(aliases.length);
       }
     });
+
+    /*
+     * `MetricMonitorCriteria.evaluateAllSeries` writes its `AnyValue` default
+     * back THROUGH this object when `metricAggregationType` is unset, and the
+     * criteria edit form spreads and re-assigns it. Sharing one object between
+     * the two filters makes either of those flip the healthy criteria as a
+     * side effect of touching the unhealthy one — which is how you get both
+     * criteria reporting Met on different value sets in one evaluation.
+     */
+    it("gives each criteria filter its own metricMonitorOptions object", () => {
+      for (const template of ALL_TEMPLATES) {
+        const filters: Array<CriteriaFilter> = getFilters(buildStep(template));
+
+        expect(filters.length).toBe(2);
+
+        const unhealthy: CriteriaFilter = filters[0]!;
+        const healthy: CriteriaFilter = filters[1]!;
+
+        if (!unhealthy.metricMonitorOptions) {
+          expect(healthy.metricMonitorOptions).toBeUndefined();
+          continue;
+        }
+
+        // Same content...
+        expect(healthy.metricMonitorOptions).toEqual(
+          unhealthy.metricMonitorOptions,
+        );
+        // ...different object.
+        expect(healthy.metricMonitorOptions).not.toBe(
+          unhealthy.metricMonitorOptions,
+        );
+      }
+    });
+
+    /*
+     * Guards the in-place write at `MetricMonitorCriteria.evaluateAllSeries`
+     * from ever being reachable: an unset aggregation is what triggers it.
+     */
+    it("keeps both filters on the sustained aggregation", () => {
+      let checked: number = 0;
+
+      for (const template of ALL_TEMPLATES) {
+        for (const filter of getFilters(buildStep(template))) {
+          if (!filter.metricMonitorOptions) {
+            continue;
+          }
+
+          expect(filter.metricMonitorOptions.metricAggregationType).toBe(
+            EvaluateOverTimeType.AllValues,
+          );
+          checked++;
+        }
+      }
+
+      expect(checked).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * Without a group-by every replica collapses into one number: an Avg heap
+   * template on three JVMs at 95/20/20 reads 45 and stays green while one
+   * OOM-kills, and a Max template fires without being able to name the
+   * replica. The two latency percentiles are service-level on purpose and are
+   * the only exemptions.
+   */
+  describe("per-instance grouping", () => {
+    const INSTANCE_KEY: string = "resource.service.instance.id";
+
+    const SERVICE_LEVEL_METRIC_TEMPLATE_IDS: Array<string> = [
+      "service-latency-p95",
+      "service-latency-p99",
+    ];
+
+    function getQueryConfigs(
+      template: ServiceAlertTemplate,
+    ): Array<MetricQueryConfigData> {
+      return (
+        buildStep(template).data?.metricMonitor?.metricViewConfig
+          ?.queryConfigs || []
+      );
+    }
+
+    it("groups every per-process metric template by the service instance", () => {
+      let grouped: number = 0;
+
+      for (const template of ALL_TEMPLATES) {
+        if (template.monitorType !== MonitorType.Metrics) {
+          continue;
+        }
+
+        const expected: Array<string> =
+          SERVICE_LEVEL_METRIC_TEMPLATE_IDS.includes(template.id)
+            ? []
+            : [INSTANCE_KEY];
+
+        const queryConfigs: Array<MetricQueryConfigData> =
+          getQueryConfigs(template);
+
+        expect(queryConfigs.length).toBeGreaterThan(0);
+
+        for (const queryConfig of queryConfigs) {
+          expect(
+            queryConfig.metricQueryData?.groupByAttributeKeys || [],
+          ).toEqual(expected);
+        }
+
+        if (expected.length > 0) {
+          grouped++;
+        }
+      }
+
+      // The canary: if grouping is reverted wholesale this drops to zero.
+      expect(grouped).toBeGreaterThan(20);
+    });
+
+    /*
+     * The two SLO percentiles opt out by passing `[]`, and `buildQueryConfig`
+     * must then omit the field rather than serialize an empty array — so an
+     * ungrouped template's stored payload is byte-identical to what it was
+     * before grouping existed.
+     */
+    it.each(SERVICE_LEVEL_METRIC_TEMPLATE_IDS)(
+      "%s stays service-level, with no group-by key written at all",
+      (templateId: string) => {
+        for (const queryConfig of getQueryConfigs(
+          getServiceAlertTemplateById(templateId)!,
+        )) {
+          expect(
+            queryConfig.metricQueryData?.groupByAttributeKeys,
+          ).toBeUndefined();
+        }
+
+        expect(
+          MonitorStep.getGroupByAttributeKeys(
+            buildStep(getServiceAlertTemplateById(templateId)!),
+          ),
+        ).toEqual([]);
+      },
+    );
+
+    /*
+     * The query config is only half of it: the worker reads the keys back
+     * through `MonitorStep.getGroupByAttributeKeys`, and that is what decides
+     * whether the evaluation fans out per series at all.
+     */
+    it("surfaces the instance key through the accessor the worker reads", () => {
+      for (const template of ALL_TEMPLATES) {
+        if (
+          template.monitorType !== MonitorType.Metrics ||
+          SERVICE_LEVEL_METRIC_TEMPLATE_IDS.includes(template.id)
+        ) {
+          continue;
+        }
+
+        expect(
+          MonitorStep.getGroupByAttributeKeys(buildStep(template)),
+        ).toEqual([INSTANCE_KEY]);
+      }
+    });
+
+    /*
+     * A key nobody registered renders as "Service Instance Id: ..." from the
+     * prettified-key fallback instead of "Instance: ...", and the
+     * catalog-level debuggability suite fails on it.
+     */
+    it("groups only by keys SeriesLabelDisplay can name", () => {
+      for (const template of ALL_TEMPLATES) {
+        for (const key of MonitorStep.getGroupByAttributeKeys(
+          buildStep(template),
+        )) {
+          expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+        }
+      }
+    });
+
+    it("names the instance key 'Instance', prefixed or not", () => {
+      expect(SeriesLabelDisplay.getFriendlyLabelName(INSTANCE_KEY)).toBe(
+        "Instance",
+      );
+      expect(
+        SeriesLabelDisplay.getFriendlyLabelName("service.instance.id"),
+      ).toBe("Instance");
+    });
+
+    it("ranks the instance above the service it belongs to", () => {
+      // The monitor name already says which service; the replica does not.
+      expect(SeriesLabelDisplay.getLabelPriority(INSTANCE_KEY)).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("service.name"),
+      );
+    });
+
+    /*
+     * `service.instance.id` is optional in the resource semantic conventions.
+     * An SDK that omits it produces one series whose label value is the empty
+     * string, and the display layer must drop it rather than render
+     * "Instance: " — which is what makes grouping safe to default on.
+     */
+    it("renders nothing for a service that does not report an instance", () => {
+      expect(
+        SeriesLabelDisplay.getDisplayLabels({ [INSTANCE_KEY]: "" }),
+      ).toEqual([]);
+      expect(
+        SeriesLabelDisplay.getDisplayLabels({ [INSTANCE_KEY]: "worker-7" }).map(
+          (label: { name: string; value: string }) => {
+            return `${label.name}: ${label.value}`;
+          },
+        ),
+      ).toEqual(["Instance: worker-7"]);
+    });
   });
 
   describe("the two ratio templates", () => {
@@ -651,6 +862,29 @@ describe("ServiceAlertTemplates", () => {
         }
       },
     );
+
+    /*
+     * The formula divides one query by the other. Both sides must carry the
+     * same group-by key, or the "Grouped By" root-cause block — which
+     * `MetricMonitorCriteria.buildContext` reads off a SINGLE query config —
+     * renders empty for whichever side it happened to read.
+     */
+    it.each(RATIO_TEMPLATE_IDS)(
+      "%s groups both queries on the same key, so the formula divides one instance's usage by its own limit",
+      (templateId: string) => {
+        const queryConfigs: Array<MetricQueryConfigData> =
+          buildStep(getServiceAlertTemplateById(templateId)!).data
+            ?.metricMonitor?.metricViewConfig?.queryConfigs || [];
+
+        expect(queryConfigs.length).toBe(2);
+        expect(queryConfigs[0]!.metricQueryData?.groupByAttributeKeys).toEqual([
+          "resource.service.instance.id",
+        ]);
+        expect(queryConfigs[1]!.metricQueryData?.groupByAttributeKeys).toEqual(
+          queryConfigs[0]!.metricQueryData?.groupByAttributeKeys,
+        );
+      },
+    );
   });
 
   describe("the metric names each template reads", () => {
@@ -693,6 +927,42 @@ describe("ServiceAlertTemplates", () => {
       "service-go-stack-memory": ["go.memory.used"],
       "service-go-scheduler-latency-p99": ["go.schedule.duration"],
     };
+
+    /*
+     * Constraint 3 in the module header: a monitor holds exactly ONE metric
+     * name, so a template pointed at a pre-stabilization name must at least
+     * SAY so — otherwise a team on a current SDK gets a monitor that is green
+     * forever and indistinguishable from a healthy service.
+     */
+    it("names the metric it reads whenever that metric is a pre-stabilization name", () => {
+      let checked: number = 0;
+
+      for (const template of ALL_TEMPLATES) {
+        if (template.monitorType !== MonitorType.Metrics) {
+          continue;
+        }
+
+        const queryConfigs: Array<MetricQueryConfigData> =
+          buildStep(template).data?.metricMonitor?.metricViewConfig
+            ?.queryConfigs || [];
+
+        for (const queryConfig of queryConfigs) {
+          const metricName: string = String(
+            queryConfig.metricQueryData?.filterData?.["metricName"] || "",
+          );
+
+          if (!metricName.startsWith("process.runtime.")) {
+            continue;
+          }
+
+          expect(template.description).toContain(metricName);
+          checked++;
+        }
+      }
+
+      // Both Python templates read a `process.runtime.cpython.*` name today.
+      expect(checked).toBe(2);
+    });
 
     it("covers every metric template", () => {
       const metricTemplateIds: Array<string> = ALL_TEMPLATES.filter(

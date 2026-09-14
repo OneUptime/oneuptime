@@ -1,6 +1,20 @@
+import ActiveOverridesCard from "./ActiveOverridesCard";
 import { getCoverageWindowEnd } from "./CoverageWindow";
 import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
+import {
+  OVERRIDE_EVENT_CLASS_NAME,
+  OVERRIDE_TITLE_MARKER,
+  OverrideSummaryRow,
+  buildOverrideEventTooltip,
+  buildOverrideSummaryRows,
+  buildPlainEventTooltip,
+  describeOverrideScope,
+  describeSubstituteCoverage,
+  formatOverrideEventTitle,
+  formatUserLabel,
+  getUserDisplayName,
+} from "./OverridePresentation";
 import TimezoneSelectButton from "./TimezoneSelectButton";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
@@ -75,29 +89,14 @@ interface UserColorAssignment {
   name: string;
   email: string;
   color: string;
-  isSubstitute?: boolean;
+  /*
+   * Set for a user who is only on this calendar because an override routes
+   * somebody else's alerts to them, and says WHOSE - "Covering Alice Scheduled".
+   * A bare "Covering" tag names the wrong half of the swap: the reader can
+   * already see who is covering, what they cannot see is who is being covered.
+   */
+  coveringLabel?: string;
 }
-
-const getDisplayName: (info: UserInfo | undefined) => string = (
-  info: UserInfo | undefined,
-): string => {
-  if (!info) {
-    return "Unknown user";
-  }
-  return info.name || info.email || "Unknown user";
-};
-
-const formatUserLabel: (info: UserInfo | undefined) => string = (
-  info: UserInfo | undefined,
-): string => {
-  if (!info) {
-    return "Unknown user";
-  }
-  if (info.name && info.email) {
-    return `${info.name} (${info.email})`;
-  }
-  return info.name || info.email || "Unknown user";
-};
 
 const LayersPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -239,6 +238,18 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   const overrideUserInfo: Dictionary<UserInfo> =
     overrideResolution.userInfoById;
   const policyContextIdString: string = overrideResolution.policyContextId;
+  const policyNameById: Dictionary<string> = overrideResolution.policyNameById;
+
+  /*
+   * Everyone who can appear on this screen: the roster, plus the substitutes an
+   * override brought in. Built once here because the grid, the legend, the
+   * summary and the overrides card all have to name the same person the same
+   * way - a substitute known only to the override fetch would otherwise read as
+   * "Unknown user" on whichever surface forgot to merge the two maps.
+   */
+  const allUsersById: Dictionary<UserInfo> = useMemo(() => {
+    return { ...scheduleUsersById, ...overrideUserInfo };
+  }, [scheduleUsersById, overrideUserInfo]);
 
   const uniqueUsers: Array<UserColorAssignment> = useMemo(() => {
     const seen: Set<string> = new Set<string>();
@@ -252,7 +263,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       seen.add(userId);
       result.push({
         userId,
-        name: getDisplayName(info),
+        name: getUserDisplayName(info),
         email: info.email,
         color: getColorForUserId(userId),
       });
@@ -267,15 +278,19 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       const info: UserInfo | undefined = overrideUserInfo[routeId];
       result.push({
         userId: routeId,
-        name: getDisplayName(info),
+        name: getUserDisplayName(info),
         email: info?.email || "",
         color: getColorForUserId(routeId),
-        isSubstitute: true,
+        coveringLabel: describeSubstituteCoverage({
+          substituteUserId: routeId,
+          records: overrideRecords,
+          userInfoById: allUsersById,
+        }),
       });
     }
 
     return result;
-  }, [scheduleUsersById, overrideRecords, overrideUserInfo]);
+  }, [scheduleUsersById, overrideRecords, overrideUserInfo, allUsersById]);
 
   /*
    * Build the LayerProps array once from the current layers/users. Shared by
@@ -337,8 +352,17 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       });
     }
 
-    const shifts: Array<OnCallShift> =
-      ScheduleShiftUtil.groupEventsIntoShifts(events);
+    /*
+     * Grouped so an override window is its own shift. The default grouping is
+     * by user id alone, which folds a substitute's OWN rostered segment into
+     * the segment they are covering - and a shift only inherits metadata from
+     * its first segment, so the merged block would silently lose the fact that
+     * half of it is cover. See ScheduleShiftUtil.groupKeyByUserAndOverride.
+     */
+    const shifts: Array<OnCallShift> = ScheduleShiftUtil.groupEventsIntoShifts(
+      events,
+      { groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride },
+    );
 
     /*
      * assignedUserCount counts ASSIGNMENT ROWS, not distinct people, and is
@@ -399,7 +423,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
      */
     setCalendarGaps(
       ScheduleShiftUtil.getCoverageGaps(
-        ScheduleShiftUtil.groupEventsIntoShifts(events),
+        ScheduleShiftUtil.groupEventsIntoShifts(events, {
+          groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
+        }),
         startTime,
         endTime,
         // Sub-minute slivers would render as invisible hairlines on the grid.
@@ -407,31 +433,60 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       ),
     );
 
-    const userById: Dictionary<UserInfo> = {
-      ...scheduleUsersById,
-      ...overrideUserInfo,
-    };
-
     events.forEach((event: CalendarEvent) => {
       const meta: OverrideEventMeta | null =
         UserOverrideUtil.getOverrideMeta(event);
       const displayedUserId: string = event.title;
-      const displayedInfo: UserInfo | undefined = userById[displayedUserId];
+      const displayedInfo: UserInfo | undefined = allUsersById[displayedUserId];
 
       event.color = getColorForUserId(displayedUserId);
 
-      if (meta) {
-        const originalInfo: UserInfo | undefined =
-          userById[meta.originalUserId];
-        const originalLabel: string =
-          originalInfo?.name || originalInfo?.email || "original user";
-        const substituteLabel: string =
-          displayedInfo?.name || displayedInfo?.email || "substitute user";
-        event.title = `${substituteLabel} (covering ${originalLabel})`;
-        event.desc = `Override: ${substituteLabel} is covering for ${originalLabel}.`;
-      } else {
+      if (!meta) {
         event.title = formatUserLabel(displayedInfo);
+        event.desc = buildPlainEventTooltip({
+          userLabel: formatUserLabel(displayedInfo),
+          start: event.start,
+          end: event.end,
+          timezone: viewAsTimezone,
+        });
+        return;
       }
+
+      /*
+       * An overridden block carries FOUR cues, because no single one survives
+       * every way this grid gets read. The label says it in words; the leading
+       * marker survives a column too narrow for words; the accent stripe (drawn
+       * in the OVERRIDDEN person's colour, see Calendar.css) survives a column
+       * too narrow for any text at all, and is the only cue that also says
+       * WHOSE shift this was; and the tooltip carries the full statement,
+       * including the override's own window and whether it is global.
+       */
+      const substituteName: string = getUserDisplayName(displayedInfo);
+      const originalName: string = getUserDisplayName(
+        allUsersById[meta.originalUserId],
+      );
+
+      const policyId: string = meta.onCallDutyPolicyId || "";
+
+      event.title = formatOverrideEventTitle({
+        substituteName,
+        originalName,
+      });
+      event.desc = buildOverrideEventTooltip({
+        substituteName,
+        originalName,
+        overrideStartsAt: meta.overrideStartsAt,
+        overrideEndsAt: meta.overrideEndsAt,
+        scope: describeOverrideScope({
+          onCallDutyPolicyId: meta.onCallDutyPolicyId,
+          ...(policyId && policyNameById[policyId]
+            ? { policyName: policyNameById[policyId]! }
+            : {}),
+        }),
+        timezone: viewAsTimezone,
+      });
+      event.accentColor = getColorForUserId(meta.originalUserId);
+      event.className = OVERRIDE_EVENT_CLASS_NAME;
     });
 
     setCalendarEvents(events);
@@ -442,8 +497,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     startTime,
     endTime,
     overrideRecords,
-    overrideUserInfo,
-    scheduleUsersById,
+    allUsersById,
+    policyNameById,
+    viewAsTimezone,
   ]);
 
   /*
@@ -513,6 +569,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     : `Viewing in ${viewAsTimezone}. This schedule has no timezone set, so it is paged in the server's local time.`;
 
   const hasActiveOverrides: boolean = overrideRecords.length > 0;
+
+  /*
+   * Rows for the overrides card above the grid. Keyed off `now` so a
+   * substitution that starts while the page is open flips to "in force now"
+   * on the same 30-second tick that moves the rest of the screen.
+   */
+  const overrideSummaryRows: Array<OverrideSummaryRow> = useMemo(() => {
+    return buildOverrideSummaryRows({
+      records: overrideRecords,
+      userInfoById: allUsersById,
+      policyNameById,
+      now,
+    });
+  }, [overrideRecords, allUsersById, policyNameById, now]);
 
   /*
    * Say which overrides this preview applied. Silence would be worse than the
@@ -617,8 +687,25 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           windowEnd={summaryData.windowEnd}
           coverage={summaryData.coverage}
           timezone={viewAsTimezone}
-          userById={{ ...scheduleUsersById, ...overrideUserInfo }}
+          userById={allUsersById}
+          policyNameById={policyNameById}
         />
+      )}
+
+      {/*
+       * The substitutions in force, spelled out above the grid. The grid can
+       * only ever show the RESULT of an override — it has no way to say what it
+       * would have shown without one — so this card is the only place the
+       * overridden person is named at all.
+       */}
+      {overrideSummaryRows.length > 0 && (
+        <div className="mb-4">
+          <ActiveOverridesCard
+            rows={overrideSummaryRows}
+            userById={allUsersById}
+            timezone={viewAsTimezone}
+          />
+        </div>
       )}
 
       {/*
@@ -643,14 +730,36 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
                   style={{ backgroundColor: u.color }}
                 />
                 <span className="font-medium text-gray-900">{u.name}</span>
-                {u.isSubstitute && (
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-600">
-                    Covering
+                {u.coveringLabel && (
+                  <span
+                    data-testid="legend-covering-label"
+                    className="text-[10px] font-medium uppercase tracking-wide text-indigo-600"
+                  >
+                    {u.coveringLabel}
                   </span>
                 )}
               </div>
             );
           })}
+          {/*
+           * Names the striped edge drawn on substituted blocks. Without this
+           * the stripe is decoration: the reader can see that two blocks differ
+           * without being told that the difference means somebody else's alerts
+           * are being answered.
+           */}
+          {hasActiveOverrides && (
+            <div
+              data-testid="legend-override-key"
+              className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-indigo-200"
+              title="A block with a striped edge is covered by a substitute. The stripe is the colour of the person who was overridden."
+            >
+              <span className="oneuptime-calendar-override-swatch inline-block h-2.5 w-2.5 rounded-sm" />
+              <span className="font-medium text-indigo-700">
+                Covered by an override
+              </span>
+            </div>
+          )}
+
           {/*
            * Names the hatched bands drawn on the grid below. Only shown when
            * the visible range actually contains one, so a fully-covered week
@@ -670,9 +779,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
       {hasActiveOverrides && (
         <div className="mt-2 text-xs text-gray-500">
-          Events labelled{" "}
-          <span className="font-medium text-indigo-600">covering</span> are
-          handled by a substitute user via an active override.
+          A block marked{" "}
+          <span className="font-medium text-indigo-600">
+            {OVERRIDE_TITLE_MARKER} covering
+          </span>{" "}
+          is an override: the name on it is the substitute the alerts go to, and
+          the name in brackets is the person whose shift it was. Hover a block
+          for the override&apos;s window and scope.
         </div>
       )}
 

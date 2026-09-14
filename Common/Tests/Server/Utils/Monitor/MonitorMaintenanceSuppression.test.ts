@@ -14,6 +14,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+    vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
@@ -106,6 +107,37 @@ describe("SeriesResourceLabels", () => {
       );
       expect(refs.proxmoxClusterNames).toEqual(["pve-1"]);
       expect(refs.cephClusterNames).toEqual(["ceph-1"]);
+    });
+
+    it("maps vmware vcenter name keys (prefixed and unprefixed)", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.vmware.vcenter.name": "vcsa-1",
+        },
+      );
+      expect(refs.vmwareVCenterNames).toEqual(["vcsa-1"]);
+
+      const refsUnprefixed: SeriesResourceRefs =
+        SeriesResourceLabels.extractResourceRefs({
+          "vmware.vcenter.name": "vcsa-2",
+        });
+      expect(refsUnprefixed.vmwareVCenterNames).toEqual(["vcsa-2"]);
+    });
+
+    it("does not read a vSphere object attribute as the vCenter identity", () => {
+      /*
+       * The shipped VMware templates group by `resource.vcenter.host.name`
+       * / `resource.vcenter.vm.name`; those name an ESXi host or a VM,
+       * not the vCenter, and must never resolve to a VMwareVCenter row.
+       */
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.vcenter.host.name": "esx-01",
+          "resource.vcenter.vm.name": "web-01",
+          "resource.vcenter.cluster.name": "prod-cluster",
+        },
+      );
+      expect(refs.vmwareVCenterNames).toEqual([]);
     });
 
     it("maps iot fleet name keys (prefixed and unprefixed)", () => {
@@ -235,6 +267,34 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
       );
 
     expect(Array.from(result)).toEqual(["fpSwarm"]);
+  });
+
+  it("suppresses a vmware series whose vCenter is under maintenance", () => {
+    /*
+     * Same contract for vCenters: a user-built monitor grouped by
+     * `vmware.vcenter.name` must go quiet while the vCenter is attached
+     * to an ongoing maintenance window. The shipped templates group by
+     * host / VM / datastore instead and rely on the step-config path.
+     */
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.vmwareVCenters.names.add("vcsa-prod");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpVCenter", {
+              "resource.vmware.vcenter.name": "vcsa-prod",
+            }),
+            series("fpClear", {
+              "resource.vmware.vcenter.name": "vcsa-staging",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(Array.from(result)).toEqual(["fpVCenter"]);
   });
 
   it("does not cross-match resource types that happen to share a name", () => {

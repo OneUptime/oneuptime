@@ -39,6 +39,13 @@ export HTTP_PROTOCOL=https
 export BILLING_ENABLED=true
 ```
 
+Billing-enabled feature tests require Stripe **test-mode** keys on the server.
+The shared project fixture adds Stripe's test Visa through the billing UI and
+confirms paid usage is enabled before creating monitors or telemetry keys.
+It refuses payment setup unless the dashboard's publishable key starts with
+`pk_test_`. Billing tests can pass `enablePaidUsage: false` to
+`registerAndCreateProject` to exercise the initial state without a card.
+
 ## Running Tests
 
 ### Run all tests
@@ -159,3 +166,17 @@ npx playwright install-deps
 ```bash
 npm run clear-modules
 ```
+
+## Pencil button UI regression tests
+
+Run the shared pencil icon and button checks without starting the app or database:
+
+```bash
+cd E2E
+npm run test-pencil-button-ui
+```
+
+The fixture renders the production components with the shared theme and bundled
+Tailwind. Desktop and mobile checks cover the pencil's proportions, label
+alignment, button sizes, and keyboard activation. Screenshots and failure traces
+are written to `output/playwright/pencil-button/test-results/` at the repository root.

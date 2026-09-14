@@ -85,6 +85,10 @@ export default class ComponentInputTypeToFormFieldType {
       };
     }
 
+    if (componentInputType === ComponentInputType.ProjectLabelVariable) {
+      return { fieldType: FormFieldSchemaType.CustomComponent };
+    }
+
     if (componentInputType === ComponentInputType.EntityDropdown) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,

@@ -1,7 +1,7 @@
 import {
+  BrowserOpenTelemetryExporterOtlpEndpoint,
+  BrowserOpenTelemetryExporterOtlpIngestionKey,
   DisableTelemetry,
-  OpenTelemetryExporterOtlpEndpoint,
-  OpenTelemetryExporterOtlpHeaders,
 } from "../../Config";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
@@ -85,15 +85,17 @@ export default class Telemetry {
       return;
     }
 
-    const hasHeaders: boolean =
-      Object.keys(OpenTelemetryExporterOtlpHeaders).length > 0;
-
-    if (OpenTelemetryExporterOtlpEndpoint && hasHeaders) {
+    if (
+      BrowserOpenTelemetryExporterOtlpEndpoint &&
+      BrowserOpenTelemetryExporterOtlpIngestionKey
+    ) {
       const traceExporter: SpanExporter = new OTLPTraceExporter({
         url: URL.fromString(
-          OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
+          BrowserOpenTelemetryExporterOtlpEndpoint.toString() + "/v1/traces",
         ).toString(),
-        headers: OpenTelemetryExporterOtlpHeaders,
+        headers: {
+          "x-oneuptime-token": BrowserOpenTelemetryExporterOtlpIngestionKey,
+        },
       }) as unknown as SpanExporter;
 
       const providerConfig: TracerConfig = {

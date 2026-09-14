@@ -64,20 +64,20 @@ The Podman Agent uses the OpenTelemetry `docker_stats` receiver pointed at Podma
 
 ### CPU
 
-| Metric                                            | Description                                     |
-| ------------------------------------------------- | ----------------------------------------------- |
-| `container.cpu.utilization`                       | CPU utilization as a percentage of the host CPU |
-| `container.cpu.usage.total`                       | Cumulative CPU time consumed by the container   |
-| `container.cpu.throttling_data.throttled_time`    | Time the container was throttled by cgroups     |
-| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods                    |
+| Metric                                            | Description                                                       |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| `container.cpu.utilization`                       | CPU utilization of the container, where 100% is one full CPU core |
+| `container.cpu.usage.total`                       | Cumulative CPU time consumed by the container                     |
+| `container.cpu.throttling_data.throttled_time`    | Time the container was throttled by cgroups                       |
+| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods                                      |
 
 ### Memory
 
-| Metric                         | Description                               |
-| ------------------------------ | ----------------------------------------- |
-| `container.memory.usage.total` | Current memory usage in bytes             |
-| `container.memory.usage.limit` | Memory limit in bytes                     |
-| `container.memory.percent`     | Memory usage as a percentage of the limit |
+| Metric                         | Description                                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `container.memory.usage.total` | Current memory usage in bytes                                                                                   |
+| `container.memory.usage.limit` | Memory limit in bytes                                                                                           |
+| `container.memory.percent`     | Memory usage as a percentage of the container's memory limit, or of host memory when the container has no limit |
 
 ### Network
 
@@ -136,16 +136,21 @@ Anomaly conditions stay in a "Learning" state and produce no alerts until at lea
 
 OneUptime provides templates for common Podman monitoring scenarios:
 
-| Template               | Description                      | Threshold | Aggregation         |
-| ---------------------- | -------------------------------- | --------- | ------------------- |
-| High Container CPU     | CPU utilization per container    | > 80%     | Max (per container) |
-| High Container Memory  | Memory usage as percent of limit | > 85%     | Max (per container) |
-| High CPU Throttling    | CPU throttled time               | > 0       | Max (per container) |
-| Container Restart Loop | Container restart count          | > 5       | Max                 |
-| High Process Count     | Process count per container      | > 500     | Max                 |
-| Container Down         | Container uptime reset to 0      | = 0       | Min                 |
+| Template                     | Description                                               | Threshold | Aggregation         |
+| ---------------------------- | --------------------------------------------------------- | --------- | ------------------- |
+| High Container CPU           | CPU utilization per container (100% = one core)           | > 80      | Avg (per container) |
+| High Container Memory        | Memory usage as percent of the limit, or of host memory   | > 85%     | Avg (per container) |
+| High Container Restart Count | Container restart count (a running total, not per-window) | > 5       | Max (per container) |
+| High Process Count           | Process count per container                               | > 500     | Max (per container) |
+| Container Restarted          | Container uptime after a restart                          | < 120s    | Min (per container) |
 
-> Note: CPU, memory, and throttling templates use **Max** aggregation grouped by `resource.container.name`. This prevents a single hot container's signal from being diluted by many idle containers on the same host.
+> Note: every template groups by `resource.container.name`, so each container on the host is evaluated independently and gets its own alert. The two percentage gauges use **Avg** — they are already per-container percentages, so the per-minute average is the sustained reading — while restart count and process count use **Max**, where a single breaching sample is genuinely the signal.
+
+> `container.cpu.utilization` is the same figure `podman stats` prints: 100% is one full CPU core, not the container's whole CPU allowance. A container that is given several cores reads well above 100 while perfectly healthy, so raise the threshold on those.
+
+> `container.uptime` only exists for RUNNING containers — a container that stops and stays stopped emits no samples at all, so the **Container Restarted** template detects restarts and redeploys, not a permanent shutdown. A container designed to run for less than two minutes stays in the alerting state for its whole life.
+
+> There is no CPU-throttling template. The throttling metrics the agent collects (`container.cpu.throttling_data.throttled_time` and `.throttled_periods`) are cumulative lifetime counters, and OneUptime does not yet convert a cumulative counter to a rate on the alerting path, so a "throttled time > 0" alert would fire once and never clear. Both metrics are still collected and can be charted on a dashboard.
 
 ## Collected Logs
 
@@ -155,7 +160,7 @@ In addition to metrics, the Podman Agent tails every container's log file via th
 - `resource.container.id` — the full container ID
 - `resource.container.runtime` — always `podman`
 - `attributes["log.iostream"]` — `stdout` or `stderr`
-- `severityText` / `severityNumber` — derived from the stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — read from a level keyword in the line (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); lines with no recognisable level fall back to the stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — the raw log line emitted by the container process
 - `time` — the container engine's timestamp for the line
 

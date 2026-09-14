@@ -3,6 +3,12 @@ import AutoImportRuleMatcher, {
   AutoImportRuleCandidate,
 } from "../../../Utils/NetworkDiscovery/AutoImportRuleMatcher";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -28,6 +34,93 @@ function host(
 }
 
 describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
+  it("supports Match any across independently configurable conditions", () => {
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        {
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "sysNamePattern",
+                operator: RuleCriteriaOperator.Contains,
+                value: "does-not-match",
+              },
+              {
+                field: "ipMatchTarget",
+                operator: RuleCriteriaOperator.MatchesPattern,
+                value: "10.0.0.0/24",
+              },
+            ] as Array<RuleCriteriaFilter>,
+          },
+        },
+        host(),
+      ),
+    ).toBe(true);
+  });
+
+  it("supports Match all and ignores stale legacy match fields", () => {
+    const rule: AutoImportRuleCandidate = {
+      ipMatchTarget: "192.168.0.0/16",
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "sysNamePattern",
+            operator: RuleCriteriaOperator.StartsWith,
+            value: "switch-",
+          },
+          {
+            field: "sysDescrPattern",
+            operator: RuleCriteriaOperator.DoesNotContain,
+            value: "JunOS",
+          },
+        ] as Array<RuleCriteriaFilter>,
+      },
+    };
+
+    expect(AutoImportRuleMatcher.ruleMatchesHost(rule, host())).toBe(true);
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        rule,
+        host({ sysDescr: "JunOS 23.4" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("preserves the ping-only safety gate for configured conditions", () => {
+    const pingOnlyHost: DiscoveredNetworkDevice = host({
+      snmpReachable: false,
+      sysName: undefined,
+      sysDescr: undefined,
+    });
+    const rule: AutoImportRuleCandidate = {
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "ipMatchTarget",
+            operator: RuleCriteriaOperator.Equals,
+            value: "10.0.0.5",
+          },
+        ],
+      },
+    };
+
+    expect(AutoImportRuleMatcher.ruleMatchesHost(rule, pingOnlyHost)).toBe(
+      false,
+    );
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        { ...rule, includePingOnlyHosts: true },
+        pingOnlyHost,
+      ),
+    ).toBe(true);
+  });
+
   /*
    * The site-rule precedent: an all-wildcard rule is a typo, not a
    * match-everything. A rule that claimed every host on an empty form would
@@ -380,12 +473,19 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
     });
   });
 
+  /*
+   * The gate asks what the host ANSWERED, not how it would be monitored.
+   *
+   * Under ping-first polling (issue #3562) every discovered host imports as a
+   * probe-polled device — a ping-only host is a first-class device now, not a
+   * monitor-backed stub. So `monitoringMethodForDiscoveredHost` is a constant
+   * and cannot express this question; only `isPingOnlyDiscoveredHost` can.
+   * The gate itself is unchanged and still default-closed: an SNMP credential
+   * typo makes a whole subnet report as ping-only, and a rule silently
+   * importing hundreds of half-identified hosts on that typo is the failure
+   * mode it exists to prevent.
+   */
   describe("the ping-only gate", () => {
-    /*
-     * An SNMP credential typo makes a whole subnet report as ping-only; a
-     * rule silently importing hundreds of half-identified hosts on that typo
-     * is the failure mode the default-closed gate exists to prevent.
-     */
     it("does not let an import rule claim a ping-only host by default", () => {
       expect(
         AutoImportRuleMatcher.ruleMatchesHost(
@@ -393,6 +493,49 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
           host({ snmpReachable: false }),
         ),
       ).toBe(false);
+    });
+
+    /*
+     * The regression, stated as the fact it depends on. The gate briefly ran
+     * off the imported monitoring method, which now answers Probe for every
+     * host — so it never fired at all and the default-closed gate was open
+     * for the whole fleet. This pins it to the host's own SNMP answer: two
+     * hosts identical in every field the rule matches on, differing only in
+     * `snmpReachable`, must be claimed differently.
+     */
+    it("keys on the host's SNMP answer, not on the method it would import under", () => {
+      const rule: AutoImportRuleCandidate = { ipMatchTarget: "10.0.0.0/24" };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ snmpReachable: true }),
+        ),
+      ).toBe(true);
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ snmpReachable: false }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * And through the whole rule set, which is the surface the engine and the
+     * dry-run dialog actually call: a ping-only host does not import at all
+     * on a rule that never opted in.
+     */
+    it("leaves a ping-only host unimported by an evaluation that did not opt in", () => {
+      const evaluation: AutoImportHostEvaluation =
+        AutoImportRuleMatcher.evaluateHost(
+          [{ ipMatchTarget: "10.0.0.0/24" }],
+          host({ snmpReachable: false }),
+        );
+
+      expect(evaluation.shouldImport).toBe(false);
+      expect(evaluation.matchedRules).toEqual([]);
+      // Not a veto — nothing claimed it, which reads differently in a dry run.
+      expect(evaluation.excludedByRule).toBeUndefined();
     });
 
     it("lets an import rule claim a ping-only host after the explicit opt-in", () => {

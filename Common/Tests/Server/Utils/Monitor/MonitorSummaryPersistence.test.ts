@@ -140,6 +140,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         kubernetesClusterIds: [],
         serviceIds: [],
         proxmoxClusterIds: [],
+        vmwareVCenterIds: [],
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
         iotFleetIds: [],

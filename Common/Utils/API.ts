@@ -10,6 +10,10 @@ import Route from "../Types/API/Route";
 import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
+import BadDataException from "../Types/Exception/BadDataException";
+import EgressGuardException, {
+  EgressFailureReason,
+} from "../Types/Exception/EgressGuardException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import RequestFailedDetails, {
   RequestFailedPhase,
@@ -21,6 +25,9 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import Sleep from "../Types/Sleep";
+import HTTPResponseBodyReader, {
+  HTTPResponseBodyBudget,
+} from "./HTTPResponseBodyReader";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
@@ -75,6 +82,33 @@ export interface RequestOptions {
   totalTimeoutInMs?: number | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  /*
+   * Explicit byte ceilings for callers that return tenant-selected remote
+   * content. Axios otherwise accepts an unlimited response/request body.
+   */
+  maxContentLength?: number | undefined;
+  maxBodyLength?: number | undefined;
+  /*
+   * Axios reads HTTP(S)_PROXY from the process environment on its own. A
+   * caller that supplies a destination-pinned agent must be able to turn that
+   * implicit second routing layer off, or the proxy can resolve a different
+   * address from the one the caller approved.
+   */
+  disableProxy?: boolean | undefined;
+  /* Abort active sockets when a caller-owned end-to-end deadline expires. */
+  signal?: AbortSignal | undefined;
+  /*
+   * Opt-in streaming mode used by monitor requests. All responses that share
+   * this object draw from one decompressed-byte budget.
+   */
+  responseBodyBudget?: HTTPResponseBodyBudget | undefined;
+  limitRedirectResponseBody?: boolean | undefined;
+  maximumResponseBytes?: number | undefined;
+  /**
+   * @internal Already-validated wire URL used by guarded callers when the
+   * reporting URL type cannot represent an href without normalization.
+   */
+  dispatchUrl?: string | undefined;
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
@@ -474,7 +508,7 @@ export default class API {
       // Identical on every attempt, so build it once.
       const axiosOptions: AxiosRequestConfig = {
         method: method,
-        url: url.toString(),
+        url: options?.dispatchUrl ?? url.toString(),
         headers: finalHeaders,
         data: finalBody,
       };
@@ -485,6 +519,35 @@ export default class API {
 
       if (options?.doNotFollowRedirects) {
         axiosOptions.maxRedirects = 0;
+      }
+
+      if (options?.maxContentLength !== undefined) {
+        axiosOptions.maxContentLength = options.maxContentLength;
+      }
+
+      if (options?.maxBodyLength !== undefined) {
+        axiosOptions.maxBodyLength = options.maxBodyLength;
+      }
+
+      if (options?.disableProxy) {
+        axiosOptions.proxy = false;
+      }
+
+      if (options?.signal) {
+        axiosOptions.signal = options.signal;
+      }
+
+      if (options?.responseBodyBudget) {
+        axiosOptions.responseType = "stream";
+        /*
+         * Axios's Node adapter enforces maxContentLength in an async
+         * generator before yielding the chunk that crosses the limit. That
+         * would hide already-received bytes from the shared budget and let a
+         * retry reclaim them. The streamed reader below is the sole response
+         * cap in this mode; it charges every decompressed chunk before
+         * rejecting and destroys the stream immediately.
+         */
+        axiosOptions.maxContentLength = -1;
       }
 
       // Attach proxy agents per request if provided (avoids global side-effects)
@@ -505,10 +568,40 @@ export default class API {
         attempts++;
 
         try {
-          result = await axios(axiosOptions);
+          const axiosResult: AxiosResponse = await axios(axiosOptions);
+
+          if (options?.responseBodyBudget) {
+            axiosResult.data = await API.readBudgetedResponseBody(
+              axiosResult,
+              options.responseBodyBudget,
+              options.limitRedirectResponseBody || false,
+              method === HTTPMethod.HEAD,
+              options.maximumResponseBytes,
+            );
+          }
+
+          result = axiosResult;
 
           break;
         } catch (e) {
+          if (e instanceof BadDataException) {
+            throw e;
+          }
+
+          if (
+            options?.responseBodyBudget &&
+            axios.isAxiosError(e) &&
+            e.response
+          ) {
+            e.response.data = await API.readBudgetedResponseBody(
+              e.response,
+              options.responseBodyBudget,
+              options.limitRedirectResponseBody || false,
+              method === HTTPMethod.HEAD,
+              options.maximumResponseBytes,
+            );
+          }
+
           if (attempt >= maxRetries) {
             throw e;
           }
@@ -590,6 +683,14 @@ export default class API {
       };
 
       if (!axios.isAxiosError(error)) {
+        if (error instanceof BadDataException) {
+          this.notifyRequestComplete(options, {
+            ...baseOutcome,
+            error: error,
+          });
+          throw error;
+        }
+
         const apiException: APIException = new APIException(error.message);
 
         this.notifyRequestComplete(options, {
@@ -625,7 +726,7 @@ export default class API {
         !options?.skipAuthRefresh &&
         !options?.hasAttemptedAuthRefresh
       ) {
-        const retryUrl: URL = URL.fromString(url.toString());
+        const retryUrl: URL = URL.fromStringLenient(url.toString());
 
         const requestContext: AuthRetryContext["request"] = {
           method,
@@ -679,6 +780,34 @@ export default class API {
       });
 
       return errorResponse;
+    }
+  }
+
+  private static async readBudgetedResponseBody(
+    response: AxiosResponse,
+    budget: HTTPResponseBodyBudget,
+    limitRedirectResponseBody: boolean,
+    isHeadResponse: boolean,
+    maximumResponseBytes?: number | undefined,
+  ): Promise<unknown> {
+    const body: Buffer = await HTTPResponseBodyReader.read(response.data, {
+      budget: budget,
+      statusCode: response.status,
+      headers: response.headers,
+      limitRedirectResponseBody: limitRedirectResponseBody,
+      isHeadResponse: isHeadResponse,
+      maximumResponseBytes: maximumResponseBytes,
+    });
+    const text: string = HTTPResponseBodyReader.decodeUtf8(body);
+
+    if (!text) {
+      return "";
+    }
+
+    try {
+      return JSON.parse(text) as JSONObject | JSONArray;
+    } catch {
+      return text;
     }
   }
 
@@ -1031,6 +1160,37 @@ export default class API {
     const errorCode: string | undefined = axiosError?.code;
     const rawErrorMessage: string =
       (error as Error)?.message || String(error) || "Unknown error";
+
+    /*
+     * The egress guard refuses a target BEFORE any socket is opened, and for
+     * tenant-facing callers it sanitizes its message down to one sentence that
+     * matches none of the patterns below. Left to the fall-through, every such
+     * failure was reported as phase "Unknown" with the sanitized sentence
+     * echoed back as its own explanation — which is exactly what a monitor
+     * incident showed for a host whose DNS had hiccuped. Classify it here
+     * instead, from the exception TYPE rather than from its text.
+     */
+    if (error instanceof EgressGuardException) {
+      return {
+        failedPhase: RequestFailedPhase.TargetResolution,
+        errorCode:
+          error.reason === EgressFailureReason.InvalidTarget
+            ? "INVALID_TARGET"
+            : "TARGET_UNREACHABLE",
+        /*
+         * One constant description for every unreachable reason. It names all
+         * the possibilities without saying which occurred, so it stays useful
+         * without telling a tenant on a shared probe whether a hostname
+         * resolved — that difference is the enumeration oracle the guard's
+         * sanitized message exists to close.
+         */
+        errorDescription:
+          error.reason === EgressFailureReason.InvalidTarget
+            ? `The monitor's target is not a valid HTTP or HTTPS destination, so no request was attempted. ${rawErrorMessage}`
+            : "The probe could not obtain a usable network address for this host, so no connection was attempted and the target was never contacted. Either DNS did not answer, answered with no records, or returned an address this probe is not allowed to dial. Check that the hostname resolves publicly and that its authoritative nameservers are healthy. If this monitor targets an internal host, run it from a self-hosted probe with PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true.",
+        rawErrorMessage,
+      };
+    }
 
     // Helper to determine the phase and description based on error code/message
     const lowerMessage: string = rawErrorMessage.toLowerCase();

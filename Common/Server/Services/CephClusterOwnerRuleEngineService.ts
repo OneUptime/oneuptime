@@ -7,9 +7,15 @@ import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
 import CephClusterService from "./CephClusterService";
+import CephClusterFeedService from "./CephClusterFeedService";
+import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class CephClusterOwnerRuleEngineServiceClass {
   /**
@@ -37,6 +43,7 @@ class CephClusterOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             cephClusterLabels: { _id: true },
             cephClusterNamePattern: true,
@@ -44,9 +51,15 @@ class CephClusterOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "CephClusterOwnerRule",
+        projectId: cephCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -142,6 +155,26 @@ class CephClusterOwnerRuleEngineServiceClass {
         `CephClusterOwnerRuleEngine added owners to Ceph cluster ${cephCluster.id}`,
         { projectId: cephCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await CephClusterFeedService.createCephClusterFeedItem({
+        cephClusterId: cephCluster.id,
+        projectId: cephCluster.projectId,
+        cephClusterFeedEventType: CephClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await CephClusterService.getCephClusterMarkdownLink(
+          cephCluster.projectId,
+          cephCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: CephClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Ceph cluster owner rules: ${error}`, {
         projectId: cephCluster.projectId?.toString(),
@@ -151,6 +184,24 @@ class CephClusterOwnerRuleEngineServiceClass {
   }
 
   private doesCephClusterMatchRule(
+    cephCluster: CephCluster,
+    rule: CephClusterOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "cephClusterLabels",
+        "cephClusterNamePattern",
+        "cephClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: CephClusterOwnerRule): boolean => {
+        return this.doesCephClusterMatchLegacyRule(cephCluster, legacyRule);
+      },
+    });
+  }
+
+  private doesCephClusterMatchLegacyRule(
     cephCluster: CephCluster,
     rule: CephClusterOwnerRule,
   ): boolean {

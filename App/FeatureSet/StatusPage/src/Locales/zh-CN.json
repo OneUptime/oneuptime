@@ -57,6 +57,36 @@
     "today": "今天",
     "notAvailable": "不可用"
   },
+  "uptimeHistory": {
+    "graphLabel": "最近 {{total}} 天的可用性历史",
+    "dayLabel": "{{date}}：可用率 {{uptime}}%",
+    "dayLabelWithIncidents": "{{date}}：可用率 {{uptime}}%，{{total}} 起事件",
+    "dayLabelNoData": "{{date}}：无数据",
+    "dayLabelNoDataWithIncidents": "{{date}}：无数据，{{total}} 起事件",
+    "uptime": "可用率",
+    "noMonitoringData": "当天没有监控数据",
+    "incidents": "事件",
+    "noIncidents": "无事件",
+    "noIncidentsDescription": "当天没有报告任何事件。",
+    "declared": "声明于",
+    "oneIncidentOnThisDay": "当天报告了 1 起事件",
+    "incidentsOnThisDay": "当天报告了 {{total}} 起事件"
+  },
+  "liveStatus": {
+    "updated": "{{time}}更新",
+    "refresh": "刷新",
+    "refreshing": "正在刷新",
+    "refreshFailed": "无法刷新。显示最后已知状态。"
+  },
+  "search": {
+    "label": "搜索资源",
+    "placeholder": "搜索资源",
+    "clear": "清除搜索",
+    "resultCount": "{{total}} 个资源中的 {{matched}} 个",
+    "noMatchesInGroup": "此处没有与搜索匹配的资源。",
+    "noResultsTitle": "没有匹配的资源",
+    "noResultsDescription": "此页面上没有与“{{query}}”匹配的内容。请尝试更简短的搜索。"
+  },
   "incidents": {
     "title": "事件",
     "singular": "事件",

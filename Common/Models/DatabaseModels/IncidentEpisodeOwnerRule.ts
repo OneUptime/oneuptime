@@ -3,7 +3,7 @@ import Label from "./Label";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -76,7 +76,7 @@ import {
   tableDescription:
     "Configure rules for automatically assigning owner users and teams when matching incident episodes are created",
 })
-export default class IncidentEpisodeOwnerRule extends BaseModel {
+export default class IncidentEpisodeOwnerRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

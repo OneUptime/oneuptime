@@ -1,5 +1,6 @@
 import OneUptimeDate from "../../Types/Date";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../Types/ObjectID";
 
 /*
  * The one place that decides whether a NetworkDevice is reachable.
@@ -21,13 +22,15 @@ import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/Net
  * window.
  *
  * So reachability is now the OUTCOME of the most recent poll —
- * NetworkDevice.isReachable, stamped by the walk pipeline on every ingested
- * walk — and freshness is only a backstop for "the polling pipeline itself
- * stopped", measured generously against the device's own interval.
+ * NetworkDevice.isReachable, stamped by the poll pipeline on every ingested
+ * poll (a ping, plus the SNMP walk on a device that has credentials; the
+ * device is reachable when either answers) — and freshness is only a
+ * backstop for "the polling pipeline itself stopped", measured generously
+ * against the device's own interval.
  *
  * All of which is about a device that gets POLLED. A monitor-backed device
- * (monitoringMethod "Monitor") is never polled at all: no probe, no
- * credentials, no walk. Every poll column on such a row is NULL forever, so
+ * (monitoringMethod "Monitor") is never polled at all: no probe, no ping,
+ * no walk. Every poll column on such a row is NULL forever, so
  * the rule above can only ever answer "Pending" for it — which is
  * OneUptime/oneuptime#3392, a correctly bound ping-only device stuck on
  * Pending. Its health comes from the Monitor bound to it, stamped onto
@@ -69,12 +72,13 @@ export const DEVICE_MIN_STALE_WINDOW_IN_MINUTES: number = 60;
 // The columns this util reads. Every caller selects exactly these.
 export interface DeviceReachabilityInput {
   /*
-   * Outcome of the most recent poll: true = the device answered, false = the
-   * probe could not reach it, null/undefined = never polled, or a row
-   * written before this column existed.
+   * Outcome of the most recent poll: true = the device answered (ping, or
+   * the SNMP walk — either is enough), false = the probe could not reach it
+   * by any means, null/undefined = never polled, or a row written before
+   * this column existed.
    */
   isReachable?: boolean | null | undefined;
-  // When the probe last ATTEMPTED a walk, whatever the outcome.
+  // When the probe last ATTEMPTED a poll, whatever the outcome.
   lastPolledAt?: Date | string | null | undefined;
   // When the device last ANSWERED one.
   lastSeenAt?: Date | string | null | undefined;
@@ -82,7 +86,7 @@ export interface DeviceReachabilityInput {
   pollingIntervalInMinutes?: number | null | undefined;
   /*
    * How this device's health is established. NULL, empty and anything
-   * unrecognised read as SNMP — see NetworkDeviceMonitoringMethodUtil.parse,
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
    * which is why an omitted value keeps every existing caller on the poll
    * rule unchanged.
    */
@@ -102,6 +106,31 @@ export interface DeviceReachabilityInput {
    * way for the same reason.
    */
   monitorStatusIsOffline?: boolean | null | undefined;
+
+  /*
+   * QUALIFIER inputs. None of the four below moves the Up / Down / Pending
+   * verdict — the rule above is deliberately decided by `isReachable` alone,
+   * so the pill, the summary tiles and the Status chip (all SQL over that one
+   * column) can never disagree. They ride on the same input so a surface can
+   * hand its whole row over once and put the second, explanatory pill
+   * ("SNMP failing", "No probe") beside the verdict; see the predicates in
+   * the dashboard's DeviceStatusUtil.
+   *
+   * `isSnmpReachable`: the outcome of the last SNMP WALK, separate from the
+   * ping — false is a device that answers ping but not SNMP (credentials, or
+   * SNMP disabled on the box), NULL is "no walk was attempted": no usable
+   * credentials, or never polled.
+   */
+  isSnmpReachable?: boolean | null | undefined;
+  // When the last SUCCESSFUL walk completed; only moves on a success.
+  lastSnmpSeenAt?: Date | string | null | undefined;
+  /*
+   * Which probe polls the device, and whether it is allowed to. A probe-polled
+   * device with no probe, or with polling switched off, can never be polled
+   * and is Pending for as long as that stays true.
+   */
+  probeId?: ObjectID | string | null | undefined;
+  isPollingEnabled?: boolean | null | undefined;
 }
 
 export interface DeviceReachabilityResult {
@@ -119,10 +148,10 @@ export interface DeviceReachabilityResult {
   // Latest of lastPolledAt / lastSeenAt; null when neither is set.
   lastContactAt: Date | null;
   /*
-   * True when this verdict came from the bound Monitor rather than from an
-   * SNMP poll. Carried so a surface can word its pill and its tooltip for
-   * what actually decided the answer — "the last SNMP poll reached this
-   * device" is a lie on a device nothing polls.
+   * True when this verdict came from the bound Monitor rather than from a
+   * probe's poll. Carried so a surface can word its pill and its tooltip for
+   * what actually decided the answer — "the last poll reached this device"
+   * is a lie on a device nothing polls.
    */
   isMonitorBacked: boolean;
 }

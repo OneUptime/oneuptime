@@ -1,6 +1,11 @@
 import CidrMatchUtil, {
   AssignmentRuleCandidate,
 } from "../../../Utils/NetworkSite/CidrMatchUtil";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 
 describe("CidrMatchUtil.ipInCidr", () => {
   it("matches inside a /24", () => {
@@ -405,6 +410,139 @@ describe("CidrMatchUtil.ruleMatches", () => {
     expect(
       CidrMatchUtil.ruleMatches(
         { subnetCidr: "  ", hostnamePattern: "" },
+        { ip: "10.0.0.1" },
+      ),
+    ).toBe(false);
+  });
+
+  it("supports Match Any across CIDR and hostname conditions", () => {
+    expect(
+      CidrMatchUtil.ruleMatches(
+        {
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "subnetCidr",
+                operator: RuleCriteriaOperator.MatchesPattern,
+                value: "192.168.0.0/16",
+              },
+              {
+                field: "hostnamePattern",
+                operator: RuleCriteriaOperator.MatchesPattern,
+                value: "edge-*",
+              },
+            ],
+          },
+        },
+        { ip: "10.0.0.5", sysName: "EDGE-SWITCH" },
+      ),
+    ).toBe(true);
+  });
+
+  it("supports Match All and does not fall back to stale legacy fields", () => {
+    const rule: AssignmentRuleCandidate = {
+      subnetCidr: "192.168.0.0/16",
+      hostnamePattern: "stale-*",
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "subnetCidr",
+            operator: RuleCriteriaOperator.MatchesPattern,
+            value: "10.0.0.0/8",
+          },
+          {
+            field: "hostnamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "core",
+          },
+        ],
+      },
+    };
+
+    expect(
+      CidrMatchUtil.ruleMatches(rule, {
+        ip: "10.1.2.3",
+        name: "London Core Router",
+      }),
+    ).toBe(true);
+    expect(
+      CidrMatchUtil.ruleMatches(rule, {
+        ip: "10.1.2.3",
+        name: "London Edge Router",
+      }),
+    ).toBe(false);
+  });
+
+  it("negates CIDR and hostname predicates across every name candidate", () => {
+    const criteria: RuleCriteria = {
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "subnetCidr",
+          operator: RuleCriteriaOperator.DoesNotMatchPattern,
+          value: "10.0.0.0/8",
+        },
+        {
+          field: "hostnamePattern",
+          operator: RuleCriteriaOperator.DoesNotContain,
+          value: "printer",
+        },
+      ],
+    };
+
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { criteria: criteria },
+        { ip: "192.168.1.5", hostname: "edge-1", name: "Core Router" },
+      ),
+    ).toBe(true);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { criteria: criteria },
+        { ip: "192.168.1.5", hostname: "edge-1", name: "Office Printer" },
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed for configured empty, malformed, or unknown criteria", () => {
+    expect(
+      CidrMatchUtil.ruleMatches(
+        {
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [],
+          },
+        },
+        { ip: "10.0.0.1" },
+      ),
+    ).toBe(false);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { criteria: { schemaVersion: 99, filters: [] } },
+        { ip: "10.0.0.1" },
+      ),
+    ).toBe(false);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        {
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [
+              {
+                field: "priority",
+                operator: RuleCriteriaOperator.Equals,
+                value: 1,
+              },
+            ],
+          },
+        },
         { ip: "10.0.0.1" },
       ),
     ).toBe(false);

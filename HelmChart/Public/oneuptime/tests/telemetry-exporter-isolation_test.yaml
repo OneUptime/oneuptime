@@ -1,0 +1,138 @@
+# Backend OTLP headers can contain unrestricted Server ingestion keys or
+# arbitrary collector credentials. They must remain separate from the
+# deliberately public Browser ingestion key rendered into frontend env.js.
+suite: telemetry exporter isolation
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: emits no exporter variables by default
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+
+  - it: keeps server exporter settings under server-only environment names
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://server-collector.internal:4318
+        headers: authorization=Bearer server-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://server-collector.internal:4318
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: authorization=Bearer server-secret
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+
+  - it: keeps public browser settings under browser-only environment names
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      browserOpenTelemetryExporter:
+        endpoint: https://browser-collector.example.com:4318
+        browserIngestionKey: origin-bound-browser-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://browser-collector.example.com:4318
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+            value: origin-bound-browser-key
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+
+  - it: renders both channels independently when both are configured
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://server-collector.internal:4318
+        headers: x-oneuptime-token=server-key
+      browserOpenTelemetryExporter:
+        endpoint: https://browser-collector.example.com:4318
+        browserIngestionKey: browser-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: x-oneuptime-token=server-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+            value: browser-key
+
+  - it: does not synthesize a public Browser key from a configured server key
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        headers: x-oneuptime-token=server-only-key
+      browserOpenTelemetryExporter:
+        endpoint: https://browser-collector.example.com:4318
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: x-oneuptime-token=server-only-key
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY

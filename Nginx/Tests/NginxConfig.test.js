@@ -43,6 +43,7 @@ const INGEST_LOCATIONS = [
   "/security-events",
   "/session-replay",
   "/pyroscope",
+  "/source-maps",
 ];
 
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
@@ -57,6 +58,28 @@ const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const PROXY_HTTP_VERSION_EXCEPTIONS = [
   "~* ^/(manifest\\.json|service-worker\\.js)$",
 ];
+
+/*
+ * The on-call calendar feed location. The URL carries a bearer token
+ * (/api/on-call-calendar/user/<token>/shifts.ics), so it is the ONE place in
+ * the shipped config where per-request access logging is switched off: an
+ * access-log line there is a credential written to disk. Every server block
+ * must carry it, because a calendar client can be pointed at any of the three
+ * listeners, and every copy must be `access_log off` -- a copy that logs
+ * defeats the purpose on that listener.
+ */
+const CALENDAR_FEED_LOCATION_SPEC =
+  "~ ^/api/on-call-calendar/(user|schedule|project)/";
+
+function findCalendarFeedLocation(serverBlock) {
+  return getLocationBlocks(serverBlock.body).find((location) => {
+    return location.spec === CALENDAR_FEED_LOCATION_SPEC;
+  });
+}
+
+function isCalendarFeedLocation(location) {
+  return location.spec === CALENDAR_FEED_LOCATION_SPEC;
+}
 
 // ---------------------------------------------------------------------------
 // gzip
@@ -206,6 +229,14 @@ test("every access_log in the ingress config uses identical buffer parameters", 
   assert.ok(allAccessLogs.length > 1);
 
   for (const directive of allAccessLogs) {
+    /*
+     * `access_log off` names no file, so it cannot conflict with anything;
+     * that it appears only where it is allowed to is asserted separately.
+     */
+    if (directive === "access_log off;") {
+      continue;
+    }
+
     assert.ok(
       directive.includes("/var/log/nginx/access.log"),
       `unexpected access_log target: ${directive}`,
@@ -217,16 +248,54 @@ test("every access_log in the ingress config uses identical buffer parameters", 
   }
 });
 
-test("no access_log is switched off anywhere in the ingress config", () => {
+test("access_log is switched off only where the URL is a credential", () => {
   // Per-request status and client IP at the ingress are how a tenant's 413s
   // and 429s get diagnosed. Ingest logging is operator-controllable, never
-  // hard-disabled in the shipped config.
-  for (const source of [nginxConf, template]) {
-    assert.ok(
-      !/^\s*access_log\s+off\s*;/m.test(source),
-      "access_log off must not appear in the shipped config",
-    );
+  // hard-disabled in the shipped config -- with exactly one exception: the
+  // on-call calendar feed location, whose request line contains a bearer
+  // token. Anywhere else, `access_log off` is a regression.
+  assert.ok(
+    !/^\s*access_log\s+off\s*;/m.test(nginxConf),
+    "access_log off must not appear in nginx.conf",
+  );
+
+  const offDirectivesInTemplate = (
+    stripComments(template).match(/^\s*access_log\s+off\s*;/gm) || []
+  ).length;
+
+  let offDirectivesInCalendarFeedLocations = 0;
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const offDirectives = getDirectives(location.body, "access_log").filter(
+        (directive) => {
+          return directive === "access_log off;";
+        },
+      );
+
+      if (isCalendarFeedLocation(location)) {
+        offDirectivesInCalendarFeedLocations += offDirectives.length;
+        continue;
+      }
+
+      assert.deepEqual(
+        offDirectives,
+        [],
+        `location ${location.spec} switches access logging off; only the calendar feed location may`,
+      );
+    }
   }
+
+  assert.equal(
+    offDirectivesInTemplate,
+    offDirectivesInCalendarFeedLocations,
+    "every access_log off in the template must sit inside a calendar feed location",
+  );
+  assert.equal(
+    offDirectivesInCalendarFeedLocations,
+    serverBlocks.length,
+    "one access_log off per server block, no more and no fewer",
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -267,10 +336,324 @@ test("ordinary locations are left on the inherited global access_log", () => {
       continue;
     }
 
+    // The one non-ingest location with its own access_log, and it is `off`;
+    // asserted in the calendar feed section below.
+    if (isCalendarFeedLocation(location)) {
+      continue;
+    }
+
     assert.deepEqual(
       getDirectives(location.body, "access_log"),
       [],
       `location ${location.spec} should not carry its own access_log`,
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// On-call calendar feeds: token-in-URL, so no access log
+// ---------------------------------------------------------------------------
+
+test("every server block carries the calendar feed location", () => {
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.ok(
+      location,
+      "a server block without the calendar feed location writes every feed token it proxies to the access log",
+    );
+  }
+
+  const copies = serverBlocks.map(findCalendarFeedLocation).filter(Boolean);
+
+  assert.equal(copies.length, serverBlocks.length);
+});
+
+test("the calendar feed location switches access logging off in every server block", () => {
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "access_log"),
+      ["access_log off;"],
+      "the calendar feed location must carry exactly `access_log off`, not a file-naming directive and not nothing",
+    );
+  }
+});
+
+test("the calendar feed location keeps the token out of the error log too", () => {
+  /*
+   * `access_log off` is only half of it. nginx writes the full request line --
+   * token included -- plus the client address to the ERROR log whenever the
+   * upstream misbehaves: `connect() failed`, `upstream timed out` and
+   * `upstream prematurely closed` are all [error], and nginx.conf sets
+   * `error_log ... notice`, which includes them. Those are precisely the
+   * conditions every polling calendar client meets during a rolling deploy or
+   * an app restart, so without a location-level override the tokens end up on
+   * disk anyway, defeating the block. `crit` keeps the file named (so a
+   * genuine catastrophe is still reportable) while dropping every level that
+   * carries a request line; /dev/null keeps even that off disk.
+   */
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "error_log"),
+      ["error_log /dev/null crit;"],
+      "the calendar feed location must lower its own error log; the inherited one records the token URL on every upstream failure",
+    );
+  }
+});
+
+test("the calendar feed location never spools a response to a temp file", () => {
+  /*
+   * A response larger than the proxy buffers (proxy_buffers 4 512k plus
+   * proxy_buffer_size 256k) is written to a temporary file, and nginx logs
+   * "an upstream response is buffered to a temporary file" at [warn] -- with
+   * the request line, so again with the token. A project-wide feed near the
+   * 5000-event cap is that large, and text/calendar is deliberately kept out
+   * of gzip_types. `proxy_max_temp_file_size 0` turns temp-file buffering off:
+   * nginx keeps what fits in memory and streams the rest.
+   */
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "proxy_max_temp_file_size"),
+      ["proxy_max_temp_file_size 0;"],
+      "without proxy_max_temp_file_size 0 a large feed logs its own URL at [warn]",
+    );
+  }
+});
+
+test("no other location silences or redirects its error log", () => {
+  /*
+   * The error log is how an operator diagnoses this ingress. Exactly one
+   * location may opt out of it, for the same reason exactly one may opt out of
+   * the access log: its URL is a credential. Anywhere else this is a
+   * regression, and nginx.conf must keep the global error log as it is.
+   */
+  assert.ok(
+    !/^\s*error_log\s+\/dev\/null/m.test(nginxConf),
+    "the global error log must stay a real file",
+  );
+
+  const overridesInTemplate = (
+    stripComments(template).match(/^\s*error_log\s/gm) || []
+  ).length;
+
+  let overridesInCalendarFeedLocations = 0;
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const errorLogs = getDirectives(location.body, "error_log");
+
+      if (isCalendarFeedLocation(location)) {
+        overridesInCalendarFeedLocations += errorLogs.length;
+        continue;
+      }
+
+      assert.deepEqual(
+        errorLogs,
+        [],
+        `location ${location.spec} overrides the error log; only the calendar feed location may`,
+      );
+    }
+
+    /*
+     * getDirectives descends into nested blocks, so the only error_log a
+     * server block may contain is the feed location's own. Anything else --
+     * including one at server level, which would apply to every URI on the
+     * listener -- shows up here.
+     */
+    assert.deepEqual(
+      getDirectives(serverBlock.body, "error_log"),
+      ["error_log /dev/null crit;"],
+      "a server block may override the error log only inside the calendar feed location",
+    );
+  }
+
+  assert.equal(
+    overridesInTemplate,
+    overridesInCalendarFeedLocations,
+    "every error_log in the template must sit inside a calendar feed location",
+  );
+  assert.equal(
+    overridesInCalendarFeedLocations,
+    serverBlocks.length,
+    "one error_log override per server block, no more and no fewer",
+  );
+});
+
+test("the calendar feed regex covers the three feed kinds and nothing else", () => {
+  const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
+
+  const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
+
+  for (const uri of [
+    `/api/on-call-calendar/user/${token}/shifts.ics`,
+    `/api/on-call-calendar/schedule/${token}/schedule.ics`,
+    `/api/on-call-calendar/project/${token}/project.ics`,
+    // Any path under the three prefixes: a mistyped file name still has the
+    // token in it and still must not be logged.
+    "/api/on-call-calendar/user/not-a-token/anything",
+  ]) {
+    assert.ok(pattern.test(uri), `should match ${uri}`);
+  }
+
+  for (const uri of [
+    // The session-authenticated management routes carry no token and are
+    // meant to be logged like any other API call.
+    "/api/on-call-calendar/feed/current",
+    "/api/on-call-calendar/feed/rotate",
+    "/api/on-call-calendar/schedule-feed/00000000-0000-4000-8000-000000000000/current",
+    "/api/on-call-calendar/project-feed/current",
+    "/api/on-call-calendar/my-shifts?from=2026-01-01",
+    // Prefix, not substring.
+    "/api/on-call-calendarx/user/abc/shifts.ics",
+    "/status-page-api/on-call-calendar/user/abc/shifts.ics",
+    "/api/on-call-calendar/users/abc/shifts.ics",
+    "/api/on-call-calendar/user",
+    "/api/on-call-calendar/",
+  ]) {
+    assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
+  }
+});
+
+test("nginx location precedence sends feed requests to the calendar block and management requests to /api", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
+
+  for (const kind of ["user", "schedule", "project"]) {
+    assert.equal(
+      resolveLocation(locations, `/api/on-call-calendar/${kind}/${token}/x.ics`)
+        .spec,
+      CALENDAR_FEED_LOCATION_SPEC,
+      `a ${kind} feed request must land in the unlogged location, not /api`,
+    );
+  }
+
+  assert.equal(
+    resolveLocation(locations, "/api/on-call-calendar/feed/current").spec,
+    "/api",
+    "the management routes must keep landing in /api and being logged",
+  );
+  assert.equal(
+    resolveLocation(locations, "/api/on-call-calendar/my-shifts").spec,
+    "/api",
+  );
+});
+
+test("the calendar feed location proxies exactly like the block it pre-empts", () => {
+  /*
+   * A regex location wins outright over the prefix locations, so anything the
+   * pre-empted block did for the request has to be restated here or it is not
+   * done. For the primary ingress that block is /api; for the two status-page
+   * servers it is `location /`. The proxy headers are the part that matters
+   * for correctness: without X-Forwarded-For the app's rate limiter and IP
+   * checks see the gateway's own address for every feed request.
+   */
+  const REQUIRED_PROXY_HEADERS = [
+    "proxy_set_header Host $host;",
+    "proxy_set_header X-Real-IP $remote_addr;",
+    "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+    "proxy_set_header X-Forwarded-Proto $scheme;",
+  ];
+
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+    const headers = getDirectives(location.body, "proxy_set_header");
+
+    for (const header of REQUIRED_PROXY_HEADERS) {
+      assert.ok(
+        headers.includes(header),
+        `calendar feed location in a server block is missing "${header}"`,
+      );
+    }
+
+    assert.ok(
+      /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body),
+      "the calendar feed location must proxy to the app backend",
+    );
+    assert.ok(
+      /resolver\s+\$\{NGINX_RESOLVER\}/.test(location.body),
+      "the calendar feed location must carry the resolver like every other proxying location",
+    );
+    assert.deepEqual(getDirectives(location.body, "proxy_http_version"), [
+      "proxy_http_version 1.1;",
+    ]);
+  }
+});
+
+test("the calendar feed location in the status-page HTTP server keeps the billing redirect", () => {
+  /*
+   * The first server block's `location /` sends plain-HTTP traffic to https
+   * when billing is enabled (the hosted product) and proxies otherwise. The
+   * feed location pre-empts it, so a copy without the split would serve a
+   * bearer-token feed over plain HTTP on the hosted product.
+   */
+  const httpStatusPageBlock = serverBlocks.find((block) => {
+    return /listen\s+\$\{NGINX_LISTEN_ADDRESS\}7849\s+default_server/.test(
+      block.body,
+    );
+  });
+
+  assert.ok(httpStatusPageBlock, "expected the status-page HTTP server block");
+
+  const rootLocation = getLocationBlocks(httpStatusPageBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+  const feedLocation = findCalendarFeedLocation(httpStatusPageBlock);
+
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*=\s*true\)\s*\{\s*return 301 https:\/\/\$host\$request_uri;/.test(
+      rootLocation.body,
+    ),
+    "the premise: location / redirects to https when billing is enabled",
+  );
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*=\s*true\)\s*\{\s*return 301 https:\/\/\$host\$request_uri;/.test(
+      feedLocation.body,
+    ),
+    "the calendar feed location must keep the https redirect of the location it pre-empts",
+  );
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*!=\s*true\)\s*\{\s*proxy_pass \$\{BACKEND_APP_TARGET\};/.test(
+      feedLocation.body,
+    ),
+    "the calendar feed location must still proxy when billing is disabled",
+  );
+});
+
+test("the calendar feed location does not inherit /api's raised timeouts or body size", () => {
+  // A feed is a small GET; a hung render should fail at nginx's 60s default
+  // rather than pin a client connection for five minutes. This is also what
+  // keeps PROXY_TIMEOUT_LOCATIONS above exact.
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(getDirectives(location.body, "proxy_read_timeout"), []);
+    assert.deepEqual(getDirectives(location.body, "proxy_send_timeout"), []);
+    assert.deepEqual(getDirectives(location.body, "client_max_body_size"), []);
+  }
+});
+
+test("text/calendar is not added to gzip_types", () => {
+  /*
+   * Deliberate. A compressed response body is what makes BREACH-style
+   * attacks possible when secrets share a response with attacker-influenced
+   * content; the feed carries a user's roster, is polled through a
+   * bearer-token URL, and is a few kilobytes -- not worth the trade.
+   */
+  for (const block of serverBlocks) {
+    const [gzipTypes] = getDirectives(block.body, "gzip_types");
+
+    assert.ok(gzipTypes);
+    assert.ok(
+      !gzipTypes.includes("text/calendar"),
+      "gzip_types must not include text/calendar",
     );
   }
 });
@@ -687,6 +1070,38 @@ test("HTML entrypoints still get no-store from their prefix locations", () => {
   }
 });
 
+test("every env.js proxy preserves the application's private no-store response", () => {
+  for (const serverBlock of serverBlocks) {
+    const isPrimary = serverBlock === primaryServerBlock;
+    const envPaths = isPrimary
+      ? [
+          "/accounts/env.js",
+          "/dashboard/env.js",
+          "/admin/env.js",
+          "/status-page/env.js",
+          "/public-dashboard/env.js",
+        ]
+      : ["/status-page/env.js", "/public-dashboard/env.js"];
+    const locations = getLocationBlocks(serverBlock.body);
+
+    for (const envPath of envPaths) {
+      const location = resolveLocation(locations, envPath);
+
+      assert.ok(location, `missing nginx route for ${envPath}`);
+      assert.ok(
+        !getDirectives(location.body, "proxy_hide_header").includes(
+          "proxy_hide_header Cache-Control;",
+        ),
+        `${envPath} must preserve the upstream private no-store Cache-Control`,
+      );
+      assert.ok(
+        !location.body.includes("immutable"),
+        `${envPath} must never resolve to an immutable-cache location`,
+      );
+    }
+  }
+});
+
 test("nginx location precedence sends chunks to the immutable block and pages to the app block", () => {
   const locations = getLocationBlocks(primaryServerBlock.body);
   const immutableLocation = findImmutableLocation(primaryServerBlock);
@@ -720,5 +1135,251 @@ test("the status-page server blocks are not given immutable caching", () => {
   for (const block of otherBlocks) {
     assert.ok(!block.body.includes(IMMUTABLE_CACHE_CONTROL));
     assert.ok(!block.body.includes("max-age=31536000"));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// proxy read/send timeouts (GH#3434)
+// ---------------------------------------------------------------------------
+
+/*
+ * Every location in the primary ingress that overrides nginx's 60s default
+ * proxy_read_timeout/proxy_send_timeout, and why it needs to. Pinned exactly,
+ * in both directions.
+ *
+ * It must not quietly shrink: dropping /api reintroduces GH#3434. The
+ * "Generate with AI" endpoints (incident and episode postmortems, and
+ * incident/alert/scheduled-maintenance notes) hold the browser's connection
+ * open across an entire LLM completion and write nothing until it finishes,
+ * so nginx sees one uninterrupted idle read. A self-hosted Ollama routinely
+ * needs more than 60s, and nginx answered with a 504 the dashboard could only
+ * render as "Error connecting to server. Please try again in few minutes."
+ *
+ * It must not quietly grow either: a location that does not hold connections
+ * open for minutes should not be allowed to, because every second of raised
+ * timeout is a second a hung upstream can pin a client connection.
+ */
+const PROXY_TIMEOUT_LOCATIONS = {
+  "/api": "300s", // synchronous LLM generation endpoints — GH#3434
+  "/mqtt": "300s", // device-controlled keepalive intervals
+  "/mcp": "86400s", // long-lived SSE streams
+};
+
+/*
+ * Mirrors INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS in
+ * Common/Server/Services/AIService.ts, which is the source of truth. These
+ * tests are node:test JavaScript and cannot import a TypeScript constant, so
+ * the value is restated here and the matching assertion — that the app's
+ * ceiling stays inside this proxy budget — is duplicated in
+ * Common/Tests/Server/API/AIGenerationRequestBudget.test.ts.
+ */
+const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS = 4 * 60 * 1000;
+
+function getProxyTimeoutMap(directiveName) {
+  const map = {};
+
+  for (const location of getLocationBlocks(primaryServerBlock.body)) {
+    const [directive] = getDirectives(location.body, directiveName);
+
+    if (directive) {
+      map[location.spec] = directive
+        .replace(new RegExp(`^\\s*${directiveName}\\s+`), "")
+        .replace(/;$/, "");
+    }
+  }
+
+  return map;
+}
+
+test("the /api ingress waits out a synchronous AI generation", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  // No other location may shadow the path that was failing.
+  assert.equal(
+    resolveLocation(
+      locations,
+      "/api/incident/generate-postmortem-from-ai/00000000-0000-4000-8000-000000000000",
+    ).spec,
+    "/api",
+    "the postmortem generation request must land in location /api",
+  );
+
+  const apiLocation = locations.find((location) => {
+    return location.spec === "/api";
+  });
+
+  assert.ok(apiLocation, "missing location /api");
+
+  assert.deepEqual(
+    getDirectives(apiLocation.body, "proxy_read_timeout"),
+    ["proxy_read_timeout 300s;"],
+    "/api would inherit nginx's 60s default: a postmortem generation against a self-hosted Ollama 504s and the dashboard shows 'Error connecting to server' (GH#3434)",
+  );
+
+  assert.deepEqual(
+    getDirectives(apiLocation.body, "proxy_send_timeout"),
+    ["proxy_send_timeout 300s;"],
+    "/api must also be allowed to spend more than 60s writing the request upstream",
+  );
+});
+
+test("only the locations that need minutes override the 60s proxy default", () => {
+  assert.deepEqual(
+    getProxyTimeoutMap("proxy_read_timeout"),
+    PROXY_TIMEOUT_LOCATIONS,
+  );
+
+  // Each of the three raises both halves — a read budget without a matching
+  // send budget still strands a large request body at 60s.
+  assert.deepEqual(
+    getProxyTimeoutMap("proxy_send_timeout"),
+    PROXY_TIMEOUT_LOCATIONS,
+  );
+});
+
+test("nothing above the location blocks overrides the proxy timeouts", () => {
+  /*
+   * A proxy_read_timeout at http or server level would be inherited by every
+   * location, making the per-location assertions above vacuous — and would
+   * hand a five-minute budget to ingest endpoints that should fail fast.
+   */
+  assert.deepEqual(getDirectives(nginxConf, "proxy_read_timeout"), []);
+  assert.deepEqual(getDirectives(nginxConf, "proxy_send_timeout"), []);
+
+  for (const block of serverBlocks) {
+    let outsideLocations = stripComments(block.body);
+
+    for (const location of getLocationBlocks(block.body)) {
+      outsideLocations = outsideLocations.replace(location.body, "");
+    }
+
+    assert.deepEqual(getDirectives(outsideLocations, "proxy_read_timeout"), []);
+    assert.deepEqual(getDirectives(outsideLocations, "proxy_send_timeout"), []);
+  }
+});
+
+test("the /api proxy budget stays above the app's own AI generation ceiling", () => {
+  /*
+   * The two bounds are a pair: the app must give up first so the browser gets
+   * the provider's real error, and the proxy must not give up first because
+   * all it can produce is a 504 the UI renders as a generic connection error.
+   * Whichever of these two numbers moves, it has to stay on its own side.
+   */
+  const [directive] = getDirectives(
+    getLocationBlocks(primaryServerBlock.body).find((location) => {
+      return location.spec === "/api";
+    }).body,
+    "proxy_read_timeout",
+  );
+
+  const proxyBudgetInMs = parseInt(directive.match(/(\d+)s;/)[1], 10) * 1000;
+
+  assert.ok(
+    proxyBudgetInMs > INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+    `location /api gives a request ${proxyBudgetInMs}ms but the app allows an LLM call ${INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS}ms — the proxy would time out first and the user would see a 504 instead of the provider's error`,
+  );
+});
+
+/*
+ * Framing protection on the browser-facing SPA locations.
+ *
+ * Three of the SPAs the ingress serves take credentials or act on an
+ * authenticated session with a click: /accounts is the sign-in and password
+ * flow, /admin is the instance-wide admin console, /dashboard is the product
+ * itself. Framing any of them is the classic clickjacking setup -- an attacker
+ * page overlays an invisible iframe and the victim's click lands on "delete
+ * project" or on a login form they think belongs to the attacker's site.
+ *
+ * Two of the SPAs are the opposite case by design: /status-page and
+ * /public-dashboard exist to be embedded in customers' own pages, and DENY
+ * there would break that. So this is not "every location gets the header" --
+ * it is a deliberate split, and the split is what these tests pin. Both halves
+ * are asserted, because a well-meaning "harden everything" change is exactly
+ * how the embeddable half would break.
+ *
+ * add_header never inherits sideways between sibling locations, so each block
+ * must carry its own copy; there is no server-level default to fall back on.
+ */
+const FRAME_PROTECTION_HEADERS = [
+  'add_header X-Frame-Options "DENY" always;',
+  'add_header X-XSS-Protection "1; mode=block" always;',
+];
+
+const CREDENTIAL_TAKING_SPA_LOCATIONS = ["/accounts", "/admin", "/dashboard"];
+
+// Meant to be iframed by customers; DENY here would be a regression.
+const EMBEDDABLE_SPA_LOCATIONS = ["/status-page", "/public-dashboard"];
+
+const findPrefixLocation = (spec) => {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec.trim() === spec;
+  });
+};
+
+for (const spec of CREDENTIAL_TAKING_SPA_LOCATIONS) {
+  test(`${spec} refuses to be framed`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(location, `expected a ${spec} prefix location in the ingress`);
+
+    for (const header of FRAME_PROTECTION_HEADERS) {
+      assert.ok(
+        location.body.includes(header),
+        `${spec} serves an authenticated document but does not send "${header}", so an attacker page can frame it and steal clicks`,
+      );
+    }
+  });
+
+  test(`${spec} still sends nosniff and a no-store Cache-Control`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(
+      location.body.includes(
+        'add_header X-Content-Type-Options "nosniff" always;',
+      ),
+      `${spec} must keep nosniff`,
+    );
+    assert.ok(
+      location.body.includes(
+        'add_header Cache-Control "no-cache, no-store, must-revalidate" always;',
+      ),
+      `${spec} serves an authenticated document and must not be cached`,
+    );
+  });
+}
+
+for (const spec of EMBEDDABLE_SPA_LOCATIONS) {
+  test(`${spec} stays embeddable`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(location, `expected a ${spec} prefix location in the ingress`);
+
+    assert.ok(
+      !location.body.includes("X-Frame-Options"),
+      `${spec} is meant to be embedded in a customer's own page; X-Frame-Options here breaks that`,
+    );
+  });
+}
+
+test("every add_header on a browser-facing SPA location uses the always flag", () => {
+  /*
+   * Without `always`, nginx attaches the header only on 2xx/3xx (and a short
+   * list of redirects). The responses that matter most for framing are the
+   * ones that are NOT 2xx -- an error page rendered inside an iframe is still
+   * a page an attacker can overlay -- so a dropped `always` silently narrows
+   * the protection to the happy path.
+   */
+  for (const spec of [
+    ...CREDENTIAL_TAKING_SPA_LOCATIONS,
+    ...EMBEDDABLE_SPA_LOCATIONS,
+  ]) {
+    const location = findPrefixLocation(spec);
+
+    for (const directive of getDirectives(location.body, "add_header")) {
+      assert.ok(
+        /\balways\s*;$/.test(directive.trim()),
+        `${spec} has an add_header without the always flag, so it is dropped on error responses: ${directive}`,
+      );
+    }
   }
 });

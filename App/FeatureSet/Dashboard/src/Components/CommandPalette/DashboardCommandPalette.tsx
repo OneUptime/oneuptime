@@ -403,6 +403,19 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
           GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
         },
       },
+      "action-keyboard-shortcuts": {
+        id: "action-keyboard-shortcuts",
+        title: t("keyboardShortcuts.title", "Keyboard shortcuts"),
+        icon: IconProp.Keyboard,
+        iconColor: "slate",
+        category: actionsCategory,
+        keywords: ["keys", "hotkeys", "shortcut", "keyboard"],
+        shortcut: ["?"],
+        onSelect: () => {
+          closePalette();
+          GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
+        },
+      },
       "action-active-incidents": {
         id: "action-active-incidents",
         title: t("commandPalette.actions.activeIncidents", "Active Incidents"),

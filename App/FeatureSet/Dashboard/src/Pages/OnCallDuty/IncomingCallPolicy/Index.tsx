@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import React, {
@@ -35,6 +36,9 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import Modal from "Common/UI/Components/Modal/Modal";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { includeLegacyIncomingCallPolicyPhoneNumber } from "../../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
@@ -43,6 +47,9 @@ const IncomingCallPolicyView: FunctionComponent<
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
   const [policy, setPolicy] = useState<IncomingCallPolicy | null>(null);
+  const [phoneNumbers, setPhoneNumbers] = useState<
+    Array<IncomingCallPolicyPhoneNumber>
+  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
@@ -61,30 +68,65 @@ const IncomingCallPolicyView: FunctionComponent<
       setIsLoading(true);
       setError("");
 
-      // Fetch policy and escalation rules count in parallel
-      const [fetchedPolicy, rulesCount] = await Promise.all([
-        ModelAPI.getItem({
-          modelType: IncomingCallPolicy,
-          id: modelId,
-          select: {
-            routingPhoneNumber: true,
-            projectCallSMSConfigId: true,
-            projectCallSMSConfig: {
-              name: true,
+      // Fetch the policy, escalation rules, and all attached numbers in parallel.
+      const [fetchedPolicy, rulesCount, fetchedPhoneNumbers] =
+        await Promise.all([
+          ModelAPI.getItem({
+            modelType: IncomingCallPolicy,
+            id: modelId,
+            select: {
+              projectCallSMSConfigId: true,
+              projectCallSMSConfig: {
+                name: true,
+              },
+              projectId: true,
+              routingPhoneNumber: true,
+              callProviderPhoneNumberId: true,
+              phoneNumberCountryCode: true,
+              phoneNumberAreaCode: true,
+              phoneNumberPurchasedAt: true,
             },
-          },
-        }),
-        ModelAPI.count({
-          modelType: IncomingCallPolicyEscalationRule,
-          query: {
-            incomingCallPolicyId: modelId,
-            projectId: projectId,
-          },
-        }),
-      ]);
+          }),
+          ModelAPI.count({
+            modelType: IncomingCallPolicyEscalationRule,
+            query: {
+              incomingCallPolicyId: modelId,
+              projectId: projectId,
+            },
+          }),
+          ModelAPI.getList<IncomingCallPolicyPhoneNumber>({
+            modelType: IncomingCallPolicyPhoneNumber,
+            query: {
+              incomingCallPolicyId: modelId,
+              projectId: projectId,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              incomingCallPolicyId: true,
+              phoneNumber: true,
+              callProviderPhoneNumberId: true,
+              countryCode: true,
+              areaCode: true,
+              phoneNumberPurchasedAt: true,
+            },
+            sort: {
+              phoneNumberPurchasedAt: SortOrder.Ascending,
+            },
+          }),
+        ]);
 
       setPolicy(fetchedPolicy);
       setEscalationRulesCount(rulesCount);
+      setPhoneNumbers(
+        fetchedPolicy
+          ? includeLegacyIncomingCallPolicyPhoneNumber(
+              fetchedPhoneNumbers.data,
+              fetchedPolicy,
+            )
+          : fetchedPhoneNumbers.data,
+      );
       setIsLoading(false);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -93,7 +135,9 @@ const IncomingCallPolicyView: FunctionComponent<
   }, [modelId.toString(), refreshToggle]);
 
   const handlePhoneNumberChange: () => void = (): void => {
-    setRefreshToggle(!refreshToggle);
+    setRefreshToggle((currentValue: boolean): boolean => {
+      return !currentValue;
+    });
   };
 
   // Fetch Twilio config count when modal opens
@@ -126,10 +170,10 @@ const IncomingCallPolicyView: FunctionComponent<
 
   // Determine step completion status
   const hasTwilioConfig: boolean = Boolean(policy?.projectCallSMSConfigId);
-  const hasPhoneNumber: boolean = Boolean(policy?.routingPhoneNumber);
+  const hasPhoneNumbers: boolean = phoneNumbers.length > 0;
   const hasEscalationRules: boolean = escalationRulesCount > 0;
   const isSetupComplete: boolean =
-    hasTwilioConfig && hasPhoneNumber && hasEscalationRules;
+    hasTwilioConfig && hasPhoneNumbers && hasEscalationRules;
 
   return (
     <Fragment>
@@ -305,81 +349,51 @@ const IncomingCallPolicyView: FunctionComponent<
                     </div>
                   )}
                 </div>
-                <Button
-                  title={hasTwilioConfig ? "Change" : "Select"}
-                  buttonStyle={
-                    hasTwilioConfig
-                      ? ButtonStyleType.SECONDARY_LINK
-                      : ButtonStyleType.PRIMARY
-                  }
-                  onClick={() => {
-                    setShowTwilioConfigModal(true);
-                  }}
-                />
+                {hasPhoneNumbers ? (
+                  <p className="text-xs text-gray-400 text-right">
+                    Remove all phone numbers to change
+                  </p>
+                ) : (
+                  <Button
+                    title={hasTwilioConfig ? "Change" : "Select"}
+                    buttonStyle={
+                      hasTwilioConfig
+                        ? ButtonStyleType.SECONDARY_LINK
+                        : ButtonStyleType.PRIMARY
+                    }
+                    onClick={() => {
+                      setShowTwilioConfigModal(true);
+                    }}
+                  />
+                )}
               </div>
 
               {/* Divider */}
               <div className="border-t border-gray-200" />
 
               {/* Step 2: Phone Number */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
-                  >
-                    2
-                  </div>
-                  {!hasTwilioConfig ? (
-                    <div className="flex items-center space-x-3 text-gray-400">
-                      <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                      <p>Complete Step 1 to configure a phone number</p>
-                    </div>
-                  ) : hasPhoneNumber ? (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.Call}
-                          className="h-6 w-6 text-green-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {policy?.routingPhoneNumber?.toString()}
-                        </p>
-                        <p className="text-sm text-green-600">
-                          Phone number configured
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.ExclaimationCircle}
-                          className="h-6 w-6 text-yellow-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Configure Phone Number
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Select an existing number or reserve a new one
-                        </p>
-                      </div>
-                    </div>
-                  )}
+              <div className="flex items-start space-x-4">
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm flex-shrink-0 ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+                >
+                  2
                 </div>
-                {hasTwilioConfig && (
-                  <PhoneNumberPurchase
-                    projectId={projectId}
-                    incomingCallPolicyId={modelId}
-                    projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                    currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
-                    onPhoneNumberPurchased={handlePhoneNumberChange}
-                    onPhoneNumberReleased={handlePhoneNumberChange}
-                    hideCard={true}
-                  />
+                {!hasTwilioConfig && !hasPhoneNumbers ? (
+                  <div className="flex items-center space-x-3 text-gray-400 pt-1">
+                    <Icon icon={IconProp.Lock} className="h-5 w-5" />
+                    <p>Complete Step 1 to add phone numbers</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 min-w-0">
+                    <PhoneNumberPurchase
+                      projectId={projectId}
+                      incomingCallPolicyId={modelId}
+                      projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+                      phoneNumbers={phoneNumbers}
+                      onPhoneNumbersChanged={handlePhoneNumberChange}
+                      hideCard={true}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -390,11 +404,11 @@ const IncomingCallPolicyView: FunctionComponent<
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumber ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumbers ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
                   >
                     3
                   </div>
-                  {!hasPhoneNumber ? (
+                  {!hasPhoneNumbers ? (
                     <div className="flex items-center space-x-3 text-gray-400">
                       <Icon icon={IconProp.Lock} className="h-5 w-5" />
                       <p>Complete Step 2 to add escalation rules</p>
@@ -437,7 +451,7 @@ const IncomingCallPolicyView: FunctionComponent<
                     </div>
                   )}
                 </div>
-                {hasPhoneNumber && (
+                {hasPhoneNumbers && (
                   <Button
                     title="Manage Rules"
                     buttonStyle={
@@ -467,7 +481,7 @@ const IncomingCallPolicyView: FunctionComponent<
         /* Completed Configuration Card - shown when setup is complete */
         <div className="mt-5">
           <Card
-            title="Phone Number & Twilio Configuration"
+            title="Phone Numbers & Twilio Configuration"
             description="Your incoming call policy is configured and ready to receive calls"
           >
             <div className="p-6 space-y-6">
@@ -490,38 +504,31 @@ const IncomingCallPolicyView: FunctionComponent<
                   </div>
                 </div>
                 <p className="text-xs text-gray-400">
-                  Release the phone number to change
+                  Remove all phone numbers to change
                 </p>
               </div>
 
               {/* Divider */}
               <div className="border-t border-gray-200" />
 
-              {/* Phone Number Row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Icon
-                      icon={IconProp.Call}
-                      className="h-5 w-5 text-green-600"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Phone Number</p>
-                    <p className="font-medium text-gray-900">
-                      {policy?.routingPhoneNumber?.toString()}
-                    </p>
-                  </div>
+              {/* Phone Numbers Row */}
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Icon
+                    icon={IconProp.Call}
+                    className="h-5 w-5 text-green-600"
+                  />
                 </div>
-                <PhoneNumberPurchase
-                  projectId={projectId}
-                  incomingCallPolicyId={modelId}
-                  projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                  currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
-                  onPhoneNumberPurchased={handlePhoneNumberChange}
-                  onPhoneNumberReleased={handlePhoneNumberChange}
-                  hideCard={true}
-                />
+                <div className="flex-1 min-w-0">
+                  <PhoneNumberPurchase
+                    projectId={projectId}
+                    incomingCallPolicyId={modelId}
+                    projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+                    phoneNumbers={phoneNumbers}
+                    onPhoneNumbersChanged={handlePhoneNumberChange}
+                    hideCard={true}
+                  />
+                </div>
               </div>
 
               {/* Divider */}

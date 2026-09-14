@@ -10,6 +10,8 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
@@ -52,6 +54,15 @@ import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/
 import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import Dictionary from "Common/Types/Dictionary";
+import {
+  FAAS_CLOUD_PLATFORM_VALUES,
+  MANAGED_CLOUD_PLATFORM_VALUES,
+  buildCloudEnvironmentKey,
+  buildCloudEnvironmentName,
+  getCloudProviderForPlatform,
+  normalizeCloudPlatform,
+} from "Common/Types/Cloud/CloudPlatform";
+import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -514,6 +525,14 @@ export default abstract class OtelIngestBaseService {
    *      still route via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
+   *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
+   *      primaryEntityId = vCenter row id, serviceName `vmware/<name>`.
+   *      The OTel `vcenter` receiver does not synthesize a service.name,
+   *      so the shipped VMware Agent config only has to stamp
+   *      `vmware.vcenter.name` (it still deletes service.name /
+   *      service.instance.id defensively, so an OTEL_RESOURCE_ATTRIBUTES
+   *      override cannot route the batch to a phantom Service via #1 and
+   *      bypass per-vCenter retention).
    *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
@@ -531,6 +550,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
@@ -654,6 +674,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
@@ -749,6 +770,17 @@ export default abstract class OtelIngestBaseService {
           : "Docker Swarm Cluster",
         resourceId: data.dockerSwarmClusterId,
         primaryEntityType: ServiceType.DockerSwarmCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.vmwareVCenterId) {
+      const vcenterName: string | null =
+        this.getVMwareVCenterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: vcenterName ? `vmware/${vcenterName}` : "vCenter",
+        resourceId: data.vmwareVCenterId,
+        primaryEntityType: ServiceType.VMwareVCenter,
         projectId: data.projectId,
       });
     }
@@ -1379,6 +1411,145 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
+   * `vmware.vcenter.name` is the VMware join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists; the vcenter receiver
+   * only stamps per-object `vcenter.*` attributes) that the VMware Agent
+   * collector config stamps from the VMWARE_VCENTER_NAME env through a
+   * resource processor. One value = one vSphere endpoint (a vCenter
+   * Server, or a standalone ESXi host).
+   */
+  protected static getVMwareVCenterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "vmware.vcenter.name");
+  }
+
+  private static readonly VMWARE_VCENTER_ID_CACHE_NAMESPACE: string =
+    "vmware-vcenter-id";
+  private static readonly VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverVMwareVCenter(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const vcenterName: string | null =
+        this.getVMwareVCenterNameFromAttributes(data.attributes);
+
+      if (!vcenterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${vcenterName}`;
+      let vcenterIdStr: string | null = await this.getEntityIdFromCaches(
+        this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!vcenterIdStr) {
+        const vcenter: VMwareVCenter =
+          await VMwareVCenterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: vcenterName,
+          });
+
+        if (vcenter._id) {
+          vcenterIdStr = vcenter._id.toString();
+          await this.setEntityIdInCaches(
+            this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            vcenterIdStr,
+            this.VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+      }
+
+      if (vcenterIdStr) {
+        const vcenterId: ObjectID = new ObjectID(vcenterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes / Proxmox paths — skip
+         * the per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window. The vcenter receiver
+         * emits one ResourceMetrics per vSphere object, so a single
+         * collection of a mid-sized vCenter is hundreds of resource
+         * blocks: without the fence every one of them would heartbeat.
+         */
+        if (await this.shouldRunMaintenance("vmware-vcenter", vcenterIdStr)) {
+          armedFences.push({ scope: "vmware-vcenter", id: vcenterIdStr });
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await VMwareVCenterService.updateLastSeen(vcenterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToVMwareVCenter({
+            projectId: data.projectId,
+            vmwareVCenterId: vcenterId,
+            attributes: data.attributes,
+          });
+        }
+        return vcenterId;
+      }
+
+      return null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering VMware vCenter: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered vCenter. Mirrors
+   * the Kubernetes / Proxmox cluster label promotion. Throttled
+   * per-vCenter inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  protected static async promoteOneuptimeLabelsToVMwareVCenter(data: {
+    projectId: ObjectID;
+    vmwareVCenterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await VMwareVCenterService.attachLabels({
+        vmwareVCenterId: data.vmwareVCenterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `vCenter label promotion failed for ${data.vmwareVCenterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
    * `iot.fleet.name` is the IoT Fleet join key — a OneUptime-defined
    * resource attribute (no upstream semconv exists) stamped by the IoT
    * device / gateway SDK from the IOT_FLEET_NAME env (via
@@ -1795,18 +1966,13 @@ export default abstract class OtelIngestBaseService {
     24 * 60 * 60; // 1 day
 
   /*
-   * cloud.platform values that denote a Function-as-a-Service runtime.
-   * An explicit faas.name, or a cloud.platform in this set, routes the
-   * batch to a ServerlessFunction resource.
+   * cloud.platform values that denote a Function-as-a-Service runtime live
+   * in the shared registry (FAAS_CLOUD_PLATFORM_VALUES in
+   * Common/Types/Cloud/CloudPlatform) so the Serverless and Cloud
+   * Environment products can never both claim the same platform. An
+   * explicit faas.name, or a cloud.platform in that set, routes the batch
+   * to a ServerlessFunction resource.
    */
-  private static readonly SERVERLESS_CLOUD_PLATFORMS: ReadonlySet<string> =
-    new Set([
-      "aws_lambda",
-      "gcp_cloud_functions",
-      "azure_functions",
-      "tencent_cloud_scf",
-      "alibaba_cloud_fc",
-    ]);
 
   /*
    * Auto-discover a Serverless / FaaS function from OTel resource
@@ -1831,12 +1997,11 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "faas.name",
       );
-      const cloudPlatform: string | null = this.getStringAttribute(
-        data.attributes,
-        "cloud.platform",
+      const cloudPlatform: string | null = normalizeCloudPlatform(
+        this.getStringAttribute(data.attributes, "cloud.platform"),
       );
       const isFaasPlatform: boolean = cloudPlatform
-        ? this.SERVERLESS_CLOUD_PLATFORMS.has(cloudPlatform)
+        ? FAAS_CLOUD_PLATFORM_VALUES.has(cloudPlatform)
         : false;
 
       // Identity: prefer faas.name; on a FaaS platform fall back to service.name.
@@ -1997,40 +2162,15 @@ export default abstract class OtelIngestBaseService {
     24 * 60 * 60; // 1 day
 
   /*
-   * cloud.platform values that denote managed compute (containers / PaaS that
-   * are neither plain Docker, Kubernetes, a raw VM, nor FaaS). Raw VM
-   * platforms (aws_ec2, gcp_compute_engine, azure_vm) are intentionally
-   * excluded so they remain Hosts; k8s platforms route via k8s.* attributes.
-   */
-  private static readonly CLOUD_COMPUTE_PLATFORMS: ReadonlySet<string> =
-    new Set([
-      "aws_ecs",
-      "aws_elastic_beanstalk",
-      "aws_app_runner",
-      "gcp_cloud_run",
-      "gcp_app_engine",
-      "azure_container_apps",
-      "azure_container_instances",
-      "azure_app_service",
-    ]);
-
-  // Friendly display names for the managed-compute platforms above.
-  private static readonly CLOUD_PLATFORM_LABELS: Readonly<
-    Record<string, string>
-  > = {
-    aws_ecs: "AWS ECS",
-    aws_elastic_beanstalk: "AWS Elastic Beanstalk",
-    aws_app_runner: "AWS App Runner",
-    gcp_cloud_run: "GCP Cloud Run",
-    gcp_app_engine: "GCP App Engine",
-    azure_container_apps: "Azure Container Apps",
-    azure_container_instances: "Azure Container Instances",
-    azure_app_service: "Azure App Service",
-  };
-
-  /*
    * Auto-discover a managed cloud-compute *environment* from OTel resource
-   * attributes. Gated on cloud.platform being in the managed-compute set.
+   * attributes. Gated on cloud.platform being in the managed-compute set
+   * (MANAGED_CLOUD_PLATFORM_VALUES in Common/Types/Cloud/CloudPlatform —
+   * the same registry the dashboard create form, the connect guide and the
+   * docs read, so the four can never disagree about which platforms are a
+   * Cloud Environment). Raw VM platforms (aws_ec2, gcp_compute_engine,
+   * azure_vm) are deliberately absent from that set so they remain Hosts;
+   * k8s platforms route via k8s.* attributes.
+   *
    * Identity is the environment — cloud.platform + cloud.account.id +
    * cloud.region — NOT service.name, so a single CloudResource aggregates
    * every workload running on that platform/account/region (per-service
@@ -2049,18 +2189,31 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const cloudPlatform: string | null = this.getStringAttribute(
-        data.attributes,
-        "cloud.platform",
+      /*
+       * normalizeCloudPlatformAttribute has normally already rewritten the
+       * attribute in place, but normalise again here so the gate, the key
+       * and the stored platform are canonical even for a caller that hands
+       * this method attributes straight from the wire.
+       */
+      const cloudPlatform: string | null = normalizeCloudPlatform(
+        this.getStringAttribute(data.attributes, "cloud.platform"),
       );
-      if (!cloudPlatform || !this.CLOUD_COMPUTE_PLATFORMS.has(cloudPlatform)) {
+      if (!cloudPlatform || !MANAGED_CLOUD_PLATFORM_VALUES.has(cloudPlatform)) {
         return null;
       }
 
-      const cloudProvider: string | null = this.getStringAttribute(
-        data.attributes,
-        "cloud.provider",
-      );
+      /*
+       * Every resource detector that stamps cloud.platform also stamps
+       * cloud.provider, but a hand-written OTEL_RESOURCE_ATTRIBUTES (the
+       * documented route on App Runner and Container Instances, which have
+       * no detector, and part of the route on Container Apps, whose
+       * detectors set neither region nor account) often carries only the
+       * platform. The platform implies the provider, so fill it in rather
+       * than leaving the column blank.
+       */
+      const cloudProvider: string | null =
+        this.getStringAttribute(data.attributes, "cloud.provider") ||
+        getCloudProviderForPlatform(cloudPlatform);
       const cloudRegion: string | null = this.getStringAttribute(
         data.attributes,
         "cloud.region",
@@ -2070,23 +2223,25 @@ export default abstract class OtelIngestBaseService {
         "cloud.account.id",
       );
 
-      // Composite environment key — stable across every service on this env.
-      const resourceIdentifier: string = [
-        cloudPlatform,
-        cloudAccountId || "",
-        cloudRegion || "",
-      ].join("|");
+      /*
+       * Composite environment key ("aws_ecs|123456789012|us-east-1") —
+       * stable across every service on this env, and built by the shared
+       * helper so a manually created environment carrying the same key is
+       * found here instead of being duplicated. Empty segments are kept
+       * rather than dropped (see buildCloudEnvironmentKey).
+       */
+      const resourceIdentifier: string = buildCloudEnvironmentKey({
+        platform: cloudPlatform,
+        accountId: cloudAccountId,
+        region: cloudRegion,
+      });
 
-      const platformLabel: string =
-        this.CLOUD_PLATFORM_LABELS[cloudPlatform] || cloudPlatform;
-      const nameParts: Array<string> = [platformLabel];
-      if (cloudRegion) {
-        nameParts.push(cloudRegion);
-      }
-      if (cloudAccountId) {
-        nameParts.push(cloudAccountId);
-      }
-      const name: string = nameParts.join(" · ");
+      // "AWS ECS · us-east-1 · 123456789012" — the same shape the create form suggests.
+      const name: string = buildCloudEnvironmentName({
+        platform: cloudPlatform,
+        accountId: cloudAccountId,
+        region: cloudRegion,
+      });
 
       const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
       let resourceIdStr: string | null = await this.getEntityIdFromCaches(
@@ -2133,10 +2288,19 @@ export default abstract class OtelIngestBaseService {
           });
         }
 
-        // Live inventory: record this instance / task (service.instance.id).
-        const instanceName: string | null = this.getStringAttribute(
-          data.attributes,
-          "service.instance.id",
+        /*
+         * Live inventory: record this instance / task. service.instance.id
+         * is preferred, but almost nothing on a managed platform sets it —
+         * the ECS detector stamps the task ARN, Cloud Run stamps
+         * faas.instance — so the identity walks the shared fallback chain.
+         * The metrics snapshot fold (OtelMetricsIngestService) resolves the
+         * same chain over the same attributes, which is what lets the CPU /
+         * memory point land on the row this call creates.
+         */
+        const instanceName: string | null = resolveCloudInstanceName(
+          (key: string): string | null => {
+            return this.getStringAttribute(data.attributes, key);
+          },
         );
         if (
           instanceName &&
@@ -2455,6 +2619,39 @@ export default abstract class OtelIngestBaseService {
         if (typeof stringValue === "string" && stringValue.length > 0) {
           value["stringValue"] = this.canonicalizeHostName(stringValue);
         }
+      }
+    }
+  }
+
+  /*
+   * Rewrite a non-canonical cloud.platform value in place, before anything
+   * reads the resource: the auto-discovery gates decide on it, and the
+   * per-signal flatten stores it as `resource.cloud.platform` on every span,
+   * log and metric row. The dashboard scopes an environment's telemetry by
+   * exact attribute match, so the value on the environment row and the
+   * value on the rows have to be the same spelling — which is why this
+   * happens once, on the wire shape, rather than at each reader. See
+   * CLOUD_PLATFORM_ALIASES for the spellings involved (the Node and .NET
+   * Azure detectors emit "azure.container_apps" where the convention says
+   * "azure_container_apps").
+   */
+  protected static normalizeCloudPlatformAttribute(
+    attributes: JSONArray,
+  ): void {
+    for (const attribute of attributes) {
+      if (!attribute || attribute["key"] !== "cloud.platform") {
+        continue;
+      }
+      const valueObject: JSONObject | undefined = attribute["value"] as
+        | JSONObject
+        | undefined;
+      const raw: JSONValue | undefined = valueObject?.["stringValue"];
+      if (typeof raw !== "string") {
+        continue;
+      }
+      const canonical: string | null = normalizeCloudPlatform(raw);
+      if (canonical && canonical !== raw && valueObject) {
+        valueObject["stringValue"] = canonical;
       }
     }
   }
@@ -2940,14 +3137,13 @@ export default abstract class OtelIngestBaseService {
        * platforms. Raw VM platforms (aws_ec2, gcp_compute_engine, azure_vm)
        * are intentionally NOT in these sets, so VMs still become Hosts.
        */
-      const hostCloudPlatform: string | null = this.getStringAttribute(
-        data.attributes,
-        "cloud.platform",
+      const hostCloudPlatform: string | null = normalizeCloudPlatform(
+        this.getStringAttribute(data.attributes, "cloud.platform"),
       );
       if (
         hostCloudPlatform &&
-        (this.SERVERLESS_CLOUD_PLATFORMS.has(hostCloudPlatform) ||
-          this.CLOUD_COMPUTE_PLATFORMS.has(hostCloudPlatform))
+        (FAAS_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform) ||
+          MANAGED_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform))
       ) {
         return null;
       }

@@ -39,6 +39,12 @@ const EXCEPTION_ID: string = "0195d6c1-0000-7000-8000-0000000000ff";
  * characters Route accepts raw, quoting/fallback branches of the traces
  * search-token grammar, multi-byte text, and control whitespace.
  */
+import {
+  SearchToken,
+  parseSearchQuery,
+  parseSearchValue,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
+
 const URL_HOSTILE_VALUES: Array<string> = [
   "svc~canary",
   "~tilde-first",
@@ -716,19 +722,37 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
 
           case AIInsightType.TraceLatencyRegression: {
             /*
-             * The traces grammar carries token-safe values in `search`
-             * and quarantines the rest in `filters` — either way the
-             * value itself must survive the round trip.
+             * The traces grammar carries the value in `search`, escaped
+             * where a character would otherwise read as an operator, and
+             * quarantines anything it still cannot express in `filters`.
+             *
+             * The assertion is a ROUND TRIP rather than a substring match:
+             * a value carrying `*`, `~` or a quote is deliberately not
+             * present verbatim, and requiring it to be would push the
+             * builder back to emitting tokens that mean something other
+             * than the value they came from.
              */
             const searchParam: string = query.get("search") || "";
             const filterTuples: Array<[string, string]> = JSON.parse(
               query.get("filters") || "[]",
             );
 
+            const parsedValues: Array<string> = parseSearchQuery(
+              searchParam,
+            ).map((token: SearchToken) => {
+              return token.predicate.value;
+            });
+
             const carried: boolean =
-              searchParam.includes(hostileValue) ||
+              parsedValues.includes(hostileValue) ||
               filterTuples.some((tuple: [string, string]) => {
-                return tuple[1] === hostileValue;
+                /*
+                 * A chip value is re-parsed by the same grammar when the
+                 * explorer compiles its query, so the fallback carries an
+                 * escaped token too — a raw `/api/*` would come back as a
+                 * wildcard matching far more than the scope asked for.
+                 */
+                return parseSearchValue(tuple[1]).value === hostileValue;
               });
 
             expect(carried).toBe(true);

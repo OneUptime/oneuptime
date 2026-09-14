@@ -18,8 +18,12 @@ import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
-import NetworkDeviceWalkUtil from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
+import NetworkDeviceHydrationUtil, {
+  NetworkDevicePollMode,
+} from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import NetworkDeviceWalkUtil, {
+  NetworkDevicePingResult,
+} from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeService from "Common/Server/Services/ProbeService";
@@ -258,9 +262,16 @@ export async function processSnmpTrapFromQueue(
 }
 
 /*
- * Processes one device walk reported by the device's assigned probe: rates,
+ * Processes one device poll reported by the device's assigned probe: rates,
  * inventory, device metrics, and fan-out to the monitors alerting on the
  * device. See NetworkDeviceWalkUtil for the pipeline itself.
+ *
+ * Two probe generations report here, and the body tells them apart. A
+ * ping-first probe sends `isOnline` (device reachability: ping OR walk),
+ * `pollMode`, `pingResponse`, and `snmpResponse` only when a walk actually
+ * ran. An older probe sends `snmpResponse` alone - it only ever walked, so
+ * its walk verdict is the device verdict and its mode is "snmp". Everything
+ * missing is derived here so the pipeline sees one shape.
  */
 export async function processNetworkDeviceWalkFromQueue(
   jobData: ProbeIngestJobData,
@@ -285,17 +296,55 @@ export async function processNetworkDeviceWalkFromQueue(
   }
 
   /*
-   * Validate the RAW value: JSONFunctions.deserialize(undefined) returns
-   * {}, which is truthy — checking the deserialized result would make this
-   * guard dead code.
+   * Validate the RAW values: JSONFunctions.deserialize(undefined) returns
+   * {}, which is truthy — checking a deserialized result would make this
+   * guard dead code. Reject only when NEITHER a walk nor a boolean device
+   * verdict is present: that body says nothing about the device at all.
    */
-  if (!requestBody["snmpResponse"]) {
-    throw new BadDataException("Network device walk has no snmpResponse");
+  const rawSnmpResponse: unknown = requestBody["snmpResponse"];
+  const rawIsOnline: unknown = requestBody["isOnline"];
+
+  if (!rawSnmpResponse && typeof rawIsOnline !== "boolean") {
+    throw new BadDataException(
+      "Network device walk has neither snmpResponse nor isOnline",
+    );
   }
 
-  const snmpResponse: SnmpMonitorResponse = JSONFunctions.deserialize(
-    requestBody["snmpResponse"] as JSONObject,
-  ) as unknown as SnmpMonitorResponse;
+  const snmpResponse: SnmpMonitorResponse | undefined = rawSnmpResponse
+    ? (JSONFunctions.deserialize(
+        rawSnmpResponse as JSONObject,
+      ) as unknown as SnmpMonitorResponse)
+    : undefined;
+
+  const rawPingResponse: unknown = requestBody["pingResponse"];
+  const pingResponse: NetworkDevicePingResult | undefined =
+    rawPingResponse && typeof rawPingResponse === "object"
+      ? (JSONFunctions.deserialize(
+          rawPingResponse as JSONObject,
+        ) as unknown as NetworkDevicePingResult)
+      : undefined;
+
+  /*
+   * Only an explicit "ping" reads as ping. A missing, empty or unrecognised
+   * mode is a probe that predates ping-first polling, and such a probe never
+   * polled a device it could not walk - "snmp" is the only mode its results
+   * can honestly carry (NetworkDeviceHydrationUtil's NetworkDevicePollMode).
+   */
+  const pollMode: NetworkDevicePollMode =
+    requestBody["pollMode"] === "ping" ? "ping" : "snmp";
+
+  /*
+   * Device reachability. A ping-first probe states it outright; an older
+   * probe only walked, so its walk verdict is the device verdict - and,
+   * matching the inventory's convention, a walk with no verdict at all
+   * counts as answered. The guard above ensures one of the two exists.
+   */
+  const isOnline: boolean =
+    typeof rawIsOnline === "boolean"
+      ? rawIsOnline
+      : snmpResponse
+        ? snmpResponse.isOnline !== false
+        : false;
 
   const monitoredAtValue: unknown = requestBody["monitoredAt"];
   const monitoredAt: Date = monitoredAtValue
@@ -305,6 +354,9 @@ export async function processNetworkDeviceWalkFromQueue(
   await NetworkDeviceWalkUtil.processWalkResult({
     probeId: new ObjectID(probeIdAsString),
     networkDeviceId: new ObjectID(networkDeviceIdAsString),
+    isOnline: isOnline,
+    pollMode: pollMode,
+    pingResponse: pingResponse,
     snmpResponse: snmpResponse,
     monitoredAt: isNaN(monitoredAt.getTime())
       ? OneUptimeDate.getCurrentDate()

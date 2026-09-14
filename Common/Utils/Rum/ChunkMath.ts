@@ -208,4 +208,110 @@ export default class ChunkMath {
       0,
     );
   }
+
+  /*
+   * Whether a manifest row is a terminator rather than footage.
+   *
+   * The recorder closes a tab with an empty chunk (payload "[]",
+   * eventCount 0) and emits the same shape when a session hits its chunk
+   * cap. The ingest stores them because they carry the end time, but they
+   * hold nothing to feed a Replayer: treating one as a chunk that "failed
+   * to decode" ends most sessions with an error banner instead of
+   * "recording ended".
+   */
+  public static isTerminatorEntry(
+    entry: SessionReplayChunkManifestEntry,
+  ): boolean {
+    return !(entry.eventCount > 0);
+  }
+
+  /*
+   * The smallest anchor strictly after a chunk index, or null. Used when a
+   * chunk fails to decode: the only safe place to resume is a later full
+   * snapshot, never the next present chunk.
+   */
+  public static findNextAnchorAfter(
+    anchors: Array<number>,
+    afterChunkIndex: number,
+  ): number | null {
+    let best: number | null = null;
+
+    for (const anchor of anchors) {
+      if (anchor > afterChunkIndex && (best === null || anchor < best)) {
+        best = anchor;
+      }
+    }
+
+    return best;
+  }
+
+  /*
+   * True when every index in [fromChunkIndex, toChunkIndex] is present, so
+   * the range can be fed into a live Replayer in order without crossing a
+   * hole. A seek that lands ahead of the fed range but inside a contiguous
+   * run feeds forward instead of tearing the Replayer down.
+   */
+  public static isContiguousRange(
+    presentIndexes: ReadonlySet<number>,
+    fromChunkIndex: number,
+    toChunkIndex: number,
+  ): boolean {
+    if (toChunkIndex < fromChunkIndex) {
+      return false;
+    }
+
+    for (let index: number = fromChunkIndex; index <= toChunkIndex; index++) {
+      if (!presentIndexes.has(index)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * The two-chunk priority page for a first paint: the anchor and one
+   * neighbour. The neighbour after it is preferred because playback moves
+   * forward; the one before it is the fallback so a lone full snapshot
+   * (the oversized-snapshot layout) still gets rrweb its two events and,
+   * more importantly, the Meta event that lives in the chunk before it.
+   */
+  public static planPriorityPage(
+    presentIndexes: ReadonlySet<number>,
+    anchorChunkIndex: number,
+  ): Array<number> {
+    if (!presentIndexes.has(anchorChunkIndex)) {
+      return [];
+    }
+
+    if (presentIndexes.has(anchorChunkIndex + 1)) {
+      return [anchorChunkIndex, anchorChunkIndex + 1];
+    }
+
+    if (presentIndexes.has(anchorChunkIndex - 1)) {
+      return [anchorChunkIndex - 1, anchorChunkIndex];
+    }
+
+    return [anchorChunkIndex];
+  }
+
+  /*
+   * Clamp a requested playhead into what the recording can show. A seek
+   * before the first playable moment lands ON that moment rather than
+   * being refused: refusing turns "press Play at the end" and every ?t=0
+   * link into a dead end whenever chunk 0 cannot anchor playback.
+   */
+  public static clampSeekOffset(
+    offsetMs: number,
+    earliestPlayableMs: number,
+    durationMs: number,
+  ): number {
+    if (!Number.isFinite(offsetMs)) {
+      return earliestPlayableMs;
+    }
+
+    const upper: number = Math.max(earliestPlayableMs, durationMs);
+
+    return Math.min(upper, Math.max(earliestPlayableMs, offsetMs));
+  }
 }

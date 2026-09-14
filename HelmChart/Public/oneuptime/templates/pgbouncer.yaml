@@ -94,7 +94,12 @@ spec:
         appname: oneuptime
       annotations:
         # Roll the pods when the rendered pgbouncer.ini (its inputs) changes.
-        checksum/config: {{ printf "%s|%s|%s|%s" (toYaml .Values.pgbouncer) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
+        {{- /* extraEnv/extraVolumes/extraVolumeMounts are omitted on purpose: they are
+               pod-spec inputs, not pgbouncer.ini inputs, so setting one already changes the
+               pod template and rolls the pods on its own. Leaving them in the hash would
+               instead roll the pooler on the upgrade that merely INTRODUCED the keys, for
+               every install, without the ini changing. */}}
+        checksum/config: {{ printf "%s|%s|%s|%s" (toYaml (omit .Values.pgbouncer "extraEnv" "extraVolumes" "extraVolumeMounts")) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -150,6 +155,9 @@ spec:
         - name: PGB_DB_USER
           value: {{ include "oneuptime.postgres.backendUser" . | quote }}
         {{- include "oneuptime.postgres.backendPasswordEnv" . | nindent 8 }}
+        {{- with (default $.Values.extraEnv $.Values.pgbouncer.extraEnv) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         ports:
         - name: pgbouncer
           containerPort: {{ .Values.pgbouncer.service.port | int }}
@@ -183,6 +191,9 @@ spec:
           mountPath: /etc/pgbouncer/tls
           readOnly: true
         {{- end }}
+        {{- with (default $.Values.extraVolumeMounts $.Values.pgbouncer.extraVolumeMounts) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
       - name: config
         configMap:
@@ -196,6 +207,9 @@ spec:
           items:
           - key: ssl-ca
             path: server-ca.crt
+      {{- end }}
+      {{- with (default $.Values.extraVolumes $.Values.pgbouncer.extraVolumes) }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}
 ---
 apiVersion: v1

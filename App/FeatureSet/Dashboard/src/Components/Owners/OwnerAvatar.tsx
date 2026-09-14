@@ -115,7 +115,7 @@ const OwnerAvatar: FunctionComponent<ComponentProps> = (
     avatar = (
       <Image
         className={`${sizeClasses} rounded-full object-cover ring-2 ring-white shadow-sm bg-gray-100`}
-        imageUrl={UserUtil.getProfilePictureRoute(item.userId)}
+        imageUrl={UserUtil.getProfilePictureRoute(item.userId).toString()}
         alt={item.name}
       />
     );

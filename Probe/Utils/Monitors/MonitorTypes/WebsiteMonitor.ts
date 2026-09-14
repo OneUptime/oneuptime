@@ -8,19 +8,20 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
-import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
-import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
-import {
-  HttpTimingAgents,
-  HttpTimingCollector,
-  TimedAgents,
-} from "../../HttpTimingAgents";
-import https from "https";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import EgressGuardException from "Common/Types/Exception/EgressGuardException";
+import TimeoutException from "Common/Types/Exception/TimeoutException";
+import { HttpTimingCollector } from "../../HttpTimingAgents";
+import HttpMonitorRequest, {
+  HttpMonitorExecutionContext,
+  PreparedHttpMonitorRequest,
+  RedirectRequest,
+} from "../HttpMonitorRequest";
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -55,6 +56,7 @@ export default class WebsiteMonitor {
       tlsClientKey?: string | undefined;
       tlsClientKeyPassphrase?: string | undefined;
       attempts?: Array<ProbeAttempt> | undefined;
+      executionContext?: HttpMonitorExecutionContext | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -69,86 +71,22 @@ export default class WebsiteMonitor {
       options.attempts = [];
     }
 
+    const ownsExecutionContext: boolean = !options.executionContext;
+    if (!options.executionContext) {
+      options.executionContext = new HttpMonitorExecutionContext(
+        options.timeout?.toNumber() || 5000,
+      );
+    }
+    const executionContext: HttpMonitorExecutionContext =
+      options.executionContext;
+
     let requestType: HTTPMethod = HTTPMethod.GET;
 
     if (options.isHeadRequest) {
       requestType = HTTPMethod.HEAD;
     }
 
-    const allowSelfSignedCertificates: boolean = Boolean(
-      options.allowSelfSignedCertificates,
-    );
-
-    const tlsClientCertificate: string | undefined =
-      options.tlsClientCertificate
-        ? options.tlsClientCertificate.trim() || undefined
-        : undefined;
-    const tlsClientKey: string | undefined = options.tlsClientKey
-      ? options.tlsClientKey.trim() || undefined
-      : undefined;
-    const hasClientCert: boolean = Boolean(
-      tlsClientCertificate && tlsClientKey,
-    );
-    const tlsClientKeyPassphrase: string | undefined =
-      options.tlsClientKeyPassphrase || undefined;
-
     const timingCollector: HttpTimingCollector = new HttpTimingCollector();
-
-    const buildAgents: () => ProxyAgents = (): ProxyAgents => {
-      const proxyOptions: {
-        rejectUnauthorized?: boolean;
-        cert?: string;
-        key?: string;
-        passphrase?: string;
-      } = {};
-      if (allowSelfSignedCertificates) {
-        proxyOptions.rejectUnauthorized = false;
-      }
-      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
-        proxyOptions.cert = tlsClientCertificate;
-        proxyOptions.key = tlsClientKey;
-        if (tlsClientKeyPassphrase) {
-          proxyOptions.passphrase = tlsClientKeyPassphrase;
-        }
-      }
-
-      const proxyAgents: ProxyAgents = {
-        ...ProxyConfig.getRequestProxyAgents(url, proxyOptions),
-      };
-
-      const agentOptions: https.AgentOptions = {};
-      if (allowSelfSignedCertificates) {
-        agentOptions.rejectUnauthorized = false;
-      }
-      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
-        agentOptions.cert = tlsClientCertificate;
-        agentOptions.key = tlsClientKey;
-        if (tlsClientKeyPassphrase) {
-          agentOptions.passphrase = tlsClientKeyPassphrase;
-        }
-      }
-
-      if (!proxyAgents.httpAgent && !proxyAgents.httpsAgent) {
-        /*
-         * No proxy in the way — use timing-instrumented agents so the check
-         * captures a DNS / TCP / TLS / TTFB phase breakdown.
-         */
-        timingCollector.reset();
-        const timedAgents: TimedAgents = HttpTimingAgents.create(
-          timingCollector,
-          agentOptions,
-        );
-        proxyAgents.httpAgent = timedAgents.httpAgent;
-        proxyAgents.httpsAgent = timedAgents.httpsAgent;
-      } else if (
-        (allowSelfSignedCertificates || hasClientCert) &&
-        !proxyAgents.httpsAgent
-      ) {
-        proxyAgents.httpsAgent = new https.Agent(agentOptions);
-      }
-
-      return proxyAgents;
-    };
 
     const attemptedAt: Date = new Date();
     try {
@@ -158,27 +96,133 @@ export default class WebsiteMonitor {
         }`,
       );
 
-      let startTime: [number, number] = process.hrtime();
-      let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
-        isHeadRequest: options.isHeadRequest,
-        timeout: options.timeout?.toNumber() || 5000,
-        doNotFollowRedirects: options.doNotFollowRedirects || false,
-        ...buildAgents(),
-      });
+      const executeRequest: (
+        initialUrl: string,
+        initialMethod: HTTPMethod,
+      ) => Promise<WebsiteResponse> = async (
+        initialUrl: string,
+        initialMethod: HTTPMethod,
+      ): Promise<WebsiteResponse> => {
+        const prepareRequest: (
+          requestUrl: string,
+          requestHeaders: Headers,
+          includeTlsIdentity: boolean,
+        ) => Promise<PreparedHttpMonitorRequest> = async (
+          requestUrl: string,
+          requestHeaders: Headers,
+          includeTlsIdentity: boolean,
+        ): Promise<PreparedHttpMonitorRequest> => {
+          return await executionContext.run(async () => {
+            return await HttpMonitorRequest.prepare(requestUrl, {
+              headers: requestHeaders,
+              tls: includeTlsIdentity
+                ? {
+                    allowSelfSignedCertificates:
+                      options.allowSelfSignedCertificates,
+                    tlsClientCertificate: options.tlsClientCertificate,
+                    tlsClientKey: options.tlsClientKey,
+                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                  }
+                : undefined,
+              timingCollector: timingCollector,
+            });
+          });
+        };
 
-      if (
-        result.responseStatusCode >= 400 &&
-        result.responseStatusCode < 600 &&
-        requestType === HTTPMethod.HEAD
-      ) {
-        startTime = process.hrtime();
-        result = await WebsiteRequest.fetch(url, {
-          isHeadRequest: false,
-          timeout: options.timeout?.toNumber() || 5000,
-          doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...buildAgents(),
-        });
-      }
+        const fetchRequest: (
+          preparedRequest: PreparedHttpMonitorRequest,
+          method: HTTPMethod,
+        ) => Promise<WebsiteResponse> = async (
+          preparedRequest: PreparedHttpMonitorRequest,
+          method: HTTPMethod,
+        ): Promise<WebsiteResponse> => {
+          return await executionContext.run(async () => {
+            return await WebsiteRequest.fetch(preparedRequest.url, {
+              dispatchUrl: preparedRequest.dispatchUrl,
+              headers: preparedRequest.headers,
+              isHeadRequest: method === HTTPMethod.HEAD,
+              timeout: executionContext.remainingTimeoutInMs(),
+              doNotFollowRedirects: preparedRequest.doNotFollowRedirects,
+              doNotFallbackFromHead: true,
+              acceptRedirectResponses: true,
+              disableProxy: preparedRequest.disableProxy,
+              maxContentLength: Math.min(
+                preparedRequest.maxContentLength,
+                executionContext.responseBodyBudget.remainingBytes,
+              ),
+              maxBodyLength: preparedRequest.maxBodyLength,
+              httpAgent: preparedRequest.httpAgent,
+              httpsAgent: preparedRequest.httpsAgent,
+              signal: executionContext.signal,
+              responseBodyBudget: executionContext.responseBodyBudget,
+              limitRedirectResponseBody: !options.doNotFollowRedirects,
+            });
+          });
+        };
+
+        let currentUrl: string = initialUrl;
+        let currentMethod: HTTPMethod = initialMethod;
+        let currentHeaders: Headers = {};
+        let redirectsFollowed: number = 0;
+        let includeTlsIdentity: boolean = true;
+
+        while (true) {
+          const prepared: PreparedHttpMonitorRequest = await prepareRequest(
+            currentUrl,
+            currentHeaders,
+            includeTlsIdentity,
+          );
+
+          let result: WebsiteResponse;
+          try {
+            result = await fetchRequest(prepared, currentMethod);
+          } catch (error) {
+            /*
+             * Some servers reject HEAD but serve GET. Re-entering the loop
+             * deliberately prepares a fresh, validated/pinned connection for
+             * the fallback instead of reusing an agent behind the guard.
+             */
+            if (currentMethod === HTTPMethod.HEAD) {
+              currentMethod = HTTPMethod.GET;
+              continue;
+            }
+            throw error;
+          }
+
+          if (options.doNotFollowRedirects) {
+            return result;
+          }
+
+          const redirect: RedirectRequest | null =
+            HttpMonitorRequest.getRedirectRequest({
+              currentUrl: currentUrl,
+              statusCode: result.responseStatusCode,
+              responseHeaders: result.responseHeaders,
+              currentMethod: currentMethod,
+              requestHeaders: currentHeaders,
+              redirectsFollowed: redirectsFollowed,
+            });
+
+          if (!redirect) {
+            return result;
+          }
+
+          currentUrl = redirect.url;
+          currentMethod = redirect.method;
+          currentHeaders = redirect.headers;
+          if (redirect.crossesOrigin) {
+            includeTlsIdentity = false;
+          }
+          redirectsFollowed++;
+        }
+      };
+
+      const startTime: [number, number] = process.hrtime();
+      timingCollector.reset();
+      const result: WebsiteResponse = await executeRequest(
+        url.toString(),
+        requestType,
+      );
 
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMS: PositiveNumber = new PositiveNumber(
@@ -199,10 +243,11 @@ export default class WebsiteMonitor {
 
       if (
         responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry || 5)
+        options.currentRetryCount < (options.retry ?? 5) &&
+        executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await executionContext.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -228,9 +273,7 @@ export default class WebsiteMonitor {
       };
 
       logger.debug(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
-          probeWebsiteResponse,
-        )}`,
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} succeeded with status ${probeWebsiteResponse.statusCode}`,
       );
 
       return probeWebsiteResponse;
@@ -254,19 +297,43 @@ export default class WebsiteMonitor {
       const statusCodeForAttempt: number | undefined =
         err instanceof AxiosError ? err.response?.status : undefined;
 
+      /*
+       * A sanitized guard refusal must not report how long it took. The two
+       * branches it merges do measurably different amounts of work — a DNS
+       * failure is retried inside the guard, an address-policy rejection
+       * follows one successful lookup — and this number is shipped to the
+       * tenant on probeAttempts. Reporting it would hand back, as a plain
+       * integer, exactly the "did this hostname resolve?" bit the merged
+       * message exists to withhold. Zero matches the top-level
+       * responseTimeInMS these same paths already report for the same reason.
+       *
+       * This closes the REPORTED channel only. A determined tenant can still
+       * time checks externally, as they could before any of this; equalizing
+       * that would mean padding every refusal out to the full DNS budget.
+       */
+      const isSanitizedGuardRefusal: boolean =
+        err instanceof EgressGuardException && err.isTargetUnreachable();
+
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
         attemptedAt,
         responseReceivedAt,
-        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        responseTimeInMs: isSanitizedGuardRefusal
+          ? 0
+          : responseReceivedAt.getTime() - attemptedAt.getTime(),
         responseCode: statusCodeForAttempt,
         isOnline: false,
         failureCause: failureCauseForAttempt,
       });
 
-      if (options.currentRetryCount < (options.retry || 5)) {
+      if (
+        !(err instanceof BadDataException) &&
+        !(err instanceof TimeoutException) &&
+        options.currentRetryCount < (options.retry ?? 5) &&
+        executionContext.canWait(1000)
+      ) {
         options.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await executionContext.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -320,7 +387,27 @@ export default class WebsiteMonitor {
         };
       }
 
-      if (!options.isOnlineCheckRequest) {
+      /*
+       * A guard refusal that is about REACHING the target (DNS, or an address
+       * policy) is a network failure like any other, so it gets the same
+       * probe-health sanity check every other network failure gets: a probe
+       * whose own resolver has died must not be believed when it reports that
+       * a monitor is down. Only a structurally invalid target skips the check,
+       * because that is the tenant's configuration and has to surface as-is.
+       *
+       * The retry decision above is deliberately NOT changed the same way:
+       * retrying only some guard refusals would make the attempt count differ
+       * between a hostname that failed DNS and one blocked by policy, which is
+       * the distinction the sanitized message exists to hide. Transient
+       * resolver failures are retried inside the guard instead.
+       */
+      const shouldVerifyProbeIsOnline: boolean =
+        err instanceof EgressGuardException
+          ? err.isTargetUnreachable()
+          : !(err instanceof BadDataException) &&
+            !(err instanceof TimeoutException);
+
+      if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
             `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
@@ -331,8 +418,9 @@ export default class WebsiteMonitor {
 
       // check if timeout exceeded and if yes, return null
       if (
-        (err as any).toString().includes("timeout") &&
-        (err as any).toString().includes("exceeded")
+        err instanceof TimeoutException ||
+        ((err as any).toString().includes("timeout") &&
+          (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
@@ -359,13 +447,24 @@ export default class WebsiteMonitor {
         return probeWebsiteResponse;
       }
 
+      /*
+       * The tenant's own URL refused to answer. That failure is the ANSWER
+       * this check exists to produce — it is returned right below as an
+       * offline response - so it must never open an Issue against OneUptime.
+       */
       logger.error(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
           probeWebsiteResponse,
         )}`,
+        EXTERNAL_FAULT,
       );
 
       return probeWebsiteResponse;
+    } finally {
+      if (ownsExecutionContext) {
+        executionContext.dispose();
+        delete options.executionContext;
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -14,6 +15,7 @@ import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
@@ -25,6 +27,22 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 
 export default class SnmpMonitorCriteria {
+  /*
+   * Every CheckOn whose value comes out of the SNMP walk. Reachability
+   * (SnmpIsOnline) and traps are the two that do not.
+   */
+  private static isWalkDependentCheckOn(checkOn: CheckOn): boolean {
+    return (
+      checkOn === CheckOn.SnmpWalkIsSucceeding ||
+      checkOn === CheckOn.SnmpResponseTime ||
+      checkOn === CheckOn.SnmpOidExists ||
+      checkOn === CheckOn.SnmpOidValue ||
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+    );
+  }
+
   /*
    * Interface scope for the interface CheckOns: when the criteria carries
    * snmpMonitorOptions.interfaceName, only interfaces whose name or alias
@@ -43,7 +61,14 @@ export default class SnmpMonitorCriteria {
       .trim()
       .toLowerCase();
 
-    if (!scope) {
+    /*
+     * Empty has always meant "every interface". "*" means the same
+     * thing, and additionally opts the criteria into raising one alert
+     * per interface — see PerEntityCriteriaFanOut. Scoping treats them
+     * identically; only the fan-out tells them apart, so existing
+     * monitors that leave this blank keep their single combined alert.
+     */
+    if (!scope || PerEntityCriteriaFanOut.isWildcard(scope)) {
       return interfaces;
     }
 
@@ -247,6 +272,29 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
+    /*
+     * No walk, no verdict. A device without usable SNMP credentials is only
+     * pinged, and the walk pipeline hands its monitors a response with
+     * `snmpResponse` undefined - never a synthesized failure. Every criterion
+     * that reads the walk is therefore NOT EVALUATED on such a poll (null),
+     * rather than breaching: "OID Exists is False" must not raise an
+     * incident on a device nobody ever asked an OID of, and "Walk Is
+     * Succeeding is False" must mean "attempted and failed". Reachability
+     * (SnmpIsOnline) is read from the top-level isOnline further down and
+     * is unaffected.
+     *
+     * This runs before the over-time lookup on purpose: a window of stored
+     * walk-time samples says nothing about a poll that walked nothing.
+     */
+    if (
+      SnmpMonitorCriteria.isWalkDependentCheckOn(
+        input.criteriaFilter.checkOn,
+      ) &&
+      !snmpResponse
+    ) {
+      return null;
+    }
+
     const overTime: OverTimeCriteriaValue =
       await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
         projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
@@ -273,7 +321,12 @@ export default class SnmpMonitorCriteria {
       | boolean
       | undefined = overTime.value;
 
-    // Check if SNMP device is online
+    /*
+     * Device reachability: the top-level isOnline is "answered ping OR the
+     * walk succeeded", stamped by the walk pipeline - the same verdict the
+     * device list's status pill shows. Deliberately not the walk's own
+     * isOnline, which the next CheckOn covers.
+     */
     if (input.criteriaFilter.checkOn === CheckOn.SnmpIsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ??
@@ -281,6 +334,22 @@ export default class SnmpMonitorCriteria {
 
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    /*
+     * The walk itself. Gated above: a poll with no walk returns null before
+     * reaching here, so `snmpResponse` is present and "False" genuinely
+     * means the walk was attempted and failed.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpWalkIsSucceeding) {
+      if (!snmpResponse) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: snmpResponse.isOnline === true,
         criteriaFilter: input.criteriaFilter,
       });
     }
@@ -445,9 +514,18 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
+      /*
+       * Compare canonical forms. ".1.3.6.1" and "1.3.6.1" are the same
+       * object, operators type both, and net-snmp always answers with the
+       * dotless form — so a stored leading dot used to make the criterion
+       * silently un-matchable forever. Newly reachable now that the OID
+       * picker actually writes a value.
+       */
+      const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
       const oidResponse: SnmpOidResponse | undefined =
         snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
-          return response.oid === oid;
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
         });
 
       const exists: boolean = Boolean(
@@ -479,9 +557,18 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
+      /*
+       * Compare canonical forms. ".1.3.6.1" and "1.3.6.1" are the same
+       * object, operators type both, and net-snmp always answers with the
+       * dotless form — so a stored leading dot used to make the criterion
+       * silently un-matchable forever. Newly reachable now that the OID
+       * picker actually writes a value.
+       */
+      const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
       const oidResponse: SnmpOidResponse | undefined =
         snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
-          return response.oid === oid;
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
         });
 
       if (!oidResponse || oidResponse.value === null) {

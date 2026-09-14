@@ -130,7 +130,12 @@ export default interface Field<TEntity> {
     | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
-  getFooterElement?: (values: FormValues<TEntity>) => ReactElement | undefined;
+  getFooterElement?: (
+    values: FormValues<TEntity>,
+    error?: string,
+  ) => ReactElement | undefined;
+  // For Input fields: render errors in the footer linked by ariaDescribedby.
+  errorMessageInFooter?: boolean | undefined;
   id?: string | undefined;
   getCustomElement?: (
     values: FormValues<TEntity>,
@@ -138,6 +143,8 @@ export default interface Field<TEntity> {
   ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   dataTestId?: string | undefined;
+  autoComplete?: string | undefined;
+  ariaDescribedby?: string | undefined;
 
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;

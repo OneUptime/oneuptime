@@ -3,9 +3,15 @@ import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import CloudResourceLabelRule from "../../Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceService from "./CloudResourceService";
+import CloudResourceFeedService from "./CloudResourceFeedService";
+import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class CloudResourceLabelRuleEngineServiceClass {
   /**
@@ -32,14 +38,21 @@ class CloudResourceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             matchLabels: { _id: true },
             nameRegexPattern: true,
             descriptionRegexPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "CloudResourceLabelRule",
+        projectId: cloudResource.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -61,10 +74,16 @@ class CloudResourceLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         if (!this.doesMatchRule(resourceWithDetails, rule)) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -111,6 +130,27 @@ class CloudResourceLabelRuleEngineServiceClass {
         label.id = new ObjectID(id);
         return label;
       });
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await CloudResourceFeedService.createCloudResourceFeedItem({
+        cloudResourceId: cloudResource.id,
+        projectId: cloudResource.projectId,
+        cloudResourceFeedEventType:
+          CloudResourceFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CloudResourceService.getCloudResourceMarkdownLink(
+          cloudResource.projectId,
+          cloudResource.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying cloud resource label rules: ${error}`, {
         projectId: cloudResource.projectId?.toString(),
@@ -120,6 +160,24 @@ class CloudResourceLabelRuleEngineServiceClass {
   }
 
   private doesMatchRule(
+    cloudResource: CloudResource,
+    rule: CloudResourceLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "matchLabels",
+        "nameRegexPattern",
+        "descriptionRegexPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: CloudResourceLabelRule): boolean => {
+        return this.doesMatchLegacyRule(cloudResource, legacyRule);
+      },
+    });
+  }
+
+  private doesMatchLegacyRule(
     cloudResource: CloudResource,
     rule: CloudResourceLabelRule,
   ): boolean {

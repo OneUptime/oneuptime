@@ -1,0 +1,431 @@
+# Precedence between the chart-wide extraEnv / extraVolumes / extraVolumeMounts
+# and a service's own copy of them.
+#
+# A service's list REPLACES the chart-wide one; the two are not merged. That is
+# the precedence the chart already uses for hostAliases, nodeSelector and the
+# security contexts, and for volumes it is the only safe one: concatenating the
+# two lists would emit two entries with the same `name` the moment an operator
+# narrowed a chart-wide volume for one service, and the API server rejects a pod
+# with duplicate volume names outright.
+#
+# The cost of that choice is the case in "falls back ... when the service's list
+# is empty": a service cannot opt OUT of a chart-wide list by setting `[]`,
+# because Helm's `default` treats an empty list as absent. Nothing here depends
+# on being able to, but the behaviour is pinned so it cannot change silently.
+suite: extra env and volume precedence
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: uses the service's own list instead of the chart-wide one
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      app:
+        extraEnv:
+          - name: SOURCE
+            value: app-only
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: app-only
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  - it: leaves the other services on the chart-wide list in the same render
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      app:
+        extraEnv:
+          - name: SOURCE
+            value: app-only
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  - it: replaces the chart-wide volumes and mounts, rather than adding to them
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraVolumes:
+        - name: chart-wide-ca
+          configMap:
+            name: chart-wide-ca
+      extraVolumeMounts:
+        - name: chart-wide-ca
+          mountPath: /etc/ssl/chart-wide
+      app:
+        extraVolumes:
+          - name: app-ca
+            configMap:
+              name: app-ca
+        extraVolumeMounts:
+          - name: app-ca
+            mountPath: /etc/ssl/app
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 1
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: app-ca
+            configMap:
+              name: app-ca
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: chart-wide-ca
+            configMap:
+              name: chart-wide-ca
+
+  - it: falls back to the chart-wide list when the service's list is empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      app:
+        extraEnv: []
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  - it: takes a service's list with no chart-wide default set at all
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner:
+        extraEnv:
+          - name: RUNNER_ONLY
+            value: "1"
+        extraVolumes:
+          - name: runner-scratch
+            emptyDir: {}
+        extraVolumeMounts:
+          - name: runner-scratch
+            mountPath: /scratch
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RUNNER_ONLY
+            value: "1"
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: runner-scratch
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: runner-scratch
+            mountPath: /scratch
+
+  # Probes are a map, so the override is read off the individual probe rather
+  # than off a fixed key.
+  - it: honours a single probe's own list over the chart-wide one
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      probes:
+        one:
+          extraEnv:
+            - name: SOURCE
+              value: probe-one-only
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: probe-one-only
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  - it: honours the e2e cron's own list over the chart-wide one
+    templates:
+      - templates/e2e-cron.yml
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      cronJobs:
+        e2e:
+          enabled: true
+          extraEnv:
+            - name: SOURCE
+              value: e2e-only
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: e2e-only
+
+  # vllm.extraEnv predates the chart-wide list. It keeps winning, and it now
+  # inherits the chart-wide list when it is left unset.
+  - it: keeps vllm.extraEnv winning over the chart-wide list
+    templates:
+      - templates/vllm.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      vllm:
+        enabled: true
+        extraEnv:
+          - name: SOURCE
+            value: vllm-only
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: vllm-only
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  - it: gives vllm the chart-wide list when vllm.extraEnv is unset
+    templates:
+      - templates/vllm.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      extraEnv:
+        - name: SOURCE
+          value: chart-wide
+      vllm:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE
+            value: chart-wide
+
+  # ---------------------------------------------------------------------------
+  # The lists are passed through verbatim, so anything Kubernetes accepts in an
+  # EnvVar / Volume / VolumeMount has to survive the round trip.
+  # ---------------------------------------------------------------------------
+  - it: passes a valueFrom env entry through untouched
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-smtp
+              key: password
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SMTP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: my-smtp
+                key: password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+
+  - it: passes secret, hostPath and projected volume shapes through untouched
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraVolumes:
+        - name: keytab
+          secret:
+            secretName: kerberos-keytab
+            defaultMode: 384
+        - name: host-certs
+          hostPath:
+            path: /etc/pki/tls/certs
+            type: Directory
+        - name: bundle
+          projected:
+            sources:
+              - configMap:
+                  name: internal-ca-bundle
+              - secret:
+                  name: partner-ca
+      extraVolumeMounts:
+        - name: keytab
+          mountPath: /etc/krb5.keytab
+          subPath: krb5.keytab
+          readOnly: true
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: keytab
+            secret:
+              secretName: kerberos-keytab
+              defaultMode: 384
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: host-certs
+            hostPath:
+              path: /etc/pki/tls/certs
+              type: Directory
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: bundle
+            projected:
+              sources:
+                - configMap:
+                    name: internal-ca-bundle
+                - secret:
+                    name: partner-ca
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: keytab
+            mountPath: /etc/krb5.keytab
+            subPath: krb5.keytab
+            readOnly: true
+
+  # Extras are appended AFTER the chart's own variables. Kubernetes applies the
+  # last entry for a duplicated name, so this ordering is what lets an operator
+  # override a variable the chart already sets.
+  - it: appends extra env after the variables the chart sets itself
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: LOG_LEVEL
+          value: DEBUG
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[-1]
+          value:
+            name: LOG_LEVEL
+            value: DEBUG
+
+  - it: renders every entry of a multi-entry list, in order
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraEnv:
+        - name: FIRST
+          value: "1"
+        - name: SECOND
+          value: "2"
+        - name: THIRD
+          value: "3"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[-3]
+          value:
+            name: FIRST
+            value: "1"
+      - equal:
+          path: spec.template.spec.containers[0].env[-2]
+          value:
+            name: SECOND
+            value: "2"
+      - equal:
+          path: spec.template.spec.containers[0].env[-1]
+          value:
+            name: THIRD
+            value: "3"
+
+  # A volume with no matching mount is legal Kubernetes (a sidecar injected by a
+  # webhook may claim it), so the chart must not invent a mount for it.
+  - it: emits the volume without inventing a mount for it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      extraVolumes:
+        - name: injected
+          emptyDir: {}
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts

@@ -42,7 +42,6 @@ import {
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.CreateProjectTeam,
     Permission.EditProjectTeamPermissions,
   ],
   read: [
@@ -92,7 +91,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -133,7 +131,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -168,7 +165,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -209,7 +205,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -239,11 +234,7 @@ export default class TeamPermission extends BaseModel {
   public teamId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -280,11 +271,7 @@ export default class TeamPermission extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -312,11 +299,7 @@ export default class TeamPermission extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -376,7 +359,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -416,7 +398,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -467,7 +448,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [
@@ -503,7 +483,6 @@ export default class TeamPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.EditProjectTeamPermissions,
     ],
     read: [

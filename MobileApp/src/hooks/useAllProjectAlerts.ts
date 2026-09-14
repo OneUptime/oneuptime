@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
-import { fetchAllAlerts } from "../api/alerts";
+import { useActiveProject } from "./useProject";
+import { fetchAlerts } from "../api/alerts";
 import type {
+  ProjectItem,
   ListResponse,
   AlertItem,
   ProjectAlertItem,
-  ProjectItem,
 } from "../api/types";
 
 const FETCH_LIMIT: number = 100;
@@ -18,46 +18,55 @@ interface UseAllProjectAlertsResult {
   refetch: () => Promise<void>;
 }
 
+/** The public name is retained for callers; only the selected project is queried. */
 export function useAllProjectAlerts(): UseAllProjectAlertsResult {
-  const { projectList } = useProject();
-
+  const { projectList, isLoadingProjects } = useActiveProject();
+  const project: ProjectItem | undefined = projectList[0];
+  const projectId: string | undefined = project?._id;
   const query: UseQueryResult<ListResponse<AlertItem>, Error> = useQuery({
-    queryKey: ["alerts", "all-projects"],
+    queryKey: ["alerts", projectId],
     queryFn: () => {
-      return fetchAllAlerts({ skip: 0, limit: FETCH_LIMIT });
+      if (!projectId) {
+        return Promise.resolve({
+          data: [],
+          count: 0,
+          skip: 0,
+          limit: FETCH_LIMIT,
+        });
+      }
+      return fetchAlerts(projectId, { skip: 0, limit: FETCH_LIMIT });
     },
-    enabled: projectList.length > 0,
+    enabled: Boolean(projectId) && !isLoadingProjects,
+    placeholderData: undefined,
   });
 
-  const projectMap: Map<string, string> = useMemo(() => {
-    const map: Map<string, string> = new Map();
-    projectList.forEach((p: ProjectItem) => {
-      map.set(p._id, p.name);
-    });
-    return map;
-  }, [projectList]);
-
   const items: ProjectAlertItem[] = useMemo(() => {
-    if (!query.data) {
+    const rows: AlertItem[] | undefined = query.data?.data;
+    if (!project || !Array.isArray(rows)) {
       return [];
     }
-    return query.data.data.map((item: AlertItem): ProjectAlertItem => {
-      const pid: string = item.projectId ?? "";
-      return {
-        item,
-        projectId: pid,
-        projectName: projectMap.get(pid) ?? "",
-      };
-    });
-  }, [query.data, projectMap]);
+    return rows
+      .filter((item: AlertItem) => {
+        return !item.projectId || item.projectId === project._id;
+      })
+      .map((item: AlertItem): ProjectAlertItem => {
+        return {
+          item,
+          projectId: project._id,
+          projectName: project.name,
+        };
+      });
+  }, [query.data, project]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await query.refetch();
+    if (projectId) {
+      await query.refetch();
+    }
   };
 
   return {
     items,
-    isLoading: query.isPending,
+    isLoading: isLoadingProjects || query.isLoading,
     isError: query.isError,
     refetch,
   };

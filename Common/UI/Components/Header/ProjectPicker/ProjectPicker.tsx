@@ -37,7 +37,12 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   }, [isComponentVisible]);
 
   return (
-    <div className="w-64">
+    /*
+     * min-w-0 so the picker is what truncates when the header is tight — its
+     * label is already `truncate`, and the alternative is the whole row
+     * overflowing the viewport. Narrower below sm for the same reason.
+     */
+    <div className="w-48 min-w-0 sm:w-64">
       <div className="relative w-full">
         <button
           onClick={() => {

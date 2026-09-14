@@ -10,6 +10,9 @@ import WorkflowService from "./WorkflowService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class WorkflowOwnerRuleEngineServiceClass {
   /**
@@ -35,6 +38,7 @@ class WorkflowOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             workflowLabels: { _id: true },
             workflowNamePattern: true,
@@ -42,9 +46,15 @@ class WorkflowOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "WorkflowOwnerRule",
+        projectId: workflow.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -149,6 +159,24 @@ class WorkflowOwnerRuleEngineServiceClass {
   }
 
   private doesWorkflowMatchRule(
+    workflow: Workflow,
+    rule: WorkflowOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "workflowLabels",
+        "workflowNamePattern",
+        "workflowDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (workflowRule: WorkflowOwnerRule): boolean => {
+        return this.doesWorkflowMatchRuleLegacy(workflow, workflowRule);
+      },
+    });
+  }
+
+  private doesWorkflowMatchRuleLegacy(
     workflow: Workflow,
     rule: WorkflowOwnerRule,
   ): boolean {

@@ -37,7 +37,7 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import TraceTable from "../../../Components/Traces/TraceTable";
+import TracesViewer from "../../../Components/Traces/TracesViewer";
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import AffectedResourcesPicker, {
@@ -48,6 +48,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -71,7 +72,7 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
-import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
+import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -487,14 +488,25 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   {telemetryQuery.telemetryType === TelemetryType.Trace &&
                     telemetryQuery.telemetryQuery && (
                       <div>
-                        <TraceTable
-                          spanQuery={
-                            telemetryQuery.telemetryQuery as Query<Span>
-                          }
+                        <Card
+                          title={"Spans"}
+                          description={"Spans for this alert."}
                           rightElement={snapshotWindowAlert}
-                          // Pinned to the snapshot; a URL-restored filter must not replace it.
-                          disableUrlState={true}
-                        />
+                        >
+                          <TracesViewer
+                            spanQuery={
+                              telemetryQuery.telemetryQuery as Query<Span>
+                            }
+                            limit={10}
+                            /*
+                             * Pinned to the snapshot: this page owns the URL,
+                             * so the viewer neither reads a filter out of it
+                             * nor writes its own state back into it.
+                             */
+                            disableUrlSync={true}
+                            emptyMessage="No spans found"
+                          />
+                        </Card>
                       </div>
                     )}
 
@@ -525,16 +537,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                   {telemetryQuery.telemetryType === TelemetryType.Exception &&
                     telemetryQuery.telemetryQuery && (
-                      <ExceptionInstanceTable
-                        title="Exceptions"
-                        description="Exceptions for this alert."
-                        query={
-                          telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                        }
+                      <Card
+                        title={"Exceptions"}
+                        description={"Exceptions for this alert."}
                         rightElement={snapshotWindowAlert}
-                        // Pinned to the snapshot; a URL-restored filter must not replace it.
-                        disableUrlState={true}
-                      />
+                      >
+                        <ExceptionsViewer
+                          exceptionInstanceQuery={
+                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                          }
+                          /*
+                           * An event shows the exceptions it fired on,
+                           * whoever has since resolved them and whatever the
+                           * classifier made of them — the explorer's
+                           * "unresolved issues" defaults would hide exactly
+                           * those.
+                           */
+                          defaultStatus="all"
+                          defaultClassScope="all"
+                          limit={10}
+                          // Pinned to the snapshot; this page owns the URL.
+                          disableUrlSync={true}
+                          emptyMessage="No exceptions found"
+                        />
+                      </Card>
                     )}
                 </Fragment>
               }
@@ -859,6 +885,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       proxmoxClusters={
                         values.proxmoxClusters as Array<ProxmoxCluster>
                       }
+                      vmwareVCenters={
+                        values.vmwareVCenters as Array<VMwareVCenter>
+                      }
                       cephClusters={values.cephClusters as Array<CephCluster>}
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
@@ -871,6 +900,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "DockerHost",
                         "PodmanHost",
                         "ProxmoxCluster",
+                        "VMwareVCenter",
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
@@ -897,6 +927,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
                         proxmoxClusters: payload.proxmoxClusters,
+                        vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
@@ -939,6 +970,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { vmwareVCenters: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1010,6 +1050,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1038,6 +1082,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}

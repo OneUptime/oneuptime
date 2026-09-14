@@ -273,12 +273,18 @@ describe("MonitorRecommendationCreateUtil", () => {
       expect(monitor.monitorType).toBe(MonitorType.Kubernetes);
     });
 
-    it("interpolates the FULL monitor name into incident titles", () => {
+    it("interpolates the RESOURCE name into incident titles, not the composed monitor name", () => {
       /*
-       * The bug this pins: passing the bare resource name would title every
-       * incident after the resource, and passing the bare recommendation name
-       * would title it after the check with no resource — either way, an
-       * on-call engineer with several clusters cannot tell them apart.
+       * The stuttering production subject line:
+       *
+       *   [K8s] Pod CPU Saturating Container Limit (>90%)
+       *     - oneuptime-test - Pod CPU Saturating Container Limit
+       *
+       * Every template title already restates the template's own name, and
+       * the monitor's name ends with that same template name, so passing the
+       * composed name in repeated it. Naming nothing at all would be the
+       * opposite failure — an on-call engineer with several clusters could
+       * not tell them apart — so the resource must appear exactly ONCE.
        */
       const recommendation: MonitorRecommendation =
         KUBERNETES_RECOMMENDATIONS[0]!;
@@ -295,9 +301,56 @@ describe("MonitorRecommendationCreateUtil", () => {
       expect(incidents.length).toBeGreaterThan(0);
 
       for (const incident of incidents) {
-        expect(incident.title).toContain(RESOURCE_DISPLAY_NAME);
-        expect(incident.title).toContain(recommendation.name);
+        const title: string = incident.title!;
+
+        // The resource is still named — exactly once.
+        expect(title).toContain(RESOURCE_DISPLAY_NAME);
+        expect(title.split(RESOURCE_DISPLAY_NAME).length - 1).toBe(1);
+
+        /*
+         * And the template name is not repeated after it. This is the
+         * assertion that fails if the composed monitor name is passed back
+         * in: the title would end "- <resource> - <template name>".
+         */
+        expect(title).not.toContain(
+          `${RESOURCE_DISPLAY_NAME} - ${recommendation.name}`,
+        );
       }
+    });
+
+    it("still names the monitor itself with the composed name", () => {
+      /*
+       * The monitor's own name is deliberately NOT what the templates
+       * interpolate. It keeps the composed form so the monitors list stays
+       * readable — this is the half of the fix that is easy to over-apply.
+       */
+      const recommendation: MonitorRecommendation =
+        KUBERNETES_RECOMMENDATIONS[0]!;
+
+      const monitor: Monitor = MonitorRecommendationCreateUtil.buildMonitor({
+        recommendation: recommendation,
+        args: buildArgs(),
+        resourceDisplayName: RESOURCE_DISPLAY_NAME,
+        defaultMonitorStatusId: DEFAULT_STATUS_ID,
+        notificationSettings: {},
+      });
+
+      expect(monitor.name).toBe(
+        `${RESOURCE_DISPLAY_NAME} - ${recommendation.name}`,
+      );
+    });
+
+    it("falls back to the composed name when the resource has no display name", () => {
+      // Otherwise a title would end in a bare " - ".
+      const recommendation: MonitorRecommendation =
+        KUBERNETES_RECOMMENDATIONS[0]!;
+
+      expect(
+        MonitorRecommendationUtil.getTemplateMonitorName({
+          recommendation: recommendation,
+          resourceDisplayName: "   ",
+        }),
+      ).toBe(recommendation.name);
     });
 
     it("produces monitorSteps that pass validation for every recommendation", () => {

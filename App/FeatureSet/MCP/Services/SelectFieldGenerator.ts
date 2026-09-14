@@ -44,6 +44,28 @@ const HEAVY_COLUMN_TYPES: TableColumnType[] = [
  */
 const HEAVY_COLUMN_EXEMPTIONS: Set<string> = new Set<string>([
   "Host.hostIpAddresses",
+
+  /*
+   * dropdownOptions on the custom-field tables. Unlike Host.hostIpAddresses
+   * above, this payload is NOT small: an option list is a reference table —
+   * a 250-entry country list is ~2.7 KB plain and ~10 KB once any option
+   * carries a colour. It is exempt anyway because for a Dropdown or
+   * MultiSelectDropdown field the option list IS the set of legal values, so
+   * an agent holding the definition without it cannot tell what it may write.
+   * These are definition tables with a handful of rows per project, so the
+   * absolute cost of a default list response stays bounded; the alternative —
+   * keeping it heavy — costs the agent a second explicit select per field it
+   * actually wants to use, on every listing.
+   */
+  "AlertCustomField.dropdownOptions",
+  "IncidentCustomField.dropdownOptions",
+  "InventoryItemCustomField.dropdownOptions",
+  "MonitorCustomField.dropdownOptions",
+  "OnCallDutyPolicyCustomField.dropdownOptions",
+  "ScheduledMaintenanceCustomField.dropdownOptions",
+  "StatusPageCustomField.dropdownOptions",
+  "TeamCustomField.dropdownOptions",
+  "TeamMemberCustomField.dropdownOptions",
 ]);
 
 function isHeavyColumn(

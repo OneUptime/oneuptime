@@ -6,11 +6,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   # Every Helm chart test, in one check. The runner walks HelmChart/Tests/suites
@@ -36,6 +35,25 @@ jobs:
         run: echo "Run 'npm run test-helm-chart-all', or a single suite with 'bash ./HelmChart/Tests/run.sh <suite>' (suites live in HelmChart/Tests/suites). 'npm run test-helm-chart' still runs just the cluster-free helm-unittest suites."
 
 
+  # The shell scripts the release runs on. They only ever execute during a
+  # release, where a bug in one costs a 90-minute rerun -- or, as in 12.0.27,
+  # a release that shipped every image and then stranded itself as a draft. The
+  # suites stub out syft and zero the retry delays, so this job talks to no
+  # registry and finishes in seconds.
+  gha-scripts-test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Run Scripts/GHA tests
+        run: bash ./Scripts/GHA/Tests/run.sh
+      - name: Show how to run these locally
+        if: ${{ failure() }}
+        run: echo "Run 'npm run test-gha-scripts', or a single suite with 'bash ./Scripts/GHA/Tests/run.sh <suite>' (suites are the *_test.sh files in Scripts/GHA/Tests)."
+
+
   js-lint:
     runs-on: ubuntu-latest
     env:
@@ -43,10 +61,18 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y curl gcc
-      - run: sudo apt-get install -y build-essential
-      - run: sudo apt-get install -y nodejs
+      # This job used to `apt-get update` and then install curl, gcc,
+      # build-essential and nodejs. ubuntu-latest ships all four, and the apt
+      # `nodejs` package is older than the Node this repo requires anyway (it
+      # installs as /usr/bin/nodejs and never shadowed the runner's node), so
+      # the four steps cost a minute of package-index traffic and changed
+      # nothing. setup-node pins the Node the rest of CI uses and caches the
+      # npm download for the install below.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: npm install
       - run: npm run lint
       - name: Validate locale files (key parity + placeholders)

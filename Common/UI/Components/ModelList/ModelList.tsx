@@ -21,7 +21,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -76,17 +76,25 @@ const ModelList: <TBaseModel extends BaseModel>(
     props.onSelectChange?.(selectedList);
   }, [selectedList]);
 
+  /*
+   * Bumped by every fetch (and on unmount). A response only lands if no newer
+   * fetch has started since, so a slow earlier request - e.g. one still in
+   * flight when refreshToggle flips - can never overwrite a newer list.
+   */
+  const fetchGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      fetchGenerationRef.current++;
+    };
+  }, []);
+
+  // Also runs on mount, so this is the initial fetch too.
   useEffect(() => {
     fetchItems().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, [props.refreshToggle]);
-
-  useEffect(() => {
-    fetchItems().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
 
   useEffect(() => {
     if (!props.isSearchEnabled) {
@@ -95,6 +103,15 @@ const ModelList: <TBaseModel extends BaseModel>(
   }, [props.isSearchEnabled, modelList]);
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+    fetchGenerationRef.current++;
+    const generation: number = fetchGenerationRef.current;
+
+    type IsStaleFunction = () => boolean;
+
+    const isStale: IsStaleFunction = (): boolean => {
+      return generation !== fetchGenerationRef.current;
+    };
+
     setError("");
     setIsLoading(true);
 
@@ -159,9 +176,17 @@ const ModelList: <TBaseModel extends BaseModel>(
         });
       }
 
+      if (isStale()) {
+        return;
+      }
+
       props.onListLoaded?.(listResult.data);
       setModalList(listResult.data);
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
     }
 
@@ -209,12 +234,12 @@ const ModelList: <TBaseModel extends BaseModel>(
         id: item.id,
       });
 
+      // fetchItems clears the loader itself - unless a newer fetch owns it.
       await fetchItems();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (

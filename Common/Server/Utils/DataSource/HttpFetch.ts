@@ -6,6 +6,7 @@ import {
   DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
   DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
 } from "../../../Types/DataSource/DataSourceLimits";
+import OutboundUserAgent from "../OutboundUserAgent";
 import DataSourceEgressGuard, { EgressGuardOptions } from "./EgressGuard";
 import { DataSourceConnectionSettings } from "./Types";
 
@@ -20,7 +21,11 @@ import { DataSourceConnectionSettings } from "./Types";
  *    window while TLS still verifies against the original hostname;
  *  - refuses redirects (maxRedirects: 0) — a 3xx from the target could
  *    otherwise bounce the request to an unvalidated host;
- *  - caps response size and wall-clock time.
+ *  - caps response size and wall-clock time;
+ *  - identifies itself with OneUptime's User-Agent unless the caller set
+ *    one. Left to axios, every request would go out as `axios/<version>`,
+ *    which WAFs and bot-management products block by default — a target
+ *    that answers 403 to a bare library UA never gets to see the query.
  *
  * Uses axios directly (not Common/Utils/API.fetch) because the shared
  * wrapper does not expose maxContentLength, and the response-size cap is a
@@ -47,6 +52,13 @@ export interface DataSourceHttpResponse {
   bodyText: string;
   // Parsed JSON body, or undefined when the body is not valid JSON.
   bodyJson: unknown;
+  /*
+   * Response headers with lowercased names. Some protocols carry
+   * pagination state in headers rather than the body (TAXII 2.1's
+   * X-TAXII-Date-Added-Last cursor), so the transport surfaces them.
+   * Optional so hand-built responses (test fixtures) stay minimal.
+   */
+  headers?: Dictionary<string> | undefined;
 }
 
 export default class DataSourceHttpFetch {
@@ -92,7 +104,9 @@ export default class DataSourceHttpFetch {
         request.egressOptions,
       );
 
-    const headers: Dictionary<string> = { ...(request.headers || {}) };
+    const headers: Dictionary<string> = OutboundUserAgent.withDefault(
+      request.headers,
+    );
 
     let data: string | URLSearchParams | undefined = undefined;
     if (request.method === "POST" && request.body !== undefined) {
@@ -148,10 +162,21 @@ export default class DataSourceHttpFetch {
         bodyJson = undefined;
       }
 
+      const responseHeaders: Dictionary<string> = {};
+      for (const key of Object.keys(response.headers || {})) {
+        const value: unknown = (response.headers as Record<string, unknown>)[
+          key
+        ];
+        if (value !== undefined && value !== null) {
+          responseHeaders[key.toLowerCase()] = String(value);
+        }
+      }
+
       return {
         statusCode: response.status,
         bodyText: bodyText,
         bodyJson: bodyJson,
+        headers: responseHeaders,
       };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

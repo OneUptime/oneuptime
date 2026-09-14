@@ -19,10 +19,28 @@ import {
   isLogsAttributeColumnId,
   normalizeLogsTableColumns,
 } from "../types";
+import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
+import {
+  getLogEntityDisplay,
+  LogEntityDisplay,
+  LogsResourceEntityMaps,
+} from "../LogsEntityNames";
 
 export interface LogsTableProps {
   logs: Array<Log>;
   serviceMap: Dictionary<Service>;
+  /*
+   * Names for primaryEntityIds serviceMap does not hold — a RUM
+   * application, a host, a serverless function (see LogsEntityNames). The
+   * Service column falls back to it instead of printing the raw id.
+   */
+  entityNameMap?: TelemetryEntityNameMap | undefined;
+  /*
+   * Preloaded host / Docker host / Podman host / Kubernetes cluster maps.
+   * Agent-ingested telemetry is primary-keyed on those rows, and such ids
+   * are named from these maps rather than sent to the resolver.
+   */
+  resourceEntityMaps?: LogsResourceEntityMaps | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
   onRowClick: (log: Log, rowId: string) => void;
@@ -379,13 +397,17 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const rowId: string = resolveLogIdentifier(log, index);
               const primaryEntityId: string =
                 log.primaryEntityId?.toString() || "";
-              const service: Service | undefined =
-                props.serviceMap[primaryEntityId];
-              const serviceName: string =
-                service?.name || primaryEntityId || "Unknown";
-              const serviceColor: string =
-                (service?.serviceColor && service?.serviceColor.toString()) ||
-                "#94a3b8";
+              const entityDisplay: LogEntityDisplay = getLogEntityDisplay({
+                primaryEntityId,
+                serviceMap: props.serviceMap,
+                resourceMaps: props.resourceEntityMaps,
+                entityNameMap: props.entityNameMap,
+              });
+              const serviceName: string = entityDisplay.name || "Unknown";
+              const serviceColor: string = entityDisplay.color || "#94a3b8";
+              const serviceTitle: string = entityDisplay.typeLabel
+                ? `${entityDisplay.typeLabel}: ${serviceName}`
+                : serviceName;
 
               const message: string = log.body?.toString() || "";
               const traceId: string = log.traceId?.toString() || "";
@@ -439,7 +461,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                 style={{ backgroundColor: serviceColor }}
                                 aria-hidden="true"
                               />
-                              <span className="truncate" title={serviceName}>
+                              <span className="truncate" title={serviceTitle}>
                                 {serviceName}
                               </span>
                             </div>

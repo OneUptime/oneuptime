@@ -36,6 +36,18 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 const CONTAINER_ID_ATTR: string = "resource.container.id";
 const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
 
+/*
+ * Labels for the locked chips the Logs tab builds from logQuery.attributes.
+ * Without them the chips read as raw OTel resource keys
+ * ("resource.container.id: 3f2a9c…"). Display only — the query keeps
+ * filtering on the attribute keys and values.
+ */
+const LOG_ATTRIBUTE_DISPLAY_KEYS: Record<string, string> = {
+  "resource.host.name": "Docker Host",
+  "resource.container.runtime": "Runtime",
+  "resource.container.id": "Container",
+};
+
 const DockerHostContainerDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -150,6 +162,24 @@ const DockerHostContainerDetail: FunctionComponent<
     return q as Query<Log>;
   }, [host?.hostIdentifier, containerId]);
 
+  /*
+   * What the Logs tab's locked chips read. The filter matches the host's
+   * machine identifier and the container's id (filelog only records the
+   * id), but a person knows the host by its name and the container by the
+   * name they clicked through from — show those instead.
+   */
+  const logAttributeDisplayValues: Record<string, string> = useMemo(() => {
+    const displayValues: Record<string, string> = {
+      "resource.host.name": host?.name || host?.hostIdentifier || "",
+    };
+
+    if (containerId) {
+      displayValues["resource.container.id"] = containerName || containerId;
+    }
+
+    return displayValues;
+  }, [host?.name, host?.hostIdentifier, containerId, containerName]);
+
   const metricQueryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
     const hostIdentifier: string = host?.hostIdentifier || "";
 
@@ -222,7 +252,10 @@ const DockerHostContainerDetail: FunctionComponent<
               title="Container ID"
               value={containerId ? containerId.substring(0, 12) : "unavailable"}
             />
-            <InfoCard title="Host" value={host.hostIdentifier || "—"} />
+            <InfoCard
+              title="Host"
+              value={host.name || host.hostIdentifier || "—"}
+            />
           </div>
         </div>
       ),
@@ -251,6 +284,8 @@ const DockerHostContainerDetail: FunctionComponent<
           <DashboardLogsViewer
             id={`docker-container-logs-${containerName}`}
             logQuery={logQuery}
+            attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
+            attributeFilterDisplayValues={logAttributeDisplayValues}
             showFilters={true}
             enableRealtime={true}
             noLogsMessage="No logs found for this container. Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers."

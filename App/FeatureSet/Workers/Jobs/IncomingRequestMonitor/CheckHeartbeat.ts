@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import runMonitorSweep from "../../Utils/MonitorSweep";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -9,7 +10,6 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
@@ -23,77 +23,35 @@ RunCron(
         ),
     );
 
-    const newIncomingRequestMonitors: Array<Monitor> =
-      await MonitorService.findAllBy({
-        query: {
+    const sweepStartedAt: Date = OneUptimeDate.getCurrentDate();
+
+    await runMonitorSweep({
+      jobName: "IncomingRequestMonitor:CheckHeartbeat",
+      queries: [
+        {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingRequest,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
+          project: { ...ProjectService.getActiveProjectStatusQuery() },
           incomingRequestMonitorHeartbeatCheckedAt: QueryHelper.isNull(),
         },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          monitorSteps: true,
-          incomingMonitorRequest: true,
-          incomingRequestMonitorHeartbeatCheckedAt: true,
-          createdAt: true,
-          projectId: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-      });
-
-    const incomingRequestMonitors: Array<Monitor> =
-      await MonitorService.findAllBy({
-        query: {
+        {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingRequest,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
-          incomingRequestMonitorHeartbeatCheckedAt: QueryHelper.notNull(),
+          project: { ...ProjectService.getActiveProjectStatusQuery() },
+          // Exclude monitors stamped in the never-checked phase above.
+          incomingRequestMonitorHeartbeatCheckedAt:
+            QueryHelper.lessThan(sweepStartedAt),
         },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          monitorSteps: true,
-          incomingMonitorRequest: true,
-          incomingRequestMonitorHeartbeatCheckedAt: true,
-          createdAt: true,
-          projectId: true,
-        },
-        sort: {
-          incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
-        },
-      });
-
-    const totalIncomingRequestMonitors: Array<Monitor> = [
-      ...newIncomingRequestMonitors,
-      ...incomingRequestMonitors,
-    ];
-
-    logger.debug(
-      `Found ${totalIncomingRequestMonitors.length} incoming request monitors`,
-    );
-
-    logger.debug(totalIncomingRequestMonitors);
-
-    for (const monitor of totalIncomingRequestMonitors) {
-      checkHeartBeat(monitor).catch((error: Error) => {
-        logger.error(
-          `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
-        );
-        logger.error(error);
-      });
-    }
+      ],
+      select: {
+        _id: true,
+        monitorSteps: true,
+        incomingMonitorRequest: true,
+        createdAt: true,
+        projectId: true,
+      },
+      processMonitor: checkHeartBeat,
+    });
   },
 );
 

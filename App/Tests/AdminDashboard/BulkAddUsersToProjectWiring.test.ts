@@ -14,7 +14,7 @@ import nodePath from "path";
  *  - a `t("pages.users.bulkAddToProjectX")` whose key is missing from en.json
  *    renders the raw key as the modal's title, its step names or its button
  *    label;
- *  - a key present in en.json but missing from one of the other fifteen locale
+ *  - a key present in en.json but missing from one of the other sixteen locale
  *    files falls back to English, so a French admin gets an English modal and
  *    no error anywhere;
  *  - dropping `teamMember.projectId` produces a request a master admin's own
@@ -291,7 +291,7 @@ describe("Bulk add users to project translations", () => {
     expect(bulkAddTranslationKeys().length).toBeGreaterThan(10);
   });
 
-  test("all sixteen locale files are being looked at", () => {
+  test("all seventeen locale files are being looked at", () => {
     /*
      * The loops below prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
@@ -302,6 +302,7 @@ describe("Bulk add users to project translations", () => {
       "de.json",
       "en.json",
       "es.json",
+      "fa.json",
       "fr.json",
       "hi.json",
       "it.json",

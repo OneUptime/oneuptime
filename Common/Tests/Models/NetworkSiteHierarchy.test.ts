@@ -6,13 +6,15 @@
  * to break silently — a lazy-arrow typo or a decorator reorder leaves tsc
  * green while TypeORM builds a relation to the wrong target. The FK actions
  * are pinned too, because they carry the deletion semantics of the whole
- * hierarchy: deleting a parent must orphan (SET NULL) its children, not
- * cascade the subtree away, while timelines/links/rules die with their site.
+ * hierarchy: deleting a parent with surviving children must be rejected, not
+ * silently detach an invalid subtree or cascade it away, while
+ * timelines/links/rules still die with their site.
  */
 
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "../../Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
+import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSiteLink from "../../Models/DatabaseModels/NetworkSiteLink";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
@@ -58,7 +60,7 @@ describe("NetworkSite self-nesting hierarchy", () => {
     expect(metadata.manyToOneRelationColumn).toBe("parentSiteId");
   });
 
-  test("parentSite FK resolves to NetworkSite and orphans children with SET NULL", () => {
+  test("parentSite FK resolves to NetworkSite and protects surviving children", () => {
     const relation: RelationMetadataArgs | undefined = relationArgs(
       NetworkSite,
       "parentSite",
@@ -66,7 +68,42 @@ describe("NetworkSite self-nesting hierarchy", () => {
 
     expect(relation).toBeDefined();
     expect(relationTarget(relation)).toBe(NetworkSite);
-    expect(relation?.options.onDelete).toBe("SET NULL");
+    expect(relation?.options.onDelete).toBe("NO ACTION");
+  });
+
+  test("site type relations protect surviving references at statement end", () => {
+    const parentTypeRelation: RelationMetadataArgs | undefined = relationArgs(
+      NetworkSiteType,
+      "parentNetworkSiteType",
+    );
+    const siteTypeRelation: RelationMetadataArgs | undefined = relationArgs(
+      NetworkSite,
+      "networkSiteType",
+    );
+
+    expect(relationTarget(parentTypeRelation)).toBe(NetworkSiteType);
+    expect(parentTypeRelation?.options.onDelete).toBe("NO ACTION");
+    expect(relationTarget(siteTypeRelation)).toBe(NetworkSiteType);
+    expect(siteTypeRelation?.options.onDelete).toBe("NO ACTION");
+  });
+
+  test("project deletion can cascade through sites and site types together", () => {
+    const siteProjectRelation: RelationMetadataArgs | undefined = relationArgs(
+      NetworkSite,
+      "project",
+    );
+    const typeProjectRelation: RelationMetadataArgs | undefined = relationArgs(
+      NetworkSiteType,
+      "project",
+    );
+    const siteTypeRelation: RelationMetadataArgs | undefined = relationArgs(
+      NetworkSite,
+      "networkSiteType",
+    );
+
+    expect(siteProjectRelation?.options.onDelete).toBe("CASCADE");
+    expect(typeProjectRelation?.options.onDelete).toBe("CASCADE");
+    expect(siteTypeRelation?.options.onDelete).toBe("NO ACTION");
   });
 
   test("NetworkDevice.site relation targets NetworkSite with SET NULL", () => {

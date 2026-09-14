@@ -6,12 +6,12 @@ import {
   NetworkTopologyNodeDiagnostics,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
-import {
-  DEVICE_ROLES_IN_LEGEND_ORDER,
-  labelForDeviceRole,
-} from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
+import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
 import {
   TopologyNodeShape,
+  isUnclassifiedNode,
+  roleDisplayLabelForNode,
+  roleKeyOfNode,
   roleOfNode,
   shapeForNode,
 } from "../NetworkDevice/TopologyNodeShape";
@@ -152,9 +152,14 @@ export function nodeMatchesSearch(
   if (!lower) {
     return true;
   }
-  const role: NetworkTopologyDeviceRole = roleOfNode(node);
-  const roleText: string | undefined =
-    role === "unknown" ? undefined : labelForDeviceRole(role);
+  /*
+   * The project's configured label, so searching for a role a project
+   * renamed (or invented) finds it. An unclassified node still answers to
+   * nothing role-shaped - see isUnclassifiedNode.
+   */
+  const roleText: string | undefined = isUnclassifiedNode(node)
+    ? undefined
+    : roleDisplayLabelForNode(node);
   return [node.name, node.sysName, node.vendor, roleText].some(
     (value: string | undefined) => {
       return Boolean(value && value.toLowerCase().includes(lower));
@@ -186,7 +191,13 @@ export function isolationReasonForNode(
   }
 
   if (diagnostics.reportedNeighborCount === 0) {
-    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. Draw the link by hand under Device Links if you know what it connects to.";
+    /*
+     * Two routes, and the learned one first: a register, a handset or a
+     * kiosk that only answers ping will never report a neighbour, but the
+     * switch it plugs into already knows which port its MAC sits on. The
+     * hand-drawn link stays as the fallback for a cable no table can see.
+     */
+    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. If it only answers ping, set its MAC address on the device — or let a router at its site that collects endpoints learn it — and make sure the switch it plugs into collects endpoints: the map then finds its port in the switch's forwarding table. Draw the link by hand under Device Links if you know what it connects to.";
   }
 
   if (diagnostics.unmatchedNeighborIdentifiers.length > 0) {
@@ -351,37 +362,62 @@ export const LEGEND_SHAPE_COLOR: string = "var(--ou-text-muted, #6b7280)";
 export function buildTopologyLegend(
   nodes: Array<NetworkTopologyNode> | undefined,
 ): Array<TopologyLegendEntry> {
-  const presentRoles: Set<NetworkTopologyDeviceRole> =
-    new Set<NetworkTopologyDeviceRole>();
+  /*
+   * Keyed by role KEY, not by the built-in union, so a project's own role
+   * gets its own entry instead of being folded into whatever the classifier
+   * guessed underneath it. The first node seen for a key supplies the label
+   * and the shape - every node of one key carries the same stamp, because the
+   * stamp comes from one row.
+   */
+  const presentRoles: Map<string, NetworkTopologyNode> = new Map<
+    string,
+    NetworkTopologyNode
+  >();
   for (const node of nodes || []) {
-    if (!node) {
+    if (!node || isUnclassifiedNode(node)) {
       continue;
     }
-    const role: NetworkTopologyDeviceRole = roleOfNode(node);
-    if (role !== "unknown") {
-      presentRoles.add(role);
+    const key: string = roleKeyOfNode(node);
+    if (!presentRoles.has(key)) {
+      presentRoles.set(key, node);
     }
   }
 
-  const typeEntries: Array<TopologyLegendEntry> = [];
-  for (const role of DEVICE_ROLES_IN_LEGEND_ORDER) {
-    if (!presentRoles.has(role)) {
-      continue;
-    }
-    typeEntries.push({
+  const entryForNode: (node: NetworkTopologyNode) => TopologyLegendEntry = (
+    node: NetworkTopologyNode,
+  ): TopologyLegendEntry => {
+    return {
       group: "Type",
-      label: labelForDeviceRole(role),
+      label: roleDisplayLabelForNode(node),
       swatch: "shape",
       color: LEGEND_SHAPE_COLOR,
-      shape: shapeForNode({
-        id: "legend",
-        name: "legend",
-        isManaged: true,
-        status: "unknown",
-        kind: "device",
-        role: role,
-      }),
-    });
+      shape: shapeForNode(node),
+    };
+  };
+
+  const typeEntries: Array<TopologyLegendEntry> = [];
+  const emittedKeys: Set<string> = new Set<string>();
+
+  /*
+   * Built-in roles first and in the fixed legend order, so the familiar keys
+   * never reshuffle themselves under a poll. Anything left over is a role the
+   * project added; those follow, in the order they appear on the map, which is
+   * itself stable for a given payload.
+   */
+  for (const role of DEVICE_ROLES_IN_LEGEND_ORDER) {
+    const node: NetworkTopologyNode | undefined = presentRoles.get(role);
+    if (!node) {
+      continue;
+    }
+    typeEntries.push(entryForNode(node));
+    emittedKeys.add(role);
+  }
+
+  for (const [key, node] of presentRoles) {
+    if (emittedKeys.has(key)) {
+      continue;
+    }
+    typeEntries.push(entryForNode(node));
   }
 
   return [...TOPOLOGY_LEGEND, ...typeEntries];
@@ -404,10 +440,10 @@ export function accessibleLabelForNode(node: NetworkTopologyNode): string {
    */
   const nodeRole: NetworkTopologyDeviceRole = roleOfNode(node);
   if (
-    nodeRole !== "unknown" &&
+    !isUnclassifiedNode(node) &&
     !(nodeRole === "host" && node.kind === "endpoint")
   ) {
-    parts.push(labelForDeviceRole(nodeRole).toLowerCase());
+    parts.push(roleDisplayLabelForNode(node).toLowerCase());
   }
   if (node.kind === "endpoint") {
     parts.push("endpoint");

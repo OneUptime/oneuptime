@@ -14,6 +14,42 @@ export default interface Column<T extends GenericObject> {
   colSpan?: number | undefined;
   noValueMessage?: string | undefined;
   contentClassName?: string | undefined;
+  /*
+   * Let this cell's content wrap onto more than one line.
+   *
+   * Body cells are `whitespace-nowrap` by default, and `white-space` is an
+   * INHERITED property - so the nowrap declared on the <td> reaches every
+   * element `getElement` returns, whatever classes that element carries. A
+   * cell holding a free-text sentence (a status message, a probe error, an
+   * operator note) therefore renders as one long line that paints straight
+   * over the columns to its right, and a `max-w-*` on the inner element makes
+   * that WORSE rather than better: it caps the box the line overflows out of,
+   * so the text overlaps its neighbours instead of merely widening the table
+   * (OneUptime issue #3585). Never pair a max-width with a nowrap cell - that
+   * pairing is what this option exists to make unspellable.
+   *
+   * Set it on any column whose cell can hold server- or operator-authored
+   * prose. The cell then declares `whitespace-normal break-words` and its
+   * content is capped at `wrapMaxWidthClassName`, so long text wraps inside
+   * the column's own width. Leave it unset - the default, and no change for
+   * every column that has one today - for dates, counts, badges, ids and
+   * anything else that must stay on a single line.
+   *
+   * Desktop only, by construction: the mobile card layout declares no nowrap
+   * and already wraps, and it reads neither this nor `contentClassName`.
+   */
+  wrapContent?: boolean | undefined;
+  /*
+   * Width cap for a wrapping cell, e.g. "max-w-3xl". Read ONLY when
+   * `wrapContent` is set; defaults to "max-w-md" (28rem).
+   *
+   * It belongs here rather than in `contentClassName` for two reasons. Two
+   * `max-w-*` utilities on one element are resolved by Tailwind's stylesheet
+   * order, not by the order they were written, so the narrower one silently
+   * loses; and a width that is only emitted alongside a wrapping mode can
+   * never be the overlap generator described above.
+   */
+  wrapMaxWidthClassName?: string | undefined;
   alignItem?: AlignItem | undefined;
   key?: keyof T | null; //can be null because actions column does not have a key.
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices

@@ -71,6 +71,30 @@ enum CodeFixTaskType {
    * Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts).
    */
   FixFromIncident = "FixFromIncident",
+  /*
+   * Work a GitHub ISSUE and open a pull request that closes it. Triggered
+   * from GitHub itself — an "@oneuptime implement this" mention, an
+   * assignment to the app's bot user, or the repository's trigger label —
+   * never from the OneUptime UI. Its entire context (repository, issue
+   * number, the commenter's instruction) is captured into
+   * AIRun.taskContext.github at trigger time; see
+   * Common/Server/Utils/CodeRepository/GitHub/GitHubAgentTaskTrigger.ts.
+   */
+  GitHubIssueFix = "GitHubIssueFix",
+  /*
+   * Revise an EXISTING pull request in place: new commits pushed to the same
+   * head branch, no second pull request. Triggered by "@oneuptime revise
+   * this because ..." on the pull request. The head branch is captured into
+   * AIRun.taskContext.github at trigger time so a later force-push cannot
+   * silently redirect the run at another branch.
+   */
+  GitHubPullRequestRevision = "GitHubPullRequestRevision",
+  /*
+   * Review a pull request and post the review as a COMMENT. Changes nothing
+   * and pushes nothing — the one recipe that never touches the repository.
+   * Triggered by "@oneuptime review" or by requesting a review from the app.
+   */
+  GitHubPullRequestReview = "GitHubPullRequestReview",
 }
 
 export default CodeFixTaskType;
@@ -134,6 +158,9 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.FixPerformance:
       case CodeFixTaskType.ImproveLogging:
       case CodeFixTaskType.ImproveTracing:
+      case CodeFixTaskType.GitHubIssueFix:
+      case CodeFixTaskType.GitHubPullRequestRevision:
+      case CodeFixTaskType.GitHubPullRequestReview:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;
@@ -149,6 +176,41 @@ export class CodeFixTaskTypeHelper {
   public static requiresTelemetryException(taskType: CodeFixTaskType): boolean {
     return (
       this.getContextKind(taskType) === CodeFixContextKind.TelemetryException
+    );
+  }
+
+  /*
+   * The recipes triggered from a GitHub conversation rather than from
+   * OneUptime. They share a context shape (AIRun.taskContext.github), a
+   * task-details endpoint, and the rule that their outcome is reported back
+   * into the thread they came from.
+   */
+  public static getGitHubTaskTypes(): Array<CodeFixTaskType> {
+    return [
+      CodeFixTaskType.GitHubIssueFix,
+      CodeFixTaskType.GitHubPullRequestRevision,
+      CodeFixTaskType.GitHubPullRequestReview,
+    ];
+  }
+
+  public static isGitHubTaskType(taskType: CodeFixTaskType): boolean {
+    return this.getGitHubTaskTypes().includes(taskType);
+  }
+
+  /*
+   * Whether a recipe can open a NEW pull request. The per-repository open-PR
+   * cap exists to bound how many unreviewed AI pull requests a reviewer has
+   * to wade through, so it applies to recipes that ADD to that queue.
+   *
+   * A revision pushes to a pull request that is already open and already
+   * counted; a review writes nothing at all. Counting either against the cap
+   * would mean a repository at its cap could never have its existing AI pull
+   * requests improved or reviewed — the exact work that clears the cap.
+   */
+  public static opensNewPullRequest(taskType: CodeFixTaskType): boolean {
+    return (
+      taskType !== CodeFixTaskType.GitHubPullRequestRevision &&
+      taskType !== CodeFixTaskType.GitHubPullRequestReview
     );
   }
 

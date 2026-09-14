@@ -9,6 +9,25 @@
  * Listeners are added, never anything replaced. window.onerror is a single
  * assignable slot and taking it would break whatever error tracker the
  * customer already has installed - including ours.
+ *
+ * Two things the first version got wrong, both of which made the trigger
+ * fire for the wrong reasons or stop firing for the right ones:
+ *
+ *  - A capture-phase `error` listener on window also hears the NON-bubbling
+ *    `error` event an <img>, <script> or <link> fires when its resource
+ *    fails to load. That is a plain Event, not an ErrorEvent: no message, no
+ *    filename, no stack. It was recorded as a JavaScript error with an empty
+ *    message and, having no "Script error." signature to exclude it, it was
+ *    trigger-worthy - so one broken image or one ad-blocked tag uploaded the
+ *    session under the Error reason and burned the error cap on noise.
+ *    Resource failures are now their own kind, and never a trigger.
+ *
+ *  - Nothing de-duplicated. A page throwing in a requestAnimationFrame loop
+ *    spent the whole 100-error cap on one error inside two seconds, and the
+ *    first NEW error after that - the one that explained the failure - was
+ *    dropped with nothing to say so. Errors are fingerprinted; a repeat
+ *    counts against its fingerprint, not the cap, and surfaces as a
+ *    rate-limited repeat marker carrying the occurrence count.
  */
 
 export const ERROR_CUSTOM_EVENT_TAG: string = "oneuptime.error";
@@ -18,19 +37,50 @@ const MAX_STACK_LENGTH: number = 4000;
 const MAX_MESSAGE_LENGTH: number = 1000;
 
 /*
- * Per-page cap. A page that throws in a requestAnimationFrame loop would
- * otherwise fill every chunk with the same error and crowd out the DOM
- * events that make the recording worth watching.
+ * Per-SESSION cap on DISTINCT errors. Repeats of an already-recorded error
+ * do not count. Reset by resetForNewSession() when the recorder rolls the
+ * session over.
  */
-const MAX_ERRORS_RECORDED: number = 100;
+export const MAX_ERRORS_RECORDED: number = 100;
+
+/*
+ * How often a repeating error may put a repeat marker into the stream. The
+ * marker carries the running count, so a viewer sees "this threw 2,400
+ * times" rather than 2,400 identical rows or, worse, nothing at all.
+ */
+export const REPEAT_MARKER_INTERVAL_MS: number = 5000;
+
+/* How much of a stack's first frame line takes part in the fingerprint. */
+const FINGERPRINT_FRAME_LENGTH: number = 200;
+
+export type RecordedErrorKind = "error" | "unhandledrejection" | "resource";
 
 export interface RecordedError {
-  kind: "error" | "unhandledrejection";
+  kind: RecordedErrorKind;
   message: string;
   source?: string;
   lineNumber?: number;
   columnNumber?: number;
   stack?: string;
+
+  /* For kind "resource": the element that failed to load, lower-case. */
+  tagName?: string;
+}
+
+/*
+ * The wire payload: the masked error plus what the fingerprinting adds.
+ * Absent fields mean "a first occurrence, recorded while recording was
+ * running", which is what every payload before this looked like.
+ */
+export interface RecordedErrorPayload extends RecordedError {
+  occurredAtUnixMs?: number;
+
+  /* Set on a repeat marker: how many times this fingerprint has occurred. */
+  occurrences?: number;
+  isRepeat?: boolean;
+
+  /* Set on the single entry emitted when the per-session cap is hit. */
+  isCapMarker?: boolean;
 }
 
 /*
@@ -59,8 +109,11 @@ export interface ErrorRecorderOptions {
    * Called for every error observed, with the wall-clock time it happened.
    * isTriggerWorthy is false for errors that are recorded but must not
    * convert an error-triggered session into an upload: stackless
-   * cross-origin "Script error." noise, and anything the application's
-   * ignoreErrorPatterns match.
+   * cross-origin "Script error." noise, resource load failures, and
+   * anything the application's ignoreErrorPatterns match.
+   *
+   * Also called for each emitted repeat marker, with the verdict the first
+   * occurrence got - a repeating error is still the same error.
    */
   onError: (
     atUnixMs: number,
@@ -90,6 +143,13 @@ export interface ErrorRecorderOptions {
    * UrlScrubber; these two now do as well.
    */
   scrubUrl: (url: string) => string;
+
+  /*
+   * Called ONCE per session when the cap first drops a distinct error, so
+   * the recorder can attach a fidelity notice to the chunk. Optional so the
+   * wiring can land independently of this module.
+   */
+  onCapReached?: (cap: number) => void;
 }
 
 /*
@@ -99,31 +159,55 @@ export interface ErrorRecorderOptions {
  */
 const URL_IN_TEXT: RegExp = /https?:\/\/[^\s)'"]+/g;
 
+interface FingerprintRecord {
+  occurrences: number;
+  lastMarkerAtMs: number;
+  masked: RecordedError;
+  isTriggerWorthy: boolean;
+}
+
 export default class ErrorRecorder {
   private readonly options: ErrorRecorderOptions;
   private recordedCount: number = 0;
+  private capReported: boolean = false;
   private started: boolean = false;
 
-  private readonly errorListener: (event: ErrorEvent) => void;
+  /* Everything recorded this session, keyed by fingerprint. */
+  private fingerprints: Map<string, FingerprintRecord> = new Map<
+    string,
+    FingerprintRecord
+  >();
+
+  private readonly errorListener: (event: Event) => void;
   private readonly rejectionListener: (event: PromiseRejectionEvent) => void;
 
   public constructor(options: ErrorRecorderOptions) {
     this.options = options;
 
-    this.errorListener = (event: ErrorEvent): void => {
+    this.errorListener = (event: Event): void => {
+      const resource: RecordedError | null =
+        ErrorRecorder.describeResourceFailure(event);
+
+      if (resource) {
+        this.handle(resource);
+        return;
+      }
+
+      const errorEvent: ErrorEvent = event as ErrorEvent;
+
       this.handle({
         kind: "error",
-        message: event.message || "",
-        ...(typeof event.filename === "string" && event.filename
-          ? { source: event.filename }
+        message: errorEvent.message || "",
+        ...(typeof errorEvent.filename === "string" && errorEvent.filename
+          ? { source: errorEvent.filename }
           : {}),
-        ...(typeof event.lineno === "number"
-          ? { lineNumber: event.lineno }
+        ...(typeof errorEvent.lineno === "number"
+          ? { lineNumber: errorEvent.lineno }
           : {}),
-        ...(typeof event.colno === "number"
-          ? { columnNumber: event.colno }
+        ...(typeof errorEvent.colno === "number"
+          ? { columnNumber: errorEvent.colno }
           : {}),
-        ...ErrorRecorder.readStack(event.error),
+        ...ErrorRecorder.readStack(errorEvent.error),
       });
     };
 
@@ -145,7 +229,8 @@ export default class ErrorRecorder {
 
     /*
      * Capture phase so an error is observed even when a listener earlier in
-     * the bubble path stops propagation.
+     * the bubble path stops propagation. This is also what delivers resource
+     * load failures here - see the module header.
      */
     windowRef.addEventListener("error", this.errorListener, true);
     windowRef.addEventListener(
@@ -171,6 +256,17 @@ export default class ErrorRecorder {
   }
 
   /*
+   * A rotated session starts with a fresh cap and no memory of the previous
+   * session's errors: an error that first happened hours ago is a first
+   * occurrence again in a recording that starts now.
+   */
+  public resetForNewSession(): void {
+    this.recordedCount = 0;
+    this.capReported = false;
+    this.fingerprints = new Map<string, FingerprintRecord>();
+  }
+
+  /*
    * Record one error, replayed from a buffer the loader stub filled before
    * this module existed. occurredAtUnixMs is the ORIGINAL wall-clock time,
    * so the trigger decision and the emitted payload describe when the
@@ -181,8 +277,54 @@ export default class ErrorRecorder {
     this.handle(error, occurredAtUnixMs);
   }
 
+  /*
+   * A resource load failure, or null when the event is a real ErrorEvent.
+   *
+   * The `error` event of an <img>, <script>, <link>, <video>... does not
+   * bubble, but a CAPTURE listener on window still hears it. Its target is
+   * the element; a script error's target is the window. That, not the event
+   * class, is the test: some engines deliver both as ErrorEvent.
+   */
+  private static describeResourceFailure(event: Event): RecordedError | null {
+    const target: EventTarget | null = event.target;
+
+    if (
+      !target ||
+      typeof Element === "undefined" ||
+      !(target instanceof Element)
+    ) {
+      return null;
+    }
+
+    const tagName: string = (target.tagName || "").toLowerCase();
+
+    const url: string =
+      (target as Element).getAttribute("src") ||
+      (target as Element).getAttribute("href") ||
+      "";
+
+    return {
+      kind: "resource",
+      message: `Resource failed to load: <${tagName || "element"}>`,
+      tagName: tagName,
+      ...(url ? { source: url } : {}),
+    };
+  }
+
   private handle(error: RecordedError, occurredAtUnixMs?: number): void {
+    const atUnixMs: number = occurredAtUnixMs ?? Date.now();
+    const fingerprint: string = ErrorRecorder.fingerprintOf(error);
+
+    const known: FingerprintRecord | undefined =
+      this.fingerprints.get(fingerprint);
+
+    if (known) {
+      this.handleRepeat(known, atUnixMs);
+      return;
+    }
+
     if (this.recordedCount >= MAX_ERRORS_RECORDED) {
+      this.reportCapOnce(atUnixMs);
       return;
     }
 
@@ -207,6 +349,10 @@ export default class ErrorRecorder {
       masked.columnNumber = error.columnNumber;
     }
 
+    if (error.tagName !== undefined) {
+      masked.tagName = error.tagName;
+    }
+
     if (error.stack !== undefined) {
       /*
        * The stack's TEXT is not masked: it is frames and file paths, which is
@@ -221,8 +367,6 @@ export default class ErrorRecorder {
       masked.stack = this.scrubUrlsIn(error.stack).slice(0, MAX_STACK_LENGTH);
     }
 
-    const atUnixMs: number = occurredAtUnixMs ?? Date.now();
-
     /*
      * The trigger decision runs on the RAW error, before masking: an
      * ignore pattern written against "ResizeObserver loop limit exceeded"
@@ -230,18 +374,112 @@ export default class ErrorRecorder {
      * rewrote the message.
      */
     const isTriggerWorthy: boolean =
+      error.kind !== "resource" &&
       !ErrorRecorder.isUnactionableCrossOriginError(error) &&
       !this.matchesIgnorePattern(error);
 
-    const payload: Record<string, unknown> = { ...masked };
+    this.fingerprints.set(fingerprint, {
+      occurrences: 1,
+      lastMarkerAtMs: atUnixMs,
+      masked: masked,
+      isTriggerWorthy: isTriggerWorthy,
+    });
+
+    const payload: RecordedErrorPayload = { ...masked };
 
     if (occurredAtUnixMs !== undefined) {
       /* Replayed from before recording started; carry the honest time. */
-      payload["occurredAtUnixMs"] = occurredAtUnixMs;
+      payload.occurredAtUnixMs = occurredAtUnixMs;
     }
 
     this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, payload);
     this.options.onError(atUnixMs, masked, isTriggerWorthy);
+  }
+
+  /*
+   * An error already recorded this session happened again. It costs
+   * nothing against the cap; at most once per interval it puts a marker in
+   * the stream carrying the running count, and reports through onError
+   * with the verdict its first occurrence got.
+   */
+  private handleRepeat(known: FingerprintRecord, atUnixMs: number): void {
+    known.occurrences++;
+
+    if (atUnixMs - known.lastMarkerAtMs < REPEAT_MARKER_INTERVAL_MS) {
+      return;
+    }
+
+    known.lastMarkerAtMs = atUnixMs;
+
+    const payload: RecordedErrorPayload = {
+      ...known.masked,
+      isRepeat: true,
+      occurrences: known.occurrences,
+    };
+
+    this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, payload);
+    this.options.onError(atUnixMs, known.masked, known.isTriggerWorthy);
+  }
+
+  /*
+   * The first DISTINCT error past the cap becomes ONE marker in the stream,
+   * so the Errors panel shows where recording stopped and why instead of
+   * simply ending. Never a trigger, emitted once per session.
+   */
+  private reportCapOnce(atUnixMs: number): void {
+    if (this.capReported) {
+      return;
+    }
+
+    this.capReported = true;
+
+    const marker: RecordedErrorPayload = {
+      kind: "error",
+      message: `Error capture stopped after ${MAX_ERRORS_RECORDED} distinct errors in this session; later errors were not recorded.`,
+      isCapMarker: true,
+    };
+
+    this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, marker);
+    this.options.onError(atUnixMs, marker, false);
+
+    if (this.options.onCapReached) {
+      this.options.onCapReached(MAX_ERRORS_RECORDED);
+    }
+  }
+
+  /*
+   * What makes two errors "the same": kind, raw message, source location,
+   * and the first stack frame. The message alone is not enough (two
+   * components can throw "Cannot read properties of undefined") and the
+   * whole stack is too much (column numbers drift across a minified
+   * bundle's hot reloads). Computed on the RAW error - it never leaves the
+   * page.
+   */
+  public static fingerprintOf(error: RecordedError): string {
+    let frame: string = "";
+
+    if (error.stack) {
+      const lines: Array<string> = error.stack.split("\n");
+
+      for (let index: number = 1; index < lines.length; index++) {
+        const candidate: string = (lines[index] || "").trim();
+
+        if (candidate) {
+          frame = candidate.slice(0, FINGERPRINT_FRAME_LENGTH);
+          break;
+        }
+      }
+    }
+
+    return [
+      error.kind,
+      error.message,
+      error.source || "",
+      error.lineNumber === undefined ? "" : String(error.lineNumber),
+      error.columnNumber === undefined ? "" : String(error.columnNumber),
+      error.tagName || "",
+      frame,
+    ].join("|");
   }
 
   /*
@@ -267,7 +505,18 @@ export default class ErrorRecorder {
 
     const message: string = error.message.trim().toLowerCase();
 
-    return message === "script error." || message === "script error";
+    /*
+     * An EMPTY message with no source and no stack is the same nothing by
+     * another route: it is what a resource failure looks like after a
+     * listener that did not classify it (the loader stub's pre-load buffer
+     * records `event.message || ""`). There is nothing in it to fix, so it
+     * cannot be the reason a recording uploads.
+     */
+    return (
+      message === "" ||
+      message === "script error." ||
+      message === "script error"
+    );
   }
 
   private matchesIgnorePattern(error: RecordedError): boolean {
@@ -343,8 +592,24 @@ export default class ErrorRecorder {
     });
   }
 
+  /* Distinct errors recorded this session. */
   public getRecordedCount(): number {
     return this.recordedCount;
+  }
+
+  /* Total occurrences seen this session, repeats included. */
+  public getOccurrenceCount(): number {
+    let total: number = 0;
+
+    this.fingerprints.forEach((record: FingerprintRecord): void => {
+      total += record.occurrences;
+    });
+
+    return total;
+  }
+
+  public hasReachedCap(): boolean {
+    return this.capReported;
   }
 
   private static readStack(value: unknown): { stack?: string } {

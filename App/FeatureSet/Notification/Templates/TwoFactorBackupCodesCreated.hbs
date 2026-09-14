@@ -1,0 +1,24 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Backup codes were created for your account." }}
+
+{{> InfoBlock info="You set up two factor authentication on your OneUptime account, so a set of single-use backup codes was created at the same time. They are what signs you in if your authenticator app or security key is ever unavailable, and they were shown to you once, in the browser where you set it up."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Created at:" text=generatedAt }}
+{{> DetailBoxField title="Codes issued:" text=newCodeCount }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="<strong>If you did not save them</strong>, they cannot be shown again -- nothing stores the codes themselves. Generate a fresh set from your profile and keep that one somewhere other than the device your codes come from."}}
+
+{{> InfoBlock info="<strong>If this was not you</strong>, somebody else has added a second factor to your account and holds its recovery codes. Change your password immediately and ask an administrator to reset two factor authentication on your account."}}
+
+{{> ButtonBlock buttonText="Manage two factor authentication" buttonUrl=twoFactorAuthUrl }}
+
+{{> SupportBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}

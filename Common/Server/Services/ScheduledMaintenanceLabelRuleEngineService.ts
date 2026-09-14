@@ -24,6 +24,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 class ScheduledMaintenanceLabelRuleEngineServiceClass {
   /**
@@ -58,6 +62,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             monitors: { _id: true },
             scheduledMaintenanceLabels: { _id: true },
             monitorLabels: { _id: true },
@@ -73,9 +78,15 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             inheritLabelsFromPodmanHosts: true,
             inheritLabelsFromServices: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ScheduledMaintenanceLabelRule",
+        projectId: scheduledMaintenance.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -430,9 +441,64 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
   }
 
   @CaptureSpan()
-  private async doesScheduledMaintenanceMatchRule(
+  public async doesScheduledMaintenanceMatchRule(
     scheduledMaintenance: ScheduledMaintenance,
     rule: ScheduledMaintenanceLabelRule,
+  ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule: rule,
+      legacyFields: [
+        "monitors",
+        "scheduledMaintenanceLabels",
+        "monitorLabels",
+        "titlePattern",
+        "descriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: ScheduledMaintenanceLabelRule,
+      ): Promise<boolean> => {
+        return await this.doesScheduledMaintenanceMatchLegacyRule(
+          scheduledMaintenance,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: [
+          "monitorLabels",
+          "monitorNamePattern",
+          "monitorDescriptionPattern",
+        ],
+        getCandidates: (): Array<Monitor> => {
+          return scheduledMaintenance.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: ScheduledMaintenanceLabelRule,
+          eventMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedScheduledMaintenance: ScheduledMaintenance =
+            Object.assign(new ScheduledMaintenance(), scheduledMaintenance);
+          correlatedScheduledMaintenance.monitors = [eventMonitor];
+          return await this.doesScheduledMaintenanceMatchLegacyRule(
+            correlatedScheduledMaintenance,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesScheduledMaintenanceMatchLegacyRule(
+    scheduledMaintenance: ScheduledMaintenance,
+    rule: ScheduledMaintenanceLabelRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (
@@ -506,15 +572,9 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         if (!eventMonitor.id) {
           continue;
         }
-        const monitor: Monitor | null = await MonitorService.findOneById({
-          id: eventMonitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
+        const monitor: Monitor | null = await monitorCache.getMonitor(
+          eventMonitor.id,
+        );
         if (!monitor) {
           continue;
         }

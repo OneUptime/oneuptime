@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(config, state, metadata)")]
       CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Redis\n(cache, queues, sessions)")]
+      REDIS[("Valkey\n(cache, queues, sessions)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## 此圖表展示的內容
 
 - 終端使用者透過您叢集的 Ingress（NGINX）存取 OneUptime，由其路由至 UI 與 API。
-- 核心服務會讀取/寫入狀態至 PostgreSQL、Redis 與 ClickHouse。
+- 核心服務會讀取/寫入狀態至 PostgreSQL、Valkey（Redis 7.2 的 BSD 授權分支）與 ClickHouse。
 - Probe 可以在您的叢集內執行（建議）以及／或在您網路的其他位置執行。它們可以監控：
   - 您防火牆後方的內部／私有服務。
   - 網際網路上的外部／公開資源。
-- Probe 結果會傳送至您叢集內的 Probe Ingest，透過 Redis 排入佇列，並由 Background Worker 處理後寫入您的資料儲存區。
+- Probe 結果會傳送至您叢集內的 Probe Ingest，透過 Valkey 排入佇列，並由 Background Worker 處理後寫入您的資料儲存區。
 - 遙測資料（指標／追蹤／日誌）以及伺服器／代理程式資料可透過專用的擷取服務進行擷取，並儲存於 ClickHouse 中。
 
 > 注意：如果您使用外部的 PostgreSQL、Redis 或 ClickHouse 而非內建的版本，則來自 API／Worker／Ingest 的連線會指向您的外部端點。邏輯流程維持不變。

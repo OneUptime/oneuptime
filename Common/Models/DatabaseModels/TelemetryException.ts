@@ -17,6 +17,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ErrorClass from "../../Types/Telemetry/ErrorClass";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1369,6 +1370,124 @@ export default class TelemetryException extends DatabaseBaseModel {
     length: ColumnLength.ShortText,
   })
   public aiClassification?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived state
+     * maintained by ingest / triage — a client PATCH must not be able to set
+     * it, because this is the column the Issues list filters on and a
+     * writable one would let a caller move its own exceptions out of the
+     * actionable view.
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * The fault domain of this exception group — whose problem is it? Values
+   * come from ErrorClass, the single platform-wide vocabulary (the emit path
+   * stamps the same strings on the `error.class` span-event attribute, and
+   * aiClassification is the same enum under its older name).
+   *
+   * NOT NULL with a DEFAULT is load-bearing here, not tidiness. The Issues
+   * list scopes with `IncludesNone(NON_ACTIONABLE_ERROR_CLASSES)`, which
+   * compiles to SQL `"errorClass" NOT IN ('user-error', 'expected-denial')`.
+   * In SQL `NULL NOT IN (...)` evaluates to NULL — falsy, not true — so a
+   * NULLABLE column would make every unclassified row fail that predicate and
+   * silently disappear from the "show me the real failures" view: the exact
+   * inverse of the fail-safe this whole scheme is built on. With NOT NULL
+   * DEFAULT 'unknown', an unclassified row carries a value that is not in the
+   * suppressed set, so it is an Issue by construction. (QueryHelper.notInOrNull
+   * exists for exactly this trap; making the column NOT NULL means the Issues
+   * scope never has to reach for it.)
+   *
+   * Deliberately typed `string` rather than `ErrorClass` (same as
+   * aiClassification): rows written by an older release, or by a triage
+   * runner echoing an LLM, can hold a value outside the enum. Readers run it
+   * through toErrorClass(); an unrecognised value still fails the NOT IN
+   * check, which keeps it visible.
+   */
+  @TableColumn({
+    title: "Error Class",
+    description:
+      "Fault domain of this exception group (code-fault, user-error, expected-denial, infrastructure, unknown). Non-actionable classes are excluded from the Issues list.",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    defaultValue: ErrorClass.Unknown,
+    example: "code-fault",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    length: ColumnLength.ShortText,
+    default: ErrorClass.Unknown,
+  })
+  public errorClass?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived state
+     * maintained by ingest / triage — a client PATCH must not be able to set
+     * it, because a forged 'declared' would pin errorClass against every
+     * later, better-informed writer.
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * Where the errorClass above came from, so a weaker source can never
+   * silently overwrite a stronger one. Precedence is declared > manual (a
+   * human) > ai > default, mirroring ErrorClass's "several possible sources"
+   * note:
+   *
+   * - 'default'  — nobody classified it; errorClass is still 'unknown'.
+   * - 'declared' — the emitting code said so at the throw / log site and the
+   *                ingest carried it through on the span event.
+   * - 'ai'       — the insight triage runner's verdict.
+   * - 'manual'   — a human reclassified the group.
+   *
+   * Same NOT NULL DEFAULT reasoning as errorClass: a NULL source is
+   * indistinguishable from 'default' for every writer that has to compare
+   * precedence, and `NULL <> 'declared'` is NULL rather than true, so a
+   * nullable column would make those guards silently skip every legacy row.
+   */
+  @TableColumn({
+    title: "Error Class Source",
+    description:
+      "Where the error class came from: default (unclassified), declared (by the emitting code), ai (triage verdict) or manual (a human)",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    defaultValue: "default",
+    example: "declared",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    length: ColumnLength.ShortText,
+    default: "default",
+  })
+  public errorClassSource?: string = undefined;
 
   @ColumnAccessControl({
     /*

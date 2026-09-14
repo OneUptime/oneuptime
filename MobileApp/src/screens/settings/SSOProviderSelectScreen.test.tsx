@@ -717,6 +717,8 @@ describe("Only one auth session may run at a time", () => {
     expect(mockOpenSsoAuthSession).toHaveBeenCalledTimes(1);
     expect(isRowDisabled(globalSamlProvider.name)).toBe(true);
     expect(isRowDisabled(projectSamlProvider.name)).toBe(true);
+    expect(screen.getAllByRole("button", { disabled: true })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { busy: true })).toHaveLength(1);
 
     // Pressing the other row must not start a competing session.
     await pressProvider(projectSamlProvider.name);

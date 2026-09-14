@@ -8,6 +8,7 @@ import IoTFleetService from "../../../Server/Services/IoTFleetService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
+import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
@@ -20,6 +21,7 @@ import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
@@ -199,6 +201,17 @@ const CLAMP_CASES: Array<ClampCase> = [
     service: ProxmoxClusterService,
     model: new ProxmoxCluster(),
     columns: ["pveVersion", "agentVersion"],
+  },
+  {
+    /*
+     * The vcenter receiver does not report the vSphere version, so
+     * agentVersion is the only collector-supplied string this heartbeat
+     * can write.
+     */
+    name: "VMwareVCenterService",
+    service: VMwareVCenterService,
+    model: new VMwareVCenter(),
+    columns: ["agentVersion"],
   },
   {
     name: "IoTFleetService",

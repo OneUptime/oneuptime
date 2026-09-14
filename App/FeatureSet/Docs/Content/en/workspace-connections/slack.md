@@ -19,3 +19,7 @@
 
 4. **Configure Alerts and Scheduled Maintenance Notifications**
    - Similar rules can be applied to Alerts and Scheduled Maintenance by navigating to their respective pages and configuring the desired rules.
+
+## Network access for self-hosted deployments
+
+For outbound access, inbound callbacks, and private deployments, see the network access section in the [Slack Integration](/docs/self-hosted/slack-integration).

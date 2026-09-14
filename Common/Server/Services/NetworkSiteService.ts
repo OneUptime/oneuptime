@@ -6,6 +6,9 @@ import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
+import NetworkSiteTypeService from "./NetworkSiteTypeService";
+import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
+import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -14,17 +17,24 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
+import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
+import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import DeleteOneBy from "../Types/Database/DeleteOneBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
@@ -32,6 +42,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import { Raw } from "typeorm";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -40,6 +51,24 @@ import SiteStatusRollupUtil, {
   DeviceHealthState,
   RollupStatusOption,
 } from "../../Utils/NetworkSite/SiteStatusRollupUtil";
+import { parseSiteHealthRollupPolicy } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
+import NetworkSiteMaintenanceSuppression from "../Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
+import NetworkSiteHierarchyLock from "../Utils/NetworkSite/NetworkSiteHierarchyLock";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import {
+  DeviceHealthGroup,
+  deviceRollupStateForGroup,
+} from "../Utils/NetworkDevice/DeviceHealthAggregation";
+
+/**
+ * How many sites are stamped with each MonitorStatus. `monitorStatusId` is
+ * null for the bucket of sites that have no rollup yet.
+ */
+export interface SiteStatusCount {
+  monitorStatusId: string | null;
+  siteCount: number;
+}
 
 /*
  * Both spellings of "this site's parent" in a write payload: the dashboard's
@@ -49,6 +78,135 @@ import SiteStatusRollupUtil, {
  * path rebase entirely. See RelationIdUtil.
  */
 const PARENT_SITE_KEYS: Array<string> = ["parentSiteId", "parentSite"];
+
+/*
+ * Like parentSite, the site's type can be written either as its FK or as the
+ * serialised relation produced by dashboard forms. Hierarchy validation must
+ * inspect both spellings because TypeORM has not resolved the relation when
+ * the before hooks run.
+ */
+const NETWORK_SITE_TYPE_KEYS: Array<string> = [
+  "networkSiteTypeId",
+  "networkSiteType",
+];
+
+const PROJECT_KEYS: Array<string> = ["projectId", "project"];
+
+/*
+ * Both spellings of the site's two monitoring defaults: the probe that polls
+ * devices here, and the SNMP credentials they are walked with.
+ *
+ * Both are references that a device INHERITS - the probe copied onto the
+ * device at write (see NetworkDeviceService), the credentials read live at
+ * poll time (see NetworkDeviceHydrationUtil.resolveSnmpCredentials). So a
+ * cross-project value here is not a cosmetic error on one row: it reaches
+ * every device in the subtree. Watching only the FK spelling would leave the
+ * dashboard's site form - which posts the relation - unguarded, which is the
+ * bug RelationIdUtil exists to document.
+ */
+const PROBE_KEYS: Array<string> = ["probeId", "probe"];
+const SNMP_CREDENTIAL_PROFILE_KEYS: Array<string> = [
+  "snmpCredentialProfileId",
+  "snmpCredentialProfile",
+];
+
+const MATERIALIZED_HIERARCHY_KEYS: Array<string> = [
+  "materializedPath",
+  "depth",
+];
+
+/*
+ * Type edits have to inspect every direct child. Keep each read bounded and
+ * page until exhaustion so a very wide site cannot hide invalid edges beyond
+ * DatabaseService's single-query limit.
+ */
+const DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE: number = 1000;
+
+/*
+ * Rebase large subtrees in bounded pages. Each successful rewrite removes the
+ * row from the old path prefix, so every page must start at offset zero.
+ */
+const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
+
+/*
+ * How deep a site tree may go, derived from the column that has to hold it:
+ * materializedPath is varchar(ColumnLength.LongText) and every segment costs a
+ * 36-character id plus its separator, after the leading slash.
+ *
+ * The bound has to be stated here now. It used to fall out of the placement
+ * rule for free - a site's depth was exactly its type's depth in the catalog,
+ * because the parent type was pinned recursively. Placement no longer pins
+ * anything (a site may sit under one of its own type), so without this a chain
+ * of thirteen sites would silently overflow the column: Postgres refuses the
+ * write, and it refuses it in onUpdateSuccess, after the parent change has
+ * already been committed.
+ */
+const MAX_SITE_HIERARCHY_PATH_SEGMENTS: number = Math.floor(
+  (ColumnLength.LongText - 1) / 37,
+);
+
+/*
+ * Model instances initialise optional fields to undefined. Those properties
+ * are omissions, not requests to clear a relation; null is the explicit
+ * clear value and must still run validation.
+ */
+function isRelationWritten(
+  data: Record<string, unknown>,
+  keys: Array<string>,
+): boolean {
+  return keys.some((key: string) => {
+    return key in data && data[key] !== undefined;
+  });
+}
+
+function normalizeId(id: ObjectID | string): string {
+  return id.toString().toLowerCase();
+}
+
+function sameId(left: ObjectID | string, right: ObjectID | string): boolean {
+  return normalizeId(left) === normalizeId(right);
+}
+
+/*
+ * RelationIdUtil intentionally returns null for anything it cannot resolve.
+ * In a hierarchy hook, however, an unresolvable NON-null value cannot mean
+ * "clear": TypeORM may still interpret a raw expression or relation-shaped
+ * object during the eventual write. Require each supplied spelling to be an
+ * explicit clear or a concrete ID before checking cross-spelling agreement.
+ */
+function readStrictRelationId(data: {
+  payload: Record<string, unknown>;
+  keys: Array<string>;
+  relationTitle: string;
+}): ObjectID | null {
+  for (const key of data.keys) {
+    const value: unknown = data.payload[key];
+
+    if (typeof value === "function") {
+      throw new BadDataException(
+        `${key} cannot be set to a raw SQL expression because the network site hierarchy must be validated against an actual ID.`,
+      );
+    }
+
+    const isExplicitClear: boolean = value === null || value === "";
+
+    if (
+      value !== undefined &&
+      !isExplicitClear &&
+      !RelationIdUtil.read(data.payload, [key])
+    ) {
+      throw new BadDataException(
+        `${key} must contain a valid ${data.relationTitle} ID.`,
+      );
+    }
+  }
+
+  return RelationIdUtil.readConsistent(
+    data.payload,
+    data.keys,
+    data.relationTitle,
+  );
+}
 
 /*
  * Carried from onBeforeUpdate to onUpdateSuccess when an update touches
@@ -61,9 +219,10 @@ interface ParentChangeCarryForward {
 }
 
 /*
- * Carried from onBeforeDelete to onDeleteSuccess: the rows are gone by the
- * time the success hook runs, so their pre-delete hierarchy state has to be
- * captured up front to repair the orphaned subtree.
+ * Carried from onBeforeDelete to onDeleteSuccess. The normal path rejects a
+ * delete with surviving children, but retaining the pre-delete hierarchy
+ * state lets the success hook repair rows created under older SET NULL
+ * schemas or by an in-flight legacy write.
  */
 interface DeleteCarryForward {
   sitesToDelete: Array<Model>;
@@ -72,6 +231,439 @@ interface DeleteCarryForward {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Parent/type validation and the eventual write must observe one serialized
+   * project hierarchy. The same distributed lock is used by
+   * NetworkSiteTypeService, because changing either table can invalidate the
+   * other. It surrounds the whole DatabaseService mutation so success-hook
+   * subtree maintenance is protected too and finally always releases it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    if (createBy.props.ignoreHooks) {
+      return await super.create(createBy);
+    }
+
+    const rawData: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        rawData,
+        ["projectId", "project"],
+        "Project",
+      ) ||
+      null;
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds: projectId ? [projectId] : [],
+      operation: async (): Promise<Model> => {
+        return await super.create(createBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async updateOneBy(
+    updateOneBy: UpdateOneBy<Model>,
+  ): Promise<number> {
+    if (
+      updateOneBy.props.ignoreHooks ||
+      !this.updateTouchesHierarchy(updateOneBy.data)
+    ) {
+      return await super.updateOneBy(updateOneBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: updateOneBy.query,
+        props: updateOneBy.props,
+        limit: 1,
+        skip: 0,
+        isDelete: false,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.updateOneBy(updateOneBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async updateBy(updateBy: UpdateBy<Model>): Promise<number> {
+    if (
+      updateBy.props.ignoreHooks ||
+      !this.updateTouchesHierarchy(updateBy.data)
+    ) {
+      return await super.updateBy(updateBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: updateBy.query,
+        props: updateBy.props,
+        limit: this.positiveNumberValue(updateBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(updateBy.skip, 0),
+        isDelete: false,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.updateBy(updateBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async deleteOneBy(
+    deleteOneBy: DeleteOneBy<Model>,
+  ): Promise<number> {
+    if (deleteOneBy.props.ignoreHooks) {
+      return await super.deleteOneBy(deleteOneBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteOneBy.query,
+        props: deleteOneBy.props,
+        limit: 1,
+        skip: 0,
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.deleteOneBy(deleteOneBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async deleteBy(deleteBy: DeleteBy<Model>): Promise<number> {
+    if (deleteBy.props.ignoreHooks) {
+      return await super.deleteBy(deleteBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteBy.query,
+        props: deleteBy.props,
+        limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(deleteBy.skip, 0),
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.deleteBy(deleteBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async hardDeleteBy(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    if (deleteBy.props.ignoreHooks) {
+      return await super.hardDeleteBy(deleteBy);
+    }
+
+    /*
+     * The generic retention cron intentionally queries every tenant at once
+     * by deletedAt. Resolve that open-ended query to a closed set of leaf IDs
+     * before locking and deleting. Deleting leaves only means a limit can
+     * never split a parent from a surviving child; the cron's next iteration
+     * naturally works upward through the tree.
+     */
+    if (
+      !NetworkSiteHierarchyLock.isSafeRootMutationScope({
+        query: deleteBy.query as unknown as Record<string, unknown>,
+        props: deleteBy.props,
+        tenantScopeIsClosed: true,
+      })
+    ) {
+      return await this.hardDeleteClosedLeafBatch(deleteBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteBy.query,
+        props: deleteBy.props,
+        limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(deleteBy.skip, 0),
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.hardDeleteBy(deleteBy);
+      },
+    });
+  }
+
+  private updateTouchesHierarchy(data: UpdateOneBy<Model>["data"]): boolean {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    return (
+      isRelationWritten(record, PARENT_SITE_KEYS) ||
+      isRelationWritten(record, NETWORK_SITE_TYPE_KEYS) ||
+      isRelationWritten(record, PROJECT_KEYS) ||
+      isRelationWritten(record, MATERIALIZED_HIERARCHY_KEYS)
+    );
+  }
+
+  private positiveNumberValue(
+    value: PositiveNumber | number | undefined,
+    fallback: number,
+  ): number {
+    if (value instanceof PositiveNumber) {
+      return value.toNumber();
+    }
+
+    return value ?? fallback;
+  }
+
+  private async hardDeleteClosedLeafBatch(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    const requestedLimit: number = this.positiveNumberValue(
+      deleteBy.limit,
+      LIMIT_MAX,
+    );
+
+    if (requestedLimit <= 0) {
+      return 0;
+    }
+
+    const scanPageSize: number = Math.min(
+      DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      requestedLimit,
+    );
+    const leafSites: Array<Model> = [];
+    let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
+
+    while (leafSites.length < requestedLimit) {
+      const candidates: Array<Model> = await this.findBy({
+        query: deleteBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        limit: scanPageSize,
+        skip: scanSkip,
+        props: { isRoot: true },
+      });
+
+      if (candidates.length === 0) {
+        break;
+      }
+
+      const candidateIds: Array<ObjectID> = candidates
+        .map((candidate: Model): ObjectID | null => {
+          return candidate.id || null;
+        })
+        .filter((id: ObjectID | null): id is ObjectID => {
+          return Boolean(id);
+        });
+      const parentIdsWithChildren: Set<string> = new Set<string>();
+
+      for (
+        let parentOffset: number = 0;
+        parentOffset < candidateIds.length;
+        parentOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+      ) {
+        const parentIdBatch: Array<ObjectID> = candidateIds.slice(
+          parentOffset,
+          parentOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+        );
+        let childSkip: number = 0;
+
+        while (parentIdBatch.length > 0) {
+          const children: Array<Model> = await this.findBy({
+            query: {
+              parentSiteId: QueryHelper.any(parentIdBatch),
+            },
+            select: { parentSiteId: true },
+            sort: { _id: SortOrder.Ascending },
+            limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+            skip: childSkip,
+            props: { isRoot: true },
+          });
+
+          for (const child of children) {
+            if (child.parentSiteId) {
+              parentIdsWithChildren.add(normalizeId(child.parentSiteId));
+            }
+          }
+
+          if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+            break;
+          }
+
+          childSkip += children.length;
+        }
+      }
+
+      for (const candidate of candidates) {
+        if (
+          candidate.id &&
+          candidate.projectId &&
+          !parentIdsWithChildren.has(normalizeId(candidate.id))
+        ) {
+          leafSites.push(candidate);
+
+          if (leafSites.length === requestedLimit) {
+            break;
+          }
+        }
+      }
+
+      scanSkip += candidates.length;
+
+      if (candidates.length < scanPageSize) {
+        break;
+      }
+    }
+
+    if (leafSites.length === 0) {
+      return 0;
+    }
+
+    const leafIds: Array<ObjectID> = leafSites.map((site: Model): ObjectID => {
+      return site.id!;
+    });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds: leafSites.map((site: Model): ObjectID => {
+        return site.projectId!;
+      }),
+      operation: async (): Promise<number> => {
+        return await super.hardDeleteBy({
+          ...deleteBy,
+          query: {
+            ...deleteBy.query,
+            _id: QueryHelper.any(leafIds),
+          },
+          limit: leafIds.length,
+          skip: 0,
+        });
+      },
+    });
+  }
+
+  private async findMutationProjectIds(data: {
+    query: Query<Model>;
+    props: DatabaseCommonInteractionProps;
+    limit: number;
+    skip: number;
+    isDelete: boolean;
+  }): Promise<Array<ObjectID | string>> {
+    NetworkSiteHierarchyLock.assertSafeRootMutationScope({
+      query: data.query as unknown as Record<string, unknown>,
+      props: data.props,
+      tenantScopeIsClosed: data.isDelete,
+    });
+
+    const sites: Array<Model> = await this.findBy({
+      query: data.isDelete
+        ? this.scopeDeleteQueryToCallerTenant(data.query, data.props)
+        : this.scopeQueryToCallerTenant(data.query, data.props),
+      select: { projectId: true },
+      limit: data.limit,
+      skip: data.skip,
+      props: { isRoot: true },
+    });
+
+    const projectIds: Array<ObjectID | string> = sites
+      .map((site: Model): ObjectID | undefined => {
+        return site.projectId;
+      })
+      .filter((projectId: ObjectID | undefined): projectId is ObjectID => {
+        return Boolean(projectId);
+      });
+
+    projectIds.push(
+      ...NetworkSiteHierarchyLock.getExplicitProjectIds(
+        data.query as unknown as Record<string, unknown>,
+      ),
+    );
+
+    if (projectIds.length === 0 && data.props.tenantId) {
+      projectIds.push(data.props.tenantId);
+    }
+
+    const seenProjectIds: Set<string> = new Set<string>();
+
+    return projectIds.filter((projectId: ObjectID | string): boolean => {
+      const normalizedProjectId: string = normalizeId(projectId);
+
+      if (seenProjectIds.has(normalizedProjectId)) {
+        return false;
+      }
+
+      seenProjectIds.add(normalizedProjectId);
+      return true;
+    });
+  }
+
+  /**
+   * How many sites sit under each rolled-up MonitorStatus, counted in the
+   * database.
+   *
+   * One row per status the project actually uses (plus one for "no rollup
+   * yet"), rather than every site row shipped to a browser to be tallied
+   * there. Which of those statuses count as UNHEALTHY is deliberately not
+   * decided here: `isOperationalState` lives on MonitorStatus, the caller
+   * already holds those rows, and duplicating the flag into this query would
+   * be a second place for it to be read wrongly.
+   */
+  @CaptureSpan()
+  public async getStatusCounts(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SiteStatusCount>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+      },
+      groupBy: [
+        {
+          expression: `"NetworkSite"."currentMonitorStatusId"`,
+          alias: "monitorStatusId",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "siteCount",
+        },
+      ],
+      props: data.props,
+    });
+
+    return rows.map((row: AggregateRow): SiteStatusCount => {
+      return {
+        monitorStatusId: AggregateResultUtil.toStringOrNull(
+          row,
+          "monitorStatusId",
+        ),
+        siteCount: AggregateResultUtil.toNumber(row, "siteCount"),
+      };
+    });
   }
 
   /*
@@ -92,7 +684,26 @@ export class Service extends DatabaseService<Model> {
     query: Query<Model>,
     props: DatabaseCommonInteractionProps,
   ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
+    if (props.isRoot || props.isMasterAdmin || !props.tenantId) {
+      return query;
+    }
+
+    return {
+      ...query,
+      projectId: props.tenantId,
+    };
+  }
+
+  /*
+   * Root deletes are also tenant-scoped by DeletePermission when tenantId is
+   * present. Mirror that exact rule in the preflight read so limit/skip guard
+   * the same rows the eventual delete can select.
+   */
+  private scopeDeleteQueryToCallerTenant(
+    query: Query<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): Query<Model> {
+    if (!props.tenantId || props.isMultiTenantRequest) {
       return query;
     }
 
@@ -123,12 +734,38 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The same prefix predicate for SEVERAL paths at once, OR-ed together, so
+   * "every site under any of these" is one statement rather than one per
+   * root. Each prefix keeps its own bound parameter; an empty list would
+   * produce `()`, which is a syntax error, so callers must not reach here
+   * with one (getSubtreeSiteIds guards it).
+   */
+  private pathStartsWithAny(paths: Array<string>): FindWhereProperty<any> {
+    const parameters: Record<string, string> = {};
+    const names: Array<string> = [];
+
+    for (const path of paths) {
+      const rid: string = Text.generateRandomText(10);
+      parameters[rid] = `${path}%`;
+      names.push(rid);
+    }
+
+    return Raw((alias: string) => {
+      return `(${names
+        .map((name: string) => {
+          return `${alias} LIKE :${name}`;
+        })
+        .join(" OR ")})`;
+    }, parameters);
+  }
+
+  /*
    * A stored path is trustworthy only when it agrees with parentSiteId: it
    * must end with the site's own id, and the segment before it must be the
-   * parent (nothing before it for a root). A delete that nulls parentSiteId,
-   * or a half-applied move, leaves the two disagreeing - and a stale path
-   * silently corrupts every prefix query built from it, so treat it as
-   * missing and let the caller rebuild.
+   * parent (nothing before it for a root). A legacy delete that nullified
+   * parentSiteId, or a half-applied move, leaves the two disagreeing - and a
+   * stale path silently corrupts every prefix query built from it, so treat
+   * it as missing and let the caller rebuild.
    */
   private isPathConsistent(site: Model): boolean {
     if (!site.id) {
@@ -156,24 +793,320 @@ export class Service extends DatabaseService<Model> {
     return parentSegment === parentId;
   }
 
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    let parentPath: string | null = null;
+  /*
+   * Resolve a site type with tenant information and its configured direct
+   * parent type. The lookup deliberately runs as root: hook validation occurs
+   * before DatabaseService applies the caller's permission-scoped query, so
+   * the service must see the referenced row and perform the project check
+   * explicitly rather than confuse "foreign" with "missing".
+   */
+  private async getNetworkSiteTypeForHierarchy(
+    networkSiteTypeId: ObjectID,
+    cache: Map<string, NetworkSiteType>,
+  ): Promise<NetworkSiteType> {
+    const networkSiteType: NetworkSiteType | null =
+      await this.findNetworkSiteTypeForHierarchy(networkSiteTypeId, cache);
+
+    if (!networkSiteType) {
+      throw new BadDataException("Network site type not found.");
+    }
+
+    return networkSiteType;
+  }
+
+  /*
+   * The nullable form, for rows that are read as CONTEXT rather than written.
+   * A parent site's type - or a link further up the catalog - can be missing
+   * after a direct database edit, and an unresolvable ancestor proves nothing
+   * about the proposed edge; refusing the whole write there would strand the
+   * site instead of describing a problem the operator can act on.
+   */
+  private async findNetworkSiteTypeForHierarchy(
+    networkSiteTypeId: ObjectID,
+    cache: Map<string, NetworkSiteType>,
+  ): Promise<NetworkSiteType | null> {
+    const key: string = normalizeId(networkSiteTypeId);
+    const cached: NetworkSiteType | undefined = cache.get(key);
+
+    if (cached) {
+      return cached;
+    }
+
+    const networkSiteType: NetworkSiteType | null =
+      await NetworkSiteTypeService.findOneById({
+        id: networkSiteTypeId,
+        select: {
+          _id: true,
+          name: true,
+          projectId: true,
+          isUnitLevel: true,
+          parentNetworkSiteTypeId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (networkSiteType) {
+      cache.set(key, networkSiteType);
+    }
+
+    return networkSiteType;
+  }
+
+  /*
+   * Assert one proposed site edge against the type hierarchy.
+   *
+   * The type tree describes which levels sit above which; it does NOT dictate
+   * an exact placement. A parent site is always optional, may skip levels, and
+   * may be of an unrelated type — the only inversion refused is a parent whose
+   * type sits BELOW the child's own type. The stricter reading this replaces
+   * (parent must be exactly the configured direct parent type, root types may
+   * never have a parent) made whole hierarchies impossible to build: see
+   * GitHub issue #3744, where every type in the project was top-level and no
+   * parent could be linked at all, by hand or by CSV.
+   *
+   * A unit-level type is the declared leaf of the hierarchy, so its sites hold
+   * devices rather than more sites and can never be a parent here.
+   */
+  private async validateSiteTypeEdge(data: {
+    networkSiteTypeId: ObjectID | null;
+    parentSite: Model | null;
+    projectId: ObjectID | undefined;
+    typeCache: Map<string, NetworkSiteType>;
+  }): Promise<void> {
+    if (!data.networkSiteTypeId) {
+      if (data.parentSite) {
+        throw new BadDataException(
+          "A network site with a parent must have a network site type.",
+        );
+      }
+
+      return;
+    }
+
+    const networkSiteType: NetworkSiteType =
+      await this.getNetworkSiteTypeForHierarchy(
+        data.networkSiteTypeId,
+        data.typeCache,
+      );
+
+    if (
+      data.projectId &&
+      networkSiteType.projectId &&
+      !sameId(networkSiteType.projectId, data.projectId)
+    ) {
+      throw new BadDataException(
+        "Network site type must belong to the same project.",
+      );
+    }
+
+    if (!data.parentSite) {
+      return;
+    }
 
     /*
-     * Both spellings: the dashboard's site form posts the `parentSite`
-     * relation, not the `parentSiteId` column. See RelationIdUtil.
+     * A parent that predates site types belongs to no level, so no inversion
+     * can be proven against it. Refusing it would make legacy rows permanently
+     * unusable as parents without a data migration nobody can safely write.
      */
-    const parentSiteId: ObjectID | null = RelationIdUtil.read(
-      createBy.data as unknown as Record<string, unknown>,
-      PARENT_SITE_KEYS,
+    if (!data.parentSite.networkSiteTypeId) {
+      return;
+    }
+
+    const parentNetworkSiteType: NetworkSiteType | null =
+      await this.findNetworkSiteTypeForHierarchy(
+        data.parentSite.networkSiteTypeId,
+        data.typeCache,
+      );
+
+    if (!parentNetworkSiteType) {
+      return;
+    }
+
+    const childTypeName: string =
+      networkSiteType.name || "this site's network site type";
+    const parentTypeName: string =
+      parentNetworkSiteType.name || "the parent site's network site type";
+
+    if (parentNetworkSiteType.isUnitLevel === true) {
+      throw new BadDataException(
+        `Sites of network site type "${parentTypeName}" are unit level, so they cannot have child sites.`,
+      );
+    }
+
+    if (sameId(data.networkSiteTypeId, data.parentSite.networkSiteTypeId)) {
+      return;
+    }
+
+    /*
+     * Walk UP from the parent's type. Reaching the child's type means the
+     * parent sits below it, which is the one arrangement that contradicts the
+     * configured hierarchy. The visited set bounds a catalog cycle written
+     * straight into the database, which must fail the request rather than
+     * spin the event loop.
+     */
+    const visited: Set<string> = new Set<string>([
+      normalizeId(data.parentSite.networkSiteTypeId),
+    ]);
+    let ancestorTypeId: ObjectID | null =
+      parentNetworkSiteType.parentNetworkSiteTypeId || null;
+
+    while (ancestorTypeId) {
+      if (sameId(ancestorTypeId, data.networkSiteTypeId)) {
+        throw new BadDataException(
+          `A site of network site type "${childTypeName}" cannot be placed under a site of network site type "${parentTypeName}", because "${parentTypeName}" sits below "${childTypeName}" in the site type hierarchy.`,
+        );
+      }
+
+      if (visited.has(normalizeId(ancestorTypeId))) {
+        break;
+      }
+      visited.add(normalizeId(ancestorTypeId));
+
+      const ancestorType: NetworkSiteType | null =
+        await this.findNetworkSiteTypeForHierarchy(
+          ancestorTypeId,
+          data.typeCache,
+        );
+
+      if (!ancestorType) {
+        break;
+      }
+
+      ancestorTypeId = ancestorType.parentNetworkSiteTypeId || null;
+    }
+  }
+
+  /*
+   * Changing a site's type also changes what every direct child's type must
+   * point at. Validate those reverse edges before the update so one edit
+   * cannot strand a previously valid subtree.
+   */
+  private async validateDirectChildrenForTypeChange(data: {
+    site: Model;
+    proposedNetworkSiteTypeId: ObjectID | null;
+    typeCache: Map<string, NetworkSiteType>;
+  }): Promise<void> {
+    if (!data.site.id || !data.site.projectId) {
+      return;
+    }
+
+    const proposedParent: Model = {
+      id: data.site.id,
+      projectId: data.site.projectId,
+      networkSiteTypeId: data.proposedNetworkSiteTypeId || undefined,
+    } as Model;
+
+    let skip: number = 0;
+
+    while (true) {
+      const children: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.site.projectId,
+          parentSiteId: data.site.id,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          networkSiteTypeId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+        skip: skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const child of children) {
+        /*
+         * An untyped site is tolerated as a parent only where legacy data
+         * already made it one. Clearing the type of a site that still owns
+         * children would manufacture that shape deliberately, and every
+         * placement check below it would then have nothing to compare
+         * against.
+         */
+        if (!data.proposedNetworkSiteTypeId) {
+          throw new BadDataException(
+            "A network site with child sites must have a network site type.",
+          );
+        }
+
+        await this.validateSiteTypeEdge({
+          networkSiteTypeId: child.networkSiteTypeId || null,
+          parentSite: proposedParent,
+          projectId: child.projectId || data.site.projectId,
+          typeCache: data.typeCache,
+        });
+      }
+
+      if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+        break;
+      }
+
+      skip += children.length;
+    }
+  }
+
+  /*
+   * The FK behind `probeId` only requires the Probe row to exist. It does
+   * NOT require it to belong to this project, and probe ids reach the server
+   * from the browser (the site form's dropdown posts one), so without this
+   * check an operator could name another project's probe as this site's
+   * default - and NetworkDeviceService would then copy it onto every device
+   * created into the site, handing that project's probe a target list inside
+   * this one.
+   *
+   * A GLOBAL probe has no project and is attachable anywhere, which is why
+   * this delegates to ProbeService rather than comparing projectIds: the
+   * same predicate that decides which probes a monitor may use decides which
+   * probe a site may default to.
+   */
+  private async assertProbeIsAttachableToProject(data: {
+    probeId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const isAttachable: boolean = await ProbeService.isProbeAttachableToProject(
+      {
+        probeId: data.probeId,
+        projectId: data.projectId,
+      },
     );
 
-    if (parentSiteId) {
-      const parent: Model | null = await this.findOneById({
-        id: parentSiteId,
+    if (!isAttachable) {
+      throw new BadDataException(
+        "Probe not found or it does not belong to this project.",
+      );
+    }
+  }
+
+  /*
+   * Same hole as the probe above, and the consequence is worse: a site's
+   * credential profile is read LIVE at poll time for every device in the
+   * site that has no credentials of its own
+   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a cross-project
+   * reference here would put another project's community string on this
+   * project's probe's wire. The resolver drops such a reference as a
+   * backstop; this is the half that stops it being written at all.
+   */
+  private async assertSnmpCredentialProfileBelongsToProject(data: {
+    snmpCredentialProfileId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const profile: NetworkSnmpCredentialProfile | null =
+      await NetworkSnmpCredentialProfileService.findOneById({
+        id: data.snmpCredentialProfileId,
         select: {
           _id: true,
           projectId: true,
@@ -183,21 +1116,220 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      if (!parent) {
+    if (!profile) {
+      throw new BadDataException("SNMP Credential Profile not found.");
+    }
+
+    if (profile.projectId && !sameId(profile.projectId, data.projectId)) {
+      throw new BadDataException(
+        "SNMP Credential Profile must belong to the same project.",
+      );
+    }
+  }
+
+  /*
+   * The site's default probe, inherited: this site's own `probeId`, or the
+   * nearest ancestor that has one.
+   *
+   * Copy-at-write, not read-through — NetworkDeviceService calls this once,
+   * when a device is created into or moved to a site with no probe of its
+   * own, and stamps the answer on the device. That is what makes editing a
+   * site's default a decision about FUTURE devices only: nothing re-reads
+   * this, so no site edit can silently re-point a fleet that is already
+   * polling.
+   *
+   * Nearest ancestor wins, so a Region's probe covers every Market under it
+   * while a Market that names its own overrides it for its own subtree.
+   * `getAncestorIds` returns root-first, hence the reverse walk.
+   */
+  @CaptureSpan()
+  public async resolveDefaultProbeIdForSite(
+    siteId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const site: Model | null = await this.findOneById({
+      id: siteId,
+      select: {
+        _id: true,
+        probeId: true,
+        parentSiteId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!site) {
+      return null;
+    }
+
+    if (site.probeId) {
+      return site.probeId;
+    }
+
+    /*
+     * A root site has no ancestors, so there is nothing above it to inherit
+     * from. Short-circuited here rather than left to getAncestorIds because
+     * that call is not free: it resolves — and, for a row whose path is
+     * missing or stale, REBUILDS AND PERSISTS — the materialized path. This
+     * runs on the device create path, where most sites are roots and no
+     * device write should be paying for hierarchy maintenance it cannot use.
+     */
+    if (!site.parentSiteId) {
+      return null;
+    }
+
+    const ancestorIds: Array<ObjectID> = await this.getAncestorIds(siteId);
+
+    if (ancestorIds.length === 0) {
+      return null;
+    }
+
+    const ancestors: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(
+          ancestorIds.map((ancestorId: ObjectID) => {
+            return ancestorId.toString();
+          }),
+        ),
+      },
+      select: {
+        _id: true,
+        probeId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const probeIdBySiteId: Map<string, ObjectID> = new Map();
+
+    for (const ancestor of ancestors) {
+      if (ancestor.id && ancestor.probeId) {
+        probeIdBySiteId.set(ancestor.id.toString(), ancestor.probeId);
+      }
+    }
+
+    for (let index: number = ancestorIds.length - 1; index >= 0; index--) {
+      const probeId: ObjectID | undefined = probeIdBySiteId.get(
+        ancestorIds[index]!.toString(),
+      );
+
+      if (probeId) {
+        return probeId;
+      }
+    }
+
+    return null;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    let parentPath: string | null = null;
+    let parentSite: Model | null = null;
+    const rawData: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        rawData,
+        ["projectId", "project"],
+        "Project",
+      ) ||
+      undefined;
+
+    /*
+     * Both spellings: the dashboard's site form posts the `parentSite`
+     * relation, not the `parentSiteId` column. See RelationIdUtil.
+     */
+    const parentSiteId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: PARENT_SITE_KEYS,
+      relationTitle: "Parent Site",
+    });
+    const networkSiteTypeId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: NETWORK_SITE_TYPE_KEYS,
+      relationTitle: "Network Site Type",
+    });
+
+    if (parentSiteId) {
+      parentSite = await this.findOneById({
+        id: parentSiteId,
+        select: {
+          _id: true,
+          projectId: true,
+          networkSiteTypeId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!parentSite) {
         throw new BadDataException("Parent site not found.");
       }
 
       if (
-        createBy.data.projectId &&
-        parent.projectId &&
-        parent.projectId.toString() !== createBy.data.projectId.toString()
+        projectId &&
+        parentSite.projectId &&
+        !sameId(parentSite.projectId, projectId)
       ) {
         throw new BadDataException(
           "Parent site must belong to the same project.",
         );
       }
+    }
 
+    await this.validateSiteTypeEdge({
+      networkSiteTypeId: networkSiteTypeId,
+      parentSite: parentSite,
+      projectId: projectId,
+      typeCache: new Map<string, NetworkSiteType>(),
+    });
+
+    /*
+     * The monitoring defaults are tenant-checked on the way in, in both
+     * spellings. See the constants for why a bad value here is not confined
+     * to this row.
+     */
+    const probeId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: PROBE_KEYS,
+      relationTitle: "Probe",
+    });
+
+    if (probeId) {
+      await this.assertProbeIsAttachableToProject({
+        probeId: probeId,
+        projectId: projectId,
+      });
+    }
+
+    const snmpCredentialProfileId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+      relationTitle: "SNMP Credential Profile",
+    });
+
+    if (snmpCredentialProfileId) {
+      await this.assertSnmpCredentialProfileBelongsToProject({
+        snmpCredentialProfileId: snmpCredentialProfileId,
+        projectId: projectId,
+      });
+    }
+
+    if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
+      this.assertHierarchyDepthFits({
+        parentPath: parentPath,
+        additionalSegments: 1,
+      });
     }
 
     return {
@@ -206,6 +1338,80 @@ export class Service extends DatabaseService<Model> {
         parentPath: parentPath,
       },
     };
+  }
+
+  /*
+   * Refuse a placement whose resulting path would not fit the column, before
+   * anything is written. `additionalSegments` is the height of what is being
+   * hung off this parent: 1 for a new leaf, and for a move the moved site plus
+   * the deepest thing already under it.
+   */
+  private assertHierarchyDepthFits(data: {
+    parentPath: string | null;
+    additionalSegments: number;
+  }): void {
+    const parentSegments: number = MaterializedPathUtil.segmentsOf(
+      data.parentPath,
+    ).length;
+
+    if (
+      parentSegments + data.additionalSegments <=
+      MAX_SITE_HIERARCHY_PATH_SEGMENTS
+    ) {
+      return;
+    }
+
+    throw new BadDataException(
+      `A network site hierarchy can be at most ${MAX_SITE_HIERARCHY_PATH_SEGMENTS} levels deep, and this placement would make it deeper. Move the sites below it first, or attach this one higher up.`,
+    );
+  }
+
+  /*
+   * How many levels the subtree rooted at `site` occupies, itself included, so
+   * a move can be measured before it is made rather than discovered when the
+   * post-commit rebase writes an over-long path.
+   */
+  private async getSubtreeHeight(site: Model): Promise<number> {
+    if (!site.materializedPath || !site.projectId) {
+      return 1;
+    }
+
+    const ownSegments: number = MaterializedPathUtil.segmentsOf(
+      site.materializedPath,
+    ).length;
+
+    /*
+     * Ordering on the maintained `depth` column keeps this to one row. Rows
+     * with no depth at all are excluded rather than sorted first: such a row
+     * predates path maintenance and would otherwise answer the question with a
+     * shallow path, and leaving the bound permissive for already-broken data
+     * is better than refusing a move the operator can see is fine.
+     */
+    const deepest: Array<Model> = await this.findBy({
+      query: {
+        projectId: site.projectId,
+        materializedPath: this.pathStartsWith(site.materializedPath),
+        depth: QueryHelper.notNull(),
+      },
+      select: {
+        _id: true,
+        materializedPath: true,
+      },
+      sort: {
+        depth: SortOrder.Descending,
+      },
+      limit: 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const deepestSegments: number = MaterializedPathUtil.segmentsOf(
+      deepest[0]?.materializedPath,
+    ).length;
+
+    return Math.max(1, deepestSegments - ownSegments + 1);
   }
 
   @CaptureSpan()
@@ -243,16 +1449,86 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const dataKeys: Array<string> = Object.keys(updateBy.data || {});
+    const rawData: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const touchesParent: boolean = isRelationWritten(rawData, PARENT_SITE_KEYS);
+    const touchesNetworkSiteType: boolean = isRelationWritten(
+      rawData,
+      NETWORK_SITE_TYPE_KEYS,
+    );
+    const touchesProject: boolean = isRelationWritten(rawData, PROJECT_KEYS);
+    const touchesMaterializedHierarchy: boolean = isRelationWritten(
+      rawData,
+      MATERIALIZED_HIERARCHY_KEYS,
+    );
+    /*
+     * These two have to be named in the early return, and that is the whole
+     * reason they are here. Setting a site's default probe or credential
+     * profile touches neither the parent nor the type, so a tenancy guard
+     * placed below the return would be dead code on exactly the write it
+     * exists for — the shape the site settings form actually posts.
+     */
+    const touchesProbe: boolean = isRelationWritten(rawData, PROBE_KEYS);
+    const touchesSnmpCredentialProfile: boolean = isRelationWritten(
+      rawData,
+      SNMP_CREDENTIAL_PROFILE_KEYS,
+    );
 
-    if (!RelationIdUtil.isWritten(dataKeys, PARENT_SITE_KEYS)) {
+    if (
+      !touchesParent &&
+      !touchesNetworkSiteType &&
+      !touchesProject &&
+      !touchesMaterializedHierarchy &&
+      !touchesProbe &&
+      !touchesSnmpCredentialProfile
+    ) {
       return { updateBy, carryForward: null };
     }
 
-    const newParentId: ObjectID | null = RelationIdUtil.read(
-      updateBy.data as unknown as Record<string, unknown>,
-      PARENT_SITE_KEYS,
-    );
+    if (touchesMaterializedHierarchy) {
+      throw new BadDataException(
+        "materializedPath and depth are managed by the Network Site hierarchy and cannot be updated directly.",
+      );
+    }
+
+    const proposedProjectId: ObjectID | null = touchesProject
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: PROJECT_KEYS,
+          relationTitle: "Project",
+        })
+      : null;
+
+    if (touchesProject && !proposedProjectId) {
+      throw new BadDataException(
+        "A Network Site cannot be moved to another project.",
+      );
+    }
+
+    const newParentId: ObjectID | null = touchesParent
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: PARENT_SITE_KEYS,
+          relationTitle: "Parent Site",
+        })
+      : null;
+    const newNetworkSiteTypeId: ObjectID | null = touchesNetworkSiteType
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: NETWORK_SITE_TYPE_KEYS,
+          relationTitle: "Network Site Type",
+        })
+      : null;
+    const updateLimit: number =
+      updateBy.limit instanceof PositiveNumber
+        ? updateBy.limit.toNumber()
+        : updateBy.limit || LIMIT_MAX;
+    const updateSkip: number =
+      updateBy.skip instanceof PositiveNumber
+        ? updateBy.skip.toNumber()
+        : updateBy.skip || 0;
 
     const previousItems: Array<Model> = await this.findBy({
       query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
@@ -260,14 +1536,29 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         parentSiteId: true,
+        networkSiteTypeId: true,
         materializedPath: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      limit: updateLimit,
+      skip: updateSkip,
       props: {
         isRoot: true,
       },
     });
+
+    if (touchesProject) {
+      for (const item of previousItems) {
+        if (
+          !item.projectId ||
+          !proposedProjectId ||
+          !sameId(item.projectId, proposedProjectId)
+        ) {
+          throw new BadDataException(
+            "A Network Site cannot be moved to another project.",
+          );
+        }
+      }
+    }
 
     /*
      * Same-project assertion for EVERY parentSiteId write, including the
@@ -279,7 +1570,7 @@ export class Service extends DatabaseService<Model> {
       for (const item of previousItems) {
         if (
           item.projectId &&
-          item.projectId.toString() !== updateBy.props.tenantId.toString()
+          !sameId(item.projectId, updateBy.props.tenantId)
         ) {
           throw new BadDataException(
             "Network site must belong to the same project.",
@@ -288,33 +1579,93 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    let newParentPath: string | null = null;
+    /*
+     * One check per DISTINCT project in the matched set, because a single
+     * updateBy can span more than one project when a root caller issues it,
+     * and the payload names one probe / one profile for all of them. Reading
+     * the ids here (rather than above the previousItems read) keeps a
+     * conflicting-spelling payload refused on every write shape.
+     */
+    if (touchesProbe || touchesSnmpCredentialProfile) {
+      const newProbeId: ObjectID | null = touchesProbe
+        ? readStrictRelationId({
+            payload: rawData,
+            keys: PROBE_KEYS,
+            relationTitle: "Probe",
+          })
+        : null;
+      const newSnmpCredentialProfileId: ObjectID | null =
+        touchesSnmpCredentialProfile
+          ? readStrictRelationId({
+              payload: rawData,
+              keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+              relationTitle: "SNMP Credential Profile",
+            })
+          : null;
 
-    if (newParentId) {
-      const parent: Model | null = await this.findOneById({
+      // A clear (null) points at nothing and has nothing to check.
+      if (newProbeId || newSnmpCredentialProfileId) {
+        const checkedProjectIds: Set<string> = new Set();
+
+        for (const item of previousItems) {
+          if (
+            !item.projectId ||
+            checkedProjectIds.has(normalizeId(item.projectId))
+          ) {
+            continue;
+          }
+          checkedProjectIds.add(normalizeId(item.projectId));
+
+          if (newProbeId) {
+            await this.assertProbeIsAttachableToProject({
+              probeId: newProbeId,
+              projectId: item.projectId,
+            });
+          }
+
+          if (newSnmpCredentialProfileId) {
+            await this.assertSnmpCredentialProfileBelongsToProject({
+              snmpCredentialProfileId: newSnmpCredentialProfileId,
+              projectId: item.projectId,
+            });
+          }
+        }
+      }
+    }
+
+    if (!touchesParent && !touchesNetworkSiteType) {
+      return { updateBy, carryForward: null };
+    }
+
+    let newParentPath: string | null = null;
+    let newParent: Model | null = null;
+
+    if (touchesParent && newParentId) {
+      newParent = await this.findOneById({
         id: newParentId,
         select: {
           _id: true,
           projectId: true,
+          networkSiteTypeId: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-      if (!parent) {
+      if (!newParent) {
         throw new BadDataException("Parent site not found.");
       }
 
       for (const item of previousItems) {
-        if (item.id && item.id.toString() === newParentId.toString()) {
+        if (item.id && sameId(item.id, newParentId)) {
           throw new BadDataException("A site cannot be its own parent.");
         }
 
         if (
           item.projectId &&
-          parent.projectId &&
-          item.projectId.toString() !== parent.projectId.toString()
+          newParent.projectId &&
+          !sameId(item.projectId, newParent.projectId)
         ) {
           throw new BadDataException(
             "Parent site must belong to the same project.",
@@ -336,7 +1687,96 @@ export class Service extends DatabaseService<Model> {
             "Cannot move a site under itself or one of its own descendants.",
           );
         }
+
+        /*
+         * The whole subtree moves with the site, so the deepest row in it is
+         * what decides whether the move fits. Measuring it here is the only
+         * chance: the rebase that writes those paths runs after the parent
+         * change has been committed.
+         */
+        this.assertHierarchyDepthFits({
+          parentPath: newParentPath,
+          additionalSegments: await this.getSubtreeHeight(item),
+        });
       }
+    }
+
+    const typeCache: Map<string, NetworkSiteType> = new Map();
+    const existingParents: Map<string, Model> = new Map();
+
+    for (const item of previousItems) {
+      let proposedParent: Model | null = null;
+
+      if (touchesParent) {
+        proposedParent = newParent;
+      } else if (item.parentSiteId) {
+        const currentParentId: string = normalizeId(item.parentSiteId);
+        proposedParent = existingParents.get(currentParentId) || null;
+
+        if (!proposedParent) {
+          proposedParent = await this.findOneById({
+            id: item.parentSiteId,
+            select: {
+              _id: true,
+              projectId: true,
+              networkSiteTypeId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!proposedParent) {
+            throw new BadDataException("Parent site not found.");
+          }
+
+          existingParents.set(currentParentId, proposedParent);
+        }
+
+        if (
+          item.projectId &&
+          proposedParent.projectId &&
+          !sameId(item.projectId, proposedParent.projectId)
+        ) {
+          throw new BadDataException(
+            "Parent site must belong to the same project.",
+          );
+        }
+      }
+
+      const proposedNetworkSiteTypeId: ObjectID | null = touchesNetworkSiteType
+        ? newNetworkSiteTypeId
+        : item.networkSiteTypeId || null;
+
+      await this.validateSiteTypeEdge({
+        networkSiteTypeId: proposedNetworkSiteTypeId,
+        parentSite: proposedParent,
+        projectId: item.projectId,
+        typeCache: typeCache,
+      });
+
+      const previousNetworkSiteTypeId: string | null = item.networkSiteTypeId
+        ? normalizeId(item.networkSiteTypeId)
+        : null;
+      const proposedNetworkSiteTypeIdString: string | null =
+        proposedNetworkSiteTypeId
+          ? normalizeId(proposedNetworkSiteTypeId)
+          : null;
+
+      if (
+        touchesNetworkSiteType &&
+        previousNetworkSiteTypeId !== proposedNetworkSiteTypeIdString
+      ) {
+        await this.validateDirectChildrenForTypeChange({
+          site: item,
+          proposedNetworkSiteTypeId: proposedNetworkSiteTypeId,
+          typeCache: typeCache,
+        });
+      }
+    }
+
+    if (!touchesParent) {
+      return { updateBy, carryForward: null };
     }
 
     const carryForward: ParentChangeCarryForward = {
@@ -353,6 +1793,39 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Editing the rollup POLICY (or its threshold) changes what the site's
+     * existing devices add up to, without touching a device or the tree. The
+     * five-minute stale sweep would eventually notice, but a settings page
+     * that leaves the status it just changed reading the old value for
+     * minutes looks broken, so re-roll immediately. Failures are swallowed:
+     * the sweep is still the backstop, and a rollup must not fail the save.
+     */
+    const policyKeys: Array<string> = [
+      "healthRollupPolicy",
+      "offlineThresholdPercent",
+    ];
+    const touchesPolicy: boolean = policyKeys.some((key: string): boolean => {
+      return (
+        (onUpdate.updateBy.data as Record<string, unknown>)[key] !== undefined
+      );
+    });
+
+    if (touchesPolicy) {
+      for (const siteId of updatedItemIds) {
+        try {
+          await this.recomputeRollupForSite(siteId);
+        } catch (error) {
+          logger.error(
+            `NetworkSiteService.onUpdateSuccess: rollup after a policy change failed for site ${siteId.toString()}: ${error}`,
+            {
+              siteId: siteId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+
     const parentChange: ParentChangeCarryForward | null =
       (onUpdate.carryForward as ParentChangeCarryForward | null) || null;
 
@@ -372,7 +1845,22 @@ export class Service extends DatabaseService<Model> {
       }),
     );
 
-    for (const previousItem of parentChange.previousItems) {
+    /*
+     * A bulk update can include both an ancestor and one of its descendants.
+     * Move the deepest roots first; otherwise rebasing the ancestor changes
+     * the descendant branch away from the latter's old prefix before its own
+     * subtree has been processed.
+     */
+    const previousItemsDeepestFirst: Array<Model> = [
+      ...parentChange.previousItems,
+    ].sort((left: Model, right: Model): number => {
+      return (
+        MaterializedPathUtil.segmentsOf(right.materializedPath).length -
+        MaterializedPathUtil.segmentsOf(left.materializedPath).length
+      );
+    });
+
+    for (const previousItem of previousItemsDeepestFirst) {
       if (!previousItem.id || !updatedIds.has(previousItem.id.toString())) {
         continue;
       }
@@ -398,44 +1886,53 @@ export class Service extends DatabaseService<Model> {
 
       // ...then its entire subtree in one prefix query.
       if (oldPath) {
-        const descendants: Array<Model> = await this.findBy({
-          query: {
-            projectId: previousItem.projectId!,
-            materializedPath: this.pathStartsWith(oldPath),
-          },
-          select: {
-            _id: true,
-            materializedPath: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        for (const descendant of descendants) {
-          if (
-            !descendant.id ||
-            !descendant.materializedPath ||
-            descendant.id.toString() === previousItem.id.toString()
-          ) {
-            continue;
-          }
-
-          const rebasedPath: string = MaterializedPathUtil.rebasePaths(
-            oldPath,
-            newPath,
-            [descendant.materializedPath],
-          )[0]!;
-
-          await this.updateColumnsByIdWithoutHooks({
-            id: descendant.id,
-            data: {
-              materializedPath: rebasedPath,
-              depth: MaterializedPathUtil.depthOf(rebasedPath),
+        while (true) {
+          const descendants: Array<Model> = await this.findBy({
+            query: {
+              projectId: previousItem.projectId!,
+              materializedPath: this.pathStartsWith(oldPath),
+            },
+            select: {
+              _id: true,
+              materializedPath: true,
+            },
+            sort: {
+              _id: SortOrder.Ascending,
+            },
+            limit: SUBTREE_REBASE_PAGE_SIZE,
+            skip: 0,
+            props: {
+              isRoot: true,
             },
           });
+
+          for (const descendant of descendants) {
+            if (
+              !descendant.id ||
+              !descendant.materializedPath ||
+              descendant.id.toString() === previousItem.id.toString()
+            ) {
+              continue;
+            }
+
+            const rebasedPath: string = MaterializedPathUtil.rebasePaths(
+              oldPath,
+              newPath,
+              [descendant.materializedPath],
+            )[0]!;
+
+            await this.updateColumnsByIdWithoutHooks({
+              id: descendant.id,
+              data: {
+                materializedPath: rebasedPath,
+                depth: MaterializedPathUtil.depthOf(rebasedPath),
+              },
+            });
+          }
+
+          if (descendants.length < SUBTREE_REBASE_PAGE_SIZE) {
+            break;
+          }
         }
       }
 
@@ -476,20 +1973,121 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    const deleteLimit: number =
+      deleteBy.limit instanceof PositiveNumber
+        ? deleteBy.limit.toNumber()
+        : deleteBy.limit || LIMIT_MAX;
+    const deleteSkip: number =
+      deleteBy.skip instanceof PositiveNumber
+        ? deleteBy.skip.toNumber()
+        : deleteBy.skip || 0;
+
     const sitesToDelete: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
+      query: this.scopeDeleteQueryToCallerTenant(
+        deleteBy.query,
+        deleteBy.props,
+      ),
       select: {
         _id: true,
         projectId: true,
         parentSiteId: true,
         materializedPath: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      limit: deleteLimit,
+      skip: deleteSkip,
       props: {
         isRoot: true,
       },
     });
+
+    const deletingSiteIds: Set<string> = new Set(
+      sitesToDelete
+        .map((site: Model): string | null => {
+          return site.id ? normalizeId(site.id) : null;
+        })
+        .filter((siteId: string | null): siteId is string => {
+          return Boolean(siteId);
+        }),
+    );
+
+    const deletingSiteIdList: Array<string> = Array.from(deletingSiteIds);
+    const deletingProjectIdList: Array<string> = Array.from(
+      new Set(
+        sitesToDelete
+          .map((site: Model): string | null => {
+            return site.projectId ? normalizeId(site.projectId) : null;
+          })
+          .filter((projectId: string | null): projectId is string => {
+            return Boolean(projectId);
+          }),
+      ),
+    );
+
+    /*
+     * Reject the delete unless every direct child is part of this same bulk
+     * delete.
+     *
+     * This used to be argued from the type rule - promoting an orphan to root
+     * or to its grandparent was said to be impossible without breaking its
+     * type. That argument no longer holds: a parent is optional now, and a
+     * grandparent is usually a legal parent. The guard stays on its own terms.
+     * Deleting one site is not permission to silently restructure the tree
+     * underneath it, and the operator, not the repair loop, should decide
+     * where those sites belong.
+     *
+     * Parent ids and result rows are both batched so neither a wide delete nor
+     * a wide site is silently truncated at a service query limit.
+     */
+    for (
+      let parentIdOffset: number = 0;
+      parentIdOffset < deletingSiteIdList.length;
+      parentIdOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+    ) {
+      const parentIdBatch: Array<string> = deletingSiteIdList.slice(
+        parentIdOffset,
+        parentIdOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      );
+      let childSkip: number = 0;
+
+      while (true) {
+        const directChildren: Array<Model> = await this.findBy({
+          query: {
+            projectId: QueryHelper.any(deletingProjectIdList),
+            parentSiteId: QueryHelper.any(parentIdBatch),
+          },
+          select: {
+            _id: true,
+            parentSiteId: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+          skip: childSkip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const hasSurvivingChild: boolean = directChildren.some(
+          (child: Model): boolean => {
+            return !child.id || !deletingSiteIds.has(normalizeId(child.id));
+          },
+        );
+
+        if (hasSurvivingChild) {
+          throw new BadDataException(
+            "A network site with child sites cannot be deleted. Move or delete its child sites first.",
+          );
+        }
+
+        if (directChildren.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+          break;
+        }
+
+        childSkip += directChildren.length;
+      }
+    }
 
     const carryForward: DeleteCarryForward = {
       sitesToDelete: sitesToDelete,
@@ -499,15 +2097,12 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * parentSiteId is declared onDelete: "SET NULL", so Postgres detaches the
-   * deleted site's direct children but leaves their materializedPath - and
-   * their whole subtree's - routed through a row that no longer exists. That
-   * strands the subtree: the children endpoint (which reads parentSiteId)
-   * shows them at the root while the rollup engine (which reads
-   * materializedPath) still folds them into the dead ancestor's chain, double
-   * counting every outage. Re-attach the orphans to the deleted site's own
-   * parent - NULL when it was a root, which is exactly what the FK did - and
-   * rebase the subtree paths so both readers agree again.
+   * New schemas use a non-nullifying foreign key and onBeforeDelete rejects
+   * surviving children, so this repair is normally a no-op. Keep it as a
+   * defensive bridge for a database that has not applied the FK migration
+   * yet, or for a legacy write already in flight during an upgrade: reattach
+   * any detached children and rebase their subtree paths so parentSiteId and
+   * materializedPath agree.
    */
   @CaptureSpan()
   protected override async onDeleteSuccess(
@@ -562,6 +2157,15 @@ export class Service extends DatabaseService<Model> {
    * Rewrites the deleted site's former subtree so the '/deletedId/' segment
    * is dropped from every path, and re-points its direct children at the
    * deleted site's parent.
+   *
+   * onBeforeDelete refuses a delete that would leave a surviving child, so
+   * this only runs for rows that got past it - a hard delete, or a child
+   * created in the window between the check and the write. It writes the
+   * promotion without re-checking the placement rule: the grandparent it
+   * promotes to is almost always legal, the alternative is leaving a site
+   * pointing at a row that no longer exists, and the result is visible and
+   * fixable in the parent picker. A repair prefers a whole tree to a
+   * perfectly modelled one.
    */
   private async reattachOrphanedSubtree(deletedSite: Model): Promise<void> {
     const oldPath: string | null = deletedSite.materializedPath || null;
@@ -577,58 +2181,67 @@ export class Service extends DatabaseService<Model> {
     const deletedDepth: number =
       MaterializedPathUtil.segmentsOf(oldPath).length;
 
-    const descendants: Array<Model> = await this.findBy({
-      query: {
-        projectId: deletedSite.projectId!,
-        materializedPath: this.pathStartsWith(oldPath),
-      },
-      select: {
-        _id: true,
-        materializedPath: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const descendant of descendants) {
-      if (
-        !descendant.id ||
-        !descendant.materializedPath ||
-        descendant.id.toString() === deletedSite.id.toString()
-      ) {
-        continue;
-      }
-
-      const tailSegments: Array<string> = MaterializedPathUtil.segmentsOf(
-        descendant.materializedPath,
-      ).slice(deletedDepth);
-
-      if (tailSegments.length === 0) {
-        continue;
-      }
-
-      let rebasedPath: string | null = parentPath;
-      for (const segment of tailSegments) {
-        rebasedPath = MaterializedPathUtil.buildPath(rebasedPath, segment);
-      }
-
-      const data: Record<string, unknown> = {
-        materializedPath: rebasedPath!,
-        depth: MaterializedPathUtil.depthOf(rebasedPath!),
-      };
-
-      // A direct child is the one the FK just detached - give it a parent back.
-      if (tailSegments.length === 1) {
-        data["parentSiteId"] = deletedSite.parentSiteId || null;
-      }
-
-      await this.updateColumnsByIdWithoutHooks({
-        id: descendant.id,
-        data: data as any,
+    while (true) {
+      const descendants: Array<Model> = await this.findBy({
+        query: {
+          projectId: deletedSite.projectId!,
+          materializedPath: this.pathStartsWith(oldPath),
+        },
+        select: {
+          _id: true,
+          materializedPath: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: SUBTREE_REBASE_PAGE_SIZE,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
       });
+
+      for (const descendant of descendants) {
+        if (
+          !descendant.id ||
+          !descendant.materializedPath ||
+          descendant.id.toString() === deletedSite.id.toString()
+        ) {
+          continue;
+        }
+
+        const tailSegments: Array<string> = MaterializedPathUtil.segmentsOf(
+          descendant.materializedPath,
+        ).slice(deletedDepth);
+
+        if (tailSegments.length === 0) {
+          continue;
+        }
+
+        let rebasedPath: string | null = parentPath;
+        for (const segment of tailSegments) {
+          rebasedPath = MaterializedPathUtil.buildPath(rebasedPath, segment);
+        }
+
+        const updateData: Record<string, unknown> = {
+          materializedPath: rebasedPath!,
+          depth: MaterializedPathUtil.depthOf(rebasedPath!),
+        };
+
+        // A direct child is the one the FK just detached - give it a parent back.
+        if (tailSegments.length === 1) {
+          updateData["parentSiteId"] = deletedSite.parentSiteId || null;
+        }
+
+        await this.updateColumnsByIdWithoutHooks({
+          id: descendant.id,
+          data: updateData as any,
+        });
+      }
+
+      if (descendants.length < SUBTREE_REBASE_PAGE_SIZE) {
+        break;
+      }
     }
 
     /*
@@ -795,16 +2408,108 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Every site id in the subtrees rooted at `siteIds`, INCLUDING the roots
+   * themselves.
+   *
+   * Two statements regardless of how many roots are passed: one to read the
+   * roots' materialized paths, one prefix scan OR-ing those paths together.
+   * The obvious loop over getDescendantSiteIds is two statements PER root,
+   * and the caller that needs this - expanding a maintenance window attached
+   * to a Region into the units it covers - can legitimately be handed
+   * hundreds of roots.
+   *
+   * Roots whose row is missing or whose path is unset contribute only
+   * themselves: a site with no path has no discoverable subtree, and
+   * silently dropping it would quietly un-cover a maintenance window.
+   */
+  @CaptureSpan()
+  public async getSubtreeSiteIds(data: {
+    siteIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Set<string>> {
+    const result: Set<string> = new Set<string>();
+
+    for (const siteId of data.siteIds) {
+      result.add(siteId.toString());
+    }
+
+    if (result.size === 0) {
+      return result;
+    }
+
+    const roots: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(data.siteIds),
+      },
+      select: {
+        _id: true,
+        materializedPath: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const paths: Array<string> = [];
+
+    for (const root of roots) {
+      if (root.materializedPath) {
+        paths.push(root.materializedPath);
+      }
+    }
+
+    if (paths.length === 0) {
+      return result;
+    }
+
+    const descendants: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        materializedPath: this.pathStartsWithAny(paths),
+      },
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const descendant of descendants) {
+      if (descendant.id) {
+        result.add(descendant.id.toString());
+      }
+    }
+
+    return result;
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Persisted rollup engine
    * ------------------------------------------------------------------
    */
 
   /*
-   * Recomputes the worst-of rollup for one site from the devices in its
-   * subtree, persisting currentMonitorStatusId + lastRollupAt and keeping
-   * the NetworkSiteStatusTimeline in sync (close the open row, open a new
-   * one) whenever the status actually changes.
+   * Recomputes the rollup for one site from the devices in its subtree,
+   * persisting currentMonitorStatusId + lastRollupAt and keeping the
+   * NetworkSiteStatusTimeline in sync (close the open row, open a new one)
+   * whenever the status actually changes.
+   *
+   * WHICH rule turns those devices into one status is the site's own
+   * healthRollupPolicy - worst-of by default, or a share-of-devices-down
+   * threshold. See Types/NetworkSite/SiteHealthRollupPolicy.
+   *
+   * Descendants inside an ongoing scheduled maintenance window are dropped
+   * from the subtree first, so planned work on one unit does not turn its
+   * region red. The maintained site's OWN rollup keeps every device,
+   * including its own: someone looking at that unit must still see it is
+   * down. See NetworkSiteMaintenanceSuppression.
    */
   @CaptureSpan()
   public async recomputeRollupForSite(siteId: ObjectID): Promise<void> {
@@ -818,6 +2523,8 @@ export class Service extends DatabaseService<Model> {
         shouldAlertWhenUnhealthy: true,
         alertSeverityId: true,
         currentActiveAlertId: true,
+        healthRollupPolicy: true,
+        offlineThresholdPercent: true,
       },
       props: {
         isRoot: true,
@@ -834,38 +2541,85 @@ export class Service extends DatabaseService<Model> {
     ];
 
     /*
+     * Sites silenced by an ongoing maintenance window. A site that is itself
+     * inside one suppresses nothing - not even its own descendants - because
+     * its rollup is supposed to show the planned outage. Only an ancestor
+     * looking down past a maintained subtree drops it.
+     */
+    const maintainedSiteIds: Set<string> =
+      await NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance(
+        site.projectId,
+      );
+
+    const isSiteUnderMaintenance: boolean = maintainedSiteIds.has(
+      site.id.toString(),
+    );
+
+    const suppressesDescendants: boolean =
+      !isSiteUnderMaintenance && maintainedSiteIds.size > 0;
+
+    const contributingSiteIds: Array<ObjectID> = suppressesDescendants
+      ? subtreeSiteIds.filter((id: ObjectID) => {
+          return !maintainedSiteIds.has(id.toString());
+        })
+      : subtreeSiteIds;
+
+    /*
+     * The suppressed part of THIS subtree. Their devices do not vote, but
+     * they are still counted, because a share needs a denominator that does
+     * not move when a window opens - see SiteStatusRollupUtil.
+     * deviceHealthShare for what goes wrong otherwise.
+     */
+    const suppressedSiteIds: Array<ObjectID> = suppressesDescendants
+      ? subtreeSiteIds.filter((id: ObjectID) => {
+          return maintainedSiteIds.has(id.toString());
+        })
+      : [];
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    /*
+     * The subtree's devices, as health BUCKETS rather than rows.
+     *
+     * This used to read the devices themselves, capped at LIMIT_MAX. A
+     * franchise estate whose root site has more than ten thousand devices
+     * under it therefore rolled up from an arbitrary ten-thousand-row sample:
+     * the one dark switch in store 12,000 could not turn its region red, and
+     * nothing said so. Bucketing runs over the whole subtree however large it
+     * is, and returns a handful of rows to classify.
+     *
      * Archived devices are decommissioned: they keep their siteId but must
      * not vote in the rollup. An archived, never-monitored device otherwise
      * falls through to the freshness fallback (stale lastSeenAt -> Offline)
      * and pins its whole ancestor chain red forever, with the drill-down
      * showing zero devices because that query excludes archived rows.
      */
-    const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-      query: {
+    const deviceGroups: Array<DeviceHealthGroup> =
+      await NetworkDeviceService.getHealthGroupsForSites({
         projectId: site.projectId,
-        siteId: QueryHelper.any(subtreeSiteIds),
-        isArchived: false,
-      },
-      select: {
-        _id: true,
-        currentMonitorStatusId: true,
-        /*
-         * All four reachability inputs. isReachable is the one that decides
-         * up/down; the other three only size the "polling has stopped
-         * entirely" backstop. Selecting lastSeenAt alone silently drops the
-         * rollup back to the old freshness rule.
-         */
-        isReachable: true,
-        lastPolledAt: true,
-        lastSeenAt: true,
-        pollingIntervalInMinutes: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+        siteIds: contributingSiteIds,
+        now: now,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * One extra aggregate, and only while a window is actually running: the
+     * common path (no ongoing maintenance anywhere in the project) skips it
+     * entirely. Classified below, once the status ladder is known.
+     */
+    const suppressedGroups: Array<DeviceHealthGroup> =
+      suppressedSiteIds.length > 0
+        ? await NetworkDeviceService.getHealthGroupsForSites({
+            projectId: site.projectId,
+            siteIds: suppressedSiteIds,
+            now: now,
+            props: {
+              isRoot: true,
+            },
+          })
+        : [];
 
     const statuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
       query: {
@@ -886,14 +2640,26 @@ export class Service extends DatabaseService<Model> {
     });
 
     const priorityByStatusId: Map<string, number> = new Map();
+    const isOperationalByStatusId: Map<string, boolean> = new Map();
     let operationalStatus: RollupStatusOption | null = null;
     let offlineStatus: RollupStatusOption | null = null;
+    /*
+     * The rung between the two, for the threshold policy: the WORST status
+     * that is neither operational nor offline (highest priority wins, the
+     * same direction worst-of reads the ladder). Projects that never created
+     * one leave this null and "some devices down" falls through to offline.
+     */
+    let degradedStatus: RollupStatusOption | null = null;
 
     for (const status of statuses) {
       if (!status.id || typeof status.priority !== "number") {
         continue;
       }
       priorityByStatusId.set(status.id.toString(), status.priority);
+      isOperationalByStatusId.set(
+        status.id.toString(),
+        Boolean(status.isOperationalState),
+      );
       if (status.isOperationalState && !operationalStatus) {
         operationalStatus = {
           monitorStatusId: status.id.toString(),
@@ -906,37 +2672,114 @@ export class Service extends DatabaseService<Model> {
           priority: status.priority,
         };
       }
+      if (
+        !status.isOperationalState &&
+        !status.isOfflineState &&
+        (!degradedStatus || status.priority > degradedStatus.priority)
+      ) {
+        degradedStatus = {
+          monitorStatusId: status.id.toString(),
+          priority: status.priority,
+        };
+      }
     }
 
-    const deviceStates: Array<DeviceHealthState> = devices.map(
-      (device: NetworkDevice) => {
-        const statusId: string | undefined =
-          device.currentMonitorStatusId?.toString();
-        return {
-          currentMonitorStatusId: statusId,
-          monitorStatusPriority: statusId
-            ? priorityByStatusId.get(statusId)
+    /*
+     * The middle rung has to sit BELOW the offline rung, or the ladder is
+     * upside down. A project is free to define a status that is neither
+     * operational nor offline and give it a priority ABOVE its offline row
+     * ("Critical", say, at priority 4 next to Offline at 3) — and then a
+     * sub-threshold outage would stamp the WORSE status while crossing the
+     * threshold stamped the milder one. Nothing stops a project doing that,
+     * so the rollup has to.
+     */
+    if (
+      degradedStatus &&
+      offlineStatus &&
+      degradedStatus.priority >= offlineStatus.priority
+    ) {
+      let milder: RollupStatusOption | null = null;
+      for (const status of statuses) {
+        if (
+          !status.id ||
+          typeof status.priority !== "number" ||
+          status.isOperationalState ||
+          status.isOfflineState ||
+          status.priority >= offlineStatus.priority
+        ) {
+          continue;
+        }
+        if (!milder || status.priority > milder.priority) {
+          milder = {
+            monitorStatusId: status.id.toString(),
+            priority: status.priority,
+          };
+        }
+      }
+      degradedStatus = milder;
+    }
+
+    const deviceStates: Array<DeviceHealthState> = deviceGroups.map(
+      (group: DeviceHealthGroup) => {
+        return deviceRollupStateForGroup({
+          group: group,
+          monitorStatusPriority: group.monitorStatusId
+            ? priorityByStatusId.get(group.monitorStatusId)
             : undefined,
-          isReachable: device.isReachable,
-          lastPolledAt: device.lastPolledAt,
-          lastSeenAt: device.lastSeenAt,
-          pollingIntervalInMinutes: device.pollingIntervalInMinutes,
-        };
+          monitorStatusIsOperational: group.monitorStatusId
+            ? isOperationalByStatusId.get(group.monitorStatusId)
+            : undefined,
+          now: now,
+        });
       },
     );
 
-    const worstStatusId: string | null = SiteStatusRollupUtil.worstStatus({
-      deviceStates: deviceStates,
-      operationalStatus: operationalStatus,
-      offlineStatus: offlineStatus,
-    });
+    /*
+     * Sized with SiteStatusRollupUtil's own rule, not by summing
+     * `deviceCount`.
+     *
+     * A suppressed bucket of never-polled devices has a count like any
+     * other, but the share deliberately drops never-reported devices from
+     * BOTH sides of the fraction. Adding their raw count back as
+     * "suppressed" would pad the denominator with devices nothing was ever
+     * measuring — a region with 200 undiscovered devices under a window and
+     * 6 of 10 real ones dark would read 2.9% and call itself Degraded while
+     * more than half of everything that has ever answered is offline.
+     */
+    const suppressedDeviceCount: number =
+      SiteStatusRollupUtil.reportingDeviceCount(
+        suppressedGroups.map((group: DeviceHealthGroup) => {
+          return deviceRollupStateForGroup({
+            group: group,
+            monitorStatusPriority: group.monitorStatusId
+              ? priorityByStatusId.get(group.monitorStatusId)
+              : undefined,
+            monitorStatusIsOperational: group.monitorStatusId
+              ? isOperationalByStatusId.get(group.monitorStatusId)
+              : undefined,
+            now: now,
+          });
+        }),
+        now,
+      );
 
-    const now: Date = OneUptimeDate.getCurrentDate();
+    const rolledUpStatusId: string | null = SiteStatusRollupUtil.rollupStatus({
+      policy: parseSiteHealthRollupPolicy(site.healthRollupPolicy),
+      deviceStates: deviceStates,
+      ladder: {
+        operationalStatus: operationalStatus,
+        degradedStatus: degradedStatus,
+        offlineStatus: offlineStatus,
+      },
+      offlineThresholdPercent: site.offlineThresholdPercent,
+      suppressedDeviceCount: suppressedDeviceCount,
+      now: now,
+    });
     const currentStatusId: string | null =
       site.currentMonitorStatusId?.toString() || null;
 
     // No devices contribute -> leave the status alone, just stamp the run.
-    if (!worstStatusId || worstStatusId === currentStatusId) {
+    if (!rolledUpStatusId || rolledUpStatusId === currentStatusId) {
       await this.updateColumnsByIdWithoutHooks({
         id: site.id,
         data: {
@@ -949,7 +2792,7 @@ export class Service extends DatabaseService<Model> {
     await this.updateColumnsByIdWithoutHooks({
       id: site.id,
       data: {
-        currentMonitorStatusId: new ObjectID(worstStatusId),
+        currentMonitorStatusId: new ObjectID(rolledUpStatusId),
         lastRollupAt: now,
       },
     });
@@ -973,7 +2816,7 @@ export class Service extends DatabaseService<Model> {
     const timeline: NetworkSiteStatusTimeline = new NetworkSiteStatusTimeline();
     timeline.projectId = site.projectId;
     timeline.siteId = site.id;
-    timeline.monitorStatusId = new ObjectID(worstStatusId);
+    timeline.monitorStatusId = new ObjectID(rolledUpStatusId);
     timeline.startsAt = now;
 
     await NetworkSiteStatusTimelineService.create({
@@ -992,7 +2835,7 @@ export class Service extends DatabaseService<Model> {
         site: site,
         newStatus:
           statuses.find((status: MonitorStatus) => {
-            return status.id?.toString() === worstStatusId;
+            return status.id?.toString() === rolledUpStatusId;
           }) || null,
       });
     } catch (err) {
@@ -1095,7 +2938,7 @@ export class Service extends DatabaseService<Model> {
     alert.title = `Network site ${site.name || site.id.toString()} is ${statusName}`;
     alert.description = `The health rollup of network site **${
       site.name || site.id.toString()
-    }** changed to **${statusName}** — the worst status of the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
+    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
     alert.alertSeverityId = alertSeverityId;
     alert.rootCause = `Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`;
 
@@ -1178,14 +3021,98 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Re-rolls the chains a maintenance window just started or stopped
+   * covering.
+   *
+   * Only the attached sites and their ANCESTORS can have changed verdict:
+   * the maintained subtree keeps every one of its own devices either way
+   * (see recomputeRollupForSite), so nothing below an attached site needs
+   * recomputing. Each chain is deduplicated, because attaching a Region and
+   * one of its Markets to the same window would otherwise walk the shared
+   * ancestors twice.
+   *
+   * Errors are swallowed per site: the five-minute stale-rollup sweep is the
+   * backstop, and a maintenance event must not fail to start because one
+   * site's rollup did.
+   */
+  @CaptureSpan()
+  public async recomputeRollupsAfterMaintenanceChange(data: {
+    projectId: ObjectID;
+    siteIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.siteIds.length === 0) {
+      return;
+    }
+
+    /*
+     * The suppression set is cached for a few seconds; a window that has
+     * just flipped state must not be recomputed against the previous
+     * answer.
+     */
+    NetworkSiteMaintenanceSuppression.invalidateCache(data.projectId);
+
+    const recomputed: Set<string> = new Set<string>();
+
+    /*
+     * Descendants of an attached site change verdict too, which is easy to
+     * miss because the attached site itself does not. While the window runs,
+     * a descendant D is maintained (coverage is inherited downward), so D
+     * suppresses nothing of its own. The moment the window ends D stops
+     * being maintained and starts suppressing ITS maintained descendants —
+     * a different answer, from the same devices. Nested and overlapping
+     * windows are ordinary on a franchise estate, so this is not a corner.
+     */
+    const subtreeIds: Set<string> = await this.getSubtreeSiteIds({
+      siteIds: data.siteIds,
+      projectId: data.projectId,
+    });
+
+    const roots: Array<ObjectID> = Array.from(subtreeIds).map(
+      (id: string): ObjectID => {
+        return new ObjectID(id);
+      },
+    );
+
+    for (const siteId of roots) {
+      const chain: Array<ObjectID> = [
+        siteId,
+        ...(await this.getAncestorIds(siteId)).reverse(),
+      ];
+
+      for (const chainSiteId of chain) {
+        const key: string = chainSiteId.toString();
+        if (recomputed.has(key)) {
+          continue;
+        }
+        recomputed.add(key);
+
+        try {
+          await this.recomputeRollupForSite(chainSiteId);
+        } catch (error) {
+          logger.error(
+            `NetworkSiteService.recomputeRollupsAfterMaintenanceChange: rollup failed for site ${key}: ${error}`,
+            {
+              projectId: data.projectId.toString(),
+              siteId: key,
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Monitor status bridge
    * ------------------------------------------------------------------
    */
 
   /*
-   * Called by MonitorService.changeMonitorStatus after a status persists.
-   * Resolves which NetworkDevices these monitors report on, stamps those
+   * Called after a monitor's current status persists - from
+   * MonitorStatusTimelineService.onCreateSuccess / onDeleteSuccess (the one
+   * path every status change, probe-driven or manual, passes through) and
+   * from MonitorService.refreshMonitorCurrentStatus when a repair moves the
+   * id. Resolves which NetworkDevices these monitors report on, stamps those
    * devices' currentMonitorStatusId, then recomputes the rollup for every
    * affected site chain. Never throws - a rollup failure must never break a
    * monitor status change.
@@ -1199,6 +3126,26 @@ export class Service extends DatabaseService<Model> {
    *     monitor-backed path (monitoringMethod "Monitor") for gear that does
    *     not speak SNMP, so ANY monitor type qualifies — a Ping monitor on an
    *     access point is the whole point of it.
+   *
+   * What gets stamped depends on how the device is monitored:
+   *
+   *   - every device gets currentMonitorStatusId, which the pill, the site
+   *     rollup and the topology node read.
+   *   - a MONITOR-BACKED device also gets isReachable, derived from the
+   *     status row (`!isOfflineState`, the same offline-end reading
+   *     DeviceReachabilityUtil uses). Nothing polls such a device, so the
+   *     column is NULL forever otherwise - and the device list's summary
+   *     tiles and its Status filter count and filter on isReachable in SQL,
+   *     which is why a bound ping-only device sat under "Pending" there while
+   *     its own pill said Up. The server keeps the two in sync so the list
+   *     agrees with itself.
+   *   - an SNMP device's isReachable is left alone: the walk owns it
+   *     (NetworkInventoryUtil.updateFromWalk), and a Network Device monitor
+   *     going Degraded must not overwrite what the probe actually found.
+   *
+   * The status row is read at most once per call, and only when at least one
+   * collected device is monitor-backed, so an all-SNMP estate costs no extra
+   * query.
    */
   @CaptureSpan()
   public async onMonitorStatusChanged(data: {
@@ -1264,6 +3211,8 @@ export class Service extends DatabaseService<Model> {
             select: {
               _id: true,
               siteId: true,
+              // Decides whether isReachable is stamped alongside the status.
+              monitoringMethod: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -1283,6 +3232,8 @@ export class Service extends DatabaseService<Model> {
           select: {
             _id: true,
             siteId: true,
+            // Decides whether isReachable is stamped alongside the status.
+            monitoringMethod: true,
           },
           limit: LIMIT_MAX,
           skip: 0,
@@ -1298,15 +3249,83 @@ export class Service extends DatabaseService<Model> {
         return;
       }
 
+      /*
+       * Resolve the status row lazily - once, and only if a monitor-backed
+       * device is in the set - because it is only needed to derive
+       * isReachable, and the SNMP-only case must stay one query cheaper.
+       *
+       * `undefined` afterwards means "do not touch isReachable": either no
+       * device needs it, or the row could not be found in this project (a
+       * status deleted between the timeline write and this call, or one
+       * from another tenant). The id is still stamped in that case so the
+       * pill keeps moving; a stale reachability is the lesser harm next to
+       * a device that stops reporting altogether.
+       */
+      const hasMonitorBackedDevice: boolean = devices.some(
+        (device: NetworkDevice) => {
+          return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device.monitoringMethod,
+          );
+        },
+      );
+
+      let monitorBackedIsReachable: boolean | undefined = undefined;
+
+      if (hasMonitorBackedDevice) {
+        const status: MonitorStatus | null =
+          await MonitorStatusService.findOneBy({
+            query: {
+              _id: data.monitorStatusId,
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              isOfflineState: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (status) {
+          monitorBackedIsReachable = !status.isOfflineState;
+        } else {
+          logger.warn(
+            `NetworkSiteService.onMonitorStatusChanged: monitor status ${data.monitorStatusId.toString()} was not found in project ${data.projectId.toString()}; stamping the status id on the bound network devices but leaving isReachable unchanged.`,
+            {
+              projectId: data.projectId.toString(),
+              monitorStatusId: data.monitorStatusId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+
       for (const device of devices) {
         if (!device.id) {
           continue;
         }
+
+        const stamp: PartialEntity<NetworkDevice> = {
+          currentMonitorStatusId: data.monitorStatusId,
+        };
+
+        /*
+         * Only a monitor-backed device gets isReachable from here. The key
+         * is left OUT of the payload for an SNMP device rather than set to
+         * undefined, so the walk's verdict is provably untouched.
+         */
+        if (
+          monitorBackedIsReachable !== undefined &&
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device.monitoringMethod,
+          )
+        ) {
+          stamp.isReachable = monitorBackedIsReachable;
+        }
+
         await NetworkDeviceService.updateColumnsByIdWithoutHooks({
           id: device.id,
-          data: {
-            currentMonitorStatusId: data.monitorStatusId,
-          },
+          data: stamp,
         });
       }
 

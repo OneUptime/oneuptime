@@ -11,13 +11,16 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
@@ -33,7 +36,6 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
-import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
@@ -50,6 +52,15 @@ import {
   fetchSessionReplayList,
   SessionReplayListResult,
 } from "../../../Components/SessionReplay/SessionReplayTable";
+import isReplayOnlyInstrumented from "../../../Components/SessionReplay/RumInstrumentation";
+import useSessionReplayHealth, {
+  UseSessionReplayHealthResult,
+} from "../../../Components/SessionReplay/useSessionReplayHealth";
+import {
+  buildRangedListRoute,
+  describeRecordingHealthRow,
+  describeTimeRangeForTile,
+} from "./OverviewHelpers";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -62,6 +73,26 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  */
 const SESSION_REPLAY_COUNT_PAGE_SIZE: number = 50;
 
+/*
+ * describeTimeRangeForTile, buildRangedListRoute and describeRecordingHealthRow
+ * are pure and live in OverviewHelpers.ts, which imports no React, so they can
+ * be exercised by a node test. Re-exported here for callers of this page.
+ */
+export {
+  buildRangedListRoute,
+  describeRecordingHealthRow,
+  describeTimeRangeForTile,
+};
+
+/* Identity for the effect below: a picker hands out a new object per change. */
+function getTimeRangeKey(timeRange: RangeStartAndEndDateTime): string {
+  return [
+    String(timeRange.range),
+    timeRange.startAndEndDate?.startValue?.toISOString() || "",
+    timeRange.startAndEndDate?.endValue?.toISOString() || "",
+  ].join("|");
+}
+
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -71,6 +102,12 @@ const RumApplicationOverview: FunctionComponent<
     null,
   );
   const [clientCount, setClientCount] = useState<number | null>(null);
+  /*
+   * A failed client lookup is unknown, not zero: "0 platforms seen" beside
+   * a sessions tile saying "could not load" for the same failure would be
+   * a wrong number rather than a missing one (correlation-14).
+   */
+  const [clientCountFailed, setClientCountFailed] = useState<boolean>(false);
   const [sessionReplayCount, setSessionReplayCount] = useState<number | null>(
     null,
   );
@@ -119,6 +156,11 @@ const RumApplicationOverview: FunctionComponent<
           otelCollectorStatus: true,
           lastSeenAt: true,
           agentVersion: true,
+          /*
+           * Read for the instrumentation banner below, not for a tile. See
+           * isReplayOnlyInstrumented.
+           */
+          sessionReplayLastChunkReceivedAt: true,
           labels: { name: true, color: true },
         },
       });
@@ -142,9 +184,12 @@ const RumApplicationOverview: FunctionComponent<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         query: { rumApplicationId: modelId } as any,
       })
-        .then(setClientCount)
+        .then((count: number) => {
+          setClientCount(count);
+          setClientCountFailed(false);
+        })
         .catch(() => {
-          return setClientCount(0);
+          setClientCountFailed(true);
         });
     } catch (err) {
       /*
@@ -165,100 +210,159 @@ const RumApplicationOverview: FunctionComponent<
     });
   }, []);
 
+  const appIdentifier: string = rumApplication?.appIdentifier
+    ? String(rumApplication.appIdentifier)
+    : "";
+  const timeRangeKey: string = getTimeRangeKey(timeRange);
+  const modelIdString: string = modelId.toString();
+
+  /*
+   * Staleness guard for the telemetry fetches: a slow wide-range fetch can
+   * resolve after a subsequently selected narrower range, and a refresh can
+   * overlap a range change - without the guard the older response would
+   * clobber the newer one.
+   */
+  const telemetryGenerationRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
+   * One loader for the tiles, the charts and the sessions count. Loading
+   * flags are set only when `showLoading` is true (first load, range
+   * change); a background refresh keeps every stale value on screen until
+   * its replacement arrives, instead of dropping the page to spinners and
+   * dashes every interval (correlation-12).
+   */
+  const loadTelemetry: (showLoading: boolean) => void = useCallback(
+    (showLoading: boolean): void => {
+      telemetryGenerationRef.current += 1;
+      const generation: number = telemetryGenerationRef.current;
+      const isCurrent: () => boolean = (): boolean => {
+        return generation === telemetryGenerationRef.current;
+      };
+
+      if (showLoading) {
+        setMetricsLoading(true);
+        setWebVitalsLoading(true);
+        setSessionReplayCount(null);
+        setSessionReplayCountFailed(false);
+      }
+
+      const range: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const start: Date = range.startValue;
+      const end: Date = range.endValue;
+      setChartWindow({ start, end });
+
+      const primaryEntityId: ObjectID = new ObjectID(modelIdString);
+
+      // RUM telemetry is tagged with primaryEntityId = this application's id.
+      fetchSpanMetrics({ primaryEntityId, start, end })
+        .then((m: SpanMetrics) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setMetrics(m);
+          setMetricsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setMetricsLoading(false);
+        });
+
+      fetchWebVitals({ primaryEntityId, start, end })
+        .then((v: Array<WebVital>) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setWebVitals(v);
+          setWebVitalsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setWebVitalsLoading(false);
+        });
+
+      /*
+       * Recorded-session count for the tile.
+       *
+       * The list endpoint runs no COUNT - it is a keyset-paginated projection -
+       * so this counts one page and says "N+" when there is another. Failure is
+       * tracked separately from an empty result: collapsing a 403 from a
+       * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
+       * would be indistinguishable from a project that genuinely has no
+       * recordings, which is a wrong number rather than an unknown one.
+       */
+      fetchSessionReplayList({
+        rumApplicationId: primaryEntityId,
+        signal: "all",
+        startTime: start,
+        endTime: end,
+        limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
+      })
+        .then((result: SessionReplayListResult) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionReplayCount(result.sessions.length);
+          setSessionReplayHasMore(result.nextCursor !== null);
+          setSessionReplayCountFailed(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionReplayCountFailed(true);
+        });
+    },
+    [modelIdString, timeRangeKey],
+  );
+
+  /*
+   * Keyed on the application's identifier and the range's VALUE, not on the
+   * RumApplication object: fetchModel(false) stores a fresh object on every
+   * refresh, and keying on it re-fired all four queries with spinners each
+   * interval.
+   */
   useEffect(() => {
-    if (!rumApplication?.appIdentifier) {
+    if (!appIdentifier) {
       return;
     }
-    setMetricsLoading(true);
-    setWebVitalsLoading(true);
-    const range: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    const start: Date = range.startValue;
-    const end: Date = range.endValue;
-    setChartWindow({ start, end });
 
-    /*
-     * Staleness guard: a slow wide-range fetch can resolve after a
-     * subsequently selected narrower range — without the guard the older
-     * response would clobber the newer one.
-     */
-    let ignore: boolean = false;
-
-    // RUM telemetry is tagged with primaryEntityId = this application's id.
-    fetchSpanMetrics({ primaryEntityId: modelId, start, end })
-      .then((m: SpanMetrics) => {
-        if (ignore) {
-          return;
-        }
-        setMetrics(m);
-        setMetricsLoading(false);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setMetricsLoading(false);
-      });
-
-    fetchWebVitals({ primaryEntityId: modelId, start, end })
-      .then((v: Array<WebVital>) => {
-        if (ignore) {
-          return;
-        }
-        setWebVitals(v);
-        setWebVitalsLoading(false);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setWebVitalsLoading(false);
-      });
-
-    /*
-     * Recorded-session count for the tile.
-     *
-     * The list endpoint runs no COUNT - it is a keyset-paginated projection -
-     * so this counts one page and says "N+" when there is another. Failure is
-     * tracked separately from an empty result: collapsing a 403 from a
-     * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
-     * would be indistinguishable from a project that genuinely has no
-     * recordings, which is a wrong number rather than an unknown one.
-     */
-    setSessionReplayCount(null);
-    setSessionReplayCountFailed(false);
-    fetchSessionReplayList({
-      rumApplicationId: modelId,
-      signal: "all",
-      startTime: start,
-      endTime: end,
-      limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
-    })
-      .then((result: SessionReplayListResult) => {
-        if (ignore) {
-          return;
-        }
-        setSessionReplayCount(result.sessions.length);
-        setSessionReplayHasMore(result.nextCursor !== null);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setSessionReplayCountFailed(true);
-      });
+    loadTelemetry(true);
 
     return () => {
-      ignore = true;
+      telemetryGenerationRef.current += 1;
     };
-  }, [rumApplication, timeRange]);
+  }, [appIdentifier, timeRangeKey, loadTelemetry]);
+
+  const refresh: () => void = useCallback((): void => {
+    fetchModel(false).catch(() => {});
+
+    if (appIdentifier) {
+      loadTelemetry(false);
+    }
+  }, [appIdentifier, loadTelemetry]);
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "rum-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh();
     },
   });
+
+  /*
+   * One line of recording health in the details list. The overview is where
+   * someone lands when "the replays look wrong", and until now this page
+   * said nothing at all about whether the recorder is even reporting - the
+   * diagnosis lived only on the list strip and the settings card. The hook
+   * is a shared store keyed by application, so this subscription costs no
+   * extra request when the strip or the card is already polling.
+   */
+  const health: UseSessionReplayHealthResult = useSessionReplayHealth(modelId);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -316,11 +420,14 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Clients",
-      value: clientCount === null ? "—" : formatCompact(clientCount),
+      value:
+        clientCountFailed || clientCount === null
+          ? "—"
+          : formatCompact(clientCount),
       icon: IconProp.Window,
       iconColor: "amber",
-      loading: clientCount === null,
-      sublabel: "platforms seen",
+      loading: clientCount === null && !clientCountFailed,
+      sublabel: clientCountFailed ? "could not load" : "platforms seen",
       to: populate(PageMap.RUM_APPLICATION_VIEW_CLIENTS),
     },
     {
@@ -335,8 +442,13 @@ const RumApplicationOverview: FunctionComponent<
       icon: IconProp.Film,
       iconColor: "sky",
       loading: sessionReplayCount === null && !sessionReplayCountFailed,
-      sublabel: sessionReplayCountFailed ? "could not load" : "selected range",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+      sublabel: sessionReplayCountFailed
+        ? "could not load"
+        : describeTimeRangeForTile(timeRange),
+      to: buildRangedListRoute(
+        populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+        timeRange,
+      ),
     },
   ];
 
@@ -406,15 +518,49 @@ const RumApplicationOverview: FunctionComponent<
     },
   ];
 
+  const recordingHealthValue: string | undefined =
+    describeRecordingHealthRow(health);
+
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "App Identifier (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
     { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
     { label: "SDK Version", value: a.agentVersion },
+    ...(recordingHealthValue
+      ? [{ label: "Recording health", value: recordingHealthValue }]
+      : []),
   ];
+
+  /*
+   * Recordings are arriving but the OpenTelemetry browser SDK has never
+   * reported, so every tile on this page except "sessions recorded" is
+   * honestly zero. See RumInstrumentation for why the signal is the SDK
+   * metadata columns rather than "no spans in the selected range".
+   */
+  const showRumSdkMissingNotice: boolean = isReplayOnlyInstrumented(a);
 
   return (
     <Fragment>
+      {showRumSdkMissingNotice && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Session replay is reporting, the RUM SDK is not"
+          title={
+            <span>
+              Recordings are arriving for this application, so the replay
+              snippet and your ingestion key are working. Page views, error
+              rate, p95 duration and clients come from a different install — the
+              OpenTelemetry browser SDK — and nothing has reported through it
+              yet, which is why those tiles read zero. Add the SDK with{" "}
+              <code>service.name</code> set to{" "}
+              <code>{(a.appIdentifier as string) || ""}</code> to fill them in;
+              the steps are on this application&apos;s Documentation tab.
+              Session replay does not need it.
+            </span>
+          }
+        />
+      )}
+
       <ResourceOverview
         icon={IconProp.Globe}
         title={(a.name as string) || "RUM Application"}
@@ -431,7 +577,7 @@ const RumApplicationOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh();
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}
@@ -451,15 +597,6 @@ const RumApplicationOverview: FunctionComponent<
       />
 
       <WebVitalsCard vitals={webVitals} loading={webVitalsLoading} />
-
-      <ArchiveResourceCard<RumApplication>
-        modelType={RumApplication}
-        modelId={modelId}
-        singularName="application"
-        listRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUM_APPLICATIONS] as Route,
-        )}
-      />
     </Fragment>
   );
 };

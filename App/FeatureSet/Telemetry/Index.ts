@@ -6,6 +6,7 @@ import FluentAPI from "./API/Fluent";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
 import PyroscopeAPI from "./API/Pyroscope";
+import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
 // ProbeIngest routes
@@ -79,6 +80,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
+      app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
       /*
        * Session replay ingest. Mounted on both prefixes like the rest, which
        * is why StartServer's body-parser bypass predicates must match with
@@ -140,7 +142,7 @@ const TelemetryFeatureSet: FeatureSet = {
       startGrpcServer();
 
       // Start MQTT ingest listeners (TCP 1883 + WebSocket /mqtt)
-      startMqttServer();
+      await startMqttServer();
     } catch (err) {
       logger.error("Telemetry FeatureSet Init Failed:", {
         service: "telemetry",

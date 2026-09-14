@@ -30,6 +30,7 @@ import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
 import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
@@ -37,6 +38,7 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -52,6 +54,10 @@ import {
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueryHelper from "../Types/Database/QueryHelper";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "./PayAsYouGoBillingService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -71,6 +77,7 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId,
         productType: data.productType,
         isReportedToBillingProvider: false,
+        totalCostInUSD: QueryHelper.greaterThan(0),
       },
       skip: 0,
       limit: LIMIT_MAX, /// because a project can have MANY telemetry services.
@@ -84,19 +91,76 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  public async waiveUnreportedUsageBilling(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    before?: Date;
+  }): Promise<void> {
+    let updated: number;
+    do {
+      updated = await this.updateBy({
+        query: {
+          projectId: data.projectId,
+          productType: data.productType,
+          isReportedToBillingProvider: false,
+          totalCostInUSD: QueryHelper.greaterThan(0),
+          ...(data.before
+            ? { createdAt: QueryHelper.lessThan(data.before) }
+            : {}),
+        },
+        data: { totalCostInUSD: new Decimal(0) },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    } while (updated === LIMIT_MAX);
+  }
+
   @CaptureSpan()
   public async stageTelemetryUsageForProject(data: {
     projectId: ObjectID;
     productType: ProductType;
     usageDate?: Date;
+    liveAuthorization?: LiveUsageAuthorization | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
+      return;
+    }
+
+    /*
+     * A report that has just authorized this project live passes that answer
+     * down instead of having it read again. Anything else - a direct call, a
+     * token made for another project, one that has aged out - checks live,
+     * exactly as every staging call did before.
+     */
+    if (
+      !PayAsYouGoBillingService.isLiveAuthorizationFor(
+        data.liveAuthorization,
+        data.projectId,
+      ) &&
+      !(await PayAsYouGoBillingService.canUsePayAsYouGo(data.projectId, {
+        useCache: false,
+      }))
+    ) {
+      await this.waiveUnreportedUsageBilling(data);
       return;
     }
 
     const usageDate: Date = data.usageDate
       ? OneUptimeDate.fromString(data.usageDate)
       : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1);
+
+    const billingStartsAt: Date | undefined =
+      await PayAsYouGoBillingService.getTelemetryBillingStartDate(
+        data.projectId,
+      );
+    if (
+      billingStartsAt &&
+      OneUptimeDate.getStartOfDay(usageDate, "UTC").getTime() <
+        billingStartsAt.getTime()
+    ) {
+      return;
+    }
 
     const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
       data.productType,
@@ -138,9 +202,9 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
-    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
-    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
+    const usageDayString: string = this.getUsageDayString(usageDate);
+    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate, "UTC");
+    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate, "UTC");
 
     /*
      * Enumerate usage from ClickHouse by (primaryEntityId, primaryEntityType) in a
@@ -390,7 +454,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
-   * KubernetesCluster, ProxmoxCluster, CephCluster). Used to scale billed
+   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster). Used to
+   * scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.
@@ -499,6 +564,23 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    const vmwareVCenters: Array<VMwareVCenter> =
+      await VMwareVCenterService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+    for (const vmwareVCenter of vmwareVCenters) {
+      if (vmwareVCenter.id && vmwareVCenter.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          vmwareVCenter.id.toString(),
+          vmwareVCenter.retainTelemetryDataForDays,
+        );
+      }
+    }
+
     const cephClusters: Array<CephCluster> = await CephClusterService.findBy({
       query: { projectId: projectId },
       select: { _id: true, retainTelemetryDataForDays: true },
@@ -580,7 +662,7 @@ export class Service extends DatabaseService<Model> {
       ? OneUptimeDate.fromString(data.usageDate)
       : OneUptimeDate.getCurrentDate();
 
-    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
+    const usageDayString: string = this.getUsageDayString(usageDate);
 
     const totalCostOfThisOperationInUSD: number =
       serverMeteredPlan.getTotalCostInUSD({
@@ -660,6 +742,14 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  private getUsageDayString(usageDate: Date): string {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: usageDate,
+      timezone: "UTC",
+      format: "MMM DD, YYYY",
+    });
   }
 
   private getAverageRowSizeForProduct(productType: ProductType): number {

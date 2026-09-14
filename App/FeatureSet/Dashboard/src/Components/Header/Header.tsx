@@ -8,11 +8,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  */
 import AskAI from "./AskAI";
 import Help from "./Help";
+import Search from "./Search";
 import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
-import ThemeToggle from "./ThemeToggle";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
@@ -494,134 +494,159 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     Array<OnCallDutyPolicy>
   >([]);
 
-  const fetchCurrentOnCallDutyPolicies: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-        if (projectId) {
-          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.get<JSONObject>({
-              url: URL.fromString(APP_API_URL.toString()).addRoute(
-                `/${
-                  new OnCallDutyPolicy().crudApiPath
-                }/current-on-duty-escalation-policies`,
-              ),
-              data: {},
-              headers: ModelAPI.getCommonHeaders(),
-            });
-
-          if (response.isFailure()) {
-            throw response;
-          }
-
-          const result: JSONObject = response.jsonData as JSONObject;
-
-          const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
-            DatabaseBaseModel.fromJSONArray(
-              result["escalationRulesByUser"] as Array<JSONObject>,
-              OnCallDutyPolicyEscalationRuleUser,
-            ) as Array<OnCallDutyPolicyEscalationRuleUser>;
-
-          const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
-            DatabaseBaseModel.fromJSONArray(
-              result["escalationRulesByTeam"] as Array<JSONObject>,
-              OnCallDutyPolicyEscalationRuleTeam,
-            ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
-
-          const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
-            DatabaseBaseModel.fromJSONArray(
-              result["escalationRulesBySchedule"] as Array<JSONObject>,
-              OnCallDutyPolicyEscalationRuleSchedule,
-            ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
-
-          setCurrentOnCallDutyEscalationPolicyUser(escalationRulesByUser);
-          setCurrentOnCallDutyEscalationPolicyTeam(escalationRulesByTeam);
-          setCurrentOnCallDutyEscalationPolicySchedule(
-            escalationRulesBySchedule,
-          );
-
-          // now get the current on call schedules fron escalationRulesBySchedule
-          const currentOnCallPolicies: Array<OnCallDutyPolicy> = [];
-
-          for (const escalationRule of escalationRulesBySchedule) {
-            const onCallPolicy: OnCallDutyPolicy | undefined =
-              escalationRule.onCallDutyPolicy;
-
-            if (onCallPolicy) {
-              // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
-                (schedule: OnCallDutyPolicy) => {
-                  return (
-                    schedule.id?.toString() === onCallPolicy.id?.toString()
-                  );
-                },
-              );
-
-              if (onCallPolicyIndex === -1) {
-                currentOnCallPolicies.push(onCallPolicy);
-              }
-            }
-          }
-
-          // do the same for users and teams.
-          for (const escalationRule of escalationRulesByUser) {
-            const onCallPolicy: OnCallDutyPolicy | undefined =
-              escalationRule.onCallDutyPolicy;
-            if (onCallPolicy) {
-              // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
-                (schedule: OnCallDutyPolicy) => {
-                  return (
-                    schedule.id?.toString() === onCallPolicy.id?.toString()
-                  );
-                },
-              );
-              if (onCallPolicyIndex === -1) {
-                currentOnCallPolicies.push(onCallPolicy);
-              }
-            }
-          }
-
-          // do the same for teams.
-
-          for (const escalationRule of escalationRulesByTeam) {
-            const onCallPolicy: OnCallDutyPolicy | undefined =
-              escalationRule.onCallDutyPolicy;
-            if (onCallPolicy) {
-              // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
-                (schedule: OnCallDutyPolicy) => {
-                  return (
-                    schedule.id?.toString() === onCallPolicy.id?.toString()
-                  );
-                },
-              );
-              if (onCallPolicyIndex === -1) {
-                currentOnCallPolicies.push(onCallPolicy);
-              }
-            }
-          }
-
-          setCurrentOnCallPolicies(currentOnCallPolicies);
-        }
-      } catch (err) {
-        if (
-          err instanceof HTTPErrorResponse &&
-          SSOAuthorizationException.isException(err.message)
-        ) {
-          return;
-        }
-
-        setOnCallDutyPolicyFetchError(t("header.onCallPoliciesFetchError"));
-      }
-    };
+  const currentProjectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
 
   useEffect(() => {
+    let isCancelled: boolean = false;
+
+    setCurrentOnCallPolicies([]);
+    setCurrentOnCallDutyEscalationPolicyUser([]);
+    setCurrentOnCallDutyEscalationPolicyTeam([]);
+    setCurrentOnCallDutyEscalationPolicySchedule([]);
+    setOnCallDutyPolicyFetchError(null);
+
+    const fetchCurrentOnCallDutyPolicies: PromiseVoidFunction =
+      async (): Promise<void> => {
+        try {
+          if (currentProjectId) {
+            const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+              await API.get<JSONObject>({
+                url: URL.fromString(APP_API_URL.toString()).addRoute(
+                  `/${
+                    new OnCallDutyPolicy().crudApiPath
+                  }/current-on-duty-escalation-policies`,
+                ),
+                data: {},
+                headers: ModelAPI.getCommonHeaders(),
+              });
+
+            if (response.isFailure()) {
+              throw response;
+            }
+
+            if (isCancelled) {
+              return;
+            }
+
+            const result: JSONObject = response.jsonData as JSONObject;
+
+            const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesByUser"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleUser,
+              ) as Array<OnCallDutyPolicyEscalationRuleUser>;
+
+            const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesByTeam"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleTeam,
+              ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
+
+            const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesBySchedule"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleSchedule,
+              ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
+
+            setCurrentOnCallDutyEscalationPolicyUser(escalationRulesByUser);
+            setCurrentOnCallDutyEscalationPolicyTeam(escalationRulesByTeam);
+            setCurrentOnCallDutyEscalationPolicySchedule(
+              escalationRulesBySchedule,
+            );
+
+            // now get the current on call schedules fron escalationRulesBySchedule
+            const currentOnCallPolicies: Array<OnCallDutyPolicy> = [];
+
+            for (const escalationRule of escalationRulesBySchedule) {
+              const onCallPolicy: OnCallDutyPolicy | undefined =
+                escalationRule.onCallDutyPolicy;
+
+              if (onCallPolicy) {
+                // check if the onCallPolicy is already in the currentOnCallSchedules
+                const onCallPolicyIndex: number =
+                  currentOnCallPolicies.findIndex(
+                    (schedule: OnCallDutyPolicy) => {
+                      return (
+                        schedule.id?.toString() === onCallPolicy.id?.toString()
+                      );
+                    },
+                  );
+
+                if (onCallPolicyIndex === -1) {
+                  currentOnCallPolicies.push(onCallPolicy);
+                }
+              }
+            }
+
+            // do the same for users and teams.
+            for (const escalationRule of escalationRulesByUser) {
+              const onCallPolicy: OnCallDutyPolicy | undefined =
+                escalationRule.onCallDutyPolicy;
+              if (onCallPolicy) {
+                // check if the onCallPolicy is already in the currentOnCallSchedules
+                const onCallPolicyIndex: number =
+                  currentOnCallPolicies.findIndex(
+                    (schedule: OnCallDutyPolicy) => {
+                      return (
+                        schedule.id?.toString() === onCallPolicy.id?.toString()
+                      );
+                    },
+                  );
+                if (onCallPolicyIndex === -1) {
+                  currentOnCallPolicies.push(onCallPolicy);
+                }
+              }
+            }
+
+            // do the same for teams.
+
+            for (const escalationRule of escalationRulesByTeam) {
+              const onCallPolicy: OnCallDutyPolicy | undefined =
+                escalationRule.onCallDutyPolicy;
+              if (onCallPolicy) {
+                // check if the onCallPolicy is already in the currentOnCallSchedules
+                const onCallPolicyIndex: number =
+                  currentOnCallPolicies.findIndex(
+                    (schedule: OnCallDutyPolicy) => {
+                      return (
+                        schedule.id?.toString() === onCallPolicy.id?.toString()
+                      );
+                    },
+                  );
+                if (onCallPolicyIndex === -1) {
+                  currentOnCallPolicies.push(onCallPolicy);
+                }
+              }
+            }
+
+            setCurrentOnCallPolicies(currentOnCallPolicies);
+          }
+        } catch (err) {
+          if (isCancelled) {
+            return;
+          }
+
+          if (
+            err instanceof HTTPErrorResponse &&
+            SSOAuthorizationException.isException(err.message)
+          ) {
+            return;
+          }
+
+          setOnCallDutyPolicyFetchError(t("header.onCallPoliciesFetchError"));
+        }
+      };
+
     fetchCurrentOnCallDutyPolicies().catch(() => {
       // ignore this.
     });
-  }, [props.selectedProject]);
+
+    return () => {
+      isCancelled = true;
+    };
+    // Cached and refreshed Project instances share one lookup for the same id.
+  }, [currentProjectId]);
 
   const showAddCardButton: boolean = Boolean(
     BILLING_ENABLED &&
@@ -866,26 +891,42 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             />
           </>
         }
-        mobileRightComponents={<ThemeToggle />}
         rightComponents={
           <>
-            {BILLING_ENABLED &&
-            props.selectedProject?.id &&
-            props.selectedProject.paymentProviderPlanId &&
-            SubscriptionPlan.isFreePlan(
-              props.selectedProject.paymentProviderPlanId,
-              getAllEnvVars(),
-            ) ? (
-              <Upgrade />
-            ) : (
-              <></>
-            )}
-            <AskAI />
+            {/*
+             * Upgrade, Search and Ask AI are wide-screen entries: two of them
+             * exist to advertise a keyboard chord, and none of the three is
+             * worth the width on a phone. They are grouped rather than moved so
+             * the desktop rail keeps the order it has always had.
+             */}
+            <div className="hidden items-center gap-2 lg:flex">
+              {BILLING_ENABLED &&
+              props.selectedProject?.id &&
+              props.selectedProject.paymentProviderPlanId &&
+              SubscriptionPlan.isFreePlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars(),
+              ) ? (
+                <Upgrade />
+              ) : (
+                <></>
+              )}
+              <Search />
+              <AskAI />
+            </div>
+            {/*
+             * The bell and the profile button stay at every width. They are the
+             * two the header cannot do without: what is on fire right now, and
+             * the menu that owns the profile, admin settings, the theme switch
+             * and log out — none of which is reachable anywhere else on a phone.
+             */}
             <NotificationBell
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <Help />
+            <div className="hidden items-center lg:flex">
+              <Help />
+            </div>
             <UserProfile
               onClickUserProfile={() => {
                 Navigation.navigate(RouteMap[PageMap.USER_PROFILE_OVERVIEW]!);

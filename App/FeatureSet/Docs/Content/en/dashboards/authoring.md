@@ -51,6 +51,27 @@ At the top of the dashboard, two controls affect every time-based telemetry widg
 
 Widgets that don't use the time range (like a Text widget) ignore both controls.
 
+### Zooming into a spike
+
+You don't have to reach for the time-range picker to look at a spike. Drag
+across the interesting stretch of any line or area chart and the **whole
+dashboard** moves to that window — every other panel re-queries alongside it,
+so you're reading one moment across the board instead of one chart at a
+different scale from its neighbours.
+
+**Double-click any chart** to undo it: the dashboard goes back to the range it
+had before you started zooming, however many times you drilled in. A **Reset
+zoom** button appears next to the time-range picker while a zoom is active, and
+double-clicking a dashboard that isn't zoomed does nothing.
+
+A zoomed window is a fixed one, so it stops rolling forward while auto-refresh
+is on — that's deliberate, since a window that slid out from under you
+mid-investigation would be worse. Reset the zoom to start rolling again.
+
+Zooming works in View mode only; in Edit mode dragging moves and resizes
+widgets instead. Bar charts can't originate a zoom (there's nothing to drag
+across), but double-clicking one still resets the dashboard.
+
 ## Saving
 
 The canvas saves on its own as you work. A small indicator in the header tells you when the latest change is saved. If you're making a big change, duplicate the dashboard first so you have a safe copy.

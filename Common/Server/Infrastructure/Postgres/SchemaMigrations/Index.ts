@@ -1,3 +1,8 @@
+import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
+import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
+import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
+import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
+import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
 import { MigrationName1717678334852 } from "./1717678334852-MigrationName";
 import { MigrationName1717839110671 } from "./1717839110671-MigrationName";
@@ -533,6 +538,7 @@ import { AddNetworkDeviceReachabilityColumns1787600000000 } from "./178760000000
 import { FixTotpOtpUrlAlgorithm1787700000000 } from "./1787700000000-FixTotpOtpUrlAlgorithm";
 import { AddScopeToNetworkDeviceLinkRule1787800000000 } from "./1787800000000-AddScopeToNetworkDeviceLinkRule";
 import { AddRestrictToAttachedProjectsToGlobalSso1787900000000 } from "./1787900000000-AddRestrictToAttachedProjectsToGlobalSso";
+import { MigrationName1787923136162 } from "./1787923136162-MigrationName";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "./1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { AddMeasurements1788100000000 } from "./1788100000000-AddMeasurements";
 import { AddLlmCostBudget1788200000000 } from "./1788200000000-AddLlmCostBudget";
@@ -550,8 +556,37 @@ import { AddCampaignUtmFields1789500000000 } from "./1789500000000-AddCampaignUt
 import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUserTwoFactorBackupCode";
 import { AddNameToNetworkDeviceDiscoveryScan1789400000000 } from "./1789400000000-AddNameToNetworkDeviceDiscoveryScan";
 import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./1789512000000-AddDetectionRuleDistinctCountColumns";
+import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./1789600000000-AddAutoProvisionedNetworkDeviceMonitors";
+import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
+import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
+import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
+import { AddTelemetrySourceMap1790000000000 } from "./1790000000000-AddTelemetrySourceMap";
+import { AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001 } from "./1790000000001-AddSnmpConfigsToNetworkDeviceDiscoveryScan";
+import { AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000 } from "./1790003445000-AddSnmpEnabledToNetworkDeviceDiscoveryScan";
+import { AddResourceActivityFeeds1790100000000 } from "./1790100000000-AddResourceActivityFeeds";
+import { AllowNullMonitorNameOnMonitorTemplate1790200000000 } from "./1790200000000-AllowNullMonitorNameOnMonitorTemplate";
+import { AddCertificateReissueRequestedAtToDomains1790300000000 } from "./1790300000000-AddCertificateReissueRequestedAtToDomains";
+import { AddOnCallCalendarFeeds1790400000000 } from "./1790400000000-AddOnCallCalendarFeeds";
+import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNetworkDeviceOidTemplate";
+import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
+import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-AddNetworkSiteTypeParentHierarchy";
+import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
+import { AddTelemetryExceptionErrorClass1790900000000 } from "./1790900000000-AddTelemetryExceptionErrorClass";
+import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
+import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
+import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
+import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "./1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
+import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTelemetryIngestionKeyType";
+import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400000000-SessionReplayRecordEverySessionByDefault";
+import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-WidenCustomFieldDropdownOptions";
+import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
+import { AddMacAddressToNetworkDevice1791700000000 } from "./1791700000000-AddMacAddressToNetworkDevice";
+import { SplitWebAuthnChallengeByPurpose1791800000000 } from "./1791800000000-SplitWebAuthnChallengeByPurpose";
+import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./1791900000000-AddSeverityAndStateToNotificationEmailRollup";
+import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
+import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 
 export default [
   InitialMigration,
@@ -1091,6 +1126,7 @@ export default [
   FixTotpOtpUrlAlgorithm1787700000000,
   AddScopeToNetworkDeviceLinkRule1787800000000,
   AddRestrictToAttachedProjectsToGlobalSso1787900000000,
+  MigrationName1787923136162,
   AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
   AddMeasurements1788100000000,
   AddLlmCostBudget1788200000000,
@@ -1108,4 +1144,38 @@ export default [
   AddNameToNetworkDeviceDiscoveryScan1789400000000,
   AddCampaignUtmFields1789500000000,
   AddDetectionRuleDistinctCountColumns1789512000000,
+  AddAutoProvisionedNetworkDeviceMonitors1789600000000,
+  AddNetworkScaleIndexes1789700000000,
+  WidenSecurityEventLastErrorColumns1789800000000,
+  AddNetworkSiteRollupPolicyAndMaintenance1789900000000,
+  AddTelemetrySourceMap1790000000000,
+  AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001,
+  AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000,
+  AddResourceActivityFeeds1790100000000,
+  AllowNullMonitorNameOnMonitorTemplate1790200000000,
+  AddCertificateReissueRequestedAtToDomains1790300000000,
+  AddOnCallCalendarFeeds1790400000000,
+  AddNetworkDeviceOidTemplate1790500000000,
+  AddAutoImportRuleOidTemplate1790600000000,
+  AddNetworkSiteTypeParentHierarchy1790700000000,
+  AddNetworkDeviceRoleTable1790800000000,
+  AddTelemetryExceptionErrorClass1790900000000,
+  AddEnterpriseLicenseUsageProvenance1790900000000,
+  AddUserNotificationEmailRollup1791000000000,
+  AddUserNotificationEmailRollupSetting1791100000000,
+  AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,
+  AddTelemetryIngestionKeyType1791300000000,
+  SessionReplayRecordEverySessionByDefault1791400000000,
+  WidenCustomFieldDropdownOptions1791500000000,
+  AddCustomFieldValueMapping1791600000000,
+  AddMacAddressToNetworkDevice1791700000000,
+  SplitWebAuthnChallengeByPurpose1791800000000,
+  AddSeverityAndStateToNotificationEmailRollup1791900000000,
+  AddVMwareTables1792000000000,
+  AddGitHubCommandSettingsToCodeRepository1792100000000,
+  AddUserWebAuthnPurpose1792200000000,
+  AddGoogleSecOpsDiagnostics1792300000000,
+  AddSloBurnRateRuleIncidents1792400000000,
+  AddConfigurableRuleCriteria1792500000000,
+  AddIncomingCallPolicyPhoneNumbers1792600000000,
 ];

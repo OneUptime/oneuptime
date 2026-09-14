@@ -81,6 +81,7 @@ const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.IoTDevice,
 ];
@@ -96,6 +97,7 @@ const NEWLY_SEEDED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.IoTDevice,
   MonitorType.Profiles,

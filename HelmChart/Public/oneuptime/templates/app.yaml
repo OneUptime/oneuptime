@@ -62,6 +62,10 @@ spec:
       {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" ($.Values.app.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
+      {{- with (default $.Values.extraVolumes $.Values.app.extraVolumes) }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
@@ -163,6 +167,13 @@ spec:
             - name: DISABLE_QUEUE_WORKERS
               value: {{ $.Values.worker.enabled | default false | quote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- with (default $.Values.extraEnv $.Values.app.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with (default $.Values.extraVolumeMounts $.Values.app.extraVolumeMounts) }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ $.Values.app.ports.http }}
               protocol: TCP

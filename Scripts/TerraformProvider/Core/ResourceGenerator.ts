@@ -58,6 +58,15 @@ export class ResourceGenerator {
     );
 
     /*
+     * Exercises client.go's select-rejection retry against a real httptest
+     * server. client.go is generated (it lives in a template literal in
+     * ProviderGenerator.ts), so its test has to be a static file copied in
+     * beside it — copyStaticFile, not copyStaticFileIfExists, so a rename
+     * fails generation instead of silently testing nothing.
+     */
+    await this.copyStaticFile("client_test.go", "internal/provider");
+
+    /*
      * Package-level ObjectType registry shared by every resource and the
      * envelope validator (was duplicated as a per-resource map).
      */

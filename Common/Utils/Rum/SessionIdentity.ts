@@ -1,6 +1,7 @@
 import {
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
+  SESSION_REPLAY_VISITOR_ID_PATTERN,
 } from "../../Types/Rum/SessionReplay";
 
 /*
@@ -40,6 +41,21 @@ export interface SessionRotationDecision {
 }
 
 export default class SessionIdentity {
+  /*
+   * Is this a visitor id the recorder could have minted?
+   *
+   * Shared by the recorder (which only ever stores what passes) and the
+   * ingest parser (which drops what does not), so a hand-crafted POST can
+   * never file a recording under an arbitrary string. Strict on purpose:
+   * the id is random and ours, so there is no legitimate "almost" shape
+   * to be lenient towards.
+   */
+  public static isVisitorId(value: unknown): value is string {
+    return (
+      typeof value === "string" && SESSION_REPLAY_VISITOR_ID_PATTERN.test(value)
+    );
+  }
+
   /*
    * Should the recorder mint a new session id?
    *

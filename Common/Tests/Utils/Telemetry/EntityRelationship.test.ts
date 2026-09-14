@@ -44,6 +44,72 @@ describe("inferRelationshipType", () => {
     ).toBe(EntityRelationshipType.MemberOf);
   });
 
+  test("infers the vmware topology (cluster/host/datastore → vcenter, host → cluster, vm → host/vcenter)", () => {
+    expect(
+      inferRelationshipType(EntityType.VMwareCluster, EntityType.VMwareVCenter),
+    ).toBe(EntityRelationshipType.MemberOf);
+    expect(
+      inferRelationshipType(EntityType.VMwareHost, EntityType.VMwareVCenter),
+    ).toBe(EntityRelationshipType.MemberOf);
+    expect(
+      inferRelationshipType(EntityType.VMwareHost, EntityType.VMwareCluster),
+    ).toBe(EntityRelationshipType.MemberOf);
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareVirtualMachine,
+        EntityType.VMwareHost,
+      ),
+    ).toBe(EntityRelationshipType.RunsOn);
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareVirtualMachine,
+        EntityType.VMwareVCenter,
+      ),
+    ).toBe(EntityRelationshipType.MemberOf);
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareDatastore,
+        EntityType.VMwareVCenter,
+      ),
+    ).toBe(EntityRelationshipType.MemberOf);
+  });
+
+  test("declares exactly six vmware rules (vm → cluster is reached through the host)", () => {
+    const vmwareTypes: Array<EntityType> = [
+      EntityType.VMwareVCenter,
+      EntityType.VMwareCluster,
+      EntityType.VMwareHost,
+      EntityType.VMwareVirtualMachine,
+      EntityType.VMwareDatastore,
+    ];
+    let declared: number = 0;
+    for (const fromType of vmwareTypes) {
+      for (const toType of vmwareTypes) {
+        if (inferRelationshipType(fromType, toType)) {
+          declared++;
+        }
+      }
+    }
+    expect(declared).toBe(6);
+    // Deliberately not declared: a VM's cluster is its host's cluster.
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareVirtualMachine,
+        EntityType.VMwareCluster,
+      ),
+    ).toBeNull();
+    // A datastore is mounted by hosts, not a member of one.
+    expect(
+      inferRelationshipType(EntityType.VMwareDatastore, EntityType.VMwareHost),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareVirtualMachine,
+        EntityType.VMwareDatastore,
+      ),
+    ).toBeNull();
+  });
+
   test("is directional (the reverse pair yields nothing)", () => {
     expect(
       inferRelationshipType(
@@ -56,6 +122,24 @@ describe("inferRelationshipType", () => {
     ).toBeNull();
     expect(
       inferRelationshipType(EntityType.ProxmoxCluster, EntityType.ProxmoxNode),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.VMwareVCenter, EntityType.VMwareCluster),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.VMwareCluster, EntityType.VMwareHost),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareHost,
+        EntityType.VMwareVirtualMachine,
+      ),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(
+        EntityType.VMwareVCenter,
+        EntityType.VMwareDatastore,
+      ),
     ).toBeNull();
   });
 
@@ -76,6 +160,27 @@ describe("inferRelationshipType", () => {
     ).toBeNull();
     expect(
       inferRelationshipType(EntityType.Host, EntityType.CephCluster),
+    ).toBeNull();
+    /*
+     * Same for VMware: a collector running hostmetrics beside the vcenter
+     * receiver mints a `host` entity from host.name, and that host is the
+     * collector box, not an ESXi host — it is not a member of the vCenter,
+     * of any cluster, and is not the same thing as a vmware.host.
+     */
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.VMwareVCenter),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.VMwareCluster),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.VMwareHost),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.VMwareHost, EntityType.Host),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.VMwareVirtualMachine, EntityType.Host),
     ).toBeNull();
   });
 
@@ -174,6 +279,68 @@ describe("deriveRelationships", () => {
       hasEdge(edges, "cluster", "node", EntityRelationshipType.MemberOf),
     ).toBe(false);
     expect(edges.length).toBe(3);
+  });
+
+  test("derives the full directed edge set for a vmware VM resource", () => {
+    // What a clustered VM's resource resolves to: vcenter, cluster, host, vm.
+    const edges: Array<EntityRelationshipEdge> = deriveRelationships([
+      { entityType: EntityType.VMwareVCenter, entityKey: "vcenter" },
+      { entityType: EntityType.VMwareCluster, entityKey: "cluster" },
+      { entityType: EntityType.VMwareHost, entityKey: "host" },
+      { entityType: EntityType.VMwareVirtualMachine, entityKey: "vm" },
+    ]);
+
+    expect(
+      hasEdge(edges, "cluster", "vcenter", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    expect(
+      hasEdge(edges, "host", "vcenter", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    expect(
+      hasEdge(edges, "host", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    expect(hasEdge(edges, "vm", "host", EntityRelationshipType.RunsOn)).toBe(
+      true,
+    );
+    expect(
+      hasEdge(edges, "vm", "vcenter", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    // No reverse edge, no vm → cluster shortcut.
+    expect(
+      hasEdge(edges, "vcenter", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(false);
+    expect(
+      hasEdge(edges, "vm", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(false);
+    expect(edges.length).toBe(5);
+  });
+
+  test("derives a single edge for a vmware datastore resource", () => {
+    const edges: Array<EntityRelationshipEdge> = deriveRelationships([
+      { entityType: EntityType.VMwareVCenter, entityKey: "vcenter" },
+      { entityType: EntityType.VMwareDatastore, entityKey: "ds" },
+    ]);
+    expect(edges).toEqual([
+      {
+        fromEntityKey: "ds",
+        toEntityKey: "vcenter",
+        relationshipType: EntityRelationshipType.MemberOf,
+      },
+    ]);
+  });
+
+  test("a collector host beside a vmware resource gains no vmware edges", () => {
+    const edges: Array<EntityRelationshipEdge> = deriveRelationships([
+      { entityType: EntityType.Host, entityKey: "collector" },
+      { entityType: EntityType.VMwareVCenter, entityKey: "vcenter" },
+      { entityType: EntityType.VMwareHost, entityKey: "esxi" },
+    ]);
+    expect(
+      edges.every((e: EntityRelationshipEdge) => {
+        return e.fromEntityKey !== "collector" && e.toEntityKey !== "collector";
+      }),
+    ).toBe(true);
+    expect(edges.length).toBe(1);
   });
 
   test("empty / single-entity sets produce no edges", () => {

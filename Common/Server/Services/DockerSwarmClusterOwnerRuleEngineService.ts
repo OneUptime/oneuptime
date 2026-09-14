@@ -7,9 +7,15 @@ import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleSer
 import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
+import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
+import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DockerSwarmClusterOwnerRuleEngineServiceClass {
   /**
@@ -37,6 +43,7 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             dockerSwarmClusterLabels: { _id: true },
             dockerSwarmClusterNamePattern: true,
@@ -44,9 +51,15 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "DockerSwarmClusterOwnerRule",
+        projectId: dockerSwarmCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -144,6 +157,27 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass {
         `DockerSwarmClusterOwnerRuleEngine added owners to DockerSwarm cluster ${dockerSwarmCluster.id}`,
         { projectId: dockerSwarmCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await DockerSwarmClusterFeedService.createDockerSwarmClusterFeedItem({
+        dockerSwarmClusterId: dockerSwarmCluster.id,
+        projectId: dockerSwarmCluster.projectId,
+        dockerSwarmClusterFeedEventType:
+          DockerSwarmClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await DockerSwarmClusterService.getDockerSwarmClusterMarkdownLink(
+          dockerSwarmCluster.projectId,
+          dockerSwarmCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: DockerSwarmClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying DockerSwarm cluster owner rules: ${error}`, {
         projectId: dockerSwarmCluster.projectId?.toString(),
@@ -153,6 +187,27 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass {
   }
 
   private doesDockerSwarmClusterMatchRule(
+    dockerSwarmCluster: DockerSwarmCluster,
+    rule: DockerSwarmClusterOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dockerSwarmClusterLabels",
+        "dockerSwarmClusterNamePattern",
+        "dockerSwarmClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DockerSwarmClusterOwnerRule): boolean => {
+        return this.doesDockerSwarmClusterMatchLegacyRule(
+          dockerSwarmCluster,
+          legacyRule,
+        );
+      },
+    });
+  }
+
+  private doesDockerSwarmClusterMatchLegacyRule(
     dockerSwarmCluster: DockerSwarmCluster,
     rule: DockerSwarmClusterOwnerRule,
   ): boolean {

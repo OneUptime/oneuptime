@@ -10,6 +10,9 @@ import ServerlessFunctionService from "./ServerlessFunctionService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ServerlessFunctionOwnerRuleEngineServiceClass {
   /**
@@ -36,6 +39,7 @@ class ServerlessFunctionOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             matchLabels: { _id: true },
             nameRegexPattern: true,
@@ -43,9 +47,15 @@ class ServerlessFunctionOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ServerlessFunctionOwnerRule",
+        projectId: serverlessFunction.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -139,6 +149,29 @@ class ServerlessFunctionOwnerRuleEngineServiceClass {
   }
 
   private doesMatchRule(
+    serverlessFunction: ServerlessFunction,
+    rule: ServerlessFunctionOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "matchLabels",
+        "nameRegexPattern",
+        "descriptionRegexPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        serverlessFunctionRule: ServerlessFunctionOwnerRule,
+      ): boolean => {
+        return this.doesMatchRuleLegacy(
+          serverlessFunction,
+          serverlessFunctionRule,
+        );
+      },
+    });
+  }
+
+  private doesMatchRuleLegacy(
     serverlessFunction: ServerlessFunction,
     rule: ServerlessFunctionOwnerRule,
   ): boolean {

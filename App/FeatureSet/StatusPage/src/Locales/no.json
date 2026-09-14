@@ -57,6 +57,36 @@
     "today": "I dag",
     "notAvailable": "Ikke tilgjengelig"
   },
+  "uptimeHistory": {
+    "graphLabel": "Oppetidshistorikk for de siste {{total}} dagene",
+    "dayLabel": "{{date}}: {{uptime}} % oppetid",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}} % oppetid, {{total}} hendelser",
+    "dayLabelNoData": "{{date}}: ingen data",
+    "dayLabelNoDataWithIncidents": "{{date}}: ingen data, {{total}} hendelser",
+    "uptime": "Oppetid",
+    "noMonitoringData": "Ingen overvåkingsdata for denne dagen",
+    "incidents": "Hendelser",
+    "noIncidents": "Ingen hendelser",
+    "noIncidentsDescription": "Ingen hendelser ble rapportert denne dagen.",
+    "declared": "Registrert",
+    "oneIncidentOnThisDay": "1 hendelse rapportert denne dagen",
+    "incidentsOnThisDay": "{{total}} hendelser rapportert denne dagen"
+  },
+  "liveStatus": {
+    "updated": "Oppdatert {{time}}",
+    "refresh": "Oppdater",
+    "refreshing": "Oppdaterer",
+    "refreshFailed": "Kunne ikke oppdatere. Viser sist kjente status."
+  },
+  "search": {
+    "label": "Søk etter ressurser",
+    "placeholder": "Søk etter ressurser",
+    "clear": "Tøm søk",
+    "resultCount": "{{matched}} av {{total}} ressurser",
+    "noMatchesInGroup": "Ingen ressurser her samsvarer med søket ditt.",
+    "noResultsTitle": "Ingen samsvarende ressurser",
+    "noResultsDescription": "Ingenting på denne siden samsvarer med «{{query}}». Prøv et kortere søk."
+  },
   "incidents": {
     "title": "Hendelser",
     "singular": "Hendelse",

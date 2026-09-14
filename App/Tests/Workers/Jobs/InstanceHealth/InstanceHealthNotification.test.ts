@@ -43,15 +43,15 @@ function makeCheck(
   return {
     isBreaching,
     isCritical: false,
-    subject: "ACTION REQUIRED: Redis memory is 85.00% full",
+    subject: "ACTION REQUIRED: Valkey memory is 85.00% full",
     badgeText: "Memory Warning",
     details: [
       { title: "Memory Used: ", text: "85.00% of maxmemory" },
       { title: "Notification Threshold: ", text: "80%" },
     ],
     remediation: "Raise maxmemory.",
-    breachMessage: "Redis memory reached 85.00%.",
-    resolvedMessage: "Redis memory returned to 50.00%.",
+    breachMessage: "Valkey memory reached 85.00%.",
+    resolvedMessage: "Valkey memory returned to 50.00%.",
     observedPercent: 85,
     thresholdPercent: 80,
     metadata: { snapshot: { usedMemoryInBytes: 85 } },
@@ -89,7 +89,7 @@ function evaluate(data: {
     eventType: EVENT_TYPE,
     templateType: EmailTemplateType.RedisHealthWarning,
     healthRoute: "/health/redis",
-    healthPageButtonText: "View Redis Health",
+    healthPageButtonText: "View Valkey Health",
     ...data,
   });
 }
@@ -189,7 +189,7 @@ describe("InstanceHealthNotification", () => {
       expect(mailSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           templateType: EmailTemplateType.RedisHealthWarning,
-          subject: "ACTION REQUIRED: Redis memory is 85.00% full",
+          subject: "ACTION REQUIRED: Valkey memory is 85.00% full",
           vars: expect.objectContaining({
             badgeType: "warning",
             badgeText: "Memory Warning",
@@ -197,7 +197,7 @@ describe("InstanceHealthNotification", () => {
             detail1Text: "85.00% of maxmemory",
             detail2Title: "Notification Threshold: ",
             detail2Text: "80%",
-            healthPageButtonText: "View Redis Health",
+            healthPageButtonText: "View Valkey Health",
             remediation: "Raise maxmemory.",
           }),
         }),
@@ -490,7 +490,7 @@ describe("InstanceHealthNotification", () => {
         InstanceHealthLogStatus.Resolved,
       );
       expect(createSpy.mock.calls[0]?.[0].data.message).toBe(
-        "Redis memory returned to 50.00%.",
+        "Valkey memory returned to 50.00%.",
       );
       expect(createSpy.mock.calls[0]?.[0].data.capacityAfterPercent).toBe(85);
       expect(

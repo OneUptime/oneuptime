@@ -106,10 +106,18 @@ function getLocationBlocks(source) {
  * whitespace-normalised single lines ("gzip_proxied    any;" -> "gzip_proxied any;").
  * Nested blocks are included, which is what the tests want: they ask "does this
  * server block set X anywhere inside it".
+ *
+ * A directive ends at the first `;` that is not inside a double-quoted string.
+ * That exception is load-bearing rather than pedantic: the value nginx sends
+ * for X-XSS-Protection is "1; mode=block", so a rule that simply stopped at
+ * the first semicolon would hand callers the truncated
+ * `add_header X-XSS-Protection "1;` -- which still passes a substring check
+ * and so lets a test claiming to compare whole headers silently compare half
+ * of one.
  */
 function getDirectives(source, directiveName) {
   const pattern = new RegExp(
-    `^[^\\S\\n]*${directiveName}(?:[^\\S\\n]+[^;\\n]*)?;`,
+    `^[^\\S\\n]*${directiveName}(?:[^\\S\\n]+(?:"[^"\\n]*"|[^;"\\n])*)?;`,
     "gm",
   );
 

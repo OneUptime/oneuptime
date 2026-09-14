@@ -1,5 +1,6 @@
 import ArrayUtil from "../../Utils/Array";
 import ObjectID from "../../Types/ObjectID";
+import Sleep from "../../Types/Sleep";
 
 describe("ArrayUtil", () => {
   describe("removeDuplicates", () => {
@@ -151,6 +152,105 @@ describe("ArrayUtil", () => {
 
     it("returns an empty array unchanged", () => {
       expect(ArrayUtil.distinctByFieldName([], "group")).toEqual([]);
+    });
+  });
+  describe("forEachWithConcurrency", () => {
+    it("runs every item exactly once", async () => {
+      const items: Array<number> = [1, 2, 3, 4, 5, 6, 7];
+      const seen: Array<number> = [];
+
+      await ArrayUtil.forEachWithConcurrency(
+        items,
+        3,
+        async (item: number): Promise<void> => {
+          seen.push(item);
+        },
+      );
+
+      expect(seen.sort()).toEqual(items);
+    });
+
+    it("never exceeds the requested concurrency", async () => {
+      let inFlight: number = 0;
+      let peak: number = 0;
+
+      await ArrayUtil.forEachWithConcurrency(
+        Array.from({ length: 30 }, (_v: unknown, i: number) => {
+          return i;
+        }),
+        4,
+        async (): Promise<void> => {
+          inFlight++;
+          peak = Math.max(peak, inFlight);
+          await Sleep.sleep(1);
+          inFlight--;
+        },
+      );
+
+      expect(peak).toBeLessThanOrEqual(4);
+    });
+
+    it("actually overlaps work rather than awaiting one at a time", async () => {
+      let inFlight: number = 0;
+      let peak: number = 0;
+
+      await ArrayUtil.forEachWithConcurrency(
+        Array.from({ length: 10 }, (_v: unknown, i: number) => {
+          return i;
+        }),
+        5,
+        async (): Promise<void> => {
+          inFlight++;
+          peak = Math.max(peak, inFlight);
+          await Sleep.sleep(5);
+          inFlight--;
+        },
+      );
+
+      expect(peak).toBeGreaterThan(1);
+    });
+
+    it("starts items in order, so a caller that sorted by urgency is respected", async () => {
+      const started: Array<number> = [];
+
+      await ArrayUtil.forEachWithConcurrency(
+        [0, 1, 2, 3, 4, 5],
+        2,
+        async (item: number): Promise<void> => {
+          started.push(item);
+          await Sleep.sleep(1);
+        },
+      );
+
+      expect(started.slice(0, 2)).toEqual([0, 1]);
+    });
+
+    it("does no work and does not hang on an empty array", async () => {
+      let calls: number = 0;
+
+      await ArrayUtil.forEachWithConcurrency(
+        [] as Array<number>,
+        5,
+        async (): Promise<void> => {
+          calls++;
+        },
+      );
+
+      expect(calls).toBe(0);
+    });
+
+    it("treats a concurrency below one as one rather than doing nothing", async () => {
+      const seen: Array<number> = [];
+
+      await ArrayUtil.forEachWithConcurrency(
+        [1, 2, 3],
+        0,
+        async (item: number): Promise<void> => {
+          seen.push(item);
+        },
+      );
+
+      expect(seen).toEqual([1, 2, 3]);
     });
   });
 });

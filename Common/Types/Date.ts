@@ -194,32 +194,48 @@ export default class OneUptimeDate {
     return this.getLocalShortMonthName(date);
   }
 
+  /**
+   * The wall clock `date` reads at in the current timezone - "14:30", or
+   * "2:30 PM" when the caller asks for a 12-hour clock.
+   *
+   * `use12HourFormat` is opt-in rather than defaulted to
+   * `getUserPrefers12HourFormat()`: the chart x-axes in
+   * UI/Components/Charts/Utils/XAxis.ts label ticks with this and are laid out
+   * for the fixed width of a 24-hour reading, so they must keep the clock they
+   * were built against. Surfaces that show a person a timestamp - histogram
+   * ticks and tooltips, span rows - pass
+   * `use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat()` explicitly.
+   */
   public static getLocalTimeString(
     date: Date | string,
     options?: {
       includeMinutes?: boolean;
       includeSeconds?: boolean;
+      use12HourFormat?: boolean | undefined;
     },
   ): string {
     date = this.fromString(date);
 
     const includeMinutes: boolean = options?.includeMinutes ?? true;
     const includeSeconds: boolean = options?.includeSeconds ?? false;
-    const localDate: moment.Moment = this.inCurrentTimezone(date);
-    const hours: string = this.padDatePart(localDate.hours());
+    const use12HourFormat: boolean = options?.use12HourFormat ?? false;
 
-    if (!includeMinutes) {
-      return hours;
+    // "HH" and "h" are the zero-padded 24-hour and the bare 12-hour readings.
+    let timeFormat: string = use12HourFormat ? "h" : "HH";
+
+    if (includeMinutes) {
+      timeFormat += ":mm";
+
+      if (includeSeconds) {
+        timeFormat += ":ss";
+      }
     }
 
-    const minutes: string = this.padDatePart(localDate.minutes());
-
-    if (!includeSeconds) {
-      return `${hours}:${minutes}`;
+    if (use12HourFormat) {
+      timeFormat += " A";
     }
 
-    const seconds: string = this.padDatePart(localDate.seconds());
-    return `${hours}:${minutes}:${seconds}`;
+    return this.inCurrentTimezone(date).format(timeFormat);
   }
 
   public static getDateAsLocalDayMonthString(date: Date | string): string {
@@ -235,6 +251,80 @@ export default class OneUptimeDate {
     date = this.fromString(date);
 
     return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(date, { includeMinutes: false })}:00`;
+  }
+
+  /**
+   * "02 Mar, 14:30" — a day-qualified wall clock, for chart axes whose
+   * buckets are finer than an hour but whose window is long enough that a
+   * bare "14:30" would name more than one instant.
+   */
+  public static getDateAsLocalDayMonthTimeString(
+    date: Date | string,
+    options?: { includeSeconds?: boolean | undefined },
+  ): string {
+    date = this.fromString(date);
+
+    return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(
+      date,
+      { includeSeconds: options?.includeSeconds ?? false },
+    )}`;
+  }
+
+  /**
+   * Minutes `date` sits ahead of UTC in the current timezone. Callers use it
+   * to detect a DST transition inside a window: an offset that DROPS across
+   * the window means the clock went back, and a wall-clock reading in that
+   * hour names two different instants.
+   */
+  public static getTimezoneOffsetInMinutes(date: Date | string): number {
+    return this.inCurrentTimezone(date).utcOffset();
+  }
+
+  /**
+   * The current timezone's abbreviation AT `date` — "BST" in summer, "GMT"
+   * in winter. The only thing that separates the two 01:00s on the day the
+   * clocks go back, so chart axes append it when a window straddles one.
+   */
+  public static getLocalZoneAbbr(date: Date | string): string {
+    return this.getZoneAbbrByTimezone(
+      this.getCurrentTimezone(),
+      this.fromString(date),
+    );
+  }
+
+  /**
+   * A compact "Mar 1, 14:30" (or "Mar 1, 2:30 PM") label for one instant, used
+   * where a whole window has to fit on a button - the time range picker above
+   * the metrics, traces and logs explorers, chiefly.
+   *
+   * Both halves follow the user's machine: the wall clock is resolved in the
+   * configured timezone (falling back to the one the browser reports), and the
+   * 12- vs 24-hour choice follows the operating system's clock preference
+   * unless a caller overrides it.
+   */
+  public static getDateAsLocalShortDateTimeString(
+    date: Date | string,
+    options?: {
+      use12HourFormat?: boolean | undefined;
+      includeSeconds?: boolean | undefined;
+    },
+  ): string {
+    date = this.fromString(date);
+
+    const use12HourFormat: boolean =
+      options?.use12HourFormat ?? this.getUserPrefers12HourFormat();
+
+    let timeFormat: string = use12HourFormat ? "h:mm" : "HH:mm";
+
+    if (options?.includeSeconds) {
+      timeFormat += ":ss";
+    }
+
+    if (use12HourFormat) {
+      timeFormat += " A";
+    }
+
+    return this.inCurrentTimezone(date).format(`MMM D, ${timeFormat}`);
   }
 
   public static getDateAsLocalMonthYearString(date: Date | string): string {
@@ -636,6 +726,43 @@ export default class OneUptimeDate {
     return date.toISOString();
   }
 
+  /*
+   * The ISO instant for a value that is *declared* a Date but may not be one
+   * at runtime.
+   *
+   * TypeORM's save() hands back the entity it was given, so a date column read
+   * off a freshly created model holds whatever the caller supplied — a real
+   * Date once BaseModel.fromJSON has coerced it, a raw string from any caller
+   * that bypasses that path. `.toISOString()` on the latter is a TypeError,
+   * and post-create hooks are exactly where such a throw does the most damage:
+   * the row is already committed, so it converts a completed write into a
+   * server error the caller retries.
+   *
+   * Returns null for anything that is not a usable date, so a caller reporting
+   * an optional timestamp reports "unknown" instead of failing.
+   */
+  public static toIsoStringOrNull(
+    date: Date | string | undefined | null,
+  ): string | null {
+    if (!date) {
+      return null;
+    }
+
+    let parsedDate: Date;
+
+    try {
+      parsedDate = this.fromString(date);
+    } catch {
+      return null;
+    }
+
+    if (!(parsedDate instanceof Date) || Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    return parsedDate.toISOString();
+  }
+
   public static getCurrentMomentDate(): moment.Moment {
     return moment();
   }
@@ -818,6 +945,25 @@ export default class OneUptimeDate {
     date1 = this.fromString(date1);
     date2 = this.fromString(date2);
     return moment(date1).isSame(date2, "day");
+  }
+
+  /**
+   * Whether the two instants fall on the same calendar day *in the current
+   * timezone*, which is the question a UI is asking when it decides whether a
+   * timestamp needs its date spelled out or a bare clock reading will do.
+   *
+   * `areOnTheSameDay` above answers it in the zone the process happens to run
+   * in. Near midnight those two zones disagree, so asking the wrong one drops
+   * the date from yesterday's buckets and adds it to today's.
+   */
+  public static areOnTheSameLocalDay(
+    date1: Date | string,
+    date2: Date | string,
+  ): boolean {
+    return this.inCurrentTimezone(date1).isSame(
+      this.inCurrentTimezone(date2),
+      "day",
+    );
   }
 
   public static areOnTheSameMonth(date1: Date, date2: Date): boolean {
@@ -1428,15 +1574,75 @@ export default class OneUptimeDate {
     return this.getDateAsFormattedString(new Date(), options);
   }
 
+  /**
+   * Whether the machine this is running on writes the time of day on a 12-hour
+   * clock, read from the browser's resolved default locale - which browsers
+   * derive from the operating system's language and region, so changing those
+   * changes this. An explicit -u-hc- override on the locale is honoured too.
+   *
+   * Note what this cannot see: the standalone "24-Hour Time" switch macOS and
+   * Windows offer separately from the region. Safari and recent Firefox fold
+   * that into the locale they resolve; Chromium does not. A user who wants a
+   * clock that ignores their region would need an explicit preference stored
+   * alongside the timezone in User Settings - there is none today.
+   *
+   * Asked of Intl rather than inferred from a formatted string. The string
+   * probe below only recognises the Latin "AM"/"PM", so it misread every
+   * 12-hour locale that marks the day period some other way - ko-KR writes
+   * the equivalent of "PM" in Hangul, ar-EG in Arabic script - and served
+   * those users a 24-hour clock against their own convention.
+   */
   public static getUserPrefers12HourFormat(): boolean {
     if (typeof window === "undefined") {
       // Server-side: default to 12-hour format for user-friendly display
       return true;
     }
 
-    // Client-side: detect user's preferred time format from browser locale
-    const testDate: Date = new Date();
-    const timeString: string = testDate.toLocaleTimeString();
+    /*
+     * `hour12` is only reported when the format actually asks for an hour, so
+     * the probe has to request one.
+     */
+    try {
+      /*
+       * Typed structurally rather than as Intl.ResolvedDateTimeFormatOptions:
+       * `hourCycle` only appears on that interface from the ES2021 lib, and
+       * this file has to compile against the older one too.
+       */
+      const resolvedOptions: {
+        hour12?: boolean | undefined;
+        hourCycle?: string | undefined;
+      } = new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+      }).resolvedOptions();
+
+      if (typeof resolvedOptions.hour12 === "boolean") {
+        return resolvedOptions.hour12;
+      }
+
+      /*
+       * Older engines report the cycle but not the boolean. h11/h12 are the
+       * two 12-hour cycles; h23/h24 are the 24-hour ones.
+       */
+      if (resolvedOptions.hourCycle) {
+        return (
+          resolvedOptions.hourCycle === "h11" ||
+          resolvedOptions.hourCycle === "h12"
+        );
+      }
+    } catch {
+      /*
+       * A missing or broken Intl must not take every timestamp in the UI down
+       * with it - fall through to the string probe below.
+       */
+    }
+
+    /*
+     * Last resort: read a formatted time and look for a day-period marker.
+     * This only recognises the Latin "AM"/"PM" - which is exactly why it is the
+     * fallback and not the primary check, since locales like ko-KR and ar-EG
+     * are 12-hour but mark the day period with characters this cannot see.
+     */
+    const timeString: string = new Date().toLocaleTimeString();
     return (
       timeString.toLowerCase().includes("am") ||
       timeString.toLowerCase().includes("pm")

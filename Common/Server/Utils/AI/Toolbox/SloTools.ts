@@ -78,14 +78,14 @@ function formatPercent(value: number | undefined | null): string {
 export const QuerySlosTool: ObservabilityTool = {
   name: "query_slos",
   description:
-    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate alert rules and their thresholds. Use query_alerts to see alerts those burn-rate rules fired, and query_monitors for the current status of an SLO's monitors.",
+    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, and whether each raises an alert, declares an incident, or both. Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors.",
   inputSchema: {
     type: "object",
     properties: {
       sloId: {
         type: "string",
         description:
-          "Get one SLO by its ID — includes the full definition (SLI type, downtime statuses, monitor labels, at-risk threshold, error budget seconds) and its burn-rate rules with thresholds and alert windows.",
+          "Get one SLO by its ID — includes the full definition (SLI type, downtime statuses, monitor labels, at-risk threshold, error budget seconds) and its burn-rate rules with thresholds, windows, and what each rule declares when it fires.",
       },
       sloStatus: {
         type: "string",
@@ -210,11 +210,18 @@ export const QuerySlosTool: ObservabilityTool = {
             shortWindowInMinutes: true,
             minimumSampleCount: true,
             refireSuppressionMinutes: true,
+            shouldCreateAlert: true,
             alertSeverity: {
+              name: true,
+            },
+            shouldCreateIncident: true,
+            incidentSeverity: {
               name: true,
             },
             lastAlertCreatedAt: true,
             lastAlertResolvedAt: true,
+            lastIncidentCreatedAt: true,
+            lastIncidentResolvedAt: true,
           },
           sort: {
             burnRateThreshold: SortOrder.Descending,
@@ -236,9 +243,19 @@ export const QuerySlosTool: ObservabilityTool = {
           shortWindowInMinutes: rule.shortWindowInMinutes,
           minimumSampleCount: rule.minimumSampleCount,
           refireSuppressionMinutes: rule.refireSuppressionMinutes,
+          /*
+           * Read with the model's own defaults so a rule written before
+           * incidents existed reports "creates an alert" rather than a blank
+           * the model would have to guess at.
+           */
+          createsAlert: rule.shouldCreateAlert !== false,
           alertSeverity: rule.alertSeverity?.name,
+          createsIncident: rule.shouldCreateIncident === true,
+          incidentSeverity: rule.incidentSeverity?.name,
           lastAlertCreatedAt: rule.lastAlertCreatedAt,
           lastAlertResolvedAt: rule.lastAlertResolvedAt,
+          lastIncidentCreatedAt: rule.lastIncidentCreatedAt,
+          lastIncidentResolvedAt: rule.lastIncidentResolvedAt,
         });
       }
 

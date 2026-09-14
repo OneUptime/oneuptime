@@ -1031,10 +1031,18 @@ describe("ComponentsModal", () => {
         },
       );
 
-      expect(screen.getByText("Create One Monitor")).toBeInTheDocument();
-      expect(screen.getByText("Create Many Monitors")).toBeInTheDocument();
-      expect(screen.queryByText("Find One Monitor")).not.toBeInTheDocument();
-      expect(screen.queryByText("Create One Team")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Create One Monitor" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Create Many Monitors" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Find One Monitor" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Create One Team" }),
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -55,6 +55,7 @@ import UserAuthentication from "./Pages/Users/View/Authentication";
 import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectSubscription from "./Pages/Projects/View/Subscription";
+import ProjectSupport from "./Pages/Projects/View/Support";
 import ProjectDelete from "./Pages/Projects/View/Delete";
 import ProjectUsers from "./Pages/Projects/View/Users";
 import ProjectUserView from "./Pages/Projects/View/UserView";
@@ -201,6 +202,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.PROJECT_SUBSCRIPTION]?.toString() || ""}
           element={<ProjectSubscription />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_SUPPORT]?.toString() || ""}
+          element={<ProjectSupport />}
         />
 
         <PageRoute

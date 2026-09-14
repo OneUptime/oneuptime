@@ -2,7 +2,7 @@ import AlertSeverity from "./AlertSeverity";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RelationOnlyRuleBaseModel from "./DatabaseBaseModel/RelationOnlyRuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -21,6 +21,7 @@ import Permission from "../../Types/Permission";
 import ReminderStopState from "../../Types/Reminder/ReminderStopState";
 import {
   Column,
+  Check,
   Entity,
   Index,
   JoinColumn,
@@ -59,6 +60,7 @@ import {
   ],
 })
 @CrudApiEndpoint(new Route("/alert-reminder-rule"))
+@Check(`"criteria" IS NULL OR "isEnabled" IS DISTINCT FROM true`)
 @Entity({
   name: "AlertReminderRule",
 })
@@ -76,7 +78,7 @@ import {
   tableDescription:
     "Configure reminder rules to periodically notify alert owners while an alert is still open",
 })
-export default class AlertReminderRule extends BaseModel {
+export default class AlertReminderRule extends RelationOnlyRuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -294,10 +296,10 @@ export default class AlertReminderRule extends BaseModel {
   })
   @Column({
     type: ColumnType.Boolean,
-    nullable: false,
+    nullable: true,
     default: true,
   })
-  public isEnabled?: boolean = undefined;
+  public isEnabled?: boolean | null = undefined;
 
   @ColumnAccessControl({
     create: [

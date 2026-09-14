@@ -1,6 +1,8 @@
+import MonitorTemplate from "./MonitorTemplate";
+import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -23,13 +25,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * manual "Review Results -> Import" step — the OneUptime shape of Zabbix's
  * autoregistration actions (issue #3378).
  *
- * The rule is deliberately a pure CREATION GATE: conditions decide WHICH
- * discovered hosts import, and the import itself goes through the same
- * builder as the manual dialog. Everything downstream of creation — site
- * assignment, owners, labels — already fires automatically from
+ * Conditions decide WHICH discovered hosts import, and the optional monitor
+ * template decides whether each imported SNMP device also gets a Network
+ * Device monitor. Everything else downstream of creation — site assignment,
+ * owners, labels — already fires automatically from
  * NetworkDeviceService.onCreateSuccess through the existing
  * NetworkSiteAssignmentRule / NetworkDeviceOwnerRule / NetworkDeviceLabelRule
- * engines, so this model carries no operation columns to fight them with.
+ * engines, so this model carries no competing operation columns.
  *
  * Conditions on one rule are ANDed; OR is more rules. An exclusion rule
  * (isExclusion) vetoes matching import rules — "never auto-import X".
@@ -76,7 +78,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Network Device Auto Import Rules",
   icon: IconProp.Automation,
   tableDescription:
-    "Automatically import matching hosts from network device discovery scan results as Network Devices, with no manual review step",
+    "Automatically import matching hosts from network device discovery scan results as Network Devices and optionally provision a monitor from a template",
 })
 /*
  * The index and foreign-key names below are written out rather than left to
@@ -89,7 +91,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * keeps the readable names and costs no migration; the alternative was an
  * ALTER that renamed seven objects on every installation to hashes.
  */
-export default class NetworkDeviceAutoImportRule extends BaseModel {
+export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -464,6 +466,178 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     default: false,
   })
   public isExclusion?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorTemplateId",
+    type: TableColumnType.Entity,
+    modelType: MonitorTemplate,
+    title: "Monitor Template",
+    description:
+      "Optional Network Device monitor template to apply to devices imported by this rule",
+  })
+  @ManyToOne(
+    () => {
+      return MonitorTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "monitorTemplateId",
+    foreignKeyConstraintName: "FK_nd_auto_import_rule_monitorTemplateId",
+  })
+  public monitorTemplate?: MonitorTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @Index("IDX_network_device_auto_import_rule_monitorTemplateId")
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor Template ID",
+    description:
+      "ID of the optional Network Device monitor template to apply to devices imported by this rule",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorTemplateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceOidTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  /*
+   * The collect half of the pair, sitting beside the alert half above.
+   *
+   * Without it a template is only reachable by hand: a discovery scan would
+   * import a device, the vendor auto-apply would write a two-to-six OID copy
+   * onto it, and somebody would have to go back and bulk-assign the real
+   * template - after every scan, forever. That is the same per-device chore
+   * issue #3507 is about, just moved one step later. This is the OneUptime
+   * shape of Zabbix's "link template on host discovery" action.
+   */
+  @TableColumn({
+    manyToOneRelationColumn: "oidTemplateId",
+    type: TableColumnType.Entity,
+    modelType: NetworkDeviceOidTemplate,
+    title: "OID Collection Template",
+    description:
+      "Optional OID Collection Template to link to devices imported by this rule. The Monitor Template decides what those devices are ALERTED on; this decides what they COLLECT.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDeviceOidTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "oidTemplateId",
+  })
+  public oidTemplate?: NetworkDeviceOidTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceOidTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "OID Collection Template ID",
+    description:
+      "ID of the optional OID Collection Template to link to devices imported by this rule",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public oidTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -19,61 +19,106 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import {
+  readDtoBoolean,
+  readDtoNumber,
+  readDtoOptionalNumber,
+  readDtoString,
+  readDtoStringArray,
+  readDtoStringMap,
+  SessionReplayListCursorDto,
+  SessionReplaySortBy,
+  parseSessionReplayListCursor,
+  SessionReplaySortedListCursorDto,
+} from "Common/Types/Rum/SessionReplayApi";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Table from "Common/UI/Components/Table/Table";
-import Column from "Common/UI/Components/Table/Types/Column";
+import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import SessionReplayFacets, {
+  SESSION_REPLAY_FACETS,
+  SessionReplayFacet,
+} from "./SessionReplayFacets";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import FilterData from "Common/UI/Components/Filters/Types/FilterData";
-import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
-import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import Navigation from "Common/UI/Utils/Navigation";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SessionReplayFilterModal from "./SessionReplayFilterModal";
+import SessionReplaySearchBar from "./SessionReplaySearchBar";
+import SessionReplayEmptyState, {
+  describeSessionReplayListError,
+  SessionReplayFilterChipList,
+  SessionReplayListErrorCopy,
+} from "./SessionReplayEmptyState";
 import {
-  buildSessionReplayFilterChipData,
-  SESSION_REPLAY_CHIP_FILTERS,
+  buildSessionReplayFilterChips,
+  SessionReplayFilterChip,
 } from "./SessionReplayFilterFields";
 import {
+  buildCursorMemoryKey,
   buildFilteredUrl,
   buildSessionReplayListFilters,
+  buildTimeRangeSearch,
+  buildUserFilterLabelStorageKey,
+  DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
+  DEFAULT_SESSION_REPLAY_SORT_BY,
   EMPTY_ADVANCED_FILTERS,
-  hasAnyAdvancedFilter,
-  readFiltersFromSearch,
+  HandedOffUserFilterLabel,
+  parseCursorMemory,
+  readListStateFromSearch,
+  resolveHandedOffUserFilter,
+  serializeCursorMemory,
+  SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS,
   SessionReplayAdvancedFilters,
+  SessionReplayCursorMemory,
+  SessionReplayListUrlState,
 } from "./SessionReplayListFilters";
+import {
+  describeTriggerReason,
+  formatIdleShare,
+  formatSessionDuration,
+  getSessionReplayPlayability,
+  isSessionReplayRecordingLive,
+  SessionReplayPlayability,
+  SessionReplayPlayabilitySeverity,
+} from "./SessionReplayPlayability";
+import { buildReplayMomentRoute } from "./ReplayPlayerUrlState";
+import {
+  describeSessionUser,
+  SessionUserDescription,
+} from "./SessionReplayUserIdentity";
+import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
+import SessionReplayIdentityNudge, {
+  hasAnyVisitorId,
+  shouldShowIdentityNudge,
+} from "./SessionReplayIdentityNudge";
 export {
   buildSessionReplayListFilters,
   EMPTY_ADVANCED_FILTERS,
   hasAnyAdvancedFilter,
 } from "./SessionReplayListFilters";
 export type { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
+export { formatSessionDuration } from "./SessionReplayPlayability";
 
 /*
- * The session list is a bespoke table over POST /telemetry/rum/session-replay/list
- * rather than an AnalyticsModelTable.
- *
- * RumSessionV1 is a ReplacingMergeTree and there is no FINAL support anywhere
- * in this repo, so duplicate versions of a row are visible until a background
- * merge collapses them - worst for the newest sessions, which are exactly the
- * ones that sort first here. The endpoint deduplicates with
- * argMax(col, version) ... GROUP BY (projectId, rumApplicationId, sessionId);
- * a generic model table would show the same session two or three times with
- * different aggregate counts.
+ * The shared Table renders the same headers, spacing, loading states and
+ * responsive cards as ModelTable. The replay endpoint remains responsible for
+ * deduplicating ReplacingMergeTree session versions and keyset pagination.
  */
 
 /* One deduplicated header row. Mirrors the /list projection. */
@@ -104,27 +149,64 @@ export interface SessionReplaySummary {
   deviceType: string;
   countryCode: string;
   identifiedUserLabel: string;
+  /*
+   * The pseudonymous digest the label is stored under; "" when the page
+   * never identified anyone. Present for every role - it names nobody -
+   * and it is what "every session from this user" filters by when the
+   * label itself is withheld.
+   */
+  identifiedUserKey: string;
+  /*
+   * The recorder's per-browser anonymous visitor id; "" from a recorder
+   * that predates it. Groups one browser's sessions without identify().
+   */
+  visitorId: string;
   maskingMode: string;
   fidelityNotices: Array<string>;
+
+  /* ---- Additive projections; undefined = the server did not measure it. ---- */
+  samplePercentageAtCapture?: number | undefined;
+  routes?: Array<string> | undefined;
+  traceCount?: number | undefined;
+  exceptionGroupCount?: number | undefined;
+  clickCount?: number | undefined;
+  activeMs?: number | undefined;
+  firstErrorOffsetMs?: number | undefined;
+  expiresAtUnixMs?: number | undefined;
+  tags?: Record<string, string> | undefined;
+  startTimeUnixMs?: number | undefined;
+  identifiedUserTraits?: Record<string, string> | undefined;
+  /*
+   * Whether the identity column was in the payload at all. The server
+   * omits it for viewers without the identity permission; an empty label
+   * WITH the column means "anonymous", no column means "hidden from you".
+   */
+  isIdentityVisible?: boolean | undefined;
+  /*
+   * Every tab of this unfinalized session has closed, so the row reads
+   * "Recording ended" rather than "Recording now" (see
+   * SessionReplayPlayability). The parser always sets it, false when an
+   * older server did not send the flag; optional only so a summary built
+   * by hand elsewhere need not name it.
+   */
+  hasRecordingEnded?: boolean | undefined;
 }
 
 export interface SessionReplayListFilter {
-  /* "all" | "errors" | "frustration" - the three questions people ask. */
   signal: string;
   startTime: Date;
   endTime: Date;
 }
 
 /*
- * Keyset pagination cursor, echoed straight back to the endpoint. The list
- * is a raw ClickHouse projection with no COUNT, so there is no total and no
- * skip: the only way to page is to hand back the last row of the previous
- * page.
+ * Keyset pagination cursor, echoed straight back to the endpoint VERBATIM:
+ * {startTimeUnixMs, sessionId} for the newest sort, {sortBy, sortValue,
+ * sessionId} otherwise. The list is a raw ClickHouse projection with no
+ * COUNT, so there is no total and no skip: the only way to page is to hand
+ * back the last row of the previous page. A cursor from another ordering is
+ * a 400, which is why the cursor map is cleared whenever the sort changes.
  */
-export interface SessionReplayListCursor {
-  startTimeUnixMs: number;
-  sessionId: string;
-}
+export type SessionReplayListCursor = SessionReplayListCursorDto;
 
 export interface SessionReplayListResult {
   sessions: Array<SessionReplaySummary>;
@@ -134,102 +216,134 @@ export interface SessionReplayListResult {
    * cannot prove.
    */
   nextCursor: SessionReplayListCursor | null;
+  /*
+   * Filters the server says it dropped (additive, defensive: today it
+   * drops identifiedUserRef silently for viewers without the identity
+   * permission, and the table detects that from the rows instead).
+   */
+  ignoredFilters: Array<string>;
 }
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 
-const DEFAULT_ITEMS_ON_PAGE: number = 20;
+/*
+ * How often the list re-reads its current page on its own while that page
+ * shows a session the finalizer has not counted yet. A closed tab turns
+ * "Recording now" into "Recording ended" about a minute after its last
+ * chunk was stored (the server waits out a short grace, in case the next
+ * page of the app picks the session up), and into Playable once the
+ * finalizer has counted it, usually a minute or so after that; without a
+ * refresh the badge a viewer is looking at stays whatever it was when the
+ * page loaded. The same cadence as the player's live manifest poll
+ * (LIVE_MANIFEST_POLL_MS), and only while the document is visible - a
+ * background tab polling the list endpoint twice a minute is load nobody
+ * is looking at.
+ */
+export const SESSION_REPLAY_LIST_AUTO_REFRESH_MS: number = 30 * 1000;
 
 /*
- * Passing `hasMore` puts Pagination into has-more mode, where Next is driven
- * by the cursor rather than by a total. The endpoint runs no COUNT, so a real
- * total does not exist here.
+ * The most silent refreshes the list makes on its own before it stops:
+ * 20 ticks, about 10 minutes. Counted from the last load the viewer
+ * started (the first load, a filter, sort or page change, Refresh, Retry)
+ * or the last time the tab became visible again, each of which restores
+ * the whole budget.
  *
- * It does NOT mean the number is unread: has-more mode still reads it to close
- * the range it prints, as `firstOnPage + max(total - alreadySeen, 0)`. Passing
- * zero rendered "Showing 1 to 0 sessions." over a list with rows in it. The
- * count of rows actually on this page is the honest input - it makes the
- * printed range describe the page, which is all has-more mode can claim, and
- * the trailing "+" already says more may follow.
+ * Without a cap the refresh never ends on a busy application: the newest
+ * page nearly always holds a session that is still recording, so "stop
+ * once every row is finalized" never comes, and every open list re-runs
+ * the whole window's list aggregation twice a minute for as long as it is
+ * on a screen. Ten minutes is several times what a viewer who is watching
+ * waits for - a closed tab's "Recording now" becoming "Recording ended"
+ * and then Playable takes two or three minutes - and past it, a list left
+ * open on a wall screen waits for its Refresh button like any other page.
  */
-
-const DEFAULT_RANGE: RangeStartAndEndDateTime = {
-  range: TimeRange.PAST_ONE_DAY,
-};
+export const SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS: number = 20;
 
 /*
- * Reads a field off an untyped JSON row. The endpoint's projection is a hand
- * written ClickHouse statement, not a model serialisation, so every field is
- * coerced here rather than trusted.
+ * Where the list stamps its own URL so the player's "Sessions" back link
+ * can restore the filters. Same key ReplayViewPrefs.ts declares; spelled
+ * here so the list does not depend on the player module.
  */
-function readString(row: JSONObject, key: string): string {
-  const value: unknown = row[key];
+export const SESSION_REPLAY_LIST_URL_STORAGE_KEY: string =
+  "oneuptime.replay.listUrl";
 
-  if (value === null || value === undefined) {
-    return "";
-  }
+/* Per-application cursor memory, so a reload on ?page=3 can honour it. */
+export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
+  "oneuptime.replay.listCursors:";
 
-  return String(value);
-}
+const MAX_ROUTE_PILLS: number = 3;
 
-function readNumber(row: JSONObject, key: string): number {
-  const value: unknown = row[key];
-  const parsed: number = Number(value);
-
-  return isFinite(parsed) ? parsed : 0;
-}
-
-function readBoolean(row: JSONObject, key: string): boolean {
-  const value: unknown = row[key];
-
-  // ClickHouse UInt8 booleans arrive as 0/1, sometimes as the strings "0"/"1".
-  return value === true || value === 1 || value === "1";
-}
-
-function readStringArray(row: JSONObject, key: string): Array<string> {
-  const value: unknown = row[key];
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((entry: unknown): string => {
-    return String(entry);
-  });
-}
+/*
+ * Signal badges shown on a row before the rest fold into "+N". Three is
+ * what fits the column at the widths the table is laid out for; a row
+ * with errors, rage, dead clicks, traces and exception groups used to
+ * wrap to three lines and push every other row's height with it.
+ */
+const MAX_SIGNAL_BADGES: number = 3;
 
 export function parseSessionReplaySummary(
   row: JSONObject,
 ): SessionReplaySummary {
+  const record: Record<string, unknown> = row as Record<string, unknown>;
+
   return {
-    sessionId: readString(row, "sessionId"),
-    startTime: readString(row, "startTime"),
-    endTime: readString(row, "endTime"),
-    durationMs: readNumber(row, "durationMs"),
-    chunkCount: readNumber(row, "chunkCount"),
-    missingChunkCount: readNumber(row, "missingChunkCount"),
-    eventCount: readNumber(row, "eventCount"),
-    payloadBytes: readNumber(row, "payloadBytes"),
-    isFinalized: readBoolean(row, "isFinalized"),
-    sealedReason: readString(row, "sealedReason"),
-    hasError: readBoolean(row, "hasError"),
-    errorCount: readNumber(row, "errorCount"),
-    rageClickCount: readNumber(row, "rageClickCount"),
-    deadClickCount: readNumber(row, "deadClickCount"),
-    errorClickCount: readNumber(row, "errorClickCount"),
-    refreshRageCount: readNumber(row, "refreshRageCount"),
-    pageCount: readNumber(row, "pageCount"),
-    triggerReason: readString(row, "triggerReason"),
-    entryUrl: readString(row, "entryUrl"),
-    exitUrl: readString(row, "exitUrl"),
-    browserName: readString(row, "browserName"),
-    browserVersion: readString(row, "browserVersion"),
-    osName: readString(row, "osName"),
-    deviceType: readString(row, "deviceType"),
-    countryCode: readString(row, "countryCode"),
-    identifiedUserLabel: readString(row, "identifiedUserLabel"),
-    maskingMode: readString(row, "maskingMode"),
-    fidelityNotices: readStringArray(row, "fidelityNotices"),
+    sessionId: readDtoString(record, "sessionId"),
+    startTime: readDtoString(record, "startTime"),
+    endTime: readDtoString(record, "endTime"),
+    durationMs: readDtoNumber(record, "durationMs"),
+    chunkCount: readDtoNumber(record, "chunkCount"),
+    missingChunkCount: readDtoNumber(record, "missingChunkCount"),
+    eventCount: readDtoNumber(record, "eventCount"),
+    payloadBytes: readDtoNumber(record, "payloadBytes"),
+    isFinalized: readDtoBoolean(record, "isFinalized"),
+    sealedReason: readDtoString(record, "sealedReason"),
+    hasError: readDtoBoolean(record, "hasError"),
+    errorCount: readDtoNumber(record, "errorCount"),
+    rageClickCount: readDtoNumber(record, "rageClickCount"),
+    deadClickCount: readDtoNumber(record, "deadClickCount"),
+    errorClickCount: readDtoNumber(record, "errorClickCount"),
+    refreshRageCount: readDtoNumber(record, "refreshRageCount"),
+    pageCount: readDtoNumber(record, "pageCount"),
+    triggerReason: readDtoString(record, "triggerReason"),
+    entryUrl: readDtoString(record, "entryUrl"),
+    exitUrl: readDtoString(record, "exitUrl"),
+    browserName: readDtoString(record, "browserName"),
+    browserVersion: readDtoString(record, "browserVersion"),
+    osName: readDtoString(record, "osName"),
+    deviceType: readDtoString(record, "deviceType"),
+    countryCode: readDtoString(record, "countryCode"),
+    identifiedUserLabel: readDtoString(record, "identifiedUserLabel"),
+    identifiedUserKey: readDtoString(record, "identifiedUserKey"),
+    visitorId: readDtoString(record, "visitorId"),
+    maskingMode: readDtoString(record, "maskingMode"),
+    fidelityNotices: readDtoStringArray(record, "fidelityNotices"),
+    samplePercentageAtCapture: readDtoOptionalNumber(
+      record,
+      "samplePercentageAtCapture",
+    ),
+    routes: Array.isArray(record["routes"])
+      ? readDtoStringArray(record, "routes")
+      : undefined,
+    traceCount: readDtoOptionalNumber(record, "traceCount"),
+    exceptionGroupCount: readDtoOptionalNumber(record, "exceptionGroupCount"),
+    clickCount: readDtoOptionalNumber(record, "clickCount"),
+    activeMs: readDtoOptionalNumber(record, "activeMs"),
+    firstErrorOffsetMs: readDtoOptionalNumber(record, "firstErrorOffsetMs"),
+    expiresAtUnixMs: readDtoOptionalNumber(record, "expiresAtUnixMs"),
+    tags: readDtoStringMap(record, "tags"),
+    startTimeUnixMs: readDtoOptionalNumber(record, "startTimeUnixMs"),
+    identifiedUserTraits:
+      record["identifiedUserTraits"] === undefined
+        ? undefined
+        : readDtoStringMap(record, "identifiedUserTraits"),
+    isIdentityVisible:
+      record["identifiedUserLabel"] !== undefined &&
+      record["identifiedUserLabel"] !== null,
+    /*
+     * Absent from an older server, which reads as false: "not finalized"
+     * then keeps meaning "recording", the only thing that server can say.
+     */
+    hasRecordingEnded: readDtoBoolean(record, "hasRecordingEnded"),
   };
 }
 
@@ -241,6 +355,7 @@ export async function fetchSessionReplayList(request: {
   endTime: Date;
   limit: number;
   cursor?: SessionReplayListCursor | undefined;
+  sortBy?: SessionReplaySortBy | undefined;
 }): Promise<SessionReplayListResult> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
     {
@@ -256,18 +371,17 @@ export async function fetchSessionReplayList(request: {
           request.advancedFilters,
         ),
         limit: request.limit,
+        ...(request.sortBy && request.sortBy !== DEFAULT_SESSION_REPLAY_SORT_BY
+          ? { sortBy: request.sortBy }
+          : {}),
         /*
-         * Spread into a plain object: the endpoint reads the two cursor
-         * fields off an untyped body, and a declared interface has no index
-         * signature to satisfy JSONObject.
+         * Echoed verbatim: the server decides which cursor shape it emits
+         * and refuses one that belongs to another ordering. Spread into a
+         * plain object because a declared interface has no index signature
+         * to satisfy JSONObject.
          */
         ...(request.cursor
-          ? {
-              cursor: {
-                startTimeUnixMs: request.cursor.startTimeUnixMs,
-                sessionId: request.cursor.sessionId,
-              },
-            }
+          ? { cursor: { ...request.cursor } as JSONObject }
           : {}),
       },
       headers: {
@@ -281,37 +395,29 @@ export async function fetchSessionReplayList(request: {
   }
 
   const rows: JSONArray = (response.data["sessions"] as JSONArray) || [];
-  const rawCursor: JSONObject | null =
-    (response.data["nextCursor"] as JSONObject) || null;
+  const rawCursor: unknown = response.data["nextCursor"];
+  const nextCursor: SessionReplaySortedListCursorDto | null =
+    parseSessionReplayListCursor(rawCursor);
 
   return {
     sessions: rows.map((row: JSONObject): SessionReplaySummary => {
       return parseSessionReplaySummary(row);
     }),
+    /*
+     * The server's own object, not the normalised one: the legacy shape
+     * has to go back as the legacy shape so an older server keeps paging.
+     */
     nextCursor:
-      rawCursor && rawCursor["sessionId"]
-        ? {
-            startTimeUnixMs: Number(rawCursor["startTimeUnixMs"]) || 0,
-            sessionId: String(rawCursor["sessionId"]),
-          }
-        : null,
+      nextCursor === null
+        ? null
+        : (rawCursor as JSONObject as unknown as SessionReplayListCursor),
+    ignoredFilters: Array.isArray(response.data["ignoredFilters"])
+      ? readDtoStringArray(
+          response.data as Record<string, unknown>,
+          "ignoredFilters",
+        )
+      : [],
   };
-}
-
-export function formatSessionDuration(durationMs: number): string {
-  if (!isFinite(durationMs) || durationMs <= 0) {
-    return "—";
-  }
-
-  const totalSeconds: number = Math.round(durationMs / 1000);
-  const minutes: number = Math.floor(totalSeconds / 60);
-  const seconds: number = totalSeconds % 60;
-
-  if (minutes === 0) {
-    return `${seconds}s`;
-  }
-
-  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 export interface SessionReplayTableProps {
@@ -319,171 +425,938 @@ export interface SessionReplayTableProps {
   /* Overrides the default "Sessions" card copy on embedded uses. */
   title?: string | undefined;
   description?: string | undefined;
-  /*
-   * Rendered below the table when the list came back empty under the
-   * DEFAULT filters. Used to show setup instructions, which is the right
-   * thing to show somebody who has never had a recording - and the wrong
-   * thing to show somebody who just filtered too narrowly, hence the
-   * gating on filter state rather than on row count alone.
-   */
-  renderWhenEmpty?: ReactElement | undefined;
 }
 
-const SIGNAL_FILTERS: Array<{ label: string; value: string }> = [
-  { label: "All sessions", value: "all" },
-  { label: "With errors", value: "errors" },
-  { label: "With frustration", value: "frustration" },
-];
+/* ---- Signals column ---- */
 
-interface SessionReplaySignalBadge {
+export interface SessionReplaySignalBadge {
   key: string;
-  type: StatusBadgeType;
-  getCount: (row: SessionReplaySummary) => number;
+  severity: SessionReplayPlayabilitySeverity;
+  /* undefined = not measured on this row: no badge, never "0". */
+  getCount: (row: SessionReplaySummary) => number | undefined;
   getText: (count: number) => string;
+  /* The rail tab the badge links into. */
+  rail: string;
 }
 
-const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
+/*
+ * Every counter the server's hasFrustration predicate sums over. Pinned by
+ * a test against SESSION_REPLAY_SIGNAL_BADGES: a session that the
+ * Frustration filter selects must show at least one badge, or the filter
+ * looks broken and the row reads "Clean".
+ */
+export const SESSION_REPLAY_FRUSTRATION_COUNTERS: ReadonlyArray<
+  keyof SessionReplaySummary
+> = ["rageClickCount", "deadClickCount", "errorClickCount", "refreshRageCount"];
+
+function plural(count: number, singular: string, pluralWord?: string): string {
+  return count === 1 ? singular : pluralWord ?? `${singular}s`;
+}
+
+export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
   {
     key: "errors",
-    type: StatusBadgeType.Danger,
+    severity: "danger",
     getCount: (row: SessionReplaySummary): number => {
       return row.errorCount;
     },
     getText: (count: number): string => {
-      return `${count} error${count === 1 ? "" : "s"}`;
+      return `${count} ${plural(count, "error")}`;
     },
+    rail: "errors",
   },
   {
     key: "rage",
-    type: StatusBadgeType.Warning,
+    severity: "warning",
     getCount: (row: SessionReplaySummary): number => {
       return row.rageClickCount;
     },
     getText: (count: number): string => {
       return `${count} rage`;
     },
+    rail: "interactions",
   },
   {
     key: "dead",
-    type: StatusBadgeType.Neutral,
+    severity: "neutral",
     getCount: (row: SessionReplaySummary): number => {
       return row.deadClickCount;
     },
     getText: (count: number): string => {
       return `${count} dead`;
     },
+    rail: "interactions",
+  },
+  {
+    key: "error-clicks",
+    severity: "danger",
+    getCount: (row: SessionReplaySummary): number => {
+      return row.errorClickCount;
+    },
+    getText: (count: number): string => {
+      return `${count} error ${plural(count, "click")}`;
+    },
+    rail: "interactions",
   },
   {
     key: "refresh",
-    type: StatusBadgeType.Info,
+    severity: "info",
     getCount: (row: SessionReplaySummary): number => {
       return row.refreshRageCount;
     },
     getText: (count: number): string => {
       return `${count} refresh rage`;
     },
+    rail: "interactions",
+  },
+  {
+    key: "traces",
+    severity: "info",
+    getCount: (row: SessionReplaySummary): number | undefined => {
+      return row.traceCount;
+    },
+    getText: (count: number): string => {
+      return `${count} ${plural(count, "trace")}`;
+    },
+    rail: "traces",
+  },
+  {
+    key: "exception-groups",
+    severity: "neutral",
+    getCount: (row: SessionReplaySummary): number | undefined => {
+      return row.exceptionGroupCount;
+    },
+    getText: (count: number): string => {
+      return `${count} exception ${plural(count, "group")}`;
+    },
+    rail: "errors",
   },
 ];
 
-interface SessionReplayPlayability {
-  text: string;
-  type: StatusBadgeType;
-  tooltip: string;
+const SEVERITY_TO_BADGE: Record<
+  SessionReplayPlayabilitySeverity,
+  StatusBadgeType
+> = {
+  success: StatusBadgeType.Success,
+  info: StatusBadgeType.Info,
+  warning: StatusBadgeType.Warning,
+  danger: StatusBadgeType.Danger,
+  neutral: StatusBadgeType.Neutral,
+};
+
+/* "/checkout/payment" from a stored URL; the raw string when it is not one. */
+export function pathOf(url: string): string {
+  if (!url) {
+    return "";
+  }
+
+  try {
+    const parsed: globalThis.URL = new globalThis.URL(url);
+
+    return `${parsed.pathname}${parsed.search}` || "/";
+  } catch {
+    return url;
+  }
 }
 
 /*
- * Completeness is stated on the list, not hidden until playback. A viewer
- * choosing between two sessions needs to know one of them is missing footage
- * before they spend a minute watching it.
- *
- * "recording-lost" (sealed by the never-finalized sweep) and a zero chunk
- * count both mean there is nothing to watch - sending someone into the player
- * to find that out is the dishonesty this badge removes.
- *
- * The chunkCount test is gated on isFinalized: the PROVISIONAL header is
- * deliberately written with chunkCount 0 (aggregates are the finalizer's
- * job), so an unfinalized row's zero means "not counted yet", not "no
- * footage" - and unfinalized rows sit at the top of this newest-first list
- * during a live incident.
+ * The value the player's "Sessions" back link accepts: a SAME-ORIGIN
+ * relative path with its query string. readReplayListUrl (ReplayViewPrefs)
+ * refuses anything that is not a "/..." path - it is about to be handed to
+ * the router, so an absolute or protocol-relative value would be an open
+ * redirect - and stamping window.location.href there meant the back link
+ * silently fell back to the unfiltered list every time.
  */
-function getSessionReplayPlayability(
-  row: SessionReplaySummary,
-): SessionReplayPlayability {
-  const isLost: boolean = row.sealedReason === "recording-lost";
-  const isMetadataOnly: boolean =
-    !isLost && row.isFinalized && row.chunkCount === 0;
-  const isStillCounting: boolean = !isLost && !row.isFinalized;
+export function toListBackLinkValue(href: string): string {
+  try {
+    const parsed: globalThis.URL = new globalThis.URL(
+      href,
+      window.location.href,
+    );
 
-  if (isStillCounting) {
-    return {
-      text: "Recording",
-      type: StatusBadgeType.Info,
-      tooltip:
-        "This session has not been finalized yet. Footage is playable as it arrives; counts may still change.",
-    };
+    return `${parsed.pathname}${parsed.search}` || "/";
+  } catch {
+    return "";
+  }
+}
+
+/*
+ * Whether anyone can see the list right now. A backgrounded tab, a
+ * minimised window or a locked screen reads "hidden", and the list stops
+ * refreshing itself until it is looked at again.
+ */
+function isDocumentVisible(): boolean {
+  return document.visibilityState === "visible";
+}
+
+/*
+ * "visible": a load the viewer caused - it shows the skeleton and reports
+ * errors. "silent": the auto-refresh re-reading the page in place.
+ */
+type SessionReplayListLoadMode = "visible" | "silent";
+
+function readStorage(key: string): string | null {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: string): void {
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    /* Private mode or a full store: the memory is a convenience. */
+  }
+}
+
+function removeStorage(key: string): void {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    /* Nothing to clear, or nowhere to clear it from. */
+  }
+}
+
+/* What the mount reads: the list state, and the hand-off it was resolved from. */
+interface InitialListState {
+  state: SessionReplayListUrlState;
+  /*
+   * The digest the URL carried and the label it was swapped for, or null
+   * when nothing was handed off. Kept so the URL this list writes can keep
+   * saying userKey=<digest> for as long as the reference filter is that
+   * person (see SessionReplayListUrlExtras.handedOffUser).
+   */
+  handedOffUser: HandedOffUserFilterLabel | null;
+}
+
+/*
+ * The list state the URL names, with the Users page's hand-off resolved:
+ * when the URL carries userKey= and the Users page parked that person's
+ * label for us, the digest becomes the reference so the search box, the
+ * chip and the request all read as if the label had been clicked here.
+ * The entry is consumed on the way, but the digest stays in the address
+ * bar - so a reload of the same URL narrows by the digest, exactly like a
+ * pasted link would, rather than by nobody.
+ */
+function readInitialListState(rumApplicationId: string): InitialListState {
+  const state: SessionReplayListUrlState = readListStateFromSearch(
+    window.location.search,
+  );
+  const storageKey: string = buildUserFilterLabelStorageKey(rumApplicationId);
+  const resolved: SessionReplayListUrlState = resolveHandedOffUserFilter(
+    state,
+    readStorage(storageKey),
+  );
+
+  if (resolved === state) {
+    return { state: state, handedOffUser: null };
   }
 
-  if (isLost) {
-    return {
-      text: "Recording lost",
-      type: StatusBadgeType.Danger,
-      tooltip:
-        "A session header was received but its footage never arrived or expired before it could be processed. The signals and counts here are still accurate.",
-    };
-  }
-
-  if (isMetadataOnly) {
-    return {
-      text: "Metadata only",
-      type: StatusBadgeType.Warning,
-      tooltip:
-        "Only session metadata remains; the footage is no longer stored.",
-    };
-  }
+  removeStorage(storageKey);
 
   return {
-    text: "Playable",
-    type: StatusBadgeType.Success,
-    tooltip: "Footage is stored and can be played back.",
+    state: resolved,
+    handedOffUser: {
+      identifiedUserKey: state.advanced.identifiedUserKey.trim(),
+      identifiedUserLabel: resolved.advanced.identifiedUserRef,
+    },
   };
 }
+
+/* ---- Row ---- */
+
+interface SessionReplayRowProps {
+  row: SessionReplaySummary;
+  rumApplicationId: string;
+  nowUnixMs: number;
+  onOpen: (route: Route, openInNewTab: boolean) => void;
+  /*
+   * "Every session from this person": the user cell hands back the one
+   * identity filter that selects them (see describeSessionUser) and the
+   * table applies it in place of any other identity filter.
+   */
+  onFilterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void;
+}
+
+function routeForSession(
+  rumApplicationId: string,
+  sessionId: string,
+): Route | null {
+  if (!sessionId) {
+    return null;
+  }
+
+  try {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
+      { modelId: new ObjectID(rumApplicationId), subModelId: sessionId },
+    );
+  } catch {
+    return null;
+  }
+}
+
+function getSessionReplayCells(
+  props: SessionReplayRowProps,
+): Array<ReactElement> {
+  const { row } = props;
+  const route: Route | null = routeForSession(
+    props.rumApplicationId,
+    row.sessionId,
+  );
+  const playability: SessionReplayPlayability = getSessionReplayPlayability(
+    row,
+    props.nowUnixMs,
+  );
+
+  const startedAt: Date | null =
+    row.startTimeUnixMs !== undefined
+      ? new Date(row.startTimeUnixMs)
+      : row.startTime
+        ? OneUptimeDate.fromString(row.startTime)
+        : null;
+  const hasStart: boolean = startedAt !== null && !isNaN(startedAt.getTime());
+  const absoluteStart: string = hasStart
+    ? OneUptimeDate.getDateAsLocalFormattedString(startedAt as Date)
+    : "";
+
+  const entryPath: string = pathOf(row.entryUrl);
+  const routePaths: Array<string> = (row.routes ?? [])
+    .map((url: string): string => {
+      return pathOf(url);
+    })
+    .filter((path: string): boolean => {
+      return path.length > 0;
+    });
+
+  const deviceParts: Array<string> = [
+    [row.browserName, row.browserVersion].filter(Boolean).join(" "),
+    row.osName,
+    row.countryCode,
+  ].filter((part: string): boolean => {
+    return Boolean(part);
+  });
+
+  const deviceIcon: IconProp =
+    row.deviceType === "mobile" || row.deviceType === "tablet"
+      ? IconProp.DevicePhoneMobile
+      : IconProp.ComputerDesktop;
+
+  const signalEntries: Array<{ text: string; element: ReactElement }> =
+    SESSION_REPLAY_SIGNAL_BADGES.flatMap(
+      (
+        badge: SessionReplaySignalBadge,
+      ): Array<{ text: string; element: ReactElement }> => {
+        const count: number | undefined = badge.getCount(row);
+
+        if (count === undefined || count <= 0) {
+          return [];
+        }
+
+        const text: string = badge.getText(count);
+        const badgeRoute: Route | null = buildReplayMomentRoute({
+          rumApplicationId: props.rumApplicationId,
+          sessionId: row.sessionId,
+          rail: badge.rail,
+        });
+        const element: ReactElement = (
+          <StatusBadge text={text} type={SEVERITY_TO_BADGE[badge.severity]} />
+        );
+
+        return [
+          {
+            text: text,
+            element: badgeRoute ? (
+              <Link
+                key={badge.key}
+                to={badgeRoute}
+                className="inline-flex"
+                title={`Open the ${badge.rail} rail of this session`}
+              >
+                {element}
+              </Link>
+            ) : (
+              <span key={badge.key} className="inline-flex">
+                {element}
+              </span>
+            ),
+          },
+        ];
+      },
+    );
+
+  if (row.triggerReason === SessionReplayTriggerReason.Performance) {
+    signalEntries.push({
+      text: "Slow",
+      element: (
+        <span key="slow" className="inline-flex">
+          <StatusBadge text="Slow" type={StatusBadgeType.Warning} />
+        </span>
+      ),
+    });
+  }
+
+  /*
+   * The first few badges, then one "+N" that names the rest on hover and
+   * for a screen reader: folding them must not lose a signal, only the
+   * space it took.
+   */
+  const shownSignals: Array<ReactElement> = signalEntries
+    .slice(0, MAX_SIGNAL_BADGES)
+    .map((entry: { text: string; element: ReactElement }): ReactElement => {
+      return entry.element;
+    });
+  const foldedSignals: Array<string> = signalEntries
+    .slice(MAX_SIGNAL_BADGES)
+    .map((entry: { text: string; element: ReactElement }): string => {
+      return entry.text;
+    });
+  const badges: Array<ReactElement> = [...shownSignals];
+
+  if (foldedSignals.length > 0) {
+    badges.push(
+      <span
+        key="more"
+        className="inline-flex"
+        title={foldedSignals.join(", ")}
+        data-testid="session-row-more-signals"
+      >
+        <StatusBadge
+          text={`+${foldedSignals.length}`}
+          type={StatusBadgeType.Neutral}
+        />
+        <span className="sr-only">: {foldedSignals.join(", ")}</span>
+      </span>,
+    );
+  }
+
+  const idleShare: string | null = formatIdleShare(
+    row.activeMs,
+    row.durationMs,
+  );
+  const activityParts: Array<string> = [];
+
+  if (row.pageCount > 0) {
+    activityParts.push(`${row.pageCount} ${plural(row.pageCount, "page")}`);
+  }
+
+  if (row.clickCount !== undefined && row.clickCount > 0) {
+    activityParts.push(`${row.clickCount} ${plural(row.clickCount, "click")}`);
+  }
+
+  const firstErrorRoute: Route | null =
+    row.errorCount > 0
+      ? buildReplayMomentRoute({
+          rumApplicationId: props.rumApplicationId,
+          sessionId: row.sessionId,
+          t: row.firstErrorOffsetMs ?? 0,
+          rail: "errors",
+        })
+      : null;
+
+  /*
+   * Who this session belongs to, ranked the one way every cell ranks it
+   * (SessionReplayUserIdentity): a readable label, a withheld one, a
+   * visitor id, or nothing. The name is a button whenever a fact on the
+   * row can select this person's other sessions - which is the question a
+   * support engineer opens this list to answer.
+   */
+  const user: SessionUserDescription = describeSessionUser({
+    identifiedUserLabel: row.identifiedUserLabel,
+    isIdentityVisible: row.isIdentityVisible !== false,
+    identifiedUserKey: row.identifiedUserKey,
+    visitorId: row.visitorId,
+  });
+
+  const userNameClassName: string =
+    user.kind === "identified"
+      ? "font-medium text-gray-900"
+      : user.kind === "hidden"
+        ? "italic text-gray-500"
+        : user.kind === "visitor"
+          ? "text-gray-700"
+          : "text-gray-500";
+
+  const userName: ReactElement = (
+    <span
+      className={`truncate text-sm ${userNameClassName}`}
+      data-testid="session-row-user"
+      data-user-kind={user.kind}
+    >
+      {user.text}
+    </span>
+  );
+
+  const userLabel: ReactElement = user.filter ? (
+    <button
+      type="button"
+      className={`block min-w-0 max-w-full truncate rounded text-left text-sm hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${userNameClassName}`}
+      title={user.title}
+      data-testid="session-row-user-filter"
+      onClick={(): void => {
+        props.onFilterByUser(
+          user.filter as Partial<SessionReplayAdvancedFilters>,
+        );
+      }}
+    >
+      {userName}
+    </button>
+  ) : (
+    <Tooltip text={user.title}>
+      <span
+        className="block min-w-0 max-w-full truncate"
+        tabIndex={0}
+        aria-label={
+          user.kind === "hidden"
+            ? "User hidden: your role cannot read end-user identity"
+            : `${user.text}: ${user.title}`
+        }
+      >
+        {userName}
+      </span>
+    </Tooltip>
+  );
+
+  /*
+   * Active share of the wall clock as a bar: the "idle 40%" text beside
+   * the duration says it, the bar makes a page of rows scannable for the
+   * sessions where somebody was actually doing something.
+   */
+  const activePercent: number | null =
+    row.activeMs !== undefined && row.durationMs > 0
+      ? Math.max(
+          0,
+          Math.min(100, Math.round((row.activeMs / row.durationMs) * 100)),
+        )
+      : null;
+
+  const triggerLabel: string = describeTriggerReason(
+    row.triggerReason,
+    row.samplePercentageAtCapture,
+  );
+
+  return [
+    <div key="0">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {/*
+           * Only a session that may still receive footage pulses. An
+           * ended one is waiting on the finalizer, not on the end user.
+           */}
+          {isSessionReplayRecordingLive(row) &&
+            playability.kind === "recording" && (
+              <span
+                className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
+                role="img"
+                aria-label="Recording now"
+                data-testid="session-row-live"
+              />
+            )}
+          {route ? (
+            <Link
+              to={route}
+              className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
+              title={row.entryUrl || undefined}
+            >
+              {entryPath || "Unknown page"}
+            </Link>
+          ) : (
+            <span className="truncate text-sm font-semibold text-gray-900">
+              {entryPath || "Unknown page"}
+            </span>
+          )}
+        </div>
+        {routePaths.length > 1 && (
+          <div
+            className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500"
+            data-testid="session-row-routes"
+          >
+            {routePaths
+              .slice(0, MAX_ROUTE_PILLS)
+              .map((path: string, index: number): ReactElement => {
+                return (
+                  <Fragment key={`${path}-${index}`}>
+                    {index > 0 && <span aria-hidden="true">&gt;</span>}
+                    <span
+                      className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
+                      title={row.routes?.[index]}
+                    >
+                      {path}
+                    </span>
+                  </Fragment>
+                );
+              })}
+            {row.pageCount > MAX_ROUTE_PILLS && (
+              <span>({row.pageCount} pages)</span>
+            )}
+          </div>
+        )}
+        {/*
+         * One line, never two. The absolute timestamp is what pushes it
+         * over, so it appears only where the column has room; it is on
+         * the element's title at every width.
+         */}
+        <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
+          <span
+            className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
+            title={row.sessionId}
+          >
+            {row.sessionId.slice(0, 8) || "—"}
+          </span>
+          {hasStart && (
+            <time
+              dateTime={(startedAt as Date).toISOString()}
+              title={absoluteStart}
+              data-testid="session-row-start"
+            >
+              {OneUptimeDate.fromNow(startedAt as Date)}
+              <span className="hidden text-gray-400 2xl:inline">
+                {" "}
+                · {absoluteStart}
+              </span>
+            </time>
+          )}
+        </div>
+      </div>
+    </div>,
+    <div key="1">
+      <div className="flex min-w-0 items-center gap-2">
+        <SessionReplayUserAvatar
+          initials={user.initials}
+          hue={user.hue}
+          size="sm"
+        />
+        <div className="min-w-0">
+          {userLabel}
+          <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+            <Icon
+              icon={deviceIcon}
+              className="h-3.5 w-3.5 flex-none text-gray-400"
+            />
+            <span className="truncate">
+              {deviceParts.length > 0
+                ? deviceParts.join(" · ")
+                : "Unknown device"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>,
+    <div key="2">
+      <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
+        {formatSessionDuration(row.durationMs)}
+      </div>
+      <div className="text-xs text-gray-500" data-testid="session-row-activity">
+        {activityParts.length > 0
+          ? activityParts.join(" · ")
+          : row.isFinalized
+            ? "no pages counted"
+            : "counting"}
+        {idleShare ? ` · ${idleShare}` : ""}
+      </div>
+      {activePercent !== null && (
+        <div
+          className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-gray-100"
+          title={`active ${activePercent}% · idle ${100 - activePercent}%`}
+          data-testid="session-row-activity-bar"
+        >
+          <div
+            className="h-full rounded-full bg-indigo-400"
+            style={{ width: `${activePercent}%` }}
+          />
+        </div>
+      )}
+    </div>,
+    <div key="3">
+      {badges.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">{badges}</div>
+      ) : row.isFinalized ? (
+        <span className="text-sm text-gray-500">Clean</span>
+      ) : (
+        /*
+         * "Clean" is a claim, and it is only true once the finalizer has
+         * counted every chunk. Before that the header carries chunk 0's
+         * signals only.
+         */
+        <span className="text-sm text-gray-400">Not counted yet</span>
+      )}
+    </div>,
+    <div key="4">
+      <div className="flex items-center gap-1.5">
+        <Tooltip text={playability.tooltip}>
+          <span
+            className="inline-flex"
+            tabIndex={0}
+            aria-label={`${playability.text}: ${playability.tooltip}`}
+            data-testid="session-row-playability"
+            data-kind={playability.kind}
+          >
+            <StatusBadge
+              text={playability.text}
+              type={SEVERITY_TO_BADGE[playability.severity]}
+            />
+          </span>
+        </Tooltip>
+      </div>
+      <div className="mt-0.5 text-xs text-gray-500">
+        {playability.detail ? `${playability.detail} · ` : ""}
+        <span title={`Why this session was uploaded: ${triggerLabel}`}>
+          {triggerLabel}
+        </span>
+      </div>
+      {row.fidelityNotices.length > 0 && (
+        <div className="mt-0.5 text-xs text-amber-700">
+          {row.fidelityNotices.length} fidelity{" "}
+          {plural(row.fidelityNotices.length, "notice")}
+        </div>
+      )}
+    </div>,
+    <div key="5">
+      {route && (
+        <div className="flex flex-col items-end gap-1">
+          {playability.isWatchable ? (
+            <Link
+              to={route}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+              title={`Watch session ${row.sessionId.slice(0, 8)}`}
+            >
+              <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+              <span data-testid="session-row-watch">Watch</span>
+            </Link>
+          ) : (
+            <Link
+              to={route}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
+              title={`${playability.text}: open the session's signals without footage`}
+            >
+              <span data-testid="session-row-signals-only">Signals only</span>
+            </Link>
+          )}
+          {playability.isWatchable && firstErrorRoute && (
+            <Link
+              to={firstErrorRoute}
+              className="text-[11px] font-medium text-indigo-600 hover:underline"
+              title="Open the player one second before the first error"
+            >
+              <span data-testid="session-row-first-error">from 1st error</span>
+            </Link>
+          )}
+        </div>
+      )}
+    </div>,
+  ];
+}
+
+function getSessionReplayRowProps(
+  props: SessionReplayRowProps,
+): React.HTMLAttributes<HTMLElement> {
+  const { row } = props;
+  const route: Route | null = routeForSession(
+    props.rumApplicationId,
+    row.sessionId,
+  );
+  const openRow: (event: React.MouseEvent | React.KeyboardEvent) => void = (
+    event: React.MouseEvent | React.KeyboardEvent,
+  ): void => {
+    if (!route) {
+      return;
+    }
+
+    const target: HTMLElement | null = event.target as HTMLElement | null;
+
+    /* A click on a link or button inside the row is that control's, not the row's. */
+    if (
+      target &&
+      target.closest &&
+      target.closest("a, button, input, select")
+    ) {
+      return;
+    }
+
+    const openInNewTab: boolean =
+      "metaKey" in event && (event.metaKey || event.ctrlKey || event.shiftKey);
+
+    props.onOpen(route, openInNewTab);
+  };
+
+  const attributes: React.HTMLAttributes<HTMLElement> & {
+    "data-testid": string;
+    "data-session-id": string;
+  } = {
+    "data-testid": "session-row",
+    "data-session-id": row.sessionId,
+    className: route
+      ? "group cursor-pointer transition-colors hover:bg-gray-50 focus-within:bg-indigo-50/40 focus-visible:outline-indigo-600"
+      : "",
+    tabIndex: route ? 0 : undefined,
+    "aria-label": route
+      ? `Open session ${row.sessionId.slice(0, 8)} from ${pathOf(row.entryUrl) || "an unknown page"}`
+      : undefined,
+    onClick: openRow,
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
+      if (event.key === "Enter" && event.target === event.currentTarget) {
+        openRow(event);
+      }
+    },
+  };
+  return attributes;
+}
+
+interface SessionReplayTableRow extends SessionReplaySummary {
+  cells: Array<ReactElement>;
+}
+
+const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
+  {
+    title: "Session",
+    key: "startTime",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-xs",
+  },
+  {
+    title: "User & device",
+    key: "identifiedUserLabel",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-xs",
+  },
+  {
+    title: "Duration",
+    key: "durationMs",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-48",
+  },
+  {
+    title: "Signals",
+    key: "errorCount",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-56",
+  },
+  {
+    title: "Recording",
+    key: "isFinalized",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-56",
+  },
+  { title: "Actions", key: "sessionId", type: FieldType.Actions },
+].map(
+  (
+    column: {
+      title: string;
+      key: string | null;
+      type?: FieldType;
+      wrapContent?: boolean;
+      wrapMaxWidthClassName?: string;
+    },
+    index: number,
+  ) => {
+    return {
+      ...column,
+      key: column.key as keyof SessionReplayTableRow | null,
+      type: column.type || FieldType.Element,
+      disableSort: true,
+      getElement: (row: SessionReplayTableRow): ReactElement => {
+        return row.cells[index] as ReactElement;
+      },
+    };
+  },
+);
+
+/* ---- Table ---- */
 
 const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   props: SessionReplayTableProps,
 ): ReactElement => {
+  /*
+   * Navigation.getLastParamAsObjectID returns a NEW ObjectID on every call and
+   * the page recomputes it every render, so keying the fetch on the object
+   * itself would refire the whole list on any unrelated parent re-render.
+   */
+  const rumApplicationIdString: string = props.rumApplicationId.toString();
+
+  /*
+   * Read once per mount: every later URL write comes from this component,
+   * so re-reading the address bar would only echo our own state back.
+   */
+  const [initial] = useState<InitialListState>((): InitialListState => {
+    return readInitialListState(rumApplicationIdString);
+  });
+  const initialState: SessionReplayListUrlState = initial.state;
+  const handedOffUser: HandedOffUserFilterLabel | null = initial.handedOffUser;
+
   const [rows, setRows] = useState<Array<SessionReplaySummary>>([]);
   const [hasMore, setHasMore] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<SessionReplayListErrorCopy | null>(null);
+  const [signal, setSignal] = useState<string>(initialState.signal);
+  /*
+   * Applied filters drive the fetch. The search box and the modal both
+   * edit this one object; chips announce it above the rows.
+   */
+  const [advancedFilters, setAdvancedFilters] =
+    useState<SessionReplayAdvancedFilters>(initialState.advanced);
+  const [sortBy, setSortBy] = useState<SessionReplaySortBy>(
+    initialState.sortBy,
+  );
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialState.timeRange,
+  );
+  const [itemsOnPage, setItemsOnPage] = useState<number>(
+    DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
+  );
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+  const [isIdentityFilterIgnored, setIsIdentityFilterIgnored] =
+    useState<boolean>(false);
+  const [nowUnixMs, setNowUnixMs] = useState<number>((): number => {
+    return Date.now();
+  });
+
   /*
    * cursorForPage[n] is the cursor that fetches page n+1, learned when page
    * n came back. Keyset pagination has no skip, so a page is only reachable
    * once its predecessor has been fetched - which is exactly what the
-   * Previous/Next controls do.
+   * Previous/Next controls do. A ?page=3 in the URL is honoured only when
+   * the cursor memory for this exact query still holds page 2's cursor.
    */
+  const cursorMemoryKey: string = useMemo((): string => {
+    return buildCursorMemoryKey({
+      rumApplicationId: rumApplicationIdString,
+      signal: signal,
+      advanced: advancedFilters,
+      sortBy: sortBy,
+      timeRange: timeRange,
+      itemsOnPage: itemsOnPage,
+    });
+  }, [
+    rumApplicationIdString,
+    signal,
+    advancedFilters,
+    sortBy,
+    timeRange,
+    itemsOnPage,
+  ]);
+
   const cursorForPageRef: React.MutableRefObject<
     Map<number, SessionReplayListCursor>
   > = useRef<Map<number, SessionReplayListCursor>>(
-    new Map<number, SessionReplayListCursor>(),
+    parseCursorMemory(
+      readStorage(
+        `${SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX}${rumApplicationIdString}`,
+      ),
+      cursorMemoryKey,
+    ),
   );
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [signal, setSignal] = useState<string>((): string => {
-    return readFiltersFromSearch(window.location.search).signal;
+
+  const [pageNumber, setPageNumber] = useState<number>((): number => {
+    if (initialState.page <= 1) {
+      return 1;
+    }
+
+    return cursorForPageRef.current.has(initialState.page - 1)
+      ? initialState.page
+      : 1;
   });
-  /*
-   * Applied filters drive the fetch. The draft the inputs hold lives inside
-   * the modal - restored filters announce themselves in the chips banner
-   * above the rows, so the editor no longer has to open itself to explain a
-   * filtered list.
-   */
-  const [advancedFilters, setAdvancedFilters] =
-    useState<SessionReplayAdvancedFilters>((): SessionReplayAdvancedFilters => {
-      return readFiltersFromSearch(window.location.search).advanced;
-    });
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
-  const [timeRange, setTimeRange] =
-    useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
 
   /*
    * Generation counter guards every fetch - including manual retries - so a
@@ -493,25 +1366,110 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   /*
-   * Navigation.getLastParamAsObjectID returns a NEW ObjectID on every call and
-   * the page recomputes it every render, so keying the fetch on the object
-   * itself would refire the whole list on any unrelated parent re-render.
+   * The generation of the load that is still waiting on the server, or
+   * null when none is. The silent refresh reads it so a tick never
+   * supersedes a load the viewer started (which would leave that load's
+   * spinner to a response the generation check then throws away), and
+   * never stacks a second request behind a slow one of its own.
    */
-  const rumApplicationIdString: string = props.rumApplicationId.toString();
+  const inFlightGenerationRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
 
-  const load: (generation: number) => Promise<void> = useCallback(
-    async (generation: number): Promise<void> => {
+  /* When the rows on screen were last read, for the refresh on return. */
+  const lastLoadedAtRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * Silent refreshes made since the viewer last started a load or came
+   * back to the tab; the auto-refresh stops at
+   * SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS. A ref, not state: counting
+   * a tick must not re-render the list.
+   */
+  const silentRefreshCountRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
+   * Bumped by every load the viewer starts. The auto-refresh effect lists
+   * it, so a load that restores the budget also restarts a timer that had
+   * run out - the Refresh button leaves the rows' finalized state, and so
+   * the effect's other dependencies, exactly as they were.
+   */
+  const [viewerLoadEpoch, setViewerLoadEpoch] = useState<number>(0);
+
+  /*
+   * The table's own region (header and rows), and whether the pointer is
+   * over it. Read by the auto-refresh, which stands down while the viewer
+   * is interacting with the rows: see isViewerInteractingWithTable.
+   */
+  const tableRegionRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const isPointerOverTableRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * A stable callback ref, so it runs only when the region mounts or
+   * unmounts. The region unmounts while the list shows an error, and
+   * mouseleave does not fire for an element that is removed from under
+   * the pointer, so the flag is cleared here rather than left to claim a
+   * hover that ended with the element.
+   */
+  const setTableRegion: (element: HTMLDivElement | null) => void = useCallback(
+    (element: HTMLDivElement | null): void => {
+      tableRegionRef.current = element;
+
+      if (!element) {
+        isPointerOverTableRef.current = false;
+      }
+    },
+    [],
+  );
+
+  const load: (
+    generation: number,
+    mode?: SessionReplayListLoadMode,
+  ) => Promise<void> = useCallback(
+    async (
+      generation: number,
+      mode: SessionReplayListLoadMode = "visible",
+    ): Promise<void> => {
+      /*
+       * A silent load is the auto-refresh: the same page, filters, sort
+       * and cursor, re-read in place. It never shows the skeleton (which
+       * would collapse the table and throw the viewer's scroll position),
+       * never clears an error or the cursors learned for later pages, and
+       * a failure keeps the rows already on screen - the next tick is the
+       * retry, and a viewer who wants one now has the Refresh button.
+       */
+      const isSilent: boolean = mode === "silent";
+
+      inFlightGenerationRef.current = generation;
+
+      if (!isSilent) {
+        /*
+         * The viewer asked for this read, so they are looking: the
+         * auto-refresh gets its whole budget back, and its timer restarts
+         * if it had run out.
+         */
+        silentRefreshCountRef.current = 0;
+        setViewerLoadEpoch((epoch: number): number => {
+          return epoch + 1;
+        });
+      }
+
       try {
-        setIsLoading(true);
-        setError("");
+        if (!isSilent) {
+          setIsLoading(true);
+          setError(null);
+        }
 
         const range: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-        if (pageNumber === 1) {
+        if (pageNumber === 1 && !isSilent) {
           /*
            * Back at the top, so every cursor learned under the previous
-           * filter, range or page size is stale.
+           * filter, range, sort or page size is stale - and a cursor from
+           * another ordering is a 400.
            */
           cursorForPageRef.current.clear();
         }
@@ -526,6 +1484,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           startTime: range.startValue,
           endTime: range.endValue,
           limit: itemsOnPage,
+          sortBy: sortBy,
           ...(cursor ? { cursor: cursor } : {}),
         });
 
@@ -537,13 +1496,46 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           cursorForPageRef.current.set(pageNumber, result.nextCursor);
         }
 
+        const memory: SessionReplayCursorMemory = {
+          key: cursorMemoryKey,
+          cursors: Array.from(cursorForPageRef.current.entries()),
+        };
+
+        writeStorage(
+          `${SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX}${rumApplicationIdString}`,
+          serializeCursorMemory(memory),
+        );
+
+        /*
+         * The server names the filters it dropped for this viewer (it
+         * drops identifiedUserRef when the role cannot read end-user
+         * identity, and answers 200 with the WHOLE list). Read from that
+         * list and not from the rows: an ignored filter that matches
+         * nothing comes back with zero rows, and a row-shape heuristic
+         * cannot see a drop it has no rows to look at - which is exactly
+         * the case where the viewer most needs to be told.
+         */
+        setIsIdentityFilterIgnored(
+          result.ignoredFilters.includes("identifiedUserRef"),
+        );
+        lastLoadedAtRef.current = Date.now();
+        setNowUnixMs(lastLoadedAtRef.current);
         setRows(result.sessions);
         setHasMore(result.nextCursor !== null);
       } catch (err) {
-        if (generation === loadGenerationRef.current) {
-          setError(API.getFriendlyMessage(err));
+        if (generation === loadGenerationRef.current && !isSilent) {
+          setError(
+            describeSessionReplayListError(
+              API.getFriendlyMessage(err),
+              err instanceof HTTPErrorResponse ? err.statusCode : undefined,
+            ),
+          );
         }
       } finally {
+        if (inFlightGenerationRef.current === generation) {
+          inFlightGenerationRef.current = null;
+        }
+
         if (generation === loadGenerationRef.current) {
           setIsLoading(false);
         }
@@ -553,290 +1545,339 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       rumApplicationIdString,
       signal,
       advancedFilters,
+      sortBy,
       timeRange,
       pageNumber,
       itemsOnPage,
+      cursorMemoryKey,
     ],
   );
 
-  /* Every filter change is reflected in the address bar. */
-  useEffect(() => {
-    window.history.replaceState(
-      window.history.state,
-      "",
-      buildFilteredUrl(window.location.href, signal, advancedFilters),
+  /*
+   * Every state change is reflected in the address bar, and the address is
+   * stamped into sessionStorage so the player's "Sessions" link brings the
+   * viewer back to this exact triage.
+   */
+  useEffect((): void => {
+    const href: string = buildFilteredUrl(
+      window.location.href,
+      signal,
+      advancedFilters,
+      {
+        sortBy: sortBy,
+        timeRange: timeRange,
+        page: pageNumber,
+        handedOffUser: handedOffUser,
+      },
     );
-  }, [signal, advancedFilters]);
+
+    window.history.replaceState(window.history.state, "", href);
+
+    /* Relative, because that is the only shape the reader honours. */
+    const backLink: string = toListBackLinkValue(href);
+
+    if (backLink) {
+      writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, backLink);
+    }
+  }, [signal, advancedFilters, sortBy, timeRange, pageNumber, handedOffUser]);
 
   const reload: VoidFunction = useCallback((): void => {
     loadGenerationRef.current += 1;
     void load(loadGenerationRef.current);
   }, [load]);
 
-  useEffect(() => {
+  useEffect((): (() => void) => {
     loadGenerationRef.current += 1;
     void load(loadGenerationRef.current);
-    return () => {
+    return (): void => {
       // Invalidate in-flight responses when scope changes or we unmount.
       loadGenerationRef.current += 1;
     };
   }, [load]);
 
-  const routeForSession: (row: SessionReplaySummary) => Route | null =
-    useCallback(
-      (row: SessionReplaySummary): Route | null => {
-        if (!row.sessionId) {
-          return null;
-        }
-
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
-          {
-            modelId: new ObjectID(rumApplicationIdString),
-            subModelId: row.sessionId,
-          },
-        );
-      },
-      [rumApplicationIdString],
-    );
-
-  const columns: Array<Column<SessionReplaySummary>> = useMemo(() => {
-    return [
-      {
-        title: "Session",
-        type: FieldType.Element,
-        key: "startTime",
-        disableSort: true,
-        getElement: (row: SessionReplaySummary): ReactElement => {
-          const startedAt: Date | null = row.startTime
-            ? OneUptimeDate.fromString(row.startTime)
-            : null;
-
-          return (
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-gray-900">
-                {row.entryUrl || "Unknown page"}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
-                <span className="font-mono">
-                  {row.sessionId.slice(0, 12) || "—"}
-                </span>
-                {startedAt && !isNaN(startedAt.getTime()) && (
-                  <span>{OneUptimeDate.fromNow(startedAt)}</span>
-                )}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        title: "User & device",
-        type: FieldType.Element,
-        key: "browserName",
-        disableSort: true,
-        hideOnMobile: true,
-        getElement: (row: SessionReplaySummary): ReactElement => {
-          const device: Array<string> = [
-            [row.browserName, row.browserVersion].filter(Boolean).join(" "),
-            row.osName,
-            row.deviceType,
-          ].filter((part: string): boolean => {
-            return Boolean(part);
-          });
-
-          return (
-            <div className="min-w-0">
-              {/*
-               * identifiedUserLabel is only ever populated when the
-               * application explicitly enabled identity capture. An empty
-               * value means pseudonymous, which is the default, so it says
-               * so rather than rendering a blank cell.
-               */}
-              <div className="truncate text-sm text-gray-900">
-                {row.identifiedUserLabel || "Anonymous"}
-              </div>
-              <div className="truncate text-xs text-gray-500">
-                {device.length > 0 ? device.join(" · ") : "Unknown device"}
-                {row.countryCode ? ` · ${row.countryCode}` : ""}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        title: "Duration",
-        type: FieldType.Element,
-        key: "durationMs",
-        disableSort: true,
-        getElement: (row: SessionReplaySummary): ReactElement => {
-          return (
-            <div className="min-w-0">
-              <div className="font-mono text-sm tabular-nums text-gray-900">
-                {formatSessionDuration(row.durationMs)}
-              </div>
-              <div className="text-xs text-gray-500">
-                {row.pageCount || 0} page
-                {row.pageCount === 1 ? "" : "s"}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        title: "Signals",
-        type: FieldType.Element,
-        key: "errorCount",
-        disableSort: true,
-        getElement: (row: SessionReplaySummary): ReactElement => {
-          const badges: Array<ReactElement> =
-            SESSION_REPLAY_SIGNAL_BADGES.filter(
-              (badge: SessionReplaySignalBadge): boolean => {
-                return badge.getCount(row) > 0;
-              },
-            ).map((badge: SessionReplaySignalBadge): ReactElement => {
-              return (
-                <StatusBadge
-                  key={badge.key}
-                  text={badge.getText(badge.getCount(row))}
-                  type={badge.type}
-                />
-              );
-            });
-
-          if (badges.length === 0) {
-            return <span className="text-sm text-gray-500">Clean</span>;
-          }
-
-          return <div className="flex flex-wrap gap-1.5">{badges}</div>;
-        },
-      },
-      {
-        title: "Recording",
-        type: FieldType.Element,
-        key: "isFinalized",
-        disableSort: true,
-        hideOnMobile: true,
-        getElement: (row: SessionReplaySummary): ReactElement => {
-          const notes: Array<string> = [];
-          const playability: SessionReplayPlayability =
-            getSessionReplayPlayability(row);
-
-          if (row.missingChunkCount > 0) {
-            notes.push(
-              `${row.missingChunkCount} chunk${
-                row.missingChunkCount === 1 ? "" : "s"
-              } missing`,
-            );
-          }
-
-          if (row.fidelityNotices.length > 0) {
-            notes.push(
-              `${row.fidelityNotices.length} fidelity notice${
-                row.fidelityNotices.length === 1 ? "" : "s"
-              }`,
-            );
-          }
-
-          return (
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                {/*
-                 * The span is load-bearing: Tippy attaches a ref to its
-                 * child, and StatusBadge is a plain function component that
-                 * cannot take one.
-                 */}
-                <Tooltip text={playability.tooltip}>
-                  <span className="inline-flex">
-                    <StatusBadge
-                      text={playability.text}
-                      type={playability.type}
-                    />
-                  </span>
-                </Tooltip>
-                <span className="text-sm capitalize text-gray-500">
-                  {row.triggerReason || "unknown"}
-                </span>
-              </div>
-              {notes.length > 0 && (
-                <div className="mt-0.5 truncate text-xs text-amber-700">
-                  {notes.join(" · ")}
-                </div>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        title: "",
-        type: FieldType.Actions,
-        key: null,
-        disableSort: true,
-      },
-    ];
-  }, []);
-
-  const actionButtons: Array<ActionButtonSchema<SessionReplaySummary>> = [
-    {
-      title: "Watch",
-      buttonStyleType: ButtonStyleType.NORMAL,
-      icon: IconProp.Play,
-      isVisible: (row: SessionReplaySummary): boolean => {
-        return routeForSession(row) !== null;
-      },
-      onClick: (
-        row: SessionReplaySummary,
-        onCompleteAction: VoidFunction,
-        onError: ErrorFunction,
-      ): void => {
-        try {
-          const route: Route | null = routeForSession(row);
-
-          if (route) {
-            Navigation.navigate(route);
-          }
-
-          onCompleteAction();
-        } catch (err) {
-          onError(err as Error);
-        }
-      },
+  /*
+   * Auto-refresh while this page shows a session that is not finalized.
+   *
+   * Such a row's badge is a moment's truth: "Recording now" becomes
+   * "Recording ended" about a minute after its last tab closed, and
+   * Playable once the finalizer has counted it, usually a minute or so
+   * later. The page re-reads itself every SESSION_REPLAY_LIST_AUTO_REFRESH_MS
+   * until every row on it is finalized, then stops - a page of finished
+   * sessions has nothing left to change.
+   *
+   * Silent (see load): same filters, sort, page and cursor, no skeleton,
+   * no pagination reset. It takes a generation like every other load, so
+   * a response that lands after the viewer changed the query is dropped
+   * by the same check; and it skips a tick while any load is still in the
+   * air rather than superseding it.
+   *
+   * Bounded: at most SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS silent
+   * reads since the viewer last started a load or came back to the tab,
+   * then the timer stops until one of those happens again. On a busy
+   * application the newest page always holds a live session, so "until
+   * every row is finalized" alone would never end.
+   *
+   * Never under the viewer's hand. Rows are keyed by position (Common
+   * Table), so a refresh that inserts a session at the top leaves every
+   * row element in place carrying the NEXT session's props: the row a
+   * keyboard user has focused, or the one under the pointer, would open a
+   * different session than the one they chose. A tick that finds focus in
+   * the table or the pointer over it does nothing and costs nothing - the
+   * next tick tries again.
+   *
+   * Only while the document is visible. Hidden, the timer is cleared;
+   * back to visible, it restarts - with an immediate read when the rows
+   * are already a full interval old, so a viewer returning after ten
+   * minutes is not shown ten-minute-old badges for another thirty seconds.
+   * No timer while the list shows an error: its Retry is the way back.
+   */
+  const hasUnfinalizedRow: boolean = rows.some(
+    (row: SessionReplaySummary): boolean => {
+      return !row.isFinalized;
     },
-  ];
+  );
+  const isShowingError: boolean = error !== null;
+
+  useEffect((): (() => void) | void => {
+    if (!hasUnfinalizedRow || isShowingError) {
+      return;
+    }
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const stop: VoidFunction = (): void => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const isViewerInteractingWithTable: () => boolean = (): boolean => {
+      if (isPointerOverTableRef.current) {
+        return true;
+      }
+
+      const region: HTMLDivElement | null = tableRegionRef.current;
+      const focused: Element | null = document.activeElement;
+
+      return Boolean(
+        region && focused && focused !== region && region.contains(focused),
+      );
+    };
+
+    const refreshSilently: VoidFunction = (): void => {
+      if (inFlightGenerationRef.current !== null) {
+        return;
+      }
+
+      if (
+        silentRefreshCountRef.current >=
+        SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS
+      ) {
+        stop();
+        return;
+      }
+
+      if (isViewerInteractingWithTable()) {
+        return;
+      }
+
+      silentRefreshCountRef.current += 1;
+      loadGenerationRef.current += 1;
+      void load(loadGenerationRef.current, "silent");
+    };
+
+    const start: VoidFunction = (): void => {
+      if (
+        timer !== null ||
+        !isDocumentVisible() ||
+        silentRefreshCountRef.current >=
+          SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS
+      ) {
+        return;
+      }
+
+      timer = setInterval(refreshSilently, SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+    };
+
+    const handleVisibilityChange: VoidFunction = (): void => {
+      if (!isDocumentVisible()) {
+        stop();
+        /*
+         * Switching tabs moves no pointer out of anything, so no
+         * mouseleave follows. Whoever comes back gets a fresh reading on
+         * their first move, not a hover remembered from before.
+         */
+        isPointerOverTableRef.current = false;
+        return;
+      }
+
+      /* Back to the tab: somebody is looking again. */
+      silentRefreshCountRef.current = 0;
+
+      if (
+        timer === null &&
+        Date.now() - lastLoadedAtRef.current >=
+          SESSION_REPLAY_LIST_AUTO_REFRESH_MS
+      ) {
+        refreshSilently();
+      }
+
+      start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return (): void => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [hasUnfinalizedRow, isShowingError, load, viewerLoadEpoch]);
+
+  const openSession: (route: Route, openInNewTab: boolean) => void =
+    useCallback((route: Route, openInNewTab: boolean): void => {
+      /*
+       * Re-stamped on the way out in case the address bar moved since the
+       * last state change - still relative, see toListBackLinkValue.
+       */
+      writeStorage(
+        SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+        `${window.location.pathname}${window.location.search}`,
+      );
+      Navigation.navigate(route, openInNewTab ? { openInNewTab: true } : {});
+    }, []);
+
+  const navigateToSessionId: (sessionId: string) => void = useCallback(
+    (sessionId: string): void => {
+      const route: Route | null = routeForSession(
+        rumApplicationIdString,
+        sessionId,
+      );
+
+      if (route) {
+        openSession(route, false);
+      }
+    },
+    [rumApplicationIdString, openSession],
+  );
+
+  /* Back to page one on every query change; the cursor map follows. */
+  const applyFilters: (next: SessionReplayAdvancedFilters) => void =
+    useCallback((next: SessionReplayAdvancedFilters): void => {
+      setPageNumber(1);
+      setAdvancedFilters(next);
+    }, []);
 
   /*
-   * "Nothing has ever been recorded here", as closely as this endpoint can
-   * answer it. Gated on the filters being untouched AND being on the first
-   * page: an empty page 3 means the list ran out, not that setup is
-   * missing. An error is excluded too - a failed request tells us nothing
-   * about whether recordings exist.
+   * "Every session from this person", from a user cell. Exactly one
+   * identity predicate is left standing: the reference, the digest and the
+   * visitor id each select a person on their own, and two of them together
+   * would either be redundant or - for two different people - select
+   * nobody. Everything else the viewer had applied (a URL, a device, the
+   * Errors signal) stays, because "this person's checkout errors" is a
+   * real question.
    */
-  const isEmptyOnDefaultFilters: boolean =
-    !isLoading &&
-    !error &&
-    rows.length === 0 &&
-    pageNumber === 1 &&
-    signal === "all" &&
-    !hasAnyAdvancedFilter(advancedFilters);
+  const filterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void =
+    useCallback((filter: Partial<SessionReplayAdvancedFilters>): void => {
+      setPageNumber(1);
+      setAdvancedFilters(
+        (
+          existing: SessionReplayAdvancedFilters,
+        ): SessionReplayAdvancedFilters => {
+          return {
+            ...existing,
+            identifiedUserRef: "",
+            identifiedUserKey: "",
+            visitorId: "",
+            ...filter,
+          };
+        },
+      );
+    }, []);
 
-  /* Which advanced filters the chips banner above the rows announces. */
-  const filterChipData: FilterData<SessionReplaySummary> = useMemo(() => {
-    return buildSessionReplayFilterChipData(advancedFilters);
-  }, [advancedFilters]);
+  /*
+   * The Users page: the same window rolled up by person. Its own route,
+   * so the side menu, a bookmark and the identify() nudge can all name it.
+   * The time range is the one thing the two pages share, and it rides
+   * along so the rollup is of the sessions the viewer was just looking at;
+   * the default window is written as absence, like everywhere else.
+   */
+  const openUsersPage: VoidFunction = useCallback((): void => {
+    const usersRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS] as Route,
+      { modelId: new ObjectID(rumApplicationIdString) },
+    );
+
+    Navigation.navigate(
+      new Route(`${usersRoute.toString()}${buildTimeRangeSearch(timeRange)}`),
+    );
+  }, [rumApplicationIdString, timeRange]);
+
+  const chips: Array<SessionReplayFilterChip> =
+    useMemo((): Array<SessionReplayFilterChip> => {
+      return buildSessionReplayFilterChips(
+        signal === "slow"
+          ? {
+              ...advancedFilters,
+              triggerReason: SessionReplayTriggerReason.Performance,
+            }
+          : advancedFilters,
+        { hideIdentity: isIdentityFilterIgnored, hideSearch: true },
+      );
+    }, [advancedFilters, isIdentityFilterIgnored, signal]);
+
+  const removeChip: (field: keyof SessionReplayAdvancedFilters) => void =
+    useCallback(
+      (field: keyof SessionReplayAdvancedFilters): void => {
+        if (field === "triggerReason" && signal === "slow") {
+          setSignal("all");
+        }
+        applyFilters({ ...advancedFilters, [field]: "" });
+      },
+      [advancedFilters, applyFilters, signal],
+    );
+
+  const clearFilters: VoidFunction = useCallback((): void => {
+    setPageNumber(1);
+    setSignal("all");
+    setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
+  }, []);
+
+  const tableRows: Array<SessionReplayTableRow> =
+    useMemo((): Array<SessionReplayTableRow> => {
+      return rows.map((row: SessionReplaySummary): SessionReplayTableRow => {
+        return {
+          ...row,
+          cells: getSessionReplayCells({
+            row,
+            rumApplicationId: rumApplicationIdString,
+            nowUnixMs,
+            onOpen: openSession,
+            onFilterByUser: filterByUser,
+          }),
+        };
+      });
+    }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
+
+  const showIdentityNudge: boolean =
+    !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
+  const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
+    (chip: SessionReplayFilterChip): boolean => {
+      return !SESSION_REPLAY_FACETS.some(
+        (facet: SessionReplayFacet): boolean => {
+          return facet.field === chip.field;
+        },
+      );
+    },
+  );
 
   const cardButtons: Array<CardButtonSchema> = [
     {
       ...getRefreshButton(),
+      tooltip: "Refresh sessions",
       className: "py-0 pr-0 pl-1 mt-1",
       onClick: reload,
-    },
-    {
-      title: "",
-      buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: (): void => {
-        setIsFilterModalOpen(true);
-      },
-      icon: IconProp.Filter,
     },
   ];
 
@@ -846,128 +1887,211 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         title={props.title || "Session Replay"}
         description={
           props.description ||
-          "Recordings of real end-user sessions for this application. Content is masked at capture in the end user's browser; what you see here is what the recorder was allowed to send."
-        }
-        rightElement={
-          <TelemetryTimeRangePicker
-            value={timeRange}
-            onChange={(value: RangeStartAndEndDateTime): void => {
-              setPageNumber(1);
-              setTimeRange(value);
-            }}
-          />
+          "Explore recorded sessions, understand user journeys, and investigate errors."
         }
         buttons={cardButtons}
       >
-        <div className="mb-2 flex flex-wrap items-center gap-3">
-          <FilterButtons
-            options={SIGNAL_FILTERS}
-            selectedValue={signal}
-            onSelect={(value: string): void => {
+        <div>
+          <SessionReplaySearchBar
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            onNavigateToSession={navigateToSessionId}
+            sortBy={sortBy}
+            onSortChange={(value: SessionReplaySortBy): void => {
+              setPageNumber(1);
+              setSortBy(value);
+            }}
+            timeRange={timeRange}
+            onTimeRangeChange={(value: RangeStartAndEndDateTime): void => {
+              setPageNumber(1);
+              setTimeRange(value);
+            }}
+            onOpenAdvancedFilters={(): void => {
+              setIsFilterModalOpen(true);
+            }}
+            isIdentityFilterIgnored={isIdentityFilterIgnored}
+          />
+
+          <SessionReplayFacets
+            rows={rows}
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            signal={signal}
+            onSignalChange={(value: string): void => {
               setPageNumber(1);
               setSignal(value);
             }}
           />
+
+          {showIdentityNudge && (
+            <SessionReplayIdentityNudge
+              key={rumApplicationIdString}
+              rumApplicationId={rumApplicationIdString}
+              hasVisitorIds={hasAnyVisitorId(rows)}
+              onShowUsers={openUsersPage}
+            />
+          )}
+
+          {isIdentityFilterIgnored &&
+            advancedFilters.identifiedUserRef.trim().length > 0 && (
+              <Alert
+                type={AlertType.WARNING}
+                dataTestId="identity-filter-ignored"
+                strongTitle="User filter ignored"
+                title={`Your role cannot read end-user identity, so the server dropped the user filter "${advancedFilters.identifiedUserRef.trim()}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.`}
+              />
+            )}
+
+          {(chips.length > 0 || signal !== "all") && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <SessionReplayFilterChipList
+                chips={additionalChips}
+                onRemoveChip={removeChip}
+              />
+              <Button
+                title="Edit filters"
+                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                onClick={(): void => {
+                  setIsFilterModalOpen(true);
+                }}
+              />
+              <Button
+                title="Clear filters"
+                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                dataTestId="session-clear-filters"
+                onClick={clearFilters}
+              />
+            </div>
+          )}
+
+          {error ? (
+            <div
+              role="alert"
+              data-testid="list-error"
+              data-kind={error.kind}
+              className="rounded-xl border border-red-200 bg-red-50 p-4"
+            >
+              <p className="text-sm font-semibold text-red-800">
+                {error.title}
+              </p>
+              <p className="mt-1 text-sm text-red-700">{error.detail}</p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  title="Retry"
+                  icon={IconProp.Refresh}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  dataTestId="list-error-retry"
+                  onClick={reload}
+                />
+                {error.kind === "narrow-range" && (
+                  <Button
+                    title="Clear the search text"
+                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                    onClick={(): void => {
+                      applyFilters({ ...advancedFilters, search: "" });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              data-testid="session-table"
+              ref={setTableRegion}
+              onMouseEnter={(): void => {
+                isPointerOverTableRef.current = true;
+              }}
+              onMouseLeave={(): void => {
+                isPointerOverTableRef.current = false;
+              }}
+            >
+              <Table<SessionReplayTableRow>
+                id="session-replay-table"
+                data={tableRows}
+                columns={SESSION_REPLAY_COLUMNS}
+                getRowProps={(
+                  row: SessionReplayTableRow,
+                ): React.HTMLAttributes<HTMLElement> => {
+                  return getSessionReplayRowProps({
+                    row,
+                    rumApplicationId: rumApplicationIdString,
+                    nowUnixMs,
+                    onOpen: openSession,
+                    onFilterByUser: filterByUser,
+                  });
+                }}
+                isLoading={isLoading}
+                error=""
+                singularLabel="Session"
+                pluralLabel="Sessions"
+                currentPageNumber={pageNumber}
+                totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
+                itemsOnPage={itemsOnPage}
+                itemsOnPageOptions={SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS}
+                hasMore={hasMore}
+                paginationDataTestId="session-pagination"
+                onNavigateToPage={(page: number, onPage: number): void => {
+                  /*
+                   * A different page size invalidates every cursor, so it
+                   * restarts from the first page rather than paging with
+                   * offsets that no longer line up.
+                   */
+                  if (onPage !== itemsOnPage) {
+                    setItemsOnPage(onPage);
+                    setPageNumber(1);
+                    return;
+                  }
+
+                  setPageNumber(page);
+                }}
+                sortBy={null}
+                sortOrder={SortOrder.Descending}
+                onSortChanged={(): void => {
+                  /* The endpoint supports the toolbar's sort choices. */
+                }}
+                noItemsMessage={
+                  <SessionReplayEmptyState
+                    rumApplicationId={rumApplicationIdString}
+                    context={{
+                      isLoading: isLoading,
+                      error: "",
+                      rowCount: rows.length,
+                      page: pageNumber,
+                      signal: signal,
+                      advanced: advancedFilters,
+                      timeRange: timeRange,
+                    }}
+                    chips={chips}
+                    onRemoveChip={removeChip}
+                    onClearFilters={clearFilters}
+                    onSetTimeRange={(range: RangeStartAndEndDateTime): void => {
+                      setPageNumber(1);
+                      setTimeRange(range);
+                    }}
+                    onPreviousPage={(): void => {
+                      setPageNumber(Math.max(1, pageNumber - 1));
+                    }}
+                    onRefresh={reload}
+                  />
+                }
+              />
+            </div>
+          )}
         </div>
-
-        <Table<SessionReplaySummary>
-          id="rum-session-replay-table"
-          columns={columns}
-          actionButtons={actionButtons}
-          data={rows}
-          singularLabel="Session"
-          pluralLabel="Sessions"
-          isLoading={isLoading}
-          error={error}
-          onRefreshClick={reload}
-          filters={SESSION_REPLAY_CHIP_FILTERS}
-          filterData={filterChipData}
-          /*
-           * Hard false, deliberately: Table's own filter modal renders
-           * FiltersForm, whose TextFilter and NumberFilter offer operators
-           * (contains, starts with, is empty) that this endpoint cannot
-           * honour - it matches these columns with equality and duration
-           * >= only. SessionReplayFilterModal is the editor instead, and
-           * the banner's "Edit Filters" opens it through onFilterModalOpen.
-           */
-          showFilterModal={false}
-          onFilterModalOpen={(): void => {
-            setIsFilterModalOpen(true);
-          }}
-          onFilterModalClose={(): void => {
-            setIsFilterModalOpen(false);
-          }}
-          onFilterChanged={(next: FilterData<SessionReplaySummary>): void => {
-            /*
-             * The only edit the banner can produce is its "Clear Filters"
-             * button, which always emits {}. There is no reverse translation
-             * from FilterData back into SessionReplayAdvancedFilters and none
-             * is needed - applying filters goes through the modal. The signal
-             * segment is a separate control and is intentionally left alone.
-             */
-            if (Object.keys(next).length === 0) {
-              setPageNumber(1);
-              setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
-            }
-          }}
-          currentPageNumber={pageNumber}
-          totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
-          hasMore={hasMore}
-          itemsOnPage={itemsOnPage}
-          onNavigateToPage={(page: number, onPage: number): void => {
-            /*
-             * A different page size invalidates every cursor, so it restarts
-             * from the first page rather than paging with offsets that no
-             * longer line up.
-             */
-            if (onPage !== itemsOnPage) {
-              setItemsOnPage(onPage);
-              setPageNumber(1);
-              return;
-            }
-
-            setPageNumber(page);
-          }}
-          sortOrder={SortOrder.Descending}
-          sortBy={null}
-          onSortChanged={() => {
-            /*
-             * Sorting is fixed to newest-first at the endpoint. The header's
-             * sort key already starts with startTime DESC, so any other order
-             * would be a full sort of the result set for no product benefit.
-             */
-          }}
-          noItemsMessage={
-            isEmptyOnDefaultFilters
-              ? "No recorded sessions yet. The setup steps below explain how to get the first one."
-              : "No recorded sessions match these filters in this window."
-          }
-        />
       </Card>
 
       {isFilterModalOpen && (
         <SessionReplayFilterModal
           filters={advancedFilters}
+          isIdentityFilterIgnored={isIdentityFilterIgnored}
           onClose={(): void => {
             setIsFilterModalOpen(false);
           }}
           onApply={(next: SessionReplayAdvancedFilters): void => {
-            /*
-             * Back to page one on every apply: the keyset cursor map is only
-             * cleared when pageNumber is 1, so a filter change on page 3
-             * would page with cursors that no longer line up.
-             */
-            setPageNumber(1);
-            setAdvancedFilters(next);
+            applyFilters(next);
             setIsFilterModalOpen(false);
           }}
         />
-      )}
-
-      {isEmptyOnDefaultFilters && props.renderWhenEmpty ? (
-        props.renderWhenEmpty
-      ) : (
-        <></>
       )}
     </Fragment>
   );

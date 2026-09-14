@@ -88,7 +88,7 @@ describe("OrderedSateList", () => {
       onRefreshClick: jest.fn(),
     };
     render(<OrderedStatesList {...props} />);
-    const refreshButton: HTMLElement = screen.getByRole("refresh-button");
+    const refreshButton: HTMLElement = screen.getByTestId("refresh-button");
     refreshButton.click();
     expect(props.onRefreshClick).toHaveBeenCalled();
   });
@@ -110,8 +110,8 @@ describe("OrderedSateList", () => {
     };
     render(<OrderedStatesList {...props} />);
     expect(screen.getByText("Failed to load data")).toBeInTheDocument();
-    expect(screen.getByRole("refresh-button")).toBeInTheDocument();
-    screen.getByRole("refresh-button").click();
+    expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+    screen.getByTestId("refresh-button").click();
     expect(props.onRefreshClick).toHaveBeenCalled();
   });
   it("renders ErrorMessage with default message and callback when data is empty and noItemsMessage is not defined", () => {
@@ -125,8 +125,8 @@ describe("OrderedSateList", () => {
     expect(
       screen.getByText(`No ${props.singularLabel.toLowerCase()}`),
     ).toBeInTheDocument();
-    expect(screen.getByRole("refresh-button")).toBeInTheDocument();
-    screen.getByRole("refresh-button").click();
+    expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+    screen.getByTestId("refresh-button").click();
     expect(props.onRefreshClick).toHaveBeenCalled();
   });
   it("should render custom title element provided by getTitleElement function", () => {

@@ -28,6 +28,7 @@ import CephClusterIncidents from "../Pages/Ceph/View/Incidents";
 import CephClusterAlerts from "../Pages/Ceph/View/Alerts";
 import CephClusterScheduledMaintenance from "../Pages/Ceph/View/ScheduledMaintenance";
 import CephClusterOwners from "../Pages/Ceph/View/Owners";
+import CephClusterFeed from "../Pages/Ceph/View/Feed";
 import CephClusterAuditLogs from "../Pages/Ceph/View/AuditLogs";
 import CephClusterSettings from "../Pages/Ceph/View/Settings";
 import CephClusterDelete from "../Pages/Ceph/View/Delete";
@@ -274,6 +275,17 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             <CephClusterOwners
               {...props}
               pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CEPH_CLUSTER_VIEW_FEED)}
+          element={
+            <CephClusterFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_FEED] as Route}
             />
           }
         />

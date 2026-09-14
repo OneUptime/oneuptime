@@ -28,6 +28,8 @@ import {
   MonitorBatchPayAsYouGoConsent,
   isMonitorBatchConsentRequired,
 } from "../Billing/PayAsYouGo";
+import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
+import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -39,7 +41,12 @@ export interface ComponentProps {
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   alertSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   isCreating: boolean;
-  progressMessage?: string | undefined;
+  /*
+   * Per-monitor state for the batch, once one has been started. Undefined
+   * before the first submit — the panel is a form until then and a progress
+   * report afterwards.
+   */
+  createProgress?: MonitorRecommendationCreateProgress | undefined;
   error?: string | undefined;
   onClose: () => void;
   onSubmit: (
@@ -195,7 +202,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     count: number;
     options: Array<MonitorRecommendationSeverityOption>;
     severityMap: MonitorRecommendationSeverityMap;
-    onChange: (severityId: ObjectID | undefined) => void;
+    onChange: (severityId: ObjectID) => void;
   }) => ReactElement;
 
   /*
@@ -209,7 +216,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     count: number;
     options: Array<MonitorRecommendationSeverityOption>;
     severityMap: MonitorRecommendationSeverityMap;
-    onChange: (severityId: ObjectID | undefined) => void;
+    onChange: (severityId: ObjectID) => void;
   }): ReactElement => {
     const dropdownOptions: Array<DropdownOption> = toDropdownOptions(
       data.options,
@@ -241,13 +248,30 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
             }
             options={dropdownOptions}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              data.onChange(
-                value && !Array.isArray(value)
-                  ? new ObjectID(value.toString())
-                  : undefined,
-              );
+              /*
+               * Clearing is IGNORED, not written through as `undefined`.
+               *
+               * `Dropdown` hardcodes `isClearable`, and an unmapped severity
+               * is not "keep the template's own": the templates carry no
+               * severity of their own, so
+               * `MonitorRecommendationUtil.applyToCriteriaAlert` skips the
+               * assignment and what survives is `args.defaultAlertSeverityId`
+               * — which `MonitorRecommendations` fills from
+               * `alertSeverityList.data[0]`, the project's MOST severe row.
+               * Clearing "Warning" therefore paged HARDER than leaving it
+               * alone, which is the exact opposite of what the old
+               * "Keep the template's severity" placeholder promised. There is
+               * also no valid end state with no severity:
+               * `MonitorCriteriaInstance.getValidationError` rejects a
+               * populated incident that has none.
+               */
+              if (!value || Array.isArray(value)) {
+                return;
+              }
+
+              data.onChange(new ObjectID(value.toString()));
             }}
-            placeholder="Keep the template's severity"
+            placeholder="Select a severity"
           />
         </div>
       </div>
@@ -262,11 +286,18 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
       description={`These monitors will be created on this ${props.resourceLabel.toLowerCase()}. Everything below applies to every monitor in this batch.`}
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
+      submitButtonIsLoading={props.isCreating}
       submitButtonDisabled={
         props.isCreating ||
         props.selectedRecommendations.length === 0 ||
         (needsBillingConsent && !hasAcknowledgedBilling)
       }
+      /*
+       * The batch cannot be abandoned half way — the monitors it has already
+       * created are real — so Close is disabled rather than silently ignored
+       * while it runs.
+       */
+      closeButtonDisabled={props.isCreating}
       onClose={props.onClose}
       onSubmit={() => {
         const notificationSettings: MonitorRecommendationNotificationSettings =
@@ -294,10 +325,10 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {props.progressMessage ? (
-          <div className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
-            {props.progressMessage}
-          </div>
+        {props.createProgress ? (
+          <MonitorRecommendationCreateProgressPanel
+            progress={props.createProgress}
+          />
         ) : (
           <></>
         )}
@@ -378,7 +409,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   count: criticalCount,
                   options: props.alertSeverityOptions,
                   severityMap: alertSeverityMap,
-                  onChange: (severityId: ObjectID | undefined) => {
+                  onChange: (severityId: ObjectID) => {
                     setAlertSeverityMap({
                       ...alertSeverityMap,
                       Critical: severityId,
@@ -390,7 +421,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   count: warningCount,
                   options: props.alertSeverityOptions,
                   severityMap: alertSeverityMap,
-                  onChange: (severityId: ObjectID | undefined) => {
+                  onChange: (severityId: ObjectID) => {
                     setAlertSeverityMap({
                       ...alertSeverityMap,
                       Warning: severityId,
@@ -412,7 +443,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   count: criticalCount,
                   options: props.incidentSeverityOptions,
                   severityMap: incidentSeverityMap,
-                  onChange: (severityId: ObjectID | undefined) => {
+                  onChange: (severityId: ObjectID) => {
                     setIncidentSeverityMap({
                       ...incidentSeverityMap,
                       Critical: severityId,
@@ -424,7 +455,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   count: warningCount,
                   options: props.incidentSeverityOptions,
                   severityMap: incidentSeverityMap,
-                  onChange: (severityId: ObjectID | undefined) => {
+                  onChange: (severityId: ObjectID) => {
                     setIncidentSeverityMap({
                       ...incidentSeverityMap,
                       Warning: severityId,

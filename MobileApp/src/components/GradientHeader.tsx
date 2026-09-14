@@ -15,6 +15,7 @@ export default function GradientHeader({
 
   return (
     <LinearGradient
+      pointerEvents="none"
       colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}

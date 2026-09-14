@@ -9,10 +9,13 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import CloudResources from "../Pages/Cloud/CloudResources";
 import CloudResourceOverview from "../Pages/Cloud/View/Overview";
+import CloudResourceSettings from "../Pages/Cloud/View/Settings";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
 import CloudResourceLogs from "../Pages/Cloud/View/Logs";
 import CloudResourceTraces from "../Pages/Cloud/View/Traces";
 import CloudResourceInstances from "../Pages/Cloud/View/Instances";
+import CloudResourceFeed from "../Pages/Cloud/View/Feed";
+import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
@@ -79,6 +82,20 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
+          )}
+          element={
+            <CloudResourceSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.CLOUD_RESOURCE_VIEW_METRICS,
           )}
           element={
@@ -119,6 +136,28 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route
               }
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_FEED)}
+          element={
+            <CloudResourceFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_FEED] as Route}
+            />
+          }
+        />
+
+        {/* Owners */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_OWNERS)}
+          element={
+            <CloudResourceOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_OWNERS] as Route}
             />
           }
         />

@@ -22,6 +22,11 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const LoginPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/Login");
 });
+const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/MobilePasskey");
+  },
+);
 const LoginWithSSO: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
@@ -52,17 +57,34 @@ function App(): ReactElement {
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />
             <Route path="/accounts/login" element={<LoginPage />} />
+            <Route
+              path="/accounts/mobile-passkey"
+              element={<MobilePasskeyPage />}
+            />
             <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
             <Route path="/accounts/sso" element={<LoginWithSSO />} />
             <Route
               path="/accounts/forgot-password"
               element={<ForgotPasswordPage />}
             />
+            {/*
+             * Both forms of each token-bearing route are registered. The head
+             * bootstrap in Common/Server/Views/Partials/SensitiveUrlToken.ejs
+             * normally takes the token out of the path before the router ever
+             * sees it, which lands the visitor on the token-free form; the
+             * :token form is what remains when that bootstrap could not run.
+             * Either way the page reads the token through SensitiveUrlToken.
+             */}
+            <Route
+              path="/accounts/reset-password"
+              element={<ResetPasswordPage />}
+            />
             <Route
               path="/accounts/reset-password/:token"
               element={<ResetPasswordPage />}
             />
             <Route path="/accounts/register" element={<RegisterPage />} />
+            <Route path="/accounts/verify-email" element={<VerifyEmail />} />
             <Route
               path="/accounts/verify-email/:token"
               element={<VerifyEmail />}

@@ -13,16 +13,25 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardVariableControl, {
+  VariableValueChange,
+} from "Common/UI/Components/Dashboard/DashboardVariableControl";
 
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
-  onVariableValueChange: (variableId: string, value: string) => void;
+  onVariableValueChange: (
+    variableId: string,
+    change: VariableValueChange,
+  ) => void;
   dashboardId: ObjectID;
 }
 
 interface SingleVariableSelectorProps {
   variable: DashboardVariable;
-  onVariableValueChange: (variableId: string, value: string) => void;
+  onVariableValueChange: (
+    variableId: string,
+    change: VariableValueChange,
+  ) => void;
   dashboardId: ObjectID;
 }
 
@@ -68,73 +77,21 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
           }
           setIsLoadingOptions(false);
         });
+    } else {
+      setIsLoadingOptions(false);
     }
     return () => {
       cancelled = true;
     };
   }, [variable.type, variable.attributeKey, props.dashboardId]);
 
-  const isTelemetryAttribute: boolean =
-    variable.type === DashboardVariableType.TelemetryAttribute;
-  const isCustomList: boolean =
-    variable.type === DashboardVariableType.CustomList ||
-    Boolean(variable.customListValues);
-
-  const customListOptions: Array<string> = variable.customListValues
-    ? variable.customListValues.split(",").map((v: string) => {
-        return v.trim();
-      })
-    : [];
-
-  const options: Array<string> = isTelemetryAttribute
-    ? dynamicOptions
-    : customListOptions;
-
-  const useSelect: boolean = isTelemetryAttribute || isCustomList;
-
   return (
-    <div className="flex items-center gap-1.5">
-      <label className="text-xs font-medium text-gray-500">
-        {variable.name}:
-      </label>
-      {useSelect ? (
-        <select
-          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700"
-          /*
-           * `??`, not `||`: picking "All" stores selectedValue as "", which is
-           * a real selection and must not collapse back to defaultValue. Only
-           * an unset (undefined) selection falls through to the default — the
-           * same rule the query side applies in
-           * Common/Utils/Dashboard/VariableInterpolation.ts, so what this
-           * toolbar shows and what the widgets are filtered by stay in step.
-           */
-          value={variable.selectedValue ?? variable.defaultValue ?? ""}
-          disabled={isLoadingOptions}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-            props.onVariableValueChange(variable.id, e.target.value);
-          }}
-        >
-          <option value="">{isLoadingOptions ? "Loading…" : "All"}</option>
-          {options.map((option: string) => {
-            return (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            );
-          })}
-        </select>
-      ) : (
-        <input
-          type="text"
-          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 w-24"
-          // `??` so clearing the box stays cleared. See the select above.
-          value={variable.selectedValue ?? variable.defaultValue ?? ""}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            props.onVariableValueChange(variable.id, e.target.value);
-          }}
-        />
-      )}
-    </div>
+    <DashboardVariableControl
+      variable={variable}
+      dynamicOptions={dynamicOptions}
+      isLoadingOptions={isLoadingOptions}
+      onVariableValueChange={props.onVariableValueChange}
+    />
   );
 };
 

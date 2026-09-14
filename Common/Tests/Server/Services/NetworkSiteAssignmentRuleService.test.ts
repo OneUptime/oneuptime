@@ -6,6 +6,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -40,6 +44,7 @@ function mockSiteInProject(projectId: ObjectID): jest.SpyInstance {
 function makeCreateBy(data: {
   subnetCidr?: string | undefined;
   hostnamePattern?: string | undefined;
+  criteria?: RuleCriteria | undefined;
 }): CreateBy<NetworkSiteAssignmentRule> {
   const rule: NetworkSiteAssignmentRule = new NetworkSiteAssignmentRule();
   rule.projectId = PROJECT_ID;
@@ -50,9 +55,23 @@ function makeCreateBy(data: {
   if (data.hostnamePattern !== undefined) {
     rule.hostnamePattern = data.hostnamePattern;
   }
+  if (data.criteria !== undefined) {
+    rule.criteria = data.criteria;
+  }
   return {
     data: rule,
     props: { isRoot: true },
+  };
+}
+
+function makeCriteria(data: {
+  filterCondition?: FilterCondition | undefined;
+  filters?: RuleCriteria["filters"] | undefined;
+}): RuleCriteria {
+  return {
+    schemaVersion: 1,
+    filterCondition: data.filterCondition || FilterCondition.All,
+    filters: data.filters || [],
   };
 }
 
@@ -109,6 +128,115 @@ describe("NetworkSiteAssignmentRuleService.onBeforeCreate", () => {
       ),
     ).resolves.toBeDefined();
   });
+
+  it.each([FilterCondition.All, FilterCondition.Any])(
+    "accepts configurable %s criteria instead of legacy match fields",
+    async (filterCondition: FilterCondition) => {
+      mockSiteInProject(PROJECT_ID);
+
+      await expect(
+        (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+          makeCreateBy({
+            criteria: makeCriteria({
+              filterCondition: filterCondition,
+              filters: [
+                {
+                  field: "subnetCidr",
+                  operator: RuleCriteriaOperator.MatchesPattern,
+                  value: "10.0.0.0/24",
+                },
+                {
+                  field: "hostnamePattern",
+                  operator: RuleCriteriaOperator.Contains,
+                  value: "gateway",
+                },
+              ],
+            }),
+          }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it("uses configured criteria even when stale legacy fields are invalid", async () => {
+    mockSiteInProject(PROJECT_ID);
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+        makeCreateBy({
+          subnetCidr: "not-a-cidr",
+          criteria: makeCriteria({
+            filters: [
+              {
+                field: "hostnamePattern",
+                operator: RuleCriteriaOperator.StartsWith,
+                value: "edge-",
+              },
+            ],
+          }),
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects empty or malformed configured criteria", async () => {
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+        makeCreateBy({ criteria: makeCriteria({}) }),
+      ),
+    ).rejects.toThrow(BadDataException);
+
+    const createBy: CreateBy<NetworkSiteAssignmentRule> = makeCreateBy({});
+    createBy.data.criteria = {
+      schemaVersion: 99,
+      filterCondition: FilterCondition.All,
+      filters: [],
+    } as unknown as RuleCriteria;
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate(createBy),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it.each([
+    ["unknownField", RuleCriteriaOperator.Equals, "value", "not a supported"],
+    [
+      "subnetCidr",
+      RuleCriteriaOperator.Equals,
+      "10.0.0.0/24",
+      "CIDR match operator",
+    ],
+    [
+      "subnetCidr",
+      RuleCriteriaOperator.MatchesPattern,
+      "10.0.0.0/99",
+      "not a valid IPv4 CIDR",
+    ],
+    [
+      "hostnamePattern",
+      RuleCriteriaOperator.HasAnyOf,
+      ["gateway"],
+      "not supported for Hostname Pattern",
+    ],
+  ])(
+    "rejects an invalid configured filter for %s",
+    async (
+      field: string,
+      operator: RuleCriteriaOperator,
+      value: string | Array<string>,
+      message: string,
+    ) => {
+      await expect(
+        (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+          makeCreateBy({
+            criteria: makeCriteria({
+              filters: [{ field: field, operator: operator, value: value }],
+            }),
+          }),
+        ),
+      ).rejects.toThrow(message);
+    },
+  );
 
   it("rejects a rule that points at another project's site", async () => {
     mockSiteInProject(OTHER_PROJECT_ID);
@@ -169,6 +297,7 @@ describe("NetworkSiteAssignmentRuleService.onBeforeUpdate", () => {
   function mockExistingRule(data: {
     subnetCidr?: string | undefined;
     hostnamePattern?: string | undefined;
+    criteria?: RuleCriteria | undefined;
   }): void {
     jest
       .spyOn(NetworkSiteAssignmentRuleService, "findBy")
@@ -229,6 +358,47 @@ describe("NetworkSiteAssignmentRuleService.onBeforeUpdate", () => {
         makeUpdateBy({ subnetCidr: "192.168.0.0/16" }),
       ),
     ).resolves.toBeDefined();
+  });
+
+  it("accepts replacing legacy fields with configured criteria", async () => {
+    mockExistingRule({ subnetCidr: "10.0.0.0/24" });
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeUpdate(
+        makeUpdateBy({
+          criteria: makeCriteria({
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "hostnamePattern",
+                operator: RuleCriteriaOperator.EndsWith,
+                value: "-prod",
+              },
+            ],
+          }),
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects clearing configured criteria when no legacy condition remains", async () => {
+    mockExistingRule({
+      criteria: makeCriteria({
+        filters: [
+          {
+            field: "hostnamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "gateway",
+          },
+        ],
+      }),
+    });
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ criteria: null }),
+      ),
+    ).rejects.toThrow(BadDataException);
   });
 
   it("skips validation entirely when neither criterion nor site is touched", async () => {

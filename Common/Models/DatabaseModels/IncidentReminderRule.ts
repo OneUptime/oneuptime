@@ -2,7 +2,7 @@ import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RelationOnlyRuleBaseModel from "./DatabaseBaseModel/RelationOnlyRuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -21,6 +21,7 @@ import Permission from "../../Types/Permission";
 import ReminderStopState from "../../Types/Reminder/ReminderStopState";
 import {
   Column,
+  Check,
   Entity,
   Index,
   JoinColumn,
@@ -59,6 +60,7 @@ import {
   ],
 })
 @CrudApiEndpoint(new Route("/incident-reminder-rule"))
+@Check(`"criteria" IS NULL OR "isEnabled" IS DISTINCT FROM true`)
 @Entity({
   name: "IncidentReminderRule",
 })
@@ -76,7 +78,7 @@ import {
   tableDescription:
     "Configure reminder rules to periodically notify incident owners while an incident is still open",
 })
-export default class IncidentReminderRule extends BaseModel {
+export default class IncidentReminderRule extends RelationOnlyRuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -294,10 +296,10 @@ export default class IncidentReminderRule extends BaseModel {
   })
   @Column({
     type: ColumnType.Boolean,
-    nullable: false,
+    nullable: true,
     default: true,
   })
-  public isEnabled?: boolean = undefined;
+  public isEnabled?: boolean | null = undefined;
 
   @ColumnAccessControl({
     create: [

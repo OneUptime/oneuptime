@@ -7,9 +7,15 @@ import ServiceOwnerRuleService from "./ServiceOwnerRuleService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceService from "./ServiceService";
+import ServiceFeedService from "./ServiceFeedService";
+import { ServiceFeedEventType } from "../../Models/DatabaseModels/ServiceFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ServiceOwnerRuleEngineServiceClass {
   /**
@@ -35,6 +41,7 @@ class ServiceOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             serviceLabels: { _id: true },
             serviceNamePattern: true,
@@ -42,9 +49,15 @@ class ServiceOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ServiceOwnerRule",
+        projectId: service.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -138,6 +151,29 @@ class ServiceOwnerRuleEngineServiceClass {
         `ServiceOwnerRuleEngine added owners to service ${service.id}`,
         { projectId: service.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await ServiceFeedService.createServiceFeedItem({
+        serviceId: service.id,
+        projectId: service.projectId,
+        serviceFeedEventType: ServiceFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await ServiceService.getServiceMarkdownLink(
+          service.projectId,
+          service.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: ServiceOwnerRule) => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          })
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying service owner rules: ${error}`, {
         projectId: service.projectId?.toString(),
@@ -147,6 +183,24 @@ class ServiceOwnerRuleEngineServiceClass {
   }
 
   private doesServiceMatchRule(
+    service: Service,
+    rule: ServiceOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "serviceLabels",
+        "serviceNamePattern",
+        "serviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (serviceRule: ServiceOwnerRule): boolean => {
+        return this.doesServiceMatchRuleLegacy(service, serviceRule);
+      },
+    });
+  }
+
+  private doesServiceMatchRuleLegacy(
     service: Service,
     rule: ServiceOwnerRule,
   ): boolean {

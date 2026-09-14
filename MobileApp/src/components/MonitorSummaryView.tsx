@@ -402,6 +402,32 @@ function PingSummary({
   );
 }
 
+type DiskMetric = NonNullable<
+  NonNullable<ProbeMonitorResponse["basicInfrastructureMetrics"]>["diskMetrics"]
+>[number];
+
+/**
+ * What to call a volume on its metric card.
+ *
+ * The mount point is what a responder needs - "/var is full" is actionable,
+ * "Disk 2 is full" sends them looking. Only when the probe did not report one
+ * do we fall back to a position, and only when there is more than one volume,
+ * so the single-disk server that has always just said "Disk" still does.
+ */
+function getDiskLabel(
+  diskMetric: DiskMetric,
+  index: number,
+  total: number,
+): string {
+  if (diskMetric.diskPath) {
+    return diskMetric.diskPath;
+  }
+  if (total > 1) {
+    return `Disk ${index + 1}`;
+  }
+  return "Disk";
+}
+
 function ServerSummary({
   response,
 }: {
@@ -412,8 +438,16 @@ function ServerSummary({
     response.basicInfrastructureMetrics?.cpuMetrics?.percentUsed;
   const mem: number | undefined =
     response.basicInfrastructureMetrics?.memoryMetrics?.percentUsed;
-  const disk: number | undefined =
-    response.basicInfrastructureMetrics?.diskMetrics?.[0]?.percentUsed;
+  /*
+   * A server agent reports one entry per mounted volume, and this used to read
+   * `diskMetrics[0]` and nothing else. A box whose root volume is quiet and
+   * whose /var is at 99% therefore summarised as healthy - which is exactly
+   * the box a responder had just been paged about, so the one screen they
+   * opened to confirm the page contradicted it. Every volume gets its own
+   * card, in the order the probe reported them.
+   */
+  const disks: DiskMetric[] =
+    response.basicInfrastructureMetrics?.diskMetrics ?? [];
 
   return (
     <View>
@@ -441,18 +475,40 @@ function ServerSummary({
               : theme.colors.severityWarning
           }
         />
-        <VerticalDivider />
-        <MetricCard
-          label="Disk"
-          value={disk !== undefined ? Math.round(disk).toString() : "--"}
-          unit="%"
-          iconName="disc-outline"
-          accentColor={
-            disk !== undefined && disk > 80
-              ? theme.colors.severityCritical
-              : theme.colors.oncallActive
-          }
-        />
+        {disks.length === 0 ? (
+          <>
+            <VerticalDivider />
+            <MetricCard
+              label="Disk"
+              value="--"
+              unit="%"
+              iconName="disc-outline"
+              accentColor={theme.colors.oncallActive}
+            />
+          </>
+        ) : (
+          disks.map((diskMetric: DiskMetric, index: number) => {
+            const used: number | undefined = diskMetric.percentUsed;
+            return (
+              <React.Fragment key={diskMetric.diskPath ?? `disk-${index}`}>
+                <VerticalDivider />
+                <MetricCard
+                  label={getDiskLabel(diskMetric, index, disks.length)}
+                  value={
+                    used !== undefined ? Math.round(used).toString() : "--"
+                  }
+                  unit="%"
+                  iconName="disc-outline"
+                  accentColor={
+                    used !== undefined && used > 80
+                      ? theme.colors.severityCritical
+                      : theme.colors.oncallActive
+                  }
+                />
+              </React.Fragment>
+            );
+          })
+        )}
       </View>
 
       {response.hostname ? (

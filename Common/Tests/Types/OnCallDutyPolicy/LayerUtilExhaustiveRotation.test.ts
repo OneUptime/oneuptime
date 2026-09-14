@@ -761,7 +761,7 @@ describe("Edge cases", () => {
     }
   });
 
-  it("NOTE: current behavior - getEvents emits a trailing negative-length event when the window end lands exactly on a rotation boundary; getMultiLayerEvents filters it out", () => {
+  it("getEvents does not emit a trailing negative-length event when the window end lands exactly on a rotation boundary", () => {
     const cfg: Cfg = {
       name: "boundary",
       intervalType: EventInterval.Day,
@@ -781,12 +781,15 @@ describe("Edge cases", () => {
     });
     const last: CalendarEvent = raw[raw.length - 1]!;
     /*
-     * NOTE: current behavior - the final event is inverted (end 1s before start).
-     * This is an internal artifact; both production consumers go through
-     * getMultiLayerEvents, which removes it (see assertion below). Not a
-     * user-observable defect, so it is documented rather than reported.
+     * The final event used to be inverted (end 1s before start). getEvents is
+     * consumed directly (layer shift preview, calendar feed coverage
+     * envelope), so it must never emit one.
      */
-    expect(OneUptimeDate.isBefore(last.end, last.start)).toBe(true);
+    expect(OneUptimeDate.isAfter(last.end, last.start)).toBe(true);
+    expect(OneUptimeDate.isSame(last.end, calEnd)).toBe(true);
+    for (const e of raw) {
+      expect(OneUptimeDate.isAfter(e.end, e.start)).toBe(true);
+    }
 
     const multi: CalendarEvent[] = util.getMultiLayerEvents({
       layers: [layerOf(cfg)],

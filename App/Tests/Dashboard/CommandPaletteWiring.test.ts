@@ -48,6 +48,13 @@ const COMMON_NAVBAR: string = readCommonCode(
   "NavBar.tsx",
 );
 
+const COMMON_NAVBAR_MENU_MODAL: string = readCommonCode(
+  "UI",
+  "Components",
+  "Navbar",
+  "NavBarMenuModal.tsx",
+);
+
 const DASHBOARD_NAVBAR: string = readAppCode(
   "Components",
   "NavBar",
@@ -60,6 +67,34 @@ const PALETTE_HOST: string = readAppCode(
   "DashboardCommandPalette.tsx",
 );
 
+/*
+ * Effects contain nested handlers, so matching one by a meaningful state
+ * update is less fragile than pinning the handler's local variable name.
+ */
+function findEffectContaining(
+  source: string,
+  marker: RegExp,
+): string | undefined {
+  const effects: Array<string> =
+    source.match(
+      /useEffect\(\(\)\s*=>\s*\{[\s\S]*?\n\s*\},\s*\[[^\]]*\]\s*\);/g,
+    ) || [];
+
+  return effects.find((effect: string): boolean => {
+    return marker.test(effect);
+  });
+}
+
+function expectExactCommandKRecognition(source: string): void {
+  expect(source).toMatch(/event\.metaKey\s*\|\|\s*event\.ctrlKey/);
+  // Accept either an affirmative allow-list or an early-return reject guard.
+  expect(source).toMatch(/(?:!event\.shiftKey|event\.shiftKey\s*\|\|)/);
+  expect(source).toMatch(/(?:!event\.altKey|event\.altKey\s*\|\|)/);
+  expect(source).toMatch(
+    /event\.key\.toLowerCase\(\)\s*(?:===|!==)\s*["']k["']/,
+  );
+}
+
 describe("command palette wiring", () => {
   test("the toggle event exists in the shared EventName enum", () => {
     /*
@@ -70,23 +105,59 @@ describe("command palette wiring", () => {
     expect(EventName.COMMAND_PALETTE_TOGGLE).toBe("COMMAND_PALETTE_TOGGLE");
   });
 
-  test("the Common NavBar can surrender Cmd/Ctrl+K, and the guard sits on the listener registration", () => {
+  test("the Common NavBar only owns the exact Cmd/Ctrl+K chord when the products shortcut is enabled", () => {
     // The prop exists on the component's props contract...
     expect(COMMON_NAVBAR).toMatch(/disableCommandKShortcut\??:\s*boolean/);
+    expectExactCommandKRecognition(COMMON_NAVBAR);
 
     /*
-     * ...and it short-circuits BEFORE the document keydown listener is added.
-     * A guard inside the handler would still leave a listener registered that
-     * could race the palette's. The window is sized to span the handler
-     * definition that sits between the early return and the registration,
-     * without reaching a keydown registration in some unrelated effect.
+     * The ordinary toggle effect is absent when another surface owns the
+     * shortcut (and when no products menu exists). When active, it respects a
+     * previously claimed chord before claiming and toggling it itself.
      */
-    expect(COMMON_NAVBAR).toMatch(
-      /disableCommandKShortcut[\s\S]{0,700}?document\.addEventListener\(\s*["']keydown["']/,
+    const toggleEffect: string | undefined = findEffectContaining(
+      COMMON_NAVBAR,
+      /setIsMoreMenuVisible\s*\(\s*\([^)]*\)\s*=>/,
     );
+
+    expect(toggleEffect).toBeDefined();
+    expect(toggleEffect).toMatch(
+      /props\.disableCommandKShortcut\s*\|\|\s*!hasMoreMenu/,
+    );
+    expect(toggleEffect).toMatch(/event\.defaultPrevented/);
+    expect(toggleEffect).toMatch(/event\.preventDefault\s*\(\s*\)/);
+    expect(toggleEffect).toMatch(/return\s+!visible/);
   });
 
-  test("the Dashboard NavBar hands the shortcut to the palette", () => {
+  test("an open products menu closes on surrendered Cmd/Ctrl+K without consuming the palette's event", () => {
+    const closeOnlyEffect: string | undefined = findEffectContaining(
+      COMMON_NAVBAR,
+      /setIsMoreMenuVisible\s*\(\s*false\s*\)/,
+    );
+
+    expect(closeOnlyEffect).toBeDefined();
+    expect(closeOnlyEffect).toMatch(/!props\.disableCommandKShortcut/);
+    expect(closeOnlyEffect).toMatch(/!hasMoreMenu/);
+    expect(closeOnlyEffect).toMatch(/!isMoreMenuVisible/);
+    expect(closeOnlyEffect).toMatch(/isCommandKShortcut\s*\(\s*event\s*\)/);
+    expect(closeOnlyEffect).toMatch(
+      /document\.addEventListener\(\s*["']keydown["']/,
+    );
+    expect(closeOnlyEffect).toMatch(
+      /document\.removeEventListener\(\s*["']keydown["']/,
+    );
+
+    /*
+     * Closing is housekeeping, not shortcut ownership. In particular this
+     * listener must still run if listener order means the palette claimed the
+     * event first, and it must never hide the chord from that owner.
+     */
+    expect(closeOnlyEffect).not.toMatch(/defaultPrevented/);
+    expect(closeOnlyEffect).not.toMatch(/preventDefault\s*\(/);
+    expect(closeOnlyEffect).not.toMatch(/stopPropagation\s*\(/);
+  });
+
+  test("the Dashboard NavBar surrenders the shortcut and its products-menu Mod+K hint", () => {
     /*
      * Passing the prop (and not `={false}`) is what actually frees the chord
      * on the dashboard. Tolerant of `disableCommandKShortcut` shorthand and
@@ -94,6 +165,19 @@ describe("command palette wiring", () => {
      */
     expect(DASHBOARD_NAVBAR).toMatch(
       /<NavBar[\s\S]*?disableCommandKShortcut(?!\s*=\s*\{\s*false)/,
+    );
+
+    /*
+     * The generic products modal still advertises Mod+K to legacy consumers,
+     * but the NavBar suppresses that one keycap when it has surrendered the
+     * chord. Its arrows/Enter/Escape footer hint remains independent.
+     */
+    expect(COMMON_NAVBAR).toMatch(
+      /showCommandKShortcutHint\s*=\s*\{\s*!props\.disableCommandKShortcut\s*\}/,
+    );
+    expect(DASHBOARD_NAVBAR).toMatch(/moreMenuKeyboardHint\s*=/);
+    expect(COMMON_NAVBAR_MENU_MODAL).toMatch(
+      /props\.showCommandKShortcutHint\s*!==\s*false\s*\?[\s\S]{0,180}?<KeyboardShortcut[\s\S]{0,180}?KeyboardKey\.Mod/,
     );
   });
 
@@ -120,11 +204,20 @@ describe("command palette wiring", () => {
     );
   });
 
-  test("the palette's shortcut handler is a polite citizen: respects claimed events, then claims its own", () => {
+  test("the palette remains the exact Cmd/Ctrl+K owner: it respects claimed events, then claims and toggles its own", () => {
+    const shortcutEffect: string | undefined = findEffectContaining(
+      PALETTE_HOST,
+      /document\.addEventListener\(\s*["']keydown["']/,
+    );
+
+    expect(shortcutEffect).toBeDefined();
+    expectExactCommandKRecognition(shortcutEffect || "");
     // Bails when another handler already took the chord...
-    expect(PALETTE_HOST).toMatch(/defaultPrevented/);
+    expect(shortcutEffect).toMatch(/defaultPrevented/);
     // ...and prevents the browser default once it decides to act.
-    expect(PALETTE_HOST).toMatch(/preventDefault\s*\(\s*\)/);
+    expect(shortcutEffect).toMatch(/preventDefault\s*\(\s*\)/);
+    expect(shortcutEffect).toMatch(/setIsOpen\s*\(\s*\([^)]*\)\s*=>/);
+    expect(shortcutEffect).toMatch(/return\s+!open/);
   });
 
   test("the palette host subscribes to the global toggle event and unsubscribes symmetrically", () => {

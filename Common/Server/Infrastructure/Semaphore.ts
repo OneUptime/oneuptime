@@ -6,6 +6,8 @@ import {
 } from "redis-semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+export { TimeoutError as SemaphoreLockTimeoutError } from "redis-semaphore";
+
 export type SemaphoreMutex = Mutex;
 export type SemaphorePermit = RedisSemaphore;
 

@@ -16,7 +16,6 @@ import {
   useResponderGroups,
   useSetupReminders,
 } from "./EscalationRuleReadiness";
-import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -1057,9 +1056,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     user: User,
   ): ReactElement => {
     const userId: ObjectID | null = user.id || null;
-    const imageRoute: Route = userId
-      ? UserUtil.getProfilePictureRoute(userId)
-      : Route.fromString(`${BlankProfilePic}`);
+    const imageUrl: string = userId
+      ? UserUtil.getProfilePictureRoute(userId).toString()
+      : BlankProfilePic;
     const name: string =
       user.name?.toString() || user.email?.toString() || "User";
 
@@ -1088,7 +1087,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       >
         <Image
           className="h-6 w-6 rounded-full bg-gray-100 object-cover"
-          imageUrl={imageRoute}
+          imageUrl={imageUrl}
           alt={name}
         />
         <span className="text-sm font-medium text-gray-700">{name}</span>

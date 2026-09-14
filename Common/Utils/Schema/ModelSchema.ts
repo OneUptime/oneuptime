@@ -1760,6 +1760,7 @@ export class ModelSchema extends BaseSchema {
         return this.getShortTextExample();
 
       case TableColumnType.LongText:
+      case TableColumnType.VeryLongText:
         return this.getLongTextExample();
 
       case TableColumnType.Email:

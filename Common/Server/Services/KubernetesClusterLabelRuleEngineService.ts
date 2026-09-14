@@ -3,9 +3,15 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterLabelRule from "../../Models/DatabaseModels/KubernetesClusterLabelRule";
 import KubernetesClusterLabelRuleService from "./KubernetesClusterLabelRuleService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class KubernetesClusterLabelRuleEngineServiceClass {
   /**
@@ -32,14 +38,21 @@ class KubernetesClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             kubernetesClusterLabels: { _id: true },
             kubernetesClusterNamePattern: true,
             kubernetesClusterDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "KubernetesClusterLabelRule",
+        projectId: kubernetesCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -61,6 +74,7 @@ class KubernetesClusterLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesKubernetesClusterMatchRule(
@@ -69,6 +83,11 @@ class KubernetesClusterLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -126,6 +145,27 @@ class KubernetesClusterLabelRuleEngineServiceClass {
         `KubernetesClusterLabelRuleEngine attached ${newLabelIds.length} labels to Kubernetes cluster ${kubernetesCluster.id}`,
         { projectId: kubernetesCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+        kubernetesClusterId: kubernetesCluster.id,
+        projectId: kubernetesCluster.projectId,
+        kubernetesClusterFeedEventType:
+          KubernetesClusterFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+          kubernetesCluster.projectId,
+          kubernetesCluster.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Kubernetes cluster label rules: ${error}`, {
         projectId: kubernetesCluster.projectId?.toString(),
@@ -135,6 +175,27 @@ class KubernetesClusterLabelRuleEngineServiceClass {
   }
 
   private doesKubernetesClusterMatchRule(
+    kubernetesCluster: KubernetesCluster,
+    rule: KubernetesClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "kubernetesClusterLabels",
+        "kubernetesClusterNamePattern",
+        "kubernetesClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: KubernetesClusterLabelRule): boolean => {
+        return this.doesKubernetesClusterMatchLegacyRule(
+          kubernetesCluster,
+          legacyRule,
+        );
+      },
+    });
+  }
+
+  private doesKubernetesClusterMatchLegacyRule(
     kubernetesCluster: KubernetesCluster,
     rule: KubernetesClusterLabelRule,
   ): boolean {

@@ -132,12 +132,24 @@ describe("processNetworkDeviceWalkFromQueue", () => {
   });
 
   /*
-   * The guard validates the RAW body field — checking the deserialized
+   * The guard validates the RAW body fields — checking a deserialized
    * value would be dead code, since JSONFunctions.deserialize(undefined)
-   * returns `{}`, a truthy object.
+   * returns `{}`, a truthy object. Only a body with NEITHER a walk nor a
+   * boolean device verdict is rejected: it says nothing about the device.
    */
-  test("rejects a walk with no snmpResponse", async () => {
+  test("rejects a walk carrying neither snmpResponse nor a boolean isOnline", async () => {
     const body: JSONObject = makeWalkBody();
+    delete body["snmpResponse"];
+
+    await expect(
+      processNetworkDeviceWalkFromQueue(makeJobData(body)),
+    ).rejects.toThrow(BadDataException);
+
+    expect(walkUtil.processWalkResult).not.toHaveBeenCalled();
+  });
+
+  test("a non-boolean isOnline is not a verdict: rejected when there is no walk either", async () => {
+    const body: JSONObject = makeWalkBody({ isOnline: "true" });
     delete body["snmpResponse"];
 
     await expect(
@@ -169,6 +181,169 @@ describe("processNetworkDeviceWalkFromQueue", () => {
     const stampedAt: Date = args["monitoredAt"] as Date;
     expect(stampedAt).toBeInstanceOf(Date);
     expect(stampedAt.toISOString()).toBe(monitoredAt);
+  });
+
+  /*
+   * Probe skew. Two probe generations report here and the processor has to
+   * hand the pipeline ONE shape whichever posted. Each body below is what a
+   * real probe sends; the matrix is what the pipeline must receive.
+   */
+  describe("probe skew: what each body shape derives", () => {
+    const failedWalk: JSONObject = {
+      isOnline: false,
+      responseTimeInMs: 0,
+      failureCause: "SNMP timed out after 3 attempts",
+      oidResponses: [],
+    };
+    const okPing: JSONObject = {
+      isOnline: true,
+      avgRttMs: 2.5,
+      packetLossPercent: 0,
+    };
+    const failedPing: JSONObject = {
+      isOnline: false,
+      packetLossPercent: 100,
+      failureCause: "Request timed out",
+    };
+
+    test("an old probe's successful walk: the walk verdict is the device verdict, mode snmp, no ping", async () => {
+      await processNetworkDeviceWalkFromQueue(makeJobData(makeWalkBody()));
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(true);
+      expect(args["pollMode"]).toBe("snmp");
+      expect(args["pingResponse"]).toBeUndefined();
+      expect(args["snmpResponse"]).toEqual(snmpResponse);
+    });
+
+    test("an old probe's failed walk: device verdict false, mode snmp", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(makeWalkBody({ snmpResponse: failedWalk })),
+      );
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(false);
+      expect(args["pollMode"]).toBe("snmp");
+      expect(args["snmpResponse"]).toEqual(failedWalk);
+    });
+
+    test("an old probe's walk with no verdict at all counts as answered (the inventory's convention)", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            snmpResponse: { oidResponses: [], responseTimeInMs: 5 },
+          }),
+        ),
+      );
+
+      expect(processedArgs()["isOnline"]).toBe(true);
+    });
+
+    test("a ping-first probe's ping-mode poll: the body's verdict, mode ping, the ping, and NO walk", async () => {
+      const body: JSONObject = makeWalkBody({
+        isOnline: true,
+        pollMode: "ping",
+        pingResponse: okPing,
+      });
+      delete body["snmpResponse"];
+
+      await processNetworkDeviceWalkFromQueue(makeJobData(body));
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(true);
+      expect(args["pollMode"]).toBe("ping");
+      expect(args["pingResponse"]).toEqual(okPing);
+      // Never synthesized from the ping.
+      expect(args["snmpResponse"]).toBeUndefined();
+    });
+
+    test("a ping-first probe's unreachable ping-mode poll: verdict false is a verdict, not a missing field", async () => {
+      const body: JSONObject = makeWalkBody({
+        isOnline: false,
+        pollMode: "ping",
+        pingResponse: failedPing,
+      });
+      delete body["snmpResponse"];
+
+      await processNetworkDeviceWalkFromQueue(makeJobData(body));
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(false);
+      expect(args["pollMode"]).toBe("ping");
+      expect(args["pingResponse"]).toEqual(failedPing);
+      expect(args["snmpResponse"]).toBeUndefined();
+    });
+
+    test("a ping-first probe's successful snmp-mode poll carries the ping AND the walk", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            isOnline: true,
+            pollMode: "snmp",
+            pingResponse: okPing,
+          }),
+        ),
+      );
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(true);
+      expect(args["pollMode"]).toBe("snmp");
+      expect(args["pingResponse"]).toEqual(okPing);
+      expect(args["snmpResponse"]).toEqual(snmpResponse);
+    });
+
+    test("a ping-first probe's snmp-mode poll that failed both ways: verdict false, the failed walk kept as the real walk", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            isOnline: false,
+            pollMode: "snmp",
+            pingResponse: failedPing,
+            snmpResponse: failedWalk,
+          }),
+        ),
+      );
+
+      const args: JSONObject = processedArgs();
+      expect(args["isOnline"]).toBe(false);
+      expect(args["pollMode"]).toBe("snmp");
+      expect(args["pingResponse"]).toEqual(failedPing);
+      expect(args["snmpResponse"]).toEqual(failedWalk);
+    });
+
+    /*
+     * ICMP-filtered SNMP gear: the ping fails but the walk succeeds, and
+     * the probe reports the device reachable. The processor trusts the
+     * probe's verdict rather than recomputing it from the ping.
+     */
+    test("the body's verdict is trusted over the ping: ping failed + walk ok stays reachable", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            isOnline: true,
+            pollMode: "snmp",
+            pingResponse: failedPing,
+          }),
+        ),
+      );
+
+      expect(processedArgs()["isOnline"]).toBe(true);
+    });
+
+    test('only an explicit "ping" reads as ping mode; anything else is the snmp a walking probe implies', async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(makeWalkBody({ pollMode: "SNMPv3" })),
+      );
+      expect(processedArgs()["pollMode"]).toBe("snmp");
+
+      jest.clearAllMocks();
+      walkUtil.processWalkResult.mockResolvedValue(undefined as never);
+
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(makeWalkBody({ pollMode: 7 })),
+      );
+      expect(processedArgs()["pollMode"]).toBe("snmp");
+    });
   });
 
   test("an unparseable monitoredAt falls back to now instead of poisoning the pipeline with Invalid Date", async () => {

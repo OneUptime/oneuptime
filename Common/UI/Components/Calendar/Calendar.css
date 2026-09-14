@@ -302,3 +302,81 @@
   );
   border: 1px solid rgba(217, 119, 6, 0.4);
 }
+
+/* ---------- Override (substituted) events ----------
+   A block that says "somebody else is taking this person's alerts". The colour
+   alone cannot carry that: it is the SUBSTITUTE's colour, and a reader who does
+   not already know the roster cannot tell it from an ordinary shift. Three
+   independent cues, so none of them has to survive on its own:
+
+   1. a stripe down the leading edge in the OVERRIDDEN person's colour, which
+      is what makes the swap readable when the week-view column is too narrow
+      to show any text at all;
+   2. a dotted inner rule beside it, so the distinction still lands in
+      greyscale and for a reader who cannot separate the two hues;
+   3. the label itself, which the caller prefixes.
+
+   --oneuptime-event-accent is set per event by Calendar.tsx's eventPropGetter
+   from CalendarEvent.accentColor; the fallback keeps the stripe visible if a
+   caller sets the class without a colour. */
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override {
+  position: relative;
+  padding-left: 0.75rem;
+  overflow: hidden;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.3125rem;
+  background-color: var(--oneuptime-event-accent, #6b7280);
+  /* Sits above the label so a long name cannot paint over the cue. */
+  z-index: 1;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  left: 0.4375rem;
+  border-left: 1px dotted currentColor;
+  opacity: 0.65;
+  z-index: 1;
+}
+
+/* The agenda view renders events as table rows, where an absolutely positioned
+   stripe has nothing to anchor to. Give that view a plain left border instead
+   so the same event is still marked there. */
+.oneuptime-calendar
+  .rbc-agenda-view
+  table.rbc-agenda-table
+  tbody
+  > tr.oneuptime-calendar-event--override
+  > td:first-child {
+  border-left: 0.25rem solid var(--oneuptime-event-accent, #6b7280);
+}
+
+/* Legend swatch for the override key. The block it names is drawn in two
+   people's colours, so the swatch is too - generic hues here, since the key
+   speaks for every override on the grid rather than for one of them. */
+.oneuptime-calendar-override-swatch {
+  position: relative;
+  overflow: hidden;
+  background-color: #6366f1; /* indigo-500 - stands for the substitute */
+  border: 1px solid rgba(79, 70, 229, 0.35); /* indigo-600 */
+}
+
+.oneuptime-calendar-override-swatch::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  /* Stands for the person who was overridden. */
+  background-color: #9ca3af; /* gray-400 */
+}

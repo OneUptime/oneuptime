@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(config, état, métadonnées)")]
       CH[("ClickHouse\n(métriques, traces, journaux)")]
-      REDIS[("Redis\n(cache, files, sessions)")]
+      REDIS[("Valkey\n(cache, files, sessions)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## Ce que cela montre
 
 - Les utilisateurs finaux accèdent à OneUptime via l'Ingress de votre cluster (NGINX), qui achemine vers l'UI et l'API.
-- Les services core lisent/écrivent l'état dans PostgreSQL, Redis et ClickHouse.
+- Les services core lisent/écrivent l'état dans PostgreSQL, Valkey (le fork sous licence BSD de Redis 7.2) et ClickHouse.
 - Les sondes peuvent s'exécuter dans votre cluster (recommandé) et/ou ailleurs sur votre réseau. Elles peuvent surveiller :
   - Les services internes/privés derrière votre pare-feu.
   - Les ressources externes/publiques sur Internet.
-- Les résultats des sondes sont envoyés à l'ingestion des sondes dans votre cluster, mis en file d'attente via Redis, et traités par le worker en arrière-plan dans vos stockages de données.
+- Les résultats des sondes sont envoyés à l'ingestion des sondes dans votre cluster, mis en file d'attente via Valkey, et traités par le worker en arrière-plan dans vos stockages de données.
 - La télémétrie (métriques/traces/journaux) et les données de serveur/agent peuvent être ingérées via des services d'ingestion dédiés et stockées dans ClickHouse.
 
 > Remarque : Si vous utilisez PostgreSQL, Redis ou ClickHouse externes au lieu des versions intégrées, les connexions depuis API/Worker/Ingest pointent vers vos points d'accès externes. Le flux logique reste le même.

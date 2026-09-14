@@ -21,11 +21,16 @@ import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import Sleep from "../../Types/Sleep";
 import Stripe from "stripe";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "./PayAsYouGoBillingService";
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -45,6 +50,9 @@ export interface PaymentMethod {
  */
 export const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
 
+export const METERED_BILLING_START_METADATA_KEY: string =
+  "oneuptime_pay_as_you_go_started_at";
+
 /*
  * How long to wait before trying a cancel again, per retry.
  *
@@ -54,6 +62,59 @@ export const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
  * Kept short and finite because this runs inside the plan change request.
  */
 const CANCEL_RETRY_DELAYS_IN_MS: Array<number> = [1000, 3000];
+
+const PAYMENT_METHOD_TYPES: Array<Stripe.PaymentMethodListParams.Type> = [
+  "card",
+  "sepa_debit",
+  "us_bank_account",
+  "bacs_debit",
+];
+/*
+ * Four attempts spread over 1s+2s+4s was the whole budget, and CI showed it
+ * spent: every failing read took 9-10s and then 500'd, which is this ladder
+ * running out while Stripe was still rate-limiting. One more attempt roughly
+ * doubles the window without making a user-facing request pathological.
+ */
+const PAYMENT_READ_MAX_RETRIES: number = 4;
+
+// Ceiling for a single wait, so a large Retry-After cannot hang the request.
+const PAYMENT_READ_MAX_RETRY_DELAY_IN_MS: number = 8000;
+
+/*
+ * stripe-node defaults maxNetworkRetries to 0, so out of the box a dropped
+ * socket, a 409, a Stripe-side 5xx, or a 400 that Stripe itself marks retryable
+ * with `Stripe-Should-Retry: true` (lock_timeout is the common one) is not
+ * retried at all - it surfaces as a raw StripeError, which is not an
+ * OneUptime Exception, so the express handler answers an opaque
+ * 500 {"error":"Server Error"}. That is a user-visible failure of the billing
+ * page on a single upstream hiccup. The SDK's own retry generates an
+ * idempotency key per attempt, so it is safe for writes as well as reads.
+ *
+ * It does NOT cover a plain 429: stripe-node's _shouldRetry
+ * (node_modules/stripe/lib/StripeResource.js) retries connection-closed codes,
+ * 409 and >=500 only. Rate limits are handled by readPaymentProvider's own
+ * ladder and, more importantly, by not making the calls in the first place.
+ */
+const STRIPE_MAX_NETWORK_RETRIES: number = 2;
+
+/*
+ * The SDK default is 80s. A request holding a worker for 80s on a hung socket
+ * outlives every caller that waits on it, so fail fast enough to retry.
+ */
+const STRIPE_REQUEST_TIMEOUT_IN_MS: number = 20000;
+
+/*
+ * Node's socket-level failures, which reach us with no HTTP status. Mirrors
+ * stripe-node's own CONNECTION_CLOSED_ERROR_CODES plus the timeout cases.
+ */
+const RETRYABLE_CONNECTION_ERROR_CODES: Array<string> = [
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+  "ENOTFOUND",
+];
 
 export interface Invoice {
   id: string;
@@ -75,6 +136,8 @@ export class BillingService extends BaseService {
 
   private stripe: Stripe = new Stripe(BillingPrivateKey, {
     apiVersion: "2022-08-01",
+    maxNetworkRetries: STRIPE_MAX_NETWORK_RETRIES,
+    timeout: STRIPE_REQUEST_TIMEOUT_IN_MS,
   });
 
   // returns billing id of the customer.
@@ -549,6 +612,15 @@ export class BillingService extends BaseService {
     subscriptionId: string,
     serverMeteredPlan: ServerMeteredPlan,
     quantity: number,
+    options?: {
+      /*
+       * The live authorization the reporting plan made for this usage a
+       * moment ago. requireMeteredSubscriptionPayment still ties it to the
+       * project that owns this subscription's customer, and checks live
+       * without one.
+       */
+      liveAuthorization?: LiveUsageAuthorization | undefined;
+    },
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
@@ -574,6 +646,13 @@ export class BillingService extends BaseService {
     }
 
     // check if this pricing exists
+
+    if (quantity > 0) {
+      await PayAsYouGoBillingService.requireMeteredSubscriptionPayment(
+        subscription,
+        options,
+      );
+    }
 
     const pricingExists: boolean = subscription.items.data.some(
       (item: SubscriptionItem) => {
@@ -1267,11 +1346,206 @@ export class BillingService extends BaseService {
 
   @CaptureSpan()
   public async hasPaymentMethods(customerId: string): Promise<boolean> {
-    if ((await this.getPaymentMethods(customerId)).length > 0) {
-      return true;
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    // Eligibility needs one attached method, without fetching or changing defaults.
+    for (const type of PAYMENT_METHOD_TYPES) {
+      const methods: Stripe.ApiList<Stripe.PaymentMethod> =
+        await this.listPaymentMethods(customerId, type, 1);
+      if (methods.data.length > 0) {
+        return true;
+      }
     }
 
     return false;
+  }
+
+  /**
+   * A read that could not be completed is not the same answer as "no payment
+   * method", so this never converts a failure into a value - it retries, and
+   * then reports the outage as one. Callers stay free to fail closed.
+   */
+  private async readPaymentProvider<T>(read: () => Promise<T>): Promise<T> {
+    for (let attempt: number = 0; ; attempt++) {
+      try {
+        return await read();
+      } catch (err) {
+        if (!BillingService.isRetryablePaymentProviderRead(err)) {
+          /*
+           * A 400/401/404 is this request being wrong - a bad key, a customer
+           * that is not there. Keep it exactly as it came: renaming it "could
+           * not reach the provider" would send the reader somewhere else.
+           */
+          throw err;
+        }
+
+        if (attempt >= PAYMENT_READ_MAX_RETRIES) {
+          throw BillingService.toPaymentProviderReadFailure(err);
+        }
+
+        /*
+         * The SDK's own network retries are immediate and few; this is the
+         * longer, jittered wait a sustained rate limit needs. An exhausted
+         * read still denies paid usage - it never answers "no payment method".
+         */
+        await Sleep.sleep(
+          BillingService.getPaymentReadRetryDelay(err, attempt),
+        );
+      }
+    }
+  }
+
+  /**
+   * Honour Retry-After if it is there, rather than preferring our own doubling
+   * over a number the provider gave us.
+   *
+   * Be clear about what this does NOT buy: Stripe documents only a
+   * `Stripe-Rate-Limited-Reason` header on a rate-limited 429
+   * (https://docs.stripe.com/rate-limits) and does not document sending
+   * Retry-After, so on the failure that actually breaks us this falls through
+   * to the exponential backoff. It is kept because it is correct if Stripe
+   * ever does send one - not because it is mitigating today's rate limit.
+   * Do not count it as mitigation when sizing this.
+   */
+  private static getPaymentReadRetryDelay(
+    err: unknown,
+    attempt: number,
+  ): number {
+    const backoffInMs: number = Math.round(
+      1000 * 2 ** attempt * (1 + Math.random() / 2),
+    );
+
+    const headers: Record<string, string | undefined> =
+      ((err ?? {}) as { headers?: Record<string, string | undefined> })
+        .headers || {};
+    const retryAfterInSeconds: number = Number(
+      headers["retry-after"] ?? headers["Retry-After"],
+    );
+
+    if (!Number.isFinite(retryAfterInSeconds) || retryAfterInSeconds <= 0) {
+      return backoffInMs;
+    }
+
+    return Math.min(
+      Math.max(backoffInMs, retryAfterInSeconds * 1000),
+      PAYMENT_READ_MAX_RETRY_DELAY_IN_MS,
+    );
+  }
+
+  /**
+   * Rate limits are the documented case, but a read can also fail with no HTTP
+   * response at all - a reset or timed-out socket, which arrives with
+   * statusCode undefined - or with Stripe's own 5xx. The SDK retries those too
+   * now (STRIPE_MAX_NETWORK_RETRIES); this outer loop adds the longer,
+   * jittered backoff that a sustained rate limit needs.
+   */
+  private static isRetryablePaymentProviderRead(err: unknown): boolean {
+    const providerError: {
+      statusCode?: number;
+      type?: string;
+      code?: string;
+    } = (err ?? {}) as {
+      statusCode?: number;
+      type?: string;
+      code?: string;
+    };
+
+    if (typeof providerError.statusCode === "number") {
+      return (
+        providerError.statusCode === 429 || providerError.statusCode >= 500
+      );
+    }
+
+    /*
+     * No HTTP response was read at all. Retry only the transport failures we
+     * can name - a programming error also lands here with no statusCode, and
+     * retrying one four times just delays the real report.
+     */
+    return (
+      providerError.type === "StripeConnectionError" ||
+      providerError.type === "StripeAPIError" ||
+      RETRYABLE_CONNECTION_ERROR_CODES.includes(providerError.code || "")
+    );
+  }
+
+  /**
+   * A raw StripeError is not an OneUptime Exception, so it reaches the express
+   * handler's fallback branch and becomes an opaque 500 {"error":"Server
+   * Error"} - indistinguishable from a bug in OneUptime, and carrying nothing
+   * an operator or an E2E diagnostic can act on. Name the real condition
+   * instead: the payment provider could not be reached.
+   */
+  private static toPaymentProviderReadFailure(err: unknown): unknown {
+    if (err instanceof Exception) {
+      return err;
+    }
+
+    const providerError: { statusCode?: number; code?: string; type?: string } =
+      (err ?? {}) as { statusCode?: number; code?: string; type?: string };
+
+    logger.error(err);
+
+    return new ServiceUnavailableException(
+      `Could not reach the payment provider to read payment methods${
+        providerError.code ? ` (${providerError.code})` : ""
+      }. Please try again.`,
+    );
+  }
+
+  private async listPaymentMethods(
+    customerId: string,
+    type: Stripe.PaymentMethodListParams.Type,
+    limit?: number,
+  ): Promise<Stripe.ApiList<Stripe.PaymentMethod>> {
+    const params: Stripe.PaymentMethodListParams = {
+      customer: customerId,
+      type,
+    };
+    if (limit !== undefined) {
+      params.limit = limit;
+    }
+    return this.readPaymentProvider(() => {
+      return this.stripe.paymentMethods.list(params);
+    });
+  }
+
+  /**
+   * Old usage must not become a debt when a customer adds their first card.
+   * Establish a durable boundary at the first authorized billing pass. For
+   * existing customers without the marker this deliberately forgives older
+   * unreported telemetry. Never derive consent from subscription creation:
+   * signup creates a subscription even when no payment method exists.
+   */
+  public async getMeteredBillingStartDate(customerId: string): Promise<Date> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    const customer: Stripe.Customer | Stripe.DeletedCustomer =
+      await this.stripe.customers.retrieve(customerId);
+    if (customer.deleted) {
+      throw new BadDataException(Errors.BillingService.CUSTOMER_NOT_FOUND);
+    }
+
+    const storedValue: string | undefined =
+      customer.metadata[METERED_BILLING_START_METADATA_KEY];
+    const storedDate: Date | undefined = storedValue
+      ? new Date(storedValue)
+      : undefined;
+
+    if (storedDate && Number.isFinite(storedDate.getTime())) {
+      return storedDate;
+    }
+
+    const startsAt: Date = OneUptimeDate.getCurrentDate();
+    await this.stripe.customers.update(customerId, {
+      metadata: {
+        [METERED_BILLING_START_METADATA_KEY]: startsAt.toISOString(),
+      },
+    });
+    return startsAt;
   }
 
   @CaptureSpan()
@@ -1293,31 +1567,20 @@ export class BillingService extends BaseService {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
+
     const paymentMethods: Array<PaymentMethod> = [];
 
     const cardPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "card",
-      });
+      await this.listPaymentMethods(customerId, "card");
 
     const sepaPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "sepa_debit",
-      });
+      await this.listPaymentMethods(customerId, "sepa_debit");
 
     const usBankPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "us_bank_account",
-      });
+      await this.listPaymentMethods(customerId, "us_bank_account");
 
     const bacsPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "bacs_debit",
-      });
+      await this.listPaymentMethods(customerId, "bacs_debit");
 
     cardPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
       paymentMethods.push({
@@ -1358,7 +1621,9 @@ export class BillingService extends BaseService {
     // check if there's a default payment method.
 
     const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
-      await this.stripe.customers.retrieve(customerId);
+      await this.readPaymentProvider(() => {
+        return this.stripe.customers.retrieve(customerId);
+      });
 
     const defaultPaymentMethod:
       | string
@@ -1556,7 +1821,9 @@ export class BillingService extends BaseService {
     }
 
     const subscription: Stripe.Response<Stripe.Subscription> =
-      await this.stripe.subscriptions.retrieve(subscriptionId);
+      await this.readPaymentProvider(() => {
+        return this.stripe.subscriptions.retrieve(subscriptionId);
+      });
 
     return subscription;
   }

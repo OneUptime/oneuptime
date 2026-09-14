@@ -5,18 +5,26 @@ import { useTheme } from "../theme";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import type { NoteItem } from "../api/types";
+import QueryErrorNotice from "./QueryErrorNotice";
+import MarkdownContent from "./MarkdownContent";
 
 interface NotesSectionProps {
   notes: NoteItem[] | undefined;
   setNoteModalVisible: (visible: boolean) => void;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => unknown;
 }
 
 export default function NotesSection({
   notes,
   setNoteModalVisible,
+  isLoading = false,
+  isError = false,
+  onRetry,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = "#FFFFFF";
+  const addNoteContentColor: string = theme.colors.actionPrimary;
 
   return (
     <View style={{ marginBottom: 8, marginTop: 4 }}>
@@ -25,6 +33,8 @@ export default function NotesSection({
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 8,
           marginBottom: 14,
         }}
       >
@@ -36,26 +46,29 @@ export default function NotesSection({
             style={{ marginRight: 6 }}
           />
           <Text
+            accessibilityRole="header"
             style={{
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              color: theme.colors.textSecondary,
-              letterSpacing: 1,
+              fontSize: 18,
+              fontWeight: "700",
+              color: theme.colors.textPrimary,
             }}
           >
             Internal Notes
           </Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add Note"
           style={({ pressed }: { pressed: boolean }) => {
             return {
               flexDirection: "row" as const,
               alignItems: "center" as const,
+              justifyContent: "center" as const,
+              minHeight: 48,
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.colors.accentGradientStart,
+              backgroundColor: theme.colors.cardAccent,
               opacity: pressed ? 0.85 : 1,
             };
           }}
@@ -71,7 +84,7 @@ export default function NotesSection({
           />
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: "600",
               color: addNoteContentColor,
             }}
@@ -80,6 +93,22 @@ export default function NotesSection({
           </Text>
         </Pressable>
       </View>
+
+      {isLoading ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.colors.textSecondary, paddingVertical: 16 }}
+        >
+          Loading notes…
+        </Text>
+      ) : null}
+      {isError && onRetry ? (
+        <QueryErrorNotice
+          message="Unable to load the latest notes. Your team's updates may be missing."
+          retryLabel="Retry notes"
+          onRetry={onRetry}
+        />
+      ) : null}
 
       {notes && notes.length > 0
         ? notes.map((note: NoteItem, index: number) => {
@@ -90,33 +119,28 @@ export default function NotesSection({
               <View
                 key={note._id || `${note.createdAt}-${index}`}
                 style={{
-                  borderRadius: 16,
+                  borderRadius: 12,
                   overflow: "hidden",
                   marginBottom: 10,
                   backgroundColor: theme.colors.backgroundElevated,
-                  borderWidth: 1,
+                  borderWidth: 0,
+                  borderLeftWidth: 3,
                   borderColor: theme.colors.borderGlass,
                   shadowColor: "#000",
-                  shadowOpacity: 0.16,
+                  shadowOpacity: 0,
                   shadowOffset: { width: 0, height: 5 },
                   shadowRadius: 10,
-                  elevation: 3,
+                  elevation: 0,
                 }}
               >
                 <View style={{ padding: 16 }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 22,
-                      color: theme.colors.textPrimary,
-                    }}
-                  >
-                    {noteText}
-                  </Text>
+                  <MarkdownContent content={noteText} />
                   <View
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 4,
                       marginTop: 10,
                     }}
                   >
@@ -145,7 +169,7 @@ export default function NotesSection({
           })
         : null}
 
-      {notes && notes.length === 0 ? (
+      {notes && notes.length === 0 && !isLoading && !isError ? (
         <View
           style={{
             borderRadius: 16,

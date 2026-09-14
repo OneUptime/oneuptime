@@ -114,7 +114,7 @@ KEDA ScaledObjects for various services
 
 {{/* Telemetry-writer KEDA ScaledObject — scales the writer tier on its
      fleet-wide shed rate: 429s rejected across ALL writer pods over roughly
-     the last two minutes, read from a shared Redis counter via whichever pod
+     the last two minutes, read from a shared Valkey counter via whichever pod
      KEDA polls (/metrics/telemetry-writer-shed-rate). Sustained shedding
      while ClickHouse is healthy is the one honest "tier too small" signal.
      Deliberately NOT scaled on queue depth — queue growth is the worker

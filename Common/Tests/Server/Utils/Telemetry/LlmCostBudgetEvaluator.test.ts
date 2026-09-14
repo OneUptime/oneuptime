@@ -19,6 +19,7 @@ import LlmCostBudgetService from "../../../../Server/Services/LlmCostBudgetServi
 import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
+import { LlmMicroUsdCostMetricNames } from "../../../../Types/Telemetry/LlmMetricConventions";
 import { LlmMetricScope } from "../../../../Utils/Telemetry/LlmMetricQuery";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
@@ -83,6 +84,34 @@ const mockedMetricService: {
   insertJsonRows: MockedFn;
   aggregateBy: MockedFn;
 };
+
+/*
+ * Metric-sourced cost is TWO aggregates, not one: the USD-denominated metric
+ * names and the micro-USD ones (the Codex CLI reports millionths of a dollar)
+ * are queried separately and scaled before being added, because a single Sum
+ * over both units cannot be un-mixed afterwards. A plain mockResolvedValue
+ * answers BOTH queries with the same payload, which would feed the same
+ * figure in twice — once at 1e-6 — and quietly skew every expectation here.
+ *
+ * So the mock dispatches on the metric names the query actually selects: the
+ * rows are the project's USD spend, and the micro-USD query correctly finds
+ * nothing.
+ */
+function mockUsdMetricRows(rows: Array<JSONObject>): void {
+  mockedMetricService.aggregateBy.mockImplementation(
+    (aggregate: { query: Record<string, unknown> }): Promise<JSONObject> => {
+      const names: Array<string> = ((
+        aggregate?.query?.["name"] as { values?: Array<string> } | undefined
+      )?.values || []) as Array<string>;
+
+      const isMicroUsd: boolean = names.some((name: string) => {
+        return LlmMicroUsdCostMetricNames.includes(name);
+      });
+
+      return Promise.resolve({ data: isMicroUsd ? [] : rows });
+    },
+  );
+}
 
 const mockedBudgetService: {
   findBy: MockedFn;
@@ -596,9 +625,7 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
   }
 
   function mockMetricSpend(value: number): void {
-    mockedMetricService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: value }],
-    } as never);
+    mockUsdMetricRows([{ timestamp: NOW, value: value }]);
   }
 
   test("uses spans when the span stream reported spend", async () => {
@@ -730,12 +757,10 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
   });
 
   test("sums multiple metric buckets", async () => {
-    mockedMetricService.aggregateBy.mockResolvedValue({
-      data: [
-        { timestamp: NOW, value: 1.5 },
-        { timestamp: NOW, value: 2.5 },
-      ],
-    } as never);
+    mockUsdMetricRows([
+      { timestamp: NOW, value: 1.5 },
+      { timestamp: NOW, value: 2.5 },
+    ]);
 
     await expect(
       LlmCostBudgetEvaluator.resolveSpend({
@@ -781,9 +806,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
   });
 
   test("a metrics-only project gets its spend stamped on the budget row", async () => {
-    mockedMetricService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: 60 }],
-    } as never);
+    mockUsdMetricRows([{ timestamp: NOW, value: 60 }]);
 
     const budget: LlmCostBudget = makeBudget({ dailyBudgetInUSD: 100 });
 
@@ -798,9 +821,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
   });
 
   test("a metrics-only project publishes the same budget series as a span-backed one", async () => {
-    mockedMetricService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: 80 }],
-    } as never);
+    mockUsdMetricRows([{ timestamp: NOW, value: 80 }]);
 
     await LlmCostBudgetEvaluator.evaluateBudget({
       budget: makeBudget({ dailyBudgetInUSD: 100 }),
@@ -823,9 +844,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
    * have to learn about the source.
    */
   test("the published series carries no source-specific attribute", async () => {
-    mockedMetricService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: 5 }],
-    } as never);
+    mockUsdMetricRows([{ timestamp: NOW, value: 5 }]);
 
     const budget: LlmCostBudget = makeBudget();
 

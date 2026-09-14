@@ -11,6 +11,9 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class AlertPrivacyRuleEngineServiceClass {
   /**
@@ -42,6 +45,7 @@ class AlertPrivacyRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             monitors: { _id: true },
             alertSeverities: { _id: true },
             alertLabels: { _id: true },
@@ -51,9 +55,15 @@ class AlertPrivacyRuleEngineServiceClass {
             monitorNamePattern: true,
             monitorDescriptionPattern: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "AlertPrivacyRule",
+        projectId: alert.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return false;
@@ -150,6 +160,31 @@ class AlertPrivacyRuleEngineServiceClass {
 
   @CaptureSpan()
   private async doesAlertMatchRule(
+    alert: Alert,
+    rule: AlertPrivacyRule,
+  ): Promise<boolean> {
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "alertSeverities",
+        "alertLabels",
+        "monitorLabels",
+        "alertTitlePattern",
+        "alertDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: AlertPrivacyRule,
+      ): Promise<boolean> => {
+        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+      },
+    });
+  }
+
+  private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertPrivacyRule,
   ): Promise<boolean> {

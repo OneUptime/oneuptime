@@ -21,6 +21,10 @@ import {
   coerceNumericColumnValue,
   isNumericTableColumnType,
 } from "../../../Types/Database/NumericColumnValue";
+import {
+  coerceDateColumnValue,
+  isDateTableColumnType,
+} from "../../../Types/Database/DateColumnValue";
 import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
@@ -768,6 +772,15 @@ export default class DatabaseBaseModel extends BaseEntity {
            * it. See Types/Database/NumericColumnValue.
            */
           (baseModel as any)[key] = coerceNumericColumnValue(json[key]);
+        } else if (isDateTableColumnType(tableColumnMetadata.type)) {
+          /*
+           * An `<input type="date">` hands back a string too, and until this
+           * ran a date column held that string all the way through the save —
+           * TypeORM returns the entity it was given, so a hook reading the
+           * saved row got "2027-01-01" where it expected a Date. See
+           * Types/Database/DateColumnValue.
+           */
+          (baseModel as any)[key] = coerceDateColumnValue(json[key]);
         } else {
           (baseModel as any)[key] = json[key];
         }

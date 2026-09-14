@@ -13,5 +13,6 @@ export default interface DashboardMonitorListComponent extends BaseComponent {
     monitorStatusIds?: Array<string> | undefined;
     monitorTypes?: Array<string> | undefined;
     labelIds?: Array<string> | undefined;
+    labelVariableId?: string | undefined;
   };
 }

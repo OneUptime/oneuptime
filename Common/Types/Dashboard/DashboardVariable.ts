@@ -3,6 +3,12 @@ export enum DashboardVariableType {
   Query = "Query",
   TextInput = "Text Input",
   TelemetryAttribute = "Telemetry Attribute",
+  ProjectLabel = "Project Labels",
+}
+
+export interface DashboardVariableOption {
+  label: string;
+  value: string;
 }
 
 export default interface DashboardVariable {
@@ -12,6 +18,8 @@ export default interface DashboardVariable {
   type: DashboardVariableType;
   // For CustomList: comma-separated values
   customListValues?: string | undefined;
+  // Author-selected project label IDs and their published display names.
+  labelOptions?: Array<DashboardVariableOption> | undefined;
   // For Query: a ClickHouse query to populate options
   query?: string | undefined;
   /*

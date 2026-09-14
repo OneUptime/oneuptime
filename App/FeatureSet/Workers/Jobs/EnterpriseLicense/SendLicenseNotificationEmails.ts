@@ -147,6 +147,10 @@ RunCron(
           expiresAt: true,
           userLimit: true,
           currentUserCount: true,
+          userCountUpdatedAt: true,
+          userCountSource: true,
+          legacyUserCount: true,
+          legacyUserCountUpdatedAt: true,
         },
         sort: {
           createdAt: SortOrder.Ascending,
@@ -158,8 +162,6 @@ RunCron(
         },
       });
 
-    const now: Date = OneUptimeDate.getCurrentDate();
-
     for (const license of licenses) {
       try {
         const instances: Array<EnterpriseLicenseInstance> =
@@ -169,6 +171,7 @@ RunCron(
             },
             select: {
               _id: true,
+              createdAt: true,
               userCount: true,
               userEmailHashes: true,
               masterAdminEmails: true,
@@ -183,6 +186,7 @@ RunCron(
               isRoot: true,
             },
           });
+        const now: Date = OneUptimeDate.getCurrentDate();
 
         const recipients: Array<string> = getRecipients({
           instances,
@@ -203,9 +207,15 @@ RunCron(
         // --- Seat limit breach ---
 
         const currentUserCount: number =
-          instances.length > 0
-            ? EnterpriseLicenseUsageUtil.getUniqueUserCount(instances, now)
-            : license.currentUserCount || 0;
+          EnterpriseLicenseUsageUtil.getEffectiveUserCount({
+            instances,
+            storedUserCount: license.currentUserCount,
+            storedUserCountUpdatedAt: license.userCountUpdatedAt,
+            storedUserCountSource: license.userCountSource,
+            legacyUserCount: license.legacyUserCount,
+            legacyUserCountUpdatedAt: license.legacyUserCountUpdatedAt,
+            now,
+          }) ?? 0;
 
         const userLimit: number | undefined = license.userLimit;
 
