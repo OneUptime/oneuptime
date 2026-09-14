@@ -580,6 +580,38 @@ test("watch opens real footage and the return link restores list filters", async
   await expect(page.getByTestId("replay-header-user")).toHaveText(
     "alex@example.com",
   );
+  const toolbar: Locator = page.getByRole("group", {
+    name: "Session recording controls",
+  });
+  const recordingActions: Locator = toolbar.getByRole("group", {
+    name: "Recording actions",
+  });
+  const playerLayout: Locator = toolbar.getByRole("group", {
+    name: "Player layout",
+  });
+
+  await expect(toolbar).toBeVisible();
+  await expect(recordingActions.getByRole("button")).toHaveText([
+    "Pin recording",
+    "Copy link",
+    "Session details",
+  ]);
+  await expect(playerLayout.getByRole("button")).toHaveText([
+    "Wide",
+    "Theater",
+  ]);
+
+  const controlHeights: Array<number> = await toolbar
+    .getByRole("button")
+    .evaluateAll((buttons: Array<HTMLElement>): Array<number> => {
+      return buttons.map((button: HTMLElement): number => {
+        return button.getBoundingClientRect().height;
+      });
+    });
+
+  expect(
+    Math.max(...controlHeights) - Math.min(...controlHeights),
+  ).toBeLessThanOrEqual(1);
   await page.getByTestId("replay-back-link").click();
   await expect(page).toHaveURL(/browser=Chrome/);
   await expect(rows(page)).toHaveCount(3);
@@ -708,6 +740,54 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await expect(page.getByTestId("replay-play-pause")).toBeVisible();
   await expect(page.getByTestId("replay-speed")).toBeVisible();
   await expect(page.getByTestId("rail-search-input")).toBeVisible();
+  const headerToolbar: Locator = page.getByTestId("replay-header-toolbar");
+
+  await expect(headerToolbar).toBeVisible();
+  await expect(page.getByTestId("replay-pin-button")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+
+  const headerGeometry: {
+    viewportWidth: number;
+    scrollWidth: number;
+    clientWidth: number;
+    childBounds: Array<{ left: number; right: number }>;
+  } = await headerToolbar.evaluate(
+    (
+      toolbar: HTMLElement,
+    ): {
+      viewportWidth: number;
+      scrollWidth: number;
+      clientWidth: number;
+      childBounds: Array<{ left: number; right: number }>;
+    } => {
+      return {
+        viewportWidth: window.innerWidth,
+        scrollWidth: toolbar.scrollWidth,
+        clientWidth: toolbar.clientWidth,
+        childBounds: Array.from(
+          toolbar.querySelectorAll("button, [role='group']"),
+        ).map((element: Element): { left: number; right: number } => {
+          const bounds: DOMRect = element.getBoundingClientRect();
+
+          return { left: bounds.left, right: bounds.right };
+        }),
+      };
+    },
+  );
+
+  expect(headerGeometry.scrollWidth).toBeLessThanOrEqual(
+    headerGeometry.clientWidth + 1,
+  );
+  headerGeometry.childBounds.forEach(
+    (bounds: { left: number; right: number }): void => {
+      expect(bounds.left).toBeGreaterThanOrEqual(-1);
+      expect(bounds.right).toBeLessThanOrEqual(
+        headerGeometry.viewportWidth + 1,
+      );
+    },
+  );
+  await noHorizontalOverflow(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await noHorizontalOverflow(page);
   const legendBottom: number = await page
     .getByTestId("timeline-legend")

@@ -948,6 +948,51 @@ describe("ReplayHeader", () => {
   });
 
   describe("actions", () => {
+    it("groups recording commands and layout toggles without claiming toolbar keyboard behavior", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            pinControl: <button data-testid="fake-pin">Pin recording</button>,
+          })}
+        />,
+      );
+
+      const controls: HTMLElement = screen.getByRole("group", {
+        name: "Session recording controls",
+      });
+      const recordingActions: HTMLElement = within(controls).getByRole(
+        "group",
+        { name: "Recording actions" },
+      );
+      const playerLayout: HTMLElement = within(controls).getByRole("group", {
+        name: "Player layout",
+      });
+
+      expect(controls).toBe(screen.getByTestId("replay-header-toolbar"));
+      expect(controls.className).toContain("flex-wrap");
+      expect(controls).not.toHaveAttribute("role", "toolbar");
+      expect(recordingActions).toBe(
+        screen.getByTestId("replay-recording-actions"),
+      );
+      expect(recordingActions.className).toContain("flex-wrap");
+      expect(
+        Array.from(recordingActions.querySelectorAll("button")).map(
+          (button: HTMLButtonElement): string => {
+            return button.textContent || "";
+          },
+        ),
+      ).toEqual(["Pin recording", "Copy link", "Session details"]);
+      expect(
+        within(playerLayout).getByTestId("replay-toggle-wide"),
+      ).toBeInTheDocument();
+      expect(
+        within(playerLayout).getByTestId("replay-toggle-theater"),
+      ).toBeInTheDocument();
+      expect(
+        within(recordingActions).queryByTestId("replay-toggle-wide"),
+      ).not.toBeInTheDocument();
+    });
+
     it("wide and theater carry aria-pressed and call their toggles", () => {
       const props: ReplayHeaderProps = makeProps({
         isWide: true,
@@ -993,7 +1038,11 @@ describe("ReplayHeader", () => {
         />,
       );
 
-      expect(screen.getByTestId("fake-pin")).toBeInTheDocument();
+      expect(
+        within(
+          screen.getByRole("group", { name: "Recording actions" }),
+        ).getByTestId("fake-pin"),
+      ).toBeInTheDocument();
     });
   });
 
