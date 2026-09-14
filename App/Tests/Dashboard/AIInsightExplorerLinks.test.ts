@@ -41,6 +41,7 @@ const EXCEPTION_ID: string = "0195d6c1-0000-7000-8000-0000000000ff";
  */
 import {
   SearchToken,
+  SearchValueOperator,
   parseSearchQuery,
   parseSearchValue,
 } from "Common/Types/Telemetry/TelemetrySearchQuery";
@@ -713,10 +714,25 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
               query.get("filters")!,
             );
 
-            expect(filters).toContainEqual([
-              "attributes.resource.service.name",
-              [hostileValue],
-            ]);
+            /*
+             * A ROUND TRIP, like the traces case below: the logs explorer
+             * re-parses an `attributes.<key>` chip value with the search
+             * grammar (applyLogsFacetFiltersToQuery), so the serializer
+             * escapes it — a raw `~tilde-first` would come back as
+             * "contains tilde-first" and `/api/*` as a wildcard. The chip
+             * must parse back to an equality on the value it came from.
+             */
+            const serviceTuple: [string, Array<string>] | undefined =
+              filters.find((tuple: [string, Array<string>]): boolean => {
+                return tuple[0] === "attributes.resource.service.name";
+              });
+
+            expect(serviceTuple).toBeDefined();
+            expect(serviceTuple![1]).toHaveLength(1);
+            expect(parseSearchValue(serviceTuple![1][0]!)).toMatchObject({
+              operator: SearchValueOperator.Equals,
+              value: hostileValue,
+            });
             break;
           }
 

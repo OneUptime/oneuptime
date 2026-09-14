@@ -22,8 +22,17 @@ import useLogsHistogram, {
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
 import {
   ATTRIBUTE_FACET_PREFIX,
+  applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  pickTypedLogFilter,
+  preserveBaseAttributesInTypedFilter,
+  serializeTypedLogFilter,
 } from "./LogsHistogramRequest";
+import {
+  attachLogsLockedFilterDetails,
+  buildLogsLockedFilterActions,
+} from "./LogsLockedScope";
+import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
@@ -415,6 +424,24 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   if (props.logQuery && Object.keys(props.logQuery).length > 0) {
     for (const key in props.logQuery) {
       (query as any)[key] = (props.logQuery as any)[key] as any;
+    }
+
+    /*
+     * The attributes map is the one nested object the query is later written
+     * INTO (chips land in `attributes[<key>]`), so it must be this query's
+     * own copy — sharing the host's object turned every applied attribute
+     * chip into a permanent part of the page's scope.
+     */
+    const pinnedAttributes: unknown = (props.logQuery as any).attributes;
+
+    if (
+      pinnedAttributes &&
+      typeof pinnedAttributes === "object" &&
+      !Array.isArray(pinnedAttributes)
+    ) {
+      (query as any).attributes = {
+        ...(pinnedAttributes as Record<string, unknown>),
+      };
     }
   }
 
@@ -1027,6 +1054,38 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     ],
   );
 
+  /*
+   * The slice of the list query the chart and the facet counts are built
+   * over, keyed by VALUE. `filterOptions` is rebuilt as a new object on every
+   * base-scope pass (including the one right after mount, which reproduces
+   * what the initializer already built), so keying the aggregate fetchers
+   * on the object itself refetched both endpoints twice per mount and, on a
+   * host prop change, once with the previous scope in the render before the
+   * query caught up. Keyed on this serialization they refetch exactly when
+   * what they would send changes.
+   */
+  const typedAggregateFilterKey: string = serializeTypedLogFilter(
+    filterOptions as unknown as Record<string, unknown>,
+  );
+
+  const typedAggregateFilter: Record<string, unknown> | undefined =
+    useMemo(() => {
+      return pickTypedLogFilter(
+        filterOptions as unknown as Record<string, unknown>,
+      );
+      /*
+       * Deliberately keyed on the serialized slice, not on filterOptions:
+       * equal content must be the same identity.
+       */
+    }, [typedAggregateFilterKey]);
+
+  /*
+   * Monotonic id of the latest facets request, so a slower earlier one
+   * cannot overwrite the counts of the scope on screen.
+   */
+  const facetRequestSequence: React.MutableRefObject<number> =
+    useRef<number>(0);
+
   // --- Fetch histogram ---
 
   const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> =
@@ -1044,6 +1103,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         attributes: logQueryAttributes,
         entityKeys: logQueryEntityKeys,
         appliedFacetFilters: appliedFacetFilters,
+        /*
+         * What the search bar typed lives only in the list query; without
+         * it the chart counted rows the list no longer showed.
+         */
+        typedFilter: typedAggregateFilter,
       });
 
       /*
@@ -1070,6 +1134,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       timeRange,
       logQueryAttributes,
       logQueryEntityKeys,
+      typedAggregateFilter,
     ]);
 
   const histogram: LogsHistogramState = useLogsHistogram(fetchHistogramBuckets);
@@ -1078,6 +1143,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const fetchFacets: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      /*
+       * The request the sidebar is waiting for right now. A response that
+       * comes back after the scope moved on (a host prop change, a new chip)
+       * is dropped rather than painted over the counts for the scope the
+       * reader is actually looking at — the same rule the histogram applies
+       * through its query identity.
+       */
+      const sequence: number = ++facetRequestSequence.current;
+
+      const isCurrent: () => boolean = (): boolean => {
+        return facetRequestSequence.current === sequence;
+      };
+
       try {
         setFacetLoading(true);
 
@@ -1140,10 +1218,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["facetSearchText"] = facetSearchTextActive;
         }
 
+        /*
+         * Same rule as the histogram: the typed search narrows the list, so
+         * the facet counts must be taken over the same rows.
+         */
+        applyTypedLogFilterToRequest(requestData, typedAggregateFilter);
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/facets",
           requestData,
         );
+
+        if (!isCurrent()) {
+          return;
+        }
 
         const facets: FacetData = (response.data["facets"] ||
           {}) as unknown as FacetData;
@@ -1151,9 +1239,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setFacetData(facets);
       } catch {
         // Facets are non-critical; silently degrade
-        setFacetData({});
+        if (isCurrent()) {
+          setFacetData({});
+        }
       } finally {
-        setFacetLoading(false);
+        // A superseded request must not switch off the loader of the live one.
+        if (isCurrent()) {
+          setFacetLoading(false);
+        }
       }
     }, [
       serviceIdStrings,
@@ -1164,6 +1257,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       logQueryAttributes,
       logQueryEntityKeys,
       facetSearchText,
+      typedAggregateFilter,
     ]);
 
   // --- Handlers (defined before effects that reference them) ---
@@ -1524,11 +1618,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(
     (newFilter: Query<Log>): void => {
-      setFilterOptions(newFilter);
+      /*
+       * The bar's submit spreads a parsed `attributes` object over the
+       * query, which would drop the page's pinned attributes from the list
+       * while the locked chips still show them — keep them underneath, then
+       * re-apply the chips on top: a chip the user can see stays true (it
+       * wins over a typed value for the same column, as it always has), and
+       * a typed value for any other key survives. Without this second pass a
+       * typed `@env:prod` silently dropped an applied `k8s.namespace` chip
+       * from the list and the facets while the chart still honoured it.
+       */
+      setFilterOptions(
+        applyLogsFacetFiltersToQuery(
+          preserveBaseAttributesInTypedFilter(newFilter, logQueryAttributes),
+          appliedFacetFilters,
+        ),
+      );
       setPage(1);
       disableLiveMode();
     },
-    [disableLiveMode],
+    [disableLiveMode, logQueryAttributes, appliedFacetFilters],
   );
 
   const handlePageChange: (nextPage: number) => void = useCallback(
@@ -2100,19 +2209,41 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }),
     );
 
-    return filters;
+    /*
+     * Every locked chip explains itself: what the server matches (the
+     * attribute, the entity key the page's entityScope adds, the entity id)
+     * and the search syntax that reproduces it on the main explorer.
+     */
+    return attachLogsLockedFilterDetails(filters, {
+      logQueryAttributes,
+      entityScope: props.entityScope,
+    });
   }, [
     props.serviceIds,
     props.scopeEntityType,
     props.traceIds,
     props.spanIds,
     props.sessionIds,
+    props.entityScope,
     traceIdStrings,
     logQueryAttributes,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
     entityNameMap,
   ]);
+
+  /*
+   * "Copy filter" / "Open in Logs" for the whole locked scope. Undefined on
+   * the main explorer (nothing is locked there), so nothing renders.
+   */
+  const lockedFilterActions: LockedFilterActionOptions | undefined =
+    useMemo(() => {
+      return buildLogsLockedFilterActions({
+        chips: baseActiveFilters,
+        logQueryAttributes,
+        timeRange,
+      });
+    }, [baseActiveFilters, logQueryAttributes, timeRange]);
 
   /*
    * Names the server already resolved for the entity facet. Derived once per
@@ -2366,6 +2497,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           resolveSpanRoute={resolveSpanRoute}
           getSessionRoute={getSessionRoute}
           signalPivotActions={signalPivotActions}
+          lockedFilterSignal="logs"
+          lockedFilterActions={lockedFilterActions}
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}

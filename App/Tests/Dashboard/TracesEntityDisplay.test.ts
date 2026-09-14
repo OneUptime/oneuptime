@@ -40,7 +40,14 @@ import {
   SpanScopeChip,
   buildSpanQueryScope,
 } from "../../FeatureSet/Dashboard/src/Utils/SpanQueryScope";
+import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
+import { parseTraceSearch } from "../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
 import {
+  LOCKED_FILTER_SOURCE_PAGE,
+  LOCKED_FILTER_SOURCE_STORED_QUERY,
+} from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
+import {
+  AttributeEntityScope,
   TRACE_ANALYTICS_EMPTY_GROUP_LABEL,
   TRACE_ENTITY_FACET_KEYS,
   TRACE_PRIMARY_ENTITY_FACET_KEY,
@@ -48,6 +55,8 @@ import {
   buildFacetDisplayNames,
   buildLockedAttributeChip,
   buildTraceEntityTypeHints,
+  describeStoredQueryChip,
+  entityScopeForAttributeKey,
   collectTraceAnalyticsEntityIds,
   collectTraceEntityIdsToResolve,
   formatTraceAnalyticsGroupValue,
@@ -659,7 +668,48 @@ describe("resolveTraceChipDisplay", () => {
   });
 });
 
+describe("entityScopeForAttributeKey", () => {
+  const hostScope: AttributeEntityScope = {
+    entityKeys: ["3f9a1b2c4d5e6f70"],
+    attributeKey: "resource.host.name",
+    attributeValue: "web-01",
+  };
+
+  test("hands the scope to the chip whose attribute it names", () => {
+    expect(entityScopeForAttributeKey(hostScope, "resource.host.name")).toBe(
+      hostScope,
+    );
+  });
+
+  test("withholds it from every other chip — a Docker host's runtime chip is not the host's entity", () => {
+    expect(
+      entityScopeForAttributeKey(hostScope, "resource.container.runtime"),
+    ).toBeUndefined();
+  });
+
+  test("a page without an entity scope attaches nothing", () => {
+    expect(
+      entityScopeForAttributeKey(undefined, "resource.host.name"),
+    ).toBeUndefined();
+  });
+});
+
 describe("buildLockedAttributeChip", () => {
+  test("is label only — the explanation is the viewer's to attach, so this module never loads the explorer link builder", () => {
+    /*
+     * Utils/LockedTelemetryScopeLink reaches Common/UI/Config through
+     * RouteMap, and that reads `window` at load. This suite runs in plain
+     * Node; the builder staying label-only (the viewer attaches the detail
+     * next to the entity scope it alone knows) keeps this module free of it.
+     */
+    expect(
+      buildLockedAttributeChip({
+        key: "resource.k8s.cluster.name",
+        value: "prod-eu-1-7f3a",
+      }).lockedDetail,
+    ).toBeUndefined();
+  });
+
   test("shows the host's friendly name while filtering by the identifier", () => {
     expect(
       buildLockedAttributeChip({
@@ -1413,5 +1463,134 @@ describe("end to end with the real resolver", () => {
         scopeEntityType: ServiceType.RealUserMonitor,
       }),
     ).toMatchObject({ displayKey: "RUM Application", displayValue: RUM_ID });
+  });
+});
+
+describe("describeStoredQueryChip", () => {
+  function storedChip(overrides: Partial<ActiveFilter>): ActiveFilter {
+    return {
+      facetKey: "statusCode",
+      value: "2",
+      displayKey: "Status",
+      displayValue: "Error",
+      readOnly: true,
+      ...overrides,
+    };
+  }
+
+  test("trace and span chips get the id describers under the stored-query source", () => {
+    const trace: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({ facetKey: "traceId", value: "t-1", displayKey: "Trace" }),
+    );
+    expect(trace.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
+    expect(trace.predicates[0]!.expression).toBe('traceId = "t-1"');
+    expect(trace.searchToken).toBe("trace:t-1");
+
+    const span: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({ facetKey: "spanId", value: "s-1", displayKey: "Span" }),
+    );
+    expect(span.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
+    expect(span.searchToken).toBe("span:s-1");
+  });
+
+  test("entity chips are explained by entity id with the RESOLVED label, never the 'Service' seed", () => {
+    const detail: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({
+        facetKey: "primaryEntityId",
+        value: "651a000000000000000000aa",
+        displayKey: "RUM Application",
+        displayValue: "checkout-web",
+      }),
+    );
+
+    expect(detail.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
+    expect(detail.summary).toBe(
+      "Only traces emitted by this RUM Application are shown.",
+    );
+    expect(detail.searchToken).toBe("service:651a000000000000000000aa");
+    expect(detail.source).not.toBe(LOCKED_FILTER_SOURCE_PAGE);
+
+    // The pre-rename alias is an entity chip too.
+    expect(
+      describeStoredQueryChip(
+        storedChip({
+          facetKey: "serviceId",
+          value: "651a000000000000000000aa",
+        }),
+      ).searchToken,
+    ).toBe("service:651a000000000000000000aa");
+  });
+
+  test("a status chip is explained as its predicate and spelled with the status token", () => {
+    const detail: LockedFilterDetail = describeStoredQueryChip(storedChip({}));
+
+    expect(detail.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
+    expect(detail.predicates).toEqual([
+      { label: "Status", expression: 'statusCode = "2"' },
+    ]);
+    expect(detail.searchToken).toBe("status:2");
+  });
+
+  test("a single stored span name is a substring match — and the tooltip says so — only when the scope says the column took that path", () => {
+    const substring: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
+      { substringColumns: new Set<string>(["name"]) },
+    );
+    expect(substring.predicates[0]!.expression).toBe(
+      'name contains "checkout"',
+    );
+    expect(substring.searchToken).toBe("name:checkout");
+
+    const exact: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
+      { substringColumns: new Set<string>(["statusMessage"]) },
+    );
+    expect(exact.predicates[0]!.expression).toBe('name = "checkout"');
+
+    const noContext: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
+    );
+    expect(noContext.predicates[0]!.expression).toBe('name = "checkout"');
+  });
+
+  test("an entity-keys chip can neither be copied nor carried, and is told so", () => {
+    const detail: LockedFilterDetail = describeStoredQueryChip(
+      storedChip({
+        facetKey: "entityKeys",
+        value: "3f9a1b2c4d5e6f70",
+        displayKey: "Resource",
+        displayValue: "3f9a1b2c4d5e6f70",
+      }),
+    );
+
+    expect(detail.predicates[0]!.expression).toBe(
+      "entityKeys has 3f9a1b2c4d5e6f70",
+    );
+    expect(detail.searchToken).toBeUndefined();
+    expect(detail.searchTokenUnavailableReason).toBe(
+      "This filter cannot be copied or carried to the explorer.",
+    );
+  });
+});
+
+describe("stored-query search tokens round-trip through the traces search parser", () => {
+  /*
+   * The tokens the tooltip offers for a stored query's span columns must
+   * land on the same column, with the same value, when pasted into the
+   * traces search bar — that is what the traces query builder compiles.
+   */
+  test.each([
+    ["status:2", "statusCode", "2"],
+    ["kind:SPAN_KIND_SERVER", "kind", "SPAN_KIND_SERVER"],
+    ["hasexception:true", "hasException", "true"],
+    ["name:checkout", "name", "checkout"],
+    ['name:"POST /checkout submit"', "name", "POST /checkout submit"],
+    ["statusmessage:boom", "statusMessage", "boom"],
+  ])("%s", (token: string, column: string, value: string) => {
+    const parsed: ReturnType<typeof parseTraceSearch> = parseTraceSearch(token);
+
+    expect(parsed.fieldFilters[column]).toEqual([value]);
+    expect(parsed.freeText).toBe("");
+    expect(parsed.attributeFilters).toEqual([]);
   });
 });

@@ -331,6 +331,20 @@ export interface TracesPivotInput {
   freeText: string;
   rootOnly: boolean;
   hasEntityScope: boolean;
+  /*
+   * The attribute half of the host's entityScope, when it has one. A
+   * resource page pins the SAME attribute through `scopeAttributeFilters`,
+   * which the pivot carries verbatim — so an entity scope that names an
+   * attribute already in the carried set is not lost and must not be
+   * reported as such. Without this (the legacy shape) the scope is reported
+   * as not carried whenever `hasEntityScope` is set.
+   */
+  entityScope?:
+    | {
+        attributeKey: string;
+        attributeValue: string;
+      }
+    | undefined;
   startTime: Date;
   endTime: Date;
 }
@@ -497,8 +511,26 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
     notCarried.add("root-spans-only");
   }
 
+  /*
+   * An entity scope is only lost when nothing else says the same thing. The
+   * Host / Docker / Kubernetes pages pass their scope twice — as entityScope
+   * (entity keys OR attribute) and as the attribute filter alone — and the
+   * attribute half is carried above, so the pivot lands on the same rows the
+   * page showed (every row stamped with the entity key also carries the
+   * attribute the key was derived from). Only a scope with no attribute
+   * counterpart — the Inventory pages' entityKeysFilter — cannot travel.
+   */
   if (input.hasEntityScope) {
-    notCarried.add("entity scope");
+    const carriedByAttribute: boolean = Boolean(
+      input.entityScope &&
+        input.entityScope.attributeKey.length > 0 &&
+        attributes[input.entityScope.attributeKey] ===
+          input.entityScope.attributeValue,
+    );
+
+    if (!carriedByAttribute) {
+      notCarried.add("entity scope");
+    }
   }
 
   const scope: TraceCrossSignalScope = {

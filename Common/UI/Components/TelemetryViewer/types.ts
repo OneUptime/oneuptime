@@ -1,3 +1,4 @@
+import { LockedFilterDetail } from "../../../Types/Telemetry/LockedFilterDetail";
 import IconProp from "../../../Types/Icon/IconProp";
 
 /*
@@ -24,6 +25,11 @@ export interface ActiveFilter {
   displayKey: string;
   displayValue: string;
   readOnly?: boolean | undefined;
+  /*
+   * For a read-only chip: what it matches and why it is locked, rendered as
+   * the chip's tooltip and folded into "Copy filter". Display only.
+   */
+  lockedDetail?: LockedFilterDetail | undefined;
 }
 
 export interface HistogramBucket {

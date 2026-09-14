@@ -4,11 +4,27 @@ import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import { formatDictionaryValueForDisplay } from "../../Dictionary/DictionaryFilterOperator";
+import LockedFilterChip from "../../TelemetryViewer/components/LockedFilterChip";
+import LockedFilterActions, {
+  LockedFilterActionOptions,
+} from "../../TelemetryViewer/components/LockedFilterActions";
+import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 
 export interface ActiveFilterChipsProps {
   filters: Array<ActiveFilter>;
   onRemove: (facetKey: string, value: string) => void;
   onClearAll: () => void;
+  /*
+   * Which explorer the read-only chips belong to — names the explorer in the
+   * locked chips' tooltips and in the "Copy filter" / "Open in …" actions.
+   * Defaults to logs, the only signal this list renders.
+   */
+  signal?: TelemetrySignal | undefined;
+  /*
+   * How the host reproduces its locked scope elsewhere. Rendered after the
+   * read-only chips; nothing is rendered when neither field is set.
+   */
+  lockedFilterActions?: LockedFilterActionOptions | undefined;
 }
 
 /*
@@ -60,6 +76,8 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
     return null;
   }
 
+  const signal: TelemetrySignal = props.signal || "logs";
+
   const readOnlyFilters: Array<ActiveFilter> = props.filters.filter(
     (f: ActiveFilter) => {
       return f.readOnly;
@@ -76,23 +94,22 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
       {readOnlyFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `readonly:${filter.facetKey}:${chipText(filter.value)}`;
         return (
-          <span
+          <LockedFilterChip
             key={chipKey}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700"
-            title={`${filter.displayKey}: ${chipText(filter.displayValue)} (applied filter)`}
-          >
-            <Icon icon={IconProp.Lock} className="h-2.5 w-2.5 text-gray-400" />
-            <span className="font-medium text-gray-500">
-              {filter.displayKey}:
-            </span>
-            <span>{chipText(filter.displayValue)}</span>
-            {renderOpenAffordance(
+            displayKey={filter.displayKey}
+            displayValue={chipText(filter.displayValue)}
+            lockedDetail={filter.lockedDetail}
+            signal={signal}
+            trailing={renderOpenAffordance(
               filter,
               "text-gray-400 hover:bg-gray-200 hover:text-indigo-600",
             )}
-          </span>
+          />
         );
       })}
+      {readOnlyFilters.length > 0 && props.lockedFilterActions && (
+        <LockedFilterActions signal={signal} {...props.lockedFilterActions} />
+      )}
       {removableFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `${filter.facetKey}:${chipText(filter.value)}`;
         return (

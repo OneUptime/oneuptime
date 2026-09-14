@@ -42,6 +42,8 @@ import LogDetailsPanel from "./components/LogDetailsPanel";
 import LogsHistogram from "./components/LogsHistogram";
 import LogsFacetSidebar from "./components/LogsFacetSidebar";
 import ActiveFilterChips from "./components/ActiveFilterChips";
+import { LockedFilterActionOptions } from "../TelemetryViewer/components/LockedFilterActions";
+import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import {
   LiveLogsOptions,
   HistogramBucket,
@@ -160,6 +162,13 @@ export interface ComponentProps {
   analyticsSessionIds?: Array<string> | undefined;
   analyticsAppliedFacetFilters?: Map<string, Set<string>> | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
+  /*
+   * Which explorer this is (names the explorer in the locked chips' tooltips
+   * and actions) and how the host reproduces its locked scope on that
+   * explorer — see LockedFilterActions. Both forwarded to the chip list.
+   */
+  lockedFilterSignal?: TelemetrySignal | undefined;
+  lockedFilterActions?: LockedFilterActionOptions | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -1205,6 +1214,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           filters={[...enrichedBaseActiveFilters, ...enrichedActiveFilters]}
           onRemove={props.onRemoveFilter || (() => {})}
           onClearAll={props.onClearAllFilters || (() => {})}
+          signal={props.lockedFilterSignal}
+          lockedFilterActions={props.lockedFilterActions}
         />
       )}
 
