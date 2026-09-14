@@ -162,6 +162,10 @@ export interface ReplayStageOverlaysProps {
   scale: number;
   fit: ReplayStageFit;
   onFitChange: (fit: ReplayStageFit) => void;
+  /* Read-only iframe hit-testing for selecting the captured DOM text. */
+  canSelectText?: boolean | undefined;
+  isTextSelectionEnabled: boolean;
+  onTextSelectionChange: (isEnabled: boolean) => void;
 
   onPlayPause: () => void;
   onWatchAgain: () => void;
@@ -500,7 +504,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
 
   let centreOverlay: ReactElement | null = null;
 
-  if (phase === "error" && snapshot.error) {
+  if (props.isTextSelectionEnabled) {
+    /* The recorded page must remain unobstructed in every terminal phase. */
+    centreOverlay = null;
+  } else if (phase === "error" && snapshot.error) {
     centreOverlay = (
       <div
         data-testid="replay-overlay-error"
@@ -778,6 +785,22 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             )}
           </span>
         )}
+        <ReplayToolButton
+          dataTestId="replay-select-text"
+          icon={IconProp.CursorArrowRays}
+          label="Select text"
+          tone="accent"
+          isPressed={props.isTextSelectionEnabled}
+          isDisabled={props.canSelectText === false}
+          title={
+            props.isTextSelectionEnabled
+              ? "Exit text selection mode"
+              : "Pause the replay and select text to copy"
+          }
+          onClick={(): void => {
+            props.onTextSelectionChange(!props.isTextSelectionEnabled);
+          }}
+        />
         <ReplayButtonGroup
           ariaLabel="Stage fit"
           dataTestId="replay-fit-toggle"

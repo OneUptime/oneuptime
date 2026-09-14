@@ -539,6 +539,15 @@ describe("Session Replay docs page", (): void => {
     }
   });
 
+  it("documents read-only text selection without weakening the masking promise", (): void => {
+    const player: string = section(readPage(), "### The player");
+
+    expect(player).toContain("**Select text**");
+    expect(player).toContain("read-only");
+    expect(player).toContain("masked or blocked at capture time");
+    expect(player).toContain("_Mask all text_");
+  });
+
   it("lists every keyboard shortcut the player binds, by the same key labels", (): void => {
     const shortcuts: string = section(readPage(), "### Keyboard shortcuts");
     let checked: number = 0;

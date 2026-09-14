@@ -4,6 +4,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -60,6 +61,11 @@ export interface ReplayStageProps {
   /* Reserve space for the timeline and transport on desktop. */
   reservedBottomHeightPx?: number | undefined;
   /*
+   * Paused, read-only inspection mode. rrweb disables iframe hit-testing by
+   * default; this opt-in lets a viewer select and copy the captured text.
+   */
+  isTextSelectionEnabled?: boolean | undefined;
+  /*
    * What the recorder said it could do, from the manifest. Only one entry
    * matters here: whether mouse movement was sampled at the faster
    * cadence, which sets how long the cursor takes to cross between two
@@ -110,6 +116,709 @@ const DEFAULT_ASPECT: ReplayRecordedSize = { width: 16, height: 9 };
 export const REPLAY_DOCUMENT_CSP: string =
   "script-src 'none'; default-src 'none'; img-src data: blob:; " +
   "style-src 'unsafe-inline'; font-src data:; media-src 'none'; connect-src 'none'";
+
+/*
+ * rrweb deliberately starts every replay iframe with pointer-events:none.
+ * That is a safe playback default, but it also means a viewer cannot select
+ * the already-recorded, already-masked DOM text to paste into a bug report.
+ *
+ * The attribute selector gives this rule enough specificity to beat common
+ * `.select-none` utility classes. It is injected after the recorded page's
+ * styles and uses !important because selection is a viewer affordance, not a
+ * visual property whose recorded value needs to be preserved.
+ */
+export const REPLAY_TEXT_SELECTION_CSS: string = `
+html[data-oneuptime-replay-text-selection],
+html[data-oneuptime-replay-text-selection] body,
+html[data-oneuptime-replay-text-selection] body * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+html[data-oneuptime-replay-text-selection] textarea {
+  resize: none !important;
+}
+html[data-oneuptime-replay-text-selection] audio,
+html[data-oneuptime-replay-text-selection] video,
+html[data-oneuptime-replay-text-selection] embed,
+html[data-oneuptime-replay-text-selection] object {
+  pointer-events: none !important;
+}
+`;
+const REPLAY_SHADOW_TEXT_SELECTION_CSS: string = `
+:host,
+:host * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+:host textarea {
+  resize: none !important;
+}
+:host audio,
+:host video,
+:host embed,
+:host object {
+  pointer-events: none !important;
+}
+`;
+
+const REPLAY_TEXT_SELECTION_ATTRIBUTE: string =
+  "data-oneuptime-replay-text-selection";
+const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+  "data-oneuptime-replay-text-selection-style";
+const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+  "data-oneuptime-replay-shadow-text-selection-style";
+
+/*
+ * One listener set per Document. A full-snapshot rebuild replaces <html> and
+ * <head>, but keeps the Document object; the WeakSet prevents duplicate
+ * guards while still allowing a destroyed Replayer and its document to be
+ * collected.
+ */
+const guardedReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
+const enabledReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
+const observedReplayFrames: WeakSet<HTMLIFrameElement> =
+  new WeakSet<HTMLIFrameElement>();
+const observedReplayShadowRoots: WeakSet<ShadowRoot> =
+  new WeakSet<ShadowRoot>();
+interface ReplayScrollPosition {
+  left: number;
+  top: number;
+}
+const replayScrollPositions: WeakMap<
+  Document,
+  Map<Element, ReplayScrollPosition>
+> = new WeakMap<Document, Map<Element, ReplayScrollPosition>>();
+const replayInlineStyles: WeakMap<
+  Document,
+  Map<Element, string | null>
+> = new WeakMap<Document, Map<Element, string | null>>();
+
+function applyReplayInlineStyle(
+  doc: Document,
+  element: Element,
+  property: string,
+  value: string,
+): void {
+  const style: CSSStyleDeclaration | undefined = (
+    element as Element & { style?: CSSStyleDeclaration }
+  ).style;
+
+  if (!style) {
+    return;
+  }
+
+  let elements: Map<Element, string | null> | undefined =
+    replayInlineStyles.get(doc);
+
+  if (!elements) {
+    elements = new Map<Element, string | null>();
+    replayInlineStyles.set(doc, elements);
+  }
+
+  if (!elements.has(element)) {
+    /*
+     * Keep the complete attribute, including whether it existed at all.
+     * Chromium aliases user-select and -webkit-user-select in the style
+     * declaration, so restoring properties independently can preserve our
+     * second override. Restoring the exact attribute also avoids leaving
+     * style="" behind on a previously style-less recorded element.
+     */
+    elements.set(element, element.getAttribute("style"));
+  }
+
+  style.setProperty(property, value, "important");
+}
+
+function restoreReplayInlineStyles(doc: Document): void {
+  const elements: Map<Element, string | null> | undefined =
+    replayInlineStyles.get(doc);
+
+  if (!elements) {
+    return;
+  }
+
+  for (const [element, previous] of elements) {
+    if (previous === null) {
+      element.removeAttribute("style");
+    } else {
+      element.setAttribute("style", previous);
+    }
+  }
+
+  replayInlineStyles.delete(doc);
+}
+
+function getReplayScrollPositions(
+  doc: Document,
+): Map<Element, ReplayScrollPosition> {
+  const existing: Map<Element, ReplayScrollPosition> | undefined =
+    replayScrollPositions.get(doc);
+
+  if (existing) {
+    return existing;
+  }
+
+  const positions: Map<Element, ReplayScrollPosition> = new Map<
+    Element,
+    ReplayScrollPosition
+  >();
+  replayScrollPositions.set(doc, positions);
+  return positions;
+}
+
+function rememberReplayRootScrollPositions(
+  doc: Document,
+  root: ParentNode,
+): void {
+  const positions: Map<Element, ReplayScrollPosition> =
+    getReplayScrollPositions(doc);
+  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+
+  for (const element of Array.from(elements)) {
+    const tagName: string = element.tagName.toLowerCase();
+    const computedStyle: CSSStyleDeclaration | undefined =
+      doc.defaultView?.getComputedStyle(element);
+    const effectiveUserSelect: string | undefined =
+      computedStyle?.getPropertyValue("user-select") ||
+      computedStyle?.getPropertyValue("-webkit-user-select");
+
+    /*
+     * The injected !important rules handle normal recorded CSS. Only touch
+     * an element inline when its stronger recorded cascade still wins (most
+     * commonly an inline !important declaration), keeping the live replay
+     * DOM as close to the snapshot as possible.
+     */
+    if (effectiveUserSelect !== "text") {
+      applyReplayInlineStyle(doc, element, "user-select", "text");
+      applyReplayInlineStyle(doc, element, "-webkit-user-select", "text");
+    }
+
+    if (
+      tagName === "textarea" &&
+      computedStyle?.getPropertyValue("resize") !== "none"
+    ) {
+      applyReplayInlineStyle(doc, element, "resize", "none");
+    }
+
+    if (
+      ["audio", "video", "embed", "object"].includes(tagName) &&
+      computedStyle?.getPropertyValue("pointer-events") !== "none"
+    ) {
+      applyReplayInlineStyle(doc, element, "pointer-events", "none");
+    }
+
+    if (!positions.has(element)) {
+      positions.set(element, {
+        left: element.scrollLeft,
+        top: element.scrollTop,
+      });
+    }
+  }
+
+  const scrollingElement: Element | null = doc.scrollingElement;
+
+  if (scrollingElement && !positions.has(scrollingElement)) {
+    positions.set(scrollingElement, {
+      left: scrollingElement.scrollLeft,
+      top: scrollingElement.scrollTop,
+    });
+  }
+}
+
+function restoreReplayScrollPosition(
+  element: Element,
+  position: ReplayScrollPosition,
+): void {
+  if (
+    element.scrollLeft === position.left &&
+    element.scrollTop === position.top
+  ) {
+    return;
+  }
+
+  const style: CSSStyleDeclaration | undefined = (
+    element as Element & { style?: CSSStyleDeclaration }
+  ).style;
+  const previousStyleAttribute: string | null = element.getAttribute("style");
+
+  style?.setProperty("scroll-behavior", "auto", "important");
+  element.scrollLeft = position.left;
+  element.scrollTop = position.top;
+
+  if (previousStyleAttribute === null) {
+    element.removeAttribute("style");
+  } else {
+    element.setAttribute("style", previousStyleAttribute);
+  }
+}
+
+function preventReplayDefault(event: Event): void {
+  event.preventDefault();
+}
+
+function closestReplayElement(
+  target: EventTarget | null,
+  selector: string,
+): Element | null {
+  const closest: ((value: string) => Element | null) | undefined = (
+    target as Element | null
+  )?.closest;
+
+  return typeof closest === "function" ? closest.call(target, selector) : null;
+}
+
+function getReplayEventPath(event: Event): EventTarget[] {
+  if (typeof event.composedPath === "function") {
+    return event.composedPath();
+  }
+
+  return event.target ? [event.target] : [];
+}
+
+function closestReplayEventElement(
+  event: Event,
+  selector: string,
+): Element | null {
+  const path: EventTarget[] = getReplayEventPath(event);
+
+  for (const target of path) {
+    const match: Element | null = closestReplayElement(target, selector);
+
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+function isTextSelectableControl(element: Element | null): boolean {
+  if (!element) {
+    return false;
+  }
+
+  const tagName: string = element.tagName.toLowerCase();
+
+  if (tagName === "textarea") {
+    return true;
+  }
+
+  const contentEditable: string | null =
+    element.getAttribute("contenteditable");
+
+  if (contentEditable !== null) {
+    return contentEditable.toLowerCase() !== "false";
+  }
+
+  if (tagName !== "input") {
+    return false;
+  }
+
+  return ["email", "password", "search", "tel", "text", "url"].includes(
+    ((element as HTMLInputElement).type || "text").toLowerCase(),
+  );
+}
+
+function rememberReplayScrollPositions(event: Event): void {
+  const doc: Document = event.currentTarget as Document;
+  const positions: Map<Element, ReplayScrollPosition> =
+    getReplayScrollPositions(doc);
+
+  const path: EventTarget[] = getReplayEventPath(event);
+
+  for (const target of path) {
+    const element: Element = target as Element;
+
+    if (
+      typeof element.scrollLeft === "number" &&
+      typeof element.scrollTop === "number" &&
+      !positions.has(element)
+    ) {
+      positions.set(element, {
+        left: element.scrollLeft,
+        top: element.scrollTop,
+      });
+    }
+  }
+
+  const scrollingElement: Element | null = doc.scrollingElement;
+
+  if (scrollingElement && !positions.has(scrollingElement)) {
+    positions.set(scrollingElement, {
+      left: scrollingElement.scrollLeft,
+      top: scrollingElement.scrollTop,
+    });
+  }
+}
+
+/*
+ * A click guard is too late for sliders, colour/date pickers and similar
+ * controls: browsers may mutate them during pointer handling. Text fields and
+ * textareas remain pointer-selectable; every other native control is inert.
+ */
+function preventReplayControlPointerMutation(event: Event): void {
+  rememberReplayScrollPositions(event);
+  const control: Element | null = closestReplayEventElement(
+    event,
+    "input, select, option, audio, video, embed, object",
+  );
+
+  if (control && !isTextSelectableControl(control)) {
+    event.preventDefault();
+  }
+}
+
+/*
+ * Text selection may focus a recorded form control. Let the viewer use the
+ * native copy/select-all shortcuts and extend a selection with Shift+Arrow,
+ * but suppress keys that could edit or operate that recorded control.
+ */
+function preventReplayKeyboardMutation(event: Event): void {
+  const keyboardEvent: KeyboardEvent = event as KeyboardEvent;
+  const key: string = keyboardEvent.key.toLowerCase();
+  const interactive: Element | null = closestReplayEventElement(
+    keyboardEvent,
+    "input, textarea, select, button, a[href], summary, audio[controls], video[controls], embed, object, [contenteditable]",
+  );
+  const isStatefulControl: boolean =
+    interactive !== null &&
+    [
+      "input",
+      "select",
+      "button",
+      "summary",
+      "audio",
+      "video",
+      "embed",
+      "object",
+    ].includes(interactive.tagName.toLowerCase()) &&
+    !isTextSelectableControl(interactive);
+  const isCopyOrSelectAll: boolean =
+    (keyboardEvent.ctrlKey || keyboardEvent.metaKey) &&
+    (key === "c" || key === "a" || key === "insert");
+  const isExtendingSelection: boolean =
+    keyboardEvent.shiftKey &&
+    !isStatefulControl &&
+    ["arrowleft", "arrowright", "arrowup", "arrowdown", "home", "end"].includes(
+      key,
+    );
+  const isFocusTraversal: boolean = key === "tab";
+
+  if (isCopyOrSelectAll || isExtendingSelection || isFocusTraversal) {
+    return;
+  }
+
+  const scrollKeys: string[] = [
+    " ",
+    "spacebar",
+    "pageup",
+    "pagedown",
+    "arrowleft",
+    "arrowright",
+    "arrowup",
+    "arrowdown",
+    "home",
+    "end",
+  ];
+  const hasCommandModifier: boolean =
+    keyboardEvent.ctrlKey || keyboardEvent.metaKey || keyboardEvent.altKey;
+  const isEditingKey: boolean =
+    interactive !== null &&
+    ((!hasCommandModifier && key.length === 1) ||
+      ["backspace", "delete", "enter", "escape"].includes(key) ||
+      ((keyboardEvent.ctrlKey || keyboardEvent.metaKey) &&
+        ["v", "x", "y", "z"].includes(key)) ||
+      (isStatefulControl && scrollKeys.includes(key)));
+  const isPageScroll: boolean =
+    scrollKeys.includes(key) &&
+    (!isTextSelectableControl(interactive) ||
+      ["pageup", "pagedown"].includes(key));
+
+  if (isEditingKey || isPageScroll) {
+    keyboardEvent.preventDefault();
+  }
+}
+
+/* Recorded open shadow roots need their own cascade and mutation observer. */
+function enableReplayShadowRoots(root: ParentNode, doc: Document): void {
+  rememberReplayRootScrollPositions(doc, root);
+  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+
+  for (const element of Array.from(elements)) {
+    const shadowRoot: ShadowRoot | null = element.shadowRoot;
+
+    if (!shadowRoot) {
+      continue;
+    }
+
+    if (
+      !shadowRoot.querySelector(
+        `style[${REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE}]`,
+      )
+    ) {
+      const style: HTMLStyleElement = doc.createElement("style");
+      style.setAttribute(REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
+      style.textContent = REPLAY_SHADOW_TEXT_SELECTION_CSS;
+      shadowRoot.appendChild(style);
+    }
+
+    if (!observedReplayShadowRoots.has(shadowRoot)) {
+      const MutationObserverClass: typeof MutationObserver | undefined =
+        doc.defaultView?.MutationObserver;
+
+      if (MutationObserverClass) {
+        const observer: MutationObserver = new MutationObserverClass(
+          (): void => {
+            if (enabledReplayDocuments.has(doc)) {
+              enableReplayShadowRoots(shadowRoot, doc);
+              enableNestedReplayDocuments(doc, shadowRoot);
+            }
+          },
+        );
+        observer.observe(shadowRoot, { childList: true, subtree: true });
+      }
+
+      observedReplayShadowRoots.add(shadowRoot);
+    }
+
+    enableNestedReplayDocuments(doc, shadowRoot);
+    enableReplayShadowRoots(shadowRoot, doc);
+  }
+}
+
+function disableReplayShadowRoots(root: ParentNode): void {
+  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+
+  for (const element of Array.from(elements)) {
+    const shadowRoot: ShadowRoot | null = element.shadowRoot;
+
+    if (!shadowRoot) {
+      continue;
+    }
+
+    shadowRoot
+      .querySelector(`style[${REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
+      ?.remove();
+
+    const frames: NodeListOf<HTMLIFrameElement> =
+      shadowRoot.querySelectorAll<HTMLIFrameElement>("iframe");
+
+    for (const frame of Array.from(frames)) {
+      try {
+        if (frame.contentDocument) {
+          disableReplayDocumentTextSelection(frame.contentDocument);
+        }
+      } catch {
+        // Cross-origin shadow children were never enabled.
+      }
+    }
+
+    disableReplayShadowRoots(shadowRoot);
+  }
+}
+
+/*
+ * Make the replay a read-only text surface.
+ *
+ * We do not call rrweb's enableInteract(): besides pointer hit-testing it
+ * turns scrolling back on, and unrestricted interaction lets links navigate,
+ * controls toggle, forms submit and inputs diverge from the recording. Native
+ * selection only needs the iframe to receive pointer events. The capture
+ * guards below keep every state-changing browser default inert while leaving
+ * selection, the context menu and the copy event alone.
+ */
+function enableReplayDocumentTextSelection(doc: Document): void {
+  enabledReplayDocuments.add(doc);
+  const root: HTMLElement | null = doc.documentElement;
+  const head: HTMLHeadElement | null = doc.head;
+
+  if (root) {
+    root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+  }
+
+  if (
+    head &&
+    !head.querySelector(`style[${REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
+  ) {
+    const style: HTMLStyleElement = doc.createElement("style");
+    style.setAttribute(REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
+    style.textContent = REPLAY_TEXT_SELECTION_CSS;
+    head.appendChild(style);
+  }
+
+  if (!guardedReplayDocuments.has(doc)) {
+    /*
+     * click/auxclick cover links, buttons, checkboxes, details and file
+     * inputs. submit covers keyboard-submitted forms. beforeinput plus the
+     * clipboard and drag events keep inputs/contenteditable nodes read-only
+     * without disabling them (disabled fields cannot select text).
+     */
+    for (const type of [
+      "click",
+      "auxclick",
+      "submit",
+      "beforeinput",
+      "paste",
+      "cut",
+      "dragstart",
+      "drop",
+      "wheel",
+      "touchmove",
+    ]) {
+      doc.addEventListener(type, preventReplayDefault, {
+        capture: true,
+        passive: false,
+      });
+    }
+
+    for (const type of ["pointerdown", "mousedown", "touchstart"]) {
+      doc.addEventListener(type, preventReplayControlPointerMutation, {
+        capture: true,
+        passive: false,
+      });
+    }
+
+    doc.addEventListener("keydown", preventReplayKeyboardMutation, true);
+
+    const MutationObserverClass: typeof MutationObserver | undefined =
+      doc.defaultView?.MutationObserver;
+
+    if (MutationObserverClass) {
+      const observer: MutationObserver = new MutationObserverClass((): void => {
+        if (enabledReplayDocuments.has(doc)) {
+          enableNestedReplayDocuments(doc);
+          enableReplayShadowRoots(doc, doc);
+        }
+      });
+      observer.observe(doc, { childList: true, subtree: true });
+    }
+
+    guardedReplayDocuments.add(doc);
+  }
+
+  enableNestedReplayDocuments(doc);
+  enableReplayShadowRoots(doc, doc);
+}
+
+function enableNestedReplayDocuments(
+  doc: Document,
+  root: ParentNode = doc,
+): void {
+  const frames: NodeListOf<HTMLIFrameElement> =
+    root.querySelectorAll<HTMLIFrameElement>("iframe");
+
+  for (const frame of Array.from(frames)) {
+    if (!observedReplayFrames.has(frame)) {
+      frame.addEventListener("load", (): void => {
+        try {
+          if (enabledReplayDocuments.has(doc) && frame.contentDocument) {
+            enableReplayDocumentTextSelection(frame.contentDocument);
+          }
+        } catch {
+          // A child that navigated cross-origin is intentionally opaque.
+        }
+      });
+      observedReplayFrames.add(frame);
+    }
+
+    try {
+      if (frame.contentDocument) {
+        enableReplayDocumentTextSelection(frame.contentDocument);
+      }
+    } catch {
+      // A genuinely cross-origin child remains an opaque recorded frame.
+    }
+  }
+}
+
+function disableReplayDocumentTextSelection(doc: Document): void {
+  if (!enabledReplayDocuments.delete(doc)) {
+    return;
+  }
+
+  doc.documentElement?.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
+  doc.head
+    ?.querySelector(`style[${REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
+    ?.remove();
+  doc.defaultView?.getSelection()?.removeAllRanges();
+
+  const positions: Map<Element, ReplayScrollPosition> | undefined =
+    replayScrollPositions.get(doc);
+
+  if (positions) {
+    for (const [element, position] of positions) {
+      restoreReplayScrollPosition(element, position);
+    }
+    replayScrollPositions.delete(doc);
+  }
+
+  restoreReplayInlineStyles(doc);
+
+  disableReplayShadowRoots(doc);
+
+  const frames: NodeListOf<HTMLIFrameElement> =
+    doc.querySelectorAll<HTMLIFrameElement>("iframe");
+
+  for (const frame of Array.from(frames)) {
+    try {
+      if (frame.contentDocument) {
+        disableReplayDocumentTextSelection(frame.contentDocument);
+      }
+    } catch {
+      // Cross-origin frames were never enabled and need no cleanup.
+    }
+  }
+}
+
+export function enableReplayTextSelection(replayer: ReplayerLike): void {
+  const iframe: HTMLIFrameElement = replayer.iframe;
+
+  try {
+    iframe.style.pointerEvents = "auto";
+    iframe.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+  } catch {
+    // A destroyed iframe has no text surface left to enable.
+    return;
+  }
+
+  const doc: Document | null = iframe.contentDocument;
+
+  if (doc) {
+    enableReplayDocumentTextSelection(doc);
+  }
+}
+
+/* Restore rrweb's non-interactive playback surface when inspection ends. */
+export function disableReplayTextSelection(replayer: ReplayerLike): void {
+  const iframe: HTMLIFrameElement = replayer.iframe;
+
+  try {
+    iframe.style.pointerEvents = "none";
+    iframe.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
+  } catch {
+    return;
+  }
+
+  const doc: Document | null = iframe.contentDocument;
+
+  if (!doc) {
+    return;
+  }
+
+  disableReplayDocumentTextSelection(doc);
+}
+
+function configureReplayTextSelection(
+  replayer: ReplayerLike,
+  isEnabled: boolean,
+): void {
+  if (isEnabled) {
+    enableReplayTextSelection(replayer);
+    return;
+  }
+
+  disableReplayTextSelection(replayer);
+}
 
 /*
  * The subset of rrweb/dist/style.css the player actually needs, inlined.
@@ -298,6 +1007,13 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     useRef<HTMLDivElement>(null);
   const mountRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const replayersRef: React.MutableRefObject<Set<ReplayerLike>> = useRef<
+    Set<ReplayerLike>
+  >(new Set<ReplayerLike>());
+  const isTextSelectionEnabled: boolean = props.isTextSelectionEnabled ?? false;
+  const isTextSelectionEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isTextSelectionEnabled);
+  isTextSelectionEnabledRef.current = isTextSelectionEnabled;
 
   const [boxSize, setBoxSize] = useState<BoxSize | null>(null);
   const [viewportHeightLimit, setViewportHeightLimit] = useState<number | null>(
@@ -347,7 +1063,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     };
   }, [engine]);
 
-  /* CSP + iframe title on every (re)built document; touch rings. */
+  /* CSP + iframe title/selection policy on every (re)built document; touch rings. */
   useEffect(() => {
     const timers: Set<ReturnType<typeof setTimeout>> = new Set<
       ReturnType<typeof setTimeout>
@@ -355,11 +1071,21 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
 
     const unsubscribe: () => void = engine.onReplayer(
       (event: ReplayEngineReplayerEvent): void => {
+        if (event.type === "destroyed") {
+          replayersRef.current.delete(event.replayer);
+          return;
+        }
+
         if (
           event.type === "created" ||
           event.type === "fullsnapshot-rebuilded"
         ) {
+          replayersRef.current.add(event.replayer);
           injectDocumentCsp(event.replayer);
+          configureReplayTextSelection(
+            event.replayer,
+            isTextSelectionEnabledRef.current,
+          );
 
           try {
             event.replayer.iframe.title = "Recorded page";
@@ -397,12 +1123,20 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
 
     return () => {
       unsubscribe();
+      replayersRef.current.clear();
 
       for (const timer of timers) {
         clearTimeout(timer);
       }
     };
   }, [engine]);
+
+  /* Apply a toolbar toggle to the Replayer that is already on screen. */
+  useLayoutEffect(() => {
+    for (const replayer of replayersRef.current) {
+      configureReplayTextSelection(replayer, isTextSelectionEnabled);
+    }
+  }, [isTextSelectionEnabled]);
 
   /*
    * Measure the box. Recomputed on CONTAINER resizes too, not only when

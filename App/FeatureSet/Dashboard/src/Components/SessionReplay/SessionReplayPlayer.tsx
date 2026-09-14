@@ -552,6 +552,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [scale, setScale] = useState<number>(1);
   const [scrubberHeightPx, setScrubberHeightPx] = useState<number>(240);
   const [isTheater, setIsTheater] = useState<boolean>(false);
+  const [isTextSelectionEnabled, setIsTextSelectionEnabled] =
+    useState<boolean>(false);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
     urlState.signalId,
@@ -601,6 +603,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     useRef<SessionReplayManifest | null>(null);
   const activeTabIdRef: React.MutableRefObject<string> = useRef<string>("");
   const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
+  const isTextSelectionEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const pendingTextSelectionActionRef: React.MutableRefObject<
+    (() => void) | null
+  > = useRef<(() => void) | null>(null);
   const hasRevealedSignalRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   /* Bumped per user-sessions lookup so a superseded response cannot land. */
@@ -610,6 +617,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   engineRef.current = engine;
   manifestRef.current = manifest;
   activeTabIdRef.current = activeTabId;
+  isTextSelectionEnabledRef.current = isTextSelectionEnabled;
+
+  /* ReplayStage restores its read-only inspection state in a layout effect. */
+  useEffect(() => {
+    if (isTextSelectionEnabled) {
+      return;
+    }
+
+    const pendingAction: (() => void) | null =
+      pendingTextSelectionActionRef.current;
+
+    if (!pendingAction) {
+      return;
+    }
+
+    pendingTextSelectionActionRef.current = null;
+    pendingAction();
+  }, [isTextSelectionEnabled]);
 
   /* ---- Chunk transport. ---- */
 
@@ -692,6 +717,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     setReplayerFactory(null);
     setActiveTabId("");
     setTelemetrySignals(NO_SIGNALS);
+    pendingTextSelectionActionRef.current = null;
+    isTextSelectionEnabledRef.current = false;
+    setIsTextSelectionEnabled(false);
     hasRevealedSignalRef.current = false;
 
     /*
@@ -1710,7 +1738,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   /* ---- Actions. ---- */
 
-  const seekTo: (offsetMs: number) => void = useCallback(
+  const runAfterTextSelectionExit: (action: () => void) => void = useCallback(
+    (action: () => void): void => {
+      if (
+        !isTextSelectionEnabledRef.current &&
+        pendingTextSelectionActionRef.current === null
+      ) {
+        action();
+        return;
+      }
+
+      pendingTextSelectionActionRef.current = action;
+      isTextSelectionEnabledRef.current = false;
+      setIsTextSelectionEnabled(false);
+    },
+    [],
+  );
+
+  const dispatchSeek: (offsetMs: number) => void = useCallback(
     (offsetMs: number): void => {
       seekTokenRef.current += 1;
       engineRef.current?.dispatch({
@@ -1722,6 +1767,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [],
   );
 
+  const seekTo: (offsetMs: number) => void = useCallback(
+    (offsetMs: number): void => {
+      runAfterTextSelectionExit((): void => {
+        dispatchSeek(offsetMs);
+      });
+    },
+    [dispatchSeek, runAfterTextSelectionExit],
+  );
+
   const playPause: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
 
@@ -1729,19 +1783,43 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       return;
     }
 
+    if (current.getSnapshot().intent !== "playing") {
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "PLAY" });
+      });
+      return;
+    }
+
     current.dispatch({
       type: current.getSnapshot().intent === "playing" ? "PAUSE" : "PLAY",
     });
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const watchAgain: () => void = useCallback((): void => {
-    seekTo(0);
-    engineRef.current?.dispatch({ type: "PLAY" });
-  }, [seekTo]);
+    runAfterTextSelectionExit((): void => {
+      dispatchSeek(0);
+      engineRef.current?.dispatch({ type: "PLAY" });
+    });
+  }, [dispatchSeek, runAfterTextSelectionExit]);
+
+  const changeTextSelection: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      if (isEnabled) {
+        engineRef.current?.dispatch({ type: "PAUSE" });
+        pendingTextSelectionActionRef.current = null;
+      }
+
+      isTextSelectionEnabledRef.current = isEnabled;
+      setIsTextSelectionEnabled(isEnabled);
+    },
+    [],
+  );
 
   const retry: () => void = useCallback((): void => {
-    engineRef.current?.dispatch({ type: "RETRY" });
-  }, []);
+    runAfterTextSelectionExit((): void => {
+      engineRef.current?.dispatch({ type: "RETRY" });
+    });
+  }, [runAfterTextSelectionExit]);
 
   const stillLoadingRetry: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
@@ -1753,13 +1831,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     const latest: ReplayEngineSnapshot = current.getSnapshot();
 
     if (latest.error && latest.error.retryable) {
-      current.dispatch({ type: "RETRY" });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "RETRY" });
+      });
       return;
     }
 
     /* Nothing halted: a fresh seek to the same offset restarts the fetch. */
     seekTo(latest.currentTimeMs);
-  }, [seekTo]);
+  }, [runAfterTextSelectionExit, seekTo]);
 
   const setSpeed: (speed: number) => void = useCallback(
     (speed: number): void => {
@@ -1782,9 +1862,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   const skipIdle: (band: ReplayIdleBand) => void = useCallback(
     (band: ReplayIdleBand): void => {
-      engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     },
-    [],
+    [runAfterTextSelectionExit],
   );
 
   const skipIdleJump: () => void = useCallback((): void => {
@@ -1801,9 +1883,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
 
     if (band) {
-      current.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     }
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const switchTab: (tabId: string) => void = useCallback(
     (tabId: string): void => {
@@ -1820,24 +1904,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         return;
       }
 
-      const loader: ChunkLoader = createLoader(target);
-
       if (engineRef.current) {
-        loaderRef.current = loader;
-        /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
-        engineRef.current.dispatch({
-          type: "TAB_SWITCH",
-          tabId: tabId,
-          loader: loader,
+        runAfterTextSelectionExit((): void => {
+          const loader: ChunkLoader = createLoader(target);
+          loaderRef.current = loader;
+          /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
+          engineRef.current?.dispatch({
+            type: "TAB_SWITCH",
+            tabId: tabId,
+            loader: loader,
+          });
+          setActiveTabId(tabId);
         });
-      } else {
-        pendingLoaderRef.current?.dispose();
-        pendingLoaderRef.current = loader;
+        return;
       }
 
+      const loader: ChunkLoader = createLoader(target);
+      pendingLoaderRef.current?.dispose();
+      pendingLoaderRef.current = loader;
       setActiveTabId(tabId);
     },
-    [createLoader],
+    [createLoader, runAfterTextSelectionExit],
   );
 
   const toggleTheater: () => void = useCallback((): void => {
@@ -2586,6 +2673,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   scale: scale,
                   fit: fit,
                   onFitChange: setFit,
+                  canSelectText: isPlayable && engine !== null,
+                  isTextSelectionEnabled: isTextSelectionEnabled,
+                  onTextSelectionChange: changeTextSelection,
                   onPlayPause: playPause,
                   onWatchAgain: watchAgain,
                   onRetry: retry,
@@ -2608,6 +2698,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                           viewportHeight={manifest.details.viewportHeight}
                           isTheater={isTheater}
                           fit={fit}
+                          isTextSelectionEnabled={isTextSelectionEnabled}
                           onScaleChange={setScale}
                           reservedBottomHeightPx={scrubberHeightPx + 24}
                         />

@@ -460,6 +460,8 @@ The player opens wide by default — the RUM side menu steps aside so the stage 
 
 Above the stage a URL bar shows the page the user was on at the playhead, with copy and open buttons, and a chip shows the recorded viewport and the scale it is drawn at, with a **Fit / 1:1** toggle. Mobile recordings are drawn in a phone-shaped frame.
 
+Use **Select text** in that bar to pause the replay and copy visible text from the recorded page into a bug report, search, or terminal. The page remains read-only: links cannot navigate, controls and media cannot operate, and editing, paste, cut, drag and form submission are blocked. Any inspection-time scrolling is restored on exit; starting playback, seeking or switching recorded tabs leaves selection mode first. Copying cannot reveal content that was masked or blocked at capture time; _Mask all text_ recordings still contain placeholders rather than the original words.
+
 The controls under the stage: play/pause, the current time and duration, −10s / +10s, a speed menu (0.25× to 8×), **Skip idle**, previous / next error, next frustration, a **?** button that lists every keyboard shortcut, and a menu for the mouse trail and rail following.
 
 **The timeline** shows what footage exists and what happened in it:

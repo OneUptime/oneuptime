@@ -11,13 +11,17 @@ import { act, cleanup, render } from "@testing-library/react";
  */
 import * as React from "react";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ReplayStage, {
   REPLAY_DOCUMENT_CSP,
   REPLAY_STAGE_MAX_HEIGHT_VH,
   REPLAY_STAGE_MIN_HEIGHT_REM,
   REPLAY_STAGE_THEATER_MAX_HEIGHT_VH,
+  REPLAY_TEXT_SELECTION_CSS,
   computeContainScale,
   computeReplayStageHeight,
+  disableReplayTextSelection,
+  enableReplayTextSelection,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage";
 import {
   ReplayEngine,
@@ -553,7 +557,7 @@ describe("ReplayStage replay document", () => {
     const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
       makeReplayer();
 
-    render(<ReplayStage engine={engine} />);
+    render(<ReplayStage engine={engine} isTextSelectionEnabled={true} />);
 
     act((): void => {
       engine.emitReplayer({
@@ -577,6 +581,15 @@ describe("ReplayStage replay document", () => {
       head?.querySelector('meta[name="referrer"]')?.getAttribute("content"),
     ).toBe("no-referrer");
     expect(replayer.iframe.title).toBe("Recorded page");
+    expect(replayer.iframe.style.pointerEvents).toBe("auto");
+    expect(replayer.iframe).toHaveAttribute(
+      "data-oneuptime-replay-text-selection",
+      "true",
+    );
+    expect(
+      head?.querySelector("style[data-oneuptime-replay-text-selection-style]")
+        ?.textContent,
+    ).toBe(REPLAY_TEXT_SELECTION_CSS);
 
     /* Idempotent: a second rebuild does not stack a second meta. */
     act((): void => {
@@ -590,6 +603,406 @@ describe("ReplayStage replay document", () => {
       head?.querySelectorAll('meta[http-equiv="Content-Security-Policy"]')
         .length,
     ).toBe(1);
+    expect(
+      head?.querySelectorAll(
+        "style[data-oneuptime-replay-text-selection-style]",
+      ).length,
+    ).toBe(1);
+  });
+
+  it("keeps rrweb inert by default and toggles selection on the current document", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const { rerender } = render(<ReplayStage engine={engine} />);
+    const documentScan: SpyInstance<
+      (selectors: string) => NodeListOf<Element>
+    > = jest.spyOn(
+      replayer.iframe.contentDocument as Document,
+      "querySelectorAll",
+    );
+
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    expect(replayer.iframe.style.pointerEvents).toBe("none");
+    expect(replayer.iframe).not.toHaveAttribute(
+      "data-oneuptime-replay-text-selection",
+    );
+    expect(documentScan).not.toHaveBeenCalled();
+    documentScan.mockRestore();
+
+    rerender(<ReplayStage engine={engine} isTextSelectionEnabled={true} />);
+
+    expect(replayer.iframe.style.pointerEvents).toBe("auto");
+    expect(replayer.iframe.contentDocument?.documentElement).toHaveAttribute(
+      "data-oneuptime-replay-text-selection",
+      "true",
+    );
+
+    rerender(<ReplayStage engine={engine} isTextSelectionEnabled={false} />);
+
+    expect(replayer.iframe.style.pointerEvents).toBe("none");
+    expect(
+      replayer.iframe.contentDocument?.documentElement,
+    ).not.toHaveAttribute("data-oneuptime-replay-text-selection");
+    expect(
+      replayer.iframe.contentDocument?.head.querySelector(
+        "style[data-oneuptime-replay-text-selection-style]",
+      ),
+    ).toBeNull();
+  });
+
+  it("uses WebKit's prefixed computed selection value before adding an inline fallback", () => {
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const doc: Document = replayer.iframe.contentDocument as Document;
+    const win: Window & typeof globalThis = replayer.iframe
+      .contentWindow as Window & typeof globalThis;
+    doc.body.innerHTML = '<p id="webkit-text">Recorded text</p>';
+    const paragraph: HTMLParagraphElement = doc.querySelector(
+      "#webkit-text",
+    ) as HTMLParagraphElement;
+    const originalGetComputedStyle: typeof win.getComputedStyle =
+      win.getComputedStyle.bind(win);
+    const computedStyle: SpyInstance<
+      (element: Element, pseudoElement?: string | null) => CSSStyleDeclaration
+    > = jest
+      .spyOn(win, "getComputedStyle")
+      .mockImplementation(
+        (
+          element: Element,
+          pseudoElement?: string | null,
+        ): CSSStyleDeclaration => {
+          const computed: CSSStyleDeclaration = originalGetComputedStyle(
+            element,
+            pseudoElement,
+          );
+
+          if (element === paragraph) {
+            const originalGetPropertyValue: (property: string) => string =
+              computed.getPropertyValue.bind(computed);
+            computed.getPropertyValue = (property: string): string => {
+              if (property === "user-select") {
+                return "";
+              }
+
+              if (property === "-webkit-user-select") {
+                return "text";
+              }
+
+              return originalGetPropertyValue(property);
+            };
+          }
+
+          return computed;
+        },
+      );
+
+    enableReplayTextSelection(replayer);
+
+    expect(paragraph).not.toHaveAttribute("style");
+
+    disableReplayTextSelection(replayer);
+    computedStyle.mockRestore();
+  });
+
+  it("allows native selection and copy while blocking replay mutations and navigation", () => {
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const doc: Document = replayer.iframe.contentDocument as Document;
+    const win: Window & typeof globalThis = replayer.iframe
+      .contentWindow as Window & typeof globalThis;
+
+    doc.body.innerHTML = `
+      <a href="https://example.com/account">Account</a>
+      <form><input value="recorded value" /><button>Submit</button></form>
+      <input id="invalid-type-input" type="not-a-real-type" value="selectable" />
+      <input id="recorded-range" type="range" value="25" />
+      <textarea id="recorded-textarea" style="resize: both !important; user-select: none !important">Recorded note</textarea>
+      <audio id="recorded-audio" controls style="pointer-events: auto !important"></audio>
+      <p id="recorded-paragraph" style="user-select: none !important; color: red">Recorded error message</p>
+      <p id="recorded-styleless">Style-less recorded text</p>
+      <div id="recorded-scroll"><span>Scrollable text</span></div>
+      <div id="recorded-shadow-host"></div>
+      <iframe title="Recorded child frame"></iframe>
+    `;
+
+    const nestedFrame: HTMLIFrameElement = doc.querySelector(
+      "iframe",
+    ) as HTMLIFrameElement;
+    const nestedDocument: Document = nestedFrame.contentDocument as Document;
+    nestedDocument.body.innerHTML = '<a href="#nested">Nested text</a>';
+    const shadowHost: HTMLElement = doc.querySelector(
+      "#recorded-shadow-host",
+    ) as HTMLElement;
+    const shadowRoot: ShadowRoot = shadowHost.attachShadow({ mode: "open" });
+    shadowRoot.innerHTML = `
+      <style>span { user-select: none !important; }</style>
+      <span id="shadow-text" style="user-select: none !important">Recorded shadow text</span>
+      <input id="shadow-range" type="range" value="10" />
+    `;
+    const scrollContainer: HTMLElement = doc.querySelector(
+      "#recorded-scroll",
+    ) as HTMLElement;
+    scrollContainer.scrollTop = 12;
+    const paragraph: HTMLParagraphElement = doc.querySelector(
+      "#recorded-paragraph",
+    ) as HTMLParagraphElement;
+    const stylelessParagraph: HTMLParagraphElement = doc.querySelector(
+      "#recorded-styleless",
+    ) as HTMLParagraphElement;
+    const textarea: HTMLTextAreaElement = doc.querySelector(
+      "#recorded-textarea",
+    ) as HTMLTextAreaElement;
+    const audio: HTMLAudioElement = doc.querySelector(
+      "#recorded-audio",
+    ) as HTMLAudioElement;
+    const shadowText: HTMLSpanElement = shadowRoot.querySelector(
+      "#shadow-text",
+    ) as HTMLSpanElement;
+    const originalParagraphStyle: string | null =
+      paragraph.getAttribute("style");
+    const originalTextareaStyle: string | null = textarea.getAttribute("style");
+    const originalAudioStyle: string | null = audio.getAttribute("style");
+    const originalShadowStyle: string | null = shadowText.getAttribute("style");
+
+    expect(stylelessParagraph).not.toHaveAttribute("style");
+
+    enableReplayTextSelection(replayer);
+
+    expect(REPLAY_TEXT_SELECTION_CSS).toContain("resize: none !important");
+    expect(REPLAY_TEXT_SELECTION_CSS).toContain(
+      "pointer-events: none !important",
+    );
+    expect(paragraph.style.getPropertyValue("user-select")).toBe("text");
+    expect(paragraph.style.getPropertyPriority("user-select")).toBe(
+      "important",
+    );
+    expect(textarea.style.getPropertyValue("resize")).toBe("none");
+    expect(textarea.style.getPropertyPriority("resize")).toBe("important");
+    expect(audio.style.getPropertyValue("pointer-events")).toBe("none");
+    expect(audio.style.getPropertyPriority("pointer-events")).toBe("important");
+    expect(shadowText.style.getPropertyValue("user-select")).toBe("text");
+
+    const link: HTMLAnchorElement = doc.querySelector("a") as HTMLAnchorElement;
+    const input: HTMLInputElement = doc.querySelector(
+      "input",
+    ) as HTMLInputElement;
+    const rangeInput: HTMLInputElement = doc.querySelector(
+      "#recorded-range",
+    ) as HTMLInputElement;
+
+    for (const type of [
+      "click",
+      "auxclick",
+      "submit",
+      "beforeinput",
+      "paste",
+      "cut",
+      "dragstart",
+      "drop",
+      "wheel",
+      "touchmove",
+    ]) {
+      const event: Event = new win.Event(type, {
+        bubbles: true,
+        cancelable: true,
+      });
+      link.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    }
+
+    for (const type of [
+      "mousedown",
+      "mousemove",
+      "mouseup",
+      "copy",
+      "contextmenu",
+    ]) {
+      const event: Event = new win.Event(type, {
+        bubbles: true,
+        cancelable: true,
+      });
+      link.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+
+    const edit: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "x",
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(edit);
+    expect(edit.defaultPrevented).toBe(true);
+
+    const copy: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "c",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(copy);
+    expect(copy.defaultPrevented).toBe(false);
+
+    const extend: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(extend);
+    expect(extend.defaultPrevented).toBe(false);
+
+    const caretMove: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(caretMove);
+    expect(caretMove.defaultPrevented).toBe(false);
+
+    const linkScroll: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "PageDown",
+      bubbles: true,
+      cancelable: true,
+    });
+    link.dispatchEvent(linkScroll);
+    expect(linkScroll.defaultPrevented).toBe(true);
+
+    const tab: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(false);
+
+    const searchEscape: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(searchEscape);
+    expect(searchEscape.defaultPrevented).toBe(true);
+
+    const mediaEnter: KeyboardEvent = new win.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    });
+    (doc.querySelector("#recorded-audio") as HTMLAudioElement).dispatchEvent(
+      mediaEnter,
+    );
+    expect(mediaEnter.defaultPrevented).toBe(true);
+
+    const rangePointerDown: Event = new win.Event("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    rangeInput.dispatchEvent(rangePointerDown);
+    expect(rangePointerDown.defaultPrevented).toBe(true);
+
+    const rangeKeyboardMutation: KeyboardEvent = new win.KeyboardEvent(
+      "keydown",
+      {
+        key: "ArrowUp",
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      },
+    );
+    rangeInput.dispatchEvent(rangeKeyboardMutation);
+    expect(rangeKeyboardMutation.defaultPrevented).toBe(true);
+
+    expect(
+      shadowRoot.querySelector(
+        "style[data-oneuptime-replay-shadow-text-selection-style]",
+      )?.textContent,
+    ).toContain("user-select: text !important");
+    expect(
+      shadowRoot.querySelector(
+        "style[data-oneuptime-replay-shadow-text-selection-style]",
+      )?.textContent,
+    ).toContain(":host *");
+    const shadowRange: HTMLInputElement = shadowRoot.querySelector(
+      "#shadow-range",
+    ) as HTMLInputElement;
+    const shadowRangePointerDown: Event = new win.Event("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    shadowRange.dispatchEvent(shadowRangePointerDown);
+    expect(shadowRangePointerDown.defaultPrevented).toBe(true);
+
+    const textPointerDown: Event = new win.Event("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(textPointerDown);
+    expect(textPointerDown.defaultPrevented).toBe(false);
+
+    const invalidTypeInput: HTMLInputElement = doc.querySelector(
+      "#invalid-type-input",
+    ) as HTMLInputElement;
+    expect(invalidTypeInput.type).toBe("text");
+    const invalidTypePointerDown: Event = new win.Event("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    invalidTypeInput.dispatchEvent(invalidTypePointerDown);
+    expect(invalidTypePointerDown.defaultPrevented).toBe(false);
+
+    scrollContainer
+      .querySelector("span")
+      ?.dispatchEvent(
+        new win.Event("pointerdown", { bubbles: true, cancelable: true }),
+      );
+    scrollContainer.scrollTop = 60;
+
+    expect(nestedDocument.documentElement).toHaveAttribute(
+      "data-oneuptime-replay-text-selection",
+      "true",
+    );
+    expect(
+      nestedDocument.head.querySelector(
+        "style[data-oneuptime-replay-text-selection-style]",
+      )?.textContent,
+    ).toBe(REPLAY_TEXT_SELECTION_CSS);
+    const nestedWindow: Window & typeof globalThis =
+      nestedFrame.contentWindow as Window & typeof globalThis;
+    const nestedClick: Event = new nestedWindow.Event("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    nestedDocument.querySelector("a")?.dispatchEvent(nestedClick);
+    expect(nestedClick.defaultPrevented).toBe(true);
+
+    const range: Range = doc.createRange();
+    range.selectNodeContents(paragraph);
+    win.getSelection()?.addRange(range);
+    expect(win.getSelection()?.toString()).toBe("Recorded error message");
+
+    disableReplayTextSelection(replayer);
+
+    expect(win.getSelection()?.toString()).toBe("");
+    expect(replayer.iframe.style.pointerEvents).toBe("none");
+    expect(scrollContainer.scrollTop).toBe(12);
+    expect(nestedDocument.documentElement).not.toHaveAttribute(
+      "data-oneuptime-replay-text-selection",
+    );
+    expect(
+      shadowRoot.querySelector(
+        "style[data-oneuptime-replay-shadow-text-selection-style]",
+      ),
+    ).toBeNull();
+    expect(paragraph.getAttribute("style")).toBe(originalParagraphStyle);
+    expect(textarea.getAttribute("style")).toBe(originalTextareaStyle);
+    expect(audio.getAttribute("style")).toBe(originalAudioStyle);
+    expect(shadowText.getAttribute("style")).toBe(originalShadowStyle);
+    expect(stylelessParagraph).not.toHaveAttribute("style");
   });
 
   it("stops listening once unmounted", () => {
