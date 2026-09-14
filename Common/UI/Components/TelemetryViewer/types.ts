@@ -1,3 +1,5 @@
+import IconProp from "../../../Types/Icon/IconProp";
+
 /*
  * Generic types for the TelemetryViewer shell. Shared by logs, traces,
  * metrics, and exceptions viewers.
@@ -64,6 +66,17 @@ export interface FacetConfig {
    * values from the backend (used for resource facets backed by Postgres).
    */
   serverSearchable?: boolean | undefined;
+  // Optional icon shown beside the section title (e.g. resource brand icon).
+  icon?: IconProp | undefined;
+  /*
+   * When true, the sidebar folds the section away while it has no values,
+   * no active selection and no search in progress, and counts it in the
+   * "N empty filters hidden" footer instead. Meant for resource facets,
+   * where an empty list means the project has no resource of that type.
+   */
+  hideWhenEmpty?: boolean | undefined;
+  // Plural noun used in the empty state once revealed ("Docker Hosts").
+  emptyStateNoun?: string | undefined;
 }
 
 export interface SearchHelpRow {
