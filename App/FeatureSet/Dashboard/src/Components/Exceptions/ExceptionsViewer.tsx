@@ -71,6 +71,7 @@ import {
   resolveExceptionServiceIds,
   splitExceptionFieldPredicates,
 } from "../../Utils/ExceptionsSearchQuery";
+import { ERROR_CLASS_DISPLAY_NAMES } from "../../Utils/ExceptionErrorClassLabels";
 import {
   SearchQueryValue,
   SearchValuePredicate,
@@ -282,20 +283,6 @@ const DEFAULT_EXCEPTION_CLASS_SCOPE: ExceptionClassScope = "issues";
  * rather than quietly dropping one of the two contradicting filters.
  */
 const NO_MATCH_ERROR_CLASS: string = "__no_such_error_class__";
-
-/*
- * Sentence-case labels for the raw enum values, used by the facet sidebar and
- * by the chips it creates. "Unclassified" rather than "Unknown" because the
- * value means "triage could not decide", which reads as an accusation of the
- * reader otherwise.
- */
-const ERROR_CLASS_DISPLAY_NAMES: Record<string, string> = {
-  [ErrorClass.CodeFault]: "Code fault",
-  [ErrorClass.UserError]: "User error",
-  [ErrorClass.ExpectedDenial]: "Expected denial",
-  [ErrorClass.Infrastructure]: "Infrastructure",
-  [ErrorClass.Unknown]: "Unclassified",
-};
 
 interface InitialUrlState {
   search: string;

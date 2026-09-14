@@ -1,16 +1,13 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useState,
   useMemo,
+  useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
-import { Green500, Gray500, Indigo500, Red500 } from "Common/Types/BrandColors";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import {
   ResolvedStackFrame,
   SourceCodeSnippet,
@@ -22,6 +19,22 @@ import {
   parseFramesJson,
   FrameDisplayLocation,
 } from "../../Utils/SourceMapFrames";
+import {
+  RawStackTraceLine,
+  StackTraceDisplayItem,
+  StackTraceFrameOrder,
+  StackTraceViewMode,
+  buildStackTraceDisplayItems,
+  formatFrameLocation,
+  getFramePackageName,
+  getStackTraceHeadline,
+  getTopAppFrameIndex,
+  getVisibleFrameIndexes,
+  orderStackTraceDisplayItems,
+  parseRawStackTraceLines,
+  shortenFramePath,
+} from "../../Utils/StackTracePresentation";
+import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
 
 export interface ComponentProps {
   stackTrace: string;
@@ -34,172 +47,65 @@ export interface ComponentProps {
    * source location instead of the minified one.
    */
   resolvedFrames?: Array<ResolvedStackFrame> | undefined;
+  /*
+   * Source maps a frame matched but the resolver skipped for size. Non-zero
+   * means some frames stay minified for a reason an operator can fix.
+   */
+  skippedSourceMapCount?: number | undefined;
 }
 
-// --- Types for display items ---
+type StackTraceTab = "frames" | "raw";
 
-// A single visible frame in the list
-interface DisplayFrame {
-  kind: "frame";
-  frame: ResolvedStackFrame;
-  originalIndex: number;
-  isTopAppFrame: boolean;
+// --- Badges ---
+
+interface FrameBadgeProps {
+  label: string;
+  className: string;
+  title?: string | undefined;
+  testId: string;
 }
 
-// A collapsed group of consecutive library frames
-interface CollapsedLibraryGroup {
-  kind: "collapsed-lib";
-  frames: Array<{ frame: ResolvedStackFrame; originalIndex: number }>;
-  startIndex: number;
-}
-
-type DisplayItem = DisplayFrame | CollapsedLibraryGroup;
-
-// --- View mode ---
-
-enum ViewMode {
-  Smart = "smart",
-  All = "all",
-  AppOnly = "app",
-}
-
-// --- Helpers ---
-
-type GetFileExtensionFunction = (fileName: string) => string;
-
-const getFileExtension: GetFileExtensionFunction = (
-  fileName: string,
-): string => {
-  const parts: string[] = fileName.split(".");
-  return parts.length > 1 ? parts[parts.length - 1]! : "";
-};
-
-type GetLanguageIconFunction = (fileName: string) => IconProp;
-
-const getLanguageIcon: GetLanguageIconFunction = (
-  fileName: string,
-): IconProp => {
-  const ext: string = getFileExtension(fileName).toLowerCase();
-  switch (ext) {
-    case "js":
-    case "jsx":
-    case "ts":
-    case "tsx":
-    case "mjs":
-    case "cjs":
-      return IconProp.Code;
-    case "py":
-    case "pyx":
-      return IconProp.Code;
-    case "go":
-      return IconProp.Code;
-    case "java":
-    case "kt":
-    case "scala":
-      return IconProp.Code;
-    case "rb":
-      return IconProp.Code;
-    case "cs":
-    case "fs":
-      return IconProp.Code;
-    case "php":
-      return IconProp.Code;
-    case "rs":
-      return IconProp.Code;
-    default:
-      return IconProp.File;
-  }
-};
-
-type ShortenPathFunction = (fullPath: string) => string;
-
-const shortenPath: ShortenPathFunction = (fullPath: string): string => {
-  if (!fullPath) {
-    return "";
-  }
-  const parts: string[] = fullPath.split("/");
-  if (parts.length <= 3) {
-    return fullPath;
-  }
-  // Show last 3 path segments
-  return ".../" + parts.slice(-3).join("/");
-};
-
-type FormatLocationFunction = (location: FrameDisplayLocation) => string;
-
-const formatLocation: FormatLocationFunction = (
-  location: FrameDisplayLocation,
-): string => {
-  const path: string = shortenPath(location.fileName);
-  if (!location.lineNumber || location.lineNumber <= 0) {
-    return path;
-  }
-  return `${path}:${location.lineNumber}${location.columnNumber ? `:${location.columnNumber}` : ""}`;
-};
-
-type FormatFullLocationFunction = (location: FrameDisplayLocation) => string;
-
-const formatFullLocation: FormatFullLocationFunction = (
-  location: FrameDisplayLocation,
-): string => {
-  if (!location.lineNumber || location.lineNumber <= 0) {
-    return location.fileName;
-  }
-  return `${location.fileName}:${location.lineNumber}${location.columnNumber ? `:${location.columnNumber}` : ""}`;
-};
-
-// --- Sub-component: Frame number badge ---
-
-interface FrameNumberBadgeProps {
-  index: number;
-  isTopAppFrame: boolean;
-  inApp: boolean;
-}
-
-const FrameNumberBadge: FunctionComponent<FrameNumberBadgeProps> = ({
-  index,
-  isTopAppFrame,
-  inApp,
-}: FrameNumberBadgeProps): ReactElement => {
-  if (isTopAppFrame) {
-    return (
-      <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-        <span className="text-xs font-bold text-red-700">{index}</span>
-      </div>
-    );
-  }
-
-  if (inApp) {
-    return (
-      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-        <span className="text-xs font-semibold text-indigo-600">{index}</span>
-      </div>
-    );
-  }
-
+const FrameBadge: FunctionComponent<FrameBadgeProps> = (
+  props: FrameBadgeProps,
+): ReactElement => {
   return (
-    <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-      <span className="text-xs font-medium text-gray-400">{index}</span>
-    </div>
+    <span
+      title={props.title}
+      data-testid={props.testId}
+      className={`inline-flex max-w-[12rem] items-center truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${props.className}`}
+    >
+      {props.label}
+    </span>
   );
 };
 
-// --- Sub-component: Original source snippet ---
+// --- Original source snippet ---
 
 interface SourceSnippetProps {
   snippet: SourceCodeSnippet;
+  fileName: string;
 }
 
 const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
   snippet,
+  fileName,
 }: SourceSnippetProps): ReactElement => {
   return (
-    <div className="border-t border-gray-800/50">
-      <div className="px-4 py-1.5 bg-gray-800/40 text-[10px] font-medium text-gray-400 uppercase tracking-wide">
-        Original Source
+    <div
+      className="overflow-hidden rounded-lg bg-gray-900 ring-1 ring-gray-800"
+      data-testid="stack-frame-source-snippet"
+    >
+      <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-1.5">
+        <Icon icon={IconProp.Code} className="h-3.5 w-3.5 text-gray-500" />
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-400">
+          {fileName || "Original source"}
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+          Original source
+        </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs font-mono">
+        <table className="w-full font-mono text-xs leading-5">
           <tbody>
             {snippet.lines.map((line: string, i: number): ReactElement => {
               const lineNumber: number = snippet.startLine + i;
@@ -208,15 +114,22 @@ const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
               return (
                 <tr
                   key={i}
-                  className={isHighlighted ? "bg-red-950/40" : undefined}
+                  className={isHighlighted ? "bg-red-500/15" : undefined}
+                  data-highlighted={isHighlighted ? "true" : undefined}
                 >
-                  <td className="text-gray-600 text-right pr-4 pl-4 py-0.5 select-none w-[1%] whitespace-nowrap border-r border-gray-800">
+                  <td
+                    className={`w-[1%] select-none whitespace-nowrap border-r py-0.5 pl-4 pr-3 text-right ${
+                      isHighlighted
+                        ? "border-red-500/60 text-red-300"
+                        : "border-gray-800 text-gray-500"
+                    }`}
+                  >
                     {lineNumber}
                   </td>
                   <td
-                    className={`pl-4 pr-4 py-0.5 whitespace-pre ${
+                    className={`whitespace-pre py-0.5 pl-4 pr-4 ${
                       isHighlighted
-                        ? "text-red-300 font-medium"
+                        ? "font-medium text-red-100"
                         : "text-gray-300"
                     }`}
                   >
@@ -232,151 +145,125 @@ const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
   );
 };
 
-// --- Sub-component: Expanded frame detail ---
+// --- Expanded frame detail ---
 
 interface FrameDetailPanelProps {
   frame: ResolvedStackFrame;
-  isTopAppFrame: boolean;
+}
+
+interface FrameDetailRow {
+  label: string;
+  value: string;
+  isMono: boolean;
+  copyable: boolean;
 }
 
 const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
   frame,
-  isTopAppFrame,
 }: FrameDetailPanelProps): ReactElement => {
   const location: FrameDisplayLocation = getFrameDisplayLocation(frame);
+  const packageName: string | null = frame.inApp
+    ? null
+    : getFramePackageName(frame.fileName);
 
-  const rows: Array<{
-    label: string;
-    value: string;
-    mono: boolean;
-    highlight: boolean;
-  }> = [];
-
-  rows.push({
-    label: "Function",
-    value: location.functionName || "<anonymous>",
-    mono: true,
-    highlight: true,
-  });
-
-  rows.push({
-    label: "File",
-    value: location.fileName || "Unknown",
-    mono: true,
-    highlight: false,
-  });
-
-  if (location.lineNumber && location.lineNumber > 0) {
-    const lineStr: string = location.columnNumber
-      ? `${location.lineNumber}:${location.columnNumber}`
-      : `${location.lineNumber}`;
-    rows.push({
-      label: "Line",
-      value: lineStr,
-      mono: true,
-      highlight: true,
-    });
-  }
+  const rows: Array<FrameDetailRow> = [
+    {
+      label: "Function",
+      value: location.functionName || "<anonymous>",
+      isMono: true,
+      copyable: Boolean(location.functionName),
+    },
+    {
+      label: "Location",
+      value: formatFrameLocation(location, { shorten: false }) || "Unknown",
+      isMono: true,
+      copyable: Boolean(location.fileName),
+    },
+  ];
 
   /*
-   * When the frame was source mapped, the primary rows above show the
-   * original location — surface the minified one too so the two can be
-   * cross-checked against the raw stack trace.
+   * When the frame was source mapped, the rows above show the original
+   * location — surface the minified one too so the two can be cross-checked
+   * against the raw stack trace.
    */
   if (location.isOriginal) {
     rows.push({
       label: "Minified",
-      value: formatFullLocation({
-        functionName: frame.functionName,
-        fileName: frame.fileName,
-        lineNumber: frame.lineNumber,
-        columnNumber: frame.columnNumber,
-        isOriginal: false,
-      }),
-      mono: true,
-      highlight: false,
+      value: formatFrameLocation(
+        {
+          functionName: frame.functionName,
+          fileName: frame.fileName,
+          lineNumber: frame.lineNumber,
+          columnNumber: frame.columnNumber,
+          isOriginal: false,
+        },
+        { shorten: false },
+      ),
+      isMono: true,
+      copyable: true,
     });
   }
 
   rows.push({
     label: "Origin",
-    value: frame.inApp ? "Application Code" : "Library / Framework",
-    mono: false,
-    highlight: false,
+    value: frame.inApp
+      ? "Your application code"
+      : packageName
+        ? `Library code (${packageName})`
+        : "Library or runtime code",
+    isMono: false,
+    copyable: false,
   });
 
   return (
-    <div className="ml-12 mr-4 mb-3 mt-1">
-      <div className="rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
-        {/* Header bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-800/60 border-b border-gray-700/50">
-          <div className="flex items-center gap-2">
-            <Icon
-              icon={getLanguageIcon(location.fileName)}
-              size={SizeProp.Smaller}
-              className="text-gray-400"
-            />
-            <span className="text-xs font-mono text-gray-300 truncate">
-              {location.fileName || "unknown"}
-            </span>
-            {location.isOriginal && (
-              <span className="text-[10px] font-medium text-indigo-300 bg-indigo-900/50 px-1.5 py-0.5 rounded">
-                SOURCE MAPPED
-              </span>
-            )}
-          </div>
-          <CopyableButton textToBeCopied={formatFullLocation(location)} />
-        </div>
-
-        {/* Detail rows */}
-        <div className="divide-y divide-gray-800/50">
-          {rows.map(
-            (
-              row: {
-                label: string;
-                value: string;
-                mono: boolean;
-                highlight: boolean;
-              },
-              i: number,
-            ): ReactElement => {
-              return (
-                <div
-                  key={i}
-                  className={`flex px-4 py-2 ${
-                    row.highlight && isTopAppFrame ? "bg-red-950/20" : ""
+    <div
+      className="space-y-3 pb-4 pl-4 pr-4 sm:pl-[4.25rem]"
+      data-testid="stack-frame-detail"
+    >
+      <dl className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white ring-1 ring-inset ring-gray-200">
+        {rows.map((row: FrameDetailRow): ReactElement => {
+          return (
+            <div
+              key={row.label}
+              className="flex flex-col gap-0.5 px-4 py-2 sm:flex-row sm:items-center sm:gap-4"
+            >
+              <dt className="text-xs font-medium text-gray-500 sm:w-20 sm:flex-shrink-0">
+                {row.label}
+              </dt>
+              <dd className="flex min-w-0 flex-1 items-center gap-2">
+                <span
+                  className={`min-w-0 flex-1 break-all text-sm text-gray-900 ${
+                    row.isMono ? "font-mono text-[13px]" : ""
                   }`}
                 >
-                  <span className="text-xs text-gray-500 w-20 flex-shrink-0 pt-0.5">
-                    {row.label}
-                  </span>
-                  <span
-                    className={`text-sm break-all ${
-                      row.mono ? "font-mono" : ""
-                    } ${
-                      row.highlight && isTopAppFrame
-                        ? "text-red-300 font-medium"
-                        : "text-gray-200"
-                    }`}
-                  >
-                    {row.value}
-                  </span>
-                </div>
-              );
-            },
-          )}
-        </div>
+                  {row.value}
+                </span>
+                {row.copyable && (
+                  <CopyTextButton
+                    textToBeCopied={row.value}
+                    iconOnly={true}
+                    size="xs"
+                    title={`Copy ${row.label.toLowerCase()}`}
+                  />
+                )}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
 
-        {/* Original source snippet, when the map carried sourcesContent */}
-        {frame.sourceCodeSnippet && (
-          <SourceSnippetBlock snippet={frame.sourceCodeSnippet} />
-        )}
-      </div>
+      {/* Original source snippet, when the map carried sourcesContent */}
+      {frame.sourceCodeSnippet && (
+        <SourceSnippetBlock
+          snippet={frame.sourceCodeSnippet}
+          fileName={location.fileName}
+        />
+      )}
     </div>
   );
 };
 
-// --- Sub-component: Single frame row ---
+// --- Single frame row ---
 
 interface FrameRowProps {
   frame: ResolvedStackFrame;
@@ -394,363 +281,270 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
   onToggle,
 }: FrameRowProps): ReactElement => {
   const displayLocation: FrameDisplayLocation = getFrameDisplayLocation(frame);
-  const location: string = formatLocation(displayLocation);
+  const location: string = formatFrameLocation(displayLocation, {
+    shorten: true,
+  });
+  const fullLocation: string = formatFrameLocation(displayLocation, {
+    shorten: false,
+  });
+  const packageName: string | null = frame.inApp
+    ? null
+    : getFramePackageName(frame.fileName);
 
   return (
-    <div
-      className={`transition-colors ${
+    <li
+      className={`border-l-2 ${
         isTopAppFrame
-          ? "bg-red-50/60 border-l-2 border-l-red-400"
+          ? "border-l-red-500 bg-red-50/40"
           : isExpanded
-            ? "bg-gray-50/80 border-l-2 border-l-indigo-300"
-            : "border-l-2 border-l-transparent hover:bg-gray-50/50"
+            ? "border-l-indigo-400 bg-gray-50/60"
+            : "border-l-transparent"
       }`}
+      data-testid="stack-frame"
+      data-frame-index={originalIndex}
+      data-in-app={frame.inApp ? "true" : "false"}
     >
-      {/* Clickable row */}
       <button
-        className="w-full flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer group"
+        type="button"
+        className="group flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+        aria-expanded={isExpanded}
         onClick={onToggle}
       >
-        {/* Frame number */}
-        <FrameNumberBadge
-          index={originalIndex}
-          isTopAppFrame={isTopAppFrame}
-          inApp={frame.inApp}
-        />
+        <span
+          className={`mt-0.5 flex h-6 w-7 flex-shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums ${
+            isTopAppFrame
+              ? "bg-red-100 text-red-700"
+              : frame.inApp
+                ? "bg-indigo-50 text-indigo-700"
+                : "bg-gray-100 text-gray-500"
+          }`}
+        >
+          {originalIndex}
+        </span>
 
-        {/* Chevron */}
         <Icon
           icon={isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight}
-          size={SizeProp.ExtraSmall}
-          className={`flex-shrink-0 transition-colors ${
-            isExpanded
-              ? "text-gray-500"
-              : "text-gray-300 group-hover:text-gray-400"
-          }`}
+          className="mt-1.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400 group-hover:text-gray-600"
         />
 
-        {/* Function name */}
-        <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          <span
-            className={`font-mono text-sm truncate ${
-              isTopAppFrame
-                ? "text-red-800 font-semibold"
-                : frame.inApp
-                  ? "text-gray-900 font-medium"
-                  : "text-gray-500"
-            }`}
-          >
-            {displayLocation.functionName || "<anonymous>"}
-          </span>
-
-          {/* File location */}
-          {location && (
-            <Tooltip text={formatFullLocation(displayLocation)}>
-              <span className="text-xs font-mono text-gray-400 truncate flex-shrink-0 max-w-[280px]">
+        <span className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
+          <span className="min-w-0 flex-1">
+            <span
+              className={`block truncate font-mono text-sm ${
+                isTopAppFrame
+                  ? "font-semibold text-red-800"
+                  : frame.inApp
+                    ? "font-medium text-gray-900"
+                    : "text-gray-500"
+              }`}
+              data-testid="stack-frame-function"
+            >
+              {displayLocation.functionName || "<anonymous>"}
+            </span>
+            {location && (
+              <span
+                className="mt-0.5 block truncate font-mono text-xs text-gray-500"
+                title={fullLocation}
+                data-testid="stack-frame-location"
+              >
                 {location}
               </span>
-            </Tooltip>
-          )}
-        </div>
+            )}
+          </span>
 
-        {/* APP / LIB pill */}
-        <div className="flex-shrink-0 flex items-center gap-2">
-          {isTopAppFrame && (
-            <Pill
-              text="CRASH"
-              color={Red500}
-              size={PillSize.Small}
-              icon={IconProp.Error}
-              tooltip="This is the most likely crash point"
+          <span className="flex flex-shrink-0 flex-wrap items-center gap-1.5 sm:mt-0.5 sm:justify-end">
+            {isTopAppFrame && (
+              <FrameBadge
+                label="Crash point"
+                className="bg-red-50 text-red-700 ring-red-600/20"
+                title="The first frame in your own code: the most likely place the error was raised."
+                testId="stack-frame-badge-crash"
+              />
+            )}
+            {frame.resolved && (
+              <FrameBadge
+                label="Source mapped"
+                className="bg-indigo-50 text-indigo-700 ring-indigo-600/20"
+                title="Resolved to original source through an uploaded source map"
+                testId="stack-frame-badge-mapped"
+              />
+            )}
+            <FrameBadge
+              label={frame.inApp ? "In app" : packageName || "Library"}
+              title={
+                frame.inApp
+                  ? "Your application code"
+                  : packageName
+                    ? `Library code from ${packageName}`
+                    : "Library or runtime code"
+              }
+              className={
+                frame.inApp
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+                  : "bg-gray-50 text-gray-500 ring-gray-500/20"
+              }
+              testId="stack-frame-badge-origin"
             />
-          )}
-          {frame.resolved && (
-            <Pill
-              text="MAPPED"
-              color={Indigo500}
-              size={PillSize.Small}
-              tooltip="Resolved to original source through an uploaded source map"
-            />
-          )}
-          <Pill
-            text={frame.inApp ? "APP" : "LIB"}
-            color={frame.inApp ? Green500 : Gray500}
-            size={PillSize.Small}
-          />
-        </div>
+          </span>
+        </span>
       </button>
 
-      {/* Expanded detail panel */}
-      {isExpanded && (
-        <FrameDetailPanel frame={frame} isTopAppFrame={isTopAppFrame} />
-      )}
-    </div>
+      {isExpanded && <FrameDetailPanel frame={frame} />}
+    </li>
   );
 };
 
-// --- Sub-component: Collapsed library group ---
+// --- Collapsed library group ---
 
 interface CollapsedLibGroupRowProps {
-  group: CollapsedLibraryGroup;
+  frameCount: number;
+  commonPackage: string;
   onExpand: () => void;
 }
 
-const CollapsedLibGroupRow: FunctionComponent<CollapsedLibGroupRowProps> = ({
-  group,
-  onExpand,
-}: CollapsedLibGroupRowProps): ReactElement => {
-  const count: number = group.frames.length;
-  const firstFrame: ResolvedStackFrame = group.frames[0]!.frame;
-  const lastFrame: ResolvedStackFrame = group.frames[count - 1]!.frame;
-
-  // Try to find a common path prefix
-  const firstDir: string = firstFrame.fileName
-    ? firstFrame.fileName.split("/").slice(0, -1).join("/")
-    : "";
-  const lastDir: string = lastFrame.fileName
-    ? lastFrame.fileName.split("/").slice(0, -1).join("/")
-    : "";
-  const commonPackage: string =
-    firstDir === lastDir ? shortenPath(firstDir) : "";
-
+const CollapsedLibGroupRow: FunctionComponent<CollapsedLibGroupRowProps> = (
+  props: CollapsedLibGroupRowProps,
+): ReactElement => {
   return (
-    <button
-      className="w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer hover:bg-gray-50/50 border-l-2 border-l-transparent group"
-      onClick={onExpand}
+    <li
+      className="border-l-2 border-l-transparent bg-gray-50/40"
+      data-testid="stack-frame-group"
     >
-      {/* Expand icon area */}
-      <div className="w-7 h-5 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-        <Icon
-          icon={IconProp.EllipsisHorizontal}
-          size={SizeProp.ExtraSmall}
-          className="text-gray-400"
-        />
-      </div>
-
-      <Icon
-        icon={IconProp.ChevronRight}
-        size={SizeProp.ExtraSmall}
-        className="flex-shrink-0 text-gray-300 group-hover:text-gray-400"
-      />
-
-      <span className="text-xs text-gray-400 italic">
-        {count} library frame{count !== 1 ? "s" : ""}
-        {commonPackage && (
-          <span className="text-gray-300 ml-1">
-            in <span className="font-mono not-italic">{commonPackage}</span>
-          </span>
-        )}
-      </span>
-
-      <span className="text-[10px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-        Click to expand
-      </span>
-    </button>
+      <button
+        type="button"
+        className="group flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+        onClick={props.onExpand}
+      >
+        <span className="flex h-6 w-7 flex-shrink-0 items-center justify-center rounded-md border border-dashed border-gray-300 text-gray-400">
+          <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-xs text-gray-500">
+          {props.frameCount} library frame{props.frameCount === 1 ? "" : "s"}{" "}
+          hidden
+          {props.commonPackage && (
+            <>
+              {" "}
+              in{" "}
+              <span className="font-mono text-gray-600">
+                {props.commonPackage}
+              </span>
+            </>
+          )}
+        </span>
+        <span className="flex-shrink-0 text-xs font-medium text-indigo-600 group-hover:text-indigo-500">
+          Show
+        </span>
+      </button>
+    </li>
   );
 };
 
-// --- Sub-component: View mode toggle ---
-
-interface ViewModeToggleProps {
-  viewMode: ViewMode;
-  onChangeMode: (mode: ViewMode) => void;
-  totalFrames: number;
-  appFrameCount: number;
-  libFrameCount: number;
-}
-
-const ViewModeToggle: FunctionComponent<ViewModeToggleProps> = ({
-  viewMode,
-  onChangeMode,
-  totalFrames,
-  appFrameCount,
-  libFrameCount,
-}: ViewModeToggleProps): ReactElement => {
-  interface ModeOption {
-    mode: ViewMode;
-    label: string;
-    sublabel: string;
-  }
-
-  const modes: ModeOption[] = [
-    {
-      mode: ViewMode.Smart,
-      label: "Smart",
-      sublabel: `${appFrameCount} app + grouped lib`,
-    },
-    {
-      mode: ViewMode.AppOnly,
-      label: "App Only",
-      sublabel: `${appFrameCount} frames`,
-    },
-    {
-      mode: ViewMode.All,
-      label: "All",
-      sublabel: `${totalFrames} frames`,
-    },
-  ];
-
-  return (
-    <div className="flex items-center gap-1 px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
-      <span className="text-xs font-medium text-gray-500 mr-2">View:</span>
-      <div className="flex rounded-lg border border-gray-200 overflow-hidden bg-white">
-        {modes.map((opt: ModeOption): ReactElement => {
-          const isActive: boolean = viewMode === opt.mode;
-          const isDisabled: boolean =
-            opt.mode === ViewMode.AppOnly && appFrameCount === 0;
-
-          return (
-            <Tooltip key={opt.mode} text={opt.sublabel}>
-              <button
-                className={`px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 last:border-r-0 ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : isDisabled
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-600 hover:bg-gray-50 cursor-pointer"
-                }`}
-                onClick={() => {
-                  if (!isDisabled) {
-                    onChangeMode(opt.mode);
-                  }
-                }}
-                disabled={isDisabled}
-              >
-                {opt.label}
-              </button>
-            </Tooltip>
-          );
-        })}
-      </div>
-
-      {/* Quick summary badges */}
-      <div className="flex items-center gap-2 ml-auto">
-        {appFrameCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-            <span
-              className="w-1.5 h-1.5 rounded-full bg-green-500"
-              aria-hidden="true"
-            />
-            {appFrameCount} app
-          </span>
-        )}
-        {libFrameCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-            <span
-              className="w-1.5 h-1.5 rounded-full bg-gray-400"
-              aria-hidden="true"
-            />
-            {libFrameCount} lib
-          </span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// --- Raw stack trace viewer ---
+// --- Raw stack trace ---
 
 interface RawStackTraceProps {
   stackTrace: string;
-  isStandalone: boolean; // true when no parsed frames available
+  wrapLines: boolean;
 }
 
-const RawStackTraceViewer: FunctionComponent<RawStackTraceProps> = ({
+const RawStackTrace: FunctionComponent<RawStackTraceProps> = ({
   stackTrace,
-  isStandalone,
+  wrapLines,
 }: RawStackTraceProps): ReactElement => {
-  // Split into lines for line numbers
-  const lines: string[] = stackTrace.split("\n");
+  const lines: Array<RawStackTraceLine> = useMemo(() => {
+    return parseRawStackTraceLines(stackTrace);
+  }, [stackTrace]);
 
-  if (isStandalone) {
-    return (
-      <div className="rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-800/60 border-b border-gray-700/50">
-          <div className="flex items-center gap-2">
-            <Icon
-              icon={IconProp.Terminal}
-              size={SizeProp.Smaller}
-              className="text-gray-400"
-            />
-            <span className="text-xs font-medium text-gray-300">
-              Raw Stack Trace
-            </span>
-          </div>
-          <CopyableButton textToBeCopied={stackTrace} />
-        </div>
-        {/* Lines with line numbers */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
-            <tbody>
-              {lines.map((line: string, i: number): ReactElement => {
-                const isErrorLine: boolean =
-                  line.trimStart().startsWith("at ") === false && i === 0;
-                return (
-                  <tr
-                    key={i}
-                    className={`${
-                      isErrorLine ? "bg-red-950/30" : "hover:bg-gray-800/50"
-                    }`}
-                  >
-                    <td className="text-gray-600 text-right pr-4 pl-4 py-0.5 select-none w-[1%] whitespace-nowrap border-r border-gray-800">
-                      {i + 1}
-                    </td>
-                    <td
-                      className={`pl-4 pr-4 py-0.5 whitespace-pre ${
-                        isErrorLine
-                          ? "text-red-300 font-medium"
-                          : "text-gray-300"
-                      }`}
-                    >
-                      {line || " "}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
+  const whitespaceClassName: string = wrapLines
+    ? "whitespace-pre-wrap break-all"
+    : "whitespace-pre";
 
-  // Inline collapsible version when parsed frames are available
   return (
-    <div className="border-t border-gray-100">
-      <details>
-        <summary className="flex items-center gap-2 px-5 py-3 text-sm text-gray-400 cursor-pointer hover:text-gray-600 hover:bg-gray-50/50 transition-colors select-none">
-          <Icon icon={IconProp.Terminal} size={SizeProp.Smaller} />
-          <span>Raw Stack Trace</span>
-          <span className="text-[10px] text-gray-300 ml-1">
-            ({lines.length} lines)
-          </span>
-          <div className="ml-auto">
-            <CopyableButton textToBeCopied={stackTrace} />
-          </div>
-        </summary>
-        <div className="mx-4 mb-4 rounded-lg border border-gray-800 bg-gray-900 overflow-hidden">
-          <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-            <table className="w-full text-xs font-mono">
-              <tbody>
-                {lines.map((line: string, i: number): ReactElement => {
-                  return (
-                    <tr key={i} className="hover:bg-gray-800/50">
-                      <td className="text-gray-600 text-right pr-4 pl-4 py-0.5 select-none w-[1%] whitespace-nowrap border-r border-gray-800">
-                        {i + 1}
-                      </td>
-                      <td className="pl-4 pr-4 py-0.5 whitespace-pre text-gray-300">
-                        {line || " "}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </details>
+    <div
+      className="overflow-hidden rounded-lg bg-gray-900 ring-1 ring-gray-800"
+      data-testid="raw-stack-trace"
+      data-wrap={wrapLines ? "true" : "false"}
+    >
+      <div className="max-h-[560px] overflow-auto">
+        <table className="w-full font-mono text-xs leading-5">
+          <tbody>
+            {lines.map((line: RawStackTraceLine): ReactElement => {
+              return (
+                <tr
+                  key={line.lineNumber}
+                  className={
+                    line.kind === "message"
+                      ? "bg-red-500/10"
+                      : "hover:bg-white/[0.03]"
+                  }
+                >
+                  <td className="w-[1%] select-none whitespace-nowrap border-r border-gray-800 py-0.5 pl-4 pr-3 align-top text-right text-gray-500">
+                    {line.lineNumber}
+                  </td>
+                  <td className={`py-0.5 pl-4 pr-4 ${whitespaceClassName}`}>
+                    {line.kind === "message" && (
+                      <span className="font-medium text-red-300">
+                        {line.text || " "}
+                      </span>
+                    )}
+                    {line.kind === "frame" && (
+                      <>
+                        <span className="text-gray-500">{line.indent}at </span>
+                        <span className="text-gray-100">
+                          {line.functionName}
+                        </span>
+                        {line.location && (
+                          <span className="text-gray-400">
+                            {line.functionName ? " (" : ""}
+                            <span className="text-sky-300">
+                              {line.location}
+                            </span>
+                            {line.functionName ? ")" : ""}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {line.kind === "other" && (
+                      <span className="text-gray-300">{line.text || " "}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
+  );
+};
+
+// --- Toolbar button ---
+
+interface ToolbarButtonProps {
+  label: string;
+  icon: IconProp;
+  onClick: () => void;
+  isPressed?: boolean | undefined;
+  testId: string;
+}
+
+const ToolbarButton: FunctionComponent<ToolbarButtonProps> = (
+  props: ToolbarButtonProps,
+): ReactElement => {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      aria-pressed={props.isPressed}
+      data-testid={props.testId}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        props.isPressed
+          ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
+          : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50 hover:text-gray-900"
+      }`}
+    >
+      <Icon icon={props.icon} className="h-3.5 w-3.5" />
+      {props.label}
+    </button>
   );
 };
 
@@ -759,26 +553,37 @@ const RawStackTraceViewer: FunctionComponent<RawStackTraceProps> = ({
 const StackFrameViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [expandedFrameIndex, setExpandedFrameIndex] = useState<number | null>(
-    null,
+  /*
+   * undefined = the user has not opened or closed a frame yet, so the crash
+   * point is open by default. Several frames can be open at once, which is
+   * how a caller and its callee get compared.
+   */
+  const [expandedFrames, setExpandedFrames] = useState<
+    Set<number> | undefined
+  >(undefined);
+  const [viewMode, setViewMode] = useState<StackTraceViewMode>(
+    StackTraceViewMode.Smart,
   );
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Smart);
+  const [frameOrder, setFrameOrder] = useState<StackTraceFrameOrder>(
+    StackTraceFrameOrder.NewestFirst,
+  );
+  const [tab, setTab] = useState<StackTraceTab>("frames");
+  const [wrapLines, setWrapLines] = useState<boolean>(false);
   const [expandedLibGroups, setExpandedLibGroups] = useState<Set<number>>(
     new Set(),
   );
 
   // Parse frames and overlay the source-map resolution result, if any
-  const frames: ResolvedStackFrame[] = useMemo((): ResolvedStackFrame[] => {
+  const frames: Array<ResolvedStackFrame> = useMemo(() => {
     return applyResolvedFrames(
       parseFramesJson(props.parsedFrames),
       props.resolvedFrames,
     );
   }, [props.parsedFrames, props.resolvedFrames]);
 
-  // Frame counts
   const appFrameCount: number = useMemo((): number => {
-    return frames.filter((f: ResolvedStackFrame) => {
-      return f.inApp;
+    return frames.filter((frame: ResolvedStackFrame) => {
+      return frame.inApp;
     }).length;
   }, [frames]);
 
@@ -788,232 +593,296 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     return countResolvedFrames(frames);
   }, [frames]);
 
-  // Find the topmost app frame (most likely crash point)
   const topAppFrameIndex: number = useMemo((): number => {
-    for (let i: number = 0; i < frames.length; i++) {
-      if (frames[i]!.inApp) {
-        return i;
-      }
-    }
-    return -1;
+    return getTopAppFrameIndex(frames);
   }, [frames]);
 
-  // Build display items based on view mode
-  const displayItems: DisplayItem[] = useMemo((): DisplayItem[] => {
-    if (viewMode === ViewMode.AppOnly) {
-      // Only app frames, flat list
-      return frames
-        .map((frame: ResolvedStackFrame, index: number): DisplayItem | null => {
-          if (!frame.inApp) {
-            return null;
-          }
-          return {
-            kind: "frame",
-            frame: frame,
-            originalIndex: index,
-            isTopAppFrame: index === topAppFrameIndex,
-          } as DisplayFrame;
-        })
-        .filter((item: DisplayItem | null): item is DisplayItem => {
-          return item !== null;
-        });
-    }
+  const displayItems: Array<StackTraceDisplayItem> = useMemo(() => {
+    return orderStackTraceDisplayItems(
+      buildStackTraceDisplayItems({
+        frames,
+        viewMode,
+        expandedLibGroups,
+      }),
+      frameOrder,
+    );
+  }, [frames, viewMode, expandedLibGroups, frameOrder]);
 
-    if (viewMode === ViewMode.All) {
-      // All frames, flat list
-      return frames.map(
-        (frame: ResolvedStackFrame, index: number): DisplayItem => {
-          return {
-            kind: "frame",
-            frame: frame,
-            originalIndex: index,
-            isTopAppFrame: index === topAppFrameIndex,
-          } as DisplayFrame;
-        },
-      );
-    }
+  const headline: string | null = useMemo(() => {
+    return getStackTraceHeadline(props.stackTrace);
+  }, [props.stackTrace]);
 
-    // Smart view: app frames shown, consecutive lib frames collapsed
-    const items: DisplayItem[] = [];
-    let currentLibGroup: Array<{
-      frame: ResolvedStackFrame;
-      originalIndex: number;
-    }> = [];
-    let libGroupStartIndex: number = 0;
+  const openFrames: Set<number> =
+    expandedFrames ||
+    new Set<number>(topAppFrameIndex >= 0 ? [topAppFrameIndex] : []);
 
-    type FlushLibGroupFunction = () => void;
-
-    const flushLibGroup: FlushLibGroupFunction = (): void => {
-      if (currentLibGroup.length === 0) {
-        return;
-      }
-
-      // If this group is expanded or has only 1 frame, show individually
-      if (
-        expandedLibGroups.has(libGroupStartIndex) ||
-        currentLibGroup.length === 1
-      ) {
-        for (const item of currentLibGroup) {
-          items.push({
-            kind: "frame",
-            frame: item.frame,
-            originalIndex: item.originalIndex,
-            isTopAppFrame: false,
-          } as DisplayFrame);
-        }
-      } else {
-        items.push({
-          kind: "collapsed-lib",
-          frames: [...currentLibGroup],
-          startIndex: libGroupStartIndex,
-        } as CollapsedLibraryGroup);
-      }
-      currentLibGroup = [];
-    };
-
-    for (let i: number = 0; i < frames.length; i++) {
-      const frame: ResolvedStackFrame = frames[i]!;
-      if (frame.inApp) {
-        flushLibGroup();
-        items.push({
-          kind: "frame",
-          frame: frame,
-          originalIndex: i,
-          isTopAppFrame: i === topAppFrameIndex,
-        } as DisplayFrame);
-      } else {
-        if (currentLibGroup.length === 0) {
-          libGroupStartIndex = i;
-        }
-        currentLibGroup.push({ frame, originalIndex: i });
-      }
-    }
-    flushLibGroup();
-
-    return items;
-  }, [frames, viewMode, topAppFrameIndex, expandedLibGroups]);
+  const visibleFrameIndexes: Array<number> =
+    getVisibleFrameIndexes(displayItems);
+  const areAllVisibleFramesOpen: boolean =
+    visibleFrameIndexes.length > 0 &&
+    visibleFrameIndexes.every((index: number) => {
+      return openFrames.has(index);
+    });
 
   /*
-   * No parsed frames — show the raw trace only. This return sits BELOW
-   * every hook on purpose: frames can go from empty to populated between
-   * renders (parsedFrames and resolvedFrames both arrive async), and an
-   * early return above a hook would change the hook count mid-lifecycle —
-   * a Rules of Hooks violation React aborts the render for.
+   * Everything above is a hook; the no-frames branch below is not a return,
+   * so frames can go from empty to populated between renders (parsedFrames
+   * and resolvedFrames both arrive async) without changing the hook count.
    */
-  if (frames.length === 0) {
-    return (
-      <Card
-        title="Stack Trace"
-        description="Raw stack trace from the exception."
-      >
-        <div className="overflow-hidden">
-          <RawStackTraceViewer
-            stackTrace={props.stackTrace}
-            isStandalone={true}
-          />
-        </div>
-      </Card>
-    );
+  const hasFrames: boolean = frames.length > 0;
+  const activeTab: StackTraceTab = hasFrames ? tab : "raw";
+  const lineCount: number = props.stackTrace.split("\n").length;
+
+  const descriptionParts: Array<string> = hasFrames
+    ? [
+        `${frames.length} frame${frames.length === 1 ? "" : "s"}`,
+        `${appFrameCount} in your code`,
+      ]
+    : [`${lineCount} line${lineCount === 1 ? "" : "s"}`];
+
+  if (resolvedFrameCount > 0) {
+    descriptionParts.push(`${resolvedFrameCount} source mapped`);
   }
+
+  const crashFrame: ResolvedStackFrame | undefined =
+    topAppFrameIndex >= 0 ? frames[topAppFrameIndex] : undefined;
+  const crashLocation: FrameDisplayLocation | undefined = crashFrame
+    ? getFrameDisplayLocation(crashFrame)
+    : undefined;
+
+  const toggleFrame: (index: number) => void = (index: number): void => {
+    const next: Set<number> = new Set(openFrames);
+
+    if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+
+    setExpandedFrames(next);
+  };
 
   return (
     <Card
       title="Stack Trace"
       description={
-        resolvedFrameCount > 0
-          ? `${frames.length} frames traced · ${resolvedFrameCount} resolved to original source via source maps`
-          : `${frames.length} frames traced`
+        hasFrames
+          ? descriptionParts.join(" · ")
+          : `${descriptionParts.join(" · ")} · Structured frames were not recorded for the latest occurrence.`
+      }
+      rightElement={
+        <CopyTextButton
+          textToBeCopied={props.stackTrace}
+          size="sm"
+          variant="soft"
+          label="Copy stack trace"
+          title="Copy the raw stack trace"
+        />
       }
     >
-      <div className="overflow-hidden">
-        {/* View mode toggle bar */}
-        {appFrameCount > 0 && libFrameCount > 0 && (
-          <ViewModeToggle
-            viewMode={viewMode}
-            onChangeMode={(mode: ViewMode) => {
-              setViewMode(mode);
-              setExpandedFrameIndex(null);
-              setExpandedLibGroups(new Set());
-            }}
-            totalFrames={frames.length}
-            appFrameCount={appFrameCount}
-            libFrameCount={libFrameCount}
-          />
-        )}
-
-        {/* Crash point summary bar */}
-        {topAppFrameIndex >= 0 && (
-          <div className="flex items-center gap-2 px-5 py-2 border-b border-red-100 bg-red-50/40">
-            <Icon
-              icon={IconProp.Error}
-              size={SizeProp.Smaller}
-              color={Red500}
-              thick={ThickProp.LessThick}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {hasFrames && (
+            <ExceptionSegmentedControl<StackTraceTab>
+              label="Stack trace format"
+              testId="stack-trace-tab"
+              value={activeTab}
+              onChange={setTab}
+              options={[
+                { value: "frames", label: "Frames" },
+                { value: "raw", label: "Raw" },
+              ]}
             />
-            <span className="text-xs text-red-700">
-              <span className="font-semibold">Crash point:</span>{" "}
-              <span className="font-mono">
-                {getFrameDisplayLocation(frames[topAppFrameIndex]!)
-                  .functionName || "<anonymous>"}
-              </span>{" "}
-              <span className="text-red-500">
-                in{" "}
-                {shortenPath(
-                  getFrameDisplayLocation(frames[topAppFrameIndex]!).fileName,
-                )}
-                {getFrameDisplayLocation(frames[topAppFrameIndex]!).lineNumber >
-                0
-                  ? `:${getFrameDisplayLocation(frames[topAppFrameIndex]!).lineNumber}`
-                  : ""}
-              </span>
+          )}
+
+          {activeTab === "frames" && (
+            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+              {appFrameCount > 0 && libFrameCount > 0 && (
+                <ExceptionSegmentedControl<StackTraceViewMode>
+                  label="Frames to show"
+                  testId="stack-trace-view"
+                  value={viewMode}
+                  onChange={(mode: StackTraceViewMode) => {
+                    setViewMode(mode);
+                    setExpandedLibGroups(new Set());
+                  }}
+                  options={[
+                    {
+                      value: StackTraceViewMode.Smart,
+                      label: "Smart",
+                      title:
+                        "Your code, with consecutive library frames folded",
+                    },
+                    {
+                      value: StackTraceViewMode.AppOnly,
+                      label: "App only",
+                      hint: String(appFrameCount),
+                    },
+                    {
+                      value: StackTraceViewMode.All,
+                      label: "All",
+                      hint: String(frames.length),
+                    },
+                  ]}
+                />
+              )}
+              <ExceptionSegmentedControl<StackTraceFrameOrder>
+                label="Frame order"
+                testId="stack-trace-order"
+                value={frameOrder}
+                onChange={setFrameOrder}
+                options={[
+                  {
+                    value: StackTraceFrameOrder.NewestFirst,
+                    label: "Newest first",
+                    title: "The crash point at the top",
+                  },
+                  {
+                    value: StackTraceFrameOrder.OldestFirst,
+                    label: "Oldest first",
+                    title: "The entry point at the top",
+                  },
+                ]}
+              />
+              <ToolbarButton
+                label={areAllVisibleFramesOpen ? "Collapse all" : "Expand all"}
+                icon={
+                  areAllVisibleFramesOpen ? IconProp.Collapse : IconProp.Expand
+                }
+                testId="stack-trace-expand-all"
+                onClick={() => {
+                  setExpandedFrames(
+                    areAllVisibleFramesOpen
+                      ? new Set()
+                      : new Set(visibleFrameIndexes),
+                  );
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === "raw" && (
+            <div className="sm:ml-auto">
+              <ToolbarButton
+                label="Wrap lines"
+                icon={IconProp.Text}
+                isPressed={wrapLines}
+                testId="stack-trace-wrap"
+                onClick={() => {
+                  setWrapLines(!wrapLines);
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {Boolean(props.skippedSourceMapCount) && (
+          <div
+            className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-inset ring-amber-600/20"
+            data-testid="stack-trace-source-maps-skipped"
+          >
+            <Icon icon={IconProp.Alert} className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              {props.skippedSourceMapCount} source map
+              {props.skippedSourceMapCount === 1 ? " was" : "s were"} too large
+              to load, so some frames still show minified locations.
             </span>
           </div>
         )}
 
-        {/* Frames list */}
-        <div className="divide-y divide-gray-100/80">
-          {displayItems.map(
-            (item: DisplayItem, displayIndex: number): ReactElement => {
-              if (item.kind === "collapsed-lib") {
-                return (
-                  <CollapsedLibGroupRow
-                    key={`lib-group-${item.startIndex}`}
-                    group={item}
-                    onExpand={() => {
-                      const next: Set<number> = new Set(expandedLibGroups);
-                      next.add(item.startIndex);
-                      setExpandedLibGroups(next);
-                    }}
-                  />
-                );
-              }
-
-              const frameItem: DisplayFrame = item;
-              return (
-                <FrameRow
-                  key={`frame-${frameItem.originalIndex}-${displayIndex}`}
-                  frame={frameItem.frame}
-                  originalIndex={frameItem.originalIndex}
-                  isExpanded={expandedFrameIndex === frameItem.originalIndex}
-                  isTopAppFrame={frameItem.isTopAppFrame}
-                  onToggle={() => {
-                    setExpandedFrameIndex(
-                      expandedFrameIndex === frameItem.originalIndex
-                        ? null
-                        : frameItem.originalIndex,
-                    );
-                  }}
+        {activeTab === "frames" && hasFrames && (
+          <div className="-mx-5 border-y border-gray-100 md:-mx-6">
+            {(headline || crashLocation) && (
+              <div
+                className="flex items-start gap-3 border-b border-gray-100 bg-red-50/60 px-4 py-3 md:px-6"
+                data-testid="stack-trace-crash-point"
+              >
+                <Icon
+                  icon={IconProp.Error}
+                  className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600"
                 />
-              );
-            },
-          )}
-        </div>
+                <div className="min-w-0 flex-1 text-sm">
+                  {headline && (
+                    <p
+                      className="break-words font-mono text-[13px] font-medium text-red-900"
+                      data-testid="stack-trace-headline"
+                    >
+                      {headline}
+                    </p>
+                  )}
+                  {crashLocation && (
+                    <p className="mt-1 min-w-0 break-all text-red-800">
+                      <span className="font-medium">
+                        Most likely crash point:{" "}
+                      </span>
+                      <span className="font-mono font-semibold">
+                        {crashLocation.functionName || "<anonymous>"}
+                      </span>
+                      {crashLocation.fileName && (
+                        <>
+                          <span className="text-red-600"> in </span>
+                          <span className="font-mono">
+                            {shortenFramePath(crashLocation.fileName)}
+                            {crashLocation.lineNumber > 0
+                              ? `:${crashLocation.lineNumber}`
+                              : ""}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  )}
+                  {!crashLocation && (
+                    <p className="mt-1 text-red-800">
+                      No frame was identified as your own code; every frame
+                      below is library or runtime code.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Raw stack trace collapsible */}
-        <RawStackTraceViewer
-          stackTrace={props.stackTrace}
-          isStandalone={false}
-        />
+            <ol className="divide-y divide-gray-100" aria-label="Stack frames">
+              {displayItems.map(
+                (
+                  item: StackTraceDisplayItem,
+                  displayIndex: number,
+                ): ReactElement => {
+                  if (item.kind === "collapsed-lib") {
+                    return (
+                      <CollapsedLibGroupRow
+                        key={`lib-group-${item.startIndex}`}
+                        frameCount={item.frames.length}
+                        commonPackage={item.commonPackage}
+                        onExpand={() => {
+                          const next: Set<number> = new Set(expandedLibGroups);
+                          next.add(item.startIndex);
+                          setExpandedLibGroups(next);
+                        }}
+                      />
+                    );
+                  }
+
+                  return (
+                    <FrameRow
+                      key={`frame-${item.originalIndex}-${displayIndex}`}
+                      frame={item.frame}
+                      originalIndex={item.originalIndex}
+                      isExpanded={openFrames.has(item.originalIndex)}
+                      isTopAppFrame={item.isTopAppFrame}
+                      onToggle={() => {
+                        toggleFrame(item.originalIndex);
+                      }}
+                    />
+                  );
+                },
+              )}
+            </ol>
+          </div>
+        )}
+
+        {activeTab === "raw" && (
+          <RawStackTrace stackTrace={props.stackTrace} wrapLines={wrapLines} />
+        )}
       </div>
     </Card>
   );

@@ -48,6 +48,11 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     path: `${EXCEPTION_PATH}/context`,
   },
   {
+    title: "Logs",
+    section: "Investigate",
+    path: `${EXCEPTION_PATH}/logs`,
+  },
+  {
     title: "AI Assistance",
     section: "Resolve",
     path: `${EXCEPTION_PATH}/ai-assistance`,
@@ -93,6 +98,7 @@ describe("exception detail side menu", () => {
       { title: "Stack Trace", href: `${EXCEPTION_PATH}/stack-trace` },
       { title: "Occurrences", href: `${EXCEPTION_PATH}/occurrences` },
       { title: "Context", href: `${EXCEPTION_PATH}/context` },
+      { title: "Logs", href: `${EXCEPTION_PATH}/logs` },
     ]);
     expect(linksIn("Resolve")).toEqual([
       {
@@ -105,7 +111,7 @@ describe("exception detail side menu", () => {
     ]);
   });
 
-  test("lists six unique, fully populated destinations", async () => {
+  test("lists seven unique, fully populated destinations", async () => {
     await renderExceptionMenu();
 
     const hrefs: Array<string> = hrefsInMenu();

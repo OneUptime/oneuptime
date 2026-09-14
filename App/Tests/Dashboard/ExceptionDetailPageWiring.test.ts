@@ -64,6 +64,12 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     title: "Context",
   },
   {
+    key: "EXCEPTIONS_VIEW_LOGS",
+    section: "Logs",
+    suffix: "/logs",
+    title: "Logs",
+  },
+  {
     key: "EXCEPTIONS_VIEW_AI_ASSISTANCE",
     section: "AIAssistance",
     suffix: "/ai-assistance",
@@ -111,7 +117,7 @@ describe("exception detail page wiring", () => {
     );
   });
 
-  test("mounts the six pages beneath one exception layout", () => {
+  test("mounts the seven pages beneath one exception layout", () => {
     const routes: string = dense(
       readSource("Routes", "ExceptionsRoutes.tsx"),
     ).replace(/,\)/g, ")");
@@ -163,8 +169,75 @@ describe("exception detail page wiring", () => {
     );
 
     expect(exceptionExplorer).toContain(
-      "const[isLoading,setIsLoading]=React.useState<boolean>(true);",
+      "const[isLoading,setIsLoading]=useState<boolean>(true);",
     );
+  });
+
+  test("each section renders its own focused component", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    const expectations: Array<[string, Array<string>]> = [
+      ["Overview", ["<ExceptionOccurrenceTrend", "<ExceptionDetail", "<ExceptionLatestOccurrence"]],
+      ["StackTrace", ["<StackFrameViewer"]],
+      ["Occurrences", ["<ExceptionOccurrences"]],
+      ["Context", ["<ExceptionLatestOccurrence", "<ReplayCard", "<BreadcrumbTimeline"]],
+      ["Logs", ["<ExceptionLogs"]],
+      ["AIAssistance", ["<ExceptionAIAssistance"]],
+      ["Settings", ["<ExceptionSettings"]],
+    ];
+
+    const sectionStarts: Array<[string, number]> = expectations.map(
+      ([section]: [string, Array<string>]): [string, number] => {
+        const marker: string = `{props.section===ExceptionDetailSection.${section}&&(`;
+        const index: number = exceptionExplorer.indexOf(marker);
+        expect(index).toBeGreaterThan(-1);
+        return [section, index];
+      },
+    );
+
+    sectionStarts.forEach(
+      ([section, start]: [string, number], position: number) => {
+        const end: number =
+          position + 1 < sectionStarts.length
+            ? sectionStarts[position + 1]![1]
+            : exceptionExplorer.length;
+        const block: string = exceptionExplorer.slice(start, end);
+
+        for (const component of expectations[position]![1]) {
+          expect({ section, has: block.includes(component) }).toEqual({
+            section,
+            has: true,
+          });
+        }
+      },
+    );
+  });
+
+  test("header triage actions follow the data plan so Settings does not duplicate them", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "{...(dataPlan.showHeaderActions?{actions:(<ExceptionTriageActions",
+    );
+    expect(exceptionExplorer).toContain("onAction={onTriageAction}");
+  });
+
+  test("the AI Assistance page no longer carries its own data fetching in the explorer", () => {
+    const exceptionExplorer: string = readSource(
+      "Components",
+      "Exceptions",
+      "ExceptionExplorer.tsx",
+    );
+
+    expect(exceptionExplorer).not.toContain("get-ai-agent-task");
+    expect(exceptionExplorer).not.toContain("ai-fix-readiness");
+    expect(
+      readSource("Components", "Exceptions", "ExceptionAIAssistance.tsx"),
+    ).toContain("/telemetry-exception/get-ai-agent-task/");
   });
 
   test("passes the complete exception entity scope to replay correlation", () => {

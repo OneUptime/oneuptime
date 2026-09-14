@@ -1,4 +1,10 @@
 import ClickhouseDatabase from "../../Infrastructure/ClickhouseDatabase";
+import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import {
+  EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+  ExceptionSpanScope,
+  parseExceptionSpanScope,
+} from "../../../Types/Telemetry/ExceptionSpanScope";
 import GroupBy from "../../Types/AnalyticsDatabase/GroupBy";
 import Query from "../../Types/AnalyticsDatabase/Query";
 import Select from "../../Types/AnalyticsDatabase/Select";
@@ -686,6 +692,75 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           );
         }
 
+        continue;
+      }
+
+      /*
+       * "exceptionScope" is a synthetic query key (not a column) that narrows
+       * spans to the ones an exception group's occurrences were raised in:
+       *   (traceId, spanId) IN (SELECT traceId, spanId FROM <occurrences>
+       *     WHERE projectId = ... AND fingerprint = ... [AND primaryEntityId = ...])
+       * The subquery is pinned to the query's own projectId. Without one — or
+       * with a malformed scope — the predicate matches nothing rather than
+       * silently widening back to every span. Ignored for models without
+       * traceId / spanId columns.
+       */
+      if (key === EXCEPTION_SPAN_SCOPE_QUERY_KEY) {
+        const traceIdColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("traceId");
+        const spanIdColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("spanId");
+
+        if (!traceIdColumn || !spanIdColumn) {
+          continue;
+        }
+
+        const scope: ExceptionSpanScope | null =
+          parseExceptionSpanScope(value);
+        const projectIdValue: unknown = (query as Record<string, unknown>)[
+          "projectId"
+        ];
+        const projectId: string =
+          projectIdValue instanceof ObjectID
+            ? projectIdValue.toString()
+            : typeof projectIdValue === "string"
+              ? projectIdValue
+              : "";
+
+        if (first) {
+          first = false;
+        } else {
+          whereStatement.append(SQL` `);
+        }
+
+        if (!scope || !projectId) {
+          whereStatement.append(SQL`AND 0`);
+          continue;
+        }
+
+        const exceptionScopeStatement: Statement = SQL`AND (${columnRef(
+          traceIdColumn.key,
+        )}, ${columnRef(spanIdColumn.key)}) IN (SELECT traceId, spanId FROM ${
+          AnalyticsTableName.ExceptionInstance
+        } WHERE projectId = ${{
+          value: new ObjectID(projectId),
+          type: TableColumnType.ObjectID,
+        }} AND fingerprint = ${{
+          value: scope.fingerprint,
+          type: TableColumnType.Text,
+        }}`;
+
+        if (scope.primaryEntityId) {
+          exceptionScopeStatement.append(
+            SQL` AND primaryEntityId = ${{
+              value: new ObjectID(scope.primaryEntityId),
+              type: TableColumnType.ObjectID,
+            }}`,
+          );
+        }
+
+        exceptionScopeStatement.append(SQL`)`);
+        whereStatement.append(exceptionScopeStatement);
         continue;
       }
 

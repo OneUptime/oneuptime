@@ -10,6 +10,7 @@ import BaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import { EXCEPTION_SPAN_SCOPE_QUERY_KEY } from "../../../Types/Telemetry/ExceptionSpanScope";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -375,6 +376,14 @@ export default class ModelPermission {
        * from the client-sent `resourceFilters` ids.
        */
       "resourceEntityScopes",
+      /*
+       * Synthetic query key compiled by StatementGenerator to
+       * (traceId, spanId) IN (SELECT ... FROM <exception occurrences> WHERE
+       * projectId = <the query's project> AND fingerprint = ...). Not a real
+       * column; it only narrows spans to those an exception group was raised
+       * in, and the subquery is pinned to the query's own project.
+       */
+      EXCEPTION_SPAN_SCOPE_QUERY_KEY,
     ];
 
     return returnArr;

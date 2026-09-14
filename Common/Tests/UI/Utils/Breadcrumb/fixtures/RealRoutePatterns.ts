@@ -796,6 +796,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/exceptions/:id/stack-trace",
   "/dashboard/:projectId/exceptions/:id/occurrences",
   "/dashboard/:projectId/exceptions/:id/context",
+  "/dashboard/:projectId/exceptions/:id/logs",
   "/dashboard/:projectId/exceptions/:id/ai-assistance",
   "/dashboard/:projectId/exceptions/:id/settings",
   "/dashboard/:projectId/exceptions/documentation",

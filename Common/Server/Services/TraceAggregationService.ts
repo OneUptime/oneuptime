@@ -12,6 +12,7 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { ExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
@@ -84,6 +85,12 @@ export interface TraceFilters {
   // Exact-match for multi-value statusMessage filters (list-side `Includes`).
   statusMessages?: Array<string> | undefined;
   hasException?: boolean | undefined;
+  /*
+   * Only the spans an exception group's occurrences were raised in. Compiled
+   * to a (traceId, spanId) IN subquery over the exception occurrences, pinned
+   * to the request's project — see Types/Telemetry/ExceptionSpanScope.
+   */
+  exceptionScope?: ExceptionSpanScope | undefined;
   /*
    * Strict bounds (`>` / `<`) — the list compiles duration:>N / duration:<N
    * to GreaterThan / LessThan, which are strict comparisons. `duration:N`
@@ -1013,13 +1020,58 @@ export class TraceAggregationService {
     return statement;
   }
 
+  /*
+   * The spans behind one exception group's occurrences. The subquery is
+   * pinned to the request's project; without a project the filter matches
+   * nothing rather than widening to every span.
+   */
+  public static appendExceptionScopeFilter(
+    statement: Statement,
+    request: {
+      exceptionScope?: ExceptionSpanScope | undefined;
+      projectId?: ObjectID | undefined;
+    },
+  ): void {
+    if (!request.exceptionScope) {
+      return;
+    }
+
+    if (!request.projectId) {
+      statement.append(" AND 0");
+      return;
+    }
+
+    statement.append(
+      SQL` AND (traceId, spanId) IN (SELECT traceId, spanId FROM ${AnalyticsTableName.ExceptionInstance} WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND fingerprint = ${{
+        type: TableColumnType.Text,
+        value: request.exceptionScope.fingerprint,
+      }}`,
+    );
+
+    if (request.exceptionScope.primaryEntityId) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: new ObjectID(request.exceptionScope.primaryEntityId),
+        }}`,
+      );
+    }
+
+    statement.append(")");
+  }
+
   private static appendCommonFilters(
     statement: Statement,
-    request: TraceFilters,
+    request: TraceFilters & { projectId?: ObjectID | undefined },
   ): void {
     if (request.rootOnly) {
       statement.append(" AND isRootSpan = 1");
     }
+
+    TraceAggregationService.appendExceptionScopeFilter(statement, request);
 
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(

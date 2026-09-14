@@ -50,6 +50,7 @@ const DETAIL_PAGES: ReadonlyArray<ExceptionDetailPage> = [
     section: "Investigate",
   },
   { title: "Context", suffix: "/context", section: "Investigate" },
+  { title: "Logs", suffix: "/logs", section: "Investigate" },
   {
     title: "AI Assistance",
     suffix: "/ai-assistance",
@@ -145,17 +146,20 @@ const assertPageSpecificContent: (
 ) => Promise<void> = async (detailPage: ExceptionDetailPage): Promise<void> => {
   if (detailPage.title === "Overview") {
     await expect(
-      ctx.page.getByRole("heading", {
-        name: "Exception Metadata",
-        exact: true,
-      }),
+      ctx.page.getByRole("heading", { name: "Occurrence Trend", exact: true }),
     ).toBeVisible();
     await expect(
-      ctx.page.getByText(SERVICE_NAME, { exact: true }),
+      ctx.page.getByRole("heading", { name: "Details", exact: true }),
     ).toBeVisible();
     await expect(
-      ctx.page.getByText(EXCEPTION_FINGERPRINT, { exact: true }),
-    ).toBeVisible();
+      ctx.page.getByTestId("exception-detail-service"),
+    ).toContainText(SERVICE_NAME);
+    await expect(
+      ctx.page.getByTestId("exception-detail-fingerprint"),
+    ).toContainText(EXCEPTION_FINGERPRINT);
+    await expect(
+      ctx.page.getByTestId("exception-latest-occurrence-release"),
+    ).toContainText(RELEASE, { timeout: 30000 });
     return;
   }
 
@@ -163,20 +167,27 @@ const assertPageSpecificContent: (
     await expect(
       ctx.page.getByRole("heading", { name: "Stack Trace", exact: true }),
     ).toBeVisible();
-    await expect(
-      ctx.page.getByText("Raw Stack Trace", { exact: true }),
-    ).toBeVisible();
-    await expect(ctx.page.getByText(/reserveInventory/)).toBeVisible();
+    // The fixture occurrence carries no parsed frames, so the raw trace shows.
+    await expect(ctx.page.getByTestId("raw-stack-trace")).toContainText(
+      "reserveInventory",
+      { timeout: 30000 },
+    );
     return;
   }
 
   if (detailPage.title === "Occurrences") {
     await expect(
       ctx.page.getByRole("heading", {
-        name: "Exception Occurrences",
+        name: "Spans that raised this exception",
         exact: true,
       }),
     ).toBeVisible();
+    // The locked scope chip renders its key and value as separate elements.
+    await expect(
+      ctx.page.getByText(new RegExp(`Exception:\\s*${EXCEPTION_TYPE}`)).first(),
+    ).toBeVisible({ timeout: 30000 });
+
+    await ctx.page.getByTestId("exception-occurrences-view-details").click();
     await expect(ctx.page.getByText(SPAN_NAME, { exact: true })).toBeVisible({
       timeout: 30000,
     });
@@ -188,11 +199,24 @@ const assertPageSpecificContent: (
 
   if (detailPage.title === "Context") {
     await expect(
-      ctx.page.getByRole("heading", { name: "Logs", exact: true }),
-    ).toBeVisible();
+      ctx.page.getByRole("heading", { name: "Latest Occurrence", exact: true }),
+    ).toBeVisible({ timeout: 30000 });
     await expect(
       ctx.page.getByRole("button", { name: "Show Logs", exact: true }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    return;
+  }
+
+  if (detailPage.title === "Logs") {
+    await expect(
+      ctx.page.getByRole("heading", {
+        name: /Logs around the latest occurrence/,
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(ctx.page.getByTestId("exception-logs-scope-trace")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
     return;
   }
 
@@ -206,8 +230,7 @@ const assertPageSpecificContent: (
       ctx.page
         .getByRole("heading")
         .filter({
-          hasText:
-            /Set up AI for this exception|Fix this exception with AI|AI Fix Task Status/,
+          hasText: /Set up AI for this exception|Fix this exception with AI/,
         })
         .first(),
     ).toBeVisible({ timeout: 30000 });
@@ -215,16 +238,10 @@ const assertPageSpecificContent: (
   }
 
   await expect(
-    ctx.page.getByRole("heading", {
-      name: "Mark as Resolved",
-      exact: true,
-    }),
+    ctx.page.getByRole("heading", { name: "Status", exact: true }),
   ).toBeVisible();
   await expect(
-    ctx.page.getByRole("heading", {
-      name: "Archive Exception",
-      exact: true,
-    }),
+    ctx.page.getByRole("heading", { name: "Delete Exception", exact: true }),
   ).toBeVisible();
 };
 
@@ -239,21 +256,10 @@ const confirmSettingsAction: (data: {
   expectedStatus: string;
   expectedStoredState: StoredExceptionTriage;
 }): Promise<void> => {
+  // Resolve and archive are reversible, so they apply in one click.
   await ctx.page
     .getByRole("button", { name: data.actionName, exact: true })
     .click();
-
-  const modal: Locator = ctx.page.getByTestId("modal");
-  await expect(
-    modal.getByRole("heading", {
-      name: `Confirm ${data.actionName}`,
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(modal.getByTestId("confirm-modal-description")).toContainText(
-    `Are you sure you want to ${data.actionName}?`,
-  );
-  await modal.getByTestId("modal-footer-submit-button").click();
 
   await expect(
     ctx.page.getByRole("button", {
@@ -486,7 +492,7 @@ test.describe("Exception detail pages", () => {
     }
   });
 
-  test("keeps all six focused pages bookmarkable with distinguishing content", async () => {
+  test("keeps all seven focused pages bookmarkable with distinguishing content", async () => {
     for (const detailPage of DETAIL_PAGES) {
       const expectedPath: string = detailBasePath() + detailPage.suffix;
       const expectedUrl: string = urlFor(expectedPath);
@@ -550,6 +556,43 @@ test.describe("Exception detail pages", () => {
     });
   });
 
+  test("resolves and reopens from the header on any page", async () => {
+    await ctx.page.goto(urlFor(`${detailBasePath()}/stack-trace`));
+    await expect(summary()).toContainText("Unresolved", { timeout: 30000 });
+
+    const actions: Locator = ctx.page.getByTestId("exception-summary-actions");
+
+    await actions.getByTestId("exception-triage-resolve").click();
+    await expect(ctx.page.getByTestId("exception-summary-status")).toHaveText(
+      "Resolved",
+      { timeout: 30000 },
+    );
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          const stored: StoredExceptionTriage = await readExceptionTriage();
+          return `${stored.isResolved}:${stored.isArchived}`;
+        },
+        { timeout: 30000 },
+      )
+      .toBe("true:false");
+
+    await actions.getByTestId("exception-triage-unresolve").click();
+    await expect(ctx.page.getByTestId("exception-summary-status")).toHaveText(
+      "Unresolved",
+      { timeout: 30000 },
+    );
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          const stored: StoredExceptionTriage = await readExceptionTriage();
+          return `${stored.isResolved}:${stored.isArchived}`;
+        },
+        { timeout: 30000 },
+      )
+      .toBe("false:false");
+  });
+
   test("keeps the side menu usable on a narrow screen", async () => {
     await ctx.page.goto(urlFor(`${detailBasePath()}/settings`));
     await expect(summary()).toContainText(EXCEPTION_MESSAGE, {
@@ -579,7 +622,7 @@ test.describe("Exception detail pages", () => {
     await expect(mobileToggle).toHaveAttribute("aria-expanded", "false");
     await expect(mobileToggle).toContainText("Investigate / Context");
     await expect(
-      ctx.page.getByRole("heading", { name: "Logs", exact: true }),
+      ctx.page.getByRole("heading", { name: "Latest Occurrence", exact: true }),
     ).toBeVisible({ timeout: 30000 });
 
     await ctx.page.reload({ waitUntil: "domcontentloaded" });

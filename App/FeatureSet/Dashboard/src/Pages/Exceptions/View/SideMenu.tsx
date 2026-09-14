@@ -49,6 +49,13 @@ const ExceptionViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Activity}
         />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: getRoute(PageMap.EXCEPTIONS_VIEW_LOGS),
+          }}
+          icon={IconProp.Logs}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Resolve">

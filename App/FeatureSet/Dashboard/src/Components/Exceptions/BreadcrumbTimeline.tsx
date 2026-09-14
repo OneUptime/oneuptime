@@ -1,25 +1,33 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useState,
   useMemo,
+  useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import {
-  Green500,
-  Red500,
-  Yellow500,
-  Blue500,
-  Purple500,
-  Gray500,
-} from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import OneUptimeDate from "Common/Types/Date";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  BREADCRUMB_CATEGORY_LABELS,
+  BREADCRUMB_CATEGORY_ORDER,
+  BreadcrumbAttribute,
+  BreadcrumbCategory,
+  BreadcrumbGroup,
+  categorizeBreadcrumb,
+  countBreadcrumbCategories,
+  describeBreadcrumbWindow,
+  formatBreadcrumbClockTime,
+  formatBreadcrumbOffset,
+  getBreadcrumbAttributes,
+  groupBreadcrumbEvents,
+  sortBreadcrumbEvents,
+} from "../../Utils/BreadcrumbTimelinePresentation";
+import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
+
+export { BreadcrumbCategory };
 
 export interface BreadcrumbEvent {
   name: string;
@@ -28,700 +36,394 @@ export interface BreadcrumbEvent {
   attributes: JSONObject;
 }
 
-export enum BreadcrumbCategory {
-  HTTP = "HTTP",
-  DB = "DB",
-  Log = "LOG",
-  Error = "ERROR",
-  Warning = "WARN",
-  Event = "EVENT",
-  Exception = "EXCEPTION",
-}
-
-// Grouped event: consecutive identical events collapsed into one
-interface GroupedBreadcrumbEvent {
-  events: BreadcrumbEvent[];
-  category: BreadcrumbCategory;
-  summary: string;
-  detail: string | null;
-  firstTime: Date;
-  lastTime: Date;
-  count: number;
-}
-
 export interface ComponentProps {
-  events: BreadcrumbEvent[];
+  events: Array<BreadcrumbEvent>;
   exceptionTime?: Date;
   maxEvents?: number;
 }
 
-// --- Categorization helpers ---
-
-type CategorizeEventFunction = (event: BreadcrumbEvent) => BreadcrumbCategory;
-
-const categorizeEvent: CategorizeEventFunction = (
-  event: BreadcrumbEvent,
-): BreadcrumbCategory => {
-  const name: string = (event.name || "").toLowerCase();
-  const attrs: JSONObject = event.attributes || {};
-
-  if (name === "exception" || attrs["exception.type"]) {
-    return BreadcrumbCategory.Exception;
-  }
-
-  if (
-    name.includes("http") ||
-    attrs["http.method"] ||
-    attrs["http.status_code"] ||
-    attrs["http.url"]
-  ) {
-    return BreadcrumbCategory.HTTP;
-  }
-
-  if (
-    name.includes("db") ||
-    name.includes("database") ||
-    name.includes("query") ||
-    name.includes("sql") ||
-    attrs["db.system"] ||
-    attrs["db.statement"]
-  ) {
-    return BreadcrumbCategory.DB;
-  }
-
-  if (name.includes("log") || name.includes("console")) {
-    return BreadcrumbCategory.Log;
-  }
-
-  if (
-    name.includes("error") ||
-    attrs["level"] === "error" ||
-    attrs["severity"] === "error"
-  ) {
-    return BreadcrumbCategory.Error;
-  }
-
-  if (
-    name.includes("warn") ||
-    attrs["level"] === "warn" ||
-    attrs["level"] === "warning" ||
-    attrs["severity"] === "warning"
-  ) {
-    return BreadcrumbCategory.Warning;
-  }
-
-  return BreadcrumbCategory.Event;
-};
-
-// --- Category colors ---
+type TimeFormat = "relative" | "clock";
 
 interface CategoryStyle {
-  color: Color;
   icon: IconProp;
-  bgClass: string;
-  dotClass: string;
-  textClass: string;
-  borderClass: string;
-  lightBgClass: string;
+  nodeClassName: string;
+  labelClassName: string;
+  chipClassName: string;
 }
 
-type GetCategoryStyleFunction = (category: BreadcrumbCategory) => CategoryStyle;
-
-const getCategoryStyle: GetCategoryStyleFunction = (
-  category: BreadcrumbCategory,
-): CategoryStyle => {
-  switch (category) {
-    case BreadcrumbCategory.HTTP:
-      return {
-        color: Blue500,
-        icon: IconProp.Globe,
-        bgClass: "bg-blue-50",
-        dotClass: "bg-blue-500",
-        textClass: "text-blue-800",
-        borderClass: "border-l-blue-400",
-        lightBgClass: "bg-blue-50/50",
-      };
-    case BreadcrumbCategory.DB:
-      return {
-        color: Purple500,
-        icon: IconProp.Database,
-        bgClass: "bg-purple-50",
-        dotClass: "bg-purple-500",
-        textClass: "text-purple-800",
-        borderClass: "border-l-purple-400",
-        lightBgClass: "bg-purple-50/50",
-      };
-    case BreadcrumbCategory.Log:
-      return {
-        color: Gray500,
-        icon: IconProp.Terminal,
-        bgClass: "bg-gray-50",
-        dotClass: "bg-gray-400",
-        textClass: "text-gray-700",
-        borderClass: "border-l-gray-300",
-        lightBgClass: "bg-gray-50/50",
-      };
-    case BreadcrumbCategory.Error:
-      return {
-        color: Red500,
-        icon: IconProp.Alert,
-        bgClass: "bg-red-50",
-        dotClass: "bg-red-500",
-        textClass: "text-red-800",
-        borderClass: "border-l-red-400",
-        lightBgClass: "bg-red-50/50",
-      };
-    case BreadcrumbCategory.Warning:
-      return {
-        color: Yellow500,
-        icon: IconProp.Alert,
-        bgClass: "bg-yellow-50",
-        dotClass: "bg-yellow-500",
-        textClass: "text-yellow-800",
-        borderClass: "border-l-yellow-400",
-        lightBgClass: "bg-yellow-50/50",
-      };
-    case BreadcrumbCategory.Exception:
-      return {
-        color: Red500,
-        icon: IconProp.Error,
-        bgClass: "bg-red-100",
-        dotClass: "bg-red-600",
-        textClass: "text-red-900",
-        borderClass: "border-l-red-500",
-        lightBgClass: "bg-red-50",
-      };
-    case BreadcrumbCategory.Event:
-    default:
-      return {
-        color: Green500,
-        icon: IconProp.Info,
-        bgClass: "bg-green-50",
-        dotClass: "bg-green-500",
-        textClass: "text-green-800",
-        borderClass: "border-l-green-400",
-        lightBgClass: "bg-green-50/50",
-      };
-  }
+export const BREADCRUMB_CATEGORY_STYLES: Record<
+  BreadcrumbCategory,
+  CategoryStyle
+> = {
+  [BreadcrumbCategory.Exception]: {
+    icon: IconProp.Error,
+    nodeClassName: "bg-red-600 text-white ring-red-100",
+    labelClassName: "text-red-700",
+    chipClassName: "bg-red-50 text-red-700 ring-red-600/20",
+  },
+  [BreadcrumbCategory.Error]: {
+    icon: IconProp.Alert,
+    nodeClassName: "bg-red-50 text-red-600 ring-white",
+    labelClassName: "text-red-700",
+    chipClassName: "bg-red-50 text-red-700 ring-red-600/20",
+  },
+  [BreadcrumbCategory.Warning]: {
+    icon: IconProp.Alert,
+    nodeClassName: "bg-amber-50 text-amber-600 ring-white",
+    labelClassName: "text-amber-700",
+    chipClassName: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  },
+  [BreadcrumbCategory.HTTP]: {
+    icon: IconProp.Globe,
+    nodeClassName: "bg-sky-50 text-sky-600 ring-white",
+    labelClassName: "text-sky-700",
+    chipClassName: "bg-sky-50 text-sky-700 ring-sky-600/20",
+  },
+  [BreadcrumbCategory.DB]: {
+    icon: IconProp.Database,
+    nodeClassName: "bg-violet-50 text-violet-600 ring-white",
+    labelClassName: "text-violet-700",
+    chipClassName: "bg-violet-50 text-violet-700 ring-violet-600/20",
+  },
+  [BreadcrumbCategory.Log]: {
+    icon: IconProp.Terminal,
+    nodeClassName: "bg-gray-100 text-gray-600 ring-white",
+    labelClassName: "text-gray-600",
+    chipClassName: "bg-gray-100 text-gray-700 ring-gray-500/20",
+  },
+  [BreadcrumbCategory.Event]: {
+    icon: IconProp.Info,
+    nodeClassName: "bg-emerald-50 text-emerald-600 ring-white",
+    labelClassName: "text-emerald-700",
+    chipClassName: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  },
 };
 
-// --- Event summary extraction ---
-
-type GetEventSummaryFunction = (event: BreadcrumbEvent) => string;
-
-const getEventSummary: GetEventSummaryFunction = (
-  event: BreadcrumbEvent,
-): string => {
-  const attrs: JSONObject = event.attributes || {};
-
-  if (attrs["http.method"] || attrs["http.url"]) {
-    const method: string = (attrs["http.method"] as string) || "";
-    const url: string = (attrs["http.url"] as string) || "";
-    const status: string = attrs["http.status_code"]
-      ? ` → ${attrs["http.status_code"]}`
-      : "";
-    return `${method} ${url}${status}`.trim();
-  }
-
-  if (attrs["db.statement"]) {
-    const statement: string = (attrs["db.statement"] as string) || "";
-    return statement.length > 100
-      ? statement.substring(0, 100) + "..."
-      : statement;
-  }
-
-  if (attrs["exception.message"]) {
-    const msg: string = (attrs["exception.message"] as string) || "";
-    return msg.length > 120 ? msg.substring(0, 120) + "..." : msg;
-  }
-
-  return event.name || "Event";
-};
-
-type GetEventDetailFunction = (event: BreadcrumbEvent) => string | null;
-
-const getEventDetail: GetEventDetailFunction = (
-  event: BreadcrumbEvent,
-): string | null => {
-  const attrs: JSONObject = event.attributes || {};
-
-  if (attrs["exception.type"]) {
-    return attrs["exception.type"] as string;
-  }
-
-  if (attrs["http.status_code"]) {
-    const code: number = attrs["http.status_code"] as number;
-    if (code >= 400) {
-      return `HTTP ${code}`;
-    }
-  }
-
-  return null;
-};
-
-// --- Time formatting ---
-
-type FormatRelativeTimeFunction = (
-  eventTime: Date,
-  exceptionTime: Date | undefined,
-) => string;
-
-const formatRelativeTime: FormatRelativeTimeFunction = (
-  eventTime: Date,
-  exceptionTime: Date | undefined,
-): string => {
-  if (!exceptionTime) {
-    return OneUptimeDate.getDateAsLocalFormattedString(eventTime);
-  }
-
-  const diffMs: number = eventTime.getTime() - exceptionTime.getTime();
-  const absDiffMs: number = Math.abs(diffMs);
-
-  if (absDiffMs < 10) {
-    return "at exception";
-  }
-
-  if (absDiffMs < 1000) {
-    const prefix: string = diffMs <= 0 ? "-" : "+";
-    return `${prefix}${absDiffMs}ms`;
-  }
-
-  const seconds: number = Math.floor(absDiffMs / 1000);
-  if (seconds < 60) {
-    const prefix: string = diffMs <= 0 ? "-" : "+";
-    return `${prefix}${seconds}s`;
-  }
-
-  const minutes: number = Math.floor(seconds / 60);
-  const remainingSeconds: number = seconds % 60;
-  const prefix: string = diffMs <= 0 ? "-" : "+";
-  if (remainingSeconds === 0) {
-    return `${prefix}${minutes}m`;
-  }
-  return `${prefix}${minutes}m ${remainingSeconds}s`;
-};
-
-type FormatAbsoluteTimeFunction = (eventTime: Date) => string;
-
-const formatAbsoluteTime: FormatAbsoluteTimeFunction = (
-  eventTime: Date,
-): string => {
-  return OneUptimeDate.getDateAsLocalFormattedString(eventTime);
-};
-
-// --- Grouping logic ---
-
-type GroupEventsFunction = (
-  events: BreadcrumbEvent[],
-) => GroupedBreadcrumbEvent[];
-
-const groupConsecutiveEvents: GroupEventsFunction = (
-  events: BreadcrumbEvent[],
-): GroupedBreadcrumbEvent[] => {
-  if (events.length === 0) {
-    return [];
-  }
-
-  const groups: GroupedBreadcrumbEvent[] = [];
-  let currentGroup: GroupedBreadcrumbEvent | null = null;
-
-  for (const event of events) {
-    const category: BreadcrumbCategory = categorizeEvent(event);
-    const summary: string = getEventSummary(event);
-    const detail: string | null = getEventDetail(event);
-
-    // Group if same category + same summary text (identical events)
-    if (
-      currentGroup &&
-      currentGroup.category === category &&
-      currentGroup.summary === summary
-    ) {
-      currentGroup.events.push(event);
-      currentGroup.lastTime = event.time;
-      currentGroup.count = currentGroup.count + 1;
-    } else {
-      // Start a new group
-      currentGroup = {
-        events: [event],
-        category: category,
-        summary: summary,
-        detail: detail,
-        firstTime: event.time,
-        lastTime: event.time,
-        count: 1,
-      };
-      groups.push(currentGroup);
-    }
-  }
-
-  return groups;
-};
-
-// --- Get relevant attributes for display ---
-
-type GetDisplayAttributesFunction = (
-  event: BreadcrumbEvent,
-) => Array<{ key: string; value: string }>;
-
-const getDisplayAttributes: GetDisplayAttributesFunction = (
-  event: BreadcrumbEvent,
-): Array<{ key: string; value: string }> => {
-  const attrs: JSONObject = event.attributes || {};
-  const result: Array<{ key: string; value: string }> = [];
-
-  // Skip internal/noisy attribute keys
-  const skipKeys: Set<string> = new Set([
-    "exception.escaped",
-    "exception.stacktrace",
-  ]);
-
-  for (const key of Object.keys(attrs)) {
-    if (skipKeys.has(key)) {
-      continue;
-    }
-
-    const value: JSONValue = attrs[key] as JSONValue;
-    if (value === null || value === undefined || value === "") {
-      continue;
-    }
-
-    const stringValue: string =
-      typeof value === "object" ? JSON.stringify(value) : String(value);
-
-    result.push({ key, value: stringValue });
-  }
-
-  return result;
-};
-
-// --- Sub-component: Category filter bar ---
+// --- Category filter chips ---
 
 interface CategoryFilterProps {
-  categoryCounts: Map<BreadcrumbCategory, number>;
+  counts: Map<BreadcrumbCategory, number>;
+  total: number;
   activeFilters: Set<BreadcrumbCategory>;
-  onToggleFilter: (category: BreadcrumbCategory) => void;
-  onClearFilters: () => void;
+  onToggle: (category: BreadcrumbCategory) => void;
+  onClear: () => void;
 }
 
-const CategoryFilterBar: FunctionComponent<CategoryFilterProps> = ({
-  categoryCounts,
-  activeFilters,
-  onToggleFilter,
-  onClearFilters,
-}: CategoryFilterProps): ReactElement => {
-  const allCategories: BreadcrumbCategory[] = [
-    BreadcrumbCategory.Exception,
-    BreadcrumbCategory.Error,
-    BreadcrumbCategory.Warning,
-    BreadcrumbCategory.HTTP,
-    BreadcrumbCategory.DB,
-    BreadcrumbCategory.Log,
-    BreadcrumbCategory.Event,
-  ];
-
-  const hasFilters: boolean = activeFilters.size > 0;
+const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
+  props: CategoryFilterProps,
+): ReactElement => {
+  const hasFilters: boolean = props.activeFilters.size > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-      <span className="text-xs font-medium text-gray-500 mr-1">Filter:</span>
-      {allCategories
-        .filter((cat: BreadcrumbCategory) => {
-          return (categoryCounts.get(cat) || 0) > 0;
-        })
-        .map((cat: BreadcrumbCategory): ReactElement => {
-          const style: CategoryStyle = getCategoryStyle(cat);
-          const count: number = categoryCounts.get(cat) || 0;
-          const isActive: boolean = activeFilters.has(cat);
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      role="group"
+      aria-label="Filter breadcrumbs by category"
+      data-testid="breadcrumb-filters"
+    >
+      <button
+        type="button"
+        aria-pressed={!hasFilters}
+        onClick={props.onClear}
+        data-testid="breadcrumb-filter-all"
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+          hasFilters
+            ? "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
+            : "bg-gray-900 text-white ring-gray-900"
+        }`}
+      >
+        All
+        <span className="tabular-nums opacity-70">{props.total}</span>
+      </button>
+      {BREADCRUMB_CATEGORY_ORDER.filter((category: BreadcrumbCategory) => {
+        return (props.counts.get(category) || 0) > 0;
+      }).map((category: BreadcrumbCategory): ReactElement => {
+        const isActive: boolean = props.activeFilters.has(category);
+        const style: CategoryStyle = BREADCRUMB_CATEGORY_STYLES[category];
 
-          return (
-            <button
-              key={cat}
-              onClick={() => {
-                return onToggleFilter(cat);
-              }}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                isActive
-                  ? "ring-2 ring-offset-1 ring-indigo-300 border-indigo-300"
-                  : hasFilters
-                    ? "opacity-40 border-gray-200 hover:opacity-70"
-                    : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <Pill text={cat} color={style.color} size={PillSize.Small} />
-              <span className="text-gray-500 ml-0.5">{count}</span>
-            </button>
-          );
-        })}
-
-      {hasFilters && (
-        <button
-          onClick={onClearFilters}
-          className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
-        >
-          Clear
-        </button>
-      )}
+        return (
+          <button
+            key={category}
+            type="button"
+            aria-pressed={isActive}
+            data-testid={`breadcrumb-filter-${category}`}
+            onClick={() => {
+              props.onToggle(category);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+              isActive
+                ? style.chipClassName
+                : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <Icon icon={style.icon} className="h-3.5 w-3.5" />
+            {BREADCRUMB_CATEGORY_LABELS[category]}
+            <span className="tabular-nums opacity-70">
+              {props.counts.get(category)}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 };
 
-// --- Sub-component: Attribute detail table ---
+// --- Attributes ---
 
-interface AttributeTableProps {
-  attributes: Array<{ key: string; value: string }>;
+interface AttributeListProps {
+  attributes: Array<BreadcrumbAttribute>;
 }
 
-const AttributeTable: FunctionComponent<AttributeTableProps> = ({
-  attributes,
-}: AttributeTableProps): ReactElement => {
-  if (attributes.length === 0) {
+const AttributeList: FunctionComponent<AttributeListProps> = (
+  props: AttributeListProps,
+): ReactElement => {
+  if (props.attributes.length === 0) {
     return (
-      <div className="text-xs text-gray-400 italic py-2 px-3">
-        No attributes.
-      </div>
+      <p className="text-xs italic text-gray-500">
+        This event carried no attributes.
+      </p>
     );
   }
 
   return (
-    <div className="rounded-md border border-gray-200 overflow-hidden mt-2">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-3 py-1.5 font-semibold text-gray-600 w-1/3">
-              Attribute
-            </th>
-            <th className="text-left px-3 py-1.5 font-semibold text-gray-600">
-              Value
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {attributes.map(
-            (attr: { key: string; value: string }, i: number): ReactElement => {
-              return (
-                <tr key={i} className="hover:bg-gray-50/50">
-                  <td className="px-3 py-1.5 font-mono text-gray-500 align-top whitespace-nowrap">
-                    {attr.key}
-                  </td>
-                  <td className="px-3 py-1.5 font-mono text-gray-800 break-all">
-                    {attr.value}
-                  </td>
-                </tr>
-              );
-            },
-          )}
-        </tbody>
-      </table>
-    </div>
+    <dl
+      className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white ring-1 ring-inset ring-gray-200"
+      data-testid="breadcrumb-attributes"
+    >
+      {props.attributes.map((attribute: BreadcrumbAttribute): ReactElement => {
+        return (
+          <div
+            key={attribute.key}
+            className="group flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:gap-4"
+          >
+            <dt
+              className="truncate font-mono text-xs text-gray-500 sm:w-56 sm:flex-shrink-0"
+              title={attribute.key}
+            >
+              {attribute.key}
+            </dt>
+            <dd className="flex min-w-0 flex-1 items-start gap-2 font-mono text-xs text-gray-900">
+              <span className="min-w-0 flex-1 break-all">
+                {attribute.value}
+              </span>
+              <span className="flex-shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <CopyTextButton
+                  textToBeCopied={attribute.value}
+                  iconOnly={true}
+                  size="xs"
+                  title={`Copy ${attribute.key}`}
+                />
+              </span>
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 };
 
-// --- Sub-component: Single timeline row ---
+// --- One timeline row ---
 
 interface TimelineRowProps {
-  group: GroupedBreadcrumbEvent;
+  group: BreadcrumbGroup<BreadcrumbEvent>;
   isExpanded: boolean;
-  onToggle: () => void;
   isLast: boolean;
+  onToggle: () => void;
   exceptionTime: Date | undefined;
+  timeFormat: TimeFormat;
 }
 
-const TimelineRow: FunctionComponent<TimelineRowProps> = ({
-  group,
-  isExpanded,
-  onToggle,
-  isLast,
-  exceptionTime,
-}: TimelineRowProps): ReactElement => {
-  const style: CategoryStyle = getCategoryStyle(group.category);
-  const isException: boolean =
-    group.category === BreadcrumbCategory.Exception ||
-    group.category === BreadcrumbCategory.Error;
-  const hasAttributes: boolean =
-    getDisplayAttributes(group.events[0]!).length > 0;
-  const isClickable: boolean = hasAttributes || group.count > 1;
+const TimelineRow: FunctionComponent<TimelineRowProps> = (
+  props: TimelineRowProps,
+): ReactElement => {
+  const { group } = props;
+  const style: CategoryStyle = BREADCRUMB_CATEGORY_STYLES[group.category];
+  const isException: boolean = group.category === BreadcrumbCategory.Exception;
+  const attributes: Array<BreadcrumbAttribute> = getBreadcrumbAttributes(
+    group.events[0]!,
+  );
+  const isClickable: boolean = attributes.length > 0 || group.count > 1;
+
+  const formatTime: (time: Date) => string = (time: Date): string => {
+    if (props.timeFormat === "relative") {
+      return (
+        formatBreadcrumbOffset(time, props.exceptionTime) ||
+        formatBreadcrumbClockTime(time)
+      );
+    }
+
+    return formatBreadcrumbClockTime(time);
+  };
+
+  const eventName: string = group.events[0]!.name;
+  const secondaryParts: Array<string> = [];
+
+  if (eventName && eventName !== group.summary) {
+    secondaryParts.push(eventName);
+  }
+
+  if (group.detail) {
+    secondaryParts.push(group.detail);
+  }
 
   return (
-    <div className="relative">
-      {/* Main row */}
-      <div
-        className={`relative flex items-stretch transition-colors ${
-          isException ? style.lightBgClass : "hover:bg-gray-50/80"
-        } ${isClickable ? "cursor-pointer" : ""}`}
-        onClick={() => {
-          if (isClickable) {
-            onToggle();
-          }
-        }}
-      >
-        {/* Colored left border accent */}
-        <div
-          className={`w-1 flex-shrink-0 rounded-l ${
-            isException ? style.borderClass.replace("border-l-", "bg-") : ""
-          }`}
-          style={{
-            backgroundColor: isException ? undefined : style.color.toString(),
-            opacity: isException ? undefined : 0.3,
-          }}
+    <li
+      className="relative"
+      data-testid="breadcrumb-row"
+      data-category={group.category}
+    >
+      {/* The timeline: a line from this node down to the next one. */}
+      {!props.isLast && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-[1.75rem] top-6 w-px bg-gray-200 md:left-[2rem]"
         />
+      )}
 
-        {/* Timeline column with dot and connector */}
-        <div className="flex flex-col items-center w-10 flex-shrink-0 relative">
-          {/* Top connector line */}
-          <div
-            className="w-px flex-1 bg-gray-200"
-            style={{ minHeight: "8px" }}
-          />
-          {/* Dot */}
-          <div className="relative z-10 my-0.5">
-            <div
-              className={`w-3 h-3 rounded-full ring-2 ring-white ${style.dotClass}`}
-            />
+      <div
+        className={`relative flex items-start gap-3 px-4 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 md:px-5 ${
+          isException ? "bg-red-50/70" : isClickable ? "hover:bg-gray-50" : ""
+        } ${isClickable ? "cursor-pointer" : ""}`}
+        {...(isClickable
+          ? {
+              role: "button",
+              tabIndex: 0,
+              "aria-expanded": props.isExpanded,
+              onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.target !== event.currentTarget) {
+                  return;
+                }
+
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  props.onToggle();
+                }
+              },
+              onClick: props.onToggle,
+            }
+          : {})}
+      >
+        <span
+          className={`relative z-10 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ring-4 ${style.nodeClassName}`}
+          data-testid="breadcrumb-node"
+        >
+          <Icon icon={style.icon} className="h-3.5 w-3.5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-3">
+            <p
+              className={`min-w-0 flex-1 truncate font-mono text-[13px] leading-6 ${
+                isException ? "font-semibold text-red-800" : "text-gray-900"
+              }`}
+              title={group.summary}
+              data-testid="breadcrumb-summary"
+            >
+              {group.summary}
+            </p>
+            <span
+              className={`flex-shrink-0 whitespace-nowrap font-mono text-xs leading-6 tabular-nums ${
+                isException ? "font-medium text-red-600" : "text-gray-500"
+              }`}
+              title={OneUptimeDate.getDateAsLocalFormattedString(
+                group.firstTime,
+              )}
+              data-testid="breadcrumb-time"
+            >
+              {formatTime(group.firstTime)}
+              {group.count > 1 &&
+                group.firstTime.getTime() !== group.lastTime.getTime() && (
+                  <span className="text-gray-400">
+                    {" → "}
+                    {formatTime(group.lastTime)}
+                  </span>
+                )}
+            </span>
+            {isClickable ? (
+              <Icon
+                icon={
+                  props.isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight
+                }
+                className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400"
+              />
+            ) : (
+              <span className="w-4 flex-shrink-0" />
+            )}
           </div>
-          {/* Bottom connector line */}
-          {!isLast ? (
-            <div className="w-px flex-1 bg-gray-200" />
-          ) : (
-            <div className="flex-1" />
-          )}
-        </div>
-
-        {/* Content area */}
-        <div className="flex-1 min-w-0 flex items-center py-2.5 pr-4 gap-3">
-          {/* Icon */}
-          <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${style.bgClass}`}
-          >
-            <Icon
-              icon={style.icon}
-              size={SizeProp.Smaller}
-              color={style.color}
-              thick={ThickProp.LessThick}
-            />
-          </div>
-
-          {/* Category + Count badge */}
-          <div className="flex-shrink-0 flex items-center gap-1.5">
-            <Pill
-              text={group.category}
-              color={style.color}
-              size={PillSize.Small}
-            />
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
+            <span
+              className={`font-semibold uppercase tracking-wide ${style.labelClassName}`}
+              data-testid="breadcrumb-category"
+            >
+              {BREADCRUMB_CATEGORY_LABELS[group.category]}
+            </span>
             {group.count > 1 && (
-              <span className="inline-flex items-center justify-center px-1.5 py-0 rounded-full text-[10px] font-bold bg-gray-200 text-gray-700 min-w-[20px]">
+              <span
+                className="rounded-full bg-gray-100 px-1.5 font-semibold tabular-nums text-gray-600"
+                data-testid="breadcrumb-count"
+              >
                 ×{group.count}
               </span>
             )}
-          </div>
-
-          {/* Summary text */}
-          <div className="flex-1 min-w-0">
-            <div
-              className={`text-sm font-mono truncate ${
-                isException
-                  ? "font-semibold " + style.textClass
-                  : "text-gray-800"
-              }`}
-            >
-              {group.summary}
-            </div>
-            {group.detail && !isExpanded && (
-              <div
-                className={`text-xs mt-0.5 ${isException ? "text-red-600/70" : "text-gray-400"}`}
-              >
-                {group.detail}
-              </div>
-            )}
-          </div>
-
-          {/* Timestamp */}
-          <Tooltip text={formatAbsoluteTime(group.firstTime)}>
-            <div
-              className={`flex-shrink-0 text-xs font-mono whitespace-nowrap ${
-                isException ? "text-red-400" : "text-gray-400"
-              }`}
-            >
-              {formatRelativeTime(group.firstTime, exceptionTime)}
-              {group.count > 1 && group.firstTime !== group.lastTime && (
-                <span className="text-gray-300 ml-1">
-                  → {formatRelativeTime(group.lastTime, exceptionTime)}
+            {secondaryParts.map((part: string) => {
+              return (
+                <span key={part} className="min-w-0 truncate text-gray-500">
+                  {part}
                 </span>
-              )}
-            </div>
-          </Tooltip>
+              );
+            })}
+          </div>
 
-          {/* Expand chevron */}
-          {isClickable && (
-            <div className="flex-shrink-0 ml-1">
-              <Icon
-                icon={isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight}
-                size={SizeProp.Smaller}
-                className="text-gray-300"
-              />
+          {props.isExpanded && (
+            <div
+              className="mt-3 cursor-auto space-y-3 pb-1"
+              data-testid="breadcrumb-detail"
+              onClick={(event: React.MouseEvent) => {
+                // Selecting or copying a value must not fold the row.
+                event.stopPropagation();
+              }}
+            >
+              <AttributeList attributes={attributes} />
+
+              {group.count > 1 && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-gray-500">
+                    {group.count} identical events
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.events.map(
+                      (event: BreadcrumbEvent, index: number): ReactElement => {
+                        return (
+                          <span
+                            key={index}
+                            title={OneUptimeDate.getDateAsLocalFormattedString(
+                              event.time,
+                            )}
+                            className="rounded bg-white px-2 py-0.5 font-mono text-[11px] text-gray-600 ring-1 ring-inset ring-gray-200"
+                          >
+                            {formatTime(event.time)}
+                          </span>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
-
-      {/* Expanded detail panel */}
-      {isExpanded && (
-        <div className="relative flex">
-          {/* Left border continuation */}
-          <div
-            className="w-1 flex-shrink-0"
-            style={{
-              backgroundColor: style.color.toString(),
-              opacity: 0.15,
-            }}
-          />
-          {/* Timeline connector */}
-          <div className="flex flex-col items-center w-10 flex-shrink-0">
-            <div className="w-px flex-1 bg-gray-200" />
-          </div>
-          {/* Detail content */}
-          <div className="flex-1 min-w-0 pb-3 pr-5 pt-1">
-            {/* Detail subtitle for exception */}
-            {group.detail && (
-              <div className={`text-xs font-semibold mb-2 ${style.textClass}`}>
-                {group.detail}
-              </div>
-            )}
-
-            {/* Attributes of first event */}
-            <AttributeTable
-              attributes={getDisplayAttributes(group.events[0]!)}
-            />
-
-            {/* If grouped, show individual occurrence timestamps */}
-            {group.count > 1 && (
-              <div className="mt-3">
-                <div className="text-xs font-semibold text-gray-500 mb-1.5">
-                  {group.count} occurrences:
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {group.events.map(
-                    (ev: BreadcrumbEvent, i: number): ReactElement => {
-                      return (
-                        <Tooltip key={i} text={formatAbsoluteTime(ev.time)}>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-[10px] font-mono text-gray-600">
-                            {formatRelativeTime(ev.time, exceptionTime)}
-                          </span>
-                        </Tooltip>
-                      );
-                    },
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </li>
   );
 };
 
 // --- Main component ---
 
+/*
+ * What happened in the trace before the exception: requests, queries, logs
+ * and warnings as a vertical timeline, filterable by category, with each
+ * event's attributes one click away.
+ */
 const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -731,69 +433,53 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
   const [activeFilters, setActiveFilters] = useState<Set<BreadcrumbCategory>>(
     new Set(),
   );
+  const [timeFormat, setTimeFormat] = useState<TimeFormat>(
+    props.exceptionTime ? "relative" : "clock",
+  );
 
-  // Sort events by time ascending
-  const sortedEvents: BreadcrumbEvent[] = useMemo((): BreadcrumbEvent[] => {
-    return [...props.events]
-      .sort((a: BreadcrumbEvent, b: BreadcrumbEvent) => {
-        return a.timeUnixNano - b.timeUnixNano;
-      })
-      .slice(-maxEvents);
+  const sortedEvents: Array<BreadcrumbEvent> = useMemo(() => {
+    return sortBreadcrumbEvents(props.events, maxEvents);
   }, [props.events, maxEvents]);
 
-  // Category counts for filter bar
-  const categoryCounts: Map<BreadcrumbCategory, number> = useMemo((): Map<
-    BreadcrumbCategory,
-    number
-  > => {
-    const counts: Map<BreadcrumbCategory, number> = new Map();
-    for (const event of sortedEvents) {
-      const cat: BreadcrumbCategory = categorizeEvent(event);
-      counts.set(cat, (counts.get(cat) || 0) + 1);
-    }
-    return counts;
+  const categoryCounts: Map<BreadcrumbCategory, number> = useMemo(() => {
+    return countBreadcrumbCategories(sortedEvents);
   }, [sortedEvents]);
 
-  // Filtered events
-  const filteredEvents: BreadcrumbEvent[] = useMemo((): BreadcrumbEvent[] => {
+  const filteredEvents: Array<BreadcrumbEvent> = useMemo(() => {
     if (activeFilters.size === 0) {
       return sortedEvents;
     }
-    return sortedEvents.filter((ev: BreadcrumbEvent) => {
-      return activeFilters.has(categorizeEvent(ev));
+
+    return sortedEvents.filter((event: BreadcrumbEvent) => {
+      return activeFilters.has(categorizeBreadcrumb(event));
     });
   }, [sortedEvents, activeFilters]);
 
-  // Group consecutive identical events
-  const groupedEvents: GroupedBreadcrumbEvent[] =
-    useMemo((): GroupedBreadcrumbEvent[] => {
-      return groupConsecutiveEvents(filteredEvents);
-    }, [filteredEvents]);
+  const groups: Array<BreadcrumbGroup<BreadcrumbEvent>> = useMemo(() => {
+    return groupBreadcrumbEvents(filteredEvents);
+  }, [filteredEvents]);
 
-  // Has multiple categories (show filter bar only if useful)
-  const hasMultipleCategories: boolean = categoryCounts.size > 1;
-
-  type ToggleFilterFunction = (category: BreadcrumbCategory) => void;
-
-  const toggleFilter: ToggleFilterFunction = (
+  const toggleFilter: (category: BreadcrumbCategory) => void = (
     category: BreadcrumbCategory,
   ): void => {
-    setActiveFilters((prev: Set<BreadcrumbCategory>) => {
-      const next: Set<BreadcrumbCategory> = new Set(prev);
+    setActiveFilters((previous: Set<BreadcrumbCategory>) => {
+      const next: Set<BreadcrumbCategory> = new Set(previous);
+
       if (next.has(category)) {
         next.delete(category);
       } else {
         next.add(category);
       }
+
       return next;
     });
     setExpandedIndex(null);
   };
 
-  const totalEventsLabel: string =
-    activeFilters.size > 0
-      ? `${filteredEvents.length} of ${sortedEvents.length} events (filtered)`
-      : `${sortedEvents.length} events leading up to the exception`;
+  const clearFilters: () => void = (): void => {
+    setActiveFilters(new Set());
+    setExpandedIndex(null);
+  };
 
   if (sortedEvents.length === 0) {
     return (
@@ -801,90 +487,104 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
         title="Breadcrumbs"
         description="Events leading up to the exception."
       >
-        <div className="flex flex-col items-center justify-center py-12 px-4">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <Icon
-              icon={IconProp.QueueList}
-              size={SizeProp.Regular}
-              className="text-gray-400"
-            />
+        <div
+          className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 px-6 py-10 text-center"
+          data-testid="breadcrumbs-empty"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+            <Icon icon={IconProp.QueueList} className="h-5 w-5 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-500">No breadcrumbs</p>
-          <p className="text-xs text-gray-400 mt-1">
-            No events were captured leading up to this exception.
+          <p className="mt-3 text-sm font-medium text-gray-700">
+            No breadcrumbs
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            The trace recorded no events leading up to this exception.
           </p>
         </div>
       </Card>
     );
   }
 
+  const description: string = describeBreadcrumbWindow({
+    shownCount: sortedEvents.length,
+    totalCount: props.events.length,
+    ...(activeFilters.size > 0 ? { filteredCount: filteredEvents.length } : {}),
+    firstTime: sortedEvents[0]?.time,
+    exceptionTime: props.exceptionTime,
+  });
+
   return (
-    <Card title="Breadcrumbs" description={totalEventsLabel}>
-      <div className="overflow-hidden">
-        {/* Category filter bar */}
-        {hasMultipleCategories && (
-          <CategoryFilterBar
-            categoryCounts={categoryCounts}
+    <Card
+      title="Breadcrumbs"
+      description={description}
+      rightElement={
+        props.exceptionTime ? (
+          <ExceptionSegmentedControl<TimeFormat>
+            label="Breadcrumb time format"
+            testId="breadcrumb-time-format"
+            value={timeFormat}
+            onChange={setTimeFormat}
+            options={[
+              {
+                value: "relative",
+                label: "Relative",
+                title: "Time before or after the exception",
+              },
+              { value: "clock", label: "Clock", title: "Local time of day" },
+            ]}
+          />
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
+        {categoryCounts.size > 1 && (
+          <CategoryFilter
+            counts={categoryCounts}
+            total={sortedEvents.length}
             activeFilters={activeFilters}
-            onToggleFilter={toggleFilter}
-            onClearFilters={() => {
-              setActiveFilters(new Set());
-              setExpandedIndex(null);
-            }}
+            onToggle={toggleFilter}
+            onClear={clearFilters}
           />
         )}
 
-        {/* Summary stats row */}
-        <div className="flex items-center gap-4 px-5 py-2 border-b border-gray-100 text-xs text-gray-400">
-          <span>
-            {groupedEvents.length} group{groupedEvents.length !== 1 ? "s" : ""}
-            {groupedEvents.length < filteredEvents.length && (
-              <span className="text-gray-300">
-                {" "}
-                ({filteredEvents.length - groupedEvents.length} collapsed)
-              </span>
+        {groups.length > 0 ? (
+          <ol
+            className="-mx-5 divide-y divide-gray-100 border-y border-gray-100 md:-mx-6"
+            aria-label="Breadcrumb events"
+            data-testid="breadcrumb-timeline"
+          >
+            {groups.map(
+              (
+                group: BreadcrumbGroup<BreadcrumbEvent>,
+                index: number,
+              ): ReactElement => {
+                return (
+                  <TimelineRow
+                    key={`${group.category}-${group.firstTime.getTime()}-${index}`}
+                    group={group}
+                    isExpanded={expandedIndex === index}
+                    isLast={index === groups.length - 1}
+                    onToggle={() => {
+                      setExpandedIndex(expandedIndex === index ? null : index);
+                    }}
+                    exceptionTime={props.exceptionTime}
+                    timeFormat={timeFormat}
+                  />
+                );
+              },
             )}
-          </span>
-          {props.exceptionTime && (
-            <span className="ml-auto font-mono">
-              Time relative to exception
-            </span>
-          )}
-        </div>
-
-        {/* Timeline events */}
-        <div className="divide-y divide-gray-100/80">
-          {groupedEvents.map(
-            (group: GroupedBreadcrumbEvent, index: number): ReactElement => {
-              return (
-                <TimelineRow
-                  key={index}
-                  group={group}
-                  isExpanded={expandedIndex === index}
-                  onToggle={() => {
-                    setExpandedIndex(expandedIndex === index ? null : index);
-                  }}
-                  isLast={index === groupedEvents.length - 1}
-                  exceptionTime={props.exceptionTime}
-                />
-              );
-            },
-          )}
-        </div>
-
-        {/* Filtered empty state */}
-        {groupedEvents.length === 0 && activeFilters.size > 0 && (
-          <div className="flex flex-col items-center justify-center py-8 px-4">
+          </ol>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 px-4 py-8">
             <p className="text-sm text-gray-500">
-              No events match the selected filters.
+              No events match the selected categories.
             </p>
             <button
-              onClick={() => {
-                setActiveFilters(new Set());
-              }}
-              className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
+              type="button"
+              onClick={clearFilters}
+              className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
-              Clear filters
+              Show all events
             </button>
           </div>
         )}

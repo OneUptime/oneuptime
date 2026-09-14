@@ -3,6 +3,7 @@ enum ExceptionDetailSection {
   StackTrace = "stack-trace",
   Occurrences = "occurrences",
   Context = "context",
+  Logs = "logs",
   AIAssistance = "ai-assistance",
   Settings = "settings",
 }

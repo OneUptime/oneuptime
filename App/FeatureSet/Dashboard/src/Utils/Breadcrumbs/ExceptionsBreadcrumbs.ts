@@ -55,6 +55,12 @@ export function getExceptionsBreadcrumbs(
       "Exception",
       "Context",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_LOGS, [
+      "Project",
+      "Exceptions",
+      "Exception",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE, [
       "Project",
       "Exceptions",

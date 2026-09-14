@@ -52,6 +52,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+  ExceptionSpanScope,
+} from "Common/Types/Telemetry/ExceptionSpanScope";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -555,6 +559,14 @@ interface Props {
   limit?: number | undefined;
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
+  /*
+   * Only the spans one exception group's occurrences were raised in — the
+   * exception detail page's span list. Applied to the list, the histogram and
+   * the facets alike, and shown as a locked "Exception" chip labelled with
+   * `exceptionScopeLabel`.
+   */
+  exceptionScope?: ExceptionSpanScope | undefined;
+  exceptionScopeLabel?: string | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -1183,12 +1195,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["entityScope"] = props.entityScope;
     }
 
+    // Compiled by StatementGenerator to a (traceId, spanId) IN subquery.
+    if (props.exceptionScope) {
+      (query as Record<string, unknown>)[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
+        props.exceptionScope;
+    }
+
     return query;
   }, [
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
     props.entityScope,
+    props.exceptionScope,
     spanScope,
     timeRange,
     activeFilters,
@@ -1751,6 +1770,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       payload["nameSearchText"] = freeText;
     }
 
+    // The same spans the list is scoped to, so the chart and facets agree.
+    if (props.exceptionScope) {
+      payload[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
+        props.exceptionScope as unknown as JSONObject;
+    }
+
     return payload;
   }, [
     timeRange,
@@ -1759,6 +1784,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    props.exceptionScope,
     spanScope,
     rootOnly,
   ]);
@@ -2348,6 +2374,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     };
 
     const base: Array<ActiveFilter> = [];
+    if (props.exceptionScope) {
+      base.push({
+        facetKey: EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+        value: props.exceptionScope.fingerprint,
+        displayKey: "Exception",
+        displayValue:
+          props.exceptionScopeLabel ||
+          props.exceptionScope.fingerprint.slice(0, 12),
+        readOnly: true,
+      });
+    }
     if (props.primaryEntityId) {
       base.push(
         resolveDisplay({
@@ -2448,6 +2485,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       : [];
     return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
   }, [
+    props.exceptionScope,
+    props.exceptionScopeLabel,
     props.primaryEntityId,
     props.scopeEntityType,
     props.attributeFilters,
