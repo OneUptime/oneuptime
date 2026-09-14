@@ -104,24 +104,18 @@ export function getRecorderCapabilities(options?: {
   );
 }
 
-/* Where the pinned, content-addressed immutable artifact lives. */
+/* Where the public recorder artifacts live. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
+
+export const LATEST_RECORDER_VERSION: string = "latest";
 
 /*
  * recorderVersion is interpolated straight into an artifact URL path, so
  * "non-empty string" is not a sufficient check: a config value of
  * "../../../admin" would produce a request to an entirely different path on
- * the ingest origin. The build emits the package semver plus a SHA-384 hex
- * suffix (see esbuild.config.js), which stays inside this path-safe grammar.
- * Bare semvers remain accepted for compatibility with older servers;
- * anything outside the grammar cannot correspond to a published artifact
- * and the only safe response is to refuse to record.
- *
- * Kept in sync with RECORDER_VERSION_PATTERN in esbuild.config.js and
- * Manifest.ts - there is a test asserting all three agree.
+ * the ingest origin. Deployments advertise the exact literal `latest`, and
+ * anything else is rejected before it can become a script URL.
  */
-export const RECORDER_VERSION_PATTERN: RegExp =
-  /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/;
 
 /*
  * A config fetch that hangs must not hang the recorder's startup forever.
@@ -145,8 +139,8 @@ const TRUTHY_OPTION_PATTERN: RegExp = /^(1|true|yes|on)$/i;
  * needs an SRI hash to put on the injected script tag, and a server that does
  * not send one simply gets a script tag without an integrity attribute rather
  * than no recording. Additive-only is the rule for this whole contract,
- * because a customer's browser may run an older recorder than the server it
- * posts to for as long as the pinned artifact stays cached.
+ * because a long-lived customer page may run an older recorder than the
+ * server it posts to until that page reloads.
  */
 export interface LoaderConfig extends SessionReplayConfigResponse {
   recorderIntegrity?: string;
@@ -452,13 +446,12 @@ export default class Config {
   }
 
   public static isValidRecorderVersion(value: unknown): value is string {
-    return typeof value === "string" && RECORDER_VERSION_PATTERN.test(value);
+    return value === LATEST_RECORDER_VERSION;
   }
 
   /*
    * Returns null rather than a best-effort URL when the version is not a
-   * path-safe semver the build could have produced. The caller then loads
-   * nothing,
+   * accepted artifact label. The caller then loads nothing,
    * which is the same fail-closed outcome as a config fetch that failed:
    * a <script src> assembled from an unvalidated config value is a request
    * to an attacker-chosen path on the ingest origin.
@@ -471,7 +464,7 @@ export default class Config {
       return null;
     }
 
-    return `${options.host}${ARTIFACT_PATH_PREFIX}/v${recorderVersion}/recorder.js`;
+    return `${options.host}${ARTIFACT_PATH_PREFIX}/latest/recorder.js`;
   }
 
   public static getIngestHeaders(
@@ -682,13 +675,13 @@ export default class Config {
 
     /*
      * Rejected here rather than at the point of use, so no downstream caller
-     * ever holds a LoaderConfig carrying a version that cannot name a
+     * ever holds a LoaderConfig carrying a label that cannot name a
      * published artifact.
      */
     if (!Config.isValidRecorderVersion(recorderVersion)) {
       debugWarn(
         "config-recorder-version-invalid",
-        "The server named no published recorder version, so no artifact can load.",
+        "The server named no recognised recorder artifact, so nothing can load.",
         {
           recorderVersion:
             typeof recorderVersion === "string" ? recorderVersion : "missing",

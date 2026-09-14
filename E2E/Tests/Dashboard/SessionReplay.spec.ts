@@ -1357,7 +1357,7 @@ test.describe("Session Replay", () => {
    * the whole feature as disabled - which looks exactly like a policy
    * decision.
    */
-  test("serves the recorder, the pinned artifact and a usable policy", async ({
+  test("serves the recorder, the latest artifact and a usable policy", async ({
     page,
   }: {
     page: Page;
@@ -1411,29 +1411,25 @@ test.describe("Session Replay", () => {
     expect(config.directive).toBe("continue");
 
     /*
-     * The version is interpolated straight into a script URL, so the loader
-     * refuses anything that is not a semver the build could have stamped.
+     * New deployments advertise one mutable artifact label.
      */
-    expect(config.recorderVersion).toMatch(/^[0-9]+\.[0-9]+\.[0-9]+/);
+    expect(config.recorderVersion).toBe("latest");
 
-    /* Without SRI the immutable pinned artifact is unverifiable. */
+    /* SRI verifies the latest bytes against this config response. */
     expect(config.recorderIntegrity).toMatch(/^sha384-/);
 
-    /* The pinned artifact the loader would inject. */
+    /* The mutable artifact the loader injects. */
     const artifact: APIResponse = await page.request.get(
       URL.fromString(base)
-        .addRoute(
-          `/telemetry/session-replay/v${config.recorderVersion}/recorder.js`,
-        )
+        .addRoute("/telemetry/session-replay/latest/recorder.js")
         .toString(),
     );
 
     expect(artifact.status(), await artifact.text()).toBe(200);
-    expect(artifact.headers()["cache-control"]).toContain("immutable");
+    expect(artifact.headers()["cache-control"]).toBe("no-store");
 
     /*
-     * A version this build did not publish must 404 rather than being served
-     * today's bytes under yesterday's number with a year-long cache.
+     * The old dynamic version route is no longer an artifact alias.
      */
     const wrongVersion: APIResponse = await page.request.get(
       URL.fromString(base)

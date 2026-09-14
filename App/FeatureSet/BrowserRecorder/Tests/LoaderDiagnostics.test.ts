@@ -27,9 +27,10 @@ const STATE_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_DEBUG__";
 const CONFIG_URL: string =
   "https://oneuptime.com/telemetry/session-replay/v1/config";
 
-const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
+const LATEST_RECORDER_VERSION: string = "latest";
 
-const ARTIFACT_URL: string = `https://oneuptime.com/telemetry/session-replay/v${CONTENT_ADDRESSED_VERSION}/recorder.js`;
+const ARTIFACT_URL: string =
+  "https://oneuptime.com/telemetry/session-replay/latest/recorder.js";
 
 /*
  * Distinctive enough that a substring search for it is meaningful. The
@@ -41,7 +42,7 @@ const SECRET_USER_REF: string = "user-ref-must-never-be-logged-91af";
 
 const CONFIG_BODY: Record<string, unknown> = {
   enabled: true,
-  recorderVersion: CONTENT_ADDRESSED_VERSION,
+  recorderVersion: LATEST_RECORDER_VERSION,
   maskingMode: SessionReplayMaskingMode.MaskAllText,
   consentMode: "NotRequired",
   captureTrigger: "OnErrorOrFrustration",
@@ -545,7 +546,7 @@ describe("Loader diagnostics", (): void => {
      * diagnosis - it points at the server or at whatever rewrote its reply.
      */
     it("names the version it refused to build a URL from", async (): Promise<void> => {
-      for (const version of ["../../../admin", "latest"]) {
+      for (const version of ["../../../admin", "Latest"]) {
         resetDebugState();
         setConfigResponse({ ...CONFIG_BODY, recorderVersion: version });
 
@@ -612,7 +613,7 @@ describe("Loader diagnostics", (): void => {
      * belongs to a bundle that may never load, so a timeline that ends here
      * says "the stub did its whole job" rather than "the stub gave up".
      */
-    it("records the artifact it asked for and whether it pinned a hash", async (): Promise<void> => {
+    it("records the artifact it asked for and whether it carried SRI", async (): Promise<void> => {
       await runLoader();
 
       expect(detailOf("artifact-requested")).toEqual({

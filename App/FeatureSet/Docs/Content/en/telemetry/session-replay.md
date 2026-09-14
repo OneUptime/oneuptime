@@ -34,7 +34,7 @@ Add one script tag. Replace the token and the application identifier with your o
 
 `data-oneuptime-app-identifier` must match the RUM application's identifier (the same value you use for `service.name`).
 
-The script at `/v1/recorder.js` is a small loader. It fetches your application's policy, checks consent and Do Not Track, and only then loads the pinned recorder build. That indirection is deliberate: it means a masking change you make in the dashboard reaches live browsers within one config cache TTL (five minutes), and a bad recorder release can be rolled back without waiting out a browser cache.
+The script at `/v1/recorder.js` is a small loader. It fetches your application's policy, checks consent and Do Not Track, and only then loads `/latest/recorder.js`. Both live config and the mutable recorder response are `no-store`, so policy and recorder changes reach the next page load without waiting out a browser cache.
 
 ### Script tag attributes
 
@@ -228,7 +228,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `stopReason` | Why it stopped, when it has: `api` (your `stop()`), `server-directive`, `transport-failure` or `chunk-cap`. |
 | `bootstrapDecision` | Why the artifact did or did not build a recorder: `started`, `privacy-signal`, `directive-stop`, `already-started`, `cancelled-before-start` (a queued `revokeConsent`/`stop`) or `not-started`. |
 | `decisions` | Every gate's answer: `isSampled`, `captureTrigger`, `consentMode`, `consentState`, `uploadsAllowed`, `uploadBlockedBy` (`consent`, `transport` or `null`), `lastDirective` and its reason, and `startDecision` (`recording-and-uploading`, `recording-into-memory`, `not-sampled`, `not-started`). |
-| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. The dashboard's **Health** page shows the same list for the newest session, so an old cached artifact is easy to spot. |
+| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. The dashboard's **Health** page shows the same list for the newest session, so a recording from an older, long-lived page is easy to spot. |
 | `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | The session's current state. `isRecording` is true only while the recorder is actually recording. `visitorId` is `null` until a recorder exists and `""` while consent is withdrawn. |
 | `records` | The last 250 decisions with stable codes — including the loader's, from before the artifact existed. Every code is explained in [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes). |
 
@@ -546,7 +546,7 @@ The **Health** page — _Real User Monitoring → your application → Session R
 | `healthy` | Chunks are arriving: the diagnosis shows the last chunk's age, sessions today and the sample percentage. | Nothing. |
 | `unknown` | The status endpoint could not be read. | Retry; check the permission error the page shows. |
 
-Below the diagnosis, the page lays a recording out as four stages — **Recorder loaded**, **Recording allowed**, **Chunks received** and **Sessions in 24h** — each marked green, amber or red by what the server knows about it, so the first amber or red stage is where recordings stop. Under that it lists uploads refused at the gate and chunks dropped after acceptance by reason, bytes used today and this month against their limits, the policy as the recorder receives it, the published recorder version and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. At the bottom, **Ask the browser** takes the output of `getDiagnostics()` and explains every code in it.
+Below the diagnosis, the page lays a recording out as four stages — **Recorder loaded**, **Recording allowed**, **Chunks received** and **Sessions in 24h** — each marked green, amber or red by what the server knows about it, so the first amber or red stage is where recordings stop. Under that it lists uploads refused at the gate and chunks dropped after acceptance by reason, bytes used today and this month against their limits, the policy as the recorder receives it, the published recorder artifact label and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. At the bottom, **Ask the browser** takes the output of `getDiagnostics()` and explains every code in it.
 
 ## Performance capture triggers
 

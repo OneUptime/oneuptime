@@ -110,46 +110,16 @@ describe("bundle hygiene", (): void => {
     expect(manifest.files["recorder.js"]?.integrity).toMatch(/^sha384-/);
   });
 
-  /*
-   * THE immutable-cache regression. In the broken build these two values
-   * were independent: recorderVersion was only package.json's semver, while
-   * integrity changed whenever the bundle did. A browser could then keep old
-   * bytes for a year at that URL and reject them against the new SRI.
-   */
-  it("binds the immutable artifact version and SRI to the exact recorder bytes", (): void => {
-    const sha384Hex: string = crypto
-      .createHash("sha384")
-      .update(recorderBundle)
-      .digest("hex");
+  it("publishes latest with SRI for the exact recorder bytes", (): void => {
     const sha384Base64: string = crypto
       .createHash("sha384")
       .update(recorderBundle)
       .digest("base64");
 
-    expect(manifest.recorderVersion).toBe(
-      `${packageJson.version}-sha384-${sha384Hex}`,
-    );
+    expect(manifest.recorderVersion).toBe("latest");
     expect(manifest.files["recorder.js"]?.integrity).toBe(
       `sha384-${sha384Base64}`,
     );
-  });
-
-  it("gives different recorder bytes unique URLs at the same package version", (): void => {
-    const versionFor: (contents: string) => string = (
-      contents: string,
-    ): string => {
-      const sha384Hex: string = crypto
-        .createHash("sha384")
-        .update(contents)
-        .digest("hex");
-
-      return `${packageJson.version}-sha384-${sha384Hex}`;
-    };
-
-    expect(versionFor("recorder build A")).not.toBe(
-      versionFor("recorder build B"),
-    );
-    expect(versionFor("recorder build A")).toBe(versionFor("recorder build A"));
   });
 
   it("keeps the runtime recorder version separate from the artifact locator", (): void => {
@@ -200,16 +170,8 @@ describe("bundle hygiene", (): void => {
     expect(loaderGzip).toBeLessThanOrEqual(5 * 1024);
   });
 
-  /*
-   * The version is what names the artifact's URL path, and src/Config.ts
-   * refuses to build that URL from anything outside its path-safe semver
-   * grammar. A build that stamps something else produces an artifact no
-   * loader will ever request.
-   */
-  it("stamps a version the loader will accept", (): void => {
-    expect(manifest.recorderVersion).toMatch(
-      /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
-    );
+  it("stamps the mutable artifact label the loader will request", (): void => {
+    expect(manifest.recorderVersion).toBe("latest");
   });
 
   /*
@@ -267,9 +229,8 @@ describe("bundle hygiene", (): void => {
   });
 
   /*
-   * The customer's page loads the stub, and only then the pinned artifact.
-   * That two-stage load is what makes a bad masking release recoverable by
-   * changing one config field instead of waiting out a cache TTL.
+   * The customer's page loads the stub, and only then the latest artifact.
+   * That two-stage load keeps privacy policy ahead of recorder startup.
    */
   it("has the loader fetch config before loading anything", (): void => {
     expect(loaderBundle).toContain("/session-replay/v1/config");
