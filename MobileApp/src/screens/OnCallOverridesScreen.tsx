@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import { View, ScrollView, RefreshControl, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -15,6 +17,9 @@ import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import GradientButton from "../components/GradientButton";
+import AppText from "../components/AppText";
+import Card from "../components/Card";
+import IconBadge from "../components/IconBadge";
 import { getFriendlyErrorMessage } from "../utils/error";
 import type { OnCallStackParamList } from "../navigation/types";
 import type { OnCallOverrideItem } from "../api/types";
@@ -84,6 +89,13 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
     );
   };
 
+  const intro: React.JSX.Element = (
+    <ScreenIntro
+      title="Coverage"
+      description="Know who is covering, and make the next handoff simple."
+    />
+  );
+
   if (overrides.isLoading) {
     return (
       <View
@@ -91,8 +103,12 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+          contentContainerStyle={{
+            padding: spacing.xl,
+            paddingBottom: bottomPadding,
+          }}
         >
+          {intro}
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
         </ScrollView>
@@ -107,7 +123,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
-          padding: 20,
+          padding: spacing.xl,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -119,14 +135,11 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
           />
         }
       >
-        <ScreenIntro
-          title="Coverage"
-          description="Know who is covering, and make the next handoff simple."
-        />
+        {intro}
         <EmptyState
           title="Could not load overrides"
           subtitle="Pull to refresh or try again."
-          icon="alerts"
+          icon="error"
           actionLabel="Retry"
           onAction={onRefresh}
         />
@@ -139,12 +152,55 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
     overrides.upcoming.length > 0 ||
     overrides.past.length > 0;
 
+  const renderSection: (
+    title: string,
+    iconName: keyof typeof Ionicons.glyphMap,
+    items: OnCallOverrideItem[],
+    state: "active" | "upcoming" | "past",
+  ) => React.JSX.Element | null = (
+    title: string,
+    iconName: keyof typeof Ionicons.glyphMap,
+    items: OnCallOverrideItem[],
+    state: "active" | "upcoming" | "past",
+  ): React.JSX.Element | null => {
+    if (items.length === 0) {
+      return null;
+    }
+
+    return (
+      <View
+        testID={`overrides-section-${state}`}
+        style={{ marginTop: spacing.xxl }}
+      >
+        <SectionHeader title={title} iconName={iconName} count={items.length} />
+        <View style={{ gap: spacing.md }}>
+          {items.map((override: OnCallOverrideItem) => {
+            return (
+              <OverrideCard
+                key={override._id}
+                override={override}
+                state={state}
+                currentUserId={currentUserId}
+                now={now}
+                onCancel={state === "past" ? undefined : confirmCancel}
+                isCancelling={cancellingId === override._id}
+              />
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView
       testID="overrides-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -153,68 +209,30 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         />
       }
     >
-      <ScreenIntro
-        title="Coverage"
-        description="Know who is covering, and make the next handoff simple."
-      />
+      {intro}
       {hasAny ? (
         <View
           testID="coverage-counts"
           style={{
             flexDirection: "row",
-            gap: 24,
-            paddingBottom: 24,
-            marginBottom: 22,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.borderSubtle,
+            gap: spacing.md,
+            marginBottom: spacing.lg,
           }}
         >
-          <View style={{ flex: 1, gap: 5 }}>
-            <Text
-              style={{
-                fontSize: 36,
-                lineHeight: 42,
-                fontWeight: "600",
-                letterSpacing: -1,
-                color: theme.colors.textPrimary,
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {overrides.active.length}
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 21,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Active now
-            </Text>
-          </View>
-          <View style={{ flex: 1, gap: 5 }}>
-            <Text
-              style={{
-                fontSize: 36,
-                lineHeight: 42,
-                fontWeight: "600",
-                letterSpacing: -1,
-                color: theme.colors.textPrimary,
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {overrides.upcoming.length}
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 21,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Scheduled
-            </Text>
-          </View>
+          <StatTile
+            testID="coverage-count-active"
+            iconName="shield-checkmark-outline"
+            color={theme.colors.oncallActive}
+            value={overrides.active.length}
+            label="Active now"
+          />
+          <StatTile
+            testID="coverage-count-upcoming"
+            iconName="calendar-outline"
+            color={theme.colors.statusInfo}
+            value={overrides.upcoming.length}
+            label="Scheduled"
+          />
         </View>
       ) : null}
       <GradientButton
@@ -228,87 +246,78 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       />
 
       {!hasAny ? (
-        <View
-          style={{
-            marginTop: 24,
-            paddingVertical: 24,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.borderSubtle,
-          }}
+        <Card
+          testID="overrides-empty"
+          variant="outlined"
+          style={{ marginTop: spacing.xxl }}
         >
-          <Text
+          <View
             style={{
-              fontSize: 15,
-              lineHeight: 23,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.md,
             }}
           >
-            No overrides yet. Create one when you need somebody else to take
-            your pages, or when you are covering for a teammate.
-          </Text>
-        </View>
+            <IconBadge
+              name="swap-horizontal-outline"
+              color={theme.colors.actionPrimary}
+            />
+            <View style={{ flex: 1, gap: spacing.xxs }}>
+              <AppText variant="headline">No overrides yet</AppText>
+              <AppText variant="subhead" tone="secondary">
+                Create one when you need somebody else to take your pages, or
+                when you are covering for a teammate.
+              </AppText>
+            </View>
+          </View>
+        </Card>
       ) : null}
 
-      {overrides.active.length > 0 ? (
-        <View style={{ marginTop: 30 }}>
-          <SectionHeader title="In effect now" />
-          <View style={{ gap: 12 }}>
-            {overrides.active.map((override: OnCallOverrideItem) => {
-              return (
-                <OverrideCard
-                  key={override._id}
-                  override={override}
-                  state="active"
-                  currentUserId={currentUserId}
-                  now={now}
-                  onCancel={confirmCancel}
-                  isCancelling={cancellingId === override._id}
-                />
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
-
-      {overrides.upcoming.length > 0 ? (
-        <View style={{ marginTop: 30 }}>
-          <SectionHeader title="Scheduled" />
-          <View style={{ gap: 12 }}>
-            {overrides.upcoming.map((override: OnCallOverrideItem) => {
-              return (
-                <OverrideCard
-                  key={override._id}
-                  override={override}
-                  state="upcoming"
-                  currentUserId={currentUserId}
-                  now={now}
-                  onCancel={confirmCancel}
-                  isCancelling={cancellingId === override._id}
-                />
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
-
-      {overrides.past.length > 0 ? (
-        <View style={{ marginTop: 30 }}>
-          <SectionHeader title="Ended" />
-          <View style={{ gap: 12 }}>
-            {overrides.past.map((override: OnCallOverrideItem) => {
-              return (
-                <OverrideCard
-                  key={override._id}
-                  override={override}
-                  state="past"
-                  currentUserId={currentUserId}
-                  now={now}
-                />
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
+      {renderSection(
+        "In effect now",
+        "radio-button-on-outline",
+        overrides.active,
+        "active",
+      )}
+      {renderSection(
+        "Scheduled",
+        "calendar-outline",
+        overrides.upcoming,
+        "upcoming",
+      )}
+      {renderSection("Ended", "time-outline", overrides.past, "past")}
     </ScrollView>
+  );
+}
+
+function StatTile({
+  iconName,
+  color,
+  value,
+  label,
+  testID,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  color: string;
+  value: number;
+  label: string;
+  testID: string;
+}): React.JSX.Element {
+  return (
+    <Card
+      testID={testID}
+      accessibilityLabel={`${value} ${label.toLowerCase()}`}
+      style={{ flex: 1, gap: spacing.sm }}
+    >
+      <IconBadge name={iconName} color={color} size="sm" />
+      <View>
+        <AppText variant="title" style={{ fontVariant: ["tabular-nums"] }}>
+          {value}
+        </AppText>
+        <AppText variant="footnote" tone="secondary">
+          {label}
+        </AppText>
+      </View>
+    </Card>
   );
 }

@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import { useHaptics } from "../hooks/useHaptics";
 import { formatDuration, formatShiftWindow } from "../utils/duration";
 import {
@@ -13,7 +14,10 @@ import {
   toTimestamp,
 } from "../oncall/shiftGroups";
 import type { MyOnCallShift } from "../api/types";
+import AppText from "./AppText";
+import Card from "./Card";
 import ShiftSummary from "./ShiftSummary";
+import type { StatusTone } from "./StatusPill";
 
 interface MyShiftCardProps {
   shift: MyOnCallShift;
@@ -31,11 +35,7 @@ export default function MyShiftCard({
   const { lightImpact } = useHaptics();
   const isActive: boolean = isShiftActive(shift, now);
   const hasEnded: boolean = hasShiftEnded(shift, now);
-  const accent: string = isActive
-    ? theme.colors.oncallActive
-    : hasEnded
-      ? theme.colors.textTertiary
-      : theme.colors.severityInfo;
+  const tone: StatusTone = isActive ? "success" : hasEnded ? "neutral" : "info";
   const timing: string = isActive
     ? `${formatDuration(toTimestamp(shift.end) - now)} left`
     : hasEnded
@@ -46,54 +46,32 @@ export default function MyShiftCard({
   const offersCover: boolean =
     Boolean(onRequestCover) && canRequestCover(shift, now);
   return (
-    <View
+    <Card
       testID={`my-shift-card-${shift.shiftKey}`}
-      style={{
-        borderRadius: 18,
-        padding: 18,
-        backgroundColor: theme.colors.backgroundElevated,
-      }}
+      variant={hasEnded ? "outlined" : "elevated"}
     >
       <ShiftSummary
         name={shift.scheduleName}
         layer={shift.layerName}
         timing={timing}
         window={formatShiftWindow(shift.start, shift.end, now)}
-        accent={accent}
+        tone={tone}
       />
       {covering || policyVariant ? (
-        <View
-          style={{
-            marginTop: 12,
-            paddingLeft: 12,
-            borderLeftWidth: 2,
-            borderLeftColor: theme.colors.borderDefault,
-            gap: 5,
-          }}
-        >
+        <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
           {covering ? (
-            <Text
+            <DetailLine
               testID={`covering-badge-${shift.shiftKey}`}
-              style={{
-                color: theme.colors.textSecondary,
-                fontSize: 14,
-                lineHeight: 21,
-              }}
-            >
-              {covering}
-            </Text>
+              iconName="swap-horizontal-outline"
+              text={covering}
+            />
           ) : null}
           {policyVariant ? (
-            <Text
+            <DetailLine
               testID={`policy-variant-badge-${shift.shiftKey}`}
-              style={{
-                color: theme.colors.textSecondary,
-                fontSize: 14,
-                lineHeight: 21,
-              }}
-            >
-              {policyVariant}
-            </Text>
+              iconName="git-branch-outline"
+              text={policyVariant}
+            />
           ) : null}
         </View>
       ) : null}
@@ -106,18 +84,18 @@ export default function MyShiftCard({
             lightImpact();
             onRequestCover?.(shift);
           }}
-          style={({ pressed }: { pressed: boolean }) => {
+          style={({ pressed }: { pressed: boolean }): ViewStyle => {
             return {
-              marginTop: 14,
-              paddingHorizontal: 12,
-              minHeight: 48,
-              borderRadius: 12,
+              marginTop: spacing.lg,
+              paddingHorizontal: spacing.md,
+              minHeight: touchTarget,
+              borderRadius: radius.md,
               backgroundColor: pressed
                 ? theme.colors.backgroundTertiary
-                : theme.colors.iconBackground,
+                : theme.colors.cardAccent,
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
+              gap: spacing.sm,
             };
           }}
         >
@@ -126,16 +104,14 @@ export default function MyShiftCard({
             size={18}
             color={theme.colors.actionPrimary}
           />
-          <Text
-            style={{
-              flex: 1,
-              color: theme.colors.actionPrimary,
-              fontSize: 15,
-              fontWeight: "600",
-            }}
+          <AppText
+            variant="callout"
+            weight="600"
+            tone="accent"
+            style={{ flex: 1 }}
           >
             Get cover
-          </Text>
+          </AppText>
           <Ionicons
             name="arrow-forward"
             size={17}
@@ -143,6 +119,42 @@ export default function MyShiftCard({
           />
         </Pressable>
       ) : null}
+    </Card>
+  );
+}
+
+function DetailLine({
+  iconName,
+  text,
+  testID,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  text: string;
+  testID: string;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.xs + 2,
+      }}
+    >
+      <Ionicons
+        name={iconName}
+        size={15}
+        color={theme.colors.textTertiary}
+        style={{ marginTop: 3 }}
+      />
+      <AppText
+        testID={testID}
+        variant="subhead"
+        tone="secondary"
+        style={{ flex: 1 }}
+      >
+        {text}
+      </AppText>
     </View>
   );
 }

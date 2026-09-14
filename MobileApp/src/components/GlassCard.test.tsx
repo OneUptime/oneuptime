@@ -1,9 +1,24 @@
 import React from "react";
 import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import GlassCard from "./GlassCard";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * The surface almost everything in the app sits on. It has two jobs: to carry
@@ -46,14 +61,17 @@ describe("What the card draws", () => {
       </GlassCard>,
     );
 
-    expect(surfaceStyle().backgroundColor).toBe(darkColors.backgroundGlass);
+    expect(surfaceStyle().backgroundColor).toBe(lightColors.backgroundGlass);
   });
 
   test("an opaque surface when asked, so content cannot show through it", async () => {
     /*
-     * The glass fill is barely-there white at 3%, which is fine over a page
-     * background and useless over another card. `opaque` is what a caller
-     * reaches for when the card is stacked on something.
+     * `opaque` is what a caller reaches for when the card is stacked on
+     * something, and it must always resolve to the solid card token. The
+     * redesign retired the translucent glass fill - `backgroundGlass` is now
+     * the same solid colour as `backgroundElevated` in both palettes - so the
+     * two surfaces happen to match today. What is pinned is the token opaque
+     * asks for, not a difference between them.
      */
     await render(
       <GlassCard opaque>
@@ -61,8 +79,18 @@ describe("What the card draws", () => {
       </GlassCard>,
     );
 
-    expect(surfaceStyle().backgroundColor).toBe(darkColors.backgroundElevated);
-    expect(surfaceStyle().backgroundColor).not.toBe(darkColors.backgroundGlass);
+    expect(surfaceStyle().backgroundColor).toBe(lightColors.backgroundElevated);
+  });
+
+  test("the glass fill is solid in both palettes, so text on it stays readable", async () => {
+    /*
+     * The old fill was white at 3%, which left body text sitting on whatever
+     * happened to be behind the card. A translucent value creeping back into
+     * the token would silently undo that on every screen at once.
+     */
+    for (const colors of [lightColors, darkColors]) {
+      expect(colors.backgroundGlass).toMatch(/^#[0-9A-F]{6}$/i);
+    }
   });
 
   test("the shared border and radius, whichever surface it is", async () => {
@@ -72,7 +100,7 @@ describe("What the card draws", () => {
       </GlassCard>,
     );
 
-    expect(surfaceStyle().borderColor).toBe(darkColors.borderGlass);
+    expect(surfaceStyle().borderColor).toBe(lightColors.borderGlass);
     expect(surfaceStyle().borderWidth).toBe(1);
     expect(surfaceStyle().borderRadius).toBe(16);
   });
@@ -84,7 +112,7 @@ describe("What the card draws", () => {
      */
     await render(<GlassCard>{null}</GlassCard>);
 
-    expect(surfaceStyle().backgroundColor).toBe(darkColors.backgroundGlass);
+    expect(surfaceStyle().backgroundColor).toBe(lightColors.backgroundGlass);
   });
 });
 
@@ -124,6 +152,31 @@ describe("A caller adjusting the card", () => {
     );
 
     expect(surfaceStyle().marginBottom).toBe(12);
-    expect(surfaceStyle().backgroundColor).toBe(darkColors.backgroundElevated);
+    expect(surfaceStyle().backgroundColor).toBe(lightColors.backgroundElevated);
+  });
+});
+
+describe("In dark mode", () => {
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test("the surface and border come from the dark palette", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <GlassCard>
+          <Text>Root cause</Text>
+        </GlassCard>
+      </ThemeProvider>,
+    );
+
+    const card: RenderedElement = screen.getByText("Root cause")
+      .parent as RenderedElement;
+    expect(card).toHaveStyle({
+      backgroundColor: darkColors.backgroundGlass,
+      borderColor: darkColors.borderGlass,
+      borderRadius: 16,
+    });
   });
 });

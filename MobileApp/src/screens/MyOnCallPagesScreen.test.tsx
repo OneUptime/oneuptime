@@ -1,7 +1,16 @@
 import React from "react";
-import { act, render, screen, fireEvent } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
 import { describe, test, expect, beforeEach } from "@jest/globals";
 import MyOnCallPagesScreen from "./MyOnCallPagesScreen";
+import { lightColors } from "../theme/colors";
+import { radius, spacing } from "../theme/tokens";
 import type { OnCallPageItem } from "../api/types";
 
 const mockNavigate: jest.Mock = jest.fn();
@@ -261,3 +270,91 @@ describe("Refresh recovery", () => {
     },
   );
 });
+
+describe("My pages layout", () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    mockRefetch.mockReset();
+    mockPages.current = {
+      pages: [],
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch,
+    };
+  });
+
+  test("pages waiting on a response turn the summary banner to warning", async (): Promise<void> => {
+    mockPages.current.pages = [page({ _id: "open" })];
+
+    await render(<MyOnCallPagesScreen />);
+
+    const summary: HostElement = screen.getByTestId("pages-summary");
+    expect(within(summary).getByText("1 page needs a response")).toBeTruthy();
+    expect(flatStyle("pages-summary").backgroundColor).toBe(
+      lightColors.statusWarningBg,
+    );
+  });
+
+  test("an all-acknowledged list turns the summary banner to success", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({ _id: "done", acknowledgedAt: "2026-09-10T09:05:00Z" }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(
+      within(screen.getByTestId("pages-summary")).getByText(
+        "All listed pages acknowledged",
+      ),
+    ).toBeTruthy();
+    expect(flatStyle("pages-summary").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+  });
+
+  test("each page is its own card with a status pill, in list order", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({ _id: "first", status: "Error" }),
+      page({ _id: "second", acknowledgedAt: "2026-09-10T09:05:00Z" }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(
+      within(screen.getByTestId("pages-list"))
+        .getAllByTestId(/^page-card-/)
+        .map((node: HostElement) => {
+          return node.props.testID;
+        }),
+    ).toEqual(["page-card-first", "page-card-second"]);
+    for (const testID of ["page-card-first", "page-card-second"]) {
+      const style: Record<string, unknown> = flatStyle(testID);
+      expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+      expect(style.borderRadius).toBe(radius.lg);
+    }
+    expect(flatStyle("page-status-first").backgroundColor).toBe(
+      lightColors.statusErrorBg,
+    );
+    expect(flatStyle("pages-list").gap).toBe(spacing.md);
+  });
+
+  test("the empty unacknowledged filter is an 'all caught up' card", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({ acknowledgedAt: "2026-09-10T09:05:00Z" }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+    await fireEvent.press(screen.getByText("Unacknowledged (0)"));
+
+    const empty: HostElement = screen.getByTestId("pages-filter-empty");
+    expect(within(empty).getByText("All caught up")).toBeTruthy();
+    expect(flatStyle("pages-filter-empty").borderRadius).toBe(radius.lg);
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

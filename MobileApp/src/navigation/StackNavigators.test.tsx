@@ -7,7 +7,13 @@ import {
   type ParamListBase,
 } from "@react-navigation/native";
 import { act, render, screen } from "@testing-library/react-native";
-import { describe, expect, test, jest } from "@jest/globals";
+import { afterEach, describe, expect, test, jest } from "@jest/globals";
+import {
+  ThemeProvider,
+  darkColors,
+  lightColors,
+  type ColorTokens,
+} from "../theme";
 import AlertsStackNavigator from "./AlertsStackNavigator";
 import AuthStackNavigator from "./AuthStackNavigator";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
@@ -32,6 +38,25 @@ jest.mock("../components/ProjectSwitcher", () => {
       return null;
     },
   };
+});
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+afterEach(() => {
+  mockSystemScheme = "light";
 });
 
 /*
@@ -199,6 +224,14 @@ interface ResolvedScreenOptions {
   headerShown?: boolean;
   headerLargeTitle?: boolean;
   gestureEnabled?: boolean;
+  headerTitle?: unknown;
+  headerTitleAlign?: string;
+  headerShadowVisible?: boolean;
+  headerBackButtonDisplayMode?: string;
+  headerTintColor?: string;
+  headerStyle?: { backgroundColor?: string };
+  headerLargeStyle?: { backgroundColor?: string };
+  contentStyle?: { backgroundColor?: string };
 }
 
 interface DeclaredRoute {
@@ -435,20 +468,51 @@ const CONTENT_STACKS: Array<StackUnderTest> = [
 
 async function renderStack(
   navigator: React.JSX.Element,
+  scheme?: "light" | "dark",
 ): Promise<NavigationContainerRefWithCurrent<ParamListBase>> {
   const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
     createNavigationContainerRef<ParamListBase>();
+  const tree: React.JSX.Element = (
+    <NavigationContainer ref={navigationRef}>{navigator}</NavigationContainer>
+  );
+
+  if (scheme) {
+    mockSystemScheme = scheme;
+  }
 
   /*
    * Awaited because React 19's `act` is asynchronous, which makes
    * @testing-library/react-native's render return a promise; not awaiting it
    * leaves the tree half-mounted and the ref unattached.
    */
-  await render(
-    <NavigationContainer ref={navigationRef}>{navigator}</NavigationContainer>,
-  );
+  await render(scheme ? <ThemeProvider>{tree}</ThemeProvider> : tree);
 
   return navigationRef;
+}
+
+/**
+ * The shared header every workspace stack takes from useStackScreenOptions:
+ * the project switcher on the canvas colour, with no hairline, over content
+ * that has the same background so a push never flashes another colour.
+ */
+function expectSharedCanvasHeader(
+  options: ResolvedScreenOptions,
+  colors: ColorTokens,
+): void {
+  expect(typeof options.headerTitle).toBe("function");
+  expect(options.headerTitleAlign).toBe("left");
+  expect(options.headerShadowVisible).toBe(false);
+  expect(options.headerBackButtonDisplayMode).toBe("minimal");
+  expect(options.headerTintColor).toBe(colors.actionPrimary);
+  expect(options.headerStyle?.backgroundColor).toBe(colors.backgroundPrimary);
+  expect(options.contentStyle?.backgroundColor).toBe(colors.backgroundPrimary);
+  if (Platform.OS === "ios") {
+    expect(options.headerLargeStyle?.backgroundColor).toBe(
+      colors.backgroundPrimary,
+    );
+  } else {
+    expect(options.headerLargeStyle).toBeUndefined();
+  }
 }
 
 /**
@@ -603,6 +667,41 @@ for (const stack of CONTENT_STACKS) {
         ).toBeTruthy();
       });
     }
+
+    test("every screen wears the shared canvas header", async () => {
+      /*
+       * The stacks used to carry their own copies of these options and had
+       * drifted: one on a different background, one with no content colour,
+       * which flashed white on push. Driving every route checks no screen's
+       * own options quietly undo the shared ones.
+       */
+      const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+        await renderStack(stack.element);
+
+      for (const routeName of routeNames) {
+        const route: TitledRoute = stack.routes[routeName];
+
+        await goTo(navigationRef, routeName, route.params);
+
+        expectSharedCanvasHeader(currentOptions(navigationRef), lightColors);
+      }
+    });
+
+    test("in dark mode the header and content move to the dark canvas", async () => {
+      const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+        await renderStack(stack.element, "dark");
+      const lastRouteName: string = routeNames[routeNames.length - 1];
+
+      expectSharedCanvasHeader(currentOptions(navigationRef), darkColors);
+
+      await goTo(
+        navigationRef,
+        lastRouteName,
+        stack.routes[lastRouteName].params,
+      );
+
+      expectSharedCanvasHeader(currentOptions(navigationRef), darkColors);
+    });
 
     test("the header is the one this platform asks for", async () => {
       /*

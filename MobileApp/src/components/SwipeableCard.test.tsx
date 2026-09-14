@@ -1,8 +1,25 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { render, screen, act } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import SwipeableCard from "./SwipeableCard";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * Swipe-to-acknowledge is the fastest way a woken responder can say "I have
@@ -440,5 +457,240 @@ describe("What the card shows", () => {
     );
 
     expect(screen.queryByText("Resolve")).toBeNull();
+  });
+});
+
+function styleOf(element: RenderedElement): Record<string, unknown> {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
+}
+
+/**
+ * One finger down and dragged `dx` points, but NOT lifted - the moment the
+ * responder is looking at the panel behind the row and deciding.
+ */
+async function dragWithoutLifting(dx: number): Promise<void> {
+  const handlers: PanHandlerProps = findPannable(
+    screen.getByTestId("card-body"),
+  ).props as PanHandlerProps;
+
+  await act(async (): Promise<void> => {
+    handlers.onResponderGrant?.(
+      touchAt(TOUCH_START_X, TOUCH_START_X, 100, 100),
+    );
+    handlers.onResponderMove?.(
+      touchAt(TOUCH_START_X + dx, TOUCH_START_X, 200, 100),
+    );
+  });
+}
+
+const ACKNOWLEDGE_FILL: string = lightColors.statusSuccess;
+
+describe("How the action behind the row is drawn", () => {
+  beforeEach(() => {
+    mockColorScheme = "light";
+  });
+
+  test("the fill is the colour it was given, rounded like the card above it", async () => {
+    await render(
+      <SwipeableCard
+        rightAction={{
+          label: "Acknowledge",
+          color: ACKNOWLEDGE_FILL,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    expect(screen.getByTestId("swipe-action-right")).toHaveStyle({
+      backgroundColor: ACKNOWLEDGE_FILL,
+      borderRadius: radius.lg,
+    });
+  });
+
+  test("the label on the fill uses the inverse text token, not a literal white", async () => {
+    await render(
+      <SwipeableCard
+        rightAction={{
+          label: "Acknowledge",
+          color: ACKNOWLEDGE_FILL,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    expect(screen.getByText("Acknowledge")).toHaveStyle({
+      color: lightColors.textInverse,
+    });
+  });
+
+  test("the fill stops above the space the row keeps below its card", async () => {
+    /*
+     * ResponseRow cards carry a bottom margin. A fill that painted it would
+     * show up taller than the card it sits behind.
+     */
+    await render(
+      <SwipeableCard
+        actionInsetBottom={12}
+        rightAction={{
+          label: "Acknowledge",
+          color: ACKNOWLEDGE_FILL,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    expect(screen.getByTestId("swipe-action-right")).toHaveStyle({
+      top: 0,
+      bottom: 12,
+    });
+  });
+
+  test("without an inset the fill runs the full height of the row", async () => {
+    await render(
+      <SwipeableCard
+        leftAction={{
+          label: "Resolve",
+          color: lightColors.actionPrimary,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    expect(screen.getByTestId("swipe-action-left")).toHaveStyle({
+      bottom: 0,
+    });
+  });
+
+  test("nothing is painted behind a row at rest", async () => {
+    /*
+     * A fill visible at rest shows as a coloured sliver around the card's
+     * rounded corners.
+     */
+    await render(
+      <SwipeableCard
+        leftAction={{
+          label: "Resolve",
+          color: lightColors.actionPrimary,
+          onAction: jest.fn(),
+        }}
+        rightAction={{
+          label: "Acknowledge",
+          color: ACKNOWLEDGE_FILL,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    expect(styleOf(screen.getByTestId("swipe-action-right")).opacity).toBe(0);
+    expect(styleOf(screen.getByTestId("swipe-action-left")).opacity).toBe(0);
+  });
+
+  test("dragging left reveals only the right-hand action", async () => {
+    await render(
+      <SwipeableCard
+        leftAction={{
+          label: "Resolve",
+          color: lightColors.actionPrimary,
+          onAction: jest.fn(),
+        }}
+        rightAction={{
+          label: "Acknowledge",
+          color: ACKNOWLEDGE_FILL,
+          onAction: jest.fn(),
+        }}
+      >
+        {cardBody()}
+      </SwipeableCard>,
+    );
+
+    await dragWithoutLifting(-60);
+
+    expect(styleOf(screen.getByTestId("swipe-action-right")).opacity).toBe(1);
+    expect(styleOf(screen.getByTestId("swipe-action-left")).opacity).toBe(0);
+  });
+
+  test("a row with no actions paints no panel at all", async () => {
+    await render(<SwipeableCard>{cardBody()}</SwipeableCard>);
+
+    expect(screen.queryByTestId("swipe-action-right")).toBeNull();
+    expect(screen.queryByTestId("swipe-action-left")).toBeNull();
+  });
+
+  test("the row itself carries no backing colour that could square off its corners", async () => {
+    await render(<SwipeableCard>{cardBody()}</SwipeableCard>);
+
+    const foreground: RenderedElement = findPannable(
+      screen.getByTestId("card-body"),
+    );
+    expect(styleOf(foreground).backgroundColor).toBeUndefined();
+  });
+});
+
+describe("The action in dark mode", () => {
+  beforeEach(() => {
+    mockColorScheme = "dark";
+  });
+
+  test("the label switches to the dark inverse token so it stays readable on a light fill", async () => {
+    /*
+     * Dark-mode fills are light and saturated, so a hard-coded white label
+     * would all but vanish on them.
+     */
+    await render(
+      <ThemeProvider>
+        <SwipeableCard
+          rightAction={{
+            label: "Acknowledge",
+            color: darkColors.statusSuccess,
+            onAction: jest.fn(),
+          }}
+        >
+          {cardBody()}
+        </SwipeableCard>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("Acknowledge")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
+    expect(styleOf(screen.getByText("Acknowledge")).color).not.toBe("#FFFFFF");
+    expect(screen.getByTestId("swipe-action-right")).toHaveStyle({
+      backgroundColor: darkColors.statusSuccess,
+    });
+  });
+
+  test("a swipe still fires the action inside the themed tree", async () => {
+    const acknowledge: jest.Mock = jest.fn();
+
+    await render(
+      <ThemeProvider>
+        <SwipeableCard
+          rightAction={{
+            label: "Acknowledge",
+            color: darkColors.statusSuccess,
+            onAction: acknowledge,
+          }}
+        >
+          {cardBody()}
+        </SwipeableCard>
+      </ThemeProvider>,
+    );
+
+    await swipeBy(-120);
+
+    expect(acknowledge).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  Text,
   ScrollView,
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  TextInput,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
+import { radius, spacing, touchTarget } from "../../theme/tokens";
 import { useScreenPadding } from "../../hooks/useScreenPadding";
+import AppText from "../../components/AppText";
+import Banner from "../../components/Banner";
+import Card from "../../components/Card";
+import IconBadge from "../../components/IconBadge";
+import { ListGroup } from "../../components/ListGroup";
 import ScreenIntro from "../../components/ScreenIntro";
+import SearchField from "../../components/SearchField";
+import StatusPill from "../../components/StatusPill";
 import GradientButton from "../../components/GradientButton";
 import { fetchProjects } from "../../api/projects";
 import {
@@ -42,8 +50,79 @@ import type {
   SelectableSsoProvider,
   SettingsStackParamList,
 } from "../../navigation/types";
+import { getInitials } from "../../utils/text";
 
 type Props = NativeStackScreenProps<SettingsStackParamList, "ProjectsList">;
+
+function ProjectAvatar({
+  name,
+  testID,
+}: {
+  name: string;
+  testID?: string;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  const initials: string = getInitials(name);
+  return (
+    <View
+      testID={testID}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: radius.md,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.cardAccent,
+      }}
+    >
+      {initials ? (
+        <AppText variant="subhead" weight="700" tone="accent">
+          {initials}
+        </AppText>
+      ) : (
+        <Ionicons
+          name="folder-outline"
+          size={18}
+          color={theme.colors.actionPrimary}
+        />
+      )}
+    </View>
+  );
+}
+
+/** A centred icon, title and explanation inside a card. */
+function ProjectsPlaceholder({
+  icon,
+  title,
+  message,
+  testID,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  message: string;
+  testID?: string;
+}): React.JSX.Element {
+  return (
+    <Card testID={testID} padding={spacing.xxl}>
+      <View style={{ alignItems: "center", gap: spacing.sm }}>
+        <IconBadge name={icon} size="lg" shape="circle" />
+        <AppText
+          accessibilityRole="header"
+          variant="headline"
+          align="center"
+          style={{ marginTop: spacing.xs }}
+        >
+          {title}
+        </AppText>
+        <AppText variant="subhead" tone="secondary" align="center">
+          {message}
+        </AppText>
+      </View>
+    </Card>
+  );
+}
 
 export default function ProjectsScreen({
   navigation,
@@ -273,23 +352,21 @@ export default function ProjectsScreen({
   if (isLoading) {
     return (
       <View
+        testID="projects-loading"
+        accessibilityLiveRegion="polite"
         style={{
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
+          gap: spacing.lg,
+          padding: spacing.xl,
           backgroundColor: theme.colors.backgroundPrimary,
         }}
       >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-        <Text
-          style={{
-            fontSize: 15,
-            color: theme.colors.textSecondary,
-            marginTop: 16,
-          }}
-        >
+        <AppText variant="callout" tone="secondary" align="center">
           Loading your projects…
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -307,12 +384,24 @@ export default function ProjectsScreen({
       );
     },
   ).length;
+  const accessSummary: string = `${projects.length} ${
+    projects.length === 1 ? "project" : "projects"
+  } · ${needsSignIn > 0 ? `${needsSignIn} need SSO sign-in` : "All projects ready"}`;
+  const anyRequiresSso: boolean = projects.some(
+    (project: ProjectItem): boolean => {
+      return Boolean(project.requireSsoForLogin);
+    },
+  );
 
   return (
     <ScrollView
       testID="projects-scroll"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom,
+        gap: spacing.lg,
+      }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       refreshControl={
@@ -320,6 +409,8 @@ export default function ProjectsScreen({
           refreshing={isRefreshing}
           onRefresh={handleRefresh}
           tintColor={theme.colors.actionPrimary}
+          colors={[theme.colors.actionPrimary]}
+          progressBackgroundColor={theme.colors.backgroundElevated}
         />
       }
     >
@@ -327,308 +418,141 @@ export default function ProjectsScreen({
         title="Project access"
         compact
         description="Manage your access. Switch projects from the name at the top of any screen."
+        style={{ marginBottom: 0 }}
       />
       {projects.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color:
-                needsSignIn > 0
-                  ? theme.colors.severityWarning
-                  : theme.colors.textSecondary,
-              marginBottom: 16,
-            }}
-          >
-            {projects.length} {projects.length === 1 ? "project" : "projects"} ·{" "}
-            {needsSignIn > 0
-              ? `${needsSignIn} need SSO sign-in`
-              : "All projects ready"}
-          </Text>
+        <View style={{ gap: spacing.md }}>
           <View
+            testID="projects-summary"
             style={{
               flexDirection: "row",
               alignItems: "center",
-              minHeight: 52,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: theme.colors.borderDefault,
-              backgroundColor: theme.colors.backgroundSecondary,
-              paddingHorizontal: 14,
+              gap: spacing.sm,
             }}
           >
             <Ionicons
-              name="search-outline"
-              size={20}
-              color={theme.colors.textTertiary}
-              style={{ marginRight: 10 }}
+              name={
+                needsSignIn > 0 ? "shield-half-outline" : "checkmark-circle"
+              }
+              size={16}
+              color={
+                needsSignIn > 0
+                  ? theme.colors.statusWarning
+                  : theme.colors.statusSuccess
+              }
             />
-            <TextInput
-              accessibilityLabel="Search projects"
-              placeholder="Search projects"
-              placeholderTextColor={theme.colors.textTertiary}
-              value={search}
-              onChangeText={setSearch}
-              autoCorrect={false}
-              returnKeyType="search"
-              style={{
-                flex: 1,
-                paddingVertical: 14,
-                fontSize: 16,
-                color: theme.colors.textPrimary,
-              }}
-            />
-            {search ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Clear project search"
-                onPress={() => {
-                  setSearch("");
-                }}
-                style={{
-                  minWidth: 48,
-                  minHeight: 48,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </Pressable>
-            ) : null}
+            <AppText
+              accessibilityLiveRegion="polite"
+              variant="subhead"
+              weight={needsSignIn > 0 ? "600" : undefined}
+              tone={needsSignIn > 0 ? "warning" : "secondary"}
+              style={{ flex: 1 }}
+            >
+              {accessSummary}
+            </AppText>
           </View>
+          <SearchField
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search projects"
+            accessibilityLabel="Search projects"
+          />
         </View>
       ) : null}
 
       {error ? (
-        <View
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            marginBottom: 16,
-            padding: 12,
-            borderRadius: 12,
-            backgroundColor: theme.colors.statusErrorBg,
-          }}
-        >
-          <Ionicons
-            name="alert-circle"
-            size={16}
-            color={theme.colors.statusError}
-            style={{ marginRight: 8, marginTop: 1 }}
-          />
-          <Text
-            style={{
-              fontSize: 13,
-              flex: 1,
-              color: theme.colors.statusError,
-            }}
-          >
-            {error}
-          </Text>
+        <View accessibilityLiveRegion="polite" collapsable={false}>
+          <Banner testID="projects-error" tone="danger" message={error} />
         </View>
       ) : null}
       {error && projects.length === 0 ? (
-        <View style={{ marginBottom: 20 }}>
-          <GradientButton
-            label="Retry loading projects"
-            onPress={loadData}
-            variant="secondary"
-          />
-        </View>
+        <GradientButton
+          label="Retry loading projects"
+          icon="refresh"
+          onPress={loadData}
+          variant="primary"
+        />
       ) : null}
 
       {projects.length === 0 && !error ? (
-        <View
-          style={{
-            padding: 24,
-            alignItems: "center",
-            borderRadius: 12,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <Ionicons
-            name="folder-open-outline"
-            size={32}
-            color={theme.colors.textTertiary}
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              marginTop: 8,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            No projects found.
-          </Text>
-        </View>
+        <ProjectsPlaceholder
+          testID="projects-empty"
+          icon="folder-open-outline"
+          title="No projects found."
+          message="Ask your team to invite you to a project, then pull down to refresh."
+        />
       ) : projects.length > 0 && visibleProjects.length === 0 ? (
-        <View
-          style={{
-            padding: 24,
-            borderRadius: 12,
-            backgroundColor: theme.colors.backgroundSecondary,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 17,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-            }}
-          >
-            No matching projects
-          </Text>
-          <Text
-            style={{
-              fontSize: 15,
-              lineHeight: 23,
-              marginTop: 8,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Try another name or clear the search to see all your projects.
-          </Text>
-        </View>
+        <ProjectsPlaceholder
+          testID="projects-no-match"
+          icon="search-outline"
+          title="No matching projects"
+          message="Try another name or clear the search to see all your projects."
+        />
       ) : projects.length > 0 ? (
-        <View
-          style={{
-            borderRadius: 14,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          {visibleProjects.map((project: ProjectItem, index: number) => {
+        <ListGroup testID="projects-list">
+          {visibleProjects.map((project: ProjectItem) => {
             const requiresSso: boolean = Boolean(project.requireSsoForLogin);
             const authenticated: boolean = isProjectAuthenticated(project._id);
-            const isLast: boolean = index === visibleProjects.length - 1;
             const isAuthenticating: boolean =
               authenticatingProjectId === project._id;
+            const anyAuthenticating: boolean = authenticatingProjectId !== null;
 
             return (
               <View
                 key={project._id}
+                testID={`project-row-${project._id}`}
                 style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                  ...(!isLast
-                    ? {
-                        borderBottomWidth: 1,
-                        borderBottomColor: theme.colors.borderSubtle,
-                      }
-                    : {}),
+                  padding: spacing.lg,
+                  gap: spacing.md,
                 }}
               >
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    gap: spacing.md,
                   }}
                 >
+                  <ProjectAvatar
+                    name={project.name}
+                    testID={`project-avatar-${project._id}`}
+                  />
+
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      backgroundColor: theme.colors.iconBackground,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: 14,
+                      flex: 1,
+                      minWidth: 0,
+                      gap: spacing.xs,
+                      alignItems: "flex-start",
                     }}
                   >
-                    <Ionicons
-                      name="folder-outline"
-                      size={18}
-                      color={theme.colors.actionPrimary}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: 17,
-                        fontWeight: "700",
-                        color: theme.colors.textPrimary,
-                        letterSpacing: -0.3,
-                      }}
-                    >
+                    <AppText variant="headline" numberOfLines={2}>
                       {project.name}
-                    </Text>
+                    </AppText>
 
                     {requiresSso ? (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          marginTop: 6,
-                        }}
-                      >
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
-                            borderRadius: 6,
-                            backgroundColor: authenticated
-                              ? theme.colors.statusSuccessBg
-                              : theme.colors.severityWarningBg,
-                          }}
-                        >
-                          <Ionicons
-                            name={
-                              authenticated
-                                ? "checkmark-circle"
-                                : "shield-outline"
-                            }
-                            size={12}
-                            color={
-                              authenticated
-                                ? theme.colors.statusSuccess
-                                : theme.colors.severityWarning
-                            }
-                            style={{ marginRight: 4 }}
-                          />
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: "600",
-                              color: authenticated
-                                ? theme.colors.statusSuccess
-                                : theme.colors.severityWarning,
-                            }}
-                          >
-                            {authenticated ? "Authenticated" : "SSO Required"}
-                          </Text>
-                        </View>
-                      </View>
+                      <StatusPill
+                        testID={`project-sso-status-${project._id}`}
+                        size="sm"
+                        tone={authenticated ? "success" : "warning"}
+                        dotColor={
+                          authenticated
+                            ? theme.colors.statusSuccess
+                            : theme.colors.statusWarning
+                        }
+                        label={authenticated ? "Authenticated" : "SSO Required"}
+                      />
                     ) : (
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          color: theme.colors.textSecondary,
-                          marginTop: 6,
-                        }}
-                      >
+                      <AppText variant="footnote" tone="secondary">
                         Ready to use
-                      </Text>
+                      </AppText>
                     )}
                   </View>
                 </View>
 
                 {requiresSso && !authenticated ? (
                   <Pressable
+                    testID={`project-authenticate-${project._id}`}
                     onPress={() => {
                       return handleAuthenticate(project);
                     }}
@@ -640,22 +564,32 @@ export default function ProjectsScreen({
                      * auth session at a time and throws
                      * "WebBrowser is already open" on a second tap.
                      */
-                    disabled={authenticatingProjectId !== null}
+                    disabled={anyAuthenticating}
                     accessibilityState={{
-                      disabled: authenticatingProjectId !== null,
+                      disabled: anyAuthenticating,
                       busy: isAuthenticating,
                     }}
-                    aria-disabled={authenticatingProjectId !== null}
+                    aria-disabled={anyAuthenticating}
                     aria-busy={isAuthenticating}
-                    style={{
-                      marginTop: 12,
-                      minHeight: 52,
-                      paddingVertical: 10,
-                      borderRadius: 10,
-                      backgroundColor: theme.colors.actionPrimary,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: authenticatingProjectId !== null ? 0.7 : 1,
+                    style={({
+                      pressed,
+                    }: {
+                      pressed: boolean;
+                    }): StyleProp<ViewStyle> => {
+                      return {
+                        minHeight: touchTarget,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.sm,
+                        borderRadius: radius.md,
+                        backgroundColor:
+                          pressed && !anyAuthenticating
+                            ? theme.colors.actionPrimaryPressed
+                            : theme.colors.actionPrimary,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity:
+                          anyAuthenticating && !isAuthenticating ? 0.55 : 1,
+                      };
                     }}
                   >
                     {isAuthenticating ? (
@@ -668,23 +602,22 @@ export default function ProjectsScreen({
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
+                          gap: spacing.sm,
                         }}
                       >
                         <Ionicons
                           name="shield-checkmark-outline"
-                          size={14}
+                          size={16}
                           color={theme.colors.textInverse}
-                          style={{ marginRight: 6 }}
                         />
-                        <Text
-                          style={{
-                            fontSize: 15,
-                            fontWeight: "700",
-                            color: theme.colors.textInverse,
-                          }}
+                        <AppText
+                          variant="callout"
+                          weight="600"
+                          tone="inverse"
+                          style={{ flexShrink: 1 }}
                         >
                           Authenticate with SSO
-                        </Text>
+                        </AppText>
                       </View>
                     )}
                   </Pressable>
@@ -692,21 +625,19 @@ export default function ProjectsScreen({
               </View>
             );
           })}
-        </View>
+        </ListGroup>
       ) : null}
 
-      <Text
-        style={{
-          fontSize: 14,
-          marginTop: 20,
-          marginLeft: 4,
-          lineHeight: 21,
-          color: theme.colors.textTertiary,
-        }}
-      >
-        Projects requiring SSO need separate authentication. Tap Authenticate to
-        sign in via your identity provider.
-      </Text>
+      {anyRequiresSso ? (
+        <AppText
+          variant="footnote"
+          tone="secondary"
+          style={{ marginHorizontal: spacing.xs }}
+        >
+          Projects requiring SSO need separate authentication. Tap Authenticate
+          to sign in via your identity provider.
+        </AppText>
+      ) : null}
     </ScrollView>
   );
 }

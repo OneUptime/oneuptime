@@ -1,5 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
 import {
   describe,
   expect,
@@ -10,6 +16,10 @@ import {
 import CreateOnCallOverrideScreen, {
   readPrefilledWindow,
 } from "./CreateOnCallOverrideScreen";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { getScreenBottomPadding } from "../theme/layout";
+import { radius } from "../theme/tokens";
 import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
 import type { CreateOnCallOverrideParams } from "../navigation/types";
 import type { ProjectItem, ProjectUserItem } from "../api/types";
@@ -23,6 +33,17 @@ import type { ProjectItem, ProjectUserItem } from "../api/types";
  * exists to pin those down - the assertions are on the exact ids handed to the
  * API layer, never on a summary string.
  */
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 const ME: string = "user-me";
 const TEAMMATE: string = "user-teammate";
@@ -632,3 +653,190 @@ describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
     expect(lastCreateInput().projectId).toBe("project-2");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * The form's shape: a teammate card, preset chips, a tinted preview and one
+ * confirm button - in both themes, with the picker sheet clear of the home
+ * indicator.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("CreateOnCallOverrideScreen form layout", () => {
+  beforeEach(() => {
+    mockCreateOverride.mockClear();
+    mockGoBack.mockClear();
+    mockUsersError.current = false;
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+    mockColorScheme = "light";
+  });
+
+  test("the teammate card invites a choice, then shows the teammate's initials", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    const picker: HostElement = screen.getByRole("button", {
+      name: "Choose a teammate",
+    });
+    expect(picker.props.testID).toBe("open-user-picker");
+    expect(flatStyle("open-user-picker").backgroundColor).toBe(
+      lightColors.backgroundElevated,
+    );
+    expect(flatStyle("open-user-picker").borderRadius).toBe(radius.lg);
+    expect(screen.queryByText("Change")).toBeNull();
+
+    await pickTeammate();
+
+    const chosen: HostElement = screen.getByRole("button", {
+      name: "Selected Priya Rao. Tap to change.",
+    });
+    expect(within(chosen).getByText("PR")).toBeTruthy();
+    expect(within(chosen).getByText("Priya Rao")).toBeTruthy();
+    expect(within(chosen).getByText("Change")).toBeTruthy();
+    expect(
+      within(chosen).getByTestId("coverage-project-name"),
+    ).toHaveTextContent("Acme");
+  });
+
+  test("duration presets are chips: the selected one is filled", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(flatStyle("duration-4").backgroundColor).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(flatStyle("duration-8").backgroundColor).toBe(
+      lightColors.backgroundElevated,
+    );
+    expect(flatStyle("duration-8").minHeight).toBeGreaterThanOrEqual(48);
+    expect(
+      within(screen.getByTestId("duration-4")).getByText("4 hours"),
+    ).toHaveStyle({ color: lightColors.textInverse });
+
+    await fireEvent.press(screen.getByTestId("duration-8"));
+
+    expect(flatStyle("duration-8").backgroundColor).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(flatStyle("duration-4").backgroundColor).toBe(
+      lightColors.backgroundElevated,
+    );
+  });
+
+  test("the preview is a tinted card that reads the sentence back", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+
+    const preview: HostElement = screen.getByTestId("override-preview");
+    expect(within(preview).getByText("Review your coverage")).toBeTruthy();
+    expect(
+      within(preview).getByText(
+        "Your on-call pages go to Priya Rao for the next 4 hours.",
+      ),
+    ).toBeTruthy();
+    expect(within(preview).getByText(/^Starts now, ends /)).toBeTruthy();
+    expect(flatStyle("override-preview").backgroundColor).toBe(
+      lightColors.cardAccent,
+    );
+    expect(flatStyle("override-preview").borderRadius).toBe(radius.lg);
+  });
+
+  test("a refusal appears as a danger banner above the confirm button", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(flatStyle("override-error").backgroundColor).toBe(
+      lightColors.statusErrorBg,
+    );
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        "Choose a teammate.",
+      ),
+    ).toBeTruthy();
+    expect(flatStyle("submit-override").backgroundColor).toBe(
+      lightColors.actionPrimary,
+    );
+  });
+
+  test("the teammate loading failure is a tinted alert with its retry inside", async (): Promise<void> => {
+    mockUsersError.current = true;
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const failure: HostElement = screen.getByTestId("coverage-teammates-error");
+    expect(failure.props.accessibilityRole).toBe("alert");
+    expect(
+      within(failure).getByTestId("retry-coverage-teammates"),
+    ).toBeTruthy();
+    expect(flatStyle("coverage-teammates-error").backgroundColor).toBe(
+      lightColors.statusErrorBg,
+    );
+  });
+
+  test("a prefilled shift is summarised on a tinted card", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    mockRouteParams.current = prefill();
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const shiftCard: HostElement = screen.getByTestId("prefilled-shift");
+    expect(within(shiftCard).getByText("Cover for my shift")).toBeTruthy();
+    expect(within(shiftCard).getByText("Primary")).toBeTruthy();
+    expect(flatStyle("prefilled-shift").backgroundColor).toBe(
+      lightColors.cardAccent,
+    );
+  });
+
+  test("the nested teammate picker keeps clear of the home indicator", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(flatStyle("user-picker-sheet").paddingBottom).toBe(
+      getScreenBottomPadding(0, false),
+    );
+  });
+
+  test("dark mode: the form, chips and preview use dark tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+
+    try {
+      await render(
+        <ThemeProvider>
+          <CreateOnCallOverrideScreen />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("create-override-scroll").backgroundColor).toBe(
+        darkColors.backgroundPrimary,
+      );
+      expect(flatStyle("open-user-picker").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(flatStyle("duration-4").backgroundColor).toBe(
+        darkColors.actionPrimary,
+      );
+      expect(
+        within(screen.getByTestId("duration-4")).getByText("4 hours"),
+      ).toHaveStyle({ color: darkColors.textInverse });
+      expect(flatStyle("override-preview").backgroundColor).toBe(
+        darkColors.cardAccent,
+      );
+
+      await fireEvent.press(screen.getByTestId("open-user-picker"));
+      expect(flatStyle("user-picker-overlay").backgroundColor).toBe(
+        darkColors.overlay,
+      );
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

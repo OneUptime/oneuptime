@@ -1,5 +1,11 @@
 import React from "react";
-import { Dimensions, StyleSheet, type ViewStyle } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { getScreenBottomPadding } from "../theme/layout";
 import {
@@ -12,6 +18,27 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { describe, expect, test, jest, afterEach } from "@jest/globals";
 import MainTabNavigator from "./MainTabNavigator";
 import type { MainTabParamList } from "./types";
+import {
+  ThemeProvider,
+  darkColors,
+  lightColors,
+  type ColorTokens,
+} from "../theme";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("./ProjectNavigationSync", () => {
   return {
@@ -175,24 +202,31 @@ const DECLARED_TAB_NAMES: Array<string> = Object.keys(EVERY_DECLARED_TAB);
 
 async function renderTabs(
   bottomInset: number = 0,
+  scheme?: "light" | "dark",
 ): Promise<NavigationContainerRefWithCurrent<MainTabParamList>> {
   const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
     createNavigationContainerRef<MainTabParamList>();
 
-  /*
-   * `render` is awaited because React 19's `act` is asynchronous, which makes
-   * @testing-library/react-native return a promise; not awaiting leaves the
-   * tree half-mounted and the navigation ref unattached.
-   */
-  await render(
+  const tabs: React.JSX.Element = (
     <SafeAreaInsetsContext.Provider
       value={{ top: 44, bottom: bottomInset, left: 0, right: 0 }}
     >
       <NavigationContainer ref={navigationRef}>
         <MainTabNavigator />
       </NavigationContainer>
-    </SafeAreaInsetsContext.Provider>,
+    </SafeAreaInsetsContext.Provider>
   );
+
+  if (scheme) {
+    mockSystemScheme = scheme;
+  }
+
+  /*
+   * `render` is awaited because React 19's `act` is asynchronous, which makes
+   * @testing-library/react-native return a promise; not awaiting leaves the
+   * tree half-mounted and the navigation ref unattached.
+   */
+  await render(scheme ? <ThemeProvider>{tabs}</ThemeProvider> : tabs);
 
   return navigationRef;
 }
@@ -412,5 +446,192 @@ describe("The tab bar this platform gets", () => {
     expect(tabBarStyle.right).toBe(0);
     expect(tabBarStyle.borderTopWidth).toBe(1);
     expect(tabBarStyle.borderRadius).toBeUndefined();
+  });
+});
+
+function currentOptions(
+  navigationRef: NavigationContainerRefWithCurrent<MainTabParamList>,
+): BottomTabNavigationOptions {
+  return (navigationRef.getCurrentOptions() ??
+    {}) as BottomTabNavigationOptions;
+}
+
+function glyphFor(name: keyof typeof Ionicons.glyphMap): string {
+  const glyph: string | number = Ionicons.glyphMap[name];
+  return typeof glyph === "string" ? glyph : String.fromCodePoint(glyph);
+}
+
+describe("The tab bar's type and targets", () => {
+  test("labels set a line height, so descenders are not clipped", async () => {
+    /*
+     * An 11pt label with no line height is clipped at the bottom on Android
+     * as soon as the system text size goes up - "Settings" loses the tail of
+     * its "g".
+     */
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    const labelStyle: TextStyle = StyleSheet.flatten(
+      currentOptions(navigationRef).tabBarLabelStyle,
+    ) as TextStyle;
+    expect(typeof labelStyle.lineHeight).toBe("number");
+    expect(Number(labelStyle.lineHeight)).toBeGreaterThanOrEqual(
+      Number(labelStyle.fontSize),
+    );
+  });
+
+  test("labels are shown below the icons on every width", async () => {
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    expect(currentOptions(navigationRef).tabBarShowLabel).toBe(true);
+    expect(currentOptions(navigationRef).tabBarLabelPosition).toBe(
+      "below-icon",
+    );
+  });
+
+  test("each tab keeps at least a 48pt target", async () => {
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    const itemStyle: ViewStyle = StyleSheet.flatten(
+      currentOptions(navigationRef).tabBarItemStyle,
+    ) as ViewStyle;
+    expect(Number(itemStyle.minHeight)).toBeGreaterThanOrEqual(48);
+  });
+
+  test("the bar hides behind the keyboard rather than riding on top of it", async () => {
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    expect(currentOptions(navigationRef).tabBarHideOnKeyboard).toBe(true);
+  });
+});
+
+const PALETTES: Array<["light" | "dark", ColorTokens]> = [
+  ["light", lightColors],
+  ["dark", darkColors],
+];
+
+describe("The tab bar's colours", () => {
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test.each(PALETTES)(
+    "in %s mode the bar, its border and its tints come from the palette",
+    async (scheme: "light" | "dark", colors: ColorTokens) => {
+      const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+        await renderTabs(0, scheme);
+
+      const options: BottomTabNavigationOptions = currentOptions(navigationRef);
+      expect(currentTabBarStyle(navigationRef)).toMatchObject({
+        backgroundColor: colors.backgroundSecondary,
+        borderTopColor: colors.borderSubtle,
+        borderTopWidth: 1,
+        elevation: 0,
+      });
+      expect(options.tabBarActiveTintColor).toBe(colors.actionPrimary);
+      expect(options.tabBarInactiveTintColor).toBe(colors.textSecondary);
+    },
+  );
+
+  test.each(PALETTES)(
+    "in %s mode the scene and the Home header sit on the canvas with no hairline",
+    async (scheme: "light" | "dark", colors: ColorTokens) => {
+      /*
+       * sceneStyle is what shows while a tab's content mounts. Without it the
+       * page flashes the navigation theme's colour between tabs.
+       */
+      const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+        await renderTabs(0, scheme);
+
+      const options: BottomTabNavigationOptions = currentOptions(navigationRef);
+      expect(StyleSheet.flatten(options.sceneStyle)).toMatchObject({
+        backgroundColor: colors.backgroundPrimary,
+      });
+      expect(StyleSheet.flatten(options.headerStyle)).toMatchObject({
+        backgroundColor: colors.backgroundPrimary,
+      });
+      expect(options.headerShadowVisible).toBe(false);
+    },
+  );
+
+  test("the dark bar is not the light bar", async () => {
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs(0, "dark");
+
+    expect(currentTabBarStyle(navigationRef).backgroundColor).not.toBe(
+      lightColors.backgroundSecondary,
+    );
+  });
+
+  const TAB_GLYPHS: Array<
+    [keyof typeof Ionicons.glyphMap, keyof typeof Ionicons.glyphMap]
+  > = [
+    ["home", "home-outline"],
+    ["pulse", "pulse-outline"],
+    ["file-tray", "file-tray-outline"],
+    ["call", "call-outline"],
+    ["settings", "settings-outline"],
+  ];
+
+  test.each(PALETTES)(
+    "in %s mode each tab's focused icon is filled on a soft accent pill, its resting icon bare",
+    async (scheme: "light" | "dark", colors: ColorTokens) => {
+      /*
+       * React Navigation draws every tab icon twice - the focused rendering
+       * and the resting one - and crossfades them with opacity. Both
+       * renderings are therefore always in the tree; what differs is which
+       * one is visible.
+       */
+      await renderTabs(0, scheme);
+
+      for (const [filled, outline] of TAB_GLYPHS) {
+        const focused: ReturnType<typeof screen.getByText> = screen.getByText(
+          glyphFor(filled),
+        );
+        expect(focused.parent).toHaveStyle({
+          backgroundColor: colors.cardAccent,
+        });
+        expect(StyleSheet.flatten(focused.props.style as TextStyle).color).toBe(
+          colors.actionPrimary,
+        );
+
+        const resting: ReturnType<typeof screen.getByText> = screen.getByText(
+          glyphFor(outline),
+        );
+        expect(resting.parent).toHaveStyle({ backgroundColor: "transparent" });
+        expect(StyleSheet.flatten(resting.props.style as TextStyle).color).toBe(
+          colors.textSecondary,
+        );
+      }
+    },
+  );
+
+  test("only the selected tab shows its accent pill, and it moves with the selection", async () => {
+    await renderTabs();
+
+    /* The crossfade layer is the icon's grandparent. */
+    const visibility: (name: keyof typeof Ionicons.glyphMap) => unknown = (
+      name,
+    ) => {
+      return StyleSheet.flatten(
+        screen.getByText(glyphFor(name)).parent?.parent?.props
+          .style as ViewStyle,
+      ).opacity;
+    };
+
+    expect(visibility("home")).toBe(1);
+    expect(visibility("home-outline")).toBe(0);
+    expect(visibility("file-tray")).toBe(0);
+    expect(visibility("file-tray-outline")).toBe(1);
+
+    await pressTab("Inbox");
+
+    expect(visibility("file-tray")).toBe(1);
+    expect(visibility("file-tray-outline")).toBe(0);
+    expect(visibility("home")).toBe(0);
+    expect(visibility("home-outline")).toBe(1);
   });
 });

@@ -5,10 +5,12 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import AlertDetailScreen from "./AlertDetailScreen";
+import { lightColors } from "../theme";
 import * as alertsApi from "../api/alerts";
 import * as alertNotesApi from "../api/alertNotes";
 import {
@@ -1016,5 +1018,98 @@ describe("Readable response controls and bottom reachability", () => {
       screen.getByTestId("detail-scroll").props.contentContainerStyle
         .paddingBottom,
     ).toBe(248);
+  });
+});
+
+describe("Guidance and actions for each alert stage", () => {
+  beforeEach(() => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  function loadInState(state: AlertState): void {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an unacknowledged alert asks for a responder, with Acknowledge as the primary action", async () => {
+    loadInState(TRIAGE_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Needs a responder")).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", { name: "Acknowledge alert" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve alert" }),
+    ).toHaveStyle({ backgroundColor: lightColors.backgroundElevated });
+  });
+
+  test("an acknowledged alert is in progress, and Resolve becomes the primary action", async () => {
+    loadInState(ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this alert. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve alert" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+  });
+
+  test("a resolved alert says the response is complete and offers no buttons", async () => {
+    loadInState(RESOLVED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response complete")).toBeTruthy();
+    expect(within(guidance).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getAllByText("Resolved")).toHaveLength(1);
+  });
+
+  test("the sections sit in cards under icon headings, in reading order", async () => {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({ description: "The primary volume is at 94%." }),
+    });
+    mockAlertFeed.current = queryState<FeedItem[]>({
+      data: [makeFeedItem({ feedInfoInMarkdown: "Alert created" })],
+    });
+    await renderScreen(createTestQueryClient());
+
+    const headings: string[] = screen
+      .getAllByRole("header")
+      .map((heading: ReturnType<typeof screen.getByText>) => {
+        return String(heading.props.children);
+      });
+    expect(headings).toEqual([
+      "Disk almost full",
+      "Description",
+      "Details",
+      "Root Cause",
+      "Activity Feed",
+      "Internal Notes",
+    ]);
+    expect(screen.getAllByTestId("response-section-card")).toHaveLength(4);
   });
 });

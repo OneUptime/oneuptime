@@ -1,14 +1,19 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
+import AppText from "./AppText";
+import StatusPill, { getToneColors, type StatusTone } from "./StatusPill";
 
 interface ShiftSummaryProps {
   name: string;
   layer?: string | null;
   timing: string;
   window: string | null;
-  accent: string;
+
+  /* success: on now; info: coming up; neutral: over. */
+  tone: StatusTone;
 }
 
 /** The shift's timing is easy to scan without squeezing the schedule title. */
@@ -17,76 +22,44 @@ export default function ShiftSummary({
   layer,
   timing,
   window,
-  accent,
+  tone,
 }: ShiftSummaryProps): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-        <View
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: 4,
-            backgroundColor: accent,
-          }}
-        />
-        <Text
-          style={{
-            fontSize: 13,
-            lineHeight: 20,
-            color: accent,
-            fontWeight: "600",
-            fontVariant: ["tabular-nums"],
-          }}
-        >
-          {timing}
-        </Text>
-      </View>
-      <View style={{ gap: 3 }}>
-        <Text
-          style={{
-            fontSize: 17,
-            lineHeight: 24,
-            fontWeight: "600",
-            color: theme.colors.textPrimary,
-            letterSpacing: -0.2,
-          }}
-        >
+    <View style={{ gap: spacing.sm + 2 }}>
+      <StatusPill
+        label={timing}
+        tone={tone}
+        size="sm"
+        dotColor={getToneColors(theme, tone).text}
+      />
+      <View style={{ gap: spacing.xxs }}>
+        <AppText variant="headline" style={{ fontSize: 17, lineHeight: 23 }}>
           {name}
-        </Text>
+        </AppText>
         {layer ? (
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
+          <AppText variant="subhead" tone="secondary">
             {layer}
-          </Text>
+          </AppText>
         ) : null}
       </View>
       {window ? (
         <View
-          style={{ flexDirection: "row", alignItems: "flex-start", gap: 7 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: spacing.xs + 2,
+          }}
         >
           <Ionicons
             name="time-outline"
             size={15}
-            color={theme.colors.textSecondary}
+            color={theme.colors.textTertiary}
             style={{ marginTop: 3 }}
           />
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
+          <AppText variant="subhead" tone="secondary" style={{ flex: 1 }}>
             {window}
-          </Text>
+          </AppText>
         </View>
       ) : null}
     </View>

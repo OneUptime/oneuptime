@@ -1,9 +1,29 @@
 import React from "react";
 import { StyleSheet } from "react-native";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
 import { describe, expect, test, jest as jestGlobal } from "@jest/globals";
 import UserPickerModal, { filterUsers } from "./UserPickerModal";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { getScreenBottomPadding } from "../theme/layout";
+import { radius } from "../theme/tokens";
 import type { ProjectUserItem } from "../api/types";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 const USERS: ProjectUserItem[] = [
   { userId: "user-me", name: "Ada Lovelace", email: "ada@example.com" },
@@ -235,3 +255,216 @@ describe("UserPickerModal", () => {
     expect(screen.getByText("No teammates match that search.")).toBeTruthy();
   });
 });
+
+describe("UserPickerModal sheet", () => {
+  test("rows show avatar initials, with the email as the second line", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId("user-avatar-user-me")).getByText("AL"),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("user-avatar-user-2")).getByText("PR"),
+    ).toBeTruthy();
+    /* An email-only member gets the first letter of the address. */
+    expect(
+      within(screen.getByTestId("user-avatar-user-3")).getByText("S"),
+    ).toBeTruthy();
+    expect(screen.getByText("priya@example.com")).toBeTruthy();
+    expect(screen.getAllByText("sam@example.com")).toHaveLength(1);
+  });
+
+  test("search matches email, and clearing it brings everyone back", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        excludeUserId="user-me"
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    await fireEvent.changeText(
+      screen.getByTestId("user-picker-search"),
+      "SAM@",
+    );
+    expect(screen.getByTestId("user-option-user-3")).toBeTruthy();
+    expect(screen.queryByTestId("user-option-user-2")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Clear search" }));
+    expect(screen.getByTestId("user-option-user-2")).toBeTruthy();
+    expect(screen.getByTestId("user-option-user-3")).toBeTruthy();
+    expect(screen.queryByTestId("user-option-user-me")).toBeNull();
+  });
+
+  test("a search is forgotten when the sheet closes", async (): Promise<void> => {
+    const props: React.ComponentProps<typeof UserPickerModal> = {
+      visible: true,
+      title: "Route my pages to",
+      users: USERS,
+      isLoading: false,
+      selectedUserId: null,
+      onSelect: jestGlobal.fn(),
+      onClose: jestGlobal.fn(),
+    };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <UserPickerModal {...props} />,
+    );
+
+    await fireEvent.changeText(
+      screen.getByTestId("user-picker-search"),
+      "priya",
+    );
+    expect(screen.queryByTestId("user-option-user-3")).toBeNull();
+
+    await view.rerender(<UserPickerModal {...props} visible={false} />);
+    await view.rerender(<UserPickerModal {...props} visible />);
+
+    expect(screen.getByTestId("user-picker-search").props.value).toBe("");
+    expect(screen.getByTestId("user-option-user-3")).toBeTruthy();
+  });
+
+  test("the selected teammate is tinted and ticked", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId="user-2"
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(flatStyle("user-option-user-2").backgroundColor).toBe(
+      lightColors.cardAccent,
+    );
+    expect(flatStyle("user-option-user-3").backgroundColor).toBe("transparent");
+    expect(flatStyle("user-avatar-user-2").backgroundColor).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(flatStyle("user-avatar-user-3").backgroundColor).toBe(
+      lightColors.cardAccent,
+    );
+  });
+
+  test("closing from the header calls onClose", async (): Promise<void> => {
+    const onClose: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Close user picker" }),
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("while loading, it says so and offers no rows", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("user-picker-loading")).toBeTruthy();
+    expect(screen.getByText("Loading teammates…")).toBeTruthy();
+    expect(screen.queryByTestId("user-option-user-2")).toBeNull();
+  });
+
+  test("the sheet uses the scrim token, sheet surface and bottom padding", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(flatStyle("user-picker-overlay").backgroundColor).toBe(
+      lightColors.overlay,
+    );
+    const sheet: Record<string, unknown> = flatStyle("user-picker-sheet");
+    expect(sheet.backgroundColor).toBe(lightColors.backgroundSecondary);
+    expect(sheet.borderTopLeftRadius).toBe(radius.xl);
+    expect(sheet.borderTopRightRadius).toBe(radius.xl);
+    /* No tab bar under a modal: the inset plus the shared end space. */
+    expect(sheet.paddingBottom).toBe(getScreenBottomPadding(0, false));
+    const list: Record<string, unknown> = flatStyle("user-picker-list");
+    expect(list.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(list.borderRadius).toBe(radius.lg);
+  });
+
+  test("dark mode swaps the scrim and sheet for the dark tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    try {
+      await render(
+        <ThemeProvider>
+          <UserPickerModal
+            visible
+            title="Route my pages to"
+            users={USERS}
+            isLoading={false}
+            selectedUserId="user-2"
+            onSelect={jestGlobal.fn()}
+            onClose={jestGlobal.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("user-picker-overlay").backgroundColor).toBe(
+        darkColors.overlay,
+      );
+      expect(flatStyle("user-picker-sheet").backgroundColor).toBe(
+        darkColors.backgroundSecondary,
+      );
+      expect(flatStyle("user-option-user-2").backgroundColor).toBe(
+        darkColors.cardAccent,
+      );
+      expect(screen.getByText("Priya Rao")).toHaveStyle({
+        color: darkColors.textPrimary,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

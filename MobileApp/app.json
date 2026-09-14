@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
@@ -37,16 +37,16 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F7F9",
+          "backgroundColor": "#F3F4F7",
           "image": "./assets/splash-light.png",
           "imageWidth": 200,
           "ios": {
-            "backgroundColor": "#F6F7F9",
+            "backgroundColor": "#F3F4F7",
             "image": "./assets/splash-light.png",
             "imageWidth": 200
           },
           "android": {
-            "backgroundColor": "#F6F7F9",
+            "backgroundColor": "#F3F4F7",
             "image": "./assets/splash-light.png",
             "imageWidth": 200
           }

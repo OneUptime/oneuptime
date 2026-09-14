@@ -5,10 +5,13 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import IncidentDetailScreen from "./IncidentDetailScreen";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
 import * as incidentsApi from "../api/incidents";
 import * as incidentNotesApi from "../api/incidentNotes";
 import {
@@ -73,6 +76,21 @@ const mockIncidentFeed: { current: IncidentFeedState } = {
 const mockIncidentNotes: { current: IncidentNotesState } = {
   current: {} as IncidentNotesState,
 };
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * The theme reads the device appearance through this module; replacing it is
+ * how the dark-mode tests below put the screen in dark mode.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("../hooks/useScreenPadding", () => {
   return {
@@ -1061,5 +1079,164 @@ describe("Readable response controls and bottom reachability", () => {
       screen.getByTestId("detail-scroll").props.contentContainerStyle
         .paddingBottom,
     ).toBe(248);
+  });
+});
+
+describe("Guidance and actions for each response stage", () => {
+  beforeEach(() => {
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function loadInState(state: IncidentState): void {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an unacknowledged incident asks for a responder, with Acknowledge as the primary action", async () => {
+    loadInState(TRIAGE_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Needs a responder")).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", { name: "Acknowledge incident" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ backgroundColor: lightColors.backgroundElevated });
+  });
+
+  test("an acknowledged incident is in progress, and Resolve becomes the primary action", async () => {
+    loadInState(ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this incident. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+  });
+
+  test("a resolved incident says the response is complete and offers no buttons", async () => {
+    loadInState(RESOLVED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response complete")).toBeTruthy();
+    expect(within(guidance).queryAllByRole("button")).toHaveLength(0);
+    // The state pill names the state once; the guidance does not repeat it.
+    expect(screen.getAllByText("Resolved")).toHaveLength(1);
+  });
+
+  test("the header names the severity and says how long ago it was declared", async () => {
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.parse("2026-09-14T12:00:00.000Z"));
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        declaredAt: "2026-09-14T09:00:00.000Z",
+      }),
+    });
+    await renderScreen(createTestQueryClient());
+
+    expect(screen.getByText("Declared 3h ago")).toBeTruthy();
+    expect(screen.getByTestId("detail-state-pill")).toBeTruthy();
+  });
+
+  test("the loading placeholder is the detail-shaped skeleton, inside the page gutters", async () => {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      isLoading: true,
+    });
+    await renderScreen(createTestQueryClient());
+
+    expect(screen.getByTestId("response-detail-skeleton")).toBeTruthy();
+    expect(screen.getByRole("progressbar")).toBeTruthy();
+  });
+});
+
+describe("The incident in dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({ description: "## Impact\n\nCheckout fails." }),
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({
+      data: [makeFeedItem({ feedInfoInMarkdown: "Incident declared" })],
+    });
+    mockIncidentNotes.current = queryState<NoteItem[]>({
+      data: [makeNote({ note: "Rolled back the payments deploy." })],
+    });
+  });
+
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test("the canvas, cards, guidance and notes all use the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <IncidentDetailScreen route={route} navigation={navigation} />
+      </ThemeProvider>,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    expect(screen.getByTestId("detail-scroll")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    expect(
+      screen.getByRole("header", { name: "Checkout is down" }),
+    ).toHaveStyle({ color: darkColors.textPrimary });
+    expect(screen.getByTestId("response-guidance")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toHaveStyle({ backgroundColor: darkColors.actionPrimary });
+    for (const card of screen.getAllByTestId("response-section-card")) {
+      expect(card).toHaveStyle({
+        backgroundColor: darkColors.backgroundElevated,
+        borderColor: darkColors.borderSubtle,
+        borderRadius: radius.lg,
+      });
+    }
+    expect(screen.getByText("Impact")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByTestId("note-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(screen.getByTestId("feed-entry-time")).toHaveStyle({
+      color: darkColors.textTertiary,
+    });
   });
 });

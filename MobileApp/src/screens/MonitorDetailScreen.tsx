@@ -1,7 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import {
+  ActivityIndicator,
+  View,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
@@ -11,12 +17,16 @@ import {
   useMonitorFeed,
   useMonitorProbes,
 } from "../hooks/useMonitorDetail";
-import { rgbToHex } from "../utils/color";
+import { rgbToHex, withAlpha } from "../utils/color";
 import { formatDateTime, formatRelativeTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import type { MonitorsStackParamList } from "../navigation/types";
 import type { MonitorStatusTimelineItem } from "../api/monitors";
+import AppText from "../components/AppText";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
 import FeedTimeline from "../components/FeedTimeline";
+import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
 import {
   ResponseDetailHeader,
@@ -53,6 +63,99 @@ function getMonitorTypeLabel(monitorType?: string): string {
     Manual: "Manual",
   };
   return labels[monitorType] ?? monitorType;
+}
+
+/*
+ * Status changes as a vertical timeline on one card: a dot in the status
+ * colour, a rail joining it to the next change, then the status, when it
+ * began and why. The rail is drawn inside each row, so there are no hairline
+ * separators for it to cross.
+ */
+function StatusHistory({
+  entries,
+}: {
+  entries: MonitorStatusTimelineItem[];
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <Card testID="monitor-status-history">
+      {entries.map((entry: MonitorStatusTimelineItem, index: number) => {
+        const entryColor: string = entry.monitorStatus?.color
+          ? rgbToHex(entry.monitorStatus.color)
+          : theme.colors.textTertiary;
+        const isLast: boolean = index === entries.length - 1;
+        return (
+          <View
+            key={entry._id}
+            testID="monitor-status-history-entry"
+            style={{ flexDirection: "row", gap: spacing.md }}
+          >
+            <View style={{ alignItems: "center", width: 16 }}>
+              <View
+                testID="monitor-status-history-halo"
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  marginTop: 3,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: withAlpha(
+                    entryColor,
+                    theme.dark ? 0.3 : 0.2,
+                  ),
+                }}
+              >
+                <View
+                  testID="monitor-status-history-dot"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: entryColor,
+                  }}
+                />
+              </View>
+              {!isLast ? (
+                <View
+                  testID="monitor-status-history-rail"
+                  style={{
+                    width: 2,
+                    flex: 1,
+                    marginTop: spacing.xs,
+                    borderRadius: 1,
+                    backgroundColor: theme.colors.borderSubtle,
+                  }}
+                />
+              ) : null}
+            </View>
+            <View
+              style={{
+                flex: 1,
+                gap: spacing.xxs,
+                paddingBottom: isLast ? 0 : spacing.lg,
+              }}
+            >
+              <AppText variant="headline">
+                {entry.monitorStatus?.name ?? "Unknown"}
+              </AppText>
+              <AppText variant="footnote" tone="secondary">
+                {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
+              </AppText>
+              {entry.rootCause ? (
+                <View style={{ marginTop: spacing.xs }}>
+                  <MarkdownContent
+                    content={entry.rootCause}
+                    variant="secondary"
+                  />
+                </View>
+              ) : null}
+            </View>
+          </View>
+        );
+      })}
+    </Card>
+  );
 }
 
 export default function MonitorDetailScreen({
@@ -99,7 +202,7 @@ export default function MonitorDetailScreen({
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
-          padding: 20,
+          // The detail skeleton carries the screen gutter itself.
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -114,7 +217,7 @@ export default function MonitorDetailScreen({
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
-          padding: 20,
+          padding: spacing.xl,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -126,7 +229,7 @@ export default function MonitorDetailScreen({
               ? "We could not load this monitor. Check your connection and try again."
               : "This monitor no longer exists, or it is not part of this project."
           }
-          icon="monitors"
+          icon={isError ? "error" : "monitors"}
           actionLabel={isError ? "Retry" : undefined}
           onAction={
             isError
@@ -152,12 +255,17 @@ export default function MonitorDetailScreen({
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       testID="detail-scroll"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
+          colors={[theme.colors.actionPrimary]}
+          progressBackgroundColor={theme.colors.backgroundElevated}
         />
       }
     >
@@ -168,37 +276,24 @@ export default function MonitorDetailScreen({
         stateColor={isDisabled ? theme.colors.textTertiary : statusColor}
       />
       {isDisabled ? (
-        <View
-          style={{
-            padding: 18,
-            marginBottom: 26,
-            borderRadius: 16,
-            backgroundColor: theme.colors.backgroundTertiary,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-              marginBottom: 6,
-            }}
-          >
-            Monitoring is paused
-          </Text>
-          <Text
-            style={{
-              fontSize: 15,
-              lineHeight: 23,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Active checks are disabled. The last recorded status may not reflect
-            this service&apos;s current health.
-          </Text>
-        </View>
+        <Banner
+          testID="monitor-paused-banner"
+          tone="warning"
+          icon="pause-circle"
+          title="Monitoring is paused"
+          message="Active checks are disabled. The last recorded status may not reflect this service's current health."
+          style={{ marginBottom: spacing.xxl }}
+        />
       ) : null}
-      <ResponseSection title="Monitor Summary">
+      {/*
+       * The summary is its own card, so it sits under a plain header rather
+       * than inside a ResponseSection card - a card within a card.
+       */}
+      <View
+        testID="monitor-summary-section"
+        style={{ marginBottom: spacing.xxl }}
+      >
+        <SectionHeader title="Monitor Summary" />
         {probesError ? (
           <QueryErrorNotice
             message="Unable to load the latest monitor measurements."
@@ -207,12 +302,31 @@ export default function MonitorDetailScreen({
           />
         ) : null}
         {probesLoading ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{ color: theme.colors.textSecondary }}
+          <Card
+            testID="monitor-summary-loading"
+            style={probeItems ? { marginBottom: spacing.md } : undefined}
           >
-            Loading monitor measurements…
-          </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.actionPrimary}
+              />
+              <AppText
+                variant="subhead"
+                tone="secondary"
+                accessibilityLiveRegion="polite"
+                style={{ flex: 1 }}
+              >
+                Loading monitor measurements…
+              </AppText>
+            </View>
+          </Card>
         ) : null}
         {probeItems || (!probesError && !probesLoading) ? (
           <MonitorSummaryView
@@ -220,7 +334,7 @@ export default function MonitorDetailScreen({
             probeItems={probeItems ?? []}
           />
         ) : null}
-      </ResponseSection>
+      </View>
       {descriptionText ? (
         <ResponseSection title="Description">
           <MarkdownContent content={descriptionText} />
@@ -252,71 +366,10 @@ export default function MonitorDetailScreen({
         />
       ) : null}
       {statusTimeline && statusTimeline.length > 0 ? (
-        <ResponseSection title="Status History">
-          {statusTimeline.map(
-            (entry: MonitorStatusTimelineItem, index: number) => {
-              const entryColor: string = entry.monitorStatus?.color
-                ? rgbToHex(entry.monitorStatus.color)
-                : theme.colors.textTertiary;
-              return (
-                <View
-                  key={entry._id}
-                  style={{ flexDirection: "row", gap: 12, paddingVertical: 15 }}
-                >
-                  <View style={{ alignItems: "center", width: 10 }}>
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        marginTop: 7,
-                        backgroundColor: entryColor,
-                      }}
-                    />
-                    {index < statusTimeline.length - 1 ? (
-                      <View
-                        style={{
-                          width: 1,
-                          flex: 1,
-                          backgroundColor: theme.colors.borderDefault,
-                          marginTop: 7,
-                          marginBottom: -21,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        lineHeight: 22,
-                        fontWeight: "600",
-                        color: theme.colors.textPrimary,
-                      }}
-                    >
-                      {entry.monitorStatus?.name ?? "Unknown"}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        lineHeight: 20,
-                        color: theme.colors.textSecondary,
-                      }}
-                    >
-                      {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
-                    </Text>
-                    {entry.rootCause ? (
-                      <MarkdownContent
-                        content={entry.rootCause}
-                        variant="secondary"
-                      />
-                    ) : null}
-                  </View>
-                </View>
-              );
-            },
-          )}
-        </ResponseSection>
+        <View style={{ marginBottom: spacing.xxl }}>
+          <SectionHeader title="Status History" />
+          <StatusHistory entries={statusTimeline} />
+        </View>
       ) : null}
       {feedError ? (
         <QueryErrorNotice

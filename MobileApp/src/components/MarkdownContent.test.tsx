@@ -12,8 +12,25 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
-import MarkdownContent from "./MarkdownContent";
-import { darkColors } from "../theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import MarkdownContent, { createMarkdownStyles } from "./MarkdownContent";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { typography } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * Both the app theme and react-native-marked read the device appearance
+ * through this module, so replacing it drives the two together.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * Every piece of prose the server sends comes through here: an incident
@@ -49,7 +66,9 @@ function renderedTextCount(): number {
   }).length;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
   mockOpenUrl.mockResolvedValue(true);
   jest
     .spyOn(Image, "getSize")
@@ -111,7 +130,7 @@ describe("Rendering what the server sent", () => {
 
     const text: Rendered = screen.getByText("Supporting detail.");
     expect(StyleSheet.flatten(text.props.style).color).toBe(
-      darkColors.textSecondary,
+      lightColors.textSecondary,
     );
   });
 
@@ -120,7 +139,7 @@ describe("Rendering what the server sent", () => {
 
     const text: Rendered = screen.getByText("The headline detail.");
     expect(StyleSheet.flatten(text.props.style).color).toBe(
-      darkColors.textPrimary,
+      lightColors.textPrimary,
     );
   });
 });
@@ -239,7 +258,7 @@ describe("The marked renderer migration", () => {
 
     const code: Rendered = screen.getByText("kubectl get pods");
     expect(StyleSheet.flatten(code.props.style).color).toBe(
-      darkColors.textPrimary,
+      lightColors.textPrimary,
     );
   });
 
@@ -352,5 +371,179 @@ describe("A link this handset cannot open", () => {
     });
 
     expect(screen.getByText("email")).toBeTruthy();
+  });
+});
+
+describe("Headings and inline styles", () => {
+  const HEADINGS: string =
+    "# Checkout outage\n\n## Impact\n\n### Timeline\n\nPayments fail.";
+
+  test("a top-level heading uses the title2 size in the primary text colour", async () => {
+    await render(<MarkdownContent content={HEADINGS} />);
+
+    expect(screen.getByText("Checkout outage")).toHaveStyle({
+      fontSize: typography.title2.fontSize,
+      lineHeight: typography.title2.lineHeight,
+      fontWeight: "700",
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("a second-level heading is a step down, still bold", async () => {
+    await render(<MarkdownContent content={HEADINGS} />);
+
+    expect(screen.getByText("Impact")).toHaveStyle({
+      fontSize: typography.title3.fontSize,
+      lineHeight: typography.title3.lineHeight,
+      fontWeight: "700",
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("headings stay larger than the body text around them", async () => {
+    await render(<MarkdownContent content={HEADINGS} />);
+
+    const body: number = StyleSheet.flatten(
+      screen.getByText("Payments fail.").props.style,
+    ).fontSize as number;
+    const h1: number = StyleSheet.flatten(
+      screen.getByText("Checkout outage").props.style,
+    ).fontSize as number;
+    const h2: number = StyleSheet.flatten(
+      screen.getByText("Impact").props.style,
+    ).fontSize as number;
+    const h3: number = StyleSheet.flatten(
+      screen.getByText("Timeline").props.style,
+    ).fontSize as number;
+
+    expect(h1).toBeGreaterThan(h2);
+    expect(h2).toBeGreaterThan(h3);
+    expect(h3).toBeGreaterThan(body);
+  });
+
+  test("headings do not draw the library's underline rule inside a card", async () => {
+    await render(<MarkdownContent content={HEADINGS} />);
+
+    expect(
+      StyleSheet.flatten(screen.getByText("Checkout outage").props.style)
+        .borderBottomWidth,
+    ).toBe(0);
+    expect(
+      StyleSheet.flatten(screen.getByText("Impact").props.style)
+        .borderBottomWidth,
+    ).toBe(0);
+  });
+
+  test("bold words keep the size of the sentence they are in", async () => {
+    await render(<MarkdownContent content="**Acknowledged** by Ada" />);
+
+    expect(screen.getByText("Acknowledged")).toHaveStyle({
+      fontSize: typography.callout.fontSize,
+      fontWeight: "700",
+    });
+  });
+
+  test("links are upright, underlined and in the action colour", async () => {
+    await render(
+      <MarkdownContent content="See the [runbook](https://example.com/runbook)." />,
+    );
+
+    expect(screen.getByText("runbook")).toHaveStyle({
+      color: lightColors.actionPrimary,
+      fontStyle: "normal",
+      textDecorationLine: "underline",
+      fontSize: typography.callout.fontSize,
+    });
+  });
+
+  test("the secondary variant uses the smaller subhead size", () => {
+    const styles: ReturnType<typeof createMarkdownStyles> =
+      createMarkdownStyles(lightColors, true);
+
+    expect(StyleSheet.flatten(styles.text)).toMatchObject({
+      fontSize: typography.subhead.fontSize,
+      color: lightColors.textSecondary,
+    });
+  });
+
+  test.each([false, true])(
+    "list bullets stay level with their text (secondary: %s)",
+    (isSecondary: boolean) => {
+      /*
+       * The library applies `list` to each bullet's marker box only. A
+       * vertical margin there dropped the "•" to the baseline, where it read as
+       * a full stop beside every list item.
+       */
+      const styles: ReturnType<typeof createMarkdownStyles> =
+        createMarkdownStyles(lightColors, isSecondary);
+      const marker: Record<string, unknown> = StyleSheet.flatten(
+        styles.list,
+      ) as Record<string, unknown>;
+
+      for (const key of [
+        "margin",
+        "marginVertical",
+        "marginTop",
+        "marginBottom",
+        "paddingTop",
+        "paddingVertical",
+      ]) {
+        expect(marker[key]).toBeUndefined();
+      }
+      // The marker inherits the item's text size, so the dot matches the line.
+      expect(StyleSheet.flatten(styles.li)).toMatchObject({
+        fontSize: StyleSheet.flatten(styles.text).fontSize,
+        lineHeight: StyleSheet.flatten(styles.text).lineHeight,
+      });
+    },
+  );
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  test("body text, headings, links and inline code use the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <MarkdownContent
+          content={
+            "## Impact\n\nRun `kubectl get pods` and read the [runbook](https://example.com)."
+          }
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("Impact")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("runbook")).toHaveStyle({
+      color: darkColors.actionPrimary,
+    });
+    expect(screen.getByText("kubectl get pods")).toHaveStyle({
+      color: darkColors.textPrimary,
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+  });
+
+  test("an explicit Light choice wins over a dark device for the library defaults too", () => {
+    /*
+     * react-native-marked colours its defaults from the device appearance. The
+     * styles handed to it come from the app palette, so a light app on a dark
+     * phone never gets the library's dark code background.
+     */
+    const styles: ReturnType<typeof createMarkdownStyles> =
+      createMarkdownStyles(lightColors, false);
+
+    expect(StyleSheet.flatten(styles.codespan)?.backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+    expect(StyleSheet.flatten(styles.code)?.backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+    expect(StyleSheet.flatten(styles.hr)?.backgroundColor).toBe(
+      lightColors.borderSubtle,
+    );
   });
 });

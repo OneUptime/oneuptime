@@ -1,18 +1,43 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { ActivityIndicator, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 import {
   formatDuration,
   formatShiftTime,
   millisecondsUntil,
 } from "../utils/duration";
 import type { OnCallDutySummary } from "../oncall/duty";
+import AppText from "./AppText";
+import GradientButton from "./GradientButton";
 
 interface OnCallStatusCardProps {
   summary: OnCallDutySummary;
   now: number;
   isLoading?: boolean;
+
+  /*
+   * The duty read failed. That is "we do not know", never "off call", so it
+   * has its own state instead of falling through to the empty summary.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
+}
+
+type DutyState = "loading" | "error" | "on" | "off";
+
+interface DutyPalette {
+  surface: ViewStyle;
+  foreground: string;
+  secondary: string;
+  eyebrowText: string;
+  eyebrowBackground: string;
+  dot: string;
+  iconColor: string;
+  iconBackground: string;
+  divider: string;
 }
 
 /*
@@ -32,12 +57,19 @@ export default function OnCallStatusCard({
   summary,
   now,
   isLoading = false,
+  isError = false,
+  onRetry,
 }: OnCallStatusCardProps): React.JSX.Element {
   const { theme } = useTheme();
+  const { colors } = theme;
 
-  const accentBackground: string = summary.isOnCall
-    ? theme.colors.oncallActiveBg
-    : theme.colors.oncallInactiveBg;
+  const state: DutyState = isLoading
+    ? "loading"
+    : isError
+      ? "error"
+      : summary.isOnCall
+        ? "on"
+        : "off";
 
   const handoffIn: number | null = millisecondsUntil(
     summary.nextHandoffAt,
@@ -49,11 +81,20 @@ export default function OnCallStatusCard({
     now,
   );
 
-  const headline: string = isLoading
-    ? "Checking your duty status"
-    : summary.isOnCall
-      ? "You're on call"
-      : "You're not on call";
+  const eyebrow: Record<DutyState, string> = {
+    loading: "CHECKING",
+    error: "STATUS UNKNOWN",
+    on: "ON CALL",
+    off: "OFF CALL",
+  };
+
+  const headlines: Record<DutyState, string> = {
+    loading: "Checking your duty status",
+    error: "Could not load your on-call status",
+    on: "You're on call",
+    off: "You're not on call",
+  };
+  const headline: string = headlines[state];
 
   /*
    * The subtitle is the whole value of the card, so it is built explicitly for
@@ -62,8 +103,11 @@ export default function OnCallStatusCard({
    */
   let subtitle: string = "";
 
-  if (isLoading) {
+  if (state === "loading") {
     subtitle = "Reading your schedules and escalation rules...";
+  } else if (state === "error") {
+    subtitle =
+      "We could not confirm whether you are on call. Pull to refresh or try again.";
   } else if (summary.isOnCall && handoffIn !== null) {
     subtitle = `Handoff in ${formatDuration(handoffIn)}`;
   } else if (summary.isOnCall && summary.standingAssignmentCount > 0) {
@@ -86,89 +130,180 @@ export default function OnCallStatusCard({
     now,
   );
 
-  const highlighted: boolean = summary.isOnCall && !isLoading;
-  const foreground: string = highlighted
-    ? theme.colors.textInverse
-    : theme.colors.textPrimary;
+  /*
+   * On call is the only filled state. Its tints are derived from the label
+   * colour rather than hard-coded white, because in dark mode the fill is
+   * light and the label is dark - a white wash would vanish into it.
+   */
+  const elevatedSurface: ViewStyle = {
+    backgroundColor: colors.backgroundElevated,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    ...elevation("card", theme.dark),
+  };
+
+  const palettes: Record<DutyState, DutyPalette> = {
+    on: {
+      surface: {
+        backgroundColor: colors.actionPrimary,
+        borderWidth: 0,
+        ...elevation("raised", theme.dark),
+      },
+      foreground: colors.textInverse,
+      secondary: colors.textInverse,
+      eyebrowText: colors.textInverse,
+      eyebrowBackground: withAlpha(colors.textInverse, 0.16),
+      dot: colors.textInverse,
+      iconColor: colors.textInverse,
+      iconBackground: withAlpha(colors.textInverse, 0.16),
+      divider: withAlpha(colors.textInverse, 0.24),
+    },
+    off: {
+      surface: elevatedSurface,
+      foreground: colors.textPrimary,
+      secondary: colors.textSecondary,
+      eyebrowText: colors.textSecondary,
+      eyebrowBackground: colors.oncallInactiveBg,
+      dot: colors.oncallInactive,
+      iconColor: colors.oncallInactive,
+      iconBackground: colors.oncallInactiveBg,
+      divider: colors.borderSubtle,
+    },
+    loading: {
+      surface: elevatedSurface,
+      foreground: colors.textPrimary,
+      secondary: colors.textSecondary,
+      eyebrowText: colors.textSecondary,
+      eyebrowBackground: colors.backgroundTertiary,
+      dot: colors.textTertiary,
+      iconColor: colors.actionPrimary,
+      iconBackground: colors.cardAccent,
+      divider: colors.borderSubtle,
+    },
+    error: {
+      surface: elevatedSurface,
+      foreground: colors.textPrimary,
+      secondary: colors.textSecondary,
+      eyebrowText: colors.statusWarning,
+      eyebrowBackground: colors.statusWarningBg,
+      dot: colors.statusWarning,
+      iconColor: colors.statusWarning,
+      iconBackground: colors.statusWarningBg,
+      divider: colors.borderSubtle,
+    },
+  };
+  const palette: DutyPalette = palettes[state];
+
+  const icons: Record<DutyState, keyof typeof Ionicons.glyphMap> = {
+    loading: "time-outline",
+    error: "cloud-offline-outline",
+    on: "call",
+    off: "call-outline",
+  };
+
+  const showMeta: boolean =
+    (state === "on" || state === "off") &&
+    Boolean(handoffAtLabel || nextShiftAtLabel);
+
   return (
     <View
       testID="oncall-status-card"
       accessibilityLabel={`${headline}. ${subtitle}.`}
-      style={{
-        borderRadius: 20,
-        padding: 20,
-        backgroundColor: highlighted
-          ? theme.colors.actionPrimary
-          : theme.colors.backgroundElevated,
-        borderWidth: highlighted ? 0 : 1,
-        borderColor: theme.colors.borderSubtle,
-      }}
+      style={[
+        {
+          borderRadius: radius.lg,
+          padding: spacing.xl,
+        },
+        palette.surface,
+      ]}
     >
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 16,
+          gap: spacing.md,
+          marginBottom: spacing.lg,
         }}
       >
-        <Text
+        <View
+          testID="oncall-status-eyebrow"
           style={{
-            fontSize: 11,
-            fontWeight: "700",
-            letterSpacing: 1.4,
-            color: foreground,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.xs + 2,
+            paddingHorizontal: spacing.sm + 2,
+            paddingVertical: spacing.xs,
+            borderRadius: radius.pill,
+            backgroundColor: palette.eyebrowBackground,
           }}
         >
-          {isLoading ? "CHECKING" : summary.isOnCall ? "ON CALL" : "OFF CALL"}
-        </Text>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: palette.dot,
+            }}
+          />
+          <AppText variant="overline" color={palette.eyebrowText}>
+            {eyebrow[state]}
+          </AppText>
+        </View>
         <View
+          testID="oncall-status-icon"
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 17,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: highlighted ? "#FFFFFF20" : accentBackground,
+            backgroundColor: palette.iconBackground,
           }}
         >
-          <Ionicons name="call-outline" size={17} color={foreground} />
+          {state === "loading" ? (
+            <ActivityIndicator size="small" color={palette.iconColor} />
+          ) : (
+            <Ionicons name={icons[state]} size={19} color={palette.iconColor} />
+          )}
         </View>
       </View>
-      <Text
+      <AppText
         accessibilityRole="header"
-        style={{
-          fontSize: 27,
-          lineHeight: 34,
-          fontWeight: "700",
-          letterSpacing: -0.8,
-          color: foreground,
-        }}
+        variant="title"
+        color={palette.foreground}
       >
         {headline}
-      </Text>
-      <Text
-        style={{
-          fontSize: 15,
-          lineHeight: 23,
-          marginTop: 6,
-          color: highlighted ? foreground : theme.colors.textSecondary,
-        }}
+      </AppText>
+      <AppText
+        variant={state === "on" || state === "off" ? "headline" : "callout"}
+        color={palette.secondary}
+        style={{ marginTop: spacing.xs + 2 }}
       >
         {subtitle}
-      </Text>
-      {!isLoading && (handoffAtLabel || nextShiftAtLabel) ? (
+      </AppText>
+      {state === "error" && onRetry ? (
+        <GradientButton
+          testID="oncall-status-retry"
+          label="Retry"
+          icon="refresh-outline"
+          variant="secondary"
+          size="sm"
+          onPress={onRetry}
+          style={{ alignSelf: "flex-start", marginTop: spacing.lg }}
+        />
+      ) : null}
+      {showMeta ? (
         <View
+          testID="oncall-status-meta"
           style={{
             flexDirection: "row",
             flexWrap: "wrap",
-            gap: 24,
-            paddingTop: 16,
-            marginTop: 18,
+            gap: spacing.xxl,
+            paddingTop: spacing.lg,
+            marginTop: spacing.lg,
             borderTopWidth: 1,
-            borderTopColor: highlighted
-              ? "#FFFFFF35"
-              : theme.colors.borderSubtle,
+            borderTopColor: palette.divider,
           }}
         >
           {handoffAtLabel ? (
@@ -176,7 +311,8 @@ export default function OnCallStatusCard({
               iconName="log-out-outline"
               label="Handoff"
               value={handoffAtLabel}
-              color={highlighted ? foreground : undefined}
+              labelColor={palette.secondary}
+              valueColor={palette.foreground}
             />
           ) : null}
           {nextShiftAtLabel ? (
@@ -184,7 +320,8 @@ export default function OnCallStatusCard({
               iconName="calendar-outline"
               label="Next shift"
               value={nextShiftAtLabel}
-              color={highlighted ? foreground : undefined}
+              labelColor={palette.secondary}
+              valueColor={palette.foreground}
             />
           ) : null}
         </View>
@@ -197,46 +334,33 @@ function MetaColumn({
   iconName,
   label,
   value,
-  color,
+  labelColor,
+  valueColor,
 }: {
-  color?: string;
   iconName: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
+  labelColor: string;
+  valueColor: string;
 }): React.JSX.Element {
-  const { theme } = useTheme();
-
   return (
-    <View style={{ flex: 1, minWidth: 110 }}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Ionicons
-          name={iconName}
-          size={12}
-          color={color ?? theme.colors.textTertiary}
-        />
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            marginLeft: 5,
-            letterSpacing: 0.6,
-            textTransform: "uppercase",
-            color: color ?? theme.colors.textTertiary,
-          }}
-        >
+    <View style={{ flex: 1, minWidth: 110, gap: spacing.xs }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+      >
+        <Ionicons name={iconName} size={13} color={labelColor} />
+        <AppText variant="overline" color={labelColor}>
           {label}
-        </Text>
+        </AppText>
       </View>
-      <Text
-        style={{
-          fontSize: 15,
-          fontWeight: "600",
-          marginTop: 4,
-          color: color ?? theme.colors.textPrimary,
-        }}
+      <AppText
+        variant="callout"
+        weight="600"
+        color={valueColor}
+        style={{ fontVariant: ["tabular-nums"] }}
       >
         {value}
-      </Text>
+      </AppText>
     </View>
   );
 }

@@ -1,13 +1,7 @@
 import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-  Share,
-  Alert,
-} from "react-native";
+import { View, ScrollView, RefreshControl, Share, Alert } from "react-native";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -30,6 +24,8 @@ import RosterScheduleCard from "../components/RosterScheduleCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import SectionHeader from "../components/SectionHeader";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
 import type {
   OnCallCalendarFeedStatus,
   ProjectOnCallScheduleItem,
@@ -251,6 +247,13 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     await refetch();
   });
 
+  const intro: React.JSX.Element = (
+    <ScreenIntro
+      title="Who's on call"
+      description="A clear view of your team’s coverage."
+    />
+  );
+
   if (isLoading) {
     return (
       <View
@@ -258,9 +261,13 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+          contentContainerStyle={{
+            padding: spacing.xl,
+            paddingBottom: bottomPadding,
+          }}
         >
-          <SkeletonCard lines={3} />
+          {intro}
+          <SkeletonCard lines={2} />
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
         </ScrollView>
@@ -275,7 +282,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
-          padding: 20,
+          padding: spacing.xl,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -287,10 +294,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
           />
         }
       >
-        <ScreenIntro
-          title="Who's on call"
-          description="A clear view of your team’s coverage."
-        />
+        {intro}
         <EmptyState
           title={
             isError
@@ -302,7 +306,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
               ? "Pull to refresh or try again."
               : "The selected project has no on-call schedules yet. Pull to refresh after a schedule is added."
           }
-          icon="alerts"
+          icon={isError ? "error" : "default"}
           actionLabel={isError ? "Retry" : "Refresh"}
           onAction={onRefresh}
         />
@@ -310,12 +314,54 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     );
   }
 
+  const coveredTotal: number = schedules.filter(
+    (entry: ProjectOnCallScheduleItem) => {
+      return Boolean(entry.item.currentUserOnRoster);
+    },
+  ).length;
+  const hasGaps: boolean = coveredTotal < schedules.length;
+
+  const renderCards: (
+    entries: ProjectOnCallScheduleItem[],
+  ) => React.JSX.Element = (
+    entries: ProjectOnCallScheduleItem[],
+  ): React.JSX.Element => {
+    return (
+      <View style={{ gap: spacing.md }}>
+        {entries.map((entry: ProjectOnCallScheduleItem) => {
+          return (
+            <RosterScheduleCard
+              key={`${entry.projectId}-${entry.item._id}`}
+              entry={entry}
+              currentUserId={currentUserId}
+              now={now}
+              onShareCalendar={
+                calendarFeed.isAvailable ? shareTeamCalendar : undefined
+              }
+              isSharingCalendar={sharingScheduleId === entry.item._id}
+            />
+          );
+        })}
+      </View>
+    );
+  };
+
+  const isFilteredEmpty: boolean =
+    coverageFilter === "uncovered"
+      ? uncovered.length === 0
+      : coverageFilter === "covered"
+        ? covered.length === 0
+        : uncovered.length === 0 && covered.length === 0;
+
   return (
     <ScrollView
       testID="who-is-on-call-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
@@ -325,50 +371,19 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         />
       }
     >
-      <ScreenIntro
-        title="Who's on call"
-        description="A clear view of your team’s coverage."
-      />
-      <View
+      {intro}
+      <Banner
         testID="coverage-summary"
-        style={{
-          padding: 16,
-          marginBottom: 20,
-          borderRadius: 12,
-          backgroundColor: theme.colors.cardAccent,
-          borderLeftWidth: 3,
-          borderLeftColor: theme.colors.actionPrimary,
-        }}
-      >
-        <Text
-          style={{
-            color: theme.colors.textPrimary,
-            fontSize: 16,
-            fontWeight: "700",
-          }}
-        >
-          {
-            schedules.filter((entry: ProjectOnCallScheduleItem) => {
-              return Boolean(entry.item.currentUserOnRoster);
-            }).length
-          }{" "}
-          of {schedules.length} schedules covered
-        </Text>
-        <Text
-          style={{
-            color: theme.colors.textSecondary,
-            fontSize: 14,
-            lineHeight: 21,
-            marginTop: 6,
-          }}
-        >
-          {schedules.some((entry: ProjectOnCallScheduleItem) => {
-            return !entry.item.currentUserOnRoster;
-          })
+        tone={hasGaps ? "warning" : "success"}
+        icon={hasGaps ? "warning" : "shield-checkmark"}
+        title={`${coveredTotal} of ${schedules.length} schedules covered`}
+        message={
+          hasGaps
             ? "Schedules with nobody on call appear first. Check these gaps with your team."
-            : "Every schedule has someone on call right now."}
-        </Text>
-      </View>
+            : "Every schedule has someone on call right now."
+        }
+        style={{ marginBottom: spacing.lg }}
+      />
       <SearchField
         testID="roster-search"
         placeholder="Search schedules, projects or people"
@@ -376,9 +391,9 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         value={searchTerm}
         onChangeText={setSearchTerm}
       />
-      <View style={{ marginTop: 12, marginBottom: 24 }}>
+      <View style={{ marginTop: spacing.md, marginBottom: spacing.xxl }}>
         <SegmentedControl<"all" | "uncovered" | "covered">
-          style={{ marginHorizontal: 0, marginTop: 0 }}
+          style={{ marginHorizontal: 0, marginTop: 0, marginBottom: 0 }}
           segments={[
             { key: "all", label: `All (${uncovered.length + covered.length})` },
             { key: "uncovered", label: `Needs cover (${uncovered.length})` },
@@ -393,78 +408,54 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       </View>
 
       {uncovered.length > 0 && coverageFilter !== "covered" ? (
-        <View testID="section-uncovered" style={{ marginBottom: 28 }}>
-          <SectionHeader title="Nobody on call" iconName="warning-outline" />
-          <View style={{ gap: 0, borderRadius: 16, overflow: "hidden" }}>
-            {uncovered.map((entry: ProjectOnCallScheduleItem) => {
-              return (
-                <RosterScheduleCard
-                  key={`${entry.projectId}-${entry.item._id}`}
-                  entry={entry}
-                  currentUserId={currentUserId}
-                  now={now}
-                  onShareCalendar={
-                    calendarFeed.isAvailable ? shareTeamCalendar : undefined
-                  }
-                  isSharingCalendar={sharingScheduleId === entry.item._id}
-                />
-              );
-            })}
-          </View>
+        <View testID="section-uncovered" style={{ marginBottom: spacing.xxl }}>
+          <SectionHeader
+            title="Nobody on call"
+            iconName="warning-outline"
+            count={uncovered.length}
+          />
+          {renderCards(uncovered)}
         </View>
       ) : null}
 
       {covered.length > 0 && coverageFilter !== "uncovered" ? (
         <View testID="section-covered">
-          <SectionHeader title="On call now" iconName="people-outline" />
-          <View style={{ gap: 0, borderRadius: 16, overflow: "hidden" }}>
-            {covered.map((entry: ProjectOnCallScheduleItem) => {
-              return (
-                <RosterScheduleCard
-                  key={`${entry.projectId}-${entry.item._id}`}
-                  entry={entry}
-                  currentUserId={currentUserId}
-                  now={now}
-                  onShareCalendar={
-                    calendarFeed.isAvailable ? shareTeamCalendar : undefined
-                  }
-                  isSharingCalendar={sharingScheduleId === entry.item._id}
-                />
-              );
-            })}
-          </View>
+          <SectionHeader
+            title="On call now"
+            iconName="people-outline"
+            count={covered.length}
+          />
+          {renderCards(covered)}
         </View>
       ) : null}
 
-      {(
-        coverageFilter === "uncovered"
-          ? uncovered.length === 0
-          : coverageFilter === "covered"
-            ? covered.length === 0
-            : uncovered.length === 0 && covered.length === 0
-      ) ? (
-        <View
-          style={{
-            borderRadius: 16,
-            padding: 18,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {searchTerm.trim()
-              ? "No schedules match that search."
-              : coverageFilter === "uncovered"
-                ? "No coverage gaps. Every schedule has someone on call."
-                : "No schedules are covered right now."}
-          </Text>
-        </View>
+      {isFilteredEmpty ? (
+        <Card testID="roster-filter-empty" variant="outlined">
+          <EmptyState
+            compact
+            icon={
+              searchTerm.trim()
+                ? "default"
+                : coverageFilter === "uncovered"
+                  ? "success"
+                  : "incidents"
+            }
+            title={
+              searchTerm.trim()
+                ? "No matches"
+                : coverageFilter === "uncovered"
+                  ? "No coverage gaps"
+                  : "No active coverage"
+            }
+            subtitle={
+              searchTerm.trim()
+                ? "No schedules match that search."
+                : coverageFilter === "uncovered"
+                  ? "No coverage gaps. Every schedule has someone on call."
+                  : "No schedules are covered right now."
+            }
+          />
+        </Card>
       ) : null}
     </ScrollView>
   );

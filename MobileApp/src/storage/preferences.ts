@@ -40,3 +40,27 @@ export async function setCriticalAlertsEnabled(
 ): Promise<void> {
   await AsyncStorage.setItem(KEYS.CRITICAL_ALERTS_ENABLED, String(enabled));
 }
+
+export type AppearancePreference = "system" | "light" | "dark";
+
+const APPEARANCE_KEY: string = "oneuptime_appearance";
+
+/*
+ * Absent - or anything this build does not recognise, such as a value written
+ * by a newer version - means "follow the system", which is what a fresh
+ * install does.
+ */
+export async function getAppearancePreference(): Promise<AppearancePreference> {
+  const stored: string | null = await AsyncStorage.getItem(APPEARANCE_KEY);
+  return stored === "light" || stored === "dark" ? stored : "system";
+}
+
+export async function setAppearancePreference(
+  preference: AppearancePreference,
+): Promise<void> {
+  if (preference === "system") {
+    await AsyncStorage.removeItem(APPEARANCE_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(APPEARANCE_KEY, preference);
+}

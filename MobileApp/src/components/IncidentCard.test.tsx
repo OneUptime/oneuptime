@@ -1,7 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { StyleSheet } from "react-native";
+import { render, screen, fireEvent, act } from "@testing-library/react-native";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import IncidentCard from "./IncidentCard";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
+import { rgbToHex } from "../utils/color";
 import {
   makeIncident,
   makeNamedEntityWithColor,
@@ -22,6 +26,61 @@ import type { IncidentItem } from "../api/types";
  */
 
 type IncidentMonitors = IncidentItem["monitors"];
+type RenderedElement = ReturnType<typeof screen.getByText>;
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
+
+/** Styles may be arrays or callbacks' results; read them flattened. */
+function styleOf(element: RenderedElement): Record<string, unknown> {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
+}
+
+function cardSurface(): RenderedElement {
+  return screen.getByRole("button");
+}
+
+function noop(): void {
+  return undefined;
+}
+
+/** Hold a finger on the card without lifting it (see AlertCard.test.tsx). */
+async function holdDown(element: RenderedElement): Promise<void> {
+  const handlers: { onResponderGrant?: (event: unknown) => void } =
+    element.props as { onResponderGrant?: (event: unknown) => void };
+
+  await act(async (): Promise<void> => {
+    handlers.onResponderGrant?.({
+      nativeEvent: {
+        touches: [{ pageX: 100, pageY: 200, identifier: 1 }],
+        changedTouches: [],
+      },
+      currentTarget: 1,
+      persist: (): void => {
+        return undefined;
+      },
+    });
+  });
+}
 
 describe("An incident with no monitors at all", () => {
   test("a missing monitors field renders the row instead of throwing", async () => {
@@ -100,8 +159,8 @@ describe("What an ordinary incident row shows", () => {
     );
 
     expect(screen.getByText("Checkout is down")).toBeTruthy();
-    expect(screen.getByText("#7")).toBeTruthy();
-    expect(screen.getByText("Incident")).toBeTruthy();
+    /* The number and the kind share one meta line under the title. */
+    expect(screen.getByText("#7 · Incident")).toBeTruthy();
   });
 
   test("the current state and the severity, by name", async () => {
@@ -128,8 +187,8 @@ describe("What an ordinary incident row shows", () => {
       />,
     );
 
-    expect(screen.getByText("api.example.com")).toBeTruthy();
-    expect(screen.getByText("1 monitor")).toBeTruthy();
+    /* The count captions the names on one context line. */
+    expect(screen.getByText("1 monitor: api.example.com")).toBeTruthy();
   });
 
   test("several monitors are listed together and counted in the plural", async () => {
@@ -150,9 +209,8 @@ describe("What an ordinary incident row shows", () => {
     );
 
     expect(
-      screen.getByText("api.example.com, checkout.example.com"),
+      screen.getByText("2 monitors: api.example.com, checkout.example.com"),
     ).toBeTruthy();
-    expect(screen.getByText("2 monitors")).toBeTruthy();
   });
 
   test("the project name is shown when one is given", async () => {
@@ -227,5 +285,143 @@ describe("An incident missing its state or severity", () => {
         "Incident #7, Checkout is down. State: unknown. Severity: Critical.",
       ),
     ).toBeTruthy();
+  });
+});
+
+describe("The card surface", () => {
+  test("it is a rounded, padded, bordered card on the elevated surface", async () => {
+    await render(<IncidentCard incident={makeIncident()} onPress={noop} />);
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    });
+  });
+
+  test("an active incident casts the card shadow and a resolved one does not", async () => {
+    const view: { unmount: () => Promise<void> } = await render(
+      <IncidentCard incident={makeIncident()} onPress={noop} />,
+    );
+    expect(styleOf(cardSurface()).boxShadow).toEqual(expect.any(String));
+    await view.unmount();
+
+    await render(
+      <IncidentCard incident={makeIncident()} onPress={noop} muted />,
+    );
+    expect(styleOf(cardSurface()).boxShadow).toBeUndefined();
+    /* Muting is visual weight only: the surface is the same card. */
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+  });
+
+  test("the status dot carries the state's own colour", async () => {
+    const incident: IncidentItem = makeIncident({
+      currentIncidentState: makeNamedEntityWithColor({
+        name: "Investigating",
+        color: { r: 180, g: 35, b: 24 },
+      }),
+    });
+
+    await render(<IncidentCard incident={incident} onPress={noop} />);
+
+    expect(screen.getByTestId("response-status-marker")).toHaveStyle({
+      backgroundColor: rgbToHex({ r: 180, g: 35, b: 24 }),
+    });
+  });
+
+  test("a state with no colour gets a neutral dot rather than black", async () => {
+    const incident: IncidentItem = makeIncident({
+      currentIncidentState: undefined,
+    });
+
+    await render(<IncidentCard incident={incident} onPress={noop} />);
+
+    expect(screen.getByTestId("response-status-marker")).toHaveStyle({
+      backgroundColor: lightColors.textTertiary,
+    });
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockColorScheme = "dark";
+  });
+
+  test("the card, title, state and meta line read from the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <IncidentCard incident={makeIncident()} onPress={noop} />
+      </ThemeProvider>,
+    );
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(screen.getByText("Checkout is down")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Created")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Critical")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+    expect(screen.getByText("#7 · Incident")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+  });
+
+  test("no light-palette surface leaks into the dark card", async () => {
+    await render(
+      <ThemeProvider>
+        <IncidentCard incident={makeIncident()} onPress={noop} />
+      </ThemeProvider>,
+    );
+
+    expect(styleOf(cardSurface()).backgroundColor).not.toBe(
+      lightColors.backgroundElevated,
+    );
+    expect(styleOf(screen.getByText("Checkout is down")).color).not.toBe(
+      lightColors.textPrimary,
+    );
+  });
+
+  test("holding a finger on a dark card uses the dark pressed fill", async () => {
+    await render(
+      <ThemeProvider>
+        <IncidentCard incident={makeIncident()} onPress={noop} />
+      </ThemeProvider>,
+    );
+
+    await holdDown(cardSurface());
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+  });
+
+  test("a resolved dark card keeps its surface and quiets its title", async () => {
+    await render(
+      <ThemeProvider>
+        <IncidentCard incident={makeIncident()} onPress={noop} muted />
+      </ThemeProvider>,
+    );
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(screen.getByText("Checkout is down")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
   });
 });

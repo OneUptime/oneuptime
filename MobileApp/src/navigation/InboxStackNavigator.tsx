@@ -1,14 +1,12 @@
 import React, { useContext } from "react";
-import { Platform } from "react-native";
 import { NavigationRouteContext } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import ProjectSwitcher from "../components/ProjectSwitcher";
 import InboxScreen from "../screens/InboxScreen";
 import IncidentDetailScreen from "../screens/IncidentDetailScreen";
 import IncidentEpisodeDetailScreen from "../screens/IncidentEpisodeDetailScreen";
 import AlertDetailScreen from "../screens/AlertDetailScreen";
 import AlertEpisodeDetailScreen from "../screens/AlertEpisodeDetailScreen";
-import { useTheme } from "../theme";
+import { useStackScreenOptions } from "./useStackScreenOptions";
 import type { InboxStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -16,7 +14,8 @@ const Stack: ReturnType<
 > = createNativeStackNavigator<InboxStackParamList>();
 
 export default function InboxStackNavigator(): React.JSX.Element {
-  const { theme } = useTheme();
+  const screenOptions: ReturnType<typeof useStackScreenOptions> =
+    useStackScreenOptions();
   const parentRoute: React.ContextType<typeof NavigationRouteContext> =
     useContext(NavigationRouteContext);
   const incomingScreen: string | undefined = (
@@ -39,20 +38,7 @@ export default function InboxStackNavigator(): React.JSX.Element {
     : undefined;
 
   return (
-    <Stack.Navigator
-      initialRouteName="InboxList"
-      screenOptions={{
-        headerTitle: () => {
-          return <ProjectSwitcher />;
-        },
-        headerStyle: { backgroundColor: theme.colors.backgroundSecondary },
-        headerTintColor: theme.colors.actionPrimary,
-        headerShadowVisible: false,
-        ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
-        headerBackButtonDisplayMode: "minimal",
-        contentStyle: { backgroundColor: theme.colors.backgroundPrimary },
-      }}
-    >
+    <Stack.Navigator initialRouteName="InboxList" screenOptions={screenOptions}>
       <Stack.Screen
         name="InboxList"
         component={InboxScreen}

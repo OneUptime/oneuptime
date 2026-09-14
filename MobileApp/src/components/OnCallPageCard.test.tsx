@@ -1,11 +1,26 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, jest as jestGlobal } from "@jest/globals";
 import OnCallPageCard, {
   getPageSubject,
   type PageSubject,
 } from "./OnCallPageCard";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { OnCallPageItem } from "../api/types";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * The one thing this card must never do is let "Completed" read as "somebody
@@ -178,3 +193,78 @@ describe("OnCallPageCard navigation", () => {
     expect(screen.queryByLabelText(/On-call notification/)).toBeNull();
   });
 });
+
+type PageStatusToken = "statusSuccessBg" | "statusWarningBg" | "statusErrorBg";
+
+const PAGE_STATUS_CASES: Array<[Partial<OnCallPageItem>, PageStatusToken]> = [
+  [{ acknowledgedAt: "2026-03-03T10:00:00Z" }, "statusSuccessBg"],
+  [{ status: "Completed" }, "statusWarningBg"],
+  [{ status: "Error" }, "statusErrorBg"],
+];
+
+describe("OnCallPageCard surface", () => {
+  test.each(PAGE_STATUS_CASES)(
+    "the status pill for %o uses %s",
+    async (
+      overrides: Partial<OnCallPageItem>,
+      token: PageStatusToken,
+    ): Promise<void> => {
+      await render(<OnCallPageCard page={page(overrides)} />);
+
+      expect(flatStyle("page-status-log-1").backgroundColor).toBe(
+        lightColors[token],
+      );
+    },
+  );
+
+  test("an inert page keeps the card surface and is not a button", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page({ triggeredByIncident: null })} />);
+
+    const style: Record<string, unknown> = flatStyle("page-card-log-1");
+    expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(style.borderRadius).toBe(radius.lg);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  test("a linked page is one card-shaped button with a hint", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page()} onPress={jestGlobal.fn()} />);
+
+    const card: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Replica lag. Not acknowledged." },
+    );
+    expect(card.props.testID).toBe("page-card-log-1");
+    expect(card.props.accessibilityHint).toBe("Open incident details");
+    const style: Record<string, unknown> = flatStyle("page-card-log-1");
+    expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(style.borderRadius).toBe(radius.lg);
+  });
+
+  test("dark mode uses the dark card and status tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    try {
+      await render(
+        <ThemeProvider>
+          <OnCallPageCard page={page({ status: "Error" })} />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("page-card-log-1").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(flatStyle("page-status-log-1").backgroundColor).toBe(
+        darkColors.statusErrorBg,
+      );
+      expect(screen.getByText("Failed to notify")).toHaveStyle({
+        color: darkColors.statusError,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

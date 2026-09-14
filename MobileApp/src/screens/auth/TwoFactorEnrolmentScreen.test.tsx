@@ -1,10 +1,11 @@
 import React from "react";
-import { Linking } from "react-native";
+import { Linking, StyleSheet, type ViewStyle } from "react-native";
 import {
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import {
   afterEach,
@@ -15,6 +16,8 @@ import {
   test,
 } from "@jest/globals";
 import TwoFactorEnrolmentScreen from "./TwoFactorEnrolmentScreen";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
 import { secretFromOtpUrl } from "../../auth/otpUrl";
 import type { LoginResponse } from "../../api/auth";
 import type { PendingTwoFactor } from "../../hooks/useAuth";
@@ -85,6 +88,21 @@ const mockOpenUrl: MockedFunction<OpenUrl> = jest.fn<OpenUrl>();
  * exists.
  */
 let mockPendingTwoFactor: PendingTwoFactor | null = null;
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("../../hooks/useAuth", () => {
   return {
@@ -222,6 +240,7 @@ function printedSetupKey(): string | null {
 }
 
 beforeEach(() => {
+  mockSystemScheme = "light";
   mockPendingTwoFactor = pendingEnrolment();
   mockVerifyTotpEnrolment.mockResolvedValue(enrolmentAccepted());
   mockOpenUrl.mockResolvedValue(true);
@@ -728,5 +747,167 @@ describe("Backing out of a mandated enrolment", () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("Login");
     });
+  });
+});
+
+function boxStyle(testID: string): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId(testID).props.style,
+  ) as ViewStyle;
+}
+
+describe("How the setup is laid out", () => {
+  test("two numbered steps, with only the final action filled", async () => {
+    await renderScreen();
+
+    expect(
+      screen.getByRole("header", { name: "Add your account" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Confirm the setup" }),
+    ).toBeTruthy();
+    expect(screen.getByTestId("auth-step-1")).toBeTruthy();
+    expect(screen.getByTestId("auth-step-2")).toBeTruthy();
+
+    const add: ViewStyle = StyleSheet.flatten(
+      screen.getByRole("button", { name: "Add to Authenticator App" }).props
+        .style,
+    ) as ViewStyle;
+    const verify: ViewStyle = StyleSheet.flatten(
+      screen.getByRole("button", { name: "Verify and Sign In" }).props.style,
+    ) as ViewStyle;
+    expect(add.backgroundColor).toBe(lightColors.cardAccent);
+    expect(verify.backgroundColor).toBe(lightColors.actionPrimary);
+  });
+
+  test("the setup key sits in its own card with a hint on copying it", async () => {
+    await renderScreen();
+
+    const card: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "enrolment-secret-card",
+    );
+    expect(
+      within(card).getByText("Or add this setup key by hand"),
+    ).toBeTruthy();
+    expect(within(card).getByTestId("enrolment-secret").props.selectable).toBe(
+      true,
+    );
+    expect(
+      within(card).getByText(/Press and hold the key to copy it/),
+    ).toBeTruthy();
+  });
+
+  test("the code field is large, numeric and offers one-time-code autofill", async () => {
+    await renderScreen();
+
+    const input: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "enrolment-code-input",
+    );
+    expect(input.props.accessibilityLabel).toBe("Authenticator code");
+    expect(input.props.keyboardType).toBe("number-pad");
+    expect(input.props.textContentType).toBe("oneTimeCode");
+    expect(input.props.autoComplete).toBe("one-time-code");
+    expect(
+      StyleSheet.flatten(input.props.style).fontSize,
+    ).toBeGreaterThanOrEqual(28);
+    expect(boxStyle("enrolment-code-field").minHeight).toBeGreaterThanOrEqual(
+      64,
+    );
+  });
+});
+
+describe("Where each error is shown", () => {
+  test("a link no app could open is explained in step one, above the key it points to, without blaming the code field", async () => {
+    mockOpenUrl.mockRejectedValue(new Error("No Activity found"));
+    await renderScreen();
+
+    await pressAddToAuthenticator();
+    await screen.findByText(NO_AUTHENTICATOR_MESSAGE);
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(boxStyle("enrolment-code-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+    const alert: ReturnType<typeof screen.getByRole> =
+      screen.getByRole("alert");
+    expect(within(alert).getByText(NO_AUTHENTICATOR_MESSAGE)).toBeTruthy();
+  });
+
+  test("an empty code outlines the code field and says why", async () => {
+    await renderScreen();
+
+    await pressVerify();
+
+    expect(await screen.findByText(EMPTY_CODE_MESSAGE)).toBeTruthy();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(boxStyle("enrolment-code-field")).toMatchObject({
+      borderColor: lightColors.statusError,
+      borderWidth: 2,
+    });
+
+    await typeCode("1");
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(boxStyle("enrolment-code-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+  });
+
+  test("a code error after an open failure moves the message to the code field", async () => {
+    mockOpenUrl.mockRejectedValue(new Error("No Activity found"));
+    mockVerifyTotpEnrolment.mockRejectedValue(
+      serverRefusal(REFUSED_CODE_MESSAGE),
+    );
+    await renderScreen();
+
+    await pressAddToAuthenticator();
+    await screen.findByText(NO_AUTHENTICATOR_MESSAGE);
+    await typeCode("123456");
+    await pressVerify();
+
+    expect(await screen.findByText(REFUSED_CODE_MESSAGE)).toBeTruthy();
+    expect(screen.queryByText(NO_AUTHENTICATOR_MESSAGE)).toBeNull();
+    expect(boxStyle("enrolment-code-field").borderColor).toBe(
+      lightColors.statusError,
+    );
+  });
+
+  test("the success hint after opening the authenticator is a polite status", async () => {
+    await renderScreen();
+
+    await pressAddToAuthenticator();
+
+    const hint: ReturnType<typeof screen.getByTestId> =
+      await screen.findByTestId("opened-authenticator-hint");
+    expect(hint.props.accessibilityLiveRegion).toBe("polite");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("Authenticator setup in dark mode", () => {
+  test("uses the dark canvas, dark fields and the dark keyboard", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <TwoFactorEnrolmentScreen />
+      </ThemeProvider>,
+    );
+
+    const input: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "enrolment-code-input",
+    );
+    expect(input.props.keyboardAppearance).toBe("dark");
+    expect(boxStyle("enrolment-code-field").backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
+    expect(boxStyle("enrolment-secret-card").backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
+    expect(screen.getByTestId("enrolment-secret")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(boxStyle("auth-keyboard").backgroundColor).toBe(
+      darkColors.backgroundPrimary,
+    );
   });
 });

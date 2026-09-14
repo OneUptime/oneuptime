@@ -1,13 +1,28 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Share, Platform } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Share,
+  Platform,
+  type ViewStyle,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { useTheme } from "../../theme";
+import { radius, spacing, typography, useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { generateBackupCodes } from "../../api/auth";
 import { AuthStackParamList } from "../../navigation/types";
 import GradientButton from "../../components/GradientButton";
-import AuthLayout, { AuthStep } from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthLink,
+  AuthNotice,
+  AuthStep,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
+import Card from "../../components/Card";
+import StatusPill from "../../components/StatusPill";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
   rememberBackupCodeOfferSkipped,
@@ -180,31 +195,53 @@ export default function BackupCodesScreen(): React.JSX.Element {
         return null;
       }
 
-      return (
-        <View
-          accessible
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
+      return <AuthNotice tone="danger" message={error} />;
+    };
+
+  /*
+   * A warning with its headline in bold. Not an alert: it is on screen from
+   * the start, so announcing it would only interrupt the title being read.
+   */
+  const renderWarning: (
+    headline: string,
+    detail: string,
+  ) => React.JSX.Element = (
+    headline: string,
+    detail: string,
+  ): React.JSX.Element => {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.sm + 2,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md + 2,
+          borderRadius: radius.md,
+          backgroundColor: theme.colors.statusWarningBg,
+        }}
+      >
+        <Ionicons
+          name="warning"
+          size={18}
+          color={theme.colors.statusWarning}
+          style={{ marginTop: 1 }}
+        />
+        <Text
           style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            marginTop: 14,
+            ...typography.subhead,
+            flex: 1,
+            color: theme.colors.textSecondary,
           }}
         >
-          <Ionicons
-            name="alert-circle"
-            size={14}
-            color={theme.colors.statusError}
-            style={{ marginRight: 6, marginTop: 2 }}
-          />
-          <Text
-            style={{ fontSize: 14, flex: 1, color: theme.colors.statusError }}
-          >
-            {error}
+          <Text style={{ fontWeight: "700", color: theme.colors.textPrimary }}>
+            {headline}{" "}
           </Text>
-        </View>
-      );
-    };
+          {detail}
+        </Text>
+      </View>
+    );
+  };
 
   const renderShowCodes: () => React.JSX.Element = (): React.JSX.Element => {
     return (
@@ -214,89 +251,87 @@ export default function BackupCodesScreen(): React.JSX.Element {
           title="Save your recovery codes"
           description="Keep a copy in a password manager or another safe place."
         />
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            padding: 14,
-            borderRadius: 12,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.severityWarning,
-          }}
-        >
-          <Ionicons
-            name="warning-outline"
-            size={18}
-            color={theme.colors.severityWarning}
-            style={{ marginRight: 10, marginTop: 1 }}
-          />
-          <Text
+
+        {renderWarning(
+          "This is the only time these codes will be shown.",
+          "Save them somewhere other than the device that generates your codes. Each code can be used once.",
+        )}
+
+        <Card testID="backup-codes-list" style={{ marginTop: spacing.lg }}>
+          <View
             style={{
-              flex: 1,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: spacing.sm,
+              marginBottom: spacing.md,
             }}
           >
-            <Text
-              style={{ fontWeight: "700", color: theme.colors.textPrimary }}
-            >
-              This is the only time these codes will be shown.{" "}
-            </Text>
-            Save them somewhere other than the device that generates your codes.
-            Each code can be used once.
-          </Text>
-        </View>
+            <AppText variant="overline" tone="secondary">
+              Recovery codes
+            </AppText>
+            <StatusPill
+              tone="accent"
+              size="sm"
+              label={`${codes.length} ${codes.length === 1 ? "code" : "codes"}`}
+            />
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              rowGap: spacing.sm,
+            }}
+          >
+            {codes.map((backupCode: string) => {
+              return (
+                <View
+                  key={backupCode}
+                  testID="backup-code-cell"
+                  style={{
+                    width: "48.5%",
+                    minHeight: 44,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.sm,
+                    borderRadius: radius.sm,
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
+                >
+                  <Text
+                    testID="backup-code-value"
+                    selectable={true}
+                    style={{
+                      ...typography.callout,
+                      fontWeight: "600",
+                      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                      letterSpacing: 0.5,
+                      textAlign: "center",
+                      color: theme.colors.textPrimary,
+                    }}
+                  >
+                    {backupCode}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
 
-        <View
-          testID="backup-codes-list"
-          style={{
-            marginTop: 18,
-            padding: 16,
-            borderRadius: 12,
-            backgroundColor: theme.colors.backgroundPrimary,
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            borderWidth: 1,
-            borderColor: theme.colors.borderDefault,
-          }}
-        >
-          {codes.map((backupCode: string) => {
-            return (
-              <Text
-                key={backupCode}
-                testID="backup-code-value"
-                selectable={true}
-                style={{
-                  fontSize: 15,
-                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                  letterSpacing: 1,
-                  paddingVertical: 8,
-                  minWidth: "48%",
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {backupCode}
-              </Text>
-            );
-          })}
-        </View>
-
-        <View style={{ marginTop: 16 }}>
           <GradientButton
             label="Save or Share Codes"
             onPress={shareCodes}
-            variant="secondary"
+            variant="tonal"
             icon="share-outline"
+            style={{ marginTop: spacing.lg }}
           />
-        </View>
+        </Card>
 
-        <View style={{ marginTop: 24 }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <AuthStep number={2} title="Confirm you have saved them" />
         </View>
-        <TouchableOpacity
+        <Pressable
           accessibilityRole="checkbox"
           accessibilityLabel="I have saved these codes somewhere safe."
           accessibilityState={{ checked: hasSavedCodes }}
@@ -305,44 +340,50 @@ export default function BackupCodesScreen(): React.JSX.Element {
           onPress={() => {
             setHasSavedCodes(!hasSavedCodes);
           }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            padding: 16,
-            borderRadius: 16,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: hasSavedCodes
-              ? theme.colors.actionPrimary
-              : theme.colors.borderDefault,
+          style={({ pressed }: { pressed: boolean }): ViewStyle => {
+            return {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              minHeight: 56,
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.lg - (hasSavedCodes ? 1 : 0),
+              borderRadius: radius.md,
+              borderWidth: hasSavedCodes ? 2 : 1,
+              borderColor: hasSavedCodes
+                ? theme.colors.actionPrimary
+                : theme.colors.borderDefault,
+              backgroundColor: hasSavedCodes
+                ? theme.colors.cardAccent
+                : pressed
+                  ? theme.colors.backgroundTertiary
+                  : theme.colors.backgroundElevated,
+            };
           }}
         >
           <Ionicons
             name={hasSavedCodes ? "checkbox" : "square-outline"}
-            size={22}
+            size={24}
             color={
               hasSavedCodes
                 ? theme.colors.actionPrimary
                 : theme.colors.textTertiary
             }
-            style={{ marginRight: 10 }}
           />
-          <Text
-            style={{ flex: 1, fontSize: 14, color: theme.colors.textSecondary }}
-          >
+          <AppText variant="callout" style={{ flex: 1 }}>
             I have saved these codes somewhere safe.
-          </Text>
-        </TouchableOpacity>
+          </AppText>
+        </Pressable>
 
-        {renderError()}
+        <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
+          {renderError()}
 
-        <View style={{ marginTop: 22 }}>
           <GradientButton
             label="Continue"
             testID="backup-codes-continue"
             onPress={acknowledgeCodes}
             disabled={!hasSavedCodes}
+            style={authPrimaryButtonStyle}
           />
         </View>
       </View>
@@ -351,71 +392,31 @@ export default function BackupCodesScreen(): React.JSX.Element {
 
   const renderOffer: () => React.JSX.Element = (): React.JSX.Element => {
     return (
-      <View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            padding: 14,
-            borderRadius: 12,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.severityWarning,
-          }}
-        >
-          <Ionicons
-            name="warning-outline"
-            size={18}
-            color={theme.colors.severityWarning}
-            style={{ marginRight: 10, marginTop: 1 }}
-          />
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            <Text
-              style={{ fontWeight: "700", color: theme.colors.textPrimary }}
-            >
-              You have no backup codes.{" "}
-            </Text>
-            If you lose your authenticator app or security key, an administrator
-            will have to reset two factor authentication before you can sign in
-            again.
-          </Text>
-        </View>
+      <View style={{ gap: spacing.lg }}>
+        {renderWarning(
+          "You have no backup codes.",
+          "If you lose your authenticator app or security key, an administrator will have to reset two factor authentication before you can sign in again.",
+        )}
 
         {renderError()}
 
-        <View style={{ marginTop: 22 }}>
-          <GradientButton
-            label="Generate Backup Codes"
-            testID="generate-backup-codes"
-            onPress={generate}
-            loading={isGenerating}
-            disabled={isGenerating}
-          />
-        </View>
+        <GradientButton
+          label="Generate Backup Codes"
+          testID="generate-backup-codes"
+          onPress={generate}
+          loading={isGenerating}
+          disabled={isGenerating}
+          icon="key-outline"
+          style={[authPrimaryButtonStyle, { marginTop: spacing.xs }]}
+        />
 
-        <TouchableOpacity
-          accessibilityRole="button"
+        <AuthLink
+          label="Skip for now"
+          tone="secondary"
           testID="skip-backup-codes"
           onPress={skip}
           disabled={isGenerating}
-          style={{
-            marginTop: 8,
-            minHeight: 48,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-            Skip for now
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
     );
   };
@@ -424,6 +425,8 @@ export default function BackupCodesScreen(): React.JSX.Element {
     <AuthLayout
       title={isShowingCodes ? "Keep a way back in" : "Add backup codes"}
       eyebrow="ACCOUNT RECOVERY"
+      icon="key-outline"
+      iconTone={isShowingCodes ? "accent" : "warning"}
       compact
       description={
         isShowingCodes

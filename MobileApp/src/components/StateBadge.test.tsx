@@ -1,8 +1,11 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import StateBadge, { type StateType } from "./StateBadge";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 
 /*
  * The badge is the app's shorthand for "where has this got to", and the colour
@@ -17,9 +20,32 @@ import { darkColors } from "../theme";
 
 type RenderedElement = ReturnType<typeof screen.getByText>;
 
+/** Styles may be arrays, so they are read flattened. */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 /**
  * The coloured dot, which is the sibling drawn before the label inside the
@@ -36,15 +62,15 @@ describe("Each state is drawn in its own colour", () => {
 
     expect(
       styleOf(dotBeside(screen.getByText("Created"))).backgroundColor,
-    ).toBe(darkColors.stateCreated);
+    ).toBe(lightColors.stateCreated);
   });
 
   test("acknowledged is the acknowledged amber, not the created red", async () => {
     await render(<StateBadge state="acknowledged" />);
 
     const dot: RenderedElement = dotBeside(screen.getByText("Acknowledged"));
-    expect(styleOf(dot).backgroundColor).toBe(darkColors.stateAcknowledged);
-    expect(styleOf(dot).backgroundColor).not.toBe(darkColors.stateCreated);
+    expect(styleOf(dot).backgroundColor).toBe(lightColors.stateAcknowledged);
+    expect(styleOf(dot).backgroundColor).not.toBe(lightColors.stateCreated);
   });
 
   test("resolved is the resolved green", async () => {
@@ -52,7 +78,7 @@ describe("Each state is drawn in its own colour", () => {
 
     expect(
       styleOf(dotBeside(screen.getByText("Resolved"))).backgroundColor,
-    ).toBe(darkColors.stateResolved);
+    ).toBe(lightColors.stateResolved);
   });
 
   test("investigating and muted have colours of their own too", async () => {
@@ -61,12 +87,12 @@ describe("Each state is drawn in its own colour", () => {
     );
     expect(
       styleOf(dotBeside(screen.getByText("Investigating"))).backgroundColor,
-    ).toBe(darkColors.stateInvestigating);
+    ).toBe(lightColors.stateInvestigating);
     await investigating.unmount();
 
     await render(<StateBadge state="muted" />);
     expect(styleOf(dotBeside(screen.getByText("Muted"))).backgroundColor).toBe(
-      darkColors.stateMuted,
+      lightColors.stateMuted,
     );
   });
 });
@@ -98,7 +124,7 @@ describe("What the badge says", () => {
     await render(<StateBadge state="resolved" label="Closed" />);
 
     expect(styleOf(dotBeside(screen.getByText("Closed"))).backgroundColor).toBe(
-      darkColors.stateResolved,
+      lightColors.stateResolved,
     );
   });
 
@@ -138,14 +164,68 @@ describe("A state the badge has no colour for", () => {
 
   test("its dot borrows no other state's colour", async () => {
     /*
-     * There is no fallback colour today, so the dot comes out unpainted. That
-     * is not ideal, but it is honest: silently reusing, say, the resolved
-     * green would tell the responder an unknown state is finished with.
+     * The dot is drawn as a hollow neutral ring instead of a fill. Silently
+     * reusing, say, the resolved green would tell the responder an unknown
+     * state is finished with.
      */
     await render(<StateBadge state={unknownState} />);
 
     const dot: RenderedElement = dotBeside(screen.getByText("Escalated"));
-    expect(styleOf(dot).backgroundColor).not.toBe(darkColors.stateResolved);
-    expect(styleOf(dot).backgroundColor).not.toBe(darkColors.stateCreated);
+    expect(styleOf(dot).backgroundColor).not.toBe(lightColors.stateResolved);
+    expect(styleOf(dot).backgroundColor).not.toBe(lightColors.stateCreated);
+  });
+
+  test("its dot is a visible neutral ring rather than an invisible gap", async () => {
+    await render(<StateBadge state={unknownState} />);
+
+    const dot: RenderedElement = dotBeside(screen.getByText("Escalated"));
+    expect(dot).toHaveStyle({
+      backgroundColor: "transparent",
+      borderWidth: 1.5,
+      borderColor: lightColors.textTertiary,
+    });
+    expect(styleOf(dot.parent as RenderedElement).backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+  });
+});
+
+describe("The pill", () => {
+  test("is a rounded pill tinted with its state's colour", async () => {
+    await render(<StateBadge state="resolved" />);
+
+    const pill: RenderedElement = screen.getByText("Resolved")
+      .parent as RenderedElement;
+    expect(pill).toHaveStyle({
+      borderRadius: radius.pill,
+      backgroundColor: withAlpha(lightColors.stateResolved, 0.1),
+    });
+  });
+
+  test("keeps its label in high-contrast text whatever the state colour", async () => {
+    await render(<StateBadge state="acknowledged" />);
+
+    expect(screen.getByText("Acknowledged")).toHaveStyle({
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("in dark mode it reads the dark state colours and a stronger tint", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <StateBadge state="created" />
+      </ThemeProvider>,
+    );
+
+    const label: RenderedElement = screen.getByText("Created");
+    expect(label).toHaveStyle({ color: darkColors.textPrimary });
+    expect(dotBeside(label)).toHaveStyle({
+      backgroundColor: darkColors.stateCreated,
+    });
+    expect(label.parent as RenderedElement).toHaveStyle({
+      backgroundColor: withAlpha(darkColors.stateCreated, 0.18),
+    });
   });
 });
