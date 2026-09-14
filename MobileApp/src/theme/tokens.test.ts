@@ -36,17 +36,20 @@ describe("typography", () => {
     expect(Object.keys(typography).sort()).toEqual([...VARIANTS].sort());
   });
 
-  test.each(VARIANTS)("%s sets a font size and a weight", (variant) => {
-    const style: (typeof typography)[TypographyVariant] = typography[variant];
+  test.each(VARIANTS)(
+    "%s sets a font size and a weight",
+    (variant: TypographyVariant) => {
+      const style: (typeof typography)[TypographyVariant] = typography[variant];
 
-    expect(typeof style.fontSize).toBe("number");
-    expect(style.fontSize).toBeGreaterThanOrEqual(11);
-    expect(style.fontWeight).toBeDefined();
-  });
+      expect(typeof style.fontSize).toBe("number");
+      expect(style.fontSize).toBeGreaterThanOrEqual(11);
+      expect(style.fontWeight).toBeDefined();
+    },
+  );
 
   test.each(VARIANTS)(
     "%s sets a line height at least as tall as its font size",
-    (variant) => {
+    (variant: TypographyVariant) => {
       /*
        * Scaled text without a line height clips descenders on Android, and a
        * line height shorter than the glyphs clips them everywhere.
@@ -59,7 +62,7 @@ describe("typography", () => {
   );
 
   test("the scale runs from largest to smallest in the documented order", () => {
-    const sizes: Array<number> = VARIANTS.map((variant) => {
+    const sizes: Array<number> = VARIANTS.map((variant: TypographyVariant) => {
       return Number(typography[variant].fontSize);
     });
 
@@ -69,7 +72,9 @@ describe("typography", () => {
   });
 
   test("titles are heavier than body copy", () => {
-    const weight: (variant: TypographyVariant) => number = (variant) => {
+    const weight: (variant: TypographyVariant) => number = (
+      variant: TypographyVariant,
+    ) => {
       return Number(typography[variant].fontWeight);
     };
 
@@ -131,35 +136,41 @@ describe("radius", () => {
 });
 
 describe("elevation", () => {
-  const LEVELS: Array<Exclude<ElevationLevel, "none">> = [
-    "card",
-    "raised",
-    "overlay",
-  ];
+  type ShadowLevel = Exclude<ElevationLevel, "none">;
 
-  test.each([false, true])("none is an empty style (dark: %s)", (dark) => {
-    expect(elevation("none", dark)).toEqual({});
-  });
+  const LEVELS: Array<ShadowLevel> = ["card", "raised", "overlay"];
 
-  test.each(LEVELS)("%s is a boxShadow string and nothing else", (level) => {
-    /*
-     * boxShadow works the same on iOS, Android and web under the new
-     * architecture. Mixing in the legacy shadow* or Android elevation props
-     * would draw a second, different shadow on one platform.
-     */
-    for (const dark of [false, true]) {
-      const style: ReturnType<typeof elevation> = elevation(level, dark);
+  test.each([false, true])(
+    "none is an empty style (dark: %s)",
+    (dark: boolean) => {
+      expect(elevation("none", dark)).toEqual({});
+    },
+  );
 
-      expect(Object.keys(style)).toEqual(["boxShadow"]);
-      expect(typeof style.boxShadow).toBe("string");
-      expect(String(style.boxShadow)).toMatch(
-        /^(-?\d+px -?\d+px \d+px rgba\(\d+, \d+, \d+, [\d.]+\)(, )?)+$/,
-      );
-    }
-  });
+  test.each(LEVELS)(
+    "%s is a boxShadow string and nothing else",
+    (level: ShadowLevel) => {
+      /*
+       * boxShadow works the same on iOS, Android and web under the new
+       * architecture. Mixing in the legacy shadow* or Android elevation props
+       * would draw a second, different shadow on one platform.
+       */
+      for (const dark of [false, true]) {
+        const style: ReturnType<typeof elevation> = elevation(level, dark);
+
+        expect(Object.keys(style)).toEqual(["boxShadow"]);
+        expect(typeof style.boxShadow).toBe("string");
+        expect(String(style.boxShadow)).toMatch(
+          /^(-?\d+px -?\d+px \d+px rgba\(\d+, \d+, \d+, [\d.]+\)(, )?)+$/,
+        );
+      }
+    },
+  );
 
   test("each level casts a larger shadow than the one below it", () => {
-    const largestBlur: (level: ElevationLevel) => number = (level) => {
+    const largestBlur: (level: ElevationLevel) => number = (
+      level: ElevationLevel,
+    ) => {
       const shadow: string = String(elevation(level, false).boxShadow);
       const blurs: Array<number> = [
         ...shadow.matchAll(/px -?\d+px (\d+)px/g),
@@ -175,8 +186,8 @@ describe("elevation", () => {
 
   test.each(LEVELS)(
     "%s is softer in dark mode, where a dark shadow on a dark canvas reads as dirt",
-    (level) => {
-      const opacities: (dark: boolean) => Array<number> = (dark) => {
+    (level: ShadowLevel) => {
+      const opacities: (dark: boolean) => Array<number> = (dark: boolean) => {
         return [
           ...String(elevation(level, dark).boxShadow).matchAll(
             /rgba\(\d+, \d+, \d+, ([\d.]+)\)/g,
