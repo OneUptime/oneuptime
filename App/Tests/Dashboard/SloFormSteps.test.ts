@@ -174,17 +174,13 @@ describe("the SLO form steps", () => {
 
   test("keeps dependent monitor selectors together for per-step validation", () => {
     expect(fieldFor("monitors").stepId).toBe("monitors");
-    expect(fieldFor("monitorLabels").stepId).toBe(
-      fieldFor("monitors").stepId,
-    );
+    expect(fieldFor("monitorLabels").stepId).toBe(fieldFor("monitors").stepId);
   });
 
   test("lets monitor labels satisfy the monitor step without a manual monitor", () => {
     const errors: Record<string, string> = validateMonitorStep({
       ...SLO_CREATE_INITIAL_VALUES,
-      monitorLabels: [
-        { _id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" },
-      ],
+      monitorLabels: [{ _id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" }],
     } as unknown as FormValues<ServiceLevelObjective>);
 
     expect(errors).toEqual({});
@@ -208,9 +204,11 @@ describe("the SLO form steps", () => {
   });
 
   test("keeps the edit-only Enabled field with the SLO's basic settings", () => {
-    expect(
-      columnsOnStep("basic-info", { includeIsEnabled: true }),
-    ).toEqual(["name", "description", "isEnabled"]);
+    expect(columnsOnStep("basic-info", { includeIsEnabled: true })).toEqual([
+      "name",
+      "description",
+      "isEnabled",
+    ]);
     expect(columnsOnStep("labels", { includeIsEnabled: true })).toEqual([
       "labels",
     ]);

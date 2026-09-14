@@ -162,6 +162,10 @@ export interface ReplayStageOverlaysProps {
   scale: number;
   fit: ReplayStageFit;
   onFitChange: (fit: ReplayStageFit) => void;
+  /* Read-only iframe hit-testing for selecting the captured DOM text. */
+  canSelectText?: boolean | undefined;
+  isTextSelectionEnabled: boolean;
+  onTextSelectionChange: (isEnabled: boolean) => void;
 
   onPlayPause: () => void;
   onWatchAgain: () => void;
@@ -442,6 +446,8 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     idleBand !== null &&
     idleBand.endMs - currentTimeMs >= IDLE_SKIP_MIN_REMAINING_MS &&
     (phase === "playing" || phase === "paused");
+  const isTextSelectionActive: boolean =
+    props.isTextSelectionEnabled && props.canSelectText !== false;
 
   /* ---- No-footage mode. ---- */
 
@@ -500,7 +506,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
 
   let centreOverlay: ReactElement | null = null;
 
-  if (phase === "error" && snapshot.error) {
+  if (isTextSelectionActive) {
+    /* The recorded page must remain unobstructed in every terminal phase. */
+    centreOverlay = null;
+  } else if (phase === "error" && snapshot.error) {
     centreOverlay = (
       <div
         data-testid="replay-overlay-error"
@@ -778,6 +787,22 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             )}
           </span>
         )}
+        <ReplayToolButton
+          dataTestId="replay-select-text"
+          icon={IconProp.CursorArrowRays}
+          label="Select text"
+          tone="accent"
+          isPressed={isTextSelectionActive}
+          isDisabled={props.canSelectText === false}
+          title={
+            isTextSelectionActive
+              ? "Exit text selection mode"
+              : "Pause the replay and select text to copy"
+          }
+          onClick={(): void => {
+            props.onTextSelectionChange(!isTextSelectionActive);
+          }}
+        />
         <ReplayButtonGroup
           ariaLabel="Stage fit"
           dataTestId="replay-fit-toggle"
@@ -810,67 +835,71 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         {props.children}
 
         {/* Top strip: idle chip, background-tab chip, seek-clamped notice. */}
-        <div className="pointer-events-none absolute left-2 right-2 top-2 flex flex-wrap items-start gap-2">
-          {idleBand && (
-            <button
-              type="button"
-              data-testid={
-                idleBand.kind === "background-tab"
-                  ? "replay-background-tab-chip"
-                  : "replay-idle-chip"
-              }
-              data-fidelity={idleBand.fidelity}
-              disabled={!canSkipIdle}
-              className={`${PILL_CLASS} ${
-                canSkipIdle ? "hover:bg-gray-900" : "cursor-default opacity-90"
-              }`}
-              title={
-                canSkipIdle
-                  ? "Skip past this stretch (s)"
-                  : "The stretch ends in under two seconds"
-              }
-              onClick={(): void => {
-                if (canSkipIdle) {
-                  props.onSkipIdle(idleBand);
+        {!isTextSelectionActive && (
+          <div className="pointer-events-none absolute left-2 right-2 top-2 flex flex-wrap items-start gap-2">
+            {idleBand && (
+              <button
+                type="button"
+                data-testid={
+                  idleBand.kind === "background-tab"
+                    ? "replay-background-tab-chip"
+                    : "replay-idle-chip"
                 }
-              }}
-            >
-              <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-              {idleBand.kind === "background-tab"
-                ? `Tab was in the background for ${formatReplayDuration(
-                    idleBand.endMs - idleBand.startMs,
-                  )}`
-                : `Idle ${formatReplayDuration(
-                    idleBand.endMs - idleBand.startMs,
-                  )}${idleBand.fidelity === "coarse" ? " (approx.)" : ""}`}
-              {canSkipIdle && (
-                <span className="text-indigo-200">skip &gt;</span>
-              )}
-            </button>
-          )}
+                data-fidelity={idleBand.fidelity}
+                disabled={!canSkipIdle}
+                className={`${PILL_CLASS} ${
+                  canSkipIdle
+                    ? "hover:bg-gray-900"
+                    : "cursor-default opacity-90"
+                }`}
+                title={
+                  canSkipIdle
+                    ? "Skip past this stretch (s)"
+                    : "The stretch ends in under two seconds"
+                }
+                onClick={(): void => {
+                  if (canSkipIdle) {
+                    props.onSkipIdle(idleBand);
+                  }
+                }}
+              >
+                <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
+                {idleBand.kind === "background-tab"
+                  ? `Tab was in the background for ${formatReplayDuration(
+                      idleBand.endMs - idleBand.startMs,
+                    )}`
+                  : `Idle ${formatReplayDuration(
+                      idleBand.endMs - idleBand.startMs,
+                    )}${idleBand.fidelity === "coarse" ? " (approx.)" : ""}`}
+                {canSkipIdle && (
+                  <span className="text-indigo-200">skip &gt;</span>
+                )}
+              </button>
+            )}
 
-          {snapshot.notice && (
-            <span
-              data-testid="replay-overlay-notice"
-              role="status"
-              className={`${PILL_CLASS} bg-amber-900/85`}
-            >
-              <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
-              {snapshot.notice.message}
-            </span>
-          )}
+            {snapshot.notice && (
+              <span
+                data-testid="replay-overlay-notice"
+                role="status"
+                className={`${PILL_CLASS} bg-amber-900/85`}
+              >
+                <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
+                {snapshot.notice.message}
+              </span>
+            )}
 
-          {props.shellNotice && (
-            <span
-              data-testid="replay-overlay-shell-notice"
-              role="status"
-              className={PILL_CLASS}
-            >
-              <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
-              {props.shellNotice}
-            </span>
-          )}
-        </div>
+            {props.shellNotice && (
+              <span
+                data-testid="replay-overlay-shell-notice"
+                role="status"
+                className={PILL_CLASS}
+              >
+                <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
+                {props.shellNotice}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Centre overlay, one at a time. */}
         {centreOverlay && (

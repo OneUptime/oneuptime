@@ -1,4 +1,11 @@
-import { FrameLocator, Locator, Page, expect, test } from "@playwright/test";
+import {
+  BrowserContext,
+  FrameLocator,
+  Locator,
+  Page,
+  expect,
+  test,
+} from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
 
@@ -649,6 +656,317 @@ test("watch opens real footage and the return link restores list filters", async
   await expect(rows(page)).toHaveCount(3);
 });
 
+test("select text mode copies recorded DOM text while keeping the replay read-only", async ({
+  page,
+  context,
+}: {
+  page: Page;
+  context: BrowserContext;
+}) => {
+  test.setTimeout(120000);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:4212",
+  });
+  await openPlayer(page);
+
+  const toggle: Locator = page.getByTestId("replay-select-text");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await expect(page.getByTestId("replay-overlay-paused")).toHaveCount(0);
+
+  const frame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  const body: Locator = frame.locator("body");
+  await body.evaluate((element: HTMLElement): void => {
+    const textarea: HTMLTextAreaElement = document.createElement("textarea");
+    textarea.id = "fixture-readonly-textarea";
+    textarea.style.setProperty("resize", "both", "important");
+    textarea.style.setProperty("user-select", "none", "important");
+    textarea.value = "Recorded note";
+    element.appendChild(textarea);
+
+    const audio: HTMLAudioElement = document.createElement("audio");
+    audio.id = "fixture-readonly-audio";
+    audio.controls = true;
+    audio.style.setProperty("pointer-events", "auto", "important");
+    element.appendChild(audio);
+
+    const host: HTMLElement = document.createElement("div");
+    host.id = "fixture-shadow-host";
+    const shadowRoot: ShadowRoot = host.attachShadow({ mode: "open" });
+    shadowRoot.innerHTML = `
+      <style>span { user-select: none !important; }</style>
+      <span id="fixture-shadow-text" style="user-select: none !important">Recorded shadow text</span>
+      <input id="fixture-shadow-range" type="range" min="0" max="100" value="10" />
+    `;
+    element.appendChild(host);
+
+    const scrollBox: HTMLDivElement = document.createElement("div");
+    scrollBox.id = "fixture-readonly-scroll";
+    scrollBox.style.cssText =
+      "height:40px;overflow:auto;scroll-behavior:smooth";
+    scrollBox.innerHTML = `
+      <button id="fixture-scroll-start">Start</button>
+      <div style="height:180px"></div>
+      <button id="fixture-scroll-end">End</button>
+    `;
+    element.appendChild(scrollBox);
+    scrollBox.scrollTop = 0;
+  });
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await frame
+        .locator("#fixture-readonly-textarea")
+        .evaluate((element: HTMLTextAreaElement): string => {
+          return getComputedStyle(element).resize;
+        });
+    })
+    .toBe("none");
+  expect(
+    await frame
+      .locator("#fixture-readonly-audio")
+      .evaluate((element: HTMLAudioElement): string => {
+        return getComputedStyle(element).pointerEvents;
+      }),
+  ).toBe("none");
+
+  const shadowText: Locator = frame.locator("#fixture-shadow-text");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await shadowText.evaluate((element: HTMLElement): string => {
+        return getComputedStyle(element).userSelect;
+      });
+    })
+    .toBe("text");
+  const shadowRange: Locator = frame.locator("#fixture-shadow-range");
+  await shadowRange.scrollIntoViewIfNeeded();
+  const shadowRangeBox: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await shadowRange.boundingBox();
+  expect(shadowRangeBox).not.toBeNull();
+  await page.mouse.click(
+    shadowRangeBox!.x + shadowRangeBox!.width - 2,
+    shadowRangeBox!.y + shadowRangeBox!.height / 2,
+  );
+  await expect(shadowRange).toHaveValue("10");
+
+  const scrollBox: Locator = frame.locator("#fixture-readonly-scroll");
+  await frame.locator("#fixture-scroll-start").focus();
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await scrollBox.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBeGreaterThan(0);
+
+  const heading: Locator = frame.getByRole("heading", {
+    name: "Complete your order",
+  });
+
+  /* The fixture itself says user-select:none; the viewer must override it. */
+  expect(
+    await heading.evaluate((element: HTMLElement): string => {
+      return getComputedStyle(element).userSelect;
+    }),
+  ).toBe("text");
+  expect(
+    await heading.evaluate((element: HTMLElement): boolean => {
+      return element.hasAttribute("style");
+    }),
+  ).toBe(false);
+
+  const recordedSearch: Locator = frame.locator("#fixture-recorded-search");
+  await recordedSearch.focus();
+  await page.keyboard.press("Escape");
+  await expect(recordedSearch).toHaveValue("recorded search");
+
+  /* Stateful controls remain inert during pointer and keyboard inspection. */
+  const range: Locator = frame.locator("#fixture-readonly-range");
+  await range.scrollIntoViewIfNeeded();
+  const rangeBox: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await range.boundingBox();
+  expect(rangeBox).not.toBeNull();
+  await page.mouse.click(
+    rangeBox!.x + rangeBox!.width - 2,
+    rangeBox!.y + rangeBox!.height / 2,
+  );
+  await expect(range).toHaveValue("25");
+  await range.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(range).toHaveValue("25");
+
+  /* Tab must escape the inspected control instead of being trapped. */
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await range.evaluate((): string => {
+        return (document.activeElement as HTMLElement | null)?.id ?? "";
+      });
+    })
+    .toBe("place-order");
+
+  await heading.scrollIntoViewIfNeeded();
+  const box: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await heading.boundingBox();
+  expect(box).not.toBeNull();
+
+  await heading.click({
+    clickCount: 3,
+    position: { x: 10, y: box!.height / 2 },
+  });
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await heading.evaluate((): string => {
+        return window.getSelection()?.toString() ?? "";
+      });
+    })
+    .toContain("Complete your order");
+
+  await page.evaluate(async (): Promise<void> => {
+    await navigator.clipboard.writeText("oneuptime-copy-sentinel");
+  });
+  expect(
+    await page.evaluate(async (): Promise<string> => {
+      return await navigator.clipboard.readText();
+    }),
+  ).toBe("oneuptime-copy-sentinel");
+  await page.keyboard.press("ControlOrMeta+C");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await page.evaluate(async (): Promise<string> => {
+        return await navigator.clipboard.readText();
+      });
+    })
+    .toContain("Complete your order");
+
+  /* Pointer access is for inspection only: recorded links cannot navigate. */
+  const accountLink: Locator = frame.getByRole("link", {
+    name: "View account details",
+  });
+  const frameUrlBeforeClick: string = await accountLink.evaluate((): string => {
+    return window.location.href;
+  });
+  await accountLink.click();
+  expect(
+    await accountLink.evaluate((): string => {
+      return window.location.href;
+    }),
+  ).toBe(frameUrlBeforeClick);
+
+  /* Prove the copied text can leave the iframe and be pasted for debugging. */
+  const railSearch: Locator = page.getByTestId("rail-search-input");
+  await railSearch.focus();
+  await page.keyboard.press("ControlOrMeta+V");
+  await expect(railSearch).toHaveValue(/Complete your order/);
+
+  /* Starting playback itself exits inspection mode. */
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect
+    .poll(async (): Promise<string> => {
+      return await page
+        .locator('[data-testid="replay-stage"] iframe')
+        .evaluate((iframe: HTMLIFrameElement): string => {
+          return iframe.style.pointerEvents;
+        });
+    })
+    .toBe("none");
+  expect(
+    await scrollBox.evaluate((element: HTMLElement): number => {
+      return element.scrollTop;
+    }),
+  ).toBe(0);
+  expect(
+    await frame
+      .locator("#fixture-readonly-textarea")
+      .evaluate((element: HTMLTextAreaElement): Array<string> => {
+        return [
+          element.style.getPropertyValue("resize"),
+          element.style.getPropertyPriority("resize"),
+          element.style.getPropertyValue("user-select"),
+          element.style.getPropertyPriority("user-select"),
+        ];
+      }),
+  ).toEqual(["both", "important", "none", "important"]);
+  expect(
+    await frame
+      .locator("#fixture-readonly-audio")
+      .evaluate((element: HTMLAudioElement): Array<string> => {
+        return [
+          element.style.getPropertyValue("pointer-events"),
+          element.style.getPropertyPriority("pointer-events"),
+        ];
+      }),
+  ).toEqual(["auto", "important"]);
+  expect(
+    await shadowText.evaluate((element: HTMLElement): Array<string> => {
+      return [
+        element.style.getPropertyValue("user-select"),
+        element.style.getPropertyPriority("user-select"),
+      ];
+    }),
+  ).toEqual(["none", "important"]);
+  expect(
+    await heading.evaluate((element: HTMLElement): boolean => {
+      return element.hasAttribute("style");
+    }),
+  ).toBe(false);
+});
+
+test("seeking exits selection before applying the target's recorded scroll", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  test.setTimeout(120000);
+  await openPlayer(page, "?t=0");
+
+  const toggle: Locator = page.getByTestId("replay-select-text");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+
+  const frame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  const recordedScroll: Locator = frame.locator("#fixture-recorded-scroll");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(0);
+  await recordedScroll.evaluate((element: HTMLElement): void => {
+    element.scrollTop = 35;
+  });
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(35);
+
+  await page.getByTestId("replay-seek-forward").click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await expect
+    .poll(async (): Promise<number> => {
+      return await recordedScroll.evaluate((element: HTMLElement): number => {
+        return element.scrollTop;
+      });
+    })
+    .toBe(120);
+});
+
 test("plays incremental frames, pauses, seeks and keeps speed options visible above controls", async ({
   page,
 }: {
@@ -758,7 +1076,79 @@ test("event search, error selection, details and rail collapse keep their state"
   await expect(page.getByTestId("details-tab-session")).toContainText(
     "alex@example.com",
   );
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("tab", { name: "Session" }),
+  ).toBeFocused();
+  await expect(
+    detailsDialog.getByRole("heading", { name: "Journey", exact: true }),
+  ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("heading", {
+      name: "Related telemetry",
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  const sectionBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      [
+        "details-section-session",
+        "details-section-journey",
+        "details-section-environment",
+        "details-section-telemetry",
+      ].map((testId: string) => {
+        return page.getByTestId(testId).boundingBox();
+      }),
+    );
+
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(600);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(610);
+  expect(sectionBounds.every(Boolean)).toBe(true);
+
+  for (let index: number = 0; index < sectionBounds.length; index++) {
+    expect(sectionBounds[index]!.x).toBeCloseTo(sectionBounds[0]!.x, 0);
+    expect(sectionBounds[index]!.width).toBeCloseTo(sectionBounds[0]!.width, 0);
+
+    if (index > 0) {
+      expect(sectionBounds[index]!.y).toBeGreaterThan(
+        sectionBounds[index - 1]!.y + sectionBounds[index - 1]!.height,
+      );
+    }
+  }
+
+  const railCardBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      ["traces", "errors", "logs"].map((railTab: string) => {
+        return page.getByTestId(`details-rail-${railTab}`).boundingBox();
+      }),
+    );
+
+  expect(railCardBounds.every(Boolean)).toBe(true);
+  expect(railCardBounds[1]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  expect(railCardBounds[2]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  await detailsDialog.getByRole("tab", { name: "Privacy" }).click();
+  await expect(
+    page.getByTestId("details-section-capture-policy"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: /Fidelity/ }).click();
+  await expect(
+    page.getByTestId("details-section-recording-status"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: "Session" }).click();
   await screenshot(page, "session-replay-details");
+  await page.getByTestId("details-open-rail-logs").click();
+  await expect(detailsDialog).toHaveCount(0);
+  await expect(page.getByTestId("rail-tab-logs")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("recording tabs support keyboard selection while skipping tabs without footage", async ({
@@ -866,6 +1256,68 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await page.getByTestId("rail-search-input").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("rail-row").first()).toBeVisible();
   await screenshot(page, "session-replay-player-mobile");
+  await page
+    .getByRole("button", { name: "Session details", exact: true })
+    .click();
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(390);
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(360);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(372);
+  await expect(page.getByTestId("details-section-session")).toBeVisible();
+
+  const browserTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await page.getByTestId("replay-details-browser").boundingBox();
+  const osTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-details-os")
+    .boundingBox();
+
+  expect(browserTileBounds).not.toBeNull();
+  expect(osTileBounds).not.toBeNull();
+  expect(osTileBounds!.y).toBeGreaterThan(
+    browserTileBounds!.y + browserTileBounds!.height,
+  );
+  expect(osTileBounds!.width).toBeCloseTo(browserTileBounds!.width, 0);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-details-mobile");
+
+  await page.evaluate((): void => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  const exitUrl: Locator = page.getByTestId("replay-details-exit-url");
+  await exitUrl
+    .getByRole("button", { name: "Copy Exit URL", exact: true })
+    .click();
+  const manualCopyInput: Locator = exitUrl.getByRole("textbox", {
+    name: "Manual copy Exit URL",
+    exact: true,
+  });
+  await expect(manualCopyInput).toBeVisible();
+  await expect(manualCopyInput).toBeFocused();
+  expect(
+    await manualCopyInput.evaluate((input: HTMLInputElement): boolean => {
+      const rect: DOMRect = input.getBoundingClientRect();
+      const hit: Element | null = document.elementFromPoint(
+        rect.x + rect.width / 2,
+        rect.y + rect.height / 2,
+      );
+
+      return hit === input || input.contains(hit);
+    }),
+  ).toBe(true);
+  await exitUrl.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(
+    exitUrl.getByRole("button", { name: "Copy Exit URL", exact: true }),
+  ).toBeFocused();
 });
 
 test("playback controls fit the initial laptop viewport without scrolling", async ({

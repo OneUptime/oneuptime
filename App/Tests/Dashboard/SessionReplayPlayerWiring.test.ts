@@ -47,6 +47,10 @@ const VIEW_PATH: string = path.join(
   DASHBOARD_SRC,
   "Pages/Rum/View/SessionReplayView.tsx",
 );
+const STAGE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components/SessionReplay/ReplayStage.tsx",
+);
 
 /*
  * Comments are stripped before searching: the player's header explains why
@@ -61,6 +65,7 @@ function stripComments(source: string): string {
 
 const SOURCE: string = stripComments(fs.readFileSync(PLAYER_PATH, "utf8"));
 const VIEW_SOURCE: string = stripComments(fs.readFileSync(VIEW_PATH, "utf8"));
+const STAGE_SOURCE: string = stripComments(fs.readFileSync(STAGE_PATH, "utf8"));
 
 function listSourceFiles(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -226,6 +231,108 @@ describe("playback intent", () => {
     expect(SOURCE).toMatch(
       /type: "TAB_SWITCH",\s*tabId: tabId,\s*loader: loader,/,
     );
+  });
+});
+
+describe("read-only text selection", () => {
+  test("enabling selection pauses before exposing the replay document", () => {
+    const handler: string = slice(
+      SOURCE,
+      "const changeTextSelection:",
+      "const retry:",
+    );
+    const pauseIndex: number = handler.indexOf(
+      'engineRef.current?.dispatch({ type: "PAUSE" })',
+    );
+    const enableIndex: number = handler.indexOf(
+      "setIsTextSelectionEnabled(isEnabled)",
+    );
+
+    expect(pauseIndex).toBeGreaterThan(-1);
+    expect(enableIndex).toBeGreaterThan(pauseIndex);
+  });
+
+  test("playback and seeks wait for the replay document to leave selection mode", () => {
+    const exitCoordinator: string = slice(
+      SOURCE,
+      "const runAfterTextSelectionExit:",
+      "const dispatchSeek:",
+    );
+    const seekHandler: string = slice(
+      SOURCE,
+      "const seekTo:",
+      "const playPause:",
+    );
+    const playPauseHandler: string = slice(
+      SOURCE,
+      "const playPause:",
+      "const watchAgain:",
+    );
+    const watchAgainHandler: string = slice(
+      SOURCE,
+      "const watchAgain:",
+      "const changeTextSelection:",
+    );
+
+    expect(exitCoordinator).toContain(
+      "pendingTextSelectionActionRef.current = action",
+    );
+    expect(exitCoordinator).toContain("setIsTextSelectionEnabled(false)");
+    expect(seekHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(seekHandler).toContain("dispatchSeek(offsetMs)");
+    expect(playPauseHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(watchAgainHandler).toContain(
+      "runAfterTextSelectionExit((): void =>",
+    );
+    expect(STAGE_SOURCE).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*for \(const replayer of replayersRef\.current\)/,
+    );
+  });
+
+  test("the same selection state is wired to the toolbar and replay stage", () => {
+    expect(SOURCE).toContain("isTextSelectionEnabled: isTextSelectionEnabled");
+    expect(SOURCE).toContain("onTextSelectionChange: changeTextSelection");
+    expect(SOURCE).toContain(
+      "isPlayable && engine !== null && isReplayDocumentReady",
+    );
+
+    const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
+    expect(stageProps).toContain(
+      "isTextSelectionEnabled={isTextSelectionEnabled}",
+    );
+  });
+
+  test("a session or engine reload cannot carry selection into autoplay", () => {
+    const manifestReset: string = slice(
+      SOURCE,
+      "setManifest(null);",
+      "const rrwebModulePromise:",
+    );
+
+    expect(manifestReset).toContain("setEngine(null)");
+    expect(manifestReset).toContain("setIsTextSelectionEnabled(false)");
+    expect(manifestReset).toContain("setIsReplayDocumentReady(false)");
+  });
+
+  test("the toggle becomes available only while a real replay document exists", () => {
+    const replayerLifecycle: string = slice(
+      SOURCE,
+      "return engine.onReplayer((event: ReplayEngineReplayerEvent): void =>",
+      "const store: ReplayBackendSignalsStore",
+    );
+
+    expect(SOURCE).toContain(
+      "const [isReplayDocumentReady, setIsReplayDocumentReady]",
+    );
+    expect(replayerLifecycle).toContain('event.type === "created"');
+    expect(replayerLifecycle).toContain(
+      'event.type === "fullsnapshot-rebuilded"',
+    );
+    expect(replayerLifecycle).toContain(
+      "event.replayer.iframe.contentDocument",
+    );
+    expect(replayerLifecycle).toContain("setIsReplayDocumentReady(false)");
+    expect(replayerLifecycle).toContain("setIsTextSelectionEnabled(false)");
   });
 });
 

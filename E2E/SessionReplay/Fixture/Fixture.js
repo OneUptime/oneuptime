@@ -561,6 +561,7 @@ API.post = async ({ url, data }) => {
 };
 
 let nodeId;
+let recordedScrollNodeId;
 function textNode(textContent) {
   return { type: 3, id: nodeId++, textContent };
 }
@@ -699,13 +700,27 @@ function mobileSnapshot() {
 }
 function snapshot() {
   nodeId = 10;
-  const css = `*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#192132;font:16px -apple-system,BlinkMacSystemFont,sans-serif}header{background:white;padding:26px 52px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.brand{font-size:22px;font-weight:750;letter-spacing:3px}main{max-width:1080px;margin:38px auto;display:grid;grid-template-columns:1fr 360px;gap:28px}section,aside{background:white;border:1px solid #e3e6eb;border-radius:12px;padding:30px}h1{font-size:28px;margin:0 0 8px}h2{font-size:19px;margin:0 0 20px}.muted{color:#6b7280;font-size:14px}.field{border:1px solid #d1d5db;border-radius:7px;padding:14px;margin:9px 0 18px;background:#fafbfc}.label{font-size:13px;font-weight:600;margin-top:14px}.total{display:flex;justify-content:space-between;margin:20px 0}.product{padding:20px 0;border-bottom:1px solid #eee}button{width:100%;padding:16px;background:#292524;color:white;border:0;border-radius:7px;font-size:15px;font-weight:600}.notice{margin-top:18px;padding:13px;background:#fff7ed;color:#9a3412;border-radius:6px;font-size:13px}.steps{margin:22px 0;color:#78716c;font-size:13px}.swatch{background:#d6cfbf;width:50px;height:60px;float:left;border-radius:4px;margin-right:16px}`;
+  const css = `*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#192132;font:16px -apple-system,BlinkMacSystemFont,sans-serif}header{background:white;padding:26px 52px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.brand{font-size:22px;font-weight:750;letter-spacing:3px}main{max-width:1080px;margin:38px auto;display:grid;grid-template-columns:1fr 360px;gap:28px}section,aside{background:white;border:1px solid #e3e6eb;border-radius:12px;padding:30px}h1{font-size:28px;margin:0 0 8px;user-select:none}h2{font-size:19px;margin:0 0 20px}.muted{color:#6b7280;font-size:14px}.field{border:1px solid #d1d5db;border-radius:7px;padding:14px;margin:9px 0 18px;background:#fafbfc}.label{font-size:13px;font-weight:600;margin-top:14px}.total{display:flex;justify-content:space-between;margin:20px 0}.product{padding:20px 0;border-bottom:1px solid #eee}button{width:100%;padding:16px;background:#292524;color:white;border:0;border-radius:7px;font-size:15px;font-weight:600}.notice{margin-top:18px;padding:13px;background:#fff7ed;color:#9a3412;border-radius:6px;font-size:13px}.steps{margin:22px 0;color:#78716c;font-size:13px}.swatch{background:#d6cfbf;width:50px;height:60px;float:left;border-radius:4px;margin-right:16px}`;
   const field = (label) =>
     element("div", {}, [
       element("div", { class: "label" }, [textNode(label)]),
       element("div", { class: "field" }, [textNode("••••••••••••••••")]),
     ]);
   const clockText = { type: 3, id: 7, textContent: "Reviewing order · 0:00" };
+  const recordedScroll = element(
+    "div",
+    {
+      id: "fixture-recorded-scroll",
+      tabindex: "-1",
+      style: "height:48px;overflow:auto;border:1px solid #d1d5db",
+    },
+    [
+      element("div", { style: "height:260px;padding:8px" }, [
+        textNode("Recorded scroll position"),
+      ]),
+    ],
+  );
+  recordedScrollNodeId = recordedScroll.id;
   const body = element("body", {}, [
     element("header", {}, [
       element("span", { class: "brand" }, [textNode("FORM & FIELD")]),
@@ -717,6 +732,30 @@ function snapshot() {
         element("p", { class: "muted" }, [
           textNode("Thoughtfully made essentials, delivered to your door."),
         ]),
+        element("a", { id: "fixture-account-link", href: "#account" }, [
+          textNode("View account details"),
+        ]),
+        element(
+          "input",
+          {
+            id: "fixture-recorded-search",
+            type: "search",
+            value: "recorded search",
+          },
+          [],
+        ),
+        element(
+          "input",
+          {
+            id: "fixture-readonly-range",
+            type: "range",
+            min: "0",
+            max: "100",
+            value: "25",
+            style: "width:100%",
+          },
+          [],
+        ),
         element("div", { class: "steps" }, [
           textNode("1. Information   /   2. Shipping   /   3. Payment"),
         ]),
@@ -724,6 +763,7 @@ function snapshot() {
         field("Email address"),
         field("Delivery address"),
         field("Card number"),
+        recordedScroll,
         element("button", { id: "place-order" }, [
           textNode("Place order · £128.00"),
         ]),
@@ -792,6 +832,16 @@ function chunkEvents(index, startTime) {
       },
     },
   ];
+  events.push({
+    type: 3,
+    timestamp: timestamp + 9000,
+    data: {
+      source: 3,
+      id: recordedScrollNodeId,
+      x: 0,
+      y: 120,
+    },
+  });
   for (let at = 1000; at < 30000; at += 2500) {
     const time = offset + at;
     events.push({
