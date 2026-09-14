@@ -27,8 +27,9 @@ const STATE_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_DEBUG__";
 const CONFIG_URL: string =
   "https://oneuptime.com/telemetry/session-replay/v1/config";
 
-const ARTIFACT_URL: string =
-  "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js";
+const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
+
+const ARTIFACT_URL: string = `https://oneuptime.com/telemetry/session-replay/v${CONTENT_ADDRESSED_VERSION}/recorder.js`;
 
 /*
  * Distinctive enough that a substring search for it is meaningful. The
@@ -40,7 +41,7 @@ const SECRET_USER_REF: string = "user-ref-must-never-be-logged-91af";
 
 const CONFIG_BODY: Record<string, unknown> = {
   enabled: true,
-  recorderVersion: "11.7.3",
+  recorderVersion: CONTENT_ADDRESSED_VERSION,
   maskingMode: SessionReplayMaskingMode.MaskAllText,
   consentMode: "NotRequired",
   captureTrigger: "OnErrorOrFrustration",

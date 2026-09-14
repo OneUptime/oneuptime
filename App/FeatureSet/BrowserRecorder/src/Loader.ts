@@ -186,8 +186,8 @@ export async function load(): Promise<void> {
  *
  * Two reasons, both structural: an IIFE bundle imported as a module exposes
  * an empty namespace object, and import() has no way to carry an integrity
- * attribute - so SRI, which is the whole reason the artifact URL is version
- * pinned and immutable, would be unavailable.
+ * attribute - so SRI, which independently verifies the content-addressed,
+ * immutable artifact, would be unavailable.
  */
 function loadArtifact(
   options: RecorderInitOptions,

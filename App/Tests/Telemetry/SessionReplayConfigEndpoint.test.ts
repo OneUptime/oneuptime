@@ -321,6 +321,8 @@ const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 const APP_IDENTIFIER: string = "checkout-web";
 const CONFIG_ROUTE: string = "/session-replay/v1/config";
+const CONTENT_ADDRESSED_RECORDER_VERSION: string = `11.7.3-sha384-${"00".repeat(48)}`;
+const RECORDER_INTEGRITY: string = `sha384-${"A".repeat(64)}`;
 const EXPECTED_CONFIG_VARY: string = [
   "Origin",
   "x-oneuptime-token",
@@ -692,6 +694,22 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       expect(body["recorderVersion"]).toBe("11.7.3");
       expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
       expect(getRecorderIntegrityMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("returns the content-addressed version with its matching SRI", async () => {
+      getRecorderVersionMock.mockReturnValue(
+        CONTENT_ADDRESSED_RECORDER_VERSION,
+      );
+      getRecorderIntegrityMock.mockReturnValue(RECORDER_INTEGRITY);
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["recorderVersion"]).toBe(CONTENT_ADDRESSED_RECORDER_VERSION);
+      expect(body["recorderIntegrity"]).toBe(RECORDER_INTEGRITY);
     });
 
     test("an explicit dom kind follows the same web path", async () => {
