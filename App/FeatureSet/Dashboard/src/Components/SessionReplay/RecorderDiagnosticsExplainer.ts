@@ -131,7 +131,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "config-recorder-version-invalid": {
     explanation:
-      "The server named no published recorder version, so no artifact can load. This deployment does not build the recorder.",
+      "The server did not name exact lowercase latest as the recorder artifact, so no artifact can load.",
     isOutcome: true,
   },
   "config-accepted": { explanation: "The policy was accepted." },
@@ -142,7 +142,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   "config-value-unrecognised": {
     explanation:
       "This recorder build does not know a value the server sent and used the safest option instead. The recorder is older than the server.",
-    action: "A cached recorder refreshes within its cache window.",
+    action: "Reload the page so it fetches the latest recorder.",
   },
 
   /* ---- Index.ts ---- */

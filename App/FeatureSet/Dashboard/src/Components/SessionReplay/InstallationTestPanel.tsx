@@ -443,13 +443,11 @@ export function buildInstallationCheckRows(
     detail:
       extras.recorderCapabilities === null
         ? hasEverRecorded
-          ? `The newest session's first chunk announced none, so it was recorded by an artifact older than the one that reports them${
-              status.publishedRecorderVersion
-                ? ` (this deployment publishes ${status.publishedRecorderVersion})`
-                : ""
-            }. A browser holding a cached artifact refreshes within its cache window; until then its sessions lack click labels and web vitals.`
+          ? status.publishedRecorderVersion === null
+            ? "The newest session's first chunk announced no capabilities, and this deployment did not report a current recorder artifact to reload."
+            : "The newest session's first chunk announced none, so it came from an older recorder, possibly on a page opened before the current deployment. Reloading that page fetches the latest artifact with click labels and web vitals."
           : "Capabilities are announced on a session's first chunk. No chunk has arrived for this application yet, so there is nothing to read them from - the checks above say why."
-        : "Read from the newest session's first chunk. A browser holding an older cached artifact refreshes within its cache window.",
+        : "Read from the newest session's first chunk. Long-lived pages fetch the latest recorder when they reload.",
   });
 
   if (status.budgetExceededAt) {

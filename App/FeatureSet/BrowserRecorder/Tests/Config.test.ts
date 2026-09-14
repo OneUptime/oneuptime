@@ -4,18 +4,17 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
 import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "Common/Types/Rum/SessionReplay";
 import Consent from "../src/Consent";
 import Config, {
+  LATEST_RECORDER_VERSION,
   LoaderConfig,
   RecorderInitOptions,
   getChunkUrl,
   getRecorderCapabilities,
 } from "../src/Config";
 
-const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
-
 describe("Config", (): void => {
   const validBody: Record<string, unknown> = {
     enabled: true,
-    recorderVersion: "11.7.3",
+    recorderVersion: LATEST_RECORDER_VERSION,
     maskingMode: SessionReplayMaskingMode.MaskInputsOnly,
     captureTrigger: SessionReplayCaptureTrigger.Always,
     consentMode: SessionReplayConsentMode.NotRequired,
@@ -162,7 +161,7 @@ describe("Config", (): void => {
 
       expect(config).toEqual({
         enabled: true,
-        recorderVersion: "11.7.3",
+        recorderVersion: LATEST_RECORDER_VERSION,
         maskingMode: SessionReplayMaskingMode.MaskInputsOnly,
         captureTrigger: SessionReplayCaptureTrigger.Always,
         consentMode: SessionReplayConsentMode.NotRequired,
@@ -192,16 +191,24 @@ describe("Config", (): void => {
     });
 
     it("refuses a body that does not say enabled", (): void => {
-      expect(Config.validateConfig({ recorderVersion: "1.0.0" })).toBeNull();
       expect(
-        Config.validateConfig({ enabled: false, recorderVersion: "1.0.0" }),
+        Config.validateConfig({ recorderVersion: LATEST_RECORDER_VERSION }),
       ).toBeNull();
       expect(
-        Config.validateConfig({ enabled: "true", recorderVersion: "1.0.0" }),
+        Config.validateConfig({
+          enabled: false,
+          recorderVersion: LATEST_RECORDER_VERSION,
+        }),
+      ).toBeNull();
+      expect(
+        Config.validateConfig({
+          enabled: "true",
+          recorderVersion: LATEST_RECORDER_VERSION,
+        }),
       ).toBeNull();
     });
 
-    it("refuses a body with no pinned recorder version", (): void => {
+    it("refuses a body with no recorder artifact label", (): void => {
       expect(Config.validateConfig({ enabled: true })).toBeNull();
     });
 
@@ -209,9 +216,9 @@ describe("Config", (): void => {
      * recorderVersion is interpolated straight into an artifact URL path, so
      * "non-empty string" was not enough: a config value of "../../../admin"
      * produced a <script src> pointing somewhere else entirely on the ingest
-     * origin. Only a semver the build could have stamped is accepted.
+     * origin. Only exact lowercase `latest` is accepted.
      */
-    it("refuses a recorder version outside the path-safe grammar", (): void => {
+    it("refuses every recorder label except exact lowercase latest", (): void => {
       const rejected: Array<string> = [
         "../../../admin",
         "1.0.0/../../evil",
@@ -221,10 +228,13 @@ describe("Config", (): void => {
         "1.0.0-sha384-abc=",
         "v1.0.0",
         "1.0",
-        "latest",
+        "Latest",
         "1.0.0 ",
         "1.0.0/recorder.js",
         "//evil.example.com/x",
+        "1.0.0",
+        "12.0.0-beta.1",
+        `11.7.3-sha384-${"a".repeat(96)}`,
       ];
 
       for (const version of rejected) {
@@ -235,19 +245,14 @@ describe("Config", (): void => {
       }
     });
 
-    it("accepts legacy and content-addressed versions", (): void => {
-      for (const version of [
-        "1.0.0",
-        "11.7.3",
-        "12.0.0-beta.1",
-        CONTENT_ADDRESSED_VERSION,
-      ]) {
-        expect(Config.isValidRecorderVersion(version)).toBe(true);
-        expect(
-          Config.validateConfig({ enabled: true, recorderVersion: version })
-            ?.recorderVersion,
-        ).toBe(version);
-      }
+    it("accepts only the exact latest artifact label", (): void => {
+      expect(Config.isValidRecorderVersion(LATEST_RECORDER_VERSION)).toBe(true);
+      expect(
+        Config.validateConfig({
+          enabled: true,
+          recorderVersion: LATEST_RECORDER_VERSION,
+        })?.recorderVersion,
+      ).toBe(LATEST_RECORDER_VERSION);
     });
 
     it("refuses a non-object body", (): void => {
@@ -262,7 +267,7 @@ describe("Config", (): void => {
     it("defaults an unknown masking mode to MaskAllText", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         maskingMode: "MaskNothing",
       });
 
@@ -272,7 +277,7 @@ describe("Config", (): void => {
     it("honours MaskSensitiveInputsOnly", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
       });
 
@@ -291,7 +296,7 @@ describe("Config", (): void => {
        */
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         maskingMode: "MaskAlmostNothing",
       });
 
@@ -304,7 +309,7 @@ describe("Config", (): void => {
     it("defaults an unknown consent mode to RequireExplicit", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         consentMode: "Whatever",
       });
 
@@ -316,7 +321,7 @@ describe("Config", (): void => {
     it("defaults an unknown capture trigger to OnErrorOrFrustration", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         captureTrigger: "OnRageClickOnly",
       });
 
@@ -338,7 +343,7 @@ describe("Config", (): void => {
     describe("missing policy fields take the product defaults", (): void => {
       const minimal: Record<string, unknown> = {
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
       };
 
       it("captureTrigger -> Always", (): void => {
@@ -430,7 +435,7 @@ describe("Config", (): void => {
     it("defaults respectDoNotTrack to true when absent", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
       });
 
       expect(config?.respectDoNotTrack).toBe(true);
@@ -439,7 +444,7 @@ describe("Config", (): void => {
     it("defaults an unknown directive to continue", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
         directive: "explode",
       });
 
@@ -449,7 +454,7 @@ describe("Config", (): void => {
     it("omits recorderIntegrity rather than setting it to undefined", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
-        recorderVersion: "1.0.0",
+        recorderVersion: LATEST_RECORDER_VERSION,
       });
 
       expect(
@@ -526,8 +531,8 @@ describe("Config", (): void => {
       expect(getChunkUrl(options)).toBe(
         "https://oneuptime.com/telemetry/session-replay/v1/chunk",
       );
-      expect(Config.getArtifactUrl(options, CONTENT_ADDRESSED_VERSION)).toBe(
-        `https://oneuptime.com/telemetry/session-replay/v${CONTENT_ADDRESSED_VERSION}/recorder.js`,
+      expect(Config.getArtifactUrl(options, LATEST_RECORDER_VERSION)).toBe(
+        "https://oneuptime.com/telemetry/session-replay/latest/recorder.js",
       );
     });
 
@@ -539,7 +544,7 @@ describe("Config", (): void => {
       for (const url of [
         Config.getConfigUrl(options),
         getChunkUrl(options),
-        Config.getArtifactUrl(options, CONTENT_ADDRESSED_VERSION),
+        Config.getArtifactUrl(options, LATEST_RECORDER_VERSION),
       ]) {
         expect(url).toContain("/telemetry/session-replay");
       }
@@ -547,7 +552,7 @@ describe("Config", (): void => {
 
     /*
      * Defence in depth behind validateConfig: nothing may assemble a script
-     * URL from a version that is not a semver, whatever path it arrived by.
+     * URL from a label other than exact lowercase `latest`.
      */
     it("refuses to build an artifact url from a traversing version", (): void => {
       expect(Config.getArtifactUrl(options, "../../../admin")).toBeNull();
@@ -593,7 +598,7 @@ describe("Config", (): void => {
 
       const config: LoaderConfig | null = await Config.fetchConfig(options);
 
-      expect(config?.recorderVersion).toBe("11.7.3");
+      expect(config?.recorderVersion).toBe(LATEST_RECORDER_VERSION);
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
       /* No page userRef means no user-ref header at all. */

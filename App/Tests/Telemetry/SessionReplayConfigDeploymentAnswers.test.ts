@@ -243,10 +243,9 @@ jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
     __esModule: true,
     ARTIFACT_CONTENT_TYPE: "application/javascript",
     LOADER_CACHE_CONTROL: "public, max-age=300",
-    RECORDER_CACHE_CONTROL: "public, max-age=31536000, immutable",
-    RECORDER_VERSION_PATTERN: /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
+    RECORDER_CACHE_CONTROL: "no-store",
     getArtifactFilePath: jest.fn(),
-    getPinnedRecorderPath: jest.fn(),
+    getLatestRecorderPath: jest.fn(),
     getRecorderVersion: (): string | null => {
       return null;
     },
@@ -297,7 +296,7 @@ function buildRequest(): unknown {
   };
 }
 
-async function callConfigRoute(): Promise<JSONObject> {
+async function callConfigRoute(response?: FakeResponse): Promise<JSONObject> {
   const handlers: Array<unknown> = registeredGetHandlers[CONFIG_ROUTE] || [];
   const terminal: unknown = handlers[handlers.length - 1];
 
@@ -311,7 +310,7 @@ async function callConfigRoute(): Promise<JSONObject> {
     ) => Promise<void>
   )(
     buildRequest() as ExpressRequest,
-    buildResponse() as unknown as ExpressResponse,
+    (response || buildResponse()) as unknown as ExpressResponse,
     jest.fn() as unknown as NextFunction,
   );
 
@@ -334,10 +333,12 @@ describe("GET /session-replay/v1/config (deployment-level answers)", () => {
   test("reports recorder-not-built when no artifact has been published", async () => {
     getPolicyMock.mockResolvedValue(null as never);
 
-    const body: JSONObject = await callConfigRoute();
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(res);
 
     expect(body["enabled"]).toBe(false);
     expect(body["disabledReason"]).toBe("recorder-not-built");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
 
     /*
      * Checked BEFORE the policy, deliberately. An instance with no artifact

@@ -23,8 +23,8 @@ import URL from "Common/Types/API/URL";
  *     wide-open ingest endpoint);
  *   - the 401 arrives WITHOUT the server buffering the body, which is why
  *     the ingestion-key middleware runs before the body reader;
- *   - the pinned recorder artifact is served only for a well-formed version,
- *     so the version segment cannot be steered anywhere.
+ *   - the recorder artifact lives at one fixed, mutable `latest` path with no
+ *     caller-controlled filesystem segment.
  */
 
 const INGEST_PREFIXES: Array<string> = ["", "/telemetry"];
@@ -153,18 +153,14 @@ test.describe("Session replay ingest refuses an unauthenticated caller", () => {
 });
 
 test.describe("Session replay recorder artifact", () => {
-  test("a malformed version is 404, never a served file", async ({
+  test("the retired versioned artifact route is 404", async ({
     page,
   }: {
     page: Page;
   }) => {
     page.setDefaultNavigationTimeout(120000);
 
-    /*
-     * Rejected by RECORDER_VERSION_PATTERN before the manifest is consulted,
-     * plus one well-formed version that was never published - which the
-     * manifest itself must refuse rather than serving today's bytes under it.
-     */
+    /* `latest` is the only recorder artifact route now. */
     for (const version of ["not-a-version", "1.2.3.4.5", "0.0.0"]) {
       const response: APIResponse = await page.request.get(
         endpoint(`/session-replay/v${version}/recorder.js`),

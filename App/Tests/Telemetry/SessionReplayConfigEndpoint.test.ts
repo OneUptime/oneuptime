@@ -263,7 +263,7 @@ jest.mock("../../FeatureSet/Telemetry/Config", () => {
 });
 
 /*
- * A pinned artifact version, so the endpoint takes the LIVE path instead
+ * A published latest artifact, so the endpoint takes the LIVE path instead
  * of reporting itself disabled for want of a build.
  */
 jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
@@ -271,12 +271,11 @@ jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
     __esModule: true,
     ARTIFACT_CONTENT_TYPE: "application/javascript",
     LOADER_CACHE_CONTROL: "public, max-age=300",
-    RECORDER_CACHE_CONTROL: "public, max-age=31536000, immutable",
-    RECORDER_VERSION_PATTERN: /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
+    RECORDER_CACHE_CONTROL: "no-store",
     getArtifactFilePath: jest.fn(),
-    getPinnedRecorderPath: jest.fn(),
+    getLatestRecorderPath: jest.fn(),
     getRecorderVersion: jest.fn((): string | null => {
-      return "11.7.3";
+      return "latest";
     }),
     getRecorderIntegrity: jest.fn((): string | null => {
       return null;
@@ -321,7 +320,7 @@ const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 const APP_IDENTIFIER: string = "checkout-web";
 const CONFIG_ROUTE: string = "/session-replay/v1/config";
-const CONTENT_ADDRESSED_RECORDER_VERSION: string = `11.7.3-sha384-${"00".repeat(48)}`;
+const LATEST_RECORDER_VERSION: string = "latest";
 const RECORDER_INTEGRITY: string = `sha384-${"A".repeat(64)}`;
 const EXPECTED_CONFIG_VARY: string = [
   "Origin",
@@ -418,7 +417,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getRecorderVersionMock.mockImplementation((): string => {
-      return "11.7.3";
+      return LATEST_RECORDER_VERSION;
     });
     getRecorderIntegrityMock.mockImplementation((): null => {
       return null;
@@ -506,8 +505,8 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(body["slowRequestBudgetMs"]).toBe(5000);
     expect(body["isTargeted"]).toBe(false);
 
-    /* Anonymous (no user ref) responses stay browser-cacheable. */
-    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+    /* Latest's SRI and bytes must always come from a fresh config pair. */
+    expect(res.headers["Cache-Control"]).toBe("no-store");
 
     /* And Vary keeps a shared cache from reusing them for identified fetches. */
     expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
@@ -612,13 +611,12 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   test("a disabled application says WHY it is disabled", async () => {
     getPolicyMock.mockResolvedValue(null as never);
 
-    const body: JSONObject = await callConfigRoute(
-      buildRequest(),
-      buildResponse(),
-    );
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
 
     expect(body["enabled"]).toBe(false);
     expect(body["disabledReason"]).toBe("not-enabled-for-application");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
   });
 
   /*
@@ -629,13 +627,12 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   test("a policy lookup that throws is reported as unavailable, not as disabled", async () => {
     getPolicyMock.mockRejectedValue(new Error("redis down") as never);
 
-    const body: JSONObject = await callConfigRoute(
-      buildRequest(),
-      buildResponse(),
-    );
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
 
     expect(body["enabled"]).toBe(false);
     expect(body["disabledReason"]).toBe("policy-unavailable");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
   });
 
   /*
@@ -691,15 +688,13 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       );
 
       expect(body["enabled"]).toBe(true);
-      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(body["recorderVersion"]).toBe(LATEST_RECORDER_VERSION);
       expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
       expect(getRecorderIntegrityMock).toHaveBeenCalledTimes(1);
     });
 
-    test("returns the content-addressed version with its matching SRI", async () => {
-      getRecorderVersionMock.mockReturnValue(
-        CONTENT_ADDRESSED_RECORDER_VERSION,
-      );
+    test("returns latest with its current SRI", async () => {
+      getRecorderVersionMock.mockReturnValue(LATEST_RECORDER_VERSION);
       getRecorderIntegrityMock.mockReturnValue(RECORDER_INTEGRITY);
       getPolicyMock.mockResolvedValue(buildPolicy() as never);
 
@@ -708,7 +703,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
         buildResponse(),
       );
 
-      expect(body["recorderVersion"]).toBe(CONTENT_ADDRESSED_RECORDER_VERSION);
+      expect(body["recorderVersion"]).toBe(LATEST_RECORDER_VERSION);
       expect(body["recorderIntegrity"]).toBe(RECORDER_INTEGRITY);
     });
 
@@ -721,7 +716,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       );
 
       expect(body["enabled"]).toBe(true);
-      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(body["recorderVersion"]).toBe(LATEST_RECORDER_VERSION);
       expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
     });
 
@@ -801,6 +796,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       ).toBe(400);
       expect(getPolicyMock).not.toHaveBeenCalled();
       expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      expect(res.headers["Cache-Control"]).toBe("no-store");
       expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
     });
 
@@ -859,7 +855,7 @@ describe("GET /session-replay/v1/config names the switch that is off", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getRecorderVersionMock.mockImplementation((): string => {
-      return "11.7.3";
+      return LATEST_RECORDER_VERSION;
     });
     getRecorderIntegrityMock.mockImplementation((): null => {
       return null;
@@ -921,7 +917,7 @@ describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getRecorderVersionMock.mockImplementation((): string => {
-      return "11.7.3";
+      return LATEST_RECORDER_VERSION;
     });
     getRecorderIntegrityMock.mockImplementation((): null => {
       return null;
@@ -950,8 +946,8 @@ describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
     expect(resetsAt.getUTCHours()).toBe(0);
     expect(resetsAt.getUTCMinutes()).toBe(0);
 
-    /* Short cache, so the pause lifts within a minute of the reset. */
-    expect(res.headers["Cache-Control"]).toBe("private, max-age=60");
+    /* The fixed config URL never retains a stale policy or artifact SRI. */
+    expect(res.headers["Cache-Control"]).toBe("no-store");
     expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
   });
 
@@ -995,14 +991,14 @@ describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
     expect(body["enabled"]).toBe(true);
   });
 
-  test("usage under the budget is enabled, with the ordinary 5-minute cache", async () => {
+  test("usage under the budget is enabled with an uncacheable config", async () => {
     bytesUsedTodayMock.mockResolvedValue((512 * 1024 * 1024) as never);
 
     const res: FakeResponse = buildResponse();
     const body: JSONObject = await callConfigRoute(buildRequest(), res);
 
     expect(body["enabled"]).toBe(true);
-    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
   });
 
   test("a budget pause still counts as the recorder being alive", async () => {

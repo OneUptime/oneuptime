@@ -36,7 +36,7 @@ const INIT_OPTIONS: RecorderInitOptions = {
   appIdentifier: "app-1",
 };
 
-const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
+const LATEST_ARTIFACT_LABEL: string = "latest";
 
 const baseConfig: () => SessionReplayConfigResponse =
   (): SessionReplayConfigResponse => {
@@ -1312,7 +1312,7 @@ describe("Recorder", (): void => {
     it("carries identity, versions and policy for the ingest gate", async (): Promise<void> => {
       const instance: Recorder = startRecorder({
         samplePercentage: 100,
-        recorderVersion: CONTENT_ADDRESSED_VERSION,
+        recorderVersion: LATEST_ARTIFACT_LABEL,
       });
 
       await flushUploads();
@@ -1331,12 +1331,12 @@ describe("Recorder", (): void => {
       expect(post.envelope.chunkIndex).toBe(0);
       expect(post.envelope.rrwebVersion).toBe("2.1.1");
       /*
-       * Config's long value is an artifact locator. The envelope carries the
-       * recorder build's short product version and the server parser caps it
-       * at 32 characters, so these meanings must never be collapsed again.
+       * Config's value is an artifact label. The envelope carries the
+       * recorder build's short product version for diagnostics, so these
+       * meanings must remain separate.
        */
       expect(post.envelope.recorderVersion).toBe(RECORDER_VERSION);
-      expect(post.envelope.recorderVersion).not.toBe(CONTENT_ADDRESSED_VERSION);
+      expect(post.envelope.recorderVersion).not.toBe(LATEST_ARTIFACT_LABEL);
       expect(post.envelope.recorderVersion.length).toBeLessThanOrEqual(32);
       expect(post.envelope.recorderKind).toBe("dom");
       expect(post.envelope.maskingMode).toBe(
