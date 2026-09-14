@@ -136,6 +136,19 @@ test("uses the shared table and groups replay navigation in its own category", a
     page.getByRole("columnheader", { name: "User & device", exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("session-replay-facets")).toBeVisible();
+  await expect(page.getByTestId("session-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
+  await expect(
+    page.getByTestId("pagination-items-on-page-select").locator("option"),
+  ).toHaveText(["20", "50", "100"]);
+  await expect(
+    page.getByRole("button", { name: "Users", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Set up recording", exact: true }),
+  ).toHaveCount(0);
   const section: Locator = page
     .locator("h6")
     .filter({ hasText: /^Session Replay$/ })
@@ -364,6 +377,10 @@ test("the users page rolls the window up by person and hands one person to the l
   await expect(
     page.getByRole("columnheader", { name: "Last seen", exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("session-users-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-users-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-users");
   /*
@@ -386,7 +403,7 @@ test("the users page rolls the window up by person and hands one person to the l
   >;
   expect(typeof filters["visitorId"]).toBe("string");
   expect(filters["identifiedUserRef"]).toBeUndefined();
-  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("link", { name: "Replay Users", exact: true }).click();
   /* The default window crosses as absence: the bare route, no query. */
   await expect(page).toHaveURL(new RegExp(`${usersRoute}$`));
 });
@@ -504,9 +521,10 @@ test("the first recording empty state keeps setup documentation on the session r
   await expect(page.locator("pre")).toHaveCount(0);
   await expect(page.getByTestId("session-replay-facets")).toBeVisible();
   await screenshot(page, "session-replay-empty");
-  await page
-    .getByRole("button", { name: "Set up recording", exact: true })
-    .click();
+  await expect(page.getByTestId("list-empty-action")).toHaveText(
+    "Open the setup guide",
+  );
+  await page.getByTestId("list-empty-action").click();
   await expect(page).toHaveURL(documentationRoute);
   await expect(
     page.getByText("Create a telemetry ingestion key", { exact: true }),
