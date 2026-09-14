@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 /*
  * App has no react, by design.
@@ -27,15 +28,19 @@ import path from "path";
 const TESTS_DIR: string = __dirname;
 const APP_DIR: string = path.join(__dirname, "..");
 
-/* import ... from "<x>" / export ... from "<x>" / import("<x>") */
-const IMPORT_PATTERN: RegExp = /(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
-
 /* An opening tag: the cheapest reliable sign a file really is JSX. */
 const JSX_PATTERN: RegExp = /<[A-Za-z/>]/;
 
 /* A module that imports React is a module App cannot load. */
-const REACT_IMPORT_PATTERN: RegExp =
-  /(?:from|import)\s*\(?\s*["'](react|react-dom|react-router-dom|react-i18next|reactflow|recharts|react-beautiful-dnd)(?:\/[^"']*)?["']/;
+const REACT_MODULES: ReadonlySet<string> = new Set<string>([
+  "react",
+  "react-dom",
+  "react-router-dom",
+  "react-i18next",
+  "reactflow",
+  "recharts",
+  "react-beautiful-dnd",
+]);
 
 function listFiles(directory: string, suffix: string): Array<string> {
   const found: Array<string> = [];
@@ -59,30 +64,73 @@ function listFiles(directory: string, suffix: string): Array<string> {
   return found;
 }
 
-/*
- * Comments are stripped first. Several of these modules explain in prose
- * which component they were split out of - `... from "./FilterChipDropdown"
- * keep working` - and a scanner that read those would report the split it is
- * meant to encourage as the violation it is meant to catch.
- */
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-}
-
-function readImports(filePath: string): Array<string> {
-  const source: string = stripComments(fs.readFileSync(filePath, "utf8"));
+function readImportsFromSource(
+  filePath: string,
+  source: string,
+): Array<string> {
   const specifiers: Array<string> = [];
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
 
-  IMPORT_PATTERN.lastIndex = 0;
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    ) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference) &&
+      node.moduleReference.expression &&
+      ts.isStringLiteralLike(node.moduleReference.expression)
+    ) {
+      specifiers.push(node.moduleReference.expression.text);
+    } else if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteralLike(node.argument.literal)
+    ) {
+      specifiers.push(node.argument.literal.text);
+    } else if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) &&
+          node.expression.text === "require"))
+    ) {
+      const moduleSpecifier: ts.Expression | undefined = node.arguments[0];
 
-  let match: RegExpExecArray | null = IMPORT_PATTERN.exec(source);
+      if (moduleSpecifier && ts.isStringLiteralLike(moduleSpecifier)) {
+        specifiers.push(moduleSpecifier.text);
+      }
+    }
 
-  while (match) {
-    specifiers.push(match[1] as string);
-    match = IMPORT_PATTERN.exec(source);
-  }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
 
   return specifiers;
+}
+
+/*
+ * Parse actual syntax instead of looking for the words "from" or "import".
+ * Source-wiring tests frequently assert against import-shaped strings; those
+ * are evidence about another file, not dependencies of the test itself.
+ */
+function readImports(filePath: string): Array<string> {
+  return readImportsFromSource(filePath, fs.readFileSync(filePath, "utf8"));
+}
+
+function isReactImport(specifier: string): boolean {
+  return Array.from(REACT_MODULES).some((moduleName: string): boolean => {
+    return specifier === moduleName || specifier.startsWith(`${moduleName}/`);
+  });
 }
 
 /* Resolve a relative specifier the way ts-jest does: .ts, .tsx, or /index. */
@@ -171,6 +219,47 @@ function reachableFeatureSetModules(): Map<string, Array<string>> {
 describe("App tests never reach a React module", () => {
   const reachable: Map<string, Array<string>> = reachableFeatureSetModules();
 
+  test("the import reader ignores import-shaped strings and comments", () => {
+    const specifiers: Array<string> = readImportsFromSource(
+      "ImportReaderFixture.ts",
+      [
+        'import value from "./actual-import";',
+        'export { value } from "./actual-export";',
+        'const lazy = import("./actual-dynamic-import");',
+        "const lazyTemplate = import(`./actual-template-import`);",
+        'type Imported = import("./actual-import-type").Imported;',
+        'const required = require("./actual-require");',
+        "const requiredTemplate = require(`./actual-template-require`);",
+        'const assertion = `from "./string-literal"`;',
+        '// import "./line-comment";',
+        '/* export { value } from "./block-comment"; */',
+      ].join("\n"),
+    );
+
+    expect(specifiers).toEqual([
+      "./actual-import",
+      "./actual-export",
+      "./actual-dynamic-import",
+      "./actual-template-import",
+      "./actual-import-type",
+      "./actual-require",
+      "./actual-template-require",
+    ]);
+  });
+
+  test("standalone recorder suites stay in their own Jest projects", () => {
+    const jestConfig: { testPathIgnorePatterns?: Array<string> } = JSON.parse(
+      fs.readFileSync(path.join(APP_DIR, "jest.config.json"), "utf8"),
+    ) as { testPathIgnorePatterns?: Array<string> };
+
+    expect(jestConfig.testPathIgnorePatterns).toEqual(
+      expect.arrayContaining([
+        "FeatureSet/BrowserRecorder",
+        "FeatureSet/MobileRecorder",
+      ]),
+    );
+  });
+
   test("the scan actually found something to check", () => {
     /*
      * Guards the guard: a resolver change that quietly matched nothing would
@@ -183,9 +272,7 @@ describe("App tests never reach a React module", () => {
     const offenders: Array<string> = [];
 
     for (const [file, chain] of reachable) {
-      if (
-        REACT_IMPORT_PATTERN.test(stripComments(fs.readFileSync(file, "utf8")))
-      ) {
+      if (readImports(file).some(isReactImport)) {
         offenders.push(chain.join("\n    -> "));
       }
     }

@@ -2,7 +2,6 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "./SessionReplay";
-import ServiceType from "../Telemetry/ServiceType";
 
 /*
  * Wire contract between the Dashboard and the session-replay read routes
@@ -557,10 +556,13 @@ export interface SessionReplayForExceptionRequestDto {
    */
   primaryEntityId?: string;
   /*
-   * New callers send this with primaryEntityId. The server accepts an ID-only
-   * rolling-compatibility request through a conservative scoped-unknown path.
+   * New callers send this wire value with primaryEntityId. The server validates
+   * it against ServiceType before using it; keeping the transport contract a
+   * string also keeps this dependency-free Rum module safe to inline in the
+   * browser recorder. The server accepts an ID-only rolling-compatibility
+   * request through a conservative scoped-unknown path.
    */
-  primaryEntityType?: ServiceType;
+  primaryEntityType?: string;
   /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;

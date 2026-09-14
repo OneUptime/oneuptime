@@ -140,11 +140,10 @@ const WAIT_TIMEOUT: number = 20000;
 const SETTLE_MS: number = 1500;
 
 /*
- * CardModelDetail flips its own refresher in a mount effect, so every card
- * fetches twice as it mounts. That is the whole budget: the loop this pins
- * kept fetching without bound.
+ * CardModelDetail fetches once on mount. A real refresher change may fetch
+ * again later, but mounting must not manufacture a second request.
  */
-const POLICY_FETCHES_ON_MOUNT: number = 2;
+const POLICY_FETCHES_ON_MOUNT: number = 1;
 
 const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
