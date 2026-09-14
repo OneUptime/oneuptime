@@ -144,6 +144,35 @@ export const reloadPage: ReloadPageFunction = (): void => {
   window.location.reload();
 };
 
+/*
+ * Leaving a page aborts whatever the document is still downloading, and
+ * Firefox rejects a lazy route bundle cut off that way with the very "error
+ * loading dynamically imported module" a stale deploy produces. Reloading then
+ * is not a recovery: window.location.reload() replaces the navigation that was
+ * just started, so the page being left loads again and the destination never
+ * does. Anyone who leaves a page, or is sent on by a forced navigation, while a
+ * route bundle is still downloading is bounced back. The E2E onboarding showed
+ * it on every Firefox run: opening /dashboard/welcome while /dashboard/ was
+ * still fetching its Init route bundle reloaded /dashboard/ instead.
+ *
+ * The browser fires beforeunload before it cancels those downloads, so a chunk
+ * error arriving after it is a side effect of leaving, not a missing asset.
+ * pageshow marks the document as in use again (a back/forward cache restore).
+ * If a beforeunload prompt keeps the user on the page, a later chunk error
+ * shows the fallback and its Reload button instead of reloading by itself.
+ */
+let isDocumentUnloading: boolean = false;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", (): void => {
+    isDocumentUnloading = true;
+  });
+
+  window.addEventListener("pageshow", (): void => {
+    isDocumentUnloading = false;
+  });
+}
+
 /**
  * Recover from a stale-bundle error by reloading once. Returns true when a
  * reload was triggered, so the caller knows the fallback is only transient.
@@ -154,6 +183,15 @@ export const handleChunkLoadError: HandleChunkLoadErrorFunction = (
   error: unknown,
 ): boolean => {
   if (!isChunkLoadError(error)) {
+    return false;
+  }
+
+  /*
+   * Checked before the cooldown is recorded: sessionStorage outlives this
+   * document, and the page being navigated to must not inherit a cooldown for
+   * an error that never called for a reload.
+   */
+  if (isDocumentUnloading) {
     return false;
   }
 

@@ -733,6 +733,46 @@ describe("handleChunkLoadError", () => {
       window.sessionStorage.getItem(CHUNK_LOAD_RELOAD_STORAGE_KEY),
     ).not.toBeNull();
   });
+
+  describe("while the page is being left", () => {
+    /*
+     * Firefox cancels a lazy bundle that is still downloading when a navigation
+     * starts and rejects its import with the message a stale deploy produces.
+     * Reloading then replaced the navigation itself: a brand-new account's
+     * Dashboard reloaded /dashboard/ instead of ever opening the welcome page.
+     */
+    const abortedBundleError: Error = new Error(
+      "error loading dynamically imported module: http://localhost/dashboard/dist/InitRoutes-3HFIASZP.js",
+    );
+
+    afterEach(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+
+    test("does not reload for a bundle the navigation cut off", () => {
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(handleChunkLoadError(abortedBundleError)).toBe(false);
+      expect(reloadMock).not.toHaveBeenCalled();
+    });
+
+    test("does not hand the next page a reload cooldown", () => {
+      window.dispatchEvent(new Event("beforeunload"));
+      handleChunkLoadError(abortedBundleError);
+
+      expect(
+        window.sessionStorage.getItem(CHUNK_LOAD_RELOAD_STORAGE_KEY),
+      ).toBeNull();
+    });
+
+    test("reloads for a stale bundle again once the page is back in use", () => {
+      window.dispatchEvent(new Event("beforeunload"));
+      window.dispatchEvent(new Event("pageshow"));
+
+      expect(handleChunkLoadError(abortedBundleError)).toBe(true);
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("ErrorBoundary chunk load recovery", () => {
@@ -748,11 +788,31 @@ describe("ErrorBoundary chunk load recovery", () => {
   });
 
   afterEach(() => {
+    window.dispatchEvent(new Event("pageshow"));
     restoreLocation();
   });
 
   afterAll(() => {
     consoleErrorSpy.mockRestore();
+  });
+
+  test("lets the navigation proceed when leaving the page cuts off a lazy route", () => {
+    window.dispatchEvent(new Event("beforeunload"));
+
+    const ThrowAbortedChunkError: FunctionComponent = (): ReactElement => {
+      throw new Error(
+        "error loading dynamically imported module: http://localhost/dashboard/dist/InitRoutes-3HFIASZP.js",
+      );
+    };
+
+    render(
+      <ErrorBoundary>
+        <ThrowAbortedChunkError />
+      </ErrorBoundary>,
+    );
+
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(FALLBACK_TEXT)).not.toBeNull();
   });
 
   test("auto-reloads when a lazy route fails to load", () => {
