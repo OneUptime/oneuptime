@@ -4,6 +4,8 @@ import ExceptionInstanceService from "../../../../Server/Services/ExceptionInsta
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import SessionReplayReadService, {
   MAX_LIST_ROUTES,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
   MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_ACTIVITY_SUMMARY_CACHE_TTL_MS,
   SessionReplayApplicationActivitySummary,
@@ -17,6 +19,8 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplaySummariesRequest,
+  SessionReplaySummary,
   SessionReplayUserRollup,
   SessionReplayUsersRequest,
   SessionReplayUsersResult,
@@ -143,6 +147,173 @@ describe("SessionReplayReadService statements", () => {
 
     return statementOf(headerQuerySpy).query;
   }
+
+  function summariesRequest(
+    overrides: Partial<SessionReplaySummariesRequest> = {},
+  ): SessionReplaySummariesRequest {
+    return {
+      projectId: projectId,
+      rumApplicationId: rumApplicationId,
+      sessionIds: ["session-a", "session-b"],
+      ...overrides,
+    };
+  }
+
+  describe("session summary batch", () => {
+    test("uses one application-scoped argMax query with only non-identity summary columns", async () => {
+      await SessionReplayReadService.getSessionSummaries(summariesRequest());
+
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = statementOf(headerQuerySpy);
+      const query: string = statement.query;
+
+      expect(query).toMatch(/FROM \{p\d+:Identifier\}/);
+      expect(query).toContain("projectId = ");
+      expect(query).toContain("rumApplicationId = ");
+      expect(query).toContain("sessionId IN (");
+      expect(query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(query).toContain("argMax(startTime, version)");
+      expect(query).toContain("argMax(entryUrl, version)");
+      expect(query).toContain("argMax(browserName, version)");
+      expect(query).toContain("argMax(browserVersion, version)");
+      expect(query).toContain("argMax(osName, version)");
+      expect(query).toContain("argMax(deviceType, version)");
+      expect(query).toContain("retentionDate >= now()");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toContain(" FINAL");
+
+      for (const forbiddenColumn of [
+        "identifiedUserKey",
+        "identifiedUserLabel",
+        "identifiedUserTraits",
+        "visitorId",
+        "payload",
+        "exitUrl",
+        "countryCode",
+      ]) {
+        expect(query).not.toContain(forbiddenColumn);
+      }
+
+      const values: Array<unknown> = boundValues(statement);
+      expect(values).toContain(AnalyticsTableName.RumSession);
+      expect(values).toContain(projectId.toString());
+      expect(values).toContain(rumApplicationId.toString());
+      expect(values).toContainEqual(["session-a", "session-b"]);
+    });
+
+    test("deduplicates ids, returns stable request order and omits missing or unexpected rows", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "not-requested",
+            aggStartTime: 1,
+          },
+          {
+            sessionId: "session-b",
+            aggStartTime: 1700000200000,
+            aggDurationMs: "45000",
+            aggEntryUrl: "https://example.com/checkout",
+            aggBrowserName: "Firefox",
+            aggBrowserVersion: "130",
+            aggOsName: "Linux",
+            aggDeviceType: "desktop",
+          },
+          {
+            sessionId: "session-a",
+            aggStartTime: 1700000100000,
+            aggDurationMs: 15000,
+            aggEntryUrl: "https://example.com/",
+            aggBrowserName: "Safari",
+            aggBrowserVersion: "18",
+            aggOsName: "iOS",
+            aggDeviceType: "mobile",
+          },
+          /* Defensive duplicate driver rows never duplicate the response. */
+          {
+            sessionId: "session-a",
+            aggStartTime: 2,
+          },
+        ]) as never,
+      );
+
+      const summaries: Array<SessionReplaySummary> =
+        await SessionReplayReadService.getSessionSummaries(
+          summariesRequest({
+            sessionIds: [
+              "session-a",
+              "session-b",
+              "session-a",
+              "missing-session",
+            ],
+          }),
+        );
+
+      expect(summaries).toEqual([
+        {
+          sessionId: "session-a",
+          startTime: new Date(1700000100000),
+          startTimeUnixMs: 1700000100000,
+          durationMs: 15000,
+          entryUrl: "https://example.com/",
+          browserName: "Safari",
+          browserVersion: "18",
+          osName: "iOS",
+          deviceType: "mobile",
+        },
+        {
+          sessionId: "session-b",
+          startTime: new Date(1700000200000),
+          startTimeUnixMs: 1700000200000,
+          durationMs: 45000,
+          entryUrl: "https://example.com/checkout",
+          browserName: "Firefox",
+          browserVersion: "130",
+          osName: "Linux",
+          deviceType: "desktop",
+        },
+      ]);
+
+      const values: Array<unknown> = boundValues(statementOf(headerQuerySpy));
+      expect(values).toContainEqual([
+        "session-a",
+        "session-b",
+        "missing-session",
+      ]);
+    });
+
+    test.each([
+      { name: "an empty batch", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+      {
+        name: "an oversized batch",
+        sessionIds: Array.from(
+          { length: MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1 },
+          (_value: unknown, index: number): string => {
+            return `session-${index}`;
+          },
+        ),
+      },
+    ])(
+      "rejects $name before querying",
+      async ({ sessionIds }: { sessionIds: Array<string> }) => {
+        await expect(
+          SessionReplayReadService.getSessionSummaries(
+            summariesRequest({ sessionIds: sessionIds }),
+          ),
+        ).rejects.toBeInstanceOf(BadDataException);
+
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+  });
 
   describe("list predicates are HAVING clauses over argMax aliases", () => {
     test("hasIdentifiedUser tests the digest alias, never the label", async () => {
