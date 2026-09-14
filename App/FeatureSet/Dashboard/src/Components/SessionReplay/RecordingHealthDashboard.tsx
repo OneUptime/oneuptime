@@ -755,7 +755,7 @@ function RecorderPanel(props: {
             </>
           ) : (
             <>
-              <p className="mt-1 font-mono text-lg font-semibold text-gray-900">
+              <p className="mt-1 break-all font-mono text-sm font-semibold text-gray-900">
                 {status.publishedRecorderVersion}
               </p>
               <p className="mt-0.5 text-xs text-gray-500">

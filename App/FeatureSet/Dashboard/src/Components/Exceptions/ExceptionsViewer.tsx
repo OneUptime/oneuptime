@@ -23,6 +23,9 @@ import Host from "Common/Models/DatabaseModels/Host";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import IconProp from "Common/Types/Icon/IconProp";
+import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -228,16 +231,16 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
 ];
 
 /*
- * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map to
- * the same underlying `primaryEntityId` column — the discriminator only
- * matters at facet bucketing time.
+ * The Service facet and every catalog resource facet (hostId, dockerHostId,
+ * …, iotFleetId) all map to the same underlying `primaryEntityId` column —
+ * the discriminator only matters at facet bucketing time. Derived from
+ * ResourceFacetCatalog so a new resource type is filtered the moment the
+ * sidebar offers it, instead of being compiled as a column that does not
+ * exist.
  */
 const RESOURCE_FACET_KEYS: Set<string> = new Set<string>([
   "primaryEntityId",
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
+  ...RESOURCE_FACET_CATALOG_KEYS,
 ]);
 
 export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
@@ -1571,42 +1574,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
 
     return [
+      // Never folded away while empty — only the resource type facets below are.
       {
         key: "primaryEntityId",
         title: "Service",
+        icon: IconProp.SquareStack,
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
         serverSearchable: true,
       },
-      {
-        key: "hostId",
-        title: "Host",
-        valueDisplayMap: hostNameMap,
-        priority: 2,
-        serverSearchable: true,
-      },
-      {
-        key: "dockerHostId",
-        title: "Docker Host",
-        valueDisplayMap: dockerHostNameMap,
-        priority: 3,
-        serverSearchable: true,
-      },
-      {
-        key: "podmanHostId",
-        title: "Podman Host",
-        valueDisplayMap: podmanHostNameMap,
-        priority: 4,
-        serverSearchable: true,
-      },
-      {
-        key: "kubernetesClusterId",
-        title: "Kubernetes Cluster",
-        valueDisplayMap: clusterNameMap,
-        priority: 5,
-        serverSearchable: true,
-      },
+      /*
+       * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
+       * 2.11 so they stay grouped under Service and above Exception Type.
+       * Each folds away while empty. Types without a preloaded list are
+       * named by the server's facet displayName.
+       */
+      ...buildResourceFacetConfigs({
+        basePriority: 2,
+        valueDisplayMaps: {
+          hostId: hostNameMap,
+          dockerHostId: dockerHostNameMap,
+          podmanHostId: podmanHostNameMap,
+          kubernetesClusterId: clusterNameMap,
+        },
+      }),
       {
         key: "exceptionType",
         title: "Exception Type",
@@ -1648,10 +1640,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       endTime: dateRange.endValue.toISOString(),
       facetKeys: [
         "primaryEntityId",
-        "hostId",
-        "dockerHostId",
-        "podmanHostId",
-        "kubernetesClusterId",
+        /*
+         * Every resource type in the catalog. The server answers each with
+         * the project's full list from Postgres, so a type the project has
+         * none of comes back empty and the sidebar folds it away.
+         */
+        ...RESOURCE_FACET_CATALOG_KEYS,
         "exceptionType",
         "environment",
       ],

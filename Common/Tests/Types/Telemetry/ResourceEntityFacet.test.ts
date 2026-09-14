@@ -13,6 +13,7 @@ import {
   isServiceFacetKey,
   parseResourceEntityFacetSelections,
 } from "../../../Types/Telemetry/ResourceEntityFacet";
+import { RESOURCE_FACET_CATALOG_KEYS } from "../../../Types/Telemetry/ResourceFacetCatalog";
 
 /*
  * The split this module encodes is the whole fix for issue #3216: the
@@ -27,6 +28,24 @@ const CLUSTER_ID: string = "8c0f2f1e-2e4f-4a8c-9a1a-2f5b6c7d8e9f";
 const OTHER_CLUSTER_ID: string = "1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9";
 const HOST_ID: string = "5f4e3d2c-1b0a-4998-8776-655443322110";
 const SERVICE_ID: string = "0d1c2b3a-4958-4867-9776-8574a3b2c1d0";
+const SWARM_ID: string = "6e5d4c3b-2a19-4807-8f6e-5d4c3b2a1908";
+const FLEET_ID: string = "9a8b7c6d-5e4f-4321-8fed-cba987654321";
+
+/*
+ * Every resource type the explorers now offer, beyond the original four.
+ * These used to be dropped by the parser, so a chip on them filtered
+ * nothing on the server.
+ */
+const NEWLY_FILTERABLE_KEYS: Array<string> = [
+  "dockerSwarmClusterId",
+  "proxmoxClusterId",
+  "vmwareVCenterId",
+  "cephClusterId",
+  "serverlessFunctionId",
+  "cloudResourceId",
+  "rumApplicationId",
+  "iotFleetId",
+];
 
 function facetMap(
   entries: Record<string, Array<string>>,
@@ -55,9 +74,35 @@ describe("ResourceEntityFacet", () => {
         "dockerHostId",
         "podmanHostId",
         "kubernetesClusterId",
+        ...NEWLY_FILTERABLE_KEYS,
       ]) {
         expect(isResourceEntityFacetKey(facetKey)).toBe(true);
+        expect(isResourceFacetKey(facetKey)).toBe(true);
         expect(isServiceFacetKey(facetKey)).toBe(false);
+      }
+    });
+
+    test("the non-Service group is exactly the resource facet catalog, in catalog order", () => {
+      expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual([
+        ...RESOURCE_FACET_CATALOG_KEYS,
+      ]);
+      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(12);
+    });
+
+    test("the non-Service group is a copy, not the catalog's own array", () => {
+      expect(RESOURCE_ENTITY_FACET_KEYS).not.toBe(RESOURCE_FACET_CATALOG_KEYS);
+    });
+
+    test("look-alike keys are not resource facets", () => {
+      for (const facetKey of [
+        "iotDeviceId",
+        "ProxmoxClusterId",
+        "cephclusterid",
+        " iotFleetId",
+        "constructor",
+        "__proto__",
+      ]) {
+        expect(isResourceFacetKey(facetKey)).toBe(false);
       }
     });
 
@@ -148,6 +193,37 @@ describe("ResourceEntityFacet", () => {
       expect(hasResourceEntityFacetSelections(selections)).toBe(false);
     });
 
+    test.each(NEWLY_FILTERABLE_KEYS)(
+      "keeps %s selections (collection used to drop them)",
+      (facetKey: string) => {
+        const selections: ResourceEntityFacetSelections =
+          collectResourceEntityFacetSelections(
+            facetMap({ [facetKey]: [SWARM_ID, FLEET_ID] }).entries(),
+          );
+
+        expect(selections).toEqual({ [facetKey]: [SWARM_ID, FLEET_ID] });
+        expect(hasResourceEntityFacetSelections(selections)).toBe(true);
+      },
+    );
+
+    test("keeps every resource facet in one pass, next to a Service chip it ignores", () => {
+      const selections: ResourceEntityFacetSelections =
+        collectResourceEntityFacetSelections(
+          Object.entries({
+            primaryEntityId: [SERVICE_ID],
+            dockerSwarmClusterId: [SWARM_ID],
+            iotFleetId: [FLEET_ID],
+            hostId: [HOST_ID],
+          }),
+        );
+
+      expect(selections).toEqual({
+        dockerSwarmClusterId: [SWARM_ID],
+        iotFleetId: [FLEET_ID],
+        hostId: [HOST_ID],
+      });
+    });
+
     test("skips blank values", () => {
       const selections: ResourceEntityFacetSelections =
         collectResourceEntityFacetSelections(
@@ -196,6 +272,26 @@ describe("ResourceEntityFacet", () => {
           somethingElse: [CLUSTER_ID],
         }),
       ).toEqual({ kubernetesClusterId: [CLUSTER_ID] });
+    });
+
+    test.each(NEWLY_FILTERABLE_KEYS)(
+      "accepts a %s selection",
+      (facetKey: string) => {
+        expect(
+          parseResourceEntityFacetSelections({ [facetKey]: [FLEET_ID] }),
+        ).toEqual({ [facetKey]: [FLEET_ID] });
+      },
+    );
+
+    test("accepts several new resource types side by side, validating each", () => {
+      expect(
+        parseResourceEntityFacetSelections({
+          proxmoxClusterId: [CLUSTER_ID, "not-an-id"],
+          cephClusterId: ["nope"],
+          iotFleetId: [FLEET_ID, FLEET_ID],
+          iotDeviceId: [FLEET_ID],
+        }),
+      ).toEqual({ proxmoxClusterId: [CLUSTER_ID], iotFleetId: [FLEET_ID] });
     });
 
     test("drops ids that are not ObjectID strings", () => {

@@ -26,7 +26,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the real ones — is never rendered.
  *
  * This file renders the panel as it ships: saved views above real facet data,
- * two search boxes and two "+N more" toggles in the same scroll. Everything
+ * two search boxes and two collapsed tails in the same scroll. Everything
  * here is about the seams — which control owns which list, which name resolves
  * to which box, and what the host is told when a row is clicked.
  */
@@ -228,13 +228,16 @@ describe("the logs sidebar renders saved views beside real facets", () => {
     expect(screen.getAllByRole("textbox")).toHaveLength(2);
 
     /*
-     * The saved-views box carries an explicit aria-label, so it is the one
-     * that can be reached by name rather than by placeholder — the facet's
-     * box beside it has no accessible name at all to collide with.
+     * Both boxes carry an explicit aria-label, and the two names differ — the
+     * saved-views box reads as its placeholder, the facet's as "Search"
+     * plus the facet title — so neither can be reached by the other's name.
      */
     expect(
       screen.getByRole("textbox", { name: SAVED_VIEWS_SEARCH_LABEL }),
     ).toBe(savedViewsBox);
+    expect(screen.getByRole("textbox", { name: "Search Severity" })).toBe(
+      severityBox,
+    );
   });
 
   test("the two searches do not reach into each other's list", () => {
@@ -271,17 +274,20 @@ describe("the logs sidebar renders saved views beside real facets", () => {
     );
 
     /*
-     * Both lists hide three rows, so both toggles read "+3 more" — the reason
-     * a getByRole for that name throws here and every assertion below has to
-     * say which of the two it means.
+     * Both lists hide three rows. The saved views say "+3 more", the facet
+     * "Show 3 more" — each toggle is reached by its own name, and expanding
+     * one must leave the other's rows and label untouched.
      */
-    const toggles: Array<HTMLElement> = screen.getAllByRole("button", {
-      name: "+3 more",
+    const savedViewsToggle: HTMLElement = within(savedViewsSection()).getByRole(
+      "button",
+      { name: "+3 more" },
+    );
+    const severityToggle: HTMLElement = screen.getByRole("button", {
+      name: "Show 3 more",
     });
-    expect(toggles).toHaveLength(2);
+    expect(savedViewsToggle).not.toBe(severityToggle);
 
-    // Saved views render first, so theirs is the first match.
-    fireEvent.click(toggles[0]!);
+    fireEvent.click(savedViewsToggle);
 
     expect(savedViewRowNames()).toHaveLength(8);
     expect(severityRowNames()).toEqual([
@@ -291,10 +297,20 @@ describe("the logs sidebar renders saved views beside real facets", () => {
       "Sev4",
       "Sev5",
     ]);
-    expect(screen.getAllByRole("button", { name: "+3 more" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "+3 more" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Show 3 more" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Show less" }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 3 more" }));
+
+    expect(severityRowNames()).toHaveLength(8);
+    expect(screen.getAllByRole("button", { name: "Show less" })).toHaveLength(
+      2,
+    );
   });
 
   test("a short saved-views list gets no box while a long facet keeps its own", () => {
@@ -413,7 +429,9 @@ describe("the logs sidebar's two empty states", () => {
     typeInto(screen.getByPlaceholderText(SAVED_VIEWS_SEARCH_LABEL), "zzz");
 
     const searchedEmpty: HTMLElement = screen.getByText("No matches found");
-    const genuinelyEmpty: HTMLElement = screen.getByText("No values found");
+    const genuinelyEmpty: HTMLElement = screen.getByText(
+      "No values in this time range",
+    );
 
     expect(searchedEmpty).not.toBe(genuinelyEmpty);
     expect(savedViewRowNames()).toEqual([]);

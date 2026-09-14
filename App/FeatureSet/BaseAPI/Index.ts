@@ -548,6 +548,10 @@ import GoogleSecOpsConnectionAPI from "Common/Server/API/GoogleSecOpsConnectionA
 import GoogleSecOpsConnectionRunService, {
   Service as GoogleSecOpsConnectionRunServiceType,
 } from "Common/Server/Services/GoogleSecOpsConnectionRunService";
+import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import SecurityEventConnectionRunService, {
+  Service as SecurityEventConnectionRunServiceType,
+} from "Common/Server/Services/SecurityEventConnectionRunService";
 import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
@@ -1433,6 +1437,7 @@ import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProces
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
+import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
@@ -3556,6 +3561,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         GoogleSecOpsConnectionRun,
         GoogleSecOpsConnectionRunService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityEventConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityEventConnectionRun,
+        SecurityEventConnectionRunServiceType
+      >(
+        SecurityEventConnectionRun,
+        SecurityEventConnectionRunService,
       ).getRouter(),
     );
 

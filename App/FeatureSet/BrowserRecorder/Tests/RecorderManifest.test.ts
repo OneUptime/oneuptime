@@ -12,6 +12,7 @@ import {
   getRecorderIntegrity,
   getRecorderManifest,
   getRecorderVersion,
+  isRecorderVersionContentAddressed,
   resetRecorderManifestCache,
   validateManifest,
 } from "../Manifest";
@@ -51,6 +52,18 @@ interface ChildProcess {
   ) => unknown;
 }
 
+interface BufferLike {
+  toString: (encoding: string) => string;
+}
+
+interface BufferConstructorLike {
+  from: (value: string, encoding: string) => BufferLike;
+}
+
+interface BufferModuleLike {
+  Buffer: BufferConstructorLike;
+}
+
 interface ProcessLike {
   env: Record<string, string | undefined>;
   execPath: string;
@@ -61,6 +74,9 @@ declare const process: ProcessLike;
 const fs: FileSystem = require("fs") as FileSystem;
 const nodePath: PathModule = require("path") as PathModule;
 const childProcess: ChildProcess = require("child_process") as ChildProcess;
+const NodeBuffer: BufferConstructorLike = (
+  require("buffer") as BufferModuleLike
+).Buffer;
 
 const PACKAGE_ROOT: string = nodePath.join(__dirname, "..");
 
@@ -111,13 +127,20 @@ function buildIfMissing(): void {
   );
 }
 
+const TEST_RECORDER_BASE64: string = "A".repeat(64);
+const TEST_RECORDER_HEX: string = "00".repeat(48);
+const TEST_RECORDER_VERSION: string = `11.7.3-sha384-${TEST_RECORDER_HEX}`;
+
 function validManifest(): Record<string, unknown> {
   return {
-    recorderVersion: "11.7.3",
+    recorderVersion: TEST_RECORDER_VERSION,
     rrwebVersion: "2.1.1",
     files: {
-      "recorder.js": { bytes: 100, integrity: "sha384-aaa" },
-      "loader.js": { bytes: 10, integrity: "sha384-bbb" },
+      "recorder.js": {
+        bytes: 100,
+        integrity: `sha384-${TEST_RECORDER_BASE64}`,
+      },
+      "loader.js": { bytes: 10, integrity: `sha384-${"B".repeat(64)}` },
     },
   };
 }
@@ -143,16 +166,26 @@ describe("recorder manifest", (): void => {
   });
 
   /*
-   * THE regression test for the version skew. The version the server would
-   * advertise has to be the version the build actually published, and it has
-   * to be one the loader will accept.
+   * THE regression test for immutable cache skew. The version the server
+   * advertises has to include the exact recorder bytes' digest, and it has to
+   * be one an already-cached loader will accept.
    */
-  it("advertises exactly the version the build stamped", (): void => {
+  it("advertises a version content-addressed to the built recorder", (): void => {
     const manifest: RecorderManifest | null = getRecorderManifest();
+    const integrity: string = manifest?.files["recorder.js"]?.integrity || "";
+    const sha384Hex: string = NodeBuffer.from(
+      integrity.replace(/^sha384-/, ""),
+      "base64",
+    ).toString("hex");
+    const expectedVersion: string = `${packageJson.version}-sha384-${sha384Hex}`;
 
     expect(manifest).not.toBeNull();
-    expect(getRecorderVersion()).toBe(packageJson.version);
-    expect(manifest?.recorderVersion).toBe(packageJson.version);
+    expect(getRecorderVersion()).toBe(expectedVersion);
+    expect(manifest?.recorderVersion).toBe(expectedVersion);
+    expect(manifest?.recorderVersion).not.toBe(packageJson.version);
+    expect(isRecorderVersionContentAddressed(expectedVersion, integrity)).toBe(
+      true,
+    );
     expect(Config.isValidRecorderVersion(getRecorderVersion())).toBe(true);
   });
 
@@ -176,7 +209,7 @@ describe("recorder manifest", (): void => {
     /* Short, because the stub is the rollback mechanism. */
     expect(LOADER_CACHE_CONTROL).toBe("public, max-age=300");
 
-    /* A year and immutable, because the path is version-pinned. */
+    /* A year and immutable, because the path is content-addressed. */
     expect(RECORDER_CACHE_CONTROL).toBe("public, max-age=31536000, immutable");
     expect(ARTIFACT_CONTENT_TYPE).toContain("application/javascript");
   });
@@ -194,22 +227,37 @@ describe("recorder manifest", (): void => {
   });
 
   /*
-   * The immutable cache header is only truthful for an exact version match.
-   * Serving today's bytes under yesterday's version number, cached for a
+   * The immutable cache header is only truthful for an exact digest match.
+   * Serving today's bytes under yesterday's content address, cached for a
    * year, is unrecoverable.
    */
-  it("serves the pinned path only for the version it published", (): void => {
+  it("serves the pinned path only for the content address it published", (): void => {
     const version: string | null = getRecorderVersion();
+    const changedVersion: string = version
+      ? `${version.slice(0, -1)}${version.endsWith("0") ? "1" : "0"}`
+      : "";
 
     expect(version).not.toBeNull();
     expect(getPinnedRecorderPath(version as string)).toContain("recorder.js");
-    expect(getPinnedRecorderPath("1.0.0")).toBeNull();
+    expect(getPinnedRecorderPath(changedVersion)).toBeNull();
+    expect(getPinnedRecorderPath(packageJson.version)).toBeNull();
     expect(getPinnedRecorderPath("../../../etc/passwd")).toBeNull();
   });
 
   describe("validateManifest", (): void => {
     it("accepts a well-formed manifest", (): void => {
-      expect(validateManifest(validManifest())?.recorderVersion).toBe("11.7.3");
+      expect(validateManifest(validManifest())?.recorderVersion).toBe(
+        TEST_RECORDER_VERSION,
+      );
+    });
+
+    it("accepts a prerelease package version with a content address", (): void => {
+      const manifest: Record<string, unknown> = validManifest();
+      manifest["recorderVersion"] = `11.7.3-beta.1-sha384-${TEST_RECORDER_HEX}`;
+
+      expect(validateManifest(manifest)?.recorderVersion).toBe(
+        manifest["recorderVersion"],
+      );
     });
 
     it("rejects a version the loader would refuse to use", (): void => {
@@ -217,6 +265,47 @@ describe("recorder manifest", (): void => {
       manifest["recorderVersion"] = "latest";
 
       expect(validateManifest(manifest)).toBeNull();
+    });
+
+    it("rejects a mutable version even when its SRI is valid", (): void => {
+      const manifest: Record<string, unknown> = validManifest();
+      manifest["recorderVersion"] = "11.7.3";
+
+      expect(validateManifest(manifest)).toBeNull();
+    });
+
+    it("rejects a content address that does not match recorder SRI", (): void => {
+      const manifest: Record<string, unknown> = validManifest();
+      manifest["recorderVersion"] = `11.7.3-sha384-${"11".repeat(48)}`;
+
+      expect(validateManifest(manifest)).toBeNull();
+    });
+
+    it("rejects truncated or uppercase content addresses", (): void => {
+      for (const recorderVersion of [
+        `11.7.3-sha384-${TEST_RECORDER_HEX.slice(0, -1)}`,
+        `11.7.3-sha384-${TEST_RECORDER_HEX.slice(0, -1)}A`,
+      ]) {
+        const manifest: Record<string, unknown> = validManifest();
+        manifest["recorderVersion"] = recorderVersion;
+
+        expect(validateManifest(manifest)).toBeNull();
+      }
+    });
+
+    it("rejects malformed or mismatched SHA-384 integrity", (): void => {
+      for (const recorderIntegrity of [
+        `sha384-${"A".repeat(63)}`,
+        `sha384-${"C".repeat(64)}`,
+      ]) {
+        const manifest: Record<string, unknown> = validManifest();
+        (manifest["files"] as Record<string, unknown>)["recorder.js"] = {
+          bytes: 100,
+          integrity: recorderIntegrity,
+        };
+
+        expect(validateManifest(manifest)).toBeNull();
+      }
     });
 
     /*

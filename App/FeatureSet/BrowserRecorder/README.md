@@ -177,8 +177,8 @@ does not put OneUptime's own output into the customer's session.
 `/telemetry/session-replay/v1/recorder.js` is a **~1.9 KB gzip loader stub**
 served with `Cache-Control: max-age=300`. It fetches the policy, honours
 `enabled` / consent / DNT / GPC, and only then injects the pinned artifact at
-`/telemetry/session-replay/v<semver>/recorder.js`, which is immutable for a
-year and carries an SRI hash.
+`/telemetry/session-replay/v<semver>-sha384-<hex>/recorder.js`, which is
+immutable for a year and carries an SRI hash.
 
 This split is the whole reason a bad masking release is recoverable. Without
 it, a regression is live in every customer's browser for the full cache TTL
@@ -195,6 +195,14 @@ be kept in step by hand, and the failure mode is silent — a loader told to
 fetch a version that was never published just 404s and the page records
 nothing.
 
+The manifest's `recorderVersion` is the package semver followed by
+`-sha384-` and the full lowercase hexadecimal digest of `recorder.js`. The
+same digest is emitted as base64 in `recorderIntegrity`. This binding is what
+makes the year-long cache safe: if recorder bytes change without a repository
+version bump, their URL still changes. The suffix uses hex rather than raw
+base64 so it remains inside the path-safe version grammar understood by
+loader stubs already cached in customer browsers.
+
 `src/Config.ts` validates `recorderVersion` against
 `/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/` before it will build an artifact
 URL, and refuses to build one at all otherwise. The same pattern is asserted in
@@ -205,10 +213,10 @@ three ever drift.
 
 Not mounted by this package — it has no server. Whatever mounts it must serve:
 
-| path                                              | file                    | headers                                                              |
-| ------------------------------------------------- | ----------------------- | -------------------------------------------------------------------- |
-| `/telemetry/session-replay/v1/recorder.js`        | `public/dist/loader.js` | `Cache-Control: public, max-age=300`                                 |
-| `/telemetry/session-replay/v<semver>/recorder.js` | `public/dist/recorder.js` (only when `<semver>` equals the manifest's version) | `Cache-Control: public, max-age=31536000, immutable` |
+| path                                                           | file                                                                                          | headers                                                       |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `/telemetry/session-replay/v1/recorder.js`                     | `public/dist/loader.js`                                                                       | `Cache-Control: public, max-age=300`                          |
+| `/telemetry/session-replay/v<semver>-sha384-<hex>/recorder.js` | `public/dist/recorder.js` (only when the full locator equals the manifest's `recorderVersion`) | `Cache-Control: public, max-age=31536000, immutable`          |
 
 Both need `Content-Type: application/javascript; charset=utf-8`,
 `Access-Control-Allow-Origin: *` (the artifact is loaded cross-origin with

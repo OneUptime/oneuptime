@@ -1,5 +1,4 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
-import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -42,6 +41,12 @@ import {
   buildClearedLogsViewState,
   ClearedLogsViewState,
 } from "./LogsViewerDefaults";
+import {
+  LOGS_EXPLORER_FACET_KEYS,
+  buildLogsFacetFiltersFromQuery,
+  getLogsFacetChipDisplayKey,
+  getLogsQueryValues,
+} from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -53,10 +58,7 @@ import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
-import {
-  describeSearchValue,
-  queryValueToChipValues,
-} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -98,10 +100,6 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
-import {
-  ResourceEntityFacetSelections,
-  parseResourceEntityFacetSelections,
-} from "Common/Types/Telemetry/ResourceEntityFacet";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -115,10 +113,7 @@ import {
   InitialSavedViewResolution,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
-import {
-  LOGS_CHIP_FACET_KEYS,
-  buildSavedViewQueryForOverrides,
-} from "../../Utils/SavedViewQueryMerge";
+import { buildSavedViewQueryForOverrides } from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
@@ -226,14 +221,6 @@ export interface ComponentProps {
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
-/*
- * The facet keys read BACK out of a query into chips. Must stay the mirror
- * of what applyLogsFacetFiltersToQuery compiles INTO a query, or a filter
- * that survives a saved view / URL round-trip filters the list while no
- * chip says so — and the histogram, which builds its request from the
- * chips, then counts rows the list excludes.
- */
-const FACET_FILTER_KEYS: ReadonlyArray<string> = LOGS_CHIP_FACET_KEYS;
 
 interface InitialUrlState {
   facetFilters: Map<string, Set<string>>;
@@ -415,108 +402,6 @@ function loadSelectedColumns(viewerId: string): Array<string> {
   }
 
   return [...DEFAULT_LOGS_TABLE_COLUMNS];
-}
-
-function getQueryValues(value: unknown): Array<string> {
-  if (value instanceof Includes) {
-    return value.values.map((item: string | number | ObjectID) => {
-      return item.toString();
-    });
-  }
-
-  /*
-   * The body chip compiles to a contains-match, so its stored form is a
-   * Search rather than a bare string. Without this branch a saved view or
-   * deep link carrying one round-trips into a filtered list with no chip.
-   */
-  if (value instanceof Search) {
-    const text: string = value.toString();
-
-    return text.trim().length > 0 ? [text] : [];
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    value instanceof ObjectID
-  ) {
-    return [value.toString()];
-  }
-
-  return [];
-}
-
-function buildFacetFiltersFromQuery(
-  query: Query<Log>,
-  baseQuery: Query<Log>,
-): Map<string, Set<string>> {
-  const nextFilters: Map<string, Set<string>> = new Map();
-
-  for (const facetKey of FACET_FILTER_KEYS) {
-    if ((baseQuery as any)[facetKey] !== undefined) {
-      continue;
-    }
-
-    const values: Array<string> = getQueryValues((query as any)[facetKey]);
-
-    if (values.length > 0) {
-      nextFilters.set(facetKey, new Set(values));
-    }
-  }
-
-  /*
-   * `attributes.<key>` chips, the same way. Attribute filters were the one
-   * group applyLogsFacetFiltersToQuery compiled INTO a query and nothing read
-   * back out, so a saved view carrying `@platform.team:a*` reopened with the
-   * filter applied and no chip showing it — and the next chip edit, which
-   * recompiles from the chips it can see, silently dropped it.
-   */
-  const savedAttributes: Record<string, unknown> =
-    ((query as any)["attributes"] as Record<string, unknown>) || {};
-  const baseAttributes: Record<string, unknown> =
-    ((baseQuery as any)["attributes"] as Record<string, unknown>) || {};
-
-  for (const attributeKey of Object.keys(savedAttributes)) {
-    // A filter pinned by the host page is not the user's to edit or remove.
-    if (baseAttributes[attributeKey] !== undefined) {
-      continue;
-    }
-
-    const chipValues: Array<string> = queryValueToChipValues(
-      savedAttributes[attributeKey],
-    );
-
-    if (chipValues.length > 0) {
-      nextFilters.set(
-        `${ATTRIBUTE_FACET_PREFIX}${attributeKey}`,
-        new Set(chipValues),
-      );
-    }
-  }
-
-  /*
-   * Host / docker / podman / Kubernetes chips live under `resourceFilters`
-   * rather than in a column of their own (see applyLogsFacetFiltersToQuery).
-   * Restoring them here is what makes a saved view keep its cluster chip:
-   * without it the chip row would come back empty and the next chip edit
-   * would recompile the query without the cluster.
-   */
-  const savedResourceFilters: ResourceEntityFacetSelections =
-    parseResourceEntityFacetSelections((query as any)["resourceFilters"]);
-
-  for (const facetKey of Object.keys(savedResourceFilters)) {
-    if ((baseQuery as any)[facetKey] !== undefined) {
-      continue;
-    }
-
-    const values: Array<string> = savedResourceFilters[facetKey] || [];
-
-    if (values.length > 0) {
-      nextFilters.set(facetKey, new Set(values));
-    }
-  }
-
-  return nextFilters;
 }
 
 function buildBaseQuery(props: ComponentProps): Query<Log> {
@@ -993,7 +878,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const values: Array<string> = getQueryValues(
+    const values: Array<string> = getLogsQueryValues(
       (props.logQuery as any)["entityKeys"],
     );
 
@@ -1281,14 +1166,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const requestData: JSONObject = {
           startTime: dateRange.startValue.toISOString(),
           endTime: dateRange.endValue.toISOString(),
-          facetKeys: [
-            "severityText",
-            "primaryEntityId",
-            "hostId",
-            "dockerHostId",
-            "podmanHostId",
-            "kubernetesClusterId",
-          ],
+          /*
+           * Every resource type in the catalog, not just the ones the
+           * viewer preloads: the server lists each resource of a type the
+           * project has (and nothing for a type it has none of, which the
+           * sidebar folds away), so asking for all of them costs nothing.
+           */
+          facetKeys: [...LOGS_EXPLORER_FACET_KEYS],
         } as JSONObject;
 
         if (serviceIdStrings) {
@@ -1444,7 +1328,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         string,
         Set<string>
       > = options?.overrideFacetFilters ||
-      buildFacetFiltersFromQuery(mergedQuery, baseQuery);
+      buildLogsFacetFiltersFromQuery(mergedQuery, baseQuery);
 
       setTimeRange(nextTimeRange);
 
@@ -2373,23 +2257,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
     const filters: Array<ActiveFilter> = [];
 
-    const facetKeyDisplayNames: Record<string, string> = {
-      severityText: "Severity",
-      primaryEntityId: "Service",
-      hostId: "Host",
-      dockerHostId: "Docker Host",
-      podmanHostId: "Podman Host",
-      kubernetesClusterId: "Kubernetes Cluster",
-      traceId: "Trace",
-      spanId: "Span",
-      /*
-       * The one chip whose value is a substring rather than an exact id —
-       * "Message contains" says so, since "body: connection refused" reads
-       * like an equality the filter is not.
-       */
-      body: "Message contains",
-    };
-
     /*
      * A span chip only links out when the view pins down exactly one trace —
      * either the base scope or an applied trace filter.
@@ -2400,10 +2267,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     ];
 
     for (const [facetKey, values] of appliedFacetFilters.entries()) {
-      // Strip the `attributes.` prefix so the chip reads as `<key>: <value>`.
-      const displayKey: string = facetKey.startsWith("attributes.")
-        ? facetKey.substring("attributes.".length)
-        : facetKeyDisplayNames[facetKey] || facetKey;
+      /*
+       * `<key>: <value>` for an attribute chip, the facet's label ("Proxmox
+       * Cluster", "Message contains") for everything else.
+       */
+      const displayKey: string = getLogsFacetChipDisplayKey(facetKey);
 
       const isAttributeFacet: boolean = facetKey.startsWith(
         ATTRIBUTE_FACET_PREFIX,

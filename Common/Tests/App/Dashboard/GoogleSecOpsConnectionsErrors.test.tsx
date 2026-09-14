@@ -40,6 +40,24 @@ let mockIsMobile: boolean = false;
  * action visibility, dispatches the selected row, and completes its loading
  * state. The page's modal, buttons and clipboard behavior also remain real.
  */
+/*
+ * The page also renders the provider-agnostic Security Event Connections
+ * table above the Google SecOps card. That table has its own suite
+ * (SecurityEventConnectionsTable.test.tsx); here it would only add a second
+ * ModelTable to every query in this file.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,

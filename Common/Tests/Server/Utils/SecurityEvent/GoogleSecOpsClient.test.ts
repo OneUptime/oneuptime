@@ -213,7 +213,11 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
   test("exchanges a signed JWT assertion for a token, then calls the alerts view with Bearer auth", async () => {
     const { client, requests } = makeClient([
       tokenResponse(),
-      { status: 200, body: JSON.stringify({ alerts: [{ id: "a-1" }] }) },
+      {
+        status: 200,
+        // complete: true, or the client re-issues the GET for an unfinished stream.
+        body: JSON.stringify({ alerts: [{ id: "a-1" }], complete: true }),
+      },
     ]);
 
     const result: FetchAlertsResult = await client.fetchDetectionAlerts({

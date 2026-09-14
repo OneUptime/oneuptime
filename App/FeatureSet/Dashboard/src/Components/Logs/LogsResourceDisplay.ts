@@ -1,3 +1,4 @@
+import { getResourceFacetServiceTypeMap } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   ResolvedTelemetryEntity,
@@ -23,17 +24,14 @@ import {
 
 /*
  * The scope picker's resource facets whose values are ids of one known
- * table. `primaryEntityId` is absent: it is polymorphic, so it is resolved
- * without a hint.
+ * table — every resource type in the shared catalog, so an unnamed Proxmox
+ * cluster or IoT fleet goes straight to its own table instead of probing
+ * all of them. `primaryEntityId` is absent: it is polymorphic, so it is
+ * resolved without a hint.
  */
 export const LOGS_SCOPE_FACET_ENTITY_TYPES: Readonly<
   Record<string, ServiceType>
-> = {
-  hostId: ServiceType.Host,
-  dockerHostId: ServiceType.DockerHost,
-  podmanHostId: ServiceType.PodmanHost,
-  kubernetesClusterId: ServiceType.KubernetesCluster,
-};
+> = Object.fromEntries(getResourceFacetServiceTypeMap());
 
 export type ToServiceTypeFunction = (
   value: string | null | undefined,

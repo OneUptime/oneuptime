@@ -238,6 +238,86 @@ describe("TracesViewer chips", () => {
   });
 });
 
+describe("TracesViewer resource facets come from the shared catalog", () => {
+  const facetConfigsStart: number = TRACES_VIEWER.indexOf(
+    "const facetConfigs: Array<FacetConfig> = useMemo(",
+  );
+  const facetConfigsEnd: number = TRACES_VIEWER.indexOf(
+    "const histogramSeries:",
+    facetConfigsStart,
+  );
+  const FACET_CONFIGS: string = TRACES_VIEWER.substring(
+    facetConfigsStart,
+    facetConfigsEnd,
+  );
+
+  test("the facet config block is found", () => {
+    expect(facetConfigsStart).toBeGreaterThan(-1);
+    expect(facetConfigsEnd).toBeGreaterThan(facetConfigsStart);
+  });
+
+  test("imports the catalog keys and the shared config builder", () => {
+    expect(TRACES_VIEWER).toContain(
+      'import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";',
+    );
+    expect(TRACES_VIEWER).toContain(
+      'import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";',
+    );
+  });
+
+  test("the facets request asks for Service, every catalog resource, then the span facets in their old order", () => {
+    expect(TRACES_VIEWER).toContain(
+      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "statusCode", "kind", "isRootSpan", "hasException", "name", ...Array.from(ATTRIBUTE_FACET_KEYS), ],',
+    );
+  });
+
+  test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
+    expect(FACET_CONFIGS).toContain(
+      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+    );
+    for (const key of [
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "iotFleetId",
+    ]) {
+      expect(FACET_CONFIGS).not.toContain(`key: "${key}"`);
+    }
+  });
+
+  test("Service stays first, always shown, with its icon; Status keeps its place after the resources", () => {
+    expect(FACET_CONFIGS).toContain(
+      'key: "primaryEntityId", title: "Service", icon: IconProp.SquareStack, valueDisplayMap: serviceNameMap, valueColorMap: serviceColorMap, priority: 1, serverSearchable: true, },',
+    );
+    expect(FACET_CONFIGS.indexOf('title: "Service"')).toBeLessThan(
+      FACET_CONFIGS.indexOf("...buildResourceFacetConfigs({"),
+    );
+    expect(
+      FACET_CONFIGS.indexOf("...buildResourceFacetConfigs({"),
+    ).toBeLessThan(FACET_CONFIGS.indexOf('key: "statusCode"'));
+    expect(FACET_CONFIGS).toContain(
+      'key: "statusCode", title: "Status", valueDisplayMap: statusLabelMap, valueColorMap: statusColorMap, priority: 6,',
+    );
+    // Only resource facets fold away while empty.
+    expect(FACET_CONFIGS).not.toContain("hideWhenEmpty");
+  });
+
+  test("resource selections never become Span column filters", () => {
+    expect(TRACES_VIEWER).toContain(
+      "for (const key of Object.keys(facetGroups)) { if (isResourceFacetKey(key)) { continue; }",
+    );
+    expect(TRACES_VIEWER).toContain(
+      "collectResourceEntityFacetSelections(Object.entries(facetGroups));",
+    );
+    expect(TRACES_VIEWER).toContain(
+      "collectResourceEntityFacetSelections(Object.entries(groups));",
+    );
+  });
+});
+
 describe("filtering is untouched", () => {
   test("queries, the URL and saved views still carry the chip's raw value", () => {
     // URL mirror.

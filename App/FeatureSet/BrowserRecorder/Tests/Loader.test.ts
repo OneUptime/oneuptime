@@ -8,9 +8,11 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
  * has been fetched, parsed or executed.
  */
 
+const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
+
 const CONFIG_BODY: Record<string, unknown> = {
   enabled: true,
-  recorderVersion: "11.7.3",
+  recorderVersion: CONTENT_ADDRESSED_VERSION,
   maskingMode: SessionReplayMaskingMode.MaskAllText,
   consentMode: "NotRequired",
   captureTrigger: "OnErrorOrFrustration",
@@ -409,13 +411,13 @@ describe("Loader", (): void => {
       ];
     });
 
-    it("injects the pinned, version-addressed artifact with SRI", async (): Promise<void> => {
+    it("injects the pinned, content-addressed artifact with SRI", async (): Promise<void> => {
       await runLoader();
 
       const script: HTMLScriptElement | null = injectedScript();
 
       expect(script?.getAttribute("src")).toBe(
-        "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js",
+        `https://oneuptime.com/telemetry/session-replay/v${CONTENT_ADDRESSED_VERSION}/recorder.js`,
       );
 
       /* crossOrigin is required for integrity to be enforced cross-origin. */

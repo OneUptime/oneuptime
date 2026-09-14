@@ -1,15 +1,20 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
-  useRef,
+  useId,
   useState,
   useMemo,
 } from "react";
 import { FacetValue } from "../types";
 import TelemetryFacetValueRow from "./TelemetryFacetValueRow";
-import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import FacetSectionHeader from "./FacetSectionHeader";
+import FacetSearchInput from "./FacetSearchInput";
+import FacetShowMoreButton from "./FacetShowMoreButton";
+import useFacetSectionSearch, {
+  FacetSectionSearch,
+} from "../useFacetSectionSearch";
+import { getFacetEmptyStateText } from "../FacetVisibility";
 
 export interface TelemetryFacetSectionProps {
   title: string;
@@ -31,11 +36,24 @@ export interface TelemetryFacetSectionProps {
   onSearchChange?: ((text: string) => void) | undefined;
   // Force the search input to render even when below the local item threshold.
   alwaysShowSearch?: boolean;
+  // Optional icon shown before the title.
+  icon?: IconProp | undefined;
+  /*
+   * Controlled search text. The sidebar owns it so it can keep a section
+   * that is being searched on screen, and so the box survives a remount.
+   * Leave undefined for the section to keep its own.
+   */
+  searchText?: string | undefined;
+  onSearchTextChange?: ((text: string) => void) | undefined;
+  /*
+   * Shown when there are no values and no search. Defaults to "No values in
+   * this time range".
+   */
+  emptyStateText?: string | undefined;
 }
 
 const DEFAULT_VISIBLE_COUNT: number = 5;
 const SEARCH_THRESHOLD: number = 6;
-const SEARCH_DEBOUNCE_MS: number = 300;
 
 const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
   props: TelemetryFacetSectionProps,
@@ -44,7 +62,7 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
     props.defaultExpanded !== false,
   );
   const [showAll, setShowAll] = useState<boolean>(false);
-  const [searchText, setSearchText] = useState<string>("");
+  const bodyId: string = useId();
 
   const showSearch: boolean =
     props.alwaysShowSearch === true ||
@@ -56,27 +74,15 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
    * round-trip. Local filter still applies immediately for fast feedback
    * against the currently loaded set.
    */
-  const onSearchChange: TelemetryFacetSectionProps["onSearchChange"] =
-    props.onSearchChange;
-  const lastEmittedRef: React.MutableRefObject<string | null> = useRef<
-    string | null
-  >(null);
-  useEffect(() => {
-    if (!onSearchChange) {
-      return;
-    }
-    const trimmed: string = searchText.trim();
-    if (lastEmittedRef.current === trimmed) {
-      return;
-    }
-    const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
-      lastEmittedRef.current = trimmed;
-      onSearchChange(trimmed);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      clearTimeout(handle);
-    };
-  }, [searchText, onSearchChange]);
+  const search: FacetSectionSearch = useFacetSectionSearch({
+    searchText: props.searchText,
+    onSearchTextChange: props.onSearchTextChange,
+    onSearchChange: props.onSearchChange,
+    isSearchVisible: showSearch,
+  });
+
+  const searchText: string = search.activeSearchText;
+  const isSearching: boolean = searchText.trim() !== "";
 
   const filteredValues: Array<FacetValue> = useMemo(() => {
     if (!searchText.trim()) {
@@ -95,14 +101,13 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
   const visibleCount: number =
     props.initialVisibleCount ?? DEFAULT_VISIBLE_COUNT;
 
-  const displayedValues: Array<FacetValue> = searchText.trim()
+  const displayedValues: Array<FacetValue> = isSearching
     ? filteredValues
     : showAll
       ? filteredValues
       : filteredValues.slice(0, visibleCount);
 
-  const hasMore: boolean =
-    !searchText.trim() && filteredValues.length > visibleCount;
+  const hasMore: boolean = !isSearching && filteredValues.length > visibleCount;
 
   const maxCount: number =
     props.values.length > 0
@@ -117,41 +122,25 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
 
   return (
     <div className="border-b border-gray-100 py-2">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between px-2 py-1 text-left"
-        onClick={() => {
+      <FacetSectionHeader
+        title={props.title}
+        icon={props.icon}
+        activeCount={activeCount}
+        isExpanded={isExpanded}
+        controlsId={bodyId}
+        onToggle={() => {
           setIsExpanded(!isExpanded);
         }}
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-            {props.title}
-          </span>
-          {activeCount > 0 && (
-            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
-              {activeCount}
-            </span>
-          )}
-        </div>
-        <Icon
-          icon={isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight}
-          className="h-3 w-3 text-gray-400"
-        />
-      </button>
+      />
 
       {isExpanded && (
-        <div className="mt-1 px-1">
+        <div id={bodyId} className="mt-1 px-1">
           {showSearch && (
             <div className="mb-1 px-1">
-              <input
-                type="text"
-                placeholder={`Search ${props.title.toLowerCase()}...`}
-                value={searchText}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchText(e.target.value);
-                }}
-                className="w-full rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
+              <FacetSearchInput
+                title={props.title}
+                value={search.searchText}
+                onChange={search.setSearchText}
               />
             </div>
           )}
@@ -179,24 +168,22 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
           })}
 
           {displayedValues.length === 0 && (
-            <p className="px-1 py-2 text-[11px] text-gray-400">
-              {searchText.trim() ? "No matches found" : "No values found"}
+            <p className="px-1.5 py-2 text-[11px] text-gray-400">
+              {getFacetEmptyStateText({
+                searchText: searchText,
+                emptyStateText: props.emptyStateText,
+              })}
             </p>
           )}
 
-          {hasMore && (
-            <button
-              type="button"
-              className="mt-1 px-1 text-[11px] font-medium text-indigo-500 hover:text-indigo-600"
-              onClick={() => {
-                setShowAll(!showAll);
-              }}
-            >
-              {showAll
-                ? "Show less"
-                : `+${props.values.length - visibleCount} more`}
-            </button>
-          )}
+          <FacetShowMoreButton
+            hasMore={hasMore}
+            isShowingAll={showAll}
+            hiddenCount={Math.max(0, filteredValues.length - visibleCount)}
+            onToggle={() => {
+              setShowAll(!showAll);
+            }}
+          />
         </div>
       )}
     </div>
