@@ -224,6 +224,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Flag,
         },
+        {
+          link: {
+            title: "Appearance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_APPEARANCE] as Route,
+            ),
+          },
+          icon: IconProp.Swatch,
+        },
       ],
     },
     {

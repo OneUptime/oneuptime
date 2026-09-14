@@ -452,6 +452,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             isFeatureFlagMonitorGroupsEnabled: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
+            /*
+             * The dashboard marks itself as soon as a project is selected,
+             * and the selection comes from this list, so the colour has to
+             * travel with it. It also colours each row of the project picker
+             * dropdown, which reads straight off these records.
+             */
+            color: true,
           };
 
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(

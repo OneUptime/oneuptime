@@ -13,6 +13,7 @@ import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessContro
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import Color from "../../Types/Color";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -3252,4 +3253,39 @@ export default class Project extends TenantModel {
     create: PlanType.Free,
   })
   public storeSystemEventsInAuditLogs?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    title: "Project Color",
+    required: false,
+    unique: false,
+    type: TableColumnType.Color,
+    canReadOnRelationQuery: true,
+    description:
+      "Color used to mark this project: a bar at the top of every page and a dot in the project picker. Leave empty to use the default set for this instance.",
+  })
+  @Column({
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
+    unique: false,
+    nullable: true,
+    transformer: Color.getDatabaseTransformer(),
+  })
+  public color?: Color = undefined;
 }

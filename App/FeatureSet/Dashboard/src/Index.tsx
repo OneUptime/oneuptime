@@ -5,12 +5,20 @@ import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil from "Common/UI/Utils/Theme";
+import ProjectColorUtil from "Common/UI/Utils/ProjectColor";
 import UserUtil from "Common/UI/Utils/User";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 ThemeUtil.initialize();
+
+/*
+ * Mark the page from the colour cached last session, before the first render.
+ * The configured colour only arrives once the project list has loaded, so
+ * without this the bar would appear a few hundred milliseconds late.
+ */
+ProjectColorUtil.initialize();
 
 /*
  * Resolve every date the app renders / accepts in the timezone the user picked

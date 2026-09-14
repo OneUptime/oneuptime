@@ -560,6 +560,7 @@ import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./17896000
 import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
+import { AddProjectColor1792800000000 } from "./1792800000000-AddProjectColor";
 import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
 import { AddTelemetrySourceMap1790000000000 } from "./1790000000000-AddTelemetrySourceMap";
@@ -1178,4 +1179,5 @@ export default [
   AddSloBurnRateRuleIncidents1792400000000,
   AddConfigurableRuleCriteria1792500000000,
   AddIncomingCallPolicyPhoneNumbers1792600000000,
+  AddProjectColor1792800000000,
 ];

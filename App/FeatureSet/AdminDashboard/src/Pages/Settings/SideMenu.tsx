@@ -106,6 +106,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Database}
         />
       </SideMenuSection>
+      <SideMenuSection title={t("sideMenu.settingsAppearance")}>
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsAppearance"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_APPEARANCE] as Route,
+            ),
+          }}
+          icon={IconProp.Swatch}
+        />
+      </SideMenuSection>
       <SideMenuSection title={t("sideMenu.settingsAi")}>
         <SideMenuItem
           link={{

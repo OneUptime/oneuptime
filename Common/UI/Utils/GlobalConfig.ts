@@ -7,6 +7,8 @@ import { APP_API_URL } from "../Config";
 
 export interface GlobalConfigVars {
   disableUserProjectCreation: boolean;
+  /** Colour for projects that have not chosen one. Null means none. */
+  defaultProjectColor: string | null;
 }
 
 export default class GlobalConfigUtil {
@@ -37,6 +39,11 @@ export default class GlobalConfigUtil {
 
       GlobalConfigUtil.cache = {
         disableUserProjectCreation: Boolean(data["disableUserProjectCreation"]),
+        defaultProjectColor:
+          typeof data["defaultProjectColor"] === "string" &&
+          data["defaultProjectColor"]
+            ? data["defaultProjectColor"]
+            : null,
       };
 
       return GlobalConfigUtil.cache;
