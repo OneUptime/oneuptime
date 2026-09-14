@@ -23,6 +23,21 @@ export class Service extends DatabaseService<Model> {
     pollIntervalInMinutes?: number | undefined;
     includeNonAlertingDetections?: boolean | undefined;
   }): void {
+    Service.validateSettings(data);
+  }
+
+  /*
+   * The same rules, callable without a row: the synchronous connection
+   * test validates settings the person has not saved yet, and must reject
+   * exactly what create/update would reject.
+   */
+  public static validateSettings(data: {
+    region?: string | undefined;
+    instanceResourceName?: string | undefined;
+    serviceAccountJson?: string | undefined;
+    pollIntervalInMinutes?: number | undefined;
+    includeNonAlertingDetections?: boolean | undefined;
+  }): void {
     if (
       data.includeNonAlertingDetections !== undefined &&
       typeof data.includeNonAlertingDetections !== "boolean"

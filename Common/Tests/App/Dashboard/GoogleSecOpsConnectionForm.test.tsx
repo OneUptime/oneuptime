@@ -20,6 +20,7 @@ import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import GoogleSecOpsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/GoogleSecOpsConnections";
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import Route from "../../../Types/API/Route";
@@ -47,6 +48,24 @@ let capturedTableProps: ModelTableProps<GoogleSecOpsConnection> | null = null;
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 const closeMock: MockFunction = getJestMockFunction();
 const successMock: MockFunction = getJestMockFunction();
+
+/*
+ * The page also renders the provider-agnostic Security Event Connections
+ * table above the Google SecOps card. That table has its own suite
+ * (SecurityEventConnectionsTable.test.tsx); here it would only add a second
+ * ModelTable to every query in this file.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -386,8 +405,16 @@ describe("Google SecOps connection creation wizard", () => {
     await renderWizard();
     const steps: Array<FormStep<GoogleSecOpsConnection>> =
       capturedTableProps?.formSteps || [];
-    const fields: Array<ModelField<GoogleSecOpsConnection>> =
-      capturedTableProps?.formFields || [];
+    /*
+     * The "Test before saving" custom element borrows the region column as
+     * its ModelForm anchor (overrideField) and never submits a value, so it
+     * is not part of the model-field contract asserted here.
+     */
+    const fields: Array<ModelField<GoogleSecOpsConnection>> = (
+      capturedTableProps?.formFields || []
+    ).filter((field: ModelField<GoogleSecOpsConnection>): boolean => {
+      return field.overrideFieldKey !== "googleSecOpsSettingsTest";
+    });
 
     expect(
       steps.map((step: FormStep<GoogleSecOpsConnection>) => {

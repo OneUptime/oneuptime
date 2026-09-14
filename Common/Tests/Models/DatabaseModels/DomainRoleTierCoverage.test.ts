@@ -77,6 +77,13 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
   DetectionRule: "Security",
   ThreatIntelFeed: "Security",
   GoogleSecOpsConnection: "Security",
+  /*
+   * The managed connector framework that followed the Chronicle connector:
+   * one row per polled security product plus its run history. Same domain
+   * for the same reason.
+   */
+  SecurityEventConnection: "Security",
+  SecurityEventConnectionRun: "Security",
 };
 
 /*

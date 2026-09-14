@@ -4,6 +4,7 @@ import TablePermission from "../../../../../Server/Types/Database/Permissions/Ta
 import AlertSeverity from "../../../../../Models/DatabaseModels/AlertSeverity";
 import DetectionRule from "../../../../../Models/DatabaseModels/DetectionRule";
 import GoogleSecOpsConnection from "../../../../../Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import TableView from "../../../../../Models/DatabaseModels/TableView";
@@ -139,6 +140,7 @@ const SIEM_MODELS: Array<[string, ModelType]> = [
   ["DetectionRule", DetectionRule],
   ["ThreatIntelFeed", ThreatIntelFeed],
   ["GoogleSecOpsConnection", GoogleSecOpsConnection],
+  ["SecurityEventConnection", SecurityEventConnection],
 ];
 
 describe("Security roles reach the SIEM", () => {
@@ -251,6 +253,37 @@ describe("Security roles reach the SIEM", () => {
       DatabaseRequestType.Delete,
     ]) {
       expect(can(GoogleSecOpsConnection, securityAdmin, requestType)).toBe(
+        true,
+      );
+    }
+  });
+
+  /*
+   * The same split for every other managed source. A SecurityEventConnection
+   * row holds the credential that reads a Sentinel workspace, a Falcon tenant
+   * or a Splunk search head; configuring one is SIEM administration.
+   */
+  test("Security Member cannot configure security event connections", () => {
+    expect(canRead(SecurityEventConnection, securityMember)).toBe(true);
+
+    for (const requestType of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+      DatabaseRequestType.Delete,
+    ]) {
+      expect(can(SecurityEventConnection, securityMember, requestType)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("Security Admin can configure security event connections", () => {
+    for (const requestType of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+      DatabaseRequestType.Delete,
+    ]) {
+      expect(can(SecurityEventConnection, securityAdmin, requestType)).toBe(
         true,
       );
     }

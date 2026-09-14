@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
+import { SecurityConnectorTestReport } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
   GoogleSecOpsRunResult,
   GoogleSecOpsDiagnosticCheck,
@@ -7,12 +8,14 @@ import {
 } from "Common/Types/SecurityEvent/GoogleSecOpsDiagnostics";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Link from "Common/UI/Components/Link/Link";
+import ConnectorTestReportView from "./ConnectorTestReportView";
 import {
   formatGoogleSecOpsDate,
   googleSecOpsEventsRoute,
   googleSecOpsRunLabels,
   readGoogleSecOpsResult,
 } from "./GoogleSecOpsDiagnosticsUtil";
+import { readSecurityConnectorTestReport } from "./SecurityEventConnectionDiagnosticsUtil";
 
 export interface ComponentProps {
   run: GoogleSecOpsConnectionRun;
@@ -22,9 +25,18 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const run: GoogleSecOpsConnectionRun = props.run;
-  const result: GoogleSecOpsRunResult | null = readGoogleSecOpsResult(
-    run.result,
-  );
+  /*
+   * Two shapes live in `result`: a synchronous Test connection stores its
+   * checklist report, every worker run (including tests queued before the
+   * test became synchronous) stores a run result. The report is read first
+   * because it has no `type` and would otherwise render as a bare
+   * "Result: Success" with nothing under it.
+   */
+  const report: SecurityConnectorTestReport | null =
+    run.type === "test" ? readSecurityConnectorTestReport(run.result) : null;
+  const result: GoogleSecOpsRunResult | null = report
+    ? null
+    : readGoogleSecOpsResult(run.result);
   const status: string = run.status || "queued";
   const error: string | undefined = run.error || result?.error;
 
@@ -47,7 +59,7 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
               startedAt: run.startedAt,
               completedAt: run.completedAt,
               request: run.request,
-              result,
+              result: report || result,
               error,
             },
             null,
@@ -68,11 +80,15 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
         run.createdAt &&
         Date.now() - new Date(run.createdAt).getTime() > 120_000 && (
           <p className="text-sm text-amber-700">
-            This run has been waiting for more than 2 minutes. Check that a
-            worker is available.
+            This run has been waiting for more than 2 minutes. Use Test
+            connection to check whether a worker is consuming the queue.
           </p>
         )}
-      {error && (
+      {/*
+       * A failed synchronous test stores its summary as the run error; the
+       * report banner below already shows it, so it is not repeated here.
+       */}
+      {error && !report && (
         <p
           role="alert"
           className="whitespace-pre-wrap break-words rounded-md bg-red-50 p-3 text-sm text-red-800"
@@ -81,6 +97,7 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
         </p>
       )}
       {!result &&
+        !report &&
         typeof run.request?.["startTime"] === "string" &&
         typeof run.request?.["endTime"] === "string" && (
           <p className="text-sm text-gray-600">
@@ -89,6 +106,12 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
             {formatGoogleSecOpsDate(run.request["endTime"] as string)}
           </p>
         )}
+      {report && (
+        <ConnectorTestReportView
+          report={report}
+          providerTitle="Google SecOps"
+        />
+      )}
       {result && (
         <>
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -100,7 +123,7 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Scope used</dt>
+              <dt className="text-gray-500">Data to import</dt>
               <dd>
                 {result.includeNonAlertingDetections
                   ? "Alerts and detections"
@@ -115,6 +138,16 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
               <dt className="text-gray-500">Duration</dt>
               <dd>{(result.durationMs / 1000).toFixed(1)} seconds</dd>
             </div>
+            {typeof result.chunkMinutes === "number" && (
+              <div>
+                <dt className="text-gray-500">Poll window length</dt>
+                <dd>
+                  {result.chunkMinutes.toLocaleString()} minutes
+                  {typeof result.nextChunkMinutes === "number" &&
+                    ` (next poll: ${result.nextChunkMinutes.toLocaleString()} minutes)`}
+                </dd>
+              </div>
+            )}
           </dl>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {(
@@ -143,8 +176,10 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
           </div>
           {run.type === "test" && (
             <p className="text-sm text-gray-600">
-              This checks credentials and access to Google SecOps. It does not
-              import events or confirm that scheduled polling is working.
+              This queued connection test checked credentials and access to
+              Google SecOps. It does not import events or confirm that scheduled
+              polling is working; Test connection now runs a full checklist
+              without a worker.
             </p>
           )}
           {run.type === "preview" && (
@@ -155,14 +190,27 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
           )}
           {result.status === "empty" && (
             <p className="text-sm text-gray-600">
-              Google returned no matching detections for this scope and time
-              range. Try a wider range or check whether the rule creates alerts.
+              Google returned no matching detections for this Data to import
+              selection and time range. Try a wider range or check whether the
+              rule creates alerts; a rule without alerting is imported only when
+              Detections is selected.
             </p>
           )}
           {!result.complete && run.type !== "test" && (
             <p role="alert" className="text-sm text-amber-700">
               This run did not finish processing every detection in the window.
               Review the checks and warnings before retrying.
+              {run.type === "poll" &&
+                !result.forcedAdvance &&
+                " The next scheduled poll starts from the same point: a failed poll is retried, and a window holding more detections than one poll can read is re-read in a shorter window."}
+            </p>
+          )}
+          {result.forcedAdvance && (
+            <p role="alert" className="text-sm text-amber-700">
+              Polling moved past a one-minute window that held more detections
+              than one poll can read, so newer detections keep arriving. The
+              warnings and Last Error name that minute; use Import this time
+              range on it to recover what one run can read.
             </p>
           )}
           {result.warnings.length > 0 && (
@@ -199,7 +247,9 @@ const GoogleSecOpsRunDetails: FunctionComponent<ComponentProps> = (
                           className={
                             check.status === "failed"
                               ? "font-medium text-red-700"
-                              : "font-medium text-green-700"
+                              : check.status === "warn"
+                                ? "font-medium text-amber-700"
+                                : "font-medium text-green-700"
                           }
                         >
                           {check.name}: {check.status}

@@ -931,6 +931,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Security Events monitors over a sliding window",
         "Observable correlation graph",
         "Google SecOps webhook, connector and UDM forwarding",
+        "Managed connectors for Microsoft Sentinel, Microsoft Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub and Okta",
         "AI security event search and summary",
         "Metered with telemetry at $0.10 per GB ingested",
         "Open source",

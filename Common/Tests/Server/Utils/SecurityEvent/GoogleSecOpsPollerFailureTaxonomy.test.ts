@@ -192,6 +192,7 @@ function okTokenResponse(): StubbedResponse {
 function alertsResponseWithOneAlert(): StubbedResponse {
   return {
     status: 200,
+    // complete: true, or the client re-issues the GET for an unfinished stream.
     body: JSON.stringify({
       alerts: [
         {
@@ -199,6 +200,7 @@ function alertsResponseWithOneAlert(): StubbedResponse {
           detection: [{ ruleName: "Brute force", severity: "HIGH" }],
         },
       ],
+      complete: true,
     }),
   };
 }
@@ -227,8 +229,17 @@ function makeFetch(responses: {
   ): Promise<FetchResponseLike> => {
     requests.push({ url: url, method: init.method });
 
+    /*
+     * The created-time search passes answer with an empty page: every
+     * fixture here describes a failure of the token exchange, the alerts
+     * view, or OneUptime's own store, and the search passes stay quiet.
+     */
     const response: StubbedResponse =
-      url === GOOGLE_TOKEN_URI ? responses.token : responses.alerts;
+      url === GOOGLE_TOKEN_URI
+        ? responses.token
+        : url.includes("legacySearch")
+          ? { status: 200, body: "{}" }
+          : responses.alerts;
 
     return Promise.resolve({
       ok: response.status >= 200 && response.status < 300,
@@ -658,10 +669,13 @@ describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
     expect(lastError.startsWith(tokenExchangePrefix)).toBe(false);
     expect(lastError).toContain("PERMISSION_DENIED");
 
-    // Token endpoint first, then Chronicle: the failure is genuinely theirs.
-    expect(run.requests).toHaveLength(2);
+    /*
+     * Token endpoint first, then Chronicle three times (two quiet search
+     * passes, then the alerts view that failed): the failure is theirs.
+     */
+    expect(run.requests).toHaveLength(4);
     expect(run.requests[0]!.url).toBe(GOOGLE_TOKEN_URI);
-    expect(run.requests[1]!.url.startsWith(run.client.getApiBaseUrl())).toBe(
+    expect(run.requests[3]!.url.startsWith(run.client.getApiBaseUrl())).toBe(
       true,
     );
 
@@ -685,10 +699,10 @@ describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
     const run: PollRun = await telemetryStoreFailureRun();
     const lastError: string = recordedLastError(run);
 
-    // The alerts really did arrive — both Google calls succeeded...
-    expect(run.requests).toHaveLength(2);
+    // The alerts really did arrive — every Google call succeeded...
+    expect(run.requests).toHaveLength(4);
     expect(run.requests[0]!.url).toBe(GOOGLE_TOKEN_URI);
-    expect(run.requests[1]!.url.startsWith(run.client.getApiBaseUrl())).toBe(
+    expect(run.requests[3]!.url.startsWith(run.client.getApiBaseUrl())).toBe(
       true,
     );
 
@@ -735,7 +749,7 @@ describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
     expect(lastError).not.toContain("(HTTP");
 
     // The request did reach Chronicle; the body it returned was unusable.
-    expect(run.requests).toHaveLength(2);
+    expect(run.requests).toHaveLength(4);
     expect(run.insertedBatches).toHaveLength(0);
   });
 
