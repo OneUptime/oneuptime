@@ -44,10 +44,10 @@ OneUptime polls your tenant's detection alerts on an interval — no SOAR config
 1. In Google Cloud, create a **service account** with the **Chronicle API Viewer** role on the project your SecOps instance is bound to, and download its **JSON key**.
 2. In OneUptime, open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) and create a connection on the **Google SecOps Connections** card:
 
-   - **Region**: select your tenant's regional endpoint — `us`, `europe`, and so on. It is used to build the API base URL.
+   - **Region**: your tenant's regional prefix, lowercase — `us`, `europe`, and so on. It is used to build the API base URL.
    - **Instance resource name**: `projects/{project}/locations/{location}/instances/{instance}` — from your SecOps **SIEM Settings → Profile**.
    - **Service account JSON**: paste the key. It is write-only — encrypted at rest, never returned by the API, and never shown back to you on the page. To rotate it later, use the connection's **Update Service Account JSON** action.
-   - **Data to import**: **Alerts** are always selected because Google's alerts API always returns them. Select **Detections** to also include non-alerting rule detections. This does not forward all raw UDM events.
+   - **Scope**: choose **Alerts only** (default) or **Alerts and detections** to also include non-alerting rule detections. This does not forward all raw UDM events.
    - **Poll interval (minutes)**: a whole number from `1` to `1440`, default `5`. Anything outside that range is rejected when you save.
 
 3. New detections are ingested as **Detection Finding** events attributed to a `Google SecOps` telemetry service.
@@ -73,7 +73,7 @@ Use **View events** on an import result to open the event-time range of the dete
 
 ### Troubleshooting
 
-- **Google returns zero records** — check the exact time window and saved scope in Diagnostics. A non-alerting rule match requires the Detections checkbox. Preview a period covering both its detection time and creation time. The initial scheduled poll only looks back 15 minutes; use Import history for older records.
+- **Google returns zero records** — check the exact time window and saved scope in Diagnostics. A non-alerting detection may require Alerts and detections. Preview a period covering both its detection time and creation time. The initial scheduled poll only looks back 15 minutes; use Import history for older records.
 - **Health is Partial or overdue** — inspect the latest run warnings and the worker queue. A blank Last Error alone does not establish complete coverage.
 - **Status is `Disabled`** — scheduled polling skips the connection. Authorized users can still test, preview, or explicitly run an import from Diagnostics.
 - **Last Polled is `Never` and Last Error is empty** — the background worker has not executed the poll job at all, so nothing has ever reached Chronicle. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Either set `DISABLE_QUEUE_WORKERS=false` (the `config.example.env` default that Docker Compose ships with), or run the dedicated worker deployment (Helm: `worker.enabled: true`, which is `false` by default).

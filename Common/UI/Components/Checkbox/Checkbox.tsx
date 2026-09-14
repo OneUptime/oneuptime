@@ -38,8 +38,6 @@ export interface CategoryProps {
 const CheckboxElement: FunctionComponent<CategoryProps> = (
   props: CategoryProps,
 ): ReactElement => {
-  const checkboxId: string = React.useId();
-  const descriptionId: string = `${checkboxId}-description`;
   const [value, setValue] = React.useState<boolean>(
     props.initialValue || false,
   );
@@ -67,7 +65,6 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
       >
         <div className="flex h-6 items-center">
           <input
-            id={checkboxId}
             checked={value}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               setValue(event.target.checked);
@@ -86,7 +83,9 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             data-testid={props.dataTestId}
             aria-label={props.ariaLabel}
             title={props.hoverText}
-            aria-describedby={props.description ? descriptionId : undefined}
+            aria-describedby={
+              props.description ? "checkbox-description" : undefined
+            }
             aria-invalid={props.error ? "true" : undefined}
             type="checkbox"
             className={`accent-indigo-600 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
@@ -95,11 +94,9 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
           />
         </div>
         <div className="ml-3 text-sm leading-6">
-          <label className="font-medium text-gray-900" htmlFor={checkboxId}>
-            {props.title}
-          </label>
+          <label className="font-medium text-gray-900">{props.title}</label>
           {props.description && (
-            <div id={descriptionId} className="text-gray-500">
+            <div id="checkbox-description" className="text-gray-500">
               {props.description}
             </div>
           )}

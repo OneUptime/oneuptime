@@ -29,7 +29,6 @@ import Permission from "../../../Types/Permission";
 import { ComponentProps as CodeEditorProps } from "../../../UI/Components/CodeEditor/CodeEditor";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -183,30 +182,6 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const NAME: string = "Production SecOps tenant";
 const REGION: string = "europe";
 const INSTANCE: string = "projects/acme/locations/europe/instances/chronicle";
-const EXPECTED_REGIONS: Array<string> = [
-  "us",
-  "eu",
-  "europe",
-  "africa-south1",
-  "asia-east1",
-  "asia-northeast1",
-  "asia-northeast3",
-  "asia-south1",
-  "asia-southeast1",
-  "asia-southeast2",
-  "australia-southeast1",
-  "europe-central2",
-  "europe-west12",
-  "europe-west2",
-  "europe-west3",
-  "europe-west6",
-  "europe-west9",
-  "me-central1",
-  "me-central2",
-  "me-west1",
-  "northamerica-northeast2",
-  "southamerica-east1",
-];
 const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
   type: "service_account",
   client_email: "secops-reader@acme.example",
@@ -231,16 +206,10 @@ function enabledToggle(): HTMLElement {
   return screen.getByRole("switch", { name: /^Enabled/ });
 }
 
-function regionCombobox(): HTMLElement {
-  return screen.getByRole("combobox", { name: /^Region/ });
-}
-
-function alertsCheckbox(): HTMLElement {
-  return screen.getByRole("checkbox", { name: "Alerts" });
-}
-
-function detectionsCheckbox(): HTMLElement {
-  return screen.getByRole("checkbox", { name: "Detections" });
+function detectionsToggle(): HTMLElement {
+  return screen.getByRole("switch", {
+    name: /^Alerts and detections/,
+  });
 }
 
 function serviceAccountEditor(): HTMLElement {
@@ -286,13 +255,17 @@ async function enterBasicInfo(user: UserEvent): Promise<void> {
     { target: { value: NAME } },
   );
   await next(user);
-  await screen.findByRole("combobox", { name: /^Region/ });
+  await screen.findByPlaceholderText("us");
 }
 
-function fillGoogleSecOpsDetails(values?: {
+function fillGoogleSecOps(values?: {
+  region?: string;
   instance?: string;
   serviceAccountJson?: string;
 }): void {
+  fireEvent.change(screen.getByPlaceholderText("us"), {
+    target: { value: values?.region ?? REGION },
+  });
   fireEvent.change(
     screen.getByPlaceholderText(
       "projects/{project}/locations/{location}/instances/{instance}",
@@ -306,38 +279,15 @@ function fillGoogleSecOpsDetails(values?: {
   });
 }
 
-async function selectRegion(
-  user: UserEvent,
-  region: string = REGION,
-): Promise<void> {
-  await user.click(regionCombobox());
-  await user.click(await screen.findByRole("option", { name: region }));
-}
-
-async function fillGoogleSecOps(
-  user: UserEvent,
-  values?: {
-    region?: string;
-    instance?: string;
-    serviceAccountJson?: string;
-  },
-): Promise<void> {
-  await selectRegion(user, values?.region ?? REGION);
-  fillGoogleSecOpsDetails(values);
-}
-
 async function enterPolling(user: UserEvent): Promise<void> {
-  await fillGoogleSecOps(user);
+  fillGoogleSecOps();
   await next(user);
   await screen.findByRole("spinbutton", {
     name: /^Poll Interval \(Minutes\)/,
   });
-  await waitFor(
-    () => {
-      expect(pollIntervalInput()).toHaveValue(5);
-    },
-    { timeout: 30000 },
-  );
+  await waitFor(() => {
+    expect(pollIntervalInput()).toHaveValue(5);
+  });
 }
 
 async function goBackTo(user: UserEvent, title: string): Promise<void> {
@@ -441,28 +391,6 @@ describe("Google SecOps connection creation wizard", () => {
         })
         .map(fieldName),
     ).toEqual(["region", "instanceResourceName"]);
-
-    const region: ModelField<GoogleSecOpsConnection> | undefined = fields.find(
-      (field: ModelField<GoogleSecOpsConnection>): boolean => {
-        return fieldName(field) === "region";
-      },
-    );
-    expect(region?.fieldType).toBe(FormFieldSchemaType.Dropdown);
-    expect(region?.placeholder).toBe("Select a region");
-    expect(region?.dropdownOptions).toEqual(
-      EXPECTED_REGIONS.map((value: string) => {
-        return { label: value, value };
-      }),
-    );
-    expect(region?.dropdownOptions).toHaveLength(22);
-
-    const dataToImport: ModelField<GoogleSecOpsConnection> | undefined =
-      fields.find((field: ModelField<GoogleSecOpsConnection>): boolean => {
-        return fieldName(field) === "includeNonAlertingDetections";
-      });
-    expect(dataToImport?.title).toBe("Data to import");
-    expect(dataToImport?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-    expect(dataToImport?.getCustomElement).toEqual(expect.any(Function));
   });
 
   test("isolates all three steps, reports progress, and cannot skip ahead", async (): Promise<void> => {
@@ -483,9 +411,7 @@ describe("Google SecOps connection creation wizard", () => {
       screen.getByPlaceholderText("e.g. Production SecOps tenant"),
     ).toBeVisible();
     expect(enabledToggle()).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.queryByRole("combobox", { name: /^Region/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("us")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("textbox", { name: /^Service Account JSON/ }),
     ).not.toBeInTheDocument();
@@ -507,12 +433,7 @@ describe("Google SecOps connection creation wizard", () => {
     expect(within(dialog()).getByRole("status")).toHaveTextContent(
       "Step 2 of 3",
     );
-    expect(regionCombobox()).toBeVisible();
-    expect(
-      screen.getByText(
-        "Select the Google SecOps regional endpoint that matches the location in your instance resource name.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByPlaceholderText("us")).toBeVisible();
     expect(
       screen.getByPlaceholderText(
         "projects/{project}/locations/{location}/instances/{instance}",
@@ -530,34 +451,18 @@ describe("Google SecOps connection creation wizard", () => {
         name: /^Poll Interval \(Minutes\)/,
       }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("checkbox", { name: "Alerts" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("checkbox", { name: "Detections" }),
-    ).not.toBeInTheDocument();
 
-    await fillGoogleSecOps(user);
+    fillGoogleSecOps();
     await next(user);
     expect(activeStep()).toBe("Polling");
     expect(within(dialog()).getByRole("status")).toHaveTextContent(
       "Step 3 of 3",
     );
-    expect(screen.getByRole("group", { name: "Data to import" })).toBeVisible();
-    expect(alertsCheckbox()).toBeChecked();
-    expect(alertsCheckbox()).toBeDisabled();
-    expect(alertsCheckbox()).toHaveAttribute(
-      "title",
-      "Google's alerts API always includes alerts.",
-    );
-    expect(detectionsCheckbox()).not.toBeChecked();
-    expect(detectionsCheckbox()).toBeEnabled();
+    expect(detectionsToggle()).toHaveAttribute("aria-checked", "false");
     await waitFor(() => {
       expect(pollIntervalInput()).toHaveValue(5);
     });
-    expect(
-      screen.queryByRole("combobox", { name: /^Region/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("us")).not.toBeInTheDocument();
     expect(
       screen.queryByPlaceholderText("e.g. Production SecOps tenant"),
     ).not.toBeInTheDocument();
@@ -596,9 +501,7 @@ describe("Google SecOps connection creation wizard", () => {
 
       expect(await screen.findByText(error)).toBeVisible();
       expect(activeStep()).toBe("Basic Info");
-      expect(
-        screen.queryByRole("combobox", { name: /^Region/ }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("us")).not.toBeInTheDocument();
       expect(createOrUpdateMock).not.toHaveBeenCalled();
     },
   );
@@ -625,58 +528,12 @@ describe("Google SecOps connection creation wizard", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
-  test("offers exactly the supported regions and submits the selected prefix as a scalar", async (): Promise<void> => {
-    const user: UserEvent = await renderWizard();
-    await enterBasicInfo(user);
-
-    expect(screen.getByText("Select a region", { exact: true })).toBeVisible();
-    await user.click(regionCombobox());
-    const listbox: HTMLElement = await screen.findByRole("listbox");
-    expect(
-      within(listbox)
-        .getAllByRole("option")
-        .map((option: HTMLElement): string => {
-          return option.textContent || "";
-        }),
-    ).toEqual(EXPECTED_REGIONS);
-
-    await user.click(
-      within(listbox).getByRole("option", { name: REGION, exact: true }),
-    );
-    fillGoogleSecOpsDetails();
-    await next(user);
-    await screen.findByRole("checkbox", { name: "Alerts" });
-
-    const model: GoogleSecOpsConnection = await submit(user);
-    expect(model.region).toBe(REGION);
-    expect(typeof model.region).toBe("string");
-    expect(model.region).not.toEqual({ label: REGION, value: REGION });
-  });
-
-  test("does not treat typed text as a region selection", async (): Promise<void> => {
-    const user: UserEvent = await renderWizard();
-    await enterBasicInfo(user);
-
-    await user.type(regionCombobox(), "us-central1");
-    expect(regionCombobox()).toHaveValue("us-central1");
-    expect(screen.queryByRole("option")).not.toBeInTheDocument();
-    fillGoogleSecOpsDetails();
-    await next(user);
-
-    expect(await screen.findByText("Region is required.")).toBeVisible();
-    expect(activeStep()).toBe("Google SecOps");
-    expect(
-      screen.queryByRole("checkbox", { name: "Alerts" }),
-    ).not.toBeInTheDocument();
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
   test.each(["{", '{"client_email":"reader@example.com",}', "credentials"])(
     "rejects malformed service-account JSON %j before Polling",
     async (serviceAccountJson: string): Promise<void> => {
       const user: UserEvent = await renderWizard();
       await enterBasicInfo(user);
-      await fillGoogleSecOps(user, { serviceAccountJson });
+      fillGoogleSecOps({ serviceAccountJson });
       await next(user);
 
       expect(
@@ -697,10 +554,7 @@ describe("Google SecOps connection creation wizard", () => {
     await enterBasicInfo(user);
     await enterPolling(user);
 
-    expect(alertsCheckbox()).toBeChecked();
-    expect(alertsCheckbox()).toBeDisabled();
-    expect(detectionsCheckbox()).not.toBeChecked();
-    expect(detectionsCheckbox()).toBeEnabled();
+    expect(detectionsToggle()).toHaveAttribute("aria-checked", "false");
     expect(pollIntervalInput()).toHaveValue(5);
 
     for (const invalid of [
@@ -733,9 +587,6 @@ describe("Google SecOps connection creation wizard", () => {
     await enterBasicInfo(user);
     await enterPolling(user);
 
-    expect(alertsCheckbox()).toBeChecked();
-    expect(alertsCheckbox()).toBeDisabled();
-    expect(detectionsCheckbox()).not.toBeChecked();
     const model: GoogleSecOpsConnection = await submit(user);
     expect(model.name).toBe(NAME);
     expect(model.region).toBe(REGION);
@@ -746,23 +597,20 @@ describe("Google SecOps connection creation wizard", () => {
     expect(model.pollIntervalInMinutes).toBe(5);
   });
 
-  test("preserves completed steps and submits the selectable Detections checkbox", async (): Promise<void> => {
+  test("preserves completed steps and submits all edited toggle and polling values", async (): Promise<void> => {
     const user: UserEvent = await renderWizard();
     await user.click(enabledToggle());
     expect(enabledToggle()).toHaveAttribute("aria-checked", "false");
     await enterBasicInfo(user);
     await enterPolling(user);
 
-    expect(alertsCheckbox()).toBeChecked();
-    expect(alertsCheckbox()).toBeDisabled();
-    expect(detectionsCheckbox()).not.toBeChecked();
-    await user.click(screen.getByText("Detections", { exact: true }));
-    expect(detectionsCheckbox()).toBeChecked();
+    await user.click(detectionsToggle());
+    expect(detectionsToggle()).toHaveAttribute("aria-checked", "true");
     fireEvent.change(pollIntervalInput(), { target: { value: "30" } });
 
     await goBackTo(user, "Google SecOps");
     await waitFor(() => {
-      expect(screen.getByText(REGION, { exact: true })).toBeVisible();
+      expect(screen.getByPlaceholderText("us")).toHaveValue(REGION);
       expect(
         screen.getByPlaceholderText(
           "projects/{project}/locations/{location}/instances/{instance}",
@@ -781,19 +629,14 @@ describe("Google SecOps connection creation wizard", () => {
 
     await next(user);
     await waitFor(() => {
-      expect(screen.getByText(REGION, { exact: true })).toBeVisible();
+      expect(screen.getByPlaceholderText("us")).toHaveValue(REGION);
       expect(serviceAccountEditor()).toHaveValue(SERVICE_ACCOUNT_JSON);
     });
     await next(user);
-    await waitFor(
-      () => {
-        expect(alertsCheckbox()).toBeChecked();
-        expect(alertsCheckbox()).toBeDisabled();
-        expect(detectionsCheckbox()).toBeChecked();
-        expect(pollIntervalInput()).toHaveValue(30);
-      },
-      { timeout: 30000 },
-    );
+    await waitFor(() => {
+      expect(detectionsToggle()).toHaveAttribute("aria-checked", "true");
+      expect(pollIntervalInput()).toHaveValue(30);
+    });
 
     const model: GoogleSecOpsConnection = await submit(user);
     expect(model.name).toBe(NAME);
