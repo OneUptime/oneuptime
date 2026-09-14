@@ -243,7 +243,18 @@ describe("getLogsQueryValues", () => {
   test("an Includes reads as each of its values", () => {
     expect(
       FacetFilters.getLogsQueryValues(
-        new Includes([RESOURCE_ID, new ObjectID(OTHER_RESOURCE_ID)]),
+        new Includes([RESOURCE_ID, OTHER_RESOURCE_ID]),
+      ),
+    ).toEqual([RESOURCE_ID, OTHER_RESOURCE_ID]);
+  });
+
+  test("an Includes of ObjectIDs reads as their string ids", () => {
+    expect(
+      FacetFilters.getLogsQueryValues(
+        new Includes([
+          new ObjectID(RESOURCE_ID),
+          new ObjectID(OTHER_RESOURCE_ID),
+        ]),
       ),
     ).toEqual([RESOURCE_ID, OTHER_RESOURCE_ID]);
   });
