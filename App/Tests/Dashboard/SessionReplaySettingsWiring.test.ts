@@ -57,6 +57,75 @@ const INSTALL_PANEL: string = readSource(
 const PRIVACY_SUMMARY: string = readSource(
   "Components/SessionReplay/PrivacySummaryCard.tsx",
 );
+const GENERAL_RUM_SETTINGS_PATH: string = "Pages/Rum/View/Settings.tsx";
+const GENERAL_RUM_SETTINGS_PAGE: string = readSource(GENERAL_RUM_SETTINGS_PATH);
+
+function importSpecifierFor(
+  source: string,
+  importedIdentifier: string,
+): string | null {
+  const importStatements: Array<RegExpMatchArray> = Array.from(
+    source.matchAll(
+      new RegExp("import\\s+[\\s\\S]*?from\\s+[\"']([^\"']+)[\"'];", "g"),
+    ),
+  );
+  const matchingImport: RegExpMatchArray | undefined = importStatements.find(
+    (statement: RegExpMatchArray): boolean => {
+      return (statement[0] || "").includes(importedIdentifier);
+    },
+  );
+
+  return matchingImport?.[1] || null;
+}
+
+function resolveDashboardImport(
+  importerRelativePath: string,
+  importSpecifier: string,
+): string {
+  const importer: string = nodePath.join(DASHBOARD_SRC, importerRelativePath);
+  const unresolved: string = nodePath.resolve(
+    nodePath.dirname(importer),
+    importSpecifier,
+  );
+  const candidates: Array<string> = [
+    unresolved,
+    `${unresolved}.tsx`,
+    `${unresolved}.ts`,
+    nodePath.join(unresolved, "Index.tsx"),
+    nodePath.join(unresolved, "Index.ts"),
+  ];
+  const resolved: string | undefined = candidates.find((candidate: string) => {
+    return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
+  });
+
+  if (!resolved) {
+    throw new Error(
+      `Could not resolve ${importSpecifier} from ${importerRelativePath}`,
+    );
+  }
+
+  return resolved;
+}
+
+function generalRumSettingsImplementation(): string {
+  const componentName: string = "SessionReplayRetentionSettingsCard";
+  const importSpecifier: string | null = importSpecifierFor(
+    GENERAL_RUM_SETTINGS_PAGE,
+    componentName,
+  );
+
+  if (!importSpecifier) {
+    return GENERAL_RUM_SETTINGS_PAGE;
+  }
+
+  return `${GENERAL_RUM_SETTINGS_PAGE}\n${fs.readFileSync(
+    resolveDashboardImport(GENERAL_RUM_SETTINGS_PATH, importSpecifier),
+    "utf8",
+  )}`;
+}
+
+const GENERAL_RUM_SETTINGS_IMPLEMENTATION: string =
+  generalRumSettingsImplementation();
 
 /* The docs page the guide's per-step links point into. */
 const SESSION_REPLAY_DOC: string = nodePath.join(
@@ -155,6 +224,26 @@ function topLevelDeclaration(source: string, opening: RegExp): string {
 }
 
 describe("Application replay settings page composition", () => {
+  test("general RUM Settings and Replay Policy bind the same dedicated retention field", () => {
+    const retentionFieldPattern: RegExp = new RegExp(
+      "field\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true\\s*,?\\s*\\}",
+      "g",
+    );
+    const generalBindings: Array<string> =
+      GENERAL_RUM_SETTINGS_IMPLEMENTATION.match(retentionFieldPattern) || [];
+    const replayPolicyBindings: Array<string> =
+      APP_SETTINGS_PAGE.match(retentionFieldPattern) || [];
+
+    /* Each surface has one editable field and one read-view field. */
+    expect(generalBindings).toHaveLength(2);
+    expect(replayPolicyBindings).toHaveLength(2);
+    expect(GENERAL_RUM_SETTINGS_PAGE).toMatch(
+      new RegExp(
+        "SessionReplayRetentionSettingsCard|sessionReplayRetentionInDays",
+      ),
+    );
+  });
+
   test("composes health -> policy -> privacy summary -> install test -> targeted capture, in that order", () => {
     const health: number = indexOfOrFail(
       APP_SETTINGS_PAGE,

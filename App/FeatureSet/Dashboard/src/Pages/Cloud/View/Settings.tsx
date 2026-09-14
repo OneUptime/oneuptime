@@ -1,12 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ObjectID from "Common/Types/ObjectID";
 import { useParams } from "react-router-dom";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const CloudResourceSettings: FunctionComponent<
   PageComponentProps
@@ -15,14 +16,22 @@ const CloudResourceSettings: FunctionComponent<
   const modelId: ObjectID = new ObjectID(id || "");
 
   return (
-    <ArchiveResourceCard<CloudResource>
-      modelType={CloudResource}
-      modelId={modelId}
-      singularName="cloud environment"
-      listRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
-      )}
-    />
+    <Fragment>
+      <TelemetryResourceRetentionSettings<CloudResource>
+        modelType={CloudResource}
+        modelId={modelId}
+        resourceName="cloud resource"
+        modelDetailIdPrefix="cloud-resource"
+      />
+      <ArchiveResourceCard<CloudResource>
+        modelType={CloudResource}
+        modelId={modelId}
+        singularName="cloud environment"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+        )}
+      />
+    </Fragment>
   );
 };
 
