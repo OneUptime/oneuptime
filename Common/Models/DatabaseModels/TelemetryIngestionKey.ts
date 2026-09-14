@@ -359,7 +359,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Key Type",
     description:
-      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are meant to be published in a web page, so they are write-only, restricted to trace / log / metric / session replay ingest, and are only accepted from the origins you list below. This cannot be changed after the key is created - create a new key instead.",
+      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics and session replay, while listed app:// identities currently authorize React Native session replay only. This cannot be changed after the key is created - create a new key instead.",
     defaultValue: TelemetryIngestionKeyType.Server,
     example: TelemetryIngestionKeyType.Server,
   })
@@ -408,7 +408,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.JSON,
     title: "Allowed Origins",
     description:
-      "Browser origins (scheme + host + port, for example https://app.example.com, or https://*.example.com for one level of subdomain) that may use this key. Required and strictly enforced on a Browser key: a request from an unlisted origin, or with no Origin header at all, is refused. Ignored entirely on a Server key.",
+      "Web origins (for example https://app.example.com or https://*.example.com) and exact React Native identities (for example app://com.example.mobile) that may use this key. Required on a Browser key. Web requests need a listed Origin; mobile replay requests without Origin need a listed app identity. app:// entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.",
   })
   @Column({
     type: ColumnType.JSON,

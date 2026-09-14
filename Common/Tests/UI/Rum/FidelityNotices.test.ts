@@ -54,6 +54,10 @@ describe("getFidelityNoticeSeverity", () => {
     SessionReplayFidelityNotice.MediaNotReplayable,
     SessionReplayFidelityNotice.BfcacheRestore,
     SessionReplayFidelityNotice.IgnorePatternsDiscarded,
+    SessionReplayFidelityNotice.MobileImagesOpaque,
+    SessionReplayFidelityNotice.MobileWebViewOpaque,
+    SessionReplayFidelityNotice.MobileCanvasOpaque,
+    SessionReplayFidelityNotice.MobileAnimationSampled,
     /*
      * The footage is complete when a signal cap is hit; only the rail is cut
      * short. Shouting "playback problem" would be the wrong claim.
@@ -117,6 +121,24 @@ describe("getFidelityNoticeCopy", () => {
     expect(copy.description).toContain("per-session cap was reached");
     expect(copy.description).toMatch(/errors, console output or route changes/);
     expect(copy.description).toContain("footage itself is complete");
+  });
+
+  it.each([
+    [
+      SessionReplayFidelityNotice.MobileImagesOpaque,
+      /not its pixels|opaque placeholder/,
+    ],
+    [
+      SessionReplayFidelityNotice.MobileWebViewOpaque,
+      /outside the React Native view tree/,
+    ],
+    [SessionReplayFidelityNotice.MobileCanvasOpaque, /Canvas, Skia, OpenGL/],
+    [SessionReplayFidelityNotice.MobileAnimationSampled, /sampled|every frame/],
+  ])("explains the mobile fidelity limit %s", (code: string, claim: RegExp) => {
+    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(code);
+
+    expect(copy.description).toMatch(claim);
+    expect(getFidelityNoticeSeverity(code)).toBe("fidelity");
   });
 
   it("spells the recorder's truncation notice exactly like the sealed reason", () => {

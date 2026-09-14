@@ -915,12 +915,44 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
   });
 
   /*
-   * Audit finding ingest-5. A request whose every frame asserts consent
-   * Unknown against a RequireExplicit policy used to be accepted (202) and
-   * dropped in the worker, where the recorder could never learn it.
+   * Audit finding ingest-5. A request with no Granted frame against a
+   * RequireExplicit policy used to be accepted (202) and dropped in the
+   * worker, where the recorder could never learn it. This includes a stale
+   * recorder still asserting NotRequired after the server policy changed.
    */
   describe("consent at the gate", () => {
-    test("is refused with a reason, and WITHOUT a stop", async () => {
+    test.each([
+      ["Unknown frames", ["Unknown", "Unknown"]],
+      ["NotRequired frames", ["NotRequired", "NotRequired"]],
+      ["mixed non-Granted frames", ["Unknown", "NotRequired"]],
+      ["a missing consent assertion", []],
+    ])(
+      "refuses %s with a reason, and WITHOUT a stop",
+      async (_description: string, consentStates: Array<string>) => {
+        getPolicyMock.mockResolvedValue(
+          buildPolicy({
+            consentMode: SessionReplayConsentMode.RequireExplicit,
+          }) as never,
+        );
+
+        const decision: SessionReplayGateDecision =
+          await SessionReplayIngestService.gateChunkRequest({
+            ...baseGateInput,
+            consentStates: consentStates,
+          });
+
+        expect(decision.outcome).toBe(SessionReplayGateOutcome.Refused);
+        expect(decision.directive).toBe("continue");
+        expect(decision.reason).toBe("consent-required");
+        /* Refused before any counter is charged. */
+        expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
+        expect(recordRefusalMock).toHaveBeenCalledWith(
+          expect.objectContaining({ reason: "consent-required" }),
+        );
+      },
+    );
+
+    test("a mixed batch with a Granted frame passes the gate", async () => {
       getPolicyMock.mockResolvedValue(
         buildPolicy({
           consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -930,30 +962,7 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
       const decision: SessionReplayGateDecision =
         await SessionReplayIngestService.gateChunkRequest({
           ...baseGateInput,
-          consentStates: ["Unknown", "Unknown"],
-        });
-
-      expect(decision.outcome).toBe(SessionReplayGateOutcome.Refused);
-      expect(decision.directive).toBe("continue");
-      expect(decision.reason).toBe("consent-required");
-      /* Refused before any counter is charged. */
-      expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
-      expect(recordRefusalMock).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "consent-required" }),
-      );
-    });
-
-    test("a mixed batch passes the gate; the worker drops the Unknown frames", async () => {
-      getPolicyMock.mockResolvedValue(
-        buildPolicy({
-          consentMode: SessionReplayConsentMode.RequireExplicit,
-        }) as never,
-      );
-
-      const decision: SessionReplayGateDecision =
-        await SessionReplayIngestService.gateChunkRequest({
-          ...baseGateInput,
-          consentStates: ["Unknown", "Granted"],
+          consentStates: ["Unknown", "NotRequired", "Granted"],
         });
 
       expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
@@ -1587,7 +1596,30 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     expect(submitMock).not.toHaveBeenCalled();
   });
 
-  test("FAILS CLOSED: an Unknown consent state is dropped when consent is required", async () => {
+  test.each<[SessionReplayChunkEnvelope["consentState"]]>([
+    ["Unknown"],
+    ["NotRequired"],
+  ])(
+    "FAILS CLOSED: a %s consent state is dropped when consent is required",
+    async (consentState: SessionReplayChunkEnvelope["consentState"]) => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, consentState }])),
+      );
+
+      expect(submitMock).not.toHaveBeenCalled();
+      expect(recordDropMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "consent-not-granted" }),
+      );
+    },
+  );
+
+  test("under explicit consent a mixed job stores only Granted frames", async () => {
     getPolicyMock.mockResolvedValue(
       buildPolicy({
         consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -1595,10 +1627,28 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     );
 
     await SessionReplayIngestService.processFromQueue(
-      buildJobData(buildBody([{ chunkIndex: 0, consentState: "Unknown" }])),
+      buildJobData(
+        buildBody([
+          { chunkIndex: 0, consentState: "Unknown" },
+          { chunkIndex: 1, consentState: "NotRequired" },
+          { chunkIndex: 2, consentState: "Granted" },
+        ]),
+      ),
     );
 
-    expect(submitMock).not.toHaveBeenCalled();
+    const storedChunks: Array<JSONObject> =
+      getSubmittedRows("RumSessionChunkV1");
+    expect(storedChunks).toHaveLength(1);
+    expect(storedChunks[0]?.["chunkIndex"]).toBe(2);
+    expect(recordDropMock).toHaveBeenCalledTimes(2);
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
   });
 
   test("an Unknown consent state is accepted when the app does not require consent", async () => {
@@ -2898,7 +2948,7 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
 
       expect(markChunkReceivedMock).not.toHaveBeenCalled();
       expect(recordDropMock).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "consent-unknown" }),
+        expect.objectContaining({ reason: "consent-not-granted" }),
       );
     });
 

@@ -1,4 +1,4 @@
-import { Locator, Page, expect, test } from "@playwright/test";
+import { FrameLocator, Locator, Page, expect, test } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
 
@@ -72,6 +72,20 @@ const openPlayer: (page: Page, query?: string) => Promise<void> = async (
     page
       .frameLocator('[data-testid="replay-stage"] iframe')
       .getByText("Complete your order"),
+  ).toBeVisible();
+};
+const openMobilePlayer: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.goto(`${playerRoute}?recorder=mobile`);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .locator('[data-oneuptime-mobile-view="view"]')
+      .first(),
   ).toBeVisible();
 };
 const facet: (
@@ -629,6 +643,33 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   await expect(page.getByTestId("replay-phase")).toHaveText("playing");
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-player");
+});
+
+test("plays a React Native view tree while keeping text, images and webviews private", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openMobilePlayer(page);
+  const replayFrame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="image"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="webview"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="masked"]'),
+  ).toBeVisible();
+  const replayedText: string = await replayFrame.locator("body").innerText();
+  expect(replayedText).toContain("•••");
+  expect(replayedText).not.toContain("Place order");
+  expect(replayedText).not.toContain("alex@example.com");
+  await expect(page.getByTestId("replay-time")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-react-native-player");
 });
 
 test("event search, error selection, details and rail collapse keep their state", async ({

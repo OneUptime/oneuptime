@@ -142,7 +142,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Browser",
                 icon: IconProp.Globe,
                 description:
-                  "For public web pages. Writes traces, logs, metrics and session replays only from the origins you allow, with a per-key rate limit. Configure those origins in the next step.",
+                  "For public web telemetry and React Native session replay. Web origins may send traces, logs, metrics and replays; exact app:// identities authorize mobile replay only. Requests are rate limited. Configure the identities in the next step.",
               },
             ],
             required: true,
@@ -194,9 +194,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 allowEmptyList: false,
               });
             },
-            placeholder: '["https://app.example.com"]',
+            placeholder:
+              '["https://app.example.com", "app://com.example.mobile"]',
             description:
-              'List allowed origins as a JSON array, including the scheme and any port. Requests with a missing or unlisted Origin are refused. A leading host wildcard is supported: "https://*.example.com" matches "https://app.example.com", but not "https://example.com".',
+              'List web origins and exact native app identities as a JSON array. Web origins include the scheme and any port; one leading host wildcard is supported. React Native session replay uses "app://" plus the Android package or iOS bundle id, and app entries cannot contain wildcards. An app identity is self-asserted by the client, not platform attestation.',
           },
           {
             field: {

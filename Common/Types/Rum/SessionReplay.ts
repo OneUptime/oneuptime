@@ -196,6 +196,27 @@ export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
   "x-oneuptime-app-identifier";
 
 /*
+ * The transport surface that is asking for replay policy. This is separate
+ * from the recorderKind inside a chunk envelope because authentication runs
+ * before the request body is read. Absence deliberately means the historic
+ * DOM recorder; only the exact `rn-view-tree` value selects the mobile
+ * contract.
+ */
+export const SESSION_REPLAY_RECORDER_KIND_HEADER: string =
+  "x-oneuptime-replay-recorder-kind";
+
+/*
+ * Native applications have no browser-controlled Origin header. The mobile
+ * recorder sends its Android package name / iOS bundle identifier here and
+ * the ingest guard maps it to an exact app:// origin for allowlist matching.
+ * It is not the RUM application identifier above: several app binaries may
+ * intentionally report to one configured RUM application.
+ */
+export const SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER: string =
+  "x-oneuptime-mobile-app-identifier";
+export const SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH: number = 255;
+
+/*
  * Header carrying the host page's end-user reference on the CONFIG fetch,
  * URI-component-encoded so a non-ASCII reference cannot make fetch() throw
  * and take the whole recorder down with it. Only sent when the page
@@ -371,11 +392,49 @@ export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
   "mousemove-50ms",
 ];
 
+/*
+ * Capabilities emitted by the React Native recorder on its first chunk.
+ * Kept separate from the DOM baseline above: otherwise every perfectly
+ * healthy web recording would appear to be missing mobile-only features.
+ */
+export const SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES: ReadonlyArray<string> =
+  [
+    "mobile-view-tree",
+    "mobile-touch-events",
+    "custom-events",
+    "traits",
+    "tags",
+    "visibility",
+    "visitor-id",
+    "route-events",
+    "js-errors",
+  ];
+
 /* How the payload bytes were compressed by the recorder. */
 export type SessionReplayPayloadEncoding = "gzip" | "identity";
 
 /* Which recorder produced the frame — web DOM, or a mobile view tree. */
 export type SessionReplayRecorderKind = "dom" | "rn-view-tree";
+
+/*
+ * Strict parser for the recorder-kind REQUEST header. The wire envelope has
+ * a backwards-compatible fallback for old stored chunks, but a config fetch
+ * must never silently reinterpret a typo as web policy. Header absence is
+ * the only legacy fallback.
+ */
+export function parseSessionReplayRecorderKindHeader(
+  value: unknown,
+): SessionReplayRecorderKind | null {
+  if (value === undefined || value === null) {
+    return "dom";
+  }
+
+  if (value === "dom" || value === "rn-view-tree") {
+    return value;
+  }
+
+  return null;
+}
 
 /* State of the consent handshake at the moment the chunk was cut. */
 export type SessionReplayConsentState = "Granted" | "NotRequired" | "Unknown";
@@ -425,6 +484,14 @@ export enum SessionReplayFidelityNotice {
    * footage recovers, but playback may skip or freeze around those points.
    */
   RecorderError = "recorder-error",
+  /* Native Image pixels are represented by an opaque placeholder. */
+  MobileImagesOpaque = "mobile-images-opaque",
+  /* WebView contents cannot be inspected from the React Native view tree. */
+  MobileWebViewOpaque = "mobile-webview-opaque",
+  /* Native canvas / drawing surfaces are represented as opaque regions. */
+  MobileCanvasOpaque = "mobile-canvas-opaque",
+  /* Animation state is sampled at snapshots rather than reproduced framewise. */
+  MobileAnimationSampled = "mobile-animation-sampled",
 }
 
 /* Why a session stopped accumulating chunks. */

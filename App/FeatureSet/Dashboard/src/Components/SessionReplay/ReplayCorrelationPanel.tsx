@@ -46,6 +46,12 @@ import {
 } from "./FidelityNoticeCopy";
 import { MASKING_MODE_LABELS, labelEnum } from "./RecordingHealthCard";
 import { ReplayRailTabId } from "./Rail/ReplaySignalTypes";
+import {
+  getReplayClientLabel,
+  getReplayEventFormatLabel,
+  getReplayRecorderKindLabel,
+  isMobileSessionReplay,
+} from "./ReplayRecorderKind";
 
 /*
  * Everything the player knows about a session that is not the picture and
@@ -396,7 +402,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       )}
       <div className="mt-3">
         <DetailRow
-          label="Browser"
+          label={getReplayClientLabel(d.recorderKind)}
           value={[d.browserName, d.browserVersion].filter(Boolean).join(" ")}
         />
         <DetailRow label="OS" value={d.osName} />
@@ -440,11 +446,22 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         onOpenRailTab={props.onOpenRailTab}
       />
       <div className="mt-2 text-[11px] text-gray-500">
-        Backend rows reach the rail by carrying this session&apos;s id: the
-        recorder stamps session.id on its own network requests (so spans for
-        instrumented origins correlate by themselves); logs and spans from other
-        SDKs correlate only when they are wired to add session.id, for example
-        through OneUptimeReplay.onSessionChange().
+        {isMobileSessionReplay(d.recorderKind) ? (
+          <React.Fragment>
+            Mobile traces and logs reach this rail when your OpenTelemetry
+            instrumentation attaches this replay&apos;s session.id. Subscribe
+            with OneUptimeReplay.onSessionChange() and update the attribute
+            whenever the session rotates.
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            Backend rows reach the rail by carrying this session&apos;s id: the
+            recorder stamps session.id on its own network requests (so spans for
+            instrumented origins correlate by themselves); logs and spans from
+            other SDKs correlate only when they are wired to add session.id, for
+            example through OneUptimeReplay.onSessionChange().
+          </React.Fragment>
+        )}
       </div>
 
       {d.exceptionFingerprints.length > 0 && (
@@ -557,8 +574,16 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         value={getReplayTriggerReasonLabel(d.triggerReason)}
         testId="replay-details-trigger"
       />
+      <DetailRow
+        label="Recording source"
+        value={getReplayRecorderKindLabel(d.recorderKind)}
+        testId="replay-details-recorder-kind"
+      />
       <DetailRow label="Recorder version" value={d.recorderVersion} />
-      <DetailRow label="rrweb version" value={d.rrwebVersion} />
+      <DetailRow
+        label={getReplayEventFormatLabel(d.recorderKind)}
+        value={d.rrwebVersion}
+      />
       {d.recorderCapabilities && d.recorderCapabilities.length > 0 && (
         <DetailRow
           label="Recorder capabilities"

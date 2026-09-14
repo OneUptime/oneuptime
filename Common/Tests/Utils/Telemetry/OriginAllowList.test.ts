@@ -121,6 +121,26 @@ const VALID_PATTERNS: Array<ValidPatternCase> = [
     pattern: "HTTPS://APP.EXAMPLE.COM",
     coveredOrigin: "https://app.example.com",
   },
+  {
+    name: "an exact mobile bundle identifier",
+    pattern: "app://com.example.checkout",
+    coveredOrigin: "app://com.example.checkout",
+  },
+  {
+    name: "an uppercase mobile package identifier with surrounding whitespace",
+    pattern: "  APP://COM.EXAMPLE.CHECKOUT  ",
+    coveredOrigin: "app://com.example.checkout",
+  },
+  {
+    name: "a mobile identifier containing platform-valid hyphens and underscores",
+    pattern: "app://com.example.checkout-beta_native",
+    coveredOrigin: "app://com.example.checkout-beta_native",
+  },
+  {
+    name: "an exact mobile origin with one trailing slash",
+    pattern: "app://com.example.checkout/",
+    coveredOrigin: "app://com.example.checkout",
+  },
 ];
 
 /*
@@ -238,6 +258,36 @@ const INVALID_PATTERNS: Array<InvalidPatternCase> = [
     pattern: "https://exa_mple.com",
     expectedMessageFragment: "not valid in a host name",
   },
+  {
+    name: "a wildcard mobile identifier",
+    pattern: "app://*.example.com",
+    expectedMessageFragment: "wildcard",
+  },
+  {
+    name: "a mobile identifier with a port",
+    pattern: "app://com.example.checkout:443",
+    expectedMessageFragment: "port",
+  },
+  {
+    name: "a mobile identifier with a path",
+    pattern: "app://com.example.checkout/screen",
+    expectedMessageFragment: "path",
+  },
+  {
+    name: "a single-label mobile identifier",
+    pattern: "app://checkout",
+    expectedMessageFragment: "reverse-DNS",
+  },
+  {
+    name: "a mobile identifier with an empty label",
+    pattern: "app://com..checkout",
+    expectedMessageFragment: "empty label",
+  },
+  {
+    name: "a mobile identifier with userinfo",
+    pattern: "app://user@com.example.checkout",
+    expectedMessageFragment: "username",
+  },
 ];
 
 /*
@@ -323,6 +373,78 @@ describe("OriginAllowList.normalizeOrigin", () => {
     expect(
       OriginAllowList.normalizeOrigin(undefined as unknown as string),
     ).toBe("");
+  });
+});
+
+describe("OriginAllowList mobile app identifiers", () => {
+  test("normalizes a bundle identifier for a stable app:// identity", () => {
+    expect(
+      OriginAllowList.normalizeMobileAppIdentifier(
+        "  COM.Example.Checkout-Beta  ",
+      ),
+    ).toBe("com.example.checkout-beta");
+    expect(
+      OriginAllowList.getMobileAppOrigin("  COM.Example.Checkout-Beta  "),
+    ).toBe("app://com.example.checkout-beta");
+  });
+
+  test.each([
+    "com.example.checkout",
+    "io.oneuptime.app_beta",
+    "uk.co.example.checkout-2",
+    "1.example.app2",
+  ])(
+    "accepts the valid package or bundle identifier %s",
+    (identifier: string) => {
+      expect(
+        OriginAllowList.validateMobileAppIdentifier(identifier),
+      ).toBeNull();
+    },
+  );
+
+  test.each([
+    "",
+    "   ",
+    "checkout",
+    ".com.example",
+    "com.example.",
+    "com..example",
+    "com.example/app",
+    "com.example:443",
+    "com.example app",
+    "com.*.example",
+    "com._example.app",
+    "com.example_.app",
+    "com.-example.app",
+    "com.example-.app",
+    "cøm.example.app",
+  ])("refuses malformed mobile identifier %j", (identifier: string) => {
+    expect(
+      OriginAllowList.validateMobileAppIdentifier(identifier),
+    ).not.toBeNull();
+    expect(OriginAllowList.normalizeMobileAppIdentifier(identifier)).toBe("");
+    expect(OriginAllowList.getMobileAppOrigin(identifier)).toBeUndefined();
+  });
+
+  test("refuses an identifier above the header length cap", () => {
+    const identifier: string = `com.example.${"a".repeat(245)}`;
+
+    expect(identifier.length).toBeGreaterThan(255);
+    expect(OriginAllowList.validateMobileAppIdentifier(identifier)).toContain(
+      "255",
+    );
+    expect(OriginAllowList.getMobileAppOrigin(identifier)).toBeUndefined();
+  });
+
+  test("returns validation errors instead of throwing on non-string input", () => {
+    expect(
+      OriginAllowList.validateMobileAppIdentifier(
+        undefined as unknown as string,
+      ),
+    ).toContain("text");
+    expect(
+      OriginAllowList.getMobileAppOrigin(undefined as unknown as string),
+    ).toBeUndefined();
   });
 });
 
@@ -413,6 +535,22 @@ describe("OriginAllowList.matches - origins that are allowed", () => {
         "https://a.example.com",
         "   ",
         "https://c.example.com",
+      ]),
+    ).toBe(true);
+  });
+
+  test("an exact app:// mobile identity matches case-insensitively", () => {
+    expect(
+      OriginAllowList.matches("app://com.example.checkout", [
+        "APP://COM.EXAMPLE.CHECKOUT",
+      ]),
+    ).toBe(true);
+  });
+
+  test("a trailing slash does not change an exact app:// identity", () => {
+    expect(
+      OriginAllowList.matches("app://com.example.checkout/", [
+        "app://com.example.checkout",
       ]),
     ).toBe(true);
   });
@@ -573,6 +711,22 @@ describe("OriginAllowList.matches - origins that are refused", () => {
       OriginAllowList.matches("https://app.example.com", [
         null as unknown as string,
         123 as unknown as string,
+      ]),
+    ).toBe(false);
+  });
+
+  test("an app:// wildcard never covers a sibling mobile application", () => {
+    expect(
+      OriginAllowList.matches("app://checkout.example.com", [
+        "app://*.example.com",
+      ]),
+    ).toBe(false);
+  });
+
+  test("a sibling package id does not match an exact app:// entry", () => {
+    expect(
+      OriginAllowList.matches("app://com.example.attacker", [
+        "app://com.example.checkout",
       ]),
     ).toBe(false);
   });

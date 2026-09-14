@@ -27,13 +27,18 @@ import RumApplicationService from "Common/Server/Services/RumApplicationService"
 import logger from "Common/Server/Utils/Logger";
 import StatusCode from "Common/Types/API/StatusCode";
 import ObjectID from "Common/Types/ObjectID";
+import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayChunkResponse,
   SessionReplayConfigResponse,
   SessionReplayDisabledReason,
+  SessionReplayRecorderKind,
+  parseSessionReplayRecorderKindHeader,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -211,6 +216,27 @@ function readAppIdentifier(req: ExpressRequest): string {
       req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
     )?.trim() || ""
   );
+}
+
+/*
+ * Every request header that can change a config response. Keeping this in a
+ * single helper means early disabled/budget responses cannot accidentally
+ * omit one and be reused across web/mobile or across installed apps by an
+ * intermediary cache.
+ */
+const SESSION_REPLAY_CONFIG_VARY: string = [
+  "Origin",
+  "x-oneuptime-token",
+  "x-oneuptime-service-token",
+  "x-oneuptime-ingestion-key",
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+].join(", ");
+
+function setSessionReplayConfigVary(res: ExpressResponse): void {
+  res.setHeader("Vary", SESSION_REPLAY_CONFIG_VARY);
 }
 
 /*
@@ -580,6 +606,38 @@ router.post(
         return;
       }
 
+      const requestRecorderKind: SessionReplayRecorderKind | null =
+        parseSessionReplayRecorderKindHeader(
+          req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+        );
+
+      if (!requestRecorderKind) {
+        sendDeterministicRejection(req, res, {
+          error: "unsupported-recorder-kind",
+          message: `The ${SESSION_REPLAY_RECORDER_KIND_HEADER} header must be omitted, "dom", or "rn-view-tree".`,
+          statusCode: 400,
+        });
+        return;
+      }
+
+      if (requestRecorderKind === "rn-view-tree") {
+        const mobileAppIdentifier: string | undefined = headerValueToString(
+          req.headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER],
+        );
+
+        if (
+          !mobileAppIdentifier ||
+          !OriginAllowList.getMobileAppOrigin(mobileAppIdentifier)
+        ) {
+          sendDeterministicRejection(req, res, {
+            error: "invalid-mobile-app-identifier",
+            message: `Send a valid Android package name or iOS bundle identifier in the ${SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER} header.`,
+            statusCode: 400,
+          });
+          return;
+        }
+      }
+
       const parsed: SessionReplayParseResult =
         SessionReplayEnvelopeParser.parse(body, appIdentifier);
 
@@ -613,6 +671,26 @@ router.post(
         sendDeterministicRejection(req, res, {
           error: parsed.error,
           message: parsed.message,
+          statusCode: 400,
+        });
+        return;
+      }
+
+      /*
+       * Authentication selected its Origin identity from the request header
+       * before the body was read. Every frame must describe that same
+       * recorder surface; otherwise a request admitted as one trust boundary
+       * could be stored and presented as the other. Checking every frame also
+       * rejects a mixed catch-up batch rather than silently splitting it.
+       */
+      if (
+        parsed.frames.some((frame: ParsedSessionReplayFrame): boolean => {
+          return frame.envelope.recorderKind !== requestRecorderKind;
+        })
+      ) {
+        sendDeterministicRejection(req, res, {
+          error: "recorder-kind-mismatch",
+          message: `Every replay frame recorderKind must match the ${SESSION_REPLAY_RECORDER_KIND_HEADER} request header (${requestRecorderKind}).`,
           statusCode: 400,
         });
         return;
@@ -693,7 +771,17 @@ router.post(
         await SessionReplayIngestService.gateChunkRequest({
           projectId: projectId,
           appIdentifier: appIdentifier,
-          origin: headerValueToString(req.headers["origin"]),
+          /*
+           * The outer Browser-key guard already chose this identity and
+           * authorized it. Native replay stores a normalized app:// value
+           * here; web and Server-key requests retain their real Origin.
+           * Re-reading only the raw header would make the two allowlists
+           * disagree and refuse every authorized mobile chunk.
+           */
+          origin:
+            (req as TelemetryRequest).resolvedClientOrigin !== undefined
+              ? (req as TelemetryRequest).resolvedClientOrigin
+              : headerValueToString(req.headers["origin"]),
           sessionIds: sessionIds,
           triggerReasons: triggerReasons,
           consentStates: consentStates,
@@ -824,6 +912,8 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      setSessionReplayConfigVary(res);
+
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const appIdentifier: string = readAppIdentifier(req);
 
@@ -838,6 +928,46 @@ router.get(
           { statusCode: new StatusCode(400) },
         );
         return;
+      }
+
+      const recorderKind: SessionReplayRecorderKind | null =
+        parseSessionReplayRecorderKindHeader(
+          req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+        );
+
+      if (!recorderKind) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: "unsupported-recorder-kind",
+            message: `The ${SESSION_REPLAY_RECORDER_KIND_HEADER} header must be omitted, "dom", or "rn-view-tree".`,
+          },
+          { statusCode: new StatusCode(400) },
+        );
+        return;
+      }
+
+      if (recorderKind === "rn-view-tree") {
+        const mobileAppIdentifier: string | undefined = headerValueToString(
+          req.headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER],
+        );
+
+        if (
+          !mobileAppIdentifier ||
+          !OriginAllowList.getMobileAppOrigin(mobileAppIdentifier)
+        ) {
+          Response.sendJsonObjectResponse(
+            req,
+            res,
+            {
+              error: "invalid-mobile-app-identifier",
+              message: `Send a valid Android package name or iOS bundle identifier in the ${SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER} header.`,
+            },
+            { statusCode: new StatusCode(400) },
+          );
+          return;
+        }
       }
 
       /*
@@ -859,7 +989,8 @@ router.get(
        * null means nothing has been built, in which case replay reports
        * itself disabled rather than advertising an artifact that is not there.
        */
-      const publishedRecorderVersion: string | null = getRecorderVersion();
+      const publishedRecorderVersion: string | null =
+        recorderKind === "dom" ? getRecorderVersion() : null;
 
       const disabledResponse: SessionReplayConfigResponse = {
         enabled: false,
@@ -887,7 +1018,7 @@ router.get(
       if (
         !SESSION_REPLAY_INGEST_ENABLED ||
         !SESSION_REPLAY_ENABLED_BY_DEFAULT ||
-        !publishedRecorderVersion
+        (recorderKind === "dom" && !publishedRecorderVersion)
       ) {
         /*
          * Three deployment-level causes that a customer cannot fix from the
@@ -982,7 +1113,7 @@ router.get(
 
       if (budgetPause) {
         res.setHeader("Cache-Control", "private, max-age=60");
-        res.setHeader("Vary", SESSION_REPLAY_USER_REF_HEADER);
+        setSessionReplayConfigVary(res);
 
         Response.sendJsonObjectResponse(req, res, {
           ...sendDisabledConfig(
@@ -997,7 +1128,8 @@ router.get(
 
       const config: SessionReplayConfigResponse = {
         enabled: true,
-        recorderVersion: publishedRecorderVersion,
+        /* Native code is linked into the app; only web imports an artifact. */
+        recorderVersion: publishedRecorderVersion || "",
         maskingMode: policy.maskingMode,
         captureTrigger: policy.captureTrigger,
         consentMode: policy.consentMode,
@@ -1057,7 +1189,8 @@ router.get(
         config.debug = true;
       }
 
-      const recorderIntegrity: string | null = getRecorderIntegrity();
+      const recorderIntegrity: string | null =
+        recorderKind === "dom" ? getRecorderIntegrity() : null;
 
       if (recorderIntegrity) {
         (config as unknown as Record<string, unknown>)["recorderIntegrity"] =
@@ -1081,7 +1214,7 @@ router.get(
        * Anonymous fetches (no user ref on the page - the overwhelming
        * majority) keep the 5-minute private cache.
        */
-      res.setHeader("Vary", SESSION_REPLAY_USER_REF_HEADER);
+      setSessionReplayConfigVary(res);
 
       const hasUserRef: boolean = Boolean(
         headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]),

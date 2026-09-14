@@ -10,6 +10,7 @@ import {
   SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
   SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
   SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_WIRE_VERSION,
 } from "Common/Types/Rum/SessionReplay";
@@ -793,6 +794,143 @@ describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
     for (const capability of result.frames[0]!.envelope.capabilities!) {
       expect(SESSION_REPLAY_RECORDER_CAPABILITIES).toContain(capability);
     }
+  });
+
+  test("rn-view-tree capabilities survive in the canonical mobile order", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            recorderKind: "rn-view-tree",
+            capabilities: [
+              "js-errors",
+              "mobile-touch-events",
+              "custom-events",
+              "mobile-view-tree",
+              "traits",
+              "tags",
+              "visibility",
+              "visitor-id",
+              "route-events",
+            ],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(result.frames[0]!.envelope.capabilities).toEqual(
+      SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
+    );
+  });
+
+  test("mobile capability filtering drops arbitrary and web-only claims, trims entries and deduplicates", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            recorderKind: "rn-view-tree",
+            capabilities: [
+              " route-events ",
+              "web-vitals",
+              "mobile-view-tree",
+              "mobile-view-tree",
+              "mousemove-50ms",
+              "attacker-controlled-capability",
+              17,
+              null,
+            ],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(result.frames[0]!.envelope.capabilities).toEqual([
+      "mobile-view-tree",
+      "route-events",
+    ]);
+  });
+
+  test("a mobile frame with only unknown or DOM-only capabilities stores no capabilities field", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            recorderKind: "rn-view-tree",
+            capabilities: ["click-events", "web-vitals", "made-up-capability"],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect("capabilities" in result.frames[0]!.envelope).toBe(false);
+  });
+
+  test("DOM frames retain web capabilities and cannot claim mobile-only capture", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            recorderKind: "dom",
+            capabilities: [
+              "mobile-view-tree",
+              "web-vitals",
+              "click-events",
+              "mobile-touch-events",
+            ],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(result.frames[0]!.envelope.capabilities).toEqual([
+      "click-events",
+      "web-vitals",
+    ]);
+  });
+
+  test("an unknown recorderKind keeps the legacy DOM fallback and web capability vocabulary", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            recorderKind: "future-recorder-kind",
+            capabilities: ["mobile-view-tree", "click-events"],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(result.frames[0]!.envelope.recorderKind).toBe("dom");
+    expect(result.frames[0]!.envelope.capabilities).toEqual(["click-events"]);
+  });
+
+  test("each concatenated frame is filtered against its own recorder kind", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        concatFrames([
+          {
+            envelope: baseEnvelope({
+              chunkIndex: 0,
+              recorderKind: "dom",
+              capabilities: ["click-events", "mobile-view-tree"],
+            }),
+            payload: "web",
+          },
+          {
+            envelope: baseEnvelope({
+              chunkIndex: 1,
+              recorderKind: "rn-view-tree",
+              capabilities: ["click-events", "mobile-view-tree"],
+            }),
+            payload: "mobile",
+          },
+        ]),
+      );
+
+    expect(result.frames[0]!.envelope.capabilities).toEqual(["click-events"]);
+    expect(result.frames[1]!.envelope.capabilities).toEqual([
+      "mobile-view-tree",
+    ]);
   });
 
   test("an empty or non-array capabilities field is simply absent", () => {

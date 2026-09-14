@@ -176,17 +176,20 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         return (
           <div className="text-xs text-red-600 mt-2 leading-relaxed">
             This browser key has no allowed origins, so every request made with
-            it is refused. Add the origins your site is served from in Settings
-            &gt; Telemetry Ingestion Keys before using this snippet.
+            it is refused. Add your web origins or exact app:// mobile
+            identities in Settings &gt; Telemetry Ingestion Keys before using
+            this snippet.
           </div>
         );
       }
 
       return (
         <div className="text-xs text-gray-500 mt-2 leading-relaxed">
-          Browser key — safe to publish in your page. It is accepted only from{" "}
-          {key.allowedOrigins.join(", ")}, and only for trace, log, metric and
-          session replay ingest.
+          Browser key — intended for client distribution. Web origins may send
+          trace, log, metric and session replay ingest; app:// identities
+          authorize React Native replay only. Accepted identities:{" "}
+          {key.allowedOrigins.join(", ")}. Native app identities are
+          self-asserted, not platform attestation.
         </div>
       );
     }
