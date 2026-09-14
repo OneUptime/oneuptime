@@ -2,7 +2,7 @@
 
 ## Overview
 
-Session Replay records what a real user saw in your web app and lets you play it back next to the error, trace and log data from the same session. **By default every session is recorded and uploaded as it happens**, not only the ones that broke — the sessions where nothing threw are where you find the checkout nobody completed, the form everybody abandoned and the page a customer says "looked wrong".
+Session Replay records what a real user saw in your web or React Native app and lets you play it back next to the error, trace and log data from the same session. **By default every session is recorded and uploaded as it happens**, not only the ones that broke — the sessions where nothing threw are where you find the checkout nobody completed, the form everybody abandoned and the page a customer says "looked wrong".
 
 If you would rather store less, there are two dials and they compose:
 
@@ -69,6 +69,85 @@ Open DevTools → Network and filter for `session-replay`. A working page makes:
 3. When the tab is hidden, and again when the page goes away, **one** `POST` sent with `keepalive`. The page going away — the tab closed, reloaded or navigated to another page, or the page put into the browser's back/forward cache (every `pagehide`) — marks it final, which tells OneUptime that tab's recording is over; a page the user brings back from the back/forward cache records on as a new tab of the same session. A tab that is merely hidden stays open, so the recording continues when the user comes back to it. Its whole body stays under **56 KB** — the recorder's share of the browser's 64 KB per-origin keepalive quota — and it can carry several chunks as frames of that one request: the closing chunk, the pieces a large closing chunk was cut into (at most 48 KB of events each, so the frame header still fits), and any chunk that was still waiting to be retried. A chunk already larger than that budget when the tab is merely hidden goes out on the ordinary path instead, while the page is still alive to send it.
 
 Under the _On error or frustration_ trigger, step 2 does not happen until a trigger fires — see [Troubleshooting](#troubleshooting).
+
+## Install in React Native
+
+The React Native SDK records the native view hierarchy as rrweb-compatible synthetic events, so mobile recordings open in the same session list and player as web recordings. It does **not** take screenshots. The player clearly labels the recording as a **React Native app** and its Fidelity tab explains the native surfaces that could not be represented.
+
+The SDK supports iOS and Android React Native applications. Install it with its persistent-outbox peer dependency:
+
+```bash
+npm install @oneuptime/react-native-replay @react-native-async-storage/async-storage
+```
+
+For a bare iOS project, run your normal CocoaPods install after adding the packages; current React Native versions autolink Android without manual registration. The recorder has its own view-tree native module in addition to Async Storage, so Expo projects must use a custom development or production build (for example EAS Build or a prebuild). Expo Go cannot run this SDK because neither native module can be added to the fixed Expo Go binary.
+
+Start the singleton once, then place the provider above the part of the app you want to record:
+
+```tsx
+import {
+  OneUptimeReplay,
+  OneUptimeReplayProvider,
+} from "@oneuptime/react-native-replay";
+
+OneUptimeReplay.start({
+  host: "https://oneuptime.com",
+  token: "YOUR_TELEMETRY_INGESTION_KEY",
+  appIdentifier: "storefront-mobile",
+  mobileAppIdentifier: "com.example.storefront",
+  appName: "Storefront", // optional, shown in session details
+  appVersion: "4.2.0", // optional, shown in session details
+});
+
+export default function App() {
+  return (
+    <OneUptimeReplayProvider>
+      <Navigation />
+    </OneUptimeReplayProvider>
+  );
+}
+```
+
+`appIdentifier` is the RUM application identifier. `mobileAppIdentifier` is the Android application id or iOS bundle identifier shipped in the binary, not a display name. Use the same value in the [`app://` allowlists](#set-your-allowed-origins-in-production). The SDK fetches the application's Replay Policy from `host`; sampling, trigger, consent, retention and upload budgets remain server-controlled.
+
+The provider owns a non-collapsable native root and records its view tree and touch start/move/end events. If you already construct recorder instances yourself, pass one with `<OneUptimeReplayProvider recorder={recorder}>`. `MobileReplayRecorder` is also exported for isolated or multi-client integrations; most apps should use the singleton.
+
+### React Native API
+
+Import `OneUptimeReplay` directly, or call `useOneUptimeReplay()` below the provider. The singleton exposes:
+
+| Method | What it does |
+| --- | --- |
+| `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata. |
+| `stop()` | Flush what can be sent, stop capture and detach lifecycle handlers. |
+| `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture user identity**. |
+| `setTags(tags)` / `addTag(key, value)` | Replace all searchable session tags, or add one tag without replacing the others. |
+| `track(name, properties?)` | Put an application event on the replay timeline. |
+| `setRoute(route)` | Record a sanitized logical screen or route after navigation. Call it from your navigator's route-change callback. |
+| `captureSession(reason?)` | Under _On error or frustration_, upload the rolling buffer for an app-specific reason such as a user tapping “Report a problem”. |
+| `captureError(error)` | Record a handled JavaScript error and activate error-triggered capture. |
+| `grantConsent()` / `revokeConsent()` | Allow uploads, or immediately clear the in-memory buffer, stored outbox, session and visitor id. A later grant starts with fresh identifiers. |
+| `getSessionId()` / `onSessionChange(listener)` | Read or subscribe to the current consented replay session id for trace and log correlation. The listener also receives `null` when capture or consent ends. |
+| `getDiagnostics()` | Return recorder state and recent decisions without returning captured view content. |
+
+The SDK listens to React Native `AppState`: backgrounding closes and drains consented events, while pre-consent footage remains only in memory. Before foreground capture resumes, the SDK refreshes policy without using a cached response. It also refreshes policy periodically while active, so disablement, consent, sampling, targeting and identity changes take effect in a long-lived app. Call `stop()` when your integration is permanently torn down; ordinary screen navigation should use `setRoute()` rather than stopping and starting the recorder.
+
+To correlate mobile telemetry with a replay, subscribe with `onSessionChange()` and set the returned value as the `session.id` attribute in your OpenTelemetry instrumentation. Replace that attribute whenever the callback fires, including clearing it when the value is `null`. The replay SDK does not patch native networking or mutate an OpenTelemetry provider itself.
+
+### React Native privacy and masking
+
+Mobile capture is deliberately stricter than the web masking modes. Native UI text, accessibility values, input values and image pixels are never serialized; the server receives a structural wireframe even when the application's web masking mode would allow readable text. Caller-supplied metadata such as user references, event names, routes and searchable tags follows the API contract, so do not put secrets in those fields. Wrap an especially sensitive subtree in `<ReplayMask>` to replace that region with a privacy placeholder while preserving the surrounding layout.
+
+Consent is not inferred from an operating-system permission or your consent banner. Under _Require explicit_, call `grantConsent()` only after your app has the required consent. Calling `revokeConsent()` drops both queued and persisted unsent data as well as the identifiers that could link a later session to the revoked one.
+
+The mobile recorder captures view bounds and types, touch locations, logical routes, custom events and JavaScript errors. These limits are always disclosed in the player's Fidelity tab:
+
+- Native `Image` pixels are opaque; only the frame is represented.
+- `WebView` contents are outside the React Native tree. Install the web recorder inside the hosted page if it needs its own recording.
+- Canvas, Skia, OpenGL, maps, camera previews, video and other custom-drawn surfaces are opaque.
+- Touch paths inside `ReplayMask` or an opaque surface are not recorded. The native bridge checks the live touch target and its ancestors, and suppresses the gesture if that privacy check cannot be completed.
+- Reanimated, native-driver and UI-thread animations are sampled at view-tree snapshots, not reproduced frame by frame.
+- Native crashes that terminate JavaScript before it can flush need a native crash SDK; `captureError()` covers handled JavaScript errors, not process-level crash dumps.
 
 ## Identify your users
 
@@ -155,7 +234,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privacy
 
-**Masking happens at capture, in the end user's browser, before anything is uploaded.** The server never receives what was masked, so a masking decision cannot be undone after the fact — and cannot be applied retroactively either. What gets masked depends on the mode; the table below is what you get if you configure nothing. The **Privacy summary** card on the application's _Replay Policy_ page restates these five decisions in plain sentences for whatever you have configured.
+**Masking happens at capture, on the end user's device, before anything is uploaded.** The server never receives what was masked, so a masking decision cannot be undone after the fact — and cannot be applied retroactively either. On the web, what gets masked depends on the mode; React Native always sends the stricter structural wireframe described under [React Native privacy and masking](#react-native-privacy-and-masking). The **Privacy summary** card on the application's _Replay Policy_ page restates these decisions in plain sentences for whatever you have configured.
 
 | Control | Default | What it does |
 | --- | --- | --- |
@@ -193,12 +272,16 @@ If your pages render personal data, either move up a mode or add **mask** / **bl
 
 Session replay works out of the box with an empty origin allowlist, which accepts recordings from **any** origin. That is convenient for getting started and wrong for production.
 
-Your ingestion token lives in plain sight in your page's JavaScript — that is unavoidable for a browser recorder — so there are two fences, and they compose:
+Your ingestion token is shipped to the client — in page JavaScript or the mobile binary — so there are two fences, and they compose:
 
-- **On the key.** Create the ingestion key with the **Browser** surface and list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). A Browser key refuses a request from an unlisted origin, or with no `Origin` header at all. Give it an **Expires At** too: a scraped copy of the token then stops working on a date you chose rather than never.
-- **On the application.** _Replay Policy → Allowed origins_ restricts which origins may write recordings into **this application**, whichever key they present. Once set, an exact-origin match is required and a request presenting no `Origin` header is refused.
+- **On the key.** Create the ingestion key with the **Browser** surface. For web, list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). For React Native, add the exact application identity as `app://com.example.storefront`. Give the key an **Expires At** too: a copied token then stops working on a date you chose rather than never.
+- **On the application.** _Replay Policy → Allowed origins_ restricts who may write recordings into **this application**, whichever key they present. Add the same web origins and exact `app://` mobile identities here.
 
-A request has to pass both. The rate limit and daily byte budget bound how *much* an attacker could write; only the allowlists say anything about whether a recording is genuine. Set at least one of them before you point real traffic at the recorder; refused uploads show up on the **Health** page as `origin-not-allowed`.
+An `app://` entry is the literal prefix plus the normalized Android application id or iOS bundle identifier supplied as `mobileAppIdentifier`. Matching is case-insensitive after trimming and lowercasing a valid reverse-DNS identifier. Mobile identities do **not** accept wildcards: `app://*.example.com` is invalid. The mobile SDK sends no browser `Origin`; it sends its recorder kind and app identity in dedicated headers. If a request does carry a real `Origin`, that origin always wins — mobile headers can never be used to bypass the browser-origin check.
+
+That mobile identity is self-asserted HTTP metadata, not Apple/Google platform attestation and not proof that the request came from your signed binary. Someone who extracts the client token can send a non-browser request with the same app-identity header. The exact `app://` entries still prevent accidental cross-app use and separate the mobile identities you intend to accept, but do not call them an authenticity boundary. Set an expiry, rotate exposed keys, and keep the rate and byte budgets enabled to bound abuse; never put a server secret in the app and treat it as recoverable protection.
+
+A request has to pass both allowlists. For web requests, the browser-controlled `Origin` check prevents one website from reusing another site's key; for native requests, the controls above limit and compartmentalize a self-asserted identity. Set both allowlists before you point real traffic at either recorder; refused uploads show up on the **Health** page as `origin-not-allowed`.
 
 ### Always masked
 
@@ -501,6 +584,10 @@ These are surfaced on the player's **Fidelity** tab rather than silently blank, 
 | Cross-origin stylesheets | Not readable without `crossorigin`; a notice explains it. |
 | A very large DOM snapshot | A snapshot the recorder could not store is reported, and playback starts from the next one. |
 | Signals past a cap | Console output, network requests and clicks are capped per session or per chunk; the rail marks where capture stopped. |
+| React Native image pixels | The image frame is preserved as an opaque placeholder; user photos and downloaded pixels are not copied. |
+| React Native WebViews | Outside the native view tree. Record the hosted page separately with the web recorder if needed. |
+| React Native canvas and custom drawing | Skia, OpenGL, maps, camera/video previews and similar surfaces are opaque placeholders. |
+| React Native animation frames | Native and UI-thread motion is sampled at snapshots rather than reproduced frame by frame. |
 
 ## Retention and deletion
 

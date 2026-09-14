@@ -124,9 +124,10 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                 allowEmptyList: true,
               });
             },
-            placeholder: '["https://app.example.com"]',
+            placeholder:
+              '["https://app.example.com", "app://com.example.mobile"]',
             description:
-              'JSON array of the origins this key may be used from. Required on a browser key and enforced on the server for every request: telemetry from an origin that is not listed, or with no Origin header at all, is refused. Include the scheme and the port. One leading "*." host wildcard is allowed - "https://*.example.com" matches "https://app.example.com" but not "https://example.com". Ignored on a server key.',
+              'JSON array of web origins and exact native app identities this key may be used from. Required on a Browser key. Web origins include the scheme and port and may use one leading "*." host wildcard. React Native replay uses "app://" plus the Android package or iOS bundle id; app entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.',
           },
           {
             field: {

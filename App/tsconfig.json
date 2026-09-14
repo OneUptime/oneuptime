@@ -122,6 +122,10 @@
     // compile-browser-recorder CI job. App's tsc must not reach into it:
     // rrweb is installed only in that package, so compiling it from here
     // fails wherever the recorder's own npm install has not run.
-    "FeatureSet/BrowserRecorder"
+    "FeatureSet/BrowserRecorder",
+    // React Native publishes ambient platform globals that conflict with the
+    // Node.js services compiled by App. The recorder is a standalone package
+    // with its own strict tsconfig and dedicated compile workflow.
+    "FeatureSet/MobileRecorder"
   ]
 }

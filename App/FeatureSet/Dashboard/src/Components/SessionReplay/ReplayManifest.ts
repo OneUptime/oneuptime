@@ -94,6 +94,8 @@ export interface SessionReplayManifest {
   /* Every tab's holes, so notices describe the whole recording. */
   gaps: Array<SessionReplayGap>;
   fidelityNotices: Array<string>;
+  /* Preserved from the header so the shell can identify native footage. */
+  recorderKind: string;
   details: ReplaySessionDetails;
   counts: SessionReplayManifestCounts;
   /*
@@ -320,6 +322,7 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
     maskingMode: readDtoString(headerRecord, "maskingMode"),
     consentState: readDtoString(headerRecord, "consentState"),
     triggerReason: readDtoString(headerRecord, "triggerReason"),
+    recorderKind: readDtoString(headerRecord, "recorderKind"),
     recorderVersion: readDtoString(headerRecord, "recorderVersion"),
     rrwebVersion: readDtoString(headerRecord, "rrwebVersion"),
     recorderCapabilities: recorderCapabilities,
@@ -355,6 +358,7 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
       },
     ),
     fidelityNotices: readDtoStringArray(headerRecord, "fidelityNotices"),
+    recorderKind: readDtoString(headerRecord, "recorderKind"),
     details: details,
     counts: {
       chunkCount: readDtoNumber(headerRecord, "chunkCount"),

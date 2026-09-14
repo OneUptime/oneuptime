@@ -151,6 +151,11 @@ import {
   overlayCurrentReplayUserSession,
   resolveReplayUserSessionsKind,
 } from "./ReplayUserSessions";
+import {
+  getReplayClientLabel,
+  getReplayRecorderKindLabel,
+  isMobileSessionReplay,
+} from "./ReplayRecorderKind";
 
 /*
  * The composition root of the player: manifest transport, the chunk
@@ -693,6 +698,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      * INSTANT FEEL: the rrweb download starts at mount, the manifest is
      * fetched alongside it, and the first chunks go on the wire the moment
      * the manifest resolves - before the Replayer has finished arriving.
+     */
+    /*
+     * React Native view-tree recordings deliberately use this same player:
+     * that recorder serializes its native tree as rrweb-compatible synthetic
+     * snapshot and mutation events. recorderKind changes the explanation in
+     * the shell, not the playback engine.
      */
     const rrwebModulePromise: Promise<RrwebModule> =
       (async (): Promise<RrwebModule> => {
@@ -1498,12 +1509,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      */
     return [
       {
-        label: "Browser",
+        label: getReplayClientLabel(details.recorderKind),
         value: [details.browserName, details.browserVersion]
           .filter(Boolean)
           .join(" "),
       },
       { label: "OS", value: details.osName },
+      {
+        label: "Source",
+        value: isMobileSessionReplay(details.recorderKind)
+          ? getReplayRecorderKindLabel(details.recorderKind)
+          : "",
+      },
       { label: "Device", value: details.deviceType },
       { label: "Country", value: details.countryCode },
       {

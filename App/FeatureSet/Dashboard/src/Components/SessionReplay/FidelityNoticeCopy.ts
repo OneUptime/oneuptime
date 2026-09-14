@@ -157,6 +157,26 @@ const COPY: Record<string, FidelityNoticeCopy> = {
     description:
       "The recording library threw several errors while capturing this page. Playback may skip or freeze around those moments; the recorder took a fresh snapshot afterwards so the rest of the session plays normally.",
   },
+  [SessionReplayFidelityNotice.MobileImagesOpaque]: {
+    title: "Image contents not recorded",
+    description:
+      "The app recorded each native image's position and size, but not its pixels. Playback shows an opaque placeholder so user photos and downloaded image contents are not copied into the recording.",
+  },
+  [SessionReplayFidelityNotice.MobileWebViewOpaque]: {
+    title: "WebView contents not recorded",
+    description:
+      "A native WebView is outside the React Native view tree, so playback shows its frame as an opaque placeholder. Install the web recorder inside that page separately if its contents need their own recording.",
+  },
+  [SessionReplayFidelityNotice.MobileCanvasOpaque]: {
+    title: "Native drawing surface not recorded",
+    description:
+      "Canvas, Skia, OpenGL and other custom-drawn native surfaces appear as opaque placeholders. Their frame is preserved, but the pixels drawn inside it are not captured.",
+  },
+  [SessionReplayFidelityNotice.MobileAnimationSampled]: {
+    title: "Native animations are sampled",
+    description:
+      "React Native view-tree state is sampled at recording snapshots. UI-thread and native-driver animations can therefore jump between sampled positions instead of replaying every frame exactly.",
+  },
   /*
    * Emitted by the recorder when a session hits the per-session chunk cap.
    * Deliberately not (yet) a SessionReplayFidelityNotice member — see the

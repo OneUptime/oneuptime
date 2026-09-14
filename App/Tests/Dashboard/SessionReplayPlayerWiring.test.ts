@@ -160,6 +160,15 @@ describe("engine ownership", () => {
     );
   });
 
+  test("mobile synthetic events use the same rrweb-compatible engine", () => {
+    expect(SOURCE).toContain(
+      "createReplayEngine(\n      createBrowserReplayEngineDeps(loader, replayerFactory),",
+    );
+    expect(SOURCE).not.toMatch(
+      /recorderKind[^\n]*(createReplayEngine|createBrowserReplayEngineDeps)/,
+    );
+  });
+
   test("the engine is disposed when it is replaced or the player unmounts", () => {
     const disposeEffect: string = slice(
       SOURCE,
@@ -489,6 +498,18 @@ describe("the header", () => {
 
   test("drops blank facts rather than rendering an empty row for each", () => {
     expect(SOURCE).toMatch(/return Boolean\(fact\.value\);/);
+  });
+
+  test("labels the mobile app and recording source without changing web facts", () => {
+    expect(SOURCE).toContain(
+      "label: getReplayClientLabel(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "value: isMobileSessionReplay(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "getReplayRecorderKindLabel(details.recorderKind)",
+    );
   });
 
   test("copy link builds the moment route with a zero pre-roll", () => {

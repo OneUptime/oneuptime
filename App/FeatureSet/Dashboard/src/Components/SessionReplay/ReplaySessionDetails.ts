@@ -39,6 +39,8 @@ export interface ReplaySessionDetails {
   maskingMode: string;
   consentState: string;
   triggerReason: string;
+  /* "dom" for web or "rn-view-tree" for React Native view-tree events. */
+  recorderKind: string;
   recorderVersion: string;
   rrwebVersion: string;
   recorderCapabilities?: Array<string> | undefined;
