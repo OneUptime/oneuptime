@@ -69,6 +69,24 @@ export interface FetchAlertsResult {
   chunkCount: number;
 }
 
+/*
+ * Which timestamp legacySearchDetections filters on. CREATED_TIME is the
+ * one the poller wants: a rule that runs hourly creates its detections
+ * long after the events they describe, so a forward-only cursor over
+ * DETECTION_TIME skips every one of them.
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
+ */
+export type GoogleSecOpsListBasis = "CREATED_TIME" | "DETECTION_TIME";
+
+export interface SearchDetectionsResult {
+  // Collection objects, the same shape the alerts view returns.
+  detections: Array<JSONObject>;
+  // Absent from the response means "no subsequent pages".
+  nextPageToken: string | null;
+  // respTooLargeDetectionsTruncated: Google cut the page by byte size.
+  truncated: boolean;
+}
+
 const CHRONICLE_SCOPE: string =
   "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_LIFETIME_IN_SECONDS: number = 3600;
@@ -92,6 +110,57 @@ const DEFAULT_MAX_ALERTS: number = 1000;
  */
 const REQUEST_TIMEOUT_IN_SECONDS: number = 60;
 const REQUEST_TIMEOUT_IN_MS: number = REQUEST_TIMEOUT_IN_SECONDS * 1000;
+
+/*
+ * legacyFetchAlertsView streams, and a stream can end before Google sets
+ * complete=true ("Streaming for this response is done. There will be no
+ * additional updates." is the documented meaning of the flag). Google's
+ * own SDK re-issues the whole GET in that case; this client does the same
+ * a bounded number of times, with a short pause, and then hands the
+ * partial result to the poller, which holds its cursor for it.
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView
+ */
+const INCOMPLETE_STREAM_MAX_RETRIES: number = 2;
+const INCOMPLETE_STREAM_RETRY_DELAY_IN_MS: number = 250;
+
+/*
+ * legacySearchDetections pages. Google documents pageSize only as
+ * "Maximum number of detections to return" and prints no ceiling; 1000
+ * matches the alerts view's documented ceiling, so one poll never asks for
+ * more than the other endpoint can hand back, and every page is bounded.
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
+ */
+const DEFAULT_SEARCH_PAGE_SIZE: number = 1000;
+const MAX_SEARCH_PAGE_SIZE: number = 1000;
+
+/*
+ * ruleId is required by legacySearchDetections and legacySearchCuratedDetections;
+ * the reference documents the bare wildcard as "retrieves detections for
+ * all revisions of all Rules", which is exactly one poll's question.
+ */
+const ALL_RULES_WILDCARD: string = "-";
+
+/*
+ * Every field a legacySearchDetections / legacySearchCuratedDetections
+ * response may carry. proto3 omits empty fields, so a quiet window is a
+ * bare `{}` and must parse as zero detections; a NON-empty object carrying
+ * none of these is some other endpoint's answer and must never be read as
+ * "nothing new" — the poller would advance its cursor past it.
+ */
+const RECOGNIZED_SEARCH_FIELDS: Array<string> = [
+  "detections",
+  "curatedDetections",
+  "nestedDetectionSamples",
+  "nextPageToken",
+  "respTooLargeDetectionsTruncated",
+];
+
+/*
+ * The client writes "<step> failed (HTTP <status>): " in front of every
+ * remote rejection; that tail is the documented contract the poller and
+ * the connection tester read the status back out of.
+ */
+const HTTP_STATUS_TAIL_PATTERN: RegExp = /\(HTTP (\d{3})\)/;
 
 /*
  * The 22 documented {region}-chronicle.googleapis.com prefixes. An
@@ -191,6 +260,13 @@ export default class GoogleSecOpsClient {
   private instanceResourceName: string;
   private credentials: GoogleServiceAccountCredentials;
   private fetchImplementation: FetchLike;
+  /*
+   * Per-request deadline. Polls keep the 60 second default; the synchronous
+   * connection test shortens it so a stalled tenant answers the person
+   * waiting on the modal within a request lifetime instead of a minute per
+   * probe.
+   */
+  private requestTimeoutInMs: number;
 
   private cachedAccessToken: string | null = null;
   private cachedAccessTokenExpiresAtInMs: number = 0;
@@ -200,6 +276,7 @@ export default class GoogleSecOpsClient {
     instanceResourceName: string;
     serviceAccountJson: string;
     fetchImplementation?: FetchLike | undefined;
+    requestTimeoutInMs?: number | undefined;
   }) {
     GoogleSecOpsClient.validateRegion(data.region);
     GoogleSecOpsClient.validateInstanceResourceName(data.instanceResourceName);
@@ -217,6 +294,12 @@ export default class GoogleSecOpsClient {
     );
     this.fetchImplementation =
       data.fetchImplementation || (fetch as unknown as FetchLike);
+    this.requestTimeoutInMs =
+      typeof data.requestTimeoutInMs === "number" &&
+      Number.isFinite(data.requestTimeoutInMs) &&
+      data.requestTimeoutInMs > 0
+        ? Math.floor(data.requestTimeoutInMs)
+        : REQUEST_TIMEOUT_IN_MS;
   }
 
   public static validateRegion(region: string): void {
@@ -415,34 +498,69 @@ export default class GoogleSecOpsClient {
 
     const url: string = `${this.getApiBaseUrl()}/legacy:legacyFetchAlertsView?${params.toString()}`;
 
-    let response: FetchResponseLike = await this.requestAlerts(
-      url,
-      accessToken,
-    );
-    let responseText: string = await response.text();
+    let result: FetchAlertsResult | null = null;
 
     /*
-     * A key revoked mid-lifetime leaves a cached token Google now refuses,
-     * and every poll until its stated expiry fails against it. One retry
-     * on a fresh token distinguishes "the token went stale" from "the
-     * credential is genuinely rejected", which is what the operator needs
-     * to read off lastError.
+     * The same GET is re-issued, unchanged, when the stream ends without
+     * complete=true — at most INCOMPLETE_STREAM_MAX_RETRIES times, so a
+     * tenant that never completes cannot pin a strictly sequential poll
+     * loop. The last partial result is returned and the poller holds its
+     * cursor for it.
      */
-    if (response.status === 401) {
-      this.clearCachedAccessToken();
-      accessToken = await this.getAccessToken();
-      response = await this.requestAlerts(url, accessToken);
-      responseText = await response.text();
-    }
+    for (
+      let attempt: number = 0;
+      attempt <= INCOMPLETE_STREAM_MAX_RETRIES;
+      attempt++
+    ) {
+      if (attempt > 0) {
+        await GoogleSecOpsClient.sleep(INCOMPLETE_STREAM_RETRY_DELAY_IN_MS);
+      }
 
-    if (!response.ok) {
-      throw new APIException(
-        `Google SecOps alerts fetch failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
-          GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
+      let response: FetchResponseLike = await this.requestAlerts(
+        url,
+        accessToken,
+      );
+      let responseText: string = await response.text();
+
+      /*
+       * A key revoked mid-lifetime leaves a cached token Google now refuses,
+       * and every poll until its stated expiry fails against it. One retry
+       * on a fresh token distinguishes "the token went stale" from "the
+       * credential is genuinely rejected", which is what the operator needs
+       * to read off lastError.
+       */
+      if (response.status === 401) {
+        this.clearCachedAccessToken();
+        accessToken = await this.getAccessToken();
+        response = await this.requestAlerts(url, accessToken);
+        responseText = await response.text();
+      }
+
+      if (!response.ok) {
+        throw new APIException(
+          `Google SecOps alerts fetch failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
+            GoogleSecOpsClient.describeHttpFailure(
+              response.status,
+              responseText,
+            ),
+        );
+      }
+
+      result = GoogleSecOpsClient.parseAlertsBody(
+        responseText,
+        maxReturnedAlerts,
+      );
+
+      if (result.complete) {
+        return result;
+      }
+
+      logger.warn(
+        `GoogleSecOpsClient: the alerts stream ended without complete=true (attempt ${attempt + 1} of ${INCOMPLETE_STREAM_MAX_RETRIES + 1}).`,
       );
     }
 
-    return GoogleSecOpsClient.parseAlertsBody(responseText, maxReturnedAlerts);
+    return result as FetchAlertsResult;
   }
 
   /*
@@ -487,11 +605,95 @@ export default class GoogleSecOpsClient {
   }
 
   /*
+   * Search detections for every rule, paginated, filtered by the time
+   * Google CREATED them or by detection time. This is the poller's primary
+   * read: legacyFetchAlertsView filters on detection time only, and a
+   * detection created at 10:05 for a window ending 09:00 sits behind a
+   * forward-only cursor forever. Same token handling and one-shot 401 retry
+   * as fetchDetectionAlerts.
+   *
+   * Contract, verified against Google's reference pages:
+   *   GET {base}/legacy:legacySearchDetections
+   *     ?ruleId=-&startTime=<RFC 3339, inclusive>&endTime=<exclusive>
+   *     &listBasis=CREATED_TIME|DETECTION_TIME&pageSize=N
+   *     [&alertState=ALERTING][&pageToken=...]
+   *   → { detections: Collection[], nextPageToken, respTooLargeDetectionsTruncated }
+   * The curated variant is legacy:legacySearchCuratedDetections with the
+   * same parameters and `curatedDetections` in place of `detections`.
+   * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
+   * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchCuratedDetections
+   */
+  public async searchDetections(data: {
+    startTime: Date;
+    endTime: Date;
+    listBasis: GoogleSecOpsListBasis;
+    alertingOnly: boolean;
+    pageSize?: number | undefined;
+    pageToken?: string | undefined;
+    curated?: boolean | undefined;
+  }): Promise<SearchDetectionsResult> {
+    let accessToken: string = await this.getAccessToken();
+
+    const pageSize: number = GoogleSecOpsClient.clampSearchPageSize(
+      data.pageSize,
+    );
+
+    const params: URLSearchParams = new URLSearchParams({
+      ruleId: ALL_RULES_WILDCARD,
+      startTime: data.startTime.toISOString(),
+      endTime: data.endTime.toISOString(),
+      listBasis: data.listBasis,
+      pageSize: String(pageSize),
+    });
+
+    /*
+     * AlertState is UNSPECIFIED | NOT_ALERTING | ALERTING. Omitting it
+     * returns both states, which is what "Alerts and detections" asks for;
+     * the enum has no "both" value to send explicitly.
+     */
+    if (data.alertingOnly) {
+      params.set("alertState", "ALERTING");
+    }
+
+    if (data.pageToken) {
+      params.set("pageToken", data.pageToken);
+    }
+
+    const method: string = data.curated
+      ? "legacySearchCuratedDetections"
+      : "legacySearchDetections";
+    const url: string = `${this.getApiBaseUrl()}/legacy:${method}?${params.toString()}`;
+
+    let response: FetchResponseLike = await this.requestJson(
+      url,
+      accessToken,
+      "detections search",
+    );
+    let responseText: string = await response.text();
+
+    if (response.status === 401) {
+      this.clearCachedAccessToken();
+      accessToken = await this.getAccessToken();
+      response = await this.requestJson(url, accessToken, "detections search");
+      responseText = await response.text();
+    }
+
+    if (!response.ok) {
+      throw new APIException(
+        `Google SecOps detections search failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
+          GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
+      );
+    }
+
+    return GoogleSecOpsClient.parseSearchDetectionsBody(responseText);
+  }
+
+  /*
    * ---------------------------------------------------------------------
-   * Helpers. Everything below is deliberately declared after extractAlerts:
-   * SecurityEventsConnectorGuidanceAccuracy reads this file's method
-   * bodies by slicing between declarations, so a helper placed higher up
-   * would be counted as part of fetchDetectionAlerts.
+   * Helpers. Everything below is deliberately declared after extractAlerts
+   * and searchDetections: SecurityEventsConnectorGuidanceAccuracy reads
+   * this file's method bodies by slicing between declarations, so a helper
+   * placed higher up would be counted as part of fetchDetectionAlerts.
    * ---------------------------------------------------------------------
    */
 
@@ -503,6 +705,14 @@ export default class GoogleSecOpsClient {
   private async requestAlerts(
     url: string,
     accessToken: string,
+  ): Promise<FetchResponseLike> {
+    return this.requestJson(url, accessToken, "alerts fetch");
+  }
+
+  private async requestJson(
+    url: string,
+    accessToken: string,
+    stepLabel: string,
   ): Promise<FetchResponseLike> {
     /*
      * Accept is not a formality here: leaving content negotiation to the
@@ -518,8 +728,114 @@ export default class GoogleSecOpsClient {
           Accept: "application/json",
         },
       },
-      "alerts fetch",
+      stepLabel,
     );
+  }
+
+  private static sleep(delayInMs: number): Promise<void> {
+    return new Promise((resolve: () => void): void => {
+      setTimeout(resolve, delayInMs);
+    });
+  }
+
+  private static clampSearchPageSize(pageSize: number | undefined): number {
+    if (
+      typeof pageSize !== "number" ||
+      !Number.isFinite(pageSize) ||
+      pageSize < 1
+    ) {
+      return DEFAULT_SEARCH_PAGE_SIZE;
+    }
+
+    return Math.min(MAX_SEARCH_PAGE_SIZE, Math.floor(pageSize));
+  }
+
+  /*
+   * The status the client wrote into its own "(HTTP <status>)" tail, so a
+   * caller can tell a 403 on the curated endpoint (a tenant without
+   * curated rules) from a 500 without parsing Google's body twice.
+   */
+  public static readHttpStatus(error: unknown): number | null {
+    const message: string =
+      error instanceof Error ? error.message : String(error || "");
+    const match: RegExpMatchArray | null = message.match(
+      HTTP_STATUS_TAIL_PATTERN,
+    );
+
+    return match && match[1] ? Number(match[1]) : null;
+  }
+
+  /*
+   * A unary JSON object, unlike the alerts view's stream. Empty means a
+   * quiet window; a body this parser does not recognize throws, for the
+   * same cursor-safety reason parseAlertsBody does.
+   */
+  public static parseSearchDetectionsBody(
+    bodyText: string,
+  ): SearchDetectionsResult {
+    const text: string = (bodyText || "").trim();
+
+    if (!text) {
+      throw new APIException(
+        "Google SecOps detections search returned an empty body.",
+      );
+    }
+
+    let root: JSONValue;
+
+    try {
+      root = JSON.parse(text) as JSONValue;
+    } catch {
+      throw new APIException(
+        "Google SecOps detections search returned a non-JSON body.",
+      );
+    }
+
+    if (!GoogleSecOpsClient.isJsonObject(root)) {
+      throw new APIException(
+        `Google SecOps detections search returned an unrecognized response shape: ${GoogleSecOpsClient.redactErrorBody(text)}`,
+      );
+    }
+
+    if (GoogleSecOpsClient.isJsonObject(root["error"])) {
+      throw new APIException(
+        `Google SecOps detections search returned an error in the response: ${GoogleSecOpsClient.summarizeErrorObject(root["error"])}`,
+      );
+    }
+
+    const keys: Array<string> = Object.keys(root);
+    const recognized: boolean = keys.some((key: string): boolean => {
+      return RECOGNIZED_SEARCH_FIELDS.includes(key);
+    });
+
+    if (keys.length > 0 && !recognized) {
+      throw new APIException(
+        `Google SecOps detections search returned an unrecognized response shape: ${GoogleSecOpsClient.redactErrorBody(text)}`,
+      );
+    }
+
+    const detections: Array<JSONObject> = [];
+
+    // Both keys are read so a curated response on either route parses.
+    for (const key of ["detections", "curatedDetections"]) {
+      const list: JSONValue | undefined = root[key];
+
+      if (Array.isArray(list)) {
+        for (const item of list as JSONArray) {
+          if (GoogleSecOpsClient.isJsonObject(item)) {
+            detections.push(item);
+          }
+        }
+      }
+    }
+
+    const token: JSONValue | undefined = root["nextPageToken"];
+
+    return {
+      detections: detections,
+      nextPageToken: typeof token === "string" && token ? token : null,
+      truncated: root["respTooLargeDetectionsTruncated"] === true,
+    };
   }
 
   private async fetchWithTimeout(
@@ -528,6 +844,10 @@ export default class GoogleSecOpsClient {
     stepLabel: string,
   ): Promise<FetchResponseLike> {
     const controller: AbortController = new AbortController();
+    const timeoutInSeconds: number = Math.max(
+      1,
+      Math.round(this.requestTimeoutInMs / 1000),
+    );
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout: Promise<never> = new Promise(
       (
@@ -538,10 +858,10 @@ export default class GoogleSecOpsClient {
           controller.abort();
           reject(
             new APIException(
-              `Google SecOps ${stepLabel} timed out after ${REQUEST_TIMEOUT_IN_SECONDS} seconds with no response.`,
+              `Google SecOps ${stepLabel} timed out after ${timeoutInSeconds} seconds with no response.`,
             ),
           );
-        }, REQUEST_TIMEOUT_IN_MS);
+        }, this.requestTimeoutInMs);
       },
     );
 
@@ -570,7 +890,7 @@ export default class GoogleSecOpsClient {
     } catch (error) {
       if (controller.signal.aborted) {
         throw new APIException(
-          `Google SecOps ${stepLabel} timed out after ${REQUEST_TIMEOUT_IN_SECONDS} seconds with no response.`,
+          `Google SecOps ${stepLabel} timed out after ${timeoutInSeconds} seconds with no response.`,
         );
       }
 
@@ -778,14 +1098,13 @@ export default class GoogleSecOpsClient {
 
     if (!complete) {
       /*
-       * Warn rather than re-issue the whole GET in a loop the way Google's
-       * SDK does: the poller runs every minute over a 15-minute window
-       * with a minute of overlap, so a partial window is re-covered on the
-       * next tick, and a blocking retry inside a strictly sequential
-       * connection loop would let one slow tenant starve every other one.
+       * Reported rather than swallowed: fetchDetectionAlerts re-issues the
+       * GET a bounded number of times, and the poller holds its cursor when
+       * the last attempt is still partial, so the window is re-covered on
+       * the next tick instead of being lost.
        */
       logger.warn(
-        "GoogleSecOpsClient: the alerts stream ended without complete=true; this window may be partial and will be re-covered by the next poll.",
+        "GoogleSecOpsClient: the alerts stream ended without complete=true; this window may be partial and the cursor is held for it.",
       );
     }
 
@@ -1175,7 +1494,7 @@ export default class GoogleSecOpsClient {
       const resource: string = String(metadata?.["resource"] || "");
       const permission: string = String(metadata?.["permission"] || "");
 
-      return `The service account lacks ${permission || "chronicle.legacies.legacyFetchAlertsView"} on ${resource || "the instance"}. Grant roles/chronicle.viewer (roles/chronicle.admin if Viewer is not enough on this tenant).`;
+      return `The service account lacks ${permission || "the chronicle.legacies read permission for this request"} on ${resource || "the instance"}. Grant roles/chronicle.viewer, which includes legacySearchDetections, legacySearchCuratedDetections and legacyFetchAlertsView (roles/chronicle.admin if Viewer is not enough on this tenant).`;
     }
 
     if (reason === "SERVICE_DISABLED") {

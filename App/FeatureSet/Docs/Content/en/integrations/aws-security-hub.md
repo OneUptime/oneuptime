@@ -1,0 +1,143 @@
+# AWS Security Hub Integration
+
+Bring [AWS Security Hub](https://aws.amazon.com/security-hub/) findings into OneUptime — GuardDuty, Inspector, Macie, IAM Access Analyzer and Detective findings, Security Hub's own security-standard control checks, and partner-product findings — so they live in the same ClickHouse data lake as your logs, traces, and metrics: searchable, correlated with observability data, alertable, and routed to on-call.
+
+```text
+Managed connector  ──►  polls GetFindings by CreatedAt  ──►  Detection Finding / Compliance Finding events
+```
+
+The connector calls Security Hub's `GetFindings` API on a schedule, signed with [AWS Signature Version 4](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html), and normalizes every finding from the [AWS Security Finding Format](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format.html) (ASFF) to [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), OneUptime's canonical security-event shape. It uses no AWS SDK and needs no agent, EventBridge rule or S3 export in your account.
+
+## Prerequisites
+
+- A OneUptime project where you are a **project owner**, **project admin** or **security admin** (the roles that can create connections).
+- An AWS account with **Security Hub enabled in the Region you connect**. Security Hub is Regional: `GetFindings` in a Region returns the findings that account holds in that Region. To see more than one account or Region through a single connection:
+  - use the **Security Hub delegated administrator account** (or the standalone administrator). The administrator's `GetFindings` returns its member accounts' findings too;
+  - connect to the administrator's **home Region** (the aggregation Region). With [cross-Region aggregation](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) configured, a call in the home Region also returns findings from every linked Region. Find it under **Security Hub → Settings → Regions**.
+  - A member account's key, or a Region other than the home Region, works but shows only that account's findings in that Region.
+- An **IAM identity in that account** — an IAM user with an access key, or a role you assume with STS — whose policy allows **`securityhub:GetFindings`**. That is the only permission the connector uses: it never writes, never updates a finding's workflow status, and never calls any other Security Hub action. The managed policy `AWSSecurityHubReadOnlyAccess` also works, but grants more than the connector needs.
+- Network reachability from OneUptime to `securityhub.<region>.amazonaws.com` (or `securityhub.<region>.amazonaws.com.cn` for the China partition) over HTTPS. These are public AWS endpoints, so both **OneUptime Cloud** and **self-hosted OneUptime** reach them as long as the API and worker containers have outbound HTTPS access.
+- An accurate clock on the OneUptime hosts. Signature Version 4 rejects requests whose time is more than five minutes off. On self-hosted deployments keep NTP running on the app and worker hosts.
+
+## Step 1 — Create the IAM identity and access key
+
+1. In the [IAM console](https://console.aws.amazon.com/iam/), open **Policies → Create policy**, switch to the **JSON** editor and paste:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "securityhub:GetFindings",
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+
+   Name it, for example, `OneUptimeSecurityHubRead`. `GetFindings` does not support resource-level restriction, so `Resource` stays `*`.
+2. Open **Users → Create user**, name it (for example `oneuptime-security-hub`), leave console access off, and attach the policy from step 1 (or `AWSSecurityHubReadOnlyAccess`). Do this in the **delegated administrator account** if you want member accounts' findings.
+3. Open the new user, select **Security credentials → Access keys → Create access key**, choose **Third-party service** (or **Application running outside AWS**), and select **Create access key**.
+4. Copy both the **Access key ID** (it starts with `AKIA`) and the **Secret access key**. AWS shows the secret only once; if you close the dialog without copying it, deactivate that key and create a new one.
+
+### Temporary credentials instead of an access key
+
+If your security policy forbids long-lived keys, you can paste temporary credentials from STS (`aws sts assume-role` or `aws sts get-session-token`): the **Access key ID** then starts with `ASIA`, and you must also paste the **Session token** or every request fails. Temporary credentials expire (at most 12 hours for an assumed role), after which polling stops with an `ExpiredTokenException` until you paste fresh ones with the connection's **Update credentials** action. For unattended polling a long-lived key with a narrow policy, rotated on your own schedule, is the practical choice.
+
+## Step 2 — Create the connection
+
+In OneUptime, open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), select **Add connection**, and choose **AWS Security Hub**.
+
+| Field | Required | What to enter |
+| --- | --- | --- |
+| **Region** | Yes | The AWS Region code of the Security Hub administrator or aggregation account's home Region, for example `us-east-1`, `eu-central-1` or `us-gov-west-1`. Lowercase letters, hyphens and a trailing number; the connector refuses anything else because the value becomes both the endpoint host `securityhub.<region>.amazonaws.com` and the signature's credential scope. |
+| **Access key ID** | Yes | The IAM access key id from step 1: 16–128 letters or digits, usually the 20-character id that starts with `AKIA` (long-lived) or `ASIA` (temporary). |
+| **Secret access key** | Yes | The secret shown once when the access key was created. Encrypted at rest and never returned by the API. |
+| **Session token** | No | Only for temporary credentials, where it is required: an **Access key ID** starting with `ASIA` is refused without one. Leave empty for a long-lived access key. Encrypted at rest and never returned by the API. |
+| **Poll interval (minutes)** | Yes | A whole number from `1` to `1440`, default `5`. |
+
+Security Hub has no notion of "alerting" versus non-alerting findings, so this provider has no alerting-only toggle: every finding created in the window is imported.
+
+Use **Test these settings** on the credentials step before saving; it runs the checklist below against the unsaved settings without storing anything. To rotate the key later, use the connection's **Update credentials** action.
+
+## What is imported
+
+Each finding `GetFindings` returns — one ASFF `AwsSecurityFinding` object — becomes one event with vendor `Amazon Web Services` and product `AWS Security Hub`. Its OCSF class depends on what kind of finding it is:
+
+- Findings that carry a **`Compliance`** object — Security Hub's own **control checks** against enabled standards (AWS Foundational Security Best Practices, CIS AWS Foundations Benchmark, PCI DSS, NIST SP 800-53 and the others) — become **Compliance Finding** events (OCSF class `2003`). `Compliance.Status` (`PASSED`, `WARNING`, `FAILED`, `NOT_AVAILABLE`), `Compliance.SecurityControlId` and the associated standards are kept in the event's attributes.
+- Every other finding — GuardDuty, Inspector, Macie, IAM Access Analyzer, Detective, Firewall Manager and partner products — becomes a **Detection Finding** event (OCSF class `2004`).
+
+| OneUptime column | Security Hub (ASFF) field |
+| --- | --- |
+| Event id (dedupe key) | `Id` — the finding's stable identifier (an ARN for AWS-generated findings); a hash of the finding when a partner product sent none |
+| Time | `CreatedAt` — when Security Hub created the finding; else `UpdatedAt`, else `FirstObservedAt` |
+| Message | `Title`, else `Description`, else a class-specific default |
+| Rule name / id | `Title` / `GeneratorId` (the GuardDuty detector, the control id, the partner rule) |
+| Severity | `Severity.Label` (`INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`); else `Severity.Normalized` on the documented ranges 0, 1–39, 40–69, 70–89, 90–100 |
+| Status | `Workflow.Status` (`NEW`, `NOTIFIED`, `RESOLVED`, `SUPPRESSED`); else the retired `WorkflowState` |
+| MITRE ATT&CK | `Types` entries in the `TTPs` namespace: the category (`TTPs/Initial Access/...`) becomes the ATT&CK tactic id (`TA0001`); the classifier (`UnauthorizedAccess:EC2-SSHBruteForce`) is kept as the technique label |
+| Principal user / IP / process | `Resources[].Details.AwsIamAccessKey.PrincipalName` or `.UserName`, `Resources[].Details.AwsIamUser.UserName`; `Network.SourceIpV4` or `SourceIpV6`; `Process.Name` or `Process.Path` |
+| Target host / IP / port / resource | The instance id of an `AwsEc2Instance` resource; `Network.DestinationIpV4` or `DestinationIpV6`; `Network.DestinationPort`; the first `Resources[].Id` |
+| Observables | Every user, host and IP above, `Network.SourceDomain` and `DestinationDomain`, every `Resources[].Id`, `AwsAccountId`, the process name, `Malware[].Name` and `ThreatIntelIndicators[].Value` |
+| Attributes | Every field of the finding, flattened to dotted keys (`ProductFields.*`, `Compliance.Status`, `Compliance.SecurityControlId`, `Region`, `RecordState`, `FirstObservedAt`, `LastObservedAt`, `Remediation.Recommendation.Url`, ...) |
+
+## How polling works
+
+The connector ticks once a minute and polls every enabled connection that is due on its own interval. Each poll sends `POST https://securityhub.<region>.amazonaws.com/findings` (`GetFindings`) with a `CreatedAt` filter covering the poll window, `SortCriteria` of `CreatedAt` ascending and `MaxResults` of 100, and follows `NextToken` until the last page.
+
+- **Time basis is creation time.** The window is applied to `CreatedAt`, the moment Security Hub created the finding — not `FirstObservedAt`, the time of the activity behind it. GuardDuty creates a finding once it has evaluated enough activity to raise one, and a control finding is created when Security Hub first evaluates the resource; both can be hours or days after the first observation. Polling by creation time is what makes a forward-moving cursor safe: a finding created late still lands in a later window instead of falling behind the cursor.
+- **The first poll looks back 24 hours**, so a new connection imports the last day of findings immediately.
+- Every later poll resumes from the connection's stored cursor with a **1 minute overlap**, so findings on a window boundary are never missed. Each scheduled poll covers at most 24 hours; a connection with an older cursor catches up in consecutive windows.
+- **Duplicates are dropped by finding id.** Findings already stored in the project with the same `Id` are skipped, so the overlap and the catch-up never import a finding twice. A finding that Security Hub later updates in place (a new `UpdatedAt`, a changed `Workflow.Status`, a control that flips to `PASSED`) keeps its `Id` and its original `CreatedAt`, so it is not re-imported; the stored event reflects the finding as it was when imported.
+- **Bounds.** A poll sends at most 20 `GetFindings` requests of 100 findings each, so a run imports at most 2,000 findings. When a window holds more, the run is recorded as **Partial** with the warning `Stopped after 20 findings requests (the per-run request limit)` (or `Stopped after ... findings (the per-run record limit)`), the cursor is held, and the next poll re-reads the same window. Shorten the **Poll interval (minutes)** if a connection stays partial.
+- **Throttling.** Security Hub allows 3 `GetFindings` requests per second per account and Region (burst 6). The connector sends its pages sequentially, so a single connection stays well inside that; several connections against the same account and Region, or another tool sharing the quota, can produce `HTTP 429`, which fails the run and is retried on the next poll.
+
+Use **Preview** and **Import history** in the connection's **Diagnostics** to read or import a chosen range without moving the live cursor.
+
+## Test connection
+
+**Test connection** (on the connections table, or **Test these settings** in the form) runs synchronously in the API process — no worker is involved — and returns a checklist. The AWS-side checks are:
+
+| Check | What it does | Passes when |
+| --- | --- | --- |
+| **Authenticate with AWS** | One Signature Version 4-signed `GetFindings` for a single finding created in the last 24 hours | AWS accepts the signature: the **Access key ID**, **Secret access key** and, for temporary credentials, **Session token** are valid and the server clock is within five minutes. AWS verifies the signature before Security Hub applies your IAM policy, so an `AccessDeniedException` still passes this check — the credentials are right even though the permission is missing. |
+| **Read findings** | The same request | Security Hub answers the query, which proves the identity is allowed `securityhub:GetFindings` and Security Hub is enabled in the Region. It passes even when no finding was created in the last 24 hours. |
+| **Findings available to import** | Two bounded `GetFindings` calls, one page of 100 each, over the last 24 hours and the last 7 days | At least one finding exists. The count reads `100+` when Security Hub offered a further page. Zero findings in 7 days is a **warning**: the credentials and permission are fine, but there is nothing to import yet. |
+
+The report also includes OneUptime's own checks — worker consumers on the Worker queue, the poll scheduler, the connection's schedule and the event store — so "credentials accepted but nothing ingests" points at the actual cause. A failed check shows a remediation; the sections below explain the messages.
+
+## Troubleshooting
+
+Every error the connector records — in a run, in a failed check, or in the connection's **Last Error** — starts with `AWS Security Hub findings request` followed by what happened, and for an HTTP failure includes the AWS error code from the response (`__type`) and a hint. Credentials are redacted before the message is stored. Read the prefix and the error code first:
+
+- `AWS Security Hub findings request failed (HTTP 403)` with `AccessDeniedException` — the signature was accepted, so the key and secret are right, but the IAM identity is not allowed `securityhub:GetFindings`. Attach the policy from step 1 (or `AWSSecurityHubReadOnlyAccess`) to the user or role whose access key the connection uses. A permissions boundary or a service control policy can also deny it.
+- `AWS Security Hub findings request failed (HTTP 403)` with `InvalidAccessException` — Security Hub is not enabled for this account in this **Region**, or the account is not a Security Hub administrator here. Enable Security Hub in the Region, or point the **Region** at the delegated administrator account's home Region.
+- `AWS Security Hub findings request failed (HTTP 403)` with `InvalidSignatureException` or `SignatureDoesNotMatch` — the **Secret access key** does not belong to the **Access key ID** (or the **Session token** is missing for an `ASIA` key). Create a new access key in IAM and use **Update credentials**.
+- `AWS Security Hub findings request failed (HTTP 403)` with `UnrecognizedClientException` or `InvalidClientTokenId` — AWS does not recognize the **Access key ID**: a typo, a deleted or deactivated key, a key from another partition (GovCloud and China keys work only with their own Regions), or temporary credentials pasted without their **Session token**.
+- `AWS Security Hub findings request failed (HTTP 403)` with `ExpiredTokenException` — the temporary credentials have expired. Issue new credentials with STS and use **Update credentials**, or switch to a long-lived access key.
+- `AWS Security Hub findings request failed (HTTP 403)` with `RequestTimeTooSkewed` or `RequestExpired` — the OneUptime server clock is more than five minutes off. Fix NTP on the app and worker hosts.
+- `AWS Security Hub findings request failed (HTTP 401)` — AWS refused the credentials outright. Check the **Access key ID** and **Secret access key**.
+- `AWS Security Hub findings request failed (HTTP 400)` — Security Hub rejected the query (`InvalidInputException`). The findings query is built by the connector, not from your settings; report the message to OneUptime support.
+- `AWS Security Hub findings request failed (HTTP 404)` — no Security Hub endpoint answered at this **Region**. Compare the value with the Region selector in the AWS console (`us-east-1`, not `us-east1` or `N. Virginia`), and check that Security Hub is [available in that Region](https://docs.aws.amazon.com/general/latest/gr/sechub.html).
+- `AWS Security Hub findings request failed (HTTP 429)` — `LimitExceededException` or throttling: the account hit the 3-requests-per-second `GetFindings` quota in this Region. Scheduled polls retry the same window automatically; if it persists, look for other tools sharing the quota.
+- `AWS Security Hub findings request failed (HTTP 5xx)` — `InternalException`; Security Hub reported a server-side problem. The next poll retries the same window.
+- `AWS Security Hub findings request returned a non-JSON body` — something other than Security Hub answered `200` with HTML or text: an egress proxy's login page, a captive portal, a TLS-inspecting gateway. Check the path from the OneUptime containers to `securityhub.<region>.amazonaws.com`.
+- `AWS Security Hub findings request returned an unrecognized response shape` — the endpoint answered JSON without a `Findings` array. A gateway between OneUptime and AWS rewrote the response; make sure the connector reaches the AWS endpoint directly.
+- `AWS Security Hub findings request timed out after N seconds with no response` — the connector's own deadline fired before AWS answered. Outbound HTTPS to `securityhub.<region>.amazonaws.com` is blocked or very slow from the OneUptime app and worker processes.
+- `AWS Security Hub findings request failed: Could not reach data source: ...` — the request never got an HTTP answer: a DNS failure, a refused connection, a TLS error, the transport's own timeout, or the egress guard. The endpoints are public AWS addresses, so on both OneUptime Cloud and self-hosted deployments this points at a firewall or proxy on the OneUptime side.
+- **Last Polled is `Never` and Last Error is empty** — the background worker has not executed the poll job at all, so nothing has ever reached AWS. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Either set `DISABLE_QUEUE_WORKERS=false` (the `config.example.env` default that Docker Compose ships with), or run the dedicated worker deployment (Helm: `worker.enabled: true`, which is `false` by default). **Test connection** reports this as a failed worker or scheduler check.
+- **Test connection passes but nothing appears** — open **Findings available to import** in the report. Zero findings in the last 7 days means Security Hub created nothing in this account and Region: confirm integrations (GuardDuty, Inspector, Macie, IAM Access Analyzer, partner products) or security standards are enabled there, and that the connection points at the administrator account's home Region if you expect other accounts' and Regions' findings. Findings created more than 24 hours before the connection was created are not imported by scheduled polling; use **Import history**.
+- **Member accounts' or other Regions' findings are missing** — the connection uses a member account's key, or a Region other than the home Region. Create the key in the delegated administrator account and set the **Region** to its aggregation Region.
+
+## What you get
+
+- **Security Events explorer** — search and filter findings by severity, status, rule, AWS account, resource, or any observable.
+- **Correlation** — every event's observables (IAM users, instance ids, IPs, domains, resource ARNs, account ids) are indexed, so "everything mentioning this instance" is one query, next to that instance's logs and metrics.
+- **Detection Rules** — [Sigma](https://sigmahq.io/) detections-as-code evaluated every minute against your events; matches open deduplicated alerts (with on-call routing) and write Detection Finding events.
+- **Security Events monitors** — alert when matching event counts cross a threshold — a burst of `CRITICAL` GuardDuty findings, a new `FAILED` control on a production account — with the same criteria, incident, and on-call machinery as every other monitor.
+- **Dashboards & AI** — security event widgets on custom dashboards, and AI assistant tools (`search_security_events`, `security_event_summary`) for natural-language investigation.
+
+## Billing
+
+Security events are metered like other telemetry, per GB ingested. See [Pricing](https://oneuptime.com/pricing).

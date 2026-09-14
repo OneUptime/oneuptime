@@ -1,6 +1,8 @@
 import GoogleSecOpsRunExecutor, {
   GOOGLE_SECOPS_RUN_JOB,
 } from "../../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsRunExecutor";
+import logger from "../../../../../Server/Utils/Logger";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 import GoogleSecOpsPoller from "../../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import GoogleSecOpsConnectionRunService from "../../../../../Server/Services/GoogleSecOpsConnectionRunService";
 import GoogleSecOpsConnectionService from "../../../../../Server/Services/GoogleSecOpsConnectionService";
@@ -48,7 +50,11 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { findOneBy: jest.fn(), findBy: jest.fn() },
+      default: {
+        findOneBy: jest.fn(),
+        findBy: jest.fn(),
+        updateOneById: jest.fn(),
+      },
     };
   },
 );
@@ -557,6 +563,96 @@ test("scheduler continues after a single connection fails admission", async () =
     .mockResolvedValueOnce(RUN);
   await GoogleSecOpsRunExecutor.enqueueDueConnections();
   expect(spy).toHaveBeenCalledTimes(2);
+});
+
+test("an admission conflict stays quiet and leaves the connection row alone", async () => {
+  (GoogleSecOpsConnectionService.findBy as jest.Mock).mockResolvedValue([
+    connection,
+  ]);
+  const errorLog: jest.SpyInstance = jest
+    .spyOn(logger, "error")
+    .mockImplementation(() => {});
+  const debugLog: jest.SpyInstance = jest
+    .spyOn(logger, "debug")
+    .mockImplementation(() => {});
+  jest
+    .spyOn(GoogleSecOpsRunExecutor, "enqueue")
+    .mockRejectedValueOnce(
+      new BadDataException(
+        "This connection already has a queued or running operation. Open run history for its progress.",
+      ),
+    );
+  await GoogleSecOpsRunExecutor.enqueueDueConnections();
+  expect(debugLog).toHaveBeenCalled();
+  expect(errorLog).not.toHaveBeenCalled();
+  expect(GoogleSecOpsConnectionService.updateOneById).not.toHaveBeenCalled();
+});
+
+test("any other enqueue failure is logged at error and stamped on the connection, redacted", async () => {
+  (GoogleSecOpsConnectionService.findBy as jest.Mock).mockResolvedValue([
+    connection,
+  ]);
+  const errorLog: jest.SpyInstance = jest
+    .spyOn(logger, "error")
+    .mockImplementation(() => {});
+  jest
+    .spyOn(GoogleSecOpsRunExecutor, "enqueue")
+    .mockRejectedValueOnce(
+      new Error(
+        'Redis client is not connected {"access_token":"ya29.leaked-token"}',
+      ),
+    );
+  await GoogleSecOpsRunExecutor.enqueueDueConnections();
+  expect(errorLog).toHaveBeenCalledWith(
+    expect.stringContaining("could not queue the scheduled poll"),
+  );
+  expect(GoogleSecOpsConnectionService.updateOneById).toHaveBeenCalledWith({
+    id: CONNECTION,
+    data: {
+      lastError: expect.stringMatching(
+        /^Scheduler could not queue a poll: Redis client is not connected/,
+      ),
+    },
+    props: { isRoot: true },
+  });
+  const stamped: string = (
+    (GoogleSecOpsConnectionService.updateOneById as jest.Mock).mock
+      .calls[0]![0] as { data: { lastError: string } }
+  ).data.lastError;
+  expect(stamped).not.toContain("leaked-token");
+});
+
+test("a failed stamp write does not stop the scheduler tick", async () => {
+  const nextConnection: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+  nextConnection.id = USER;
+  nextConnection.projectId = PROJECT;
+  (GoogleSecOpsConnectionService.findBy as jest.Mock).mockResolvedValue([
+    connection,
+    nextConnection,
+  ]);
+  jest.spyOn(logger, "error").mockImplementation(() => {});
+  (GoogleSecOpsConnectionService.updateOneById as jest.Mock).mockRejectedValue(
+    new Error("database unavailable"),
+  );
+  const spy: jest.SpyInstance = jest
+    .spyOn(GoogleSecOpsRunExecutor, "enqueue")
+    .mockRejectedValueOnce(new Error("Redis client is not connected"))
+    .mockResolvedValueOnce(RUN);
+  await GoogleSecOpsRunExecutor.enqueueDueConnections();
+  expect(spy).toHaveBeenCalledTimes(2);
+});
+
+test("markRunFailed stamps a failed status, completion time and reason on the run", async () => {
+  await GoogleSecOpsRunExecutor.markRunFailed(RUN, "lock timed out");
+  expect(GoogleSecOpsConnectionRunService.updateOneById).toHaveBeenCalledWith({
+    id: RUN,
+    data: {
+      status: "failed",
+      completedAt: expect.any(Date),
+      error: "lock timed out",
+    },
+    props: { isRoot: true },
+  });
 });
 
 function useCoordinatedLocks(): void {

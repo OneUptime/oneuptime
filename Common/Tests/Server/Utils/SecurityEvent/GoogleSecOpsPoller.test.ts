@@ -7,6 +7,7 @@ import OTelIngestService, {
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
+  SearchDetectionsResult,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
@@ -83,6 +84,17 @@ function makeFakeClient(alerts: Array<JSONObject>): {
   const calls: Array<{ startTime: Date; endTime: Date }> = [];
 
   const client: GoogleSecOpsClient = {
+    /*
+     * The created-time passes answer quietly so these tests keep
+     * exercising the alerts-view path they were written against.
+     */
+    searchDetections: (): Promise<SearchDetectionsResult> => {
+      return Promise.resolve({
+        detections: [],
+        nextPageToken: null,
+        truncated: false,
+      });
+    },
     fetchDetectionAlerts: (data: {
       startTime: Date;
       endTime: Date;
@@ -169,7 +181,7 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
     expect(updateData["lastError"]).toBeNull();
   });
 
-  test("first poll (no cursor) looks back the default window; cursor polls overlap by a minute", async () => {
+  test("first poll (no cursor) looks back 24 hours; cursor polls overlap by a minute", async () => {
     const connection: GoogleSecOpsConnection = makeConnection();
     const { client, calls } = makeFakeClient([]);
 
@@ -179,7 +191,7 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
     const firstWindowMinutes: number =
       (calls[0]!.endTime.getTime() - calls[0]!.startTime.getTime()) /
       (60 * 1000);
-    expect(Math.round(firstWindowMinutes)).toBe(15);
+    expect(Math.round(firstWindowMinutes)).toBe(24 * 60);
 
     /*
      * Second poll with a cursor five minutes ago: window starts one

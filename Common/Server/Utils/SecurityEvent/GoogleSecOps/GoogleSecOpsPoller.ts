@@ -1,14 +1,6 @@
-import { ResponseJSON, ResultSet } from "@clickhouse/client";
-import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
-import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
-import {
-  getClickhouseClusterName,
-  getClickhouseDatabaseName,
-  getStorageTableName,
-} from "../../AnalyticsDatabase/ClusterConfig";
-import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
+  GoogleSecOpsCreationLag,
   GoogleSecOpsDetectionSample,
   GoogleSecOpsRunOptions,
   GoogleSecOpsRunResult,
@@ -19,7 +11,10 @@ import {
   readString,
   readValue,
 } from "../../../../Utils/SecurityEvent/NormalizerHelpers";
-import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+  SemaphoreMutex,
+} from "../../../Infrastructure/Semaphore";
 import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
@@ -37,20 +32,49 @@ import logger from "../../Logger";
 import { redactLogString } from "../../LogRedaction";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
+import SecurityEventDedupe from "../SecurityEventDedupe";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
-import GoogleSecOpsClient, { FetchAlertsResult } from "./GoogleSecOpsClient";
+import GoogleSecOpsClient, {
+  FetchAlertsResult,
+  GoogleSecOpsListBasis,
+  SearchDetectionsResult,
+} from "./GoogleSecOpsClient";
 
 const SECOPS_SERVICE_NAME: string = "Google SecOps";
+const SECOPS_VENDOR_NAME: string = "Google";
 
-const DEFAULT_LOOKBACK_IN_MINUTES: number = 15;
+/*
+ * The first poll of a new connection reads a full day of CREATED detections.
+ * Fifteen minutes used to be the default, and on a tenant whose rules run
+ * hourly or daily it reliably returned nothing, which read as "the
+ * connector is broken" on the very first look.
+ */
+const DEFAULT_LOOKBACK_IN_MINUTES: number = 24 * 60;
 const MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
 const WINDOW_OVERLAP_IN_MINUTES: number = 1;
 const MAX_FETCH_REQUESTS: number = 12;
 const MAX_FETCH_DURATION_MS: number = 2 * 60 * 1000;
 const MAX_ALERTS_PER_REQUEST: number = 1000;
+const MAX_SEARCH_PAGE_SIZE: number = 1000;
 const MAX_DIAGNOSTIC_SAMPLES: number = 25;
 const MAX_RANGE_MS: number = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_POLL_INTERVAL_IN_MINUTES: number = 5;
+/*
+ * A detection created within one poll interval plus this grace of its
+ * detection time would still have been caught by a detection-time cursor;
+ * anything later is exactly the record the old basis lost.
+ */
+const CREATION_LAG_GRACE_IN_MINUTES: number = 1;
+/*
+ * Curated (Google-authored) rule detections are optional: tenants without
+ * that entitlement answer 403 (and some 400/404) on the curated route. Those
+ * statuses degrade the pass to a warning; 401, 429, 5xx, timeouts and parse
+ * failures still fail the run like any other pass.
+ */
+const CURATED_OPTIONAL_STATUSES: Array<number> = [400, 403, 404];
+const BUDGET_EXHAUSTED_WARNING: string =
+  "The recovery request limit was reached. Narrow the time range; the poll cursor has not advanced.";
 export const GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE: string = "GoogleSecOpsSource";
 
 interface PollWindow {
@@ -197,13 +221,30 @@ export default class GoogleSecOpsPoller {
       return this.executeUnlocked(connection, options, clientOverride);
     }
 
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      namespace: GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE,
-      key: connection.projectId!.toString(),
-      lockTimeout: 30000,
-      acquireTimeout: 10000,
-      retryInterval: 100,
-    });
+    let mutex: SemaphoreMutex;
+    try {
+      mutex = await Semaphore.lock({
+        namespace: GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE,
+        key: connection.projectId!.toString(),
+        lockTimeout: 30000,
+        acquireTimeout: 10000,
+        retryInterval: 100,
+      });
+    } catch (error) {
+      /*
+       * The library's timeout message names Redis keys and reads like an
+       * infrastructure fault. It is the expected steady state when a long
+       * import holds the source lock, so it is reworded for the person
+       * reading run history, and left as a BadDataException so the run
+       * executor records it without retrying.
+       */
+      if (error instanceof SemaphoreLockTimeoutError) {
+        throw new BadDataException(
+          "Another poll or import for this source is still running in this project. This run was skipped; polling continues on the next scheduled tick.",
+        );
+      }
+      throw error;
+    }
     try {
       /*
        * An injected client also injects the connection snapshot for tests.
@@ -221,6 +262,7 @@ export default class GoogleSecOpsPoller {
               instanceResourceName: true,
               serviceAccountJson: true,
               cursor: true,
+              pollIntervalInMinutes: true,
               includeNonAlertingDetections: true,
             },
             props: { isRoot: true },
@@ -290,11 +332,11 @@ export default class GoogleSecOpsPoller {
       const cursorTime: Date = new Date(connection.cursor);
       if (!Number.isFinite(cursorTime.getTime())) {
         warnings.push(
-          "The saved cursor is unreadable; polling the default 15 minute window.",
+          "The saved cursor is unreadable; polling the default 24 hour window.",
         );
       } else if (cursorTime >= now) {
         warnings.push(
-          "The saved cursor is in the future; polling the default 15 minute window.",
+          "The saved cursor is in the future; polling the default 24 hour window.",
         );
       } else {
         hasUsableCursor = true;
@@ -324,6 +366,21 @@ export default class GoogleSecOpsPoller {
   ): Promise<GoogleSecOpsRunResult> {
     const window: PollWindow = this.getWindow(connection, options);
     const startedMs: number = Date.now();
+    /*
+     * Preview and backfill take a detection-time range from the person (it
+     * is how the SecOps alerts view frames time), and read created time as
+     * well so an import of "yesterday" also carries detections created
+     * yesterday about older events. Polls read created time only; the
+     * alerts-view pass supplies detection time.
+     */
+    const isHistorical: boolean =
+      options.type === "preview" || options.type === "backfill";
+    const searchBases: Array<GoogleSecOpsListBasis> = isHistorical
+      ? ["CREATED_TIME", "DETECTION_TIME"]
+      : ["CREATED_TIME"];
+    const basisLabel: string = isHistorical
+      ? "created and detection time"
+      : "created time";
     const result: GoogleSecOpsRunResult = {
       type: options.type,
       ...(options.runId ? { runId: options.runId } : {}),
@@ -335,6 +392,8 @@ export default class GoogleSecOpsPoller {
       windowEnd: window.endTime.toISOString(),
       includeNonAlertingDetections:
         connection.includeNonAlertingDetections === true,
+      basis: isHistorical ? "detection-time" : "created-time",
+      sourceCounts: { ruleDetections: 0, curatedDetections: 0, alertsView: 0 },
       fetchedCount: 0,
       ingestedCount: 0,
       duplicateCount: 0,
@@ -374,22 +433,96 @@ export default class GoogleSecOpsPoller {
           message: "Google accepted the service account credentials.",
         });
       }
-      phase = "Read detections from the configured instance";
+
+      /*
+       * Three passes over one window, unioned by Collection.id. The alerts
+       * view alone filters on DETECTION time, and a rule that runs hourly
+       * creates detections whose detection time is already behind a
+       * forward-only cursor, so it can never be the primary read.
+       */
+      const seen: Map<string, JSONObject> = new Map();
+
+      phase = `Read rule detections by ${basisLabel}`;
       phaseStartedMs = Date.now();
-      const alerts: Array<JSONObject> = await this.fetchWindows(
+      const ruleDetections: number = await this.searchPass(
         client,
         window,
         result,
         startedMs,
+        seen,
+        { curated: false, bases: searchBases },
       );
-      result.fetchedCount = alerts.length;
+      result.sourceCounts!.ruleDetections = ruleDetections;
       result.checks.push({
         name: phase,
         status: "success",
         durationMs: Date.now() - phaseStartedMs,
-        message:
-          "The configured Google SecOps instance is reachable and allows reading detections.",
+        message: `${ruleDetections} rule detections returned for the window by ${basisLabel}.`,
       });
+
+      phase = `Read curated rule detections by ${basisLabel}`;
+      phaseStartedMs = Date.now();
+      try {
+        const curatedDetections: number = await this.searchPass(
+          client,
+          window,
+          result,
+          startedMs,
+          seen,
+          { curated: true, bases: searchBases },
+        );
+        result.sourceCounts!.curatedDetections = curatedDetections;
+        result.checks.push({
+          name: phase,
+          status: "success",
+          durationMs: Date.now() - phaseStartedMs,
+          message: `${curatedDetections} curated rule detections returned for the window by ${basisLabel}.`,
+        });
+      } catch (curatedError) {
+        /*
+         * Named differently from the outer catch on purpose: the guidance
+         * accuracy test reads executeUnlocked's first catch clause, by its
+         * variable name, as the run-failure path.
+         */
+        const status: number | null =
+          GoogleSecOpsClient.readHttpStatus(curatedError);
+        if (status === null || !CURATED_OPTIONAL_STATUSES.includes(status)) {
+          throw curatedError;
+        }
+        const message: string = redactLogString(
+          ConnectorErrorMessage.toMessage(curatedError),
+        );
+        result.warnings.push(
+          `Curated rule detections could not be read (HTTP ${status}); this tenant may not have curated rule access. Rule detections and the alerts view were still read.`,
+        );
+        result.checks.push({
+          name: phase,
+          status: "warn",
+          durationMs: Date.now() - phaseStartedMs,
+          message,
+        });
+      }
+
+      phase = "Read alerts view by detection time";
+      phaseStartedMs = Date.now();
+      const alertsView: number = await this.fetchWindows(
+        client,
+        window,
+        result,
+        startedMs,
+        seen,
+      );
+      result.sourceCounts!.alertsView = alertsView;
+      result.checks.push({
+        name: phase,
+        status: "success",
+        durationMs: Date.now() - phaseStartedMs,
+        message: `${alertsView} alerts returned by detection time. The configured Google SecOps instance is reachable and allows reading detections.`,
+      });
+
+      const alerts: Array<JSONObject> = Array.from(seen.values());
+      result.fetchedCount = alerts.length;
+      result.creationLag = this.measureCreationLag(alerts, connection, result);
 
       phase = "Normalize detections";
       phaseStartedMs = Date.now();
@@ -411,8 +544,14 @@ export default class GoogleSecOpsPoller {
         }
       }
       if (result.rejectedCount) {
+        /*
+         * Counted and reported, never retried: an object Google returns
+         * that is not a Collection is permanently unrecognizable, so
+         * holding the cursor for it would pin the window until the 24 hour
+         * chunk could never reach the present.
+         */
         result.warnings.push(
-          `${result.rejectedCount} returned objects were discarded because they do not look like Google SecOps detections.`,
+          `${result.rejectedCount} returned objects were discarded because they do not look like Google SecOps detections. They are counted here and do not hold the poll cursor.`,
         );
       }
       if (result.failedCount) {
@@ -420,14 +559,14 @@ export default class GoogleSecOpsPoller {
           `${result.failedCount} detections could not be normalized. The poll cursor is held for retry.`,
         );
       }
-      result.complete =
-        result.complete &&
-        result.failedCount === 0 &&
-        result.rejectedCount === 0;
+      result.complete = result.complete && result.failedCount === 0;
       result.checks.push({
         name: phase,
-        status:
-          result.failedCount || result.rejectedCount ? "failed" : "success",
+        status: result.failedCount
+          ? "failed"
+          : result.rejectedCount
+            ? "warn"
+            : "success",
         durationMs: Date.now() - phaseStartedMs,
         message: `${normalized.length} detections recognized; ${result.rejectedCount} rejected; ${result.failedCount} failed.`,
       });
@@ -515,23 +654,23 @@ export default class GoogleSecOpsPoller {
     return result;
   }
 
+  /*
+   * The alerts-view pass (legacyFetchAlertsView, detection time). The
+   * endpoint has no pagination, so a truncated window is split in half and
+   * both halves are re-read until they fit or the request budget runs out.
+   * Returns how many alerts Google handed back across every request.
+   */
   private static async fetchWindows(
     client: GoogleSecOpsClient,
     window: PollWindow,
     result: GoogleSecOpsRunResult,
     startedMs: number,
-  ): Promise<Array<JSONObject>> {
+    seen: Map<string, JSONObject>,
+  ): Promise<number> {
     const pending: Array<{ startTime: Date; endTime: Date }> = [window];
-    const seen: Map<string, JSONObject> = new Map();
+    let returned: number = 0;
     while (pending.length > 0) {
-      if (
-        result.requestCount >= MAX_FETCH_REQUESTS ||
-        Date.now() - startedMs >= MAX_FETCH_DURATION_MS
-      ) {
-        result.complete = false;
-        result.warnings.push(
-          "The recovery request limit was reached. Narrow the time range; the poll cursor has not advanced.",
-        );
+      if (this.isBudgetExhausted(result, startedMs)) {
         break;
       }
       const current: { startTime: Date; endTime: Date } = pending.shift()!;
@@ -541,18 +680,9 @@ export default class GoogleSecOpsPoller {
         maxAlerts: result.type === "test" ? 1 : MAX_ALERTS_PER_REQUEST,
         includeNonAlertingDetections: result.includeNonAlertingDetections,
       });
+      returned += fetched.alerts.length;
       for (const alert of fetched.alerts) {
-        let key: string;
-        try {
-          key = readString(alert, "id") || contentHashEventUid(alert);
-        } catch {
-          /*
-           * Keep an uninspectable object in the normalization failure count
-           * without preventing valid detections in this response from importing.
-           */
-          key = `malformed:${result.requestCount}:${seen.size}`;
-        }
-        seen.set(key, alert);
+        this.collect(seen, alert, result);
       }
       result.fetchedCount = seen.size;
       const truncated: boolean =
@@ -565,7 +695,7 @@ export default class GoogleSecOpsPoller {
          * A one-record permission probe is deliberately limited; it makes no
          * assertion about whether the full detection window can be imported.
          */
-        result.complete = fetched.complete;
+        result.complete = result.complete && fetched.complete;
         if (truncated) {
           result.warnings.push(
             "Connection test reads at most one detection. Use Preview to inspect the full time range.",
@@ -601,7 +731,166 @@ export default class GoogleSecOpsPoller {
         );
       }
     }
-    return Array.from(seen.values());
+    return returned;
+  }
+
+  /*
+   * A detections-search pass (legacySearchDetections or the curated
+   * variant), one basis at a time, following nextPageToken under the
+   * shared request budget. Returns how many detections Google handed back.
+   */
+  private static async searchPass(
+    client: GoogleSecOpsClient,
+    window: PollWindow,
+    result: GoogleSecOpsRunResult,
+    startedMs: number,
+    seen: Map<string, JSONObject>,
+    options: { curated: boolean; bases: Array<GoogleSecOpsListBasis> },
+  ): Promise<number> {
+    const label: string = options.curated
+      ? "curated rule detections"
+      : "rule detections";
+    let returned: number = 0;
+    for (const listBasis of options.bases) {
+      let pageToken: string | undefined = undefined;
+      do {
+        if (this.isBudgetExhausted(result, startedMs)) {
+          return returned;
+        }
+        result.requestCount++;
+        const page: SearchDetectionsResult = await client.searchDetections({
+          startTime: window.startTime,
+          endTime: window.endTime,
+          listBasis,
+          alertingOnly: !result.includeNonAlertingDetections,
+          pageSize: result.type === "test" ? 1 : MAX_SEARCH_PAGE_SIZE,
+          pageToken,
+          curated: options.curated,
+        });
+        returned += page.detections.length;
+        for (const detection of page.detections) {
+          this.collect(seen, detection, result);
+        }
+        result.fetchedCount = seen.size;
+        if (page.truncated) {
+          /*
+           * respTooLargeDetectionsTruncated: Google cut the page by byte
+           * size and the rest is not reachable through a page token, so the
+           * window is not fully read.
+           */
+          result.complete = false;
+          result.warnings.push(
+            `Google truncated a page of ${label} by size for ${window.startTime.toISOString()} to ${window.endTime.toISOString()}; the cursor has not advanced.`,
+          );
+        }
+        if (result.type === "test") {
+          // One record per pass is all a permission probe needs.
+          return returned;
+        }
+        pageToken = page.nextPageToken || undefined;
+      } while (pageToken);
+    }
+    return returned;
+  }
+
+  /*
+   * One budget across all three passes: a poll is bounded in requests and
+   * in wall time whichever endpoint is slow. Exhausting it holds the cursor
+   * and is reported once.
+   */
+  private static isBudgetExhausted(
+    result: GoogleSecOpsRunResult,
+    startedMs: number,
+  ): boolean {
+    if (
+      result.requestCount < MAX_FETCH_REQUESTS &&
+      Date.now() - startedMs < MAX_FETCH_DURATION_MS
+    ) {
+      return false;
+    }
+    result.complete = false;
+    if (!result.warnings.includes(BUDGET_EXHAUSTED_WARNING)) {
+      result.warnings.push(BUDGET_EXHAUSTED_WARNING);
+    }
+    return true;
+  }
+
+  /*
+   * Union by Collection.id across passes and across the alerts view's
+   * chunks; a record with no id falls back to a content hash, and an
+   * object that cannot even be inspected is kept under a positional key so
+   * it is counted as rejected without hiding the valid records beside it.
+   */
+  private static collect(
+    seen: Map<string, JSONObject>,
+    record: JSONObject,
+    result: GoogleSecOpsRunResult,
+  ): void {
+    let key: string;
+    try {
+      key = readString(record, "id") || contentHashEventUid(record);
+    } catch {
+      key = `malformed:${result.requestCount}:${seen.size}`;
+    }
+    seen.set(key, record);
+  }
+
+  /*
+   * createdTime minus detectionTime over what was fetched. A lag beyond one
+   * poll interval is the record a detection-time cursor skips, so the
+   * warning names the reason polling reads created time.
+   */
+  private static measureCreationLag(
+    alerts: Array<JSONObject>,
+    connection: GoogleSecOpsConnection,
+    result: GoogleSecOpsRunResult,
+  ): GoogleSecOpsCreationLag {
+    const intervalInMinutes: number = Math.max(
+      1,
+      connection.pollIntervalInMinutes || DEFAULT_POLL_INTERVAL_IN_MINUTES,
+    );
+    const thresholdInMinutes: number =
+      intervalInMinutes + CREATION_LAG_GRACE_IN_MINUTES;
+    let measured: number = 0;
+    let lateCount: number = 0;
+    let maxLagMs: number = 0;
+    for (const alert of alerts) {
+      let detectionTime: Date | null = null;
+      let createdTime: Date | null = null;
+      try {
+        detectionTime = parseEventTime(
+          readValue(alert, "detectionTime") ??
+            readValue(alert, "detection_time"),
+        );
+        createdTime = parseEventTime(
+          readValue(alert, "createdTime") ?? readValue(alert, "created_time"),
+        );
+      } catch {
+        continue;
+      }
+      if (!detectionTime || !createdTime) {
+        continue;
+      }
+      measured++;
+      const lagMs: number = createdTime.getTime() - detectionTime.getTime();
+      if (lagMs > maxLagMs) {
+        maxLagMs = lagMs;
+      }
+      if (lagMs > thresholdInMinutes * 60 * 1000) {
+        lateCount++;
+      }
+    }
+    const lag: GoogleSecOpsCreationLag = {
+      measured,
+      lateCount,
+      maxLagMinutes: Math.round(maxLagMs / 60000),
+    };
+    if (lateCount > 0) {
+      result.warnings.push(
+        `${lateCount} of ${measured} detections were created more than ${thresholdInMinutes} minutes after their detection time (up to ${lag.maxLagMinutes} minutes). This is why the connector polls by created time: a cursor over detection time would already have moved past them.`,
+      );
+    }
+    return lag;
   }
 
   private static sample(
@@ -637,54 +926,20 @@ export default class GoogleSecOpsPoller {
   }
 
   /**
-   * This is a correctness lookup, not a dashboard query: returning a partial
-   * result on timeout or reading a lagging replica would create duplicates.
-   * Read every replica and fail closed on an unavailable shard. The preceding
-   * source lock plus synchronous inserts make at least one replica contain
-   * every earlier acknowledged import before this query begins.
+   * Thin delegate kept as a static on this class: existing tests spy on it,
+   * and the query itself now lives in SecurityEventDedupe so the Google
+   * poller and the Security Event Connections poller cannot drift.
    */
   public static async findExistingEventUids(
     projectId: ObjectID,
     ids: Array<string>,
   ): Promise<Set<string>> {
-    const existing: Set<string> = new Set();
-    const startedMs: number = Date.now();
-    for (
-      let offset: number = 0;
-      offset < ids.length;
-      offset += MAX_ALERTS_PER_REQUEST
-    ) {
-      if (Date.now() - startedMs >= 2 * 60 * 1000) {
-        throw new Error(
-          "Duplicate lookup exceeded its time limit. Retry a smaller import window.",
-        );
-      }
-      const statement: Statement = SQL`SELECT DISTINCT eventUid FROM clusterAllReplicas(
-        ${{ type: TableColumnType.Text, value: getClickhouseClusterName() }},
-        ${{ type: TableColumnType.Text, value: getClickhouseDatabaseName() }},
-        ${{ type: TableColumnType.Text, value: getStorageTableName(SecurityEventService.model.tableName) }}
-      ) WHERE projectId = ${{ type: TableColumnType.ObjectID, value: projectId }}
-        AND vendorName = ${{ type: TableColumnType.Text, value: "Google" }}
-        AND productName = ${{ type: TableColumnType.Text, value: SECOPS_SERVICE_NAME }}
-        AND eventUid IN ${{ type: TableColumnType.ArrayText, value: ids.slice(offset, offset + MAX_ALERTS_PER_REQUEST) }}`;
-      statement.append(
-        getQuerySettings({
-          maxExecutionTimeInSeconds: 30,
-          timeoutOverflowMode: "throw",
-          boundScanMemory: true,
-          additionalSettings: { skip_unavailable_shards: 0 },
-        }),
-      );
-      const response: ResultSet<"JSON"> =
-        await SecurityEventService.executeQuery(statement);
-      const data: ResponseJSON<JSONObject> = await response.json<JSONObject>();
-      for (const row of data.data) {
-        if (typeof row["eventUid"] === "string") {
-          existing.add(row["eventUid"]);
-        }
-      }
-    }
-    return existing;
+    return SecurityEventDedupe.findExistingEventUids({
+      projectId,
+      vendorName: SECOPS_VENDOR_NAME,
+      productName: SECOPS_SERVICE_NAME,
+      ids,
+    });
   }
 
   private static async ingest(

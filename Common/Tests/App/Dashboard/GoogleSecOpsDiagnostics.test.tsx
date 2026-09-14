@@ -599,6 +599,27 @@ describe("Google SecOps health and time ranges", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The outage this page exists for: every poll succeeded and nothing was
+   * ever imported. A green "Last poll succeeded" on that row is a lie, so
+   * success is only claimed once an event has actually landed.
+   */
+  test("a succeeding poll that never imported an event does not read as success", (): void => {
+    const item: GoogleSecOpsConnection = connection();
+    item.lastPolledAt = new Date(NOW - 60_000);
+    item.lastPollResult = result({
+      windowEnd: "2026-09-10T11:58:00Z",
+      ingestedCount: 0,
+    }) as unknown as JSONObject;
+
+    expect(googleSecOpsHealth(item, NOW)).toBe(
+      "Polling, no events imported yet",
+    );
+
+    item.lastEventIngestedAt = new Date(NOW - 30_000);
+    expect(googleSecOpsHealth(item, NOW)).toBe("Last poll succeeded");
+  });
+
   test("configuration and a recent attempt cannot imply success", (): void => {
     const item: GoogleSecOpsConnection = connection();
     expect(googleSecOpsHealth(item, NOW)).toBe("Waiting for first poll");

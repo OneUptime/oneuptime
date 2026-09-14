@@ -10,6 +10,7 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import { GoogleSecOpsRunResult } from "../../../../Types/SecurityEvent/GoogleSecOpsDiagnostics";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
+  SearchDetectionsResult,
   FetchLike,
   FetchResponseLike,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
@@ -259,8 +260,16 @@ function makeFetch(responses: {
   ): Promise<FetchResponseLike> => {
     requests.push({ url: url, method: init.method });
 
+    /*
+     * The created-time search passes answer with an empty page so these
+     * fixtures keep describing the alerts-view path they were written for.
+     */
     const response: StubbedResponse =
-      url === GOOGLE_TOKEN_URI ? responses.token : responses.alerts;
+      url === GOOGLE_TOKEN_URI
+        ? responses.token
+        : url.includes("legacySearch")
+          ? { status: 200, body: "{}" }
+          : responses.alerts;
 
     return Promise.resolve({
       ok: response.status >= 200 && response.status < 300,
@@ -301,7 +310,10 @@ function streamingResponse(chunks: Array<JSONObject>): StubbedResponse {
 function alertsRequestOf(requests: Array<RecordedRequest>): RecordedRequest {
   const alertsRequests: Array<RecordedRequest> = requests.filter(
     (request: RecordedRequest): boolean => {
-      return request.url !== GOOGLE_TOKEN_URI;
+      return (
+        request.url !== GOOGLE_TOKEN_URI &&
+        !request.url.includes("legacySearch")
+      );
     },
   );
 
@@ -347,6 +359,13 @@ function makeStubClient(result: FetchAlertsResult): {
   const windows: Array<RecordedWindow> = [];
 
   const client: GoogleSecOpsClient = {
+    searchDetections: (): Promise<SearchDetectionsResult> => {
+      return Promise.resolve({
+        detections: [],
+        nextPageToken: null,
+        truncated: false,
+      });
+    },
     fetchDetectionAlerts: (data: {
       startTime: Date;
       endTime: Date;
@@ -365,6 +384,13 @@ function makeStubClient(result: FetchAlertsResult): {
  */
 function makeThrowingStubClient(error: Error): GoogleSecOpsClient {
   return {
+    searchDetections: (): Promise<SearchDetectionsResult> => {
+      return Promise.resolve({
+        detections: [],
+        nextPageToken: null,
+        truncated: false,
+      });
+    },
     fetchDetectionAlerts: (): Promise<FetchAlertsResult> => {
       return Promise.reject(error);
     },
@@ -873,13 +899,22 @@ describe("GoogleSecOpsPoller cursor durability", () => {
     const result: GoogleSecOpsRunResult = written[
       "lastPollResult"
     ] as unknown as GoogleSecOpsRunResult;
-    expect(result.status).toBe("partial");
+    /*
+     * Counted and warned, but the cursor moves on: a stream chunk is
+     * permanently unrecognizable, so holding the window for it would pin
+     * the connector until the 24 hour chunk could never reach the present.
+     */
+    expect(result.status).toBe("success");
+    expect(result.complete).toBe(true);
     expect(result.rejectedCount).toBe(1);
     expect(result.ingestedCount).toBe(1);
     expect(result.warnings.join(" ")).toMatch(/discarded/);
-    expect(Date.parse(String(written["cursor"])) - MINUTE_IN_MS).toBe(
-      Date.parse(result.windowStart),
-    );
+    expect(
+      result.checks.find((check: { name: string }): boolean => {
+        return check.name === "Normalize detections";
+      })?.status,
+    ).toBe("warn");
+    expect(written["cursor"]).toBe(result.windowEnd);
   });
 });
 
@@ -1009,13 +1044,16 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     return window.endTime.getTime() - window.startTime.getTime();
   }
 
-  test("an unreadable cursor polls the default window, not the 24 hour maximum", async () => {
+  test("an unreadable cursor polls the default 24 hour window, exactly like a first poll", async () => {
     stubPollPath();
 
     /*
      * Derived rather than pasted: a first poll IS the default window and a
-     * week-old cursor IS the maximum, so the two bounds move with the
-     * constants instead of going stale against them.
+     * week-old cursor IS the maximum catch-up chunk, so the bounds move
+     * with the constants instead of going stale against them. Both are a
+     * day now: the first poll reads 24 hours of CREATED detections because
+     * a 15 minute lookback on a tenant whose rules run hourly returned
+     * nothing and read as a broken connector.
      */
     const firstPoll: RecordedWindow = await pollWindow(undefined);
     const stale: RecordedWindow = await pollWindow(
@@ -1023,17 +1061,17 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     );
     const garbage: RecordedWindow = await pollWindow("garbage");
 
-    expect(durationInMs(firstPoll)).toBe(15 * MINUTE_IN_MS);
+    expect(durationInMs(firstPoll)).toBe(DAY_IN_MS);
     expect(durationInMs(stale)).toBe(DAY_IN_MS);
 
     /*
      * An unreadable cursor means "no usable cursor", which is what a first
-     * poll means. It used to share a branch with a stale cursor and open
-     * the full 24 hours — the widest blast radius for the least
-     * trustworthy input, re-ingesting a day as duplicates.
+     * poll means: it ends now, rather than a day after wherever the
+     * garbage would have pointed.
      */
     expect(durationInMs(garbage)).toBe(durationInMs(firstPoll));
-    expect(durationInMs(garbage)).not.toBe(durationInMs(stale));
+    expect(garbage.endTime.getTime()).toBe(firstPoll.endTime.getTime());
+    expect(stale.endTime.getTime()).toBeLessThan(firstPoll.endTime.getTime());
   });
 
   test("an unreadable cursor is reported in persisted diagnostics", async () => {

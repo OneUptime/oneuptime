@@ -10,6 +10,60 @@ import {
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { connectorHealthAfterSuccessfulPoll } from "./SecurityEventConnectionDiagnosticsUtil";
+
+// API path (under APP_API_URL) of the synchronous Google SecOps test.
+export const GOOGLE_SECOPS_CONNECTION_TEST_ROUTE: string =
+  "/google-secops-connection/test";
+
+export const GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE: string =
+  "Paste the Service Account JSON to test these settings before saving. A saved connection can be tested from its row's Test connection action.";
+
+/*
+ * Body for POST /google-secops-connection/test built from the create/edit
+ * form's unsaved values. The endpoint accepts either the four unsaved
+ * settings or a saved connection id; the key can never be read back, so
+ * an edit form without a freshly pasted key sends the id plus the
+ * non-secret edits and lets the server use the stored credential.
+ */
+export function googleSecOpsTestBody(values: JSONObject): JSONObject {
+  const region: string = String(values["region"] || "").trim();
+  const instanceResourceName: string = String(
+    values["instanceResourceName"] || "",
+  ).trim();
+  const includeNonAlertingDetections: boolean =
+    values["includeNonAlertingDetections"] === true;
+  const serviceAccountJson: unknown = values["serviceAccountJson"];
+  const hasKey: boolean =
+    typeof serviceAccountJson === "string"
+      ? serviceAccountJson.trim() !== ""
+      : Boolean(serviceAccountJson);
+
+  if (hasKey) {
+    return {
+      region,
+      instanceResourceName,
+      serviceAccountJson:
+        typeof serviceAccountJson === "string"
+          ? serviceAccountJson
+          : JSON.stringify(serviceAccountJson),
+      includeNonAlertingDetections,
+    };
+  }
+
+  const connectionId: unknown = values["_id"];
+
+  if (typeof connectionId === "string" && connectionId) {
+    return {
+      connectionId,
+      region,
+      instanceResourceName,
+      includeNonAlertingDetections,
+    };
+  }
+
+  throw new Error(GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE);
+}
 
 export const googleSecOpsRunLabels: Record<GoogleSecOpsRunType, string> = {
   test: "Test connection",
@@ -98,7 +152,11 @@ export function googleSecOpsHealth(
     return "No detections returned";
   }
   if (result?.status === "success") {
-    return "Last poll succeeded";
+    /*
+     * A poll that succeeds without ever importing must not read as plain
+     * success; see connectorHealthAfterSuccessfulPoll for the reasoning.
+     */
+    return connectorHealthAfterSuccessfulPoll(connection);
   }
   return connection.lastPolledAt
     ? "Details unavailable"

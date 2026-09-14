@@ -19,12 +19,21 @@ import {
  * Google SecOps (Chronicle) detection/alert payload -> a Detection Finding
  * (OCSF class 2004).
  *
- * This is the shape a SecOps SOAR playbook webhook or the detections
- * stream (legacyStreamDetectionAlerts) delivers: rule metadata in a
- * `detection` array plus the matched UDM events in `collectionElements`.
- * The matched sample events are run through the UDM entity extraction so
- * the finding row inherits their observables — that is what makes a
- * detection joinable to the hosts/users it fired on.
+ * This is the shape a SecOps SOAR playbook webhook, the detections stream
+ * (legacyStreamDetectionAlerts), the alerts view (legacyFetchAlertsView)
+ * and the detections search (legacySearchDetections) all deliver: a
+ * Collection with rule metadata in a `detection` array plus the matched
+ * UDM events in `collectionElements`. The matched sample events are run
+ * through the UDM entity extraction so the finding row inherits their
+ * observables — that is what makes a detection joinable to the hosts/users
+ * it fired on.
+ *
+ * Not every Collection is a rule detection. Google documents six types
+ * (https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/Collection):
+ * RULE_DETECTION, GCTI_FINDING, TELEMETRY_ALERT, UPPERCASE_ALERT,
+ * MACHINE_INTELLIGENCE_ALERT and SOAR_ALERT. Only the first carries rule
+ * metadata; the others still have an id, timestamps, tags and (for SOAR)
+ * the originating system, which is enough for a finding row.
  */
 
 const DETECTION_FINDING_CLASS_UID: number = 2004;
@@ -35,6 +44,20 @@ const DETECTION_FINDING_CLASS_UID: number = 2004;
  * entities involved without turning one finding row into a megabyte.
  */
 const MAX_SAMPLE_EVENTS: number = 25;
+
+/*
+ * Every documented Collection.type. A payload carrying one of these and a
+ * string id is a Google SecOps record even when it has no `detection`
+ * entry — telemetry alerts and SOAR alerts never do.
+ */
+const COLLECTION_TYPES: Array<string> = [
+  "RULE_DETECTION",
+  "GCTI_FINDING",
+  "TELEMETRY_ALERT",
+  "UPPERCASE_ALERT",
+  "MACHINE_INTELLIGENCE_ALERT",
+  "SOAR_ALERT",
+];
 
 function collectSampleEvents(payload: JSONObject): Array<JSONObject> {
   const events: Array<JSONObject> = [];
@@ -99,15 +122,101 @@ function readDetectionEntry(payload: JSONObject): JSONObject | null {
   return null;
 }
 
+function readCollectionType(payload: JSONObject): string {
+  return readString(payload, "type").toUpperCase();
+}
+
+function readTags(payload: JSONObject): Array<string> {
+  const tags: JSONValue = readValue(payload, "tags");
+
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  return tags.filter((tag: JSONValue): boolean => {
+    return typeof tag === "string" && tag.trim() !== "";
+  }) as Array<string>;
+}
+
+/*
+ * A readable label for a Collection that carries no rule name: the SOAR
+ * source rule or system, then the tags Google set on the finding, then
+ * the type itself ("Google SecOps telemetry alert").
+ */
+function describeNonRuleCollection(payload: JSONObject): string {
+  const sourceRule: string =
+    readString(payload, "soarAlertMetadata.sourceRule") ||
+    readString(payload, "soar_alert_metadata.source_rule");
+
+  if (sourceRule) {
+    return sourceRule;
+  }
+
+  const sourceSystem: string = [
+    readString(payload, "soarAlertMetadata.vendor") ||
+      readString(payload, "soar_alert_metadata.vendor"),
+    readString(payload, "soarAlertMetadata.product") ||
+      readString(payload, "soar_alert_metadata.product"),
+    readString(payload, "soarAlertMetadata.sourceSystem") ||
+      readString(payload, "soar_alert_metadata.source_system"),
+  ]
+    .filter((part: string): boolean => {
+      return part !== "";
+    })
+    .join(" ");
+
+  if (sourceSystem) {
+    return `${sourceSystem} alert`;
+  }
+
+  const tags: Array<string> = readTags(payload);
+
+  if (tags.length > 0) {
+    return tags.join(", ");
+  }
+
+  const type: string = readCollectionType(payload);
+
+  /*
+   * A rule detection with no rule detail keeps the generic label the
+   * ingest path has always produced; only the other types get named.
+   */
+  if (type && !type.includes("RULE_DETECTION")) {
+    return `Google SecOps ${type.toLowerCase().split("_").join(" ")}`;
+  }
+
+  return "";
+}
+
 export default class GoogleSecOpsAlertNormalizer {
   public static isGoogleSecOpsAlert(payload: JSONObject): boolean {
-    const type: string = readString(payload, "type").toUpperCase();
+    const type: string = readCollectionType(payload);
 
-    return Boolean(
+    /*
+     * The markers a rule detection carries. These are accepted with or
+     * without an id because the ingest endpoint's dialect detection has
+     * always recognized webhook bodies this way.
+     */
+    if (
       readDetectionEntry(payload) ||
-        type.includes("RULE_DETECTION") ||
-        readValue(payload, "collectionElements") ||
-        readValue(payload, "collection_elements"),
+      type.includes("RULE_DETECTION") ||
+      readValue(payload, "collectionElements") ||
+      readValue(payload, "collection_elements")
+    ) {
+      return true;
+    }
+
+    /*
+     * The other documented Collection types have no detection entry. A
+     * string id is required alongside the type so an unrelated object that
+     * happens to carry a `type` key is still rejected.
+     */
+    const id: JSONValue = readValue(payload, "id");
+
+    return (
+      typeof id === "string" &&
+      id.trim() !== "" &&
+      COLLECTION_TYPES.includes(type)
     );
   }
 
@@ -167,7 +276,10 @@ export default class GoogleSecOpsAlertNormalizer {
       : "";
 
     const message: string =
-      ruleName || description || "Google SecOps detection";
+      ruleName ||
+      description ||
+      describeNonRuleCollection(payload) ||
+      "Google SecOps detection";
 
     return {
       time: time || new Date(),

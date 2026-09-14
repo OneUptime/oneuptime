@@ -46,6 +46,14 @@ const SERVICE_ACCOUNT_EMAIL: string = "poller@example.iam.gserviceaccount.com";
 const INSTANCE: string =
   "projects/test-project/locations/us/instances/test-instance";
 const ALERTS_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacyFetchAlertsView`;
+/*
+ * The created-time passes the poller now runs first. The simulator answers
+ * them with an empty page so these cases keep describing the alerts view.
+ */
+const SEARCH_PATHS: Array<string> = [
+  `/v1alpha/${INSTANCE}/legacy:legacySearchDetections`,
+  `/v1alpha/${INSTANCE}/legacy:legacySearchCuratedDetections`,
+];
 const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
   client_email: SERVICE_ACCOUNT_EMAIL,
   private_key: privateKey,
@@ -192,6 +200,19 @@ describe("Google SecOps alerts HTTP integration", () => {
         return;
       }
 
+      if (SEARCH_PATHS.includes(url.pathname) && request.method === "GET") {
+        if (
+          request.headers["authorization"] !== "Bearer local-verified-token"
+        ) {
+          response.writeHead(401);
+          response.end("Bearer token required");
+          return;
+        }
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end("{}");
+        return;
+      }
+
       alertsRequests.push(url);
       if (url.pathname !== ALERTS_PATH || request.method !== "GET") {
         response.writeHead(404);
@@ -284,7 +305,8 @@ describe("Google SecOps alerts HTTP integration", () => {
       url !== TOKEN_URL &&
       !(
         destination.origin === "https://us-chronicle.googleapis.com" &&
-        destination.pathname === ALERTS_PATH
+        (destination.pathname === ALERTS_PATH ||
+          SEARCH_PATHS.includes(destination.pathname))
       )
     ) {
       return Promise.reject(new Error(`Unexpected outbound URL: ${url}`));

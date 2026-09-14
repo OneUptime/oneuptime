@@ -5,8 +5,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, LightGray } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
+import { Green, Red } from "Common/Types/BrandColors";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -22,7 +21,23 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import GoogleSecOpsDiagnostics from "../../Components/SecurityEvents/GoogleSecOpsDiagnostics";
-import { googleSecOpsHealth } from "../../Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
+import {
+  GOOGLE_SECOPS_CONNECTION_TEST_ROUTE,
+  GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE,
+  googleSecOpsHealth,
+  googleSecOpsTestBody,
+} from "../../Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
+import ConnectionTestModal, {
+  InlineConnectionTest,
+  runConnectionTestRequest,
+} from "../../Components/SecurityEvents/ConnectionTestModal";
+import {
+  connectorHealthPillColor,
+  connectorHealthTooltip,
+} from "../../Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil";
+import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable";
+import { SecurityConnectorTestReport } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import React, {
   Fragment,
   FunctionComponent,
@@ -40,26 +55,31 @@ The managed connector polls your Google SecOps (Chronicle) tenant on the interva
 - **Service Account JSON** is a Google Cloud service-account key with the **Chronicle API Viewer** role. It is encrypted at rest and never returned by the API, so it can never be shown back to you — rotating it goes through the row's **Update Service Account JSON** action.
 - **Poll Interval** is how often new detections are fetched, as a whole number of minutes between 1 and 1440.
 
+Each poll reads one time window three ways and merges the results by detection id: **rule detections by created time** (\`legacySearchDetections\`, paginated), **curated rule detections by created time** (\`legacySearchCuratedDetections\`; a tenant without curated-rule access gets a warning, not a failure) and **the alerts view by detection time** (\`legacyFetchAlertsView\`, for telemetry, SOAR and machine-intelligence alerts). Polling by created time is the point: a rule that runs hourly or daily creates its detections long after their detection time, and a cursor over detection time has already moved past them. The first poll of a new connection looks back **24 hours** by created time; later polls resume from the stored cursor with a 1 minute overlap and process at most 24 hours each, so an old cursor catches up in 24 hour windows. Use **Import this time range** for detections created before the first 24 hour window.
+
 ---
 
 ### Reading Connector Health
 
 **Status** shows whether scheduled polling is enabled. **Health**, **Last Successful Poll**, and **Last Event Imported** describe the most recent polling outcome. **Last Polled** is the last attempt, which may have failed or returned zero detections.
 
-- **Last Polled: Never** means the poll job has not run for this connection yet. A connection created moments ago shows this until the next tick — but one that has sat at "Never" for longer than its poll interval is not being polled at all.
-- **Test connection** verifies credentials and access to the detections API. It does not import events or verify the scheduler. **Run now** imports the next poll window immediately.
-- **Diagnostics** shows the exact requested time range, returned, imported, duplicate, rejected and failed counts, warnings, connection checks and recent run history. An empty result means Google returned no detections in that window and scope; it does not establish that a detection elsewhere is absent.
-- Use **Preview detections** to read a selected time range without importing. **Import this time range** imports up to 7 days of history after confirmation. Scheduled first polls look back 15 minutes. A stale cursor catches up in 24 hour windows; use historical import for detections before the first poll.
+- **Last Polled: Never** means the poll job has not run for this connection yet. A connection created moments ago shows this until the next tick — but one that has sat at "Never" for longer than its poll interval is not being polled at all. **Test connection** reports this as a failed **Background workers**, **Poll scheduler** or **Scheduled polling** check, and a scheduler that could not queue a poll stamps the reason on Last Error behind \`Scheduler could not queue a poll:\`.
+- **Test connection** runs in the API process without a worker and reports a checklist: **Configuration**, **Authenticate with Google**, **Read rule detections**, **Read curated rule detections**, **Read the alerts view**, **Detections available to import**, **Background workers**, **Poll scheduler**, **Security event storage** (the same duplicate lookup polling runs before every insert) and, for a saved connection, **Scheduled polling**. The availability check counts what Google has under the saved scope and under the other scope over the last 24 hours and 7 days; when the saved scope has nothing but the other scope does, your rules create detections but alerting is not enabled on them — switch the scope to **Alerts and detections** or enable alerting in Google SecOps. Every request in a test has a 20 second deadline. Tests never import events or move the cursor; you can also test settings from the create form before saving them. **Run now** imports the next poll window immediately.
+- **Diagnostics** shows the exact requested time range, the basis it was read by, how many records each pass returned, and the **Returned** (records Google handed back after merging by id), **Imported** (rows written to the event store), **Already imported** (skipped because the same source identifier is already stored in this project; the 1 minute overlap makes this normal), **Rejected** (returned objects that are not Google SecOps detections; counted and warned, never retried, and they do not hold the cursor) and failed counts, creation-lag statistics, warnings, connection checks and recent run history. An empty result means Google returned no detections in that window and scope; it does not establish that a detection elsewhere is absent.
+- **Why am I not seeing events?** First the scope: the default **Alerts only** imports a rule detection only when alerting is enabled on the rule, and the availability check in Test connection says when the other scope has records. Then rule frequency: detections are created when the rule runs, up to an hour or a day after the events, and arrive on the first poll after Google creates them. Then the last run's counts, above. Then whether anything polls at all, above. Then where you are looking: events are stored under their detection time, so a recent-events filter hides a detection imported a minute ago about yesterday.
+- Use **Preview detections** to read a selected detection-time range without importing; the search passes also read detections created in it. **Import this time range** imports up to 7 days of history after confirmation. Scheduled first polls look back 24 hours by created time. A stale cursor catches up in 24 hour windows; use historical import for detections created before the first poll.
 - A detection's original time may be earlier than its creation time. **View events in this time range** opens the returned detection-time range so late-created detections are visible.
-- **Last Error** stores the complete error message with credentials redacted. When a connection has an error, select **View Error** in its **Actions** column to read it, then **Copy Error** in the dialog to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
+- **Last Error** stores the complete error message with credentials redacted. When a connection has an error, select **View Error** in its **Actions** column to read it, then **Copy Error** in the dialog to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only three prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
   - \`Google token exchange failed (HTTP ...)\` — the service-account credential was rejected at Google's OAuth endpoint, before Chronicle was reached. Usually a malformed, revoked, or wrong-project key.
   - \`Google token exchange returned ...\` — that same endpoint answered with something unusable (no access token, or a body that is not JSON), still before Chronicle. Usually a proxy or gateway in between.
-  - \`Google SecOps alerts fetch failed (HTTP ...)\` — Chronicle itself rejected the request. \`403\` is usually a missing **Chronicle API Viewer** role; \`404\` is usually a wrong instance resource name or region.
+  - \`Google SecOps detections search failed (HTTP ...)\` — Chronicle itself rejected the created-time search. \`403\` is usually a missing **Chronicle API Viewer** role; on the curated pass a \`400\`, \`403\` or \`404\` is downgraded to a warning because the tenant may have no curated-rule access.
+  - \`Google SecOps detections search returned ...\` — Chronicle answered \`200\` to the search with a body that is not a readable detections page. Reported rather than counted as a quiet window, so the cursor cannot advance past what was missed.
+  - \`Google SecOps alerts fetch failed (HTTP ...)\` — Chronicle itself rejected the alerts-view request. \`403\` is usually a missing **Chronicle API Viewer** role; \`404\` is usually a wrong instance resource name or region.
   - \`Google SecOps alerts fetch returned ...\` — Chronicle answered \`200\` with a body that is not a readable detection-alerts stream. It is reported rather than counted as an empty window, so the cursor cannot advance past what was missed.
   - \`Google SecOps alerts query was rejected by Chronicle on an HTTP 200\` — Chronicle ran the request and rejected the query inside the body it returned. Google's rejection, with no HTTP status anywhere in it.
-  - \`timed out after 60 seconds with no response\` — nothing answered before the client gave up, so the message assigns no side. Check the worker's egress as well as the tenant.
-  - A message matching none of the above is OneUptime's own failure: \`Google SecOps connection is missing id, projectId, region, instance, or credentials\` means this connection row is incomplete, and otherwise the alerts arrived and writing them to the telemetry store is what failed.
-  - \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` identifies an unsupported request parameter. Upstream **13.0.0** already replaced \`pageSize\` with \`alertListOptions.maxReturnedAlerts\`. Inspect the actual app and worker images, including custom builds and separately deployed workers, if this error still appears. Rotating the service-account key does not correct an unsupported query parameter. A successful OAuth token exchange confirms credential acceptance; the parameter rejection alone does not establish authentication or authorization.
+  - \`timed out after 60 seconds with no response\` — nothing answered before the client gave up (a connection test uses a 20 second deadline per request and says so), so the message assigns no side. Check the worker's egress as well as the tenant.
+  - A message matching none of the above is OneUptime's own failure: \`Google SecOps connection is missing id, projectId, region, instance, or credentials\` means this connection row is incomplete, \`Another poll or import for this source is still running in this project\` means the run was skipped while the project's source lock was held and polling continues on the next tick, and otherwise the alerts arrived and writing them to the telemetry store is what failed.
+  - \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` identifies an unsupported request parameter on the alerts view. Upstream **13.0.0** already replaced \`pageSize\` with \`alertListOptions.maxReturnedAlerts\` there; the created-time searches use \`pageSize\` and \`pageToken\` as Chronicle documents for them. Inspect the actual app and worker images, including custom builds and separately deployed workers, if this error still appears. Rotating the service-account key does not correct an unsupported query parameter. A successful OAuth token exchange confirms credential acceptance; the parameter rejection alone does not establish authentication or authorization.
 
 Scheduled polls skip disabled connections. On-demand checks and imports remain available; **Run now** updates poll state even while the schedule is paused.
 
@@ -87,6 +107,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
     "test" | "poll" | undefined
   >(undefined);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
+  const [testItem, setTestItem] = useState<GoogleSecOpsConnection | null>(null);
 
   /*
    * Same reseller-telemetry gate as every other Security Events tab —
@@ -116,6 +137,8 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <SecurityEventConnectionsTable />
+
       <ModelTable<GoogleSecOpsConnection>
         modelType={GoogleSecOpsConnection}
         refreshToggle={String(refreshCounter)}
@@ -233,6 +256,46 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             placeholder: '{ "client_email": "...", "private_key": "..." }',
           },
           {
+            /*
+             * Not a model column: a custom element that posts the unsaved
+             * region, instance, key and scope to the synchronous test
+             * endpoint so access is verified before anything is stored.
+             * ModelForm only keeps fields that name a column, hence the
+             * overrideField; the distinct overrideFieldKey keeps it from
+             * being deduplicated against the real Region field and keeps
+             * its (always empty) value out of the submitted model.
+             */
+            overrideField: { region: true },
+            overrideFieldKey: "googleSecOpsSettingsTest",
+            title: "Test before saving",
+            stepId: "google-secops",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            hideOptionalLabel: true,
+            getCustomElement: (
+              values: FormValues<GoogleSecOpsConnection>,
+            ): ReactElement => {
+              const formValues: JSONObject = values as JSONObject;
+              const hasKey: boolean = Boolean(
+                formValues["serviceAccountJson"] || formValues["_id"],
+              );
+              return (
+                <InlineConnectionTest
+                  providerTitle="Google SecOps"
+                  disabledReason={
+                    hasKey ? undefined : GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE
+                  }
+                  runTest={(): Promise<SecurityConnectorTestReport> => {
+                    return runConnectionTestRequest({
+                      route: GOOGLE_SECOPS_CONNECTION_TEST_ROUTE,
+                      body: googleSecOpsTestBody(formValues),
+                    });
+                  }}
+                />
+              );
+            },
+          },
+          {
             field: {
               includeNonAlertingDetections: true,
             },
@@ -302,14 +365,13 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
-              ? "Check credentials and Google SecOps API access."
+              ? "Check access, what is available to import, and whether OneUptime's workers are running. Runs immediately; imports nothing."
               : updateGate.disabledReason,
             onClick: (
               item: GoogleSecOpsConnection,
               onCompleteAction: VoidFunction,
             ): void => {
-              setInitialDiagnosticAction("test");
-              setDiagnosticsItem(item);
+              setTestItem(item);
               onCompleteAction();
             },
           },
@@ -410,18 +472,13 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             type: FieldType.JSON,
             getElement: (item: GoogleSecOpsConnection): ReactElement => {
               const health: string = googleSecOpsHealth(item);
-              const color: Color =
-                health === "Last poll succeeded" ||
-                health === "No detections returned"
-                  ? Green
-                  : health === "Last poll failed"
-                    ? Red
-                    : health === "Poll overdue" ||
-                        health === "Partial import" ||
-                        health === "Catching up"
-                      ? Yellow
-                      : LightGray;
-              return <Pill color={color} text={health} />;
+              return (
+                <Pill
+                  color={connectorHealthPillColor(health)}
+                  text={health}
+                  tooltip={connectorHealthTooltip(health)}
+                />
+              );
             },
           },
           {
@@ -495,6 +552,27 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             setDiagnosticsItem(null);
           }}
           onUpdated={(): void => {
+            setRefreshCounter((value: number): number => {
+              return value + 1;
+            });
+          }}
+        />
+      )}
+
+      {testItem && (
+        <ConnectionTestModal
+          key={testItem.id?.toString()}
+          title={`Test connection: ${testItem.name || "Google SecOps"}`}
+          providerTitle="Google SecOps"
+          runTest={(): Promise<SecurityConnectorTestReport> => {
+            return runConnectionTestRequest({
+              route: GOOGLE_SECOPS_CONNECTION_TEST_ROUTE,
+              body: { connectionId: testItem.id!.toString() },
+            });
+          }}
+          onClose={(): void => {
+            setTestItem(null);
+            // The API records each test as a run row; keep history current.
             setRefreshCounter((value: number): number => {
               return value + 1;
             });

@@ -647,6 +647,25 @@ const MESSAGE_BUCKETS: Array<MessageBucket> = [
     explains: /before Chronicle/i,
   },
   {
+    /*
+     * The created-time passes a poll runs first (legacySearchDetections
+     * and legacySearchCuratedDetections). Same shape as the alerts fetch
+     * buckets, reached earlier in a poll.
+     */
+    name: "Chronicle rejecting the detections search",
+    matches: /^Google SecOps detections search failed \(HTTP /,
+    side: "google",
+    quoted: "Google SecOps detections search failed (HTTP ...)",
+    explains: /Chronicle[^.]*reject/i,
+  },
+  {
+    name: "Chronicle answering the detections search with an unreadable body",
+    matches: /^Google SecOps detections search returned /,
+    side: "google",
+    quoted: "Google SecOps detections search returned ...",
+    explains: /Chronicle answered .?200/i,
+  },
+  {
     name: "Chronicle rejecting the alerts request",
     matches: /^Google SecOps alerts fetch failed \(HTTP /,
     side: "google",
@@ -869,14 +888,15 @@ describe("Every error prefix the guidance names is really produced", () => {
 
     /*
      * The lead's own claim, and the reason the taxonomy can key on the
-     * prefix at all: only two of the client's messages carry a status, so
-     * "no status" is not a discriminator worth reading anything into.
+     * prefix at all: only three of the client's messages carry a status
+     * (token exchange, detections search, alerts fetch), so "no status" is
+     * not a discriminator worth reading anything into.
      */
     test(`${guidance.name} says how many prefixes carry a status, correctly`, () => {
-      expect(clientHttpErrorTemplates.length).toBe(2);
-      expect(new Set(httpErrorPrefixes).size).toBe(2);
+      expect(clientHttpErrorTemplates.length).toBe(3);
+      expect(new Set(httpErrorPrefixes).size).toBe(3);
       expect(guidance.lastError).toMatch(
-        /only two prefixes carry an HTTP status/i,
+        /only three prefixes carry an HTTP status/i,
       );
     });
 
@@ -990,6 +1010,33 @@ describe("Every error prefix the guidance names is really produced", () => {
   test("the alerts fetch really is the Chronicle request", () => {
     expect(fetchDetectionAlertsBody).toContain(alertsFetchPrefix);
     expect(fetchDetectionAlertsBody).not.toContain(tokenExchangePrefix);
+  });
+
+  /*
+   * The detections search is the third HTTP prefix and the first Chronicle
+   * request a poll makes; it too builds the Chronicle URL only after the
+   * token exchange has been awaited.
+   */
+  test("the detections search really is a Chronicle request made after the token exchange", () => {
+    const searchDetectionsBody: string = sliceBetween(
+      clientSource,
+      "public async searchDetections(",
+      "private clearCachedAccessToken(",
+    );
+    const searchPrefix: string = httpErrorPrefixes.find(
+      (prefix: string): boolean => {
+        return searchDetectionsBody.includes(prefix);
+      },
+    ) as string;
+
+    expect(searchPrefix).toBeTruthy();
+    expect(searchPrefix).not.toBe(tokenExchangePrefix);
+    expect(searchPrefix).not.toBe(alertsFetchPrefix);
+    expect(
+      searchDetectionsBody.indexOf("await this.getAccessToken()"),
+    ).toBeLessThan(searchDetectionsBody.indexOf("this.getApiBaseUrl()"));
+    expect(searchDetectionsBody).toContain("legacySearchDetections");
+    expect(searchDetectionsBody).toContain("legacySearchCuratedDetections");
   });
 
   /*
