@@ -514,7 +514,8 @@ export function getReplayConsentStateLabel(raw: string): string {
   );
 }
 
-export const REPLAY_PANEL_DEFAULT_WIDTH_CLASS: string = "w-[38rem]";
+export const REPLAY_PANEL_DEFAULT_WIDTH_CLASS: string =
+  "w-[38rem] max-w-[95vw]";
 export const REPLAY_PANEL_WIDE_WIDTH_CLASS: string = "w-[64rem] max-w-[95vw]";
 
 type GetReplayPanelWidthClassNameFunction = (activeTabId: string) => string;

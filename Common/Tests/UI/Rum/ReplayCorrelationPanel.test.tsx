@@ -16,6 +16,7 @@ import {
   SessionReplaySealedReason,
 } from "../../../Types/Rum/SessionReplay";
 import ReplayCorrelationPanel, {
+  getReplayDetailsExternalUrl,
   ReplayCorrelationPanelProps,
   ReplaySessionDetails,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayCorrelationPanel";
@@ -55,6 +56,7 @@ function makeDetails(
     maskingMode: SessionReplayMaskingMode.MaskAllText,
     consentState: "NotRequired",
     triggerReason: "error",
+    recorderKind: "dom",
     recorderVersion: "1.4.0",
     rrwebVersion: "2.0.0",
     viewportWidth: 1440,
@@ -104,15 +106,13 @@ describe("ReplayCorrelationPanel tabs", () => {
   it("has exactly the Session, Privacy and Fidelity tabs", () => {
     renderPanel();
 
-    expect(screen.getByRole("button", { name: "Session" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Privacy" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^Fidelity/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Session" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Privacy" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^Fidelity/ })).toBeInTheDocument();
 
     for (const retired of ["Logs", "Errors", "Correlation"]) {
       expect(
-        screen.queryByRole("button", { name: new RegExp(`^${retired}`) }),
+        screen.queryByRole("tab", { name: new RegExp(`^${retired}`) }),
       ).not.toBeInTheDocument();
     }
   });
@@ -122,7 +122,7 @@ describe("ReplayCorrelationPanel tabs", () => {
 
     renderPanel({ onTabChange: onTabChange as () => void });
 
-    fireEvent.click(screen.getByRole("button", { name: "Privacy" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Privacy" }));
 
     expect(onTabChange).toHaveBeenCalledWith("provenance");
     /* Still on Session until the host changes the prop. */
@@ -140,9 +140,405 @@ describe("ReplayCorrelationPanel tabs", () => {
 
     expect(screen.queryByText("Session details")).not.toBeInTheDocument();
   });
+
+  it("exposes the drawer and its active content with dialog and tab semantics", () => {
+    renderPanel();
+
+    expect(
+      screen.getByRole("dialog", { name: "Session details" }),
+    ).toHaveAttribute("aria-modal", "true");
+    expect(
+      screen.getByRole("tablist", { name: "Detail sections" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Session" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Session");
+    expect(
+      screen.getByRole("button", { name: "Close details panel" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("getReplayDetailsExternalUrl", () => {
+  it("accepts HTTP(S) destinations and preserves their display value", () => {
+    expect(getReplayDetailsExternalUrl("https://app.acme.com/a?b=1#c")).toBe(
+      "https://app.acme.com/a?b=1#c",
+    );
+    expect(getReplayDetailsExternalUrl("http://localhost:3000/path")).toBe(
+      "http://localhost:3000/path",
+    );
+  });
+
+  it("rejects executable, non-web and malformed destinations", () => {
+    expect(getReplayDetailsExternalUrl("javascript:alert(1)")).toBeNull();
+    expect(getReplayDetailsExternalUrl("data:text/html,hello")).toBeNull();
+    expect(getReplayDetailsExternalUrl("/relative/path")).toBeNull();
+    expect(getReplayDetailsExternalUrl("not a URL")).toBeNull();
+    expect(getReplayDetailsExternalUrl("   ")).toBeNull();
+  });
 });
 
 describe("ReplayCorrelationPanel Session tab", () => {
+  it("labels React Native recordings as an app rather than a browser", () => {
+    renderPanel({
+      details: makeDetails({
+        recorderKind: "rn-view-tree",
+        browserName: "Acme Mobile",
+        browserVersion: "4.2.0",
+        osName: "ios 18.1",
+        deviceType: "ios",
+      }),
+    });
+
+    const client: HTMLElement = screen.getByTestId("replay-details-browser");
+    const device: HTMLElement = screen.getByTestId("replay-details-device");
+
+    expect(client).toHaveTextContent("AppAcme Mobile 4.2.0");
+    expect(client).toHaveAttribute("data-tile-icon", "DevicePhoneMobile");
+    expect(device).toHaveTextContent("DeviceiOS");
+    expect(device).toHaveAttribute("data-tile-icon", "DevicePhoneMobile");
+    expect(screen.getByTestId("details-section-environment")).toHaveAttribute(
+      "data-section-icon",
+      "DevicePhoneMobile",
+    );
+    expect(screen.queryByText("Browser")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Mobile traces and logs reach this rail/),
+    ).toHaveTextContent("OneUptimeReplay.onSessionChange()");
+    expect(
+      screen.queryByText(/recorder stamps session.id on its own network/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("organizes metadata into named, semantic sections", () => {
+    renderPanel();
+
+    const sectionNames: Array<string> = [
+      "Session",
+      "Journey",
+      "Environment",
+      "Related telemetry",
+    ];
+
+    for (const name of sectionNames) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+
+    expect(screen.getByTestId("details-section-session").tagName).toBe(
+      "SECTION",
+    );
+    expect(screen.getByTestId("details-section-journey").tagName).toBe(
+      "SECTION",
+    );
+    expect(screen.getByTestId("details-section-environment").tagName).toBe(
+      "SECTION",
+    );
+    expect(screen.getByTestId("details-section-telemetry").tagName).toBe(
+      "SECTION",
+    );
+  });
+
+  it("shortens the header identifier while keeping the full copyable session ID", () => {
+    renderPanel();
+
+    expect(screen.getByTitle(SESSION_ID)).toHaveTextContent(
+      `Session ${SESSION_ID.slice(0, 12)}…`,
+    );
+    expect(screen.getByTestId("replay-details-session-id")).toHaveTextContent(
+      SESSION_ID,
+    );
+    expect(
+      screen.getByRole("button", { name: "Copy full Session ID" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy Session ID" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders safe journey URLs as external links with copy actions", () => {
+    renderPanel();
+
+    const entry: HTMLElement = screen.getByTestId("replay-details-entry-url");
+    const entryLink: HTMLElement = within(entry).getByRole("link", {
+      name: "Entry URL: https://app.acme.com/checkout (opens in a new tab)",
+    });
+
+    expect(entryLink).toHaveAttribute("href", "https://app.acme.com/checkout");
+    expect(entryLink).toHaveAttribute("target", "_blank");
+    expect(entryLink).toHaveAttribute("rel", "noreferrer");
+    expect(
+      within(entry).getByRole("button", { name: "Copy Entry URL" }),
+    ).toBeInTheDocument();
+
+    const exit: HTMLElement = screen.getByTestId("replay-details-exit-url");
+    expect(
+      within(exit).getByRole("link", {
+        name: "Exit URL: https://app.acme.com/checkout/done (opens in a new tab)",
+      }),
+    ).toHaveAttribute("href", "https://app.acme.com/checkout/done");
+    expect(
+      within(exit).getByRole("button", { name: "Copy Exit URL" }),
+    ).toBeInTheDocument();
+  });
+
+  it("copies the exact full session ID and journey URL with feedback", async () => {
+    const writeText: MockFunction =
+      getJestMockFunction().mockResolvedValue(undefined);
+    const originalClipboard: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(navigator, "clipboard");
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const view: ReturnType<typeof render> = renderPanel();
+
+    try {
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Copy Session ID" }),
+        );
+        await Promise.resolve();
+      });
+
+      expect(writeText).toHaveBeenLastCalledWith(SESSION_ID);
+      expect(
+        within(screen.getByTestId("replay-details-session-id")).getByRole(
+          "button",
+          { name: "Copied" },
+        ),
+      ).toBeInTheDocument();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy Entry URL" }));
+        await Promise.resolve();
+      });
+
+      expect(writeText).toHaveBeenLastCalledWith(
+        "https://app.acme.com/checkout",
+      );
+      expect(
+        within(screen.getByTestId("replay-details-entry-url")).getByRole(
+          "button",
+          { name: "Copied" },
+        ),
+      ).toBeInTheDocument();
+    } finally {
+      view.unmount();
+
+      if (originalClipboard) {
+        Object.defineProperty(navigator, "clipboard", originalClipboard);
+      } else {
+        Reflect.deleteProperty(navigator, "clipboard");
+      }
+    }
+  });
+
+  it("prevents overlapping clipboard writes while a copy is pending", async () => {
+    let resolveWrite: (() => void) | undefined;
+    const pendingWrite: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        resolveWrite = resolve;
+      },
+    );
+    const writeText: MockFunction = getJestMockFunction().mockImplementation(
+      (): Promise<void> => {
+        return pendingWrite;
+      },
+    );
+    const originalClipboard: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(navigator, "clipboard");
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const view: ReturnType<typeof render> = renderPanel();
+
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Copy Session ID" }));
+
+      const pendingButton: HTMLElement = screen.getByRole("button", {
+        name: "Copying",
+      });
+
+      expect(pendingButton).toBeDisabled();
+      expect(pendingButton).toHaveAttribute("aria-busy", "true");
+
+      fireEvent.click(pendingButton);
+      expect(writeText).toHaveBeenCalledTimes(1);
+
+      await act(async (): Promise<void> => {
+        resolveWrite?.();
+        await pendingWrite;
+        await Promise.resolve();
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Copied" }),
+      ).toBeInTheDocument();
+    } finally {
+      resolveWrite?.();
+      view.unmount();
+
+      if (originalClipboard) {
+        Object.defineProperty(navigator, "clipboard", originalClipboard);
+      } else {
+        Reflect.deleteProperty(navigator, "clipboard");
+      }
+    }
+  });
+
+  it("shows a manual-copy fallback when clipboard access is unavailable", async () => {
+    const onClose: MockFunction = getJestMockFunction();
+    const originalClipboard: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(navigator, "clipboard");
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+
+    const view: ReturnType<typeof render> = renderPanel({ onClose });
+
+    try {
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy Entry URL" }));
+        await Promise.resolve();
+      });
+
+      const fallback: HTMLElement = screen.getByRole("button", {
+        name: "Clipboard unavailable. Select the displayed value to copy it.",
+      });
+
+      expect(fallback).toHaveTextContent("Copy unavailable");
+      const entry: HTMLElement = screen.getByTestId("replay-details-entry-url");
+      const manualInput: HTMLInputElement = within(entry).getByRole("textbox", {
+        name: "Manual copy Entry URL",
+      }) as HTMLInputElement;
+
+      expect(manualInput).toHaveValue("https://app.acme.com/checkout");
+      expect(manualInput).toHaveFocus();
+      expect(manualInput.selectionStart).toBe(0);
+      expect(manualInput.selectionEnd).toBe(
+        "https://app.acme.com/checkout".length,
+      );
+      expect(within(entry).getByRole("status")).toHaveTextContent(
+        "Clipboard unavailable. The value is selected for manual copy.",
+      );
+      expect(
+        within(entry).getByRole("group", {
+          name: "Manual copy help for Entry URL",
+        }),
+      ).toBeInTheDocument();
+
+      fireEvent.keyDown(manualInput, { key: "Escape" });
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(
+        within(entry).queryByRole("textbox", {
+          name: "Manual copy Entry URL",
+        }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(entry).getByRole("button", { name: "Copy Entry URL" }),
+      ).toHaveFocus();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(entry).getByRole("button", { name: "Copy Entry URL" }),
+        );
+        await Promise.resolve();
+      });
+      fireEvent.click(within(entry).getByRole("button", { name: "Dismiss" }));
+
+      expect(
+        within(entry).queryByRole("textbox", {
+          name: "Manual copy Entry URL",
+        }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(entry).getByRole("button", { name: "Copy Entry URL" }),
+      ).toHaveFocus();
+    } finally {
+      view.unmount();
+
+      if (originalClipboard) {
+        Object.defineProperty(navigator, "clipboard", originalClipboard);
+      } else {
+        Reflect.deleteProperty(navigator, "clipboard");
+      }
+    }
+  });
+
+  it("shows untrusted journey values without turning them into links", () => {
+    renderPanel({
+      details: makeDetails({
+        entryUrl: "javascript:alert(document.cookie)",
+        exitUrl: "not a URL",
+      }),
+    });
+
+    const entry: HTMLElement = screen.getByTestId("replay-details-entry-url");
+    const exit: HTMLElement = screen.getByTestId("replay-details-exit-url");
+
+    expect(within(entry).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(exit).queryByRole("link")).not.toBeInTheDocument();
+    expect(entry).toHaveTextContent("javascript:alert(document.cookie)");
+    expect(exit).toHaveTextContent("not a URL");
+  });
+
+  it("formats environment facts into compact tiles with honest empty states", () => {
+    renderPanel();
+
+    expect(screen.getByTestId("replay-details-browser")).toHaveTextContent(
+      "Chrome 126",
+    );
+    expect(screen.getByTestId("replay-details-os")).toHaveTextContent("macOS");
+    expect(screen.getByTestId("replay-details-device")).toHaveTextContent(
+      "Desktop",
+    );
+    expect(screen.getByTestId("replay-details-country")).toHaveTextContent(
+      "DE",
+    );
+    expect(screen.getByTestId("replay-details-viewport")).toHaveTextContent(
+      "1440 × 900",
+    );
+    expect(screen.getByTestId("replay-details-payload")).toHaveTextContent(
+      "2.0 KiB",
+    );
+  });
+
+  it("uses placeholders instead of inventing incomplete environment facts", () => {
+    renderPanel({
+      details: makeDetails({
+        browserName: "",
+        browserVersion: "",
+        osName: "",
+        deviceType: "",
+        countryCode: "",
+        viewportWidth: 1440,
+        viewportHeight: 0,
+        payloadBytes: 0,
+      }),
+    });
+
+    for (const testId of [
+      "replay-details-browser",
+      "replay-details-os",
+      "replay-details-device",
+      "replay-details-country",
+      "replay-details-viewport",
+      "replay-details-payload",
+    ]) {
+      expect(screen.getByTestId(testId)).toHaveTextContent("—");
+    }
+  });
+
   it("renders tags and traits from the details", () => {
     renderPanel({
       details: makeDetails({
@@ -222,9 +618,9 @@ describe("ReplayCorrelationPanel Session tab", () => {
       onOpenRailTab: onOpenRailTab as (tabId: ReplayRailTabId) => void,
       details: makeDetails({
         traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
-        exceptionFingerprints: ["fp-1", "fp-2"],
+        exceptionFingerprints: [],
       }),
-      railCounts: { logs: 37 },
+      railCounts: { errors: 2, logs: 37 },
     });
 
     fireEvent.click(screen.getByTestId("details-open-rail-traces"));
@@ -246,6 +642,15 @@ describe("ReplayCorrelationPanel Session tab", () => {
     expect(screen.getByTestId("details-rail-logs")).toHaveTextContent(
       "37 logs",
     );
+    expect(
+      screen.getByRole("button", { name: "Open trace in rail" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open errors in rail" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open logs in rail" }),
+    ).toBeInTheDocument();
   });
 
   it("renders no rail buttons without a host to open the rail, and never claims 0 logs before a fetch", () => {
@@ -255,7 +660,7 @@ describe("ReplayCorrelationPanel Session tab", () => {
       screen.queryByTestId("details-open-rail-traces"),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("details-rail-logs")).toHaveTextContent(
-      "not fetched yet",
+      "Not fetched yet",
     );
     expect(screen.getByTestId("details-rail-logs")).not.toHaveTextContent("0");
   });
@@ -361,6 +766,96 @@ describe("ReplayCorrelationPanel Session tab", () => {
 });
 
 describe("ReplayCorrelationPanel Privacy tab", () => {
+  it("shows the mobile recording source and synthetic event format", () => {
+    renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        recorderKind: "rn-view-tree",
+        recorderVersion: "0.1.0",
+        rrwebVersion: "synthetic-1",
+      }),
+    });
+
+    expect(
+      screen.getByTestId("replay-details-recorder-kind"),
+    ).toHaveTextContent("Recording sourceReact Native app");
+    expect(
+      screen.getByText("Synthetic rrweb event format"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("synthetic-1")).toBeInTheDocument();
+    expect(screen.queryByText("rrweb version")).not.toBeInTheDocument();
+  });
+
+  it.each(["dom", ""])(
+    "keeps web and legacy manifests on the web presentation (%s)",
+    (recorderKind: string) => {
+      renderPanel({
+        activeTabId: "provenance",
+        details: makeDetails({ recorderKind: recorderKind }),
+      });
+
+      expect(
+        screen.getByTestId("replay-details-recorder-kind"),
+      ).toHaveTextContent("Web browser");
+      expect(screen.getByText("rrweb version")).toBeInTheDocument();
+    },
+  );
+
+  it("separates capture policy, recorder and timing into scannable sections", () => {
+    renderPanel({ activeTabId: "provenance" });
+
+    for (const name of ["Capture policy", "Recorder", "Timing"]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+
+    expect(screen.getByTestId("details-section-capture-policy").tagName).toBe(
+      "SECTION",
+    );
+    expect(screen.getByTestId("details-section-recorder").tagName).toBe(
+      "SECTION",
+    );
+    expect(screen.getByTestId("details-section-timing").tagName).toBe(
+      "SECTION",
+    );
+  });
+
+  it("summarizes the fully masked policy as a positive privacy state", () => {
+    renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        maskingMode: SessionReplayMaskingMode.MaskAllText,
+      }),
+    });
+
+    const summary: HTMLElement = screen.getByTestId(
+      "replay-details-privacy-summary",
+    );
+
+    expect(summary).toHaveTextContent("Page content was masked");
+    expect(summary).toHaveTextContent(
+      "replaced before this session left the device",
+    );
+    expect(
+      screen.queryByTestId("replay-details-readable-warning"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders recorder capabilities as individually readable values", () => {
+    renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        recorderCapabilities: ["canvas", "shadow-dom"],
+      }),
+    });
+
+    const capabilities: HTMLElement = screen.getByTestId(
+      "replay-details-capabilities",
+    );
+
+    expect(within(capabilities).getByText("canvas")).toBeInTheDocument();
+    expect(within(capabilities).getByText("shadow-dom")).toBeInTheDocument();
+  });
+
   it("keeps the readable-content warning per masking mode", () => {
     const first: ReturnType<typeof render> = renderPanel({
       activeTabId: "provenance",
@@ -479,6 +974,46 @@ describe("ReplayCorrelationPanel Privacy tab", () => {
 });
 
 describe("ReplayCorrelationPanel Fidelity tab", () => {
+  it("groups status, gaps and limitations and gives healthy empty states", () => {
+    renderPanel({ activeTabId: "fidelity" });
+
+    for (const name of [
+      "Recording status",
+      "Recording gaps",
+      "Capture limitations",
+    ]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+
+    expect(screen.getByTestId("replay-details-gaps-empty")).toHaveTextContent(
+      "No chunks are missing",
+    );
+    expect(
+      screen.getByTestId("replay-details-limitations-empty"),
+    ).toHaveTextContent("no capture limitations");
+  });
+
+  it("shows missing assets in their own counted section", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      missingAssets: [
+        "https://cdn.acme.com/fonts/inter.woff2",
+        "https://cdn.acme.com/app.css",
+      ],
+    });
+
+    const section: HTMLElement = screen.getByTestId(
+      "details-section-missing-assets",
+    );
+
+    expect(
+      within(section).getByRole("heading", { name: "Missing assets" }),
+    ).toBeInTheDocument();
+    expect(within(section).getByText("2")).toBeInTheDocument();
+    expect(section).toHaveTextContent("inter.woff2");
+    expect(section).toHaveTextContent("app.css");
+  });
+
   it("explains why the recording ended from the sealed reason", () => {
     renderPanel({
       activeTabId: "fidelity",
@@ -488,9 +1023,59 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
       }),
     });
 
+    const reason: HTMLElement = screen.getByTestId(
+      "replay-details-sealed-reason",
+    );
+
+    expect(reason).toHaveTextContent("upload budget exhausted");
+    expect(reason).toHaveAttribute("data-tone", "warn");
+    expect(reason).toHaveAttribute("data-state-icon", "alert");
     expect(
-      screen.getByTestId("replay-details-sealed-reason"),
-    ).toHaveTextContent("upload budget exhausted");
+      screen.getByTestId("details-section-recording-status"),
+    ).toHaveAttribute("data-section-icon", "Alert");
+  });
+
+  it.each([
+    SessionReplaySealedReason.IdleTimeout,
+    SessionReplaySealedReason.DurationCap,
+    SessionReplaySealedReason.Truncated,
+  ])("keeps the %s stop reason informational", (sealedReason: string) => {
+    renderPanel({
+      activeTabId: "fidelity",
+      details: makeDetails({ sealedReason, isFinalized: true }),
+    });
+
+    const reason: HTMLElement = screen.getByTestId(
+      "replay-details-sealed-reason",
+    );
+
+    expect(reason).toHaveAttribute("data-tone", "info");
+    expect(reason).toHaveAttribute("data-state-icon", "info");
+    expect(reason).not.toHaveClass("border-emerald-200");
+    expect(
+      screen.getByTestId("details-section-recording-status"),
+    ).toHaveAttribute("data-section-icon", "Info");
+  });
+
+  it("reserves the success treatment for a normal final chunk", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      details: makeDetails({
+        sealedReason: SessionReplaySealedReason.FinalChunk,
+        isFinalized: true,
+      }),
+    });
+
+    const reason: HTMLElement = screen.getByTestId(
+      "replay-details-sealed-reason",
+    );
+
+    expect(reason).toHaveAttribute("data-tone", "success");
+    expect(reason).toHaveAttribute("data-state-icon", "check-circle");
+    expect(reason).toHaveClass("border-emerald-200");
+    expect(
+      screen.getByTestId("details-section-recording-status"),
+    ).toHaveAttribute("data-section-icon", "CheckCircle");
   });
 
   it("says a still-open session has not been sealed yet", () => {
@@ -502,6 +1087,9 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
     expect(
       screen.getByTestId("replay-details-sealed-reason"),
     ).toHaveTextContent("Still recording");
+    expect(
+      screen.getByTestId("details-section-recording-status"),
+    ).toHaveAttribute("data-section-icon", "Clock");
   });
 
   /*

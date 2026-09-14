@@ -126,6 +126,9 @@ function makeProps(
     scale: 0.62,
     fit: "contain",
     onFitChange: jest.fn(),
+    canSelectText: true,
+    isTextSelectionEnabled: false,
+    onTextSelectionChange: jest.fn(),
     onPlayPause: jest.fn(),
     onWatchAgain: jest.fn(),
     onRetry: jest.fn(),
@@ -298,6 +301,58 @@ describe("ReplayStageOverlays", () => {
         "62%",
       );
       expect(screen.getByTestId("fake-stage")).toBeInTheDocument();
+    });
+
+    it("offers an accessible text-selection toggle and reports both states", () => {
+      const props: ReplayStageOverlaysProps = makeProps();
+      const { rerender } = render(
+        <ReplayStageOverlays {...props}>
+          <div data-testid="fake-stage">stage</div>
+        </ReplayStageOverlays>,
+      );
+
+      const toggle: HTMLElement = screen.getByTestId("replay-select-text");
+
+      expect(toggle).toHaveTextContent("Select text");
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      expect(toggle).toHaveAttribute(
+        "title",
+        "Pause the replay and select text to copy",
+      );
+
+      fireEvent.click(toggle);
+      expect(props.onTextSelectionChange).toHaveBeenCalledWith(true);
+
+      rerender(
+        <ReplayStageOverlays {...props} isTextSelectionEnabled={true}>
+          <div data-testid="fake-stage">stage</div>
+        </ReplayStageOverlays>,
+      );
+
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      expect(toggle).toHaveAttribute("title", "Exit text selection mode");
+
+      fireEvent.click(toggle);
+      expect(props.onTextSelectionChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it("keeps the error and retry UI available when there is no replay document", () => {
+      renderOverlays({
+        canSelectText: false,
+        isTextSelectionEnabled: true,
+        snapshot: makeSnapshot({
+          buffer: "halted",
+          error: { message: "Playback stopped", retryable: true },
+        }),
+      });
+
+      expect(screen.getByTestId("replay-select-text")).toBeDisabled();
+      expect(screen.getByTestId("replay-select-text")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      expect(screen.getByTestId("replay-overlay-error")).toBeInTheDocument();
+      expect(screen.getByTestId("replay-overlay-retry")).toBeInTheDocument();
     });
 
     it("says the URL is not recorded yet rather than showing a blank", () => {
@@ -722,6 +777,69 @@ describe("ReplayStageOverlays", () => {
       );
     });
 
+    it("leaves the paused picture unobstructed while text selection is enabled", () => {
+      renderOverlays({
+        snapshot: makeSnapshot({ buffer: "ok", intent: "paused" }),
+        isTextSelectionEnabled: true,
+      });
+
+      expect(
+        screen.queryByTestId("replay-overlay-paused"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("replay-select-text")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+
+    it("leaves terminal replay pictures unobstructed while text selection is enabled", () => {
+      const { rerender } = renderOverlays({
+        snapshot: makeSnapshot({
+          buffer: "ended",
+          currentTimeMs: DURATION_MS,
+        }),
+        isLive: false,
+        isTextSelectionEnabled: true,
+      });
+
+      expect(
+        screen.queryByTestId("replay-overlay-ended"),
+      ).not.toBeInTheDocument();
+
+      rerender(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({ buffer: "ended" }),
+            isLive: true,
+            isTextSelectionEnabled: true,
+          })}
+        >
+          <div data-testid="fake-stage">stage</div>
+        </ReplayStageOverlays>,
+      );
+      expect(
+        screen.queryByTestId("replay-overlay-live-caught-up"),
+      ).not.toBeInTheDocument();
+
+      rerender(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "halted",
+              error: { message: "Playback stopped", retryable: true },
+            }),
+            isTextSelectionEnabled: true,
+          })}
+        >
+          <div data-testid="fake-stage">stage</div>
+        </ReplayStageOverlays>,
+      );
+      expect(
+        screen.queryByTestId("replay-overlay-error"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("fake-stage")).toBeInTheDocument();
+    });
+
     it("shows the loading pill before the first frame", () => {
       renderOverlays({ snapshot: makeSnapshot({ buffer: "empty" }) });
 
@@ -824,6 +942,38 @@ describe("ReplayStageOverlays", () => {
       expect(
         screen.getByTestId("replay-overlay-shell-notice"),
       ).toHaveTextContent("Opened at the moment of the linked log line");
+    });
+
+    it("removes every top-strip obstruction while selecting replay text", () => {
+      renderOverlays({
+        snapshot: makeSnapshot({
+          intent: "paused",
+          idleBands: [
+            {
+              startMs: 40000,
+              endMs: 82000,
+              kind: "idle",
+              fidelity: "exact",
+            },
+          ],
+          notice: {
+            kind: "seek-clamped",
+            message: "The seek landed on the first available snapshot",
+            requestedMs: 1000,
+            landedAtMs: 40000,
+          },
+        }),
+        shellNotice: "Opened at the linked event",
+        isTextSelectionEnabled: true,
+      });
+
+      expect(screen.queryByTestId("replay-idle-chip")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-overlay-notice"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-overlay-shell-notice"),
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -42,6 +42,10 @@ const RECORDER_SRC: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/BrowserRecorder/src",
 );
+const MOBILE_RECORDER_DIR: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/MobileRecorder",
+);
 const DASHBOARD_REPLAY_DIR: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Components/SessionReplay",
@@ -150,6 +154,107 @@ describe("Session Replay docs page", (): void => {
     ).toBe(true);
 
     expect(readPage().split("\n")[0]).toBe("# Session Replay");
+  });
+
+  it("documents a complete React Native installation from the published package", (): void => {
+    const packageJson: {
+      name: string;
+      peerDependencies?: Record<string, string>;
+    } = JSON.parse(
+      fs.readFileSync(path.join(MOBILE_RECORDER_DIR, "package.json"), "utf8"),
+    ) as {
+      name: string;
+      peerDependencies?: Record<string, string>;
+    };
+    const mobileInstall: string = section(
+      readPage(),
+      "## Install in React Native",
+    );
+
+    expect(packageJson.name).toBe("@oneuptime/react-native-replay");
+    expect(mobileInstall).toContain(
+      `npm install ${packageJson.name} @react-native-async-storage/async-storage`,
+    );
+    expect(packageJson.peerDependencies).toHaveProperty("react-native");
+    expect(packageJson.peerDependencies).toHaveProperty(
+      "@react-native-async-storage/async-storage",
+    );
+    expect(mobileInstall).toContain("OneUptimeReplayProvider");
+    expect(mobileInstall).toContain("useOneUptimeReplay()");
+    expect(mobileInstall).toContain("MobileReplayRecorder");
+    expect(mobileInstall).toContain("view-tree native module");
+    expect(mobileInstall).toContain("Expo Go cannot run this SDK");
+  });
+
+  it("documents every public React Native singleton operation", (): void => {
+    const mobileInstall: string = section(
+      readPage(),
+      "## Install in React Native",
+    );
+
+    for (const method of [
+      "start",
+      "stop",
+      "grantConsent",
+      "revokeConsent",
+      "identify",
+      "setTags",
+      "addTag",
+      "track",
+      "setRoute",
+      "captureSession",
+      "captureError",
+      "getDiagnostics",
+    ]) {
+      expect(mobileInstall).toContain(`\`${method}(`);
+    }
+  });
+
+  it("gives native apps exact app allowlist and privacy instructions", (): void => {
+    const page: string = readPage();
+    const allowedOrigins: string = section(
+      page,
+      "### Set your allowed origins in production",
+    );
+    const mobilePrivacy: string = section(
+      page,
+      "### React Native privacy and masking",
+    );
+
+    expect(allowedOrigins).toContain("app://com.example.storefront");
+    expect(allowedOrigins).toContain("do **not** accept wildcards");
+    expect(allowedOrigins).toContain("real `Origin`");
+    expect(allowedOrigins).toContain("always wins");
+    expect(allowedOrigins).toContain("self-asserted HTTP metadata");
+    expect(allowedOrigins).toContain("not Apple/Google platform attestation");
+    expect(allowedOrigins).toContain("rate and byte budgets");
+    expect(mobilePrivacy).toContain("structural wireframe");
+    expect(mobilePrivacy).toContain("<ReplayMask>");
+    expect(mobilePrivacy).toContain("revokeConsent()");
+
+    for (const limitation of [
+      "Native `Image` pixels",
+      "`WebView` contents",
+      "Canvas, Skia, OpenGL",
+      "animations are sampled",
+    ]) {
+      expect(mobilePrivacy).toContain(limitation);
+    }
+
+    for (const relative of [
+      "Common/Models/DatabaseModels/RumApplication.ts",
+      "Common/Models/DatabaseModels/TelemetryIngestionKey.ts",
+      "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeys.tsx",
+      "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeyView.tsx",
+      "App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector.tsx",
+    ]) {
+      const source: string = readRepo(relative);
+
+      expect(source).toContain("app://");
+      expect(source).toMatch(
+        /self-asserted|app entries cannot|never allow wildcards/,
+      );
+    }
   });
 
   /*
@@ -432,6 +537,15 @@ describe("Session Replay docs page", (): void => {
     for (const field of fields) {
       expect(diagnostics).toContain(`\`${field}\``);
     }
+  });
+
+  it("documents read-only text selection without weakening the masking promise", (): void => {
+    const player: string = section(readPage(), "### The player");
+
+    expect(player).toContain("**Select text**");
+    expect(player).toContain("read-only");
+    expect(player).toContain("masked or blocked at capture time");
+    expect(player).toContain("_Mask all text_");
   });
 
   it("lists every keyboard shortcut the player binds, by the same key labels", (): void => {

@@ -200,6 +200,28 @@ jobs:
           max_attempts: 3
           command: cd App/FeatureSet/BrowserRecorder && npm install && npm run compile && npm run build
 
+  compile-mobile-recorder:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      # This is a standalone React Native SDK. Its peer dependencies are
+      # installed only for compilation/tests and Common is intentionally not
+      # linked into the package that customers install in their mobile apps.
+      - name: Compile Mobile Recorder
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: cd App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build
+
 
   compile-e2e:
     runs-on: ubuntu-latest

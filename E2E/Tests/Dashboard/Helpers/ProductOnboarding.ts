@@ -3,7 +3,14 @@ import {
   E2E_SIGNUP_PASSWORD,
   IS_BILLING_ENABLED,
 } from "../../../Config";
-import { Page, expect, Response, Locator } from "@playwright/test";
+import {
+  APIResponse,
+  Locator,
+  Page,
+  Response,
+  Route,
+  expect,
+} from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../../Helpers/selectProjectPlan";
@@ -11,6 +18,39 @@ import { addTestPaymentMethod } from "./Billing";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
+const frontendEnvironmentUrlRegex: RegExp =
+  /\/(?:accounts|dashboard)\/env\.js(?:\?.*)?$/;
+
+/*
+ * The frontend runtime is configured by env.js, independently of this test
+ * process. A local run can intentionally override HOST/HTTP_PROTOCOL without
+ * rebuilding the App container, so keep Accounts and Dashboard pointed at the
+ * exact origin Playwright was asked to test. All other server-provided runtime
+ * settings remain untouched.
+ */
+const configureFrontendRuntimeForTestTarget: (
+  page: Page,
+) => Promise<void> = async (page: Page): Promise<void> => {
+  const testTarget: globalThis.URL = new globalThis.URL(BASE_URL.toString());
+  const runtimeOverrides: Record<string, string> = {
+    HOST: testTarget.host,
+    HTTP_PROTOCOL: testTarget.protocol.replace(":", ""),
+  };
+
+  await page.route(
+    frontendEnvironmentUrlRegex,
+    async (route: Route): Promise<void> => {
+      const response: APIResponse = await route.fetch();
+      const originalScript: string = await response.text();
+      const overrideScript: string = `\nObject.assign(window.process.env, ${JSON.stringify(runtimeOverrides)});\n`;
+
+      await route.fulfill({
+        response,
+        body: originalScript + overrideScript,
+      });
+    },
+  );
+};
 
 /*
  * Registers a fresh user, creates a project, and returns the project id.
@@ -32,6 +72,27 @@ type RegisterAndCreateProjectFunction = (data: {
   enablePaidUsage?: boolean | undefined;
 }) => Promise<string>;
 
+type WaitForOnboardingWelcomeFunction = (data: {
+  page: Page;
+  welcomeUrl: string;
+}) => Promise<void>;
+
+/*
+ * Accounts hands a newly registered user to /dashboard. The Dashboard Init
+ * page owns the next step: once its project request confirms that the account
+ * has no projects, it navigates to /dashboard/welcome. Wait for that final
+ * route instead of issuing a second navigation from the intermediate route.
+ * Competing with Init's navigation makes Firefox reject the losing goto() with
+ * NS_BINDING_ABORTED and turns unrelated product specs into onboarding flakes.
+ */
+export const waitForOnboardingWelcome: WaitForOnboardingWelcomeFunction =
+  async (data: { page: Page; welcomeUrl: string }): Promise<void> => {
+    await data.page.waitForURL(data.welcomeUrl);
+    await data.page
+      .getByTestId("create-new-project-button")
+      .waitFor({ state: "visible" });
+  };
+
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
   async (data: {
     page: Page;
@@ -41,6 +102,8 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     enablePaidUsage?: boolean | undefined;
   }): Promise<string> => {
     const page: Page = data.page;
+
+    await configureFrontendRuntimeForTestTarget(page);
 
     let pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString())
@@ -80,11 +143,11 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("Sign Up").click();
 
-    await page.waitForURL(
-      URL.fromString(BASE_URL.toString())
-        .addRoute("/dashboard/welcome")
-        .toString(),
-    );
+    const welcomeUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/dashboard/welcome")
+      .toString();
+
+    await waitForOnboardingWelcome({ page, welcomeUrl });
 
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });

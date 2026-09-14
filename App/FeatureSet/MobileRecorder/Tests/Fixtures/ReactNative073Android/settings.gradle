@@ -1,0 +1,25 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "OneUptimeReplayReactNative073Compatibility"
+
+def replayAndroidDirectory = System.getenv("ONEUPTIME_REPLAY_ANDROID_DIR")
+if (!replayAndroidDirectory) {
+    throw new GradleException("ONEUPTIME_REPLAY_ANDROID_DIR is required")
+}
+
+include(":react-native-replay")
+project(":react-native-replay").projectDir = file(replayAndroidDirectory)

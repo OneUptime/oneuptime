@@ -1,6 +1,7 @@
 import { createPrivateKey } from "crypto";
 import jwt from "jsonwebtoken";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../../../../Types/SecurityEvent/GoogleSecOpsRegion";
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
 import logger from "../../Logger";
@@ -163,38 +164,6 @@ const RECOGNIZED_SEARCH_FIELDS: Array<string> = [
 const HTTP_STATUS_TAIL_PATTERN: RegExp = /\(HTTP (\d{3})\)/;
 
 /*
- * The 22 documented {region}-chronicle.googleapis.com prefixes. An
- * allowlist rather than a shape regex because *.googleapis.com is a DNS
- * wildcard: a typo like "us-central1" resolves to a Google frontend and
- * answers with an HTML 404, so a regex that merely looks safe turns a
- * misconfigured region into a parse error instead of "unsupported region".
- */
-const SUPPORTED_REGIONS: Array<string> = [
-  "us",
-  "eu",
-  "europe",
-  "africa-south1",
-  "asia-east1",
-  "asia-northeast1",
-  "asia-northeast3",
-  "asia-south1",
-  "asia-southeast1",
-  "asia-southeast2",
-  "australia-southeast1",
-  "europe-central2",
-  "europe-west12",
-  "europe-west2",
-  "europe-west3",
-  "europe-west6",
-  "europe-west9",
-  "me-central1",
-  "me-central2",
-  "me-west1",
-  "northamerica-northeast2",
-  "southamerica-east1",
-];
-
-/*
  * europe-chronicle.googleapis.com is a documented live host while the
  * migration guide names the same multi-region's location code "eu", so the
  * region/location cross-check has to treat the two as one place. A strict
@@ -303,7 +272,7 @@ export default class GoogleSecOpsClient {
   }
 
   public static validateRegion(region: string): void {
-    if (SUPPORTED_REGIONS.indexOf(region || "") === -1) {
+    if (GOOGLE_SECOPS_SUPPORTED_REGIONS.indexOf(region || "") === -1) {
       throw new BadDataException(
         "Region must be a Google SecOps regional prefix like 'us' or 'europe'.",
       );

@@ -1075,7 +1075,7 @@ describe("SessionReplayTable identity nudge", () => {
 });
 
 describe("SessionReplayTable and the Users page", () => {
-  it("the Users card button goes to the Users page and nothing else; the default window as absence", async () => {
+  it("keeps navigation in the Session Replay menu and removes the redundant top actions", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -1084,58 +1084,18 @@ describe("SessionReplayTable and the Users page", () => {
 
     await waitForRows(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Users" }));
-
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-
-    const target: string = (
-      navigateMock.mock.calls[0]![0] as { toString: () => string }
-    ).toString();
-
-    expect(target.endsWith("/session-replay-users")).toBe(true);
-    expect(target).not.toContain("?");
-    expect(target).toContain(APP_ID);
-    /* The toggle is gone; there is one list and one Refresh for it. */
+    expect(screen.queryByRole("button", { name: "Users" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Set up recording" }),
+    ).toBeNull();
+    /* The list still has one Refresh and never embeds the Users table. */
     expect(screen.queryByTestId("session-view-toggle")).toBeNull();
     expect(screen.queryByTestId("session-users-table")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Refresh sessions" }),
     ).toBeInTheDocument();
     expect(requestsTo("/session-replay/users").length).toBe(0);
-  });
-
-  it("the Users card button carries the window the list is on, in the list's own spelling", async () => {
-    mockApi(() => {
-      return listResponse([wireRow()]);
-    });
-
-    /* An incident tile's window: the overview's start/end aliases. */
-    window.history.replaceState(
-      null,
-      "",
-      "/?start=2026-09-01T00:00:00.000Z&end=2026-09-01T01:00:00.000Z&browser=Chrome",
-    );
-
-    renderTable();
-
-    await waitForRows(1);
-
-    fireEvent.click(screen.getByRole("button", { name: "Users" }));
-
-    const target: URL = new URL(
-      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
-      "https://dash.example.com",
-    );
-
-    expect(target.pathname.endsWith("/session-replay-users")).toBe(true);
-    expect(target.searchParams.get("startTime")).toBe(
-      "2026-09-01T00:00:00.000Z",
-    );
-    expect(target.searchParams.get("endTime")).toBe("2026-09-01T01:00:00.000Z");
-    /* The window and nothing else: the rollup takes no filters. */
-    expect(target.searchParams.has("browser")).toBe(false);
-    expect(target.searchParams.has("range")).toBe(false);
-    expect(target.searchParams.has("start")).toBe(false);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("a userKey link with the person's label parked by the Users page reads as the reference", async () => {
@@ -1402,6 +1362,29 @@ describe("SessionReplayTable navigation", () => {
 });
 
 describe("SessionReplayTable search, sort and paging", () => {
+  it("uses the shared ModelTable footer and the replay page-size choices", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const pagination: HTMLElement = screen.getByTestId("session-pagination");
+
+    expect(pagination.parentElement).toHaveClass("bg-gray-50", "md:-mx-6");
+    expect(
+      Array.from(
+        screen
+          .getByTestId("pagination-items-on-page-select")
+          .querySelectorAll("option"),
+      ).map((option: Element): string | null => {
+        return option.getAttribute("value");
+      }),
+    ).toEqual(["20", "50", "100"]);
+  });
+
   it("search is debounced into the request as the server's filter", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);

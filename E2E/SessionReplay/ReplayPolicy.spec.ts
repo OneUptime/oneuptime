@@ -18,11 +18,10 @@ import path from "path";
  * over time rather than waiting for text, because a loop can briefly show the
  * card between reloads.
  *
- * A healthy mount reads twice: CardModelDetail flips its own refresher in a
- * mount effect, which ModelDetail answers with a second read. That is shared
- * card behaviour, not this page's, so the baseline here is 2.
+ * A healthy mount reads once. CardModelDetail deliberately avoids changing
+ * its refresher on mount so ModelDetail does not issue a redundant read.
  */
-const readsOnMount: number = 2;
+const readsOnMount: number = 1;
 
 const artifacts: string = path.resolve(
   __dirname,

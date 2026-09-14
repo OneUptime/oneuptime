@@ -151,6 +151,11 @@ import {
   overlayCurrentReplayUserSession,
   resolveReplayUserSessionsKind,
 } from "./ReplayUserSessions";
+import {
+  getReplayClientLabel,
+  getReplayRecorderKindLabel,
+  isMobileSessionReplay,
+} from "./ReplayRecorderKind";
 
 /*
  * The composition root of the player: manifest transport, the chunk
@@ -547,6 +552,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [scale, setScale] = useState<number>(1);
   const [scrubberHeightPx, setScrubberHeightPx] = useState<number>(240);
   const [isTheater, setIsTheater] = useState<boolean>(false);
+  const [isTextSelectionEnabled, setIsTextSelectionEnabled] =
+    useState<boolean>(false);
+  const [isReplayDocumentReady, setIsReplayDocumentReady] =
+    useState<boolean>(false);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
     urlState.signalId,
@@ -596,6 +605,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     useRef<SessionReplayManifest | null>(null);
   const activeTabIdRef: React.MutableRefObject<string> = useRef<string>("");
   const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
+  const isTextSelectionEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const pendingTextSelectionActionRef: React.MutableRefObject<
+    (() => void) | null
+  > = useRef<(() => void) | null>(null);
   const hasRevealedSignalRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   /* Bumped per user-sessions lookup so a superseded response cannot land. */
@@ -605,6 +619,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   engineRef.current = engine;
   manifestRef.current = manifest;
   activeTabIdRef.current = activeTabId;
+  isTextSelectionEnabledRef.current = isTextSelectionEnabled;
+
+  /* ReplayStage restores its read-only inspection state in a layout effect. */
+  useEffect(() => {
+    if (isTextSelectionEnabled) {
+      return;
+    }
+
+    const pendingAction: (() => void) | null =
+      pendingTextSelectionActionRef.current;
+
+    if (!pendingAction) {
+      return;
+    }
+
+    pendingTextSelectionActionRef.current = null;
+    pendingAction();
+  }, [isTextSelectionEnabled]);
 
   /* ---- Chunk transport. ---- */
 
@@ -687,12 +719,22 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     setReplayerFactory(null);
     setActiveTabId("");
     setTelemetrySignals(NO_SIGNALS);
+    pendingTextSelectionActionRef.current = null;
+    isTextSelectionEnabledRef.current = false;
+    setIsTextSelectionEnabled(false);
+    setIsReplayDocumentReady(false);
     hasRevealedSignalRef.current = false;
 
     /*
      * INSTANT FEEL: the rrweb download starts at mount, the manifest is
      * fetched alongside it, and the first chunks go on the wire the moment
      * the manifest resolves - before the Replayer has finished arriving.
+     */
+    /*
+     * React Native view-tree recordings deliberately use this same player:
+     * that recorder serializes its native tree as rrweb-compatible synthetic
+     * snapshot and mutation events. recorderKind changes the explanation in
+     * the shell, not the playback engine.
      */
     const rrwebModulePromise: Promise<RrwebModule> =
       (async (): Promise<RrwebModule> => {
@@ -975,6 +1017,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return engine.onReplayer((event: ReplayEngineReplayerEvent): void => {
       if (event.type === "created") {
         replayerRef.current = event.replayer;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
 
         if (!prefs.mouseTrail) {
           try {
@@ -983,11 +1028,35 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             /* A config rrweb rejects is cosmetic; playback continues. */
           }
         }
+      } else if (event.type === "fullsnapshot-rebuilded") {
+        replayerRef.current = event.replayer;
+
+        try {
+          const replayDocument: Document | null =
+            event.replayer.iframe.contentDocument;
+          const isReady: boolean =
+            replayDocument !== null &&
+            replayDocument.documentElement !== null &&
+            replayDocument.body !== null;
+          setIsReplayDocumentReady(isReady);
+
+          if (!isReady) {
+            isTextSelectionEnabledRef.current = false;
+            setIsTextSelectionEnabled(false);
+          }
+        } catch {
+          setIsReplayDocumentReady(false);
+          isTextSelectionEnabledRef.current = false;
+          setIsTextSelectionEnabled(false);
+        }
       } else if (
         event.type === "destroyed" &&
         replayerRef.current === event.replayer
       ) {
         replayerRef.current = null;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
       }
     });
   }, [engine, prefs.mouseTrail]);
@@ -1498,12 +1567,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      */
     return [
       {
-        label: "Browser",
+        label: getReplayClientLabel(details.recorderKind),
         value: [details.browserName, details.browserVersion]
           .filter(Boolean)
           .join(" "),
       },
       { label: "OS", value: details.osName },
+      {
+        label: "Source",
+        value: isMobileSessionReplay(details.recorderKind)
+          ? getReplayRecorderKindLabel(details.recorderKind)
+          : "",
+      },
       { label: "Device", value: details.deviceType },
       { label: "Country", value: details.countryCode },
       {
@@ -1693,7 +1768,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   /* ---- Actions. ---- */
 
-  const seekTo: (offsetMs: number) => void = useCallback(
+  const runAfterTextSelectionExit: (action: () => void) => void = useCallback(
+    (action: () => void): void => {
+      if (
+        !isTextSelectionEnabledRef.current &&
+        pendingTextSelectionActionRef.current === null
+      ) {
+        action();
+        return;
+      }
+
+      pendingTextSelectionActionRef.current = action;
+      isTextSelectionEnabledRef.current = false;
+      setIsTextSelectionEnabled(false);
+    },
+    [],
+  );
+
+  const dispatchSeek: (offsetMs: number) => void = useCallback(
     (offsetMs: number): void => {
       seekTokenRef.current += 1;
       engineRef.current?.dispatch({
@@ -1705,6 +1797,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [],
   );
 
+  const seekTo: (offsetMs: number) => void = useCallback(
+    (offsetMs: number): void => {
+      runAfterTextSelectionExit((): void => {
+        dispatchSeek(offsetMs);
+      });
+    },
+    [dispatchSeek, runAfterTextSelectionExit],
+  );
+
   const playPause: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
 
@@ -1712,19 +1813,43 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       return;
     }
 
+    if (current.getSnapshot().intent !== "playing") {
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "PLAY" });
+      });
+      return;
+    }
+
     current.dispatch({
       type: current.getSnapshot().intent === "playing" ? "PAUSE" : "PLAY",
     });
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const watchAgain: () => void = useCallback((): void => {
-    seekTo(0);
-    engineRef.current?.dispatch({ type: "PLAY" });
-  }, [seekTo]);
+    runAfterTextSelectionExit((): void => {
+      dispatchSeek(0);
+      engineRef.current?.dispatch({ type: "PLAY" });
+    });
+  }, [dispatchSeek, runAfterTextSelectionExit]);
+
+  const changeTextSelection: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      if (isEnabled) {
+        engineRef.current?.dispatch({ type: "PAUSE" });
+        pendingTextSelectionActionRef.current = null;
+      }
+
+      isTextSelectionEnabledRef.current = isEnabled;
+      setIsTextSelectionEnabled(isEnabled);
+    },
+    [],
+  );
 
   const retry: () => void = useCallback((): void => {
-    engineRef.current?.dispatch({ type: "RETRY" });
-  }, []);
+    runAfterTextSelectionExit((): void => {
+      engineRef.current?.dispatch({ type: "RETRY" });
+    });
+  }, [runAfterTextSelectionExit]);
 
   const stillLoadingRetry: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
@@ -1736,13 +1861,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     const latest: ReplayEngineSnapshot = current.getSnapshot();
 
     if (latest.error && latest.error.retryable) {
-      current.dispatch({ type: "RETRY" });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "RETRY" });
+      });
       return;
     }
 
     /* Nothing halted: a fresh seek to the same offset restarts the fetch. */
     seekTo(latest.currentTimeMs);
-  }, [seekTo]);
+  }, [runAfterTextSelectionExit, seekTo]);
 
   const setSpeed: (speed: number) => void = useCallback(
     (speed: number): void => {
@@ -1765,9 +1892,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   const skipIdle: (band: ReplayIdleBand) => void = useCallback(
     (band: ReplayIdleBand): void => {
-      engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     },
-    [],
+    [runAfterTextSelectionExit],
   );
 
   const skipIdleJump: () => void = useCallback((): void => {
@@ -1784,9 +1913,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
 
     if (band) {
-      current.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     }
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const switchTab: (tabId: string) => void = useCallback(
     (tabId: string): void => {
@@ -1803,24 +1934,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         return;
       }
 
-      const loader: ChunkLoader = createLoader(target);
-
       if (engineRef.current) {
-        loaderRef.current = loader;
-        /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
-        engineRef.current.dispatch({
-          type: "TAB_SWITCH",
-          tabId: tabId,
-          loader: loader,
+        runAfterTextSelectionExit((): void => {
+          const loader: ChunkLoader = createLoader(target);
+          loaderRef.current = loader;
+          /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
+          engineRef.current?.dispatch({
+            type: "TAB_SWITCH",
+            tabId: tabId,
+            loader: loader,
+          });
+          setActiveTabId(tabId);
         });
-      } else {
-        pendingLoaderRef.current?.dispose();
-        pendingLoaderRef.current = loader;
+        return;
       }
 
+      const loader: ChunkLoader = createLoader(target);
+      pendingLoaderRef.current?.dispose();
+      pendingLoaderRef.current = loader;
       setActiveTabId(tabId);
     },
-    [createLoader],
+    [createLoader, runAfterTextSelectionExit],
   );
 
   const toggleTheater: () => void = useCallback((): void => {
@@ -2569,6 +2703,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   scale: scale,
                   fit: fit,
                   onFitChange: setFit,
+                  canSelectText:
+                    isPlayable && engine !== null && isReplayDocumentReady,
+                  isTextSelectionEnabled: isTextSelectionEnabled,
+                  onTextSelectionChange: changeTextSelection,
                   onPlayPause: playPause,
                   onWatchAgain: watchAgain,
                   onRetry: retry,
@@ -2591,6 +2729,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                           viewportHeight={manifest.details.viewportHeight}
                           isTheater={isTheater}
                           fit={fit}
+                          isTextSelectionEnabled={isTextSelectionEnabled}
                           onScaleChange={setScale}
                           reservedBottomHeightPx={scrubberHeightPx + 24}
                         />

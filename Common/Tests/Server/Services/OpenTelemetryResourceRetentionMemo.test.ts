@@ -35,6 +35,7 @@ import IoTFleetService from "../../../Server/Services/IoTFleetService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
+import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -137,6 +138,12 @@ const RETENTION_CASES: Array<RetentionCase> = [
 ];
 
 const PROJECT_DEFAULT_RETENTION_DAYS: number = 15;
+const RESOURCE_RETENTION_CONFIG: TelemetryRetentionConfig = {
+  logs: { default: 45 },
+  traces: { default: 60 },
+  metrics: { default: 90 },
+  profiles: { default: 30 },
+};
 
 let nowMs: number;
 
@@ -181,7 +188,7 @@ describe.each(RETENTION_CASES)(
       findOneById = jest.spyOn(service, "findOneById") as jest.SpyInstance;
       findOneById.mockResolvedValue({
         retainTelemetryDataForDays: 30,
-        telemetryRetentionConfig: null,
+        telemetryRetentionConfig: RESOURCE_RETENTION_CONFIG,
       });
     });
 
@@ -204,6 +211,22 @@ describe.each(RETENTION_CASES)(
       expect(findOneById).toHaveBeenCalledTimes(1);
     });
 
+    test("requests both the default and per-pillar retention fields", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const resourceId: ObjectID = ObjectID.generate();
+
+      await build({ serviceType, resourceId, projectId });
+
+      expect(findOneById).toHaveBeenCalledWith({
+        id: resourceId,
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: { isRoot: true },
+      });
+    });
+
     test("the memoed build carries the same retention as the resolving one", async () => {
       const projectId: ObjectID = ObjectID.generate();
       const resourceId: ObjectID = ObjectID.generate();
@@ -220,8 +243,12 @@ describe.each(RETENTION_CASES)(
       });
 
       expect(first.serviceRetentionInDays).toBe(30);
+      expect(first.serviceRetentionConfig).toEqual(RESOURCE_RETENTION_CONFIG);
       expect(first.dataRententionInDays).toBe(30);
       expect(second.serviceRetentionInDays).toBe(first.serviceRetentionInDays);
+      expect(second.serviceRetentionConfig).toEqual(
+        first.serviceRetentionConfig,
+      );
       expect(second.dataRententionInDays).toBe(first.dataRententionInDays);
     });
 

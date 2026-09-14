@@ -273,9 +273,7 @@ test.describe("SLOs", () => {
     await expect(
       form.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
     ).toBeVisible();
-    await expect(submitButton).toContainText(
-      "Create Service Level Objective",
-    );
+    await expect(submitButton).toContainText("Create Service Level Objective");
     await submitButton.click();
     await modal.waitFor({ state: "hidden", timeout: 90000 });
 

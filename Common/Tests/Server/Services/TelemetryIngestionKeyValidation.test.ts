@@ -528,6 +528,47 @@ describe("TelemetryIngestionKeyService.onBeforeCreate - what must keep working",
     ]);
   });
 
+  test("a Browser key accepts and canonicalises exact app:// mobile identities", async () => {
+    const { internals }: Harness = buildService();
+
+    const createBy: CreateBy<Model> = createByModel({
+      keyType: TelemetryIngestionKeyType.Browser,
+      allowedOrigins: [
+        "  APP://COM.Example.Checkout/  ",
+        "app://com.example.checkout",
+        "app://com.example.checkout-beta_native",
+      ],
+    });
+
+    await expect(internals.onBeforeCreate(createBy)).resolves.toBeDefined();
+    expect(writtenValues(createBy)["allowedOrigins"]).toEqual([
+      "app://com.example.checkout",
+      "app://com.example.checkout-beta_native",
+    ]);
+  });
+
+  test.each([
+    "app://*.example.checkout",
+    "app://com.example.checkout:443",
+    "app://com.example.checkout/screen",
+    "app://checkout",
+    "app://com..checkout",
+  ])(
+    "a Browser key refuses unsafe mobile origin %s",
+    async (origin: string) => {
+      const { internals }: Harness = buildService();
+
+      await expect(
+        internals.onBeforeCreate(
+          createByModel({
+            keyType: TelemetryIngestionKeyType.Browser,
+            allowedOrigins: [origin],
+          }),
+        ),
+      ).rejects.toThrow();
+    },
+  );
+
   /*
    * Stored in the form the matcher compares against, so what the dashboard
    * lists is exactly what will be matched at ingest time. A pasted
@@ -829,6 +870,18 @@ describe("TelemetryIngestionKeyService.onBeforeUpdate - the other constrained co
         updateByBag({ allowedOrigins: ["https://exa_mple.com"] }),
       ),
     ).rejects.toThrow("https://exa_mple.com");
+  });
+
+  test("accepts an exact app:// mobile identity on update", async () => {
+    const { internals }: Harness = buildService();
+    const updateBy: UpdateBy<Model> = updateByBag({
+      allowedOrigins: [" APP://COM.Example.Checkout/ "],
+    });
+
+    await expect(internals.onBeforeUpdate(updateBy)).resolves.toBeDefined();
+    expect(
+      (updateBy.data as unknown as Record<string, unknown>)["allowedOrigins"],
+    ).toEqual(["app://com.example.checkout"]);
   });
 
   test("refuses a pinned service name longer than the column can hold", async () => {

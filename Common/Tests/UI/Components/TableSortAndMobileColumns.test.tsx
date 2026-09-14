@@ -51,6 +51,7 @@ const data: Array<Row> = [
 ];
 
 interface RenderTableOptions {
+  columns?: Columns<Row> | undefined;
   getRowProps?: ((item: Row) => React.HTMLAttributes<HTMLElement>) | undefined;
   sortBy?: keyof Row | null | undefined;
   sortOrder?: SortOrder | undefined;
@@ -69,7 +70,7 @@ const renderTable: RenderTableFunction = (
       id="test-table"
       data={data}
       getRowProps={options?.getRowProps}
-      columns={columns}
+      columns={options?.columns || columns}
       currentPageNumber={1}
       totalItemsCount={data.length}
       itemsOnPage={10}
@@ -193,6 +194,48 @@ describe("hideOnMobile columns", () => {
 
     expect(screen.getByText("Up")).toBeInTheDocument();
     expect(screen.getByText("Down")).toBeInTheDocument();
+  });
+});
+
+describe("custom action columns", () => {
+  const actionColumns: Columns<Row> = [
+    { title: "Name", type: FieldType.Text, key: "name" },
+    {
+      title: "Actions",
+      type: FieldType.Actions,
+      key: "_id",
+      disableSort: true,
+      getElement: (row: Row): React.ReactElement => {
+        return <button type="button">Inspect {row.name}</button>;
+      },
+    },
+  ];
+
+  test.each([1280, 390])(
+    "renders a caller-provided action at width %i",
+    (width: number) => {
+      setViewportWidth(width);
+      renderTable({ columns: actionColumns });
+
+      expect(
+        screen.getByRole("button", { name: "Inspect Alpha" }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test("right-aligns the desktop Actions header and cell", () => {
+    setViewportWidth(1280);
+    renderTable({ columns: actionColumns });
+
+    const actionsHeader: HTMLElement = screen.getByRole("columnheader", {
+      name: "Actions",
+    });
+    const actionsCell: HTMLElement | null = screen
+      .getByRole("button", { name: "Inspect Alpha" })
+      .closest("td");
+
+    expect(actionsHeader.firstElementChild).toHaveClass("justify-end");
+    expect(actionsCell).toHaveStyle({ textAlign: "right" });
   });
 });
 

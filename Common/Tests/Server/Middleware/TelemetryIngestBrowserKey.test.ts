@@ -23,6 +23,10 @@ import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
 } from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
+import {
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+} from "../../../Types/Rum/SessionReplay";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
@@ -751,6 +755,231 @@ describe("TelemetryIngest browser ingestion key guard", () => {
 
       const error: Error = refusal();
       expect(error).toBeInstanceOf(NotAuthorizedException);
+    });
+  });
+
+  describe("native session replay identity", () => {
+    const MOBILE_APP_IDENTIFIER: string = "com.example.checkout";
+    const MOBILE_APP_ORIGIN: string = `app://${MOBILE_APP_IDENTIFIER}`;
+
+    function mobileHeaders(
+      overrides?: Record<string, string>,
+    ): Record<string, string> {
+      return tokenHeaders({
+        [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+        [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: MOBILE_APP_IDENTIFIER,
+        ...(overrides || {}),
+      });
+    }
+
+    test("an origin-less native replay request matches its exact app:// allowlist entry", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders(),
+      );
+
+      expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+        MOBILE_APP_ORIGIN,
+      );
+    });
+
+    test("the synthesized app:// identity is trimmed and lowercased once for both authorization layers", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders({
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]:
+            "  COM.Example.Checkout  ",
+        }),
+      );
+
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+        MOBILE_APP_ORIGIN,
+      );
+    });
+
+    test("a sibling mobile app is refused by an exact app:// entry", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders({
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.attacker",
+        }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      const error: Error = refusal();
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toContain("app://com.example.attacker");
+    });
+
+    test("an app:// wildcard cannot authorize a mobile sibling", async () => {
+      resolveTo(
+        buildBrowserPolicy({ allowedOrigins: ["app://*.example.checkout"] }),
+      );
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders(),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(refusal()).toBeInstanceOf(NotAuthorizedException);
+    });
+
+    test.each([
+      ["missing recorder kind", {}],
+      ["the legacy dom kind", { [SESSION_REPLAY_RECORDER_KIND_HEADER]: "dom" }],
+      [
+        "an unknown recorder kind",
+        { [SESSION_REPLAY_RECORDER_KIND_HEADER]: "RN-VIEW-TREE" },
+      ],
+      [
+        "a whitespace-padded recorder kind",
+        { [SESSION_REPLAY_RECORDER_KIND_HEADER]: " rn-view-tree " },
+      ],
+      [
+        "a missing mobile identifier",
+        { [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "" },
+      ],
+      [
+        "a malformed mobile identifier",
+        { [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "../checkout" },
+      ],
+    ])(
+      "does not synthesize an app origin for %s",
+      async (_name: string, overrides: Record<string, string>) => {
+        resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+        const headers: Record<string, string> = mobileHeaders(overrides);
+
+        if (_name === "missing recorder kind") {
+          delete headers[SESSION_REPLAY_RECORDER_KIND_HEADER];
+        }
+
+        const result: RunResult = await run(
+          TelemetryIngestSurface.SessionReplay,
+          headers,
+        );
+
+        expect(result.next).not.toHaveBeenCalled();
+        expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+          undefined,
+        );
+        expect(refusal().message).toContain("did not send an Origin header");
+      },
+    );
+
+    test("mobile headers never create an identity on a non-replay ingest surface", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.OtelTraces,
+        mobileHeaders(),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(refusal().message).toContain("did not send an Origin header");
+    });
+
+    test.each([
+      TelemetryIngestSurface.OtelLogs,
+      TelemetryIngestSurface.OtelMetrics,
+      TelemetryIngestSurface.OtelTraces,
+    ])(
+      "a caller-supplied app origin cannot authorize %s",
+      async (surface: TelemetryIngestSurface) => {
+        resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+        const result: RunResult = await run(
+          surface,
+          tokenHeaders({ origin: MOBILE_APP_ORIGIN }),
+        );
+
+        expect(result.next).not.toHaveBeenCalled();
+        expect(refusal()).toBeInstanceOf(NotAuthorizedException);
+        expect(refusal().message).toContain("did not send an Origin header");
+        expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe("");
+      },
+    );
+
+    test("a caller-supplied app origin cannot authorize a DOM replay", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        tokenHeaders({ origin: "APP://COM.EXAMPLE.CHECKOUT/" }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(refusal()).toBeInstanceOf(NotAuthorizedException);
+      expect(refusal().message).toContain("did not send an Origin header");
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe("");
+    });
+
+    test("server keys never synthesize a public mobile identity", async () => {
+      resolveTo(buildPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders(),
+      );
+
+      expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+        undefined,
+      );
+    });
+
+    test("a real browser Origin always wins over otherwise-valid mobile headers", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [ALLOWED_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders({ origin: ALLOWED_ORIGIN }),
+      );
+
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+        ALLOWED_ORIGIN,
+      );
+    });
+
+    test("a browser page cannot select the mobile identity path when its real Origin is disallowed", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const realBrowserOrigin: string = "https://attacker.example.net";
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders({ origin: realBrowserOrigin }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(refusal().message).toContain(realBrowserOrigin);
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe(
+        realBrowserOrigin,
+      );
+    });
+
+    test("a blank but present Origin is not replaced by the mobile identity fallback", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [MOBILE_APP_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.SessionReplay,
+        mobileHeaders({ origin: "" }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(refusal().message).toContain("did not send an Origin header");
+      expect((result.req as TelemetryRequest).resolvedClientOrigin).toBe("");
     });
   });
 

@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import useTranslateValue from "Common/UI/Utils/Translation";
 
 /*
  * The player's visual vocabulary, in one file.
@@ -154,7 +156,15 @@ export interface ReplayToolButtonProps {
   /* Renders aria-pressed and the "on" styling. Undefined = not a toggle. */
   isPressed?: boolean | undefined;
   isDisabled?: boolean | undefined;
+  /* Keeps asynchronous actions in the shared geometry while they work. */
+  isLoading?: boolean | undefined;
+  /*
+   * Keeps dense header actions compact on phones while preserving their
+   * visible text at the first responsive breakpoint.
+   */
+  collapseLabelOnSmallScreens?: boolean | undefined;
   title?: string | undefined;
+  tooltip?: string | undefined;
   ariaLabel?: string | undefined;
   dataTestId?: string | undefined;
   className?: string | undefined;
@@ -178,7 +188,7 @@ export interface ReplayToolButtonProps {
 function toneClassFor(props: ReplayToolButtonProps): string {
   const tone: ReplayTone = props.tone || "neutral";
 
-  if (props.isDisabled) {
+  if (props.isDisabled || props.isLoading) {
     return DISABLED_CLASS;
   }
 
@@ -204,14 +214,31 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
     props: ReplayToolButtonProps,
     ref: React.ForwardedRef<HTMLButtonElement>,
   ): ReactElement => {
+    const { translateString } = useTranslateValue();
+    const translatedLabel: string | undefined =
+      translateString(props.label) ?? props.label;
+    const translatedTitle: string | undefined =
+      translateString(props.title) ?? props.title;
+    const translatedTooltip: string | undefined =
+      translateString(props.tooltip) ?? props.tooltip;
+    const translatedAriaLabel: string | undefined =
+      translateString(props.ariaLabel) ?? props.ariaLabel;
+
     /*
      * A single icon with no label gets a square button; anything wider -
      * a label, or the two-glyph "< !" previous-error button - gets side
      * padding instead, so nothing is ever clipped by the 32px box.
      */
     const isSingleGlyph: boolean =
-      !props.label && !(props.icon && props.trailingIcon);
-    const paddingClass: string = isSingleGlyph ? "w-8" : "px-2.5";
+      !translatedLabel && !(props.icon && props.trailingIcon);
+    const isCollapsibleAction: boolean = Boolean(
+      props.collapseLabelOnSmallScreens && props.icon && translatedLabel,
+    );
+    const paddingClass: string = isCollapsibleAction
+      ? "w-8 sm:w-auto sm:px-2.5"
+      : isSingleGlyph
+        ? "w-8"
+        : "px-2.5";
 
     const pressedProps: Record<string, boolean> =
       props.isPressed === undefined ? {} : { "aria-pressed": props.isPressed };
@@ -226,32 +253,101 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
      * ariaLabel always wins, which is how "10s" says "Back 10 seconds".
      */
     const accessibleName: string | undefined =
-      props.ariaLabel || (props.label ? undefined : props.title);
+      translatedAriaLabel ||
+      (translatedLabel
+        ? props.isLoading
+          ? translatedLabel
+          : undefined
+        : translatedTitle);
+    const isDisabled: boolean = Boolean(props.isDisabled || props.isLoading);
 
-    return (
+    const content: ReactElement = (
+      <span
+        className={`inline-flex items-center justify-center gap-1.5 ${
+          props.isLoading ? "invisible" : ""
+        }`}
+      >
+        {props.icon && (
+          <Icon icon={props.icon} className="h-3.5 w-3.5 shrink-0" />
+        )}
+        {translatedLabel && (
+          <span
+            className={
+              isCollapsibleAction ? "sr-only sm:not-sr-only" : undefined
+            }
+          >
+            {translatedLabel}
+          </span>
+        )}
+        {props.trailingIcon && (
+          <Icon icon={props.trailingIcon} className="h-3.5 w-3.5 shrink-0" />
+        )}
+      </span>
+    );
+
+    const button: ReactElement = (
       <button
         ref={ref}
         type="button"
-        disabled={props.isDisabled}
-        title={props.title}
+        disabled={isDisabled}
+        title={translatedTitle}
         aria-label={accessibleName}
+        aria-busy={props.isLoading || undefined}
         aria-haspopup={props.hasPopup}
         aria-expanded={props.isExpanded}
         data-testid={props.dataTestId}
         {...props.dataAttributes}
-        className={`${BUTTON_BASE_CLASS} ${paddingClass} ${toneClassFor(
+        className={`${BUTTON_BASE_CLASS} relative ${paddingClass} ${toneClassFor(
           props,
-        )} ${props.className || ""}`}
+        )} ${
+          isDisabled && translatedTooltip ? "pointer-events-none" : ""
+        } ${props.className || ""}`}
         onClick={props.onClick}
         {...pressedProps}
       >
-        {props.icon && <Icon icon={props.icon} className="h-3.5 w-3.5" />}
-        {props.label && <span>{props.label}</span>}
-        {props.trailingIcon && (
-          <Icon icon={props.trailingIcon} className="h-3.5 w-3.5" />
+        {content}
+        {props.isLoading && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 inline-flex items-center justify-center"
+          >
+            <Icon
+              icon={IconProp.Spinner}
+              className="h-3.5 w-3.5 animate-spin"
+            />
+          </span>
         )}
       </button>
     );
+
+    if (!translatedTooltip) {
+      return button;
+    }
+
+    if (isDisabled) {
+      const wrapperAccessibleName: string | undefined =
+        translatedAriaLabel || translatedLabel || translatedTitle;
+
+      return (
+        <Tooltip text={translatedTooltip}>
+          <span
+            role="group"
+            aria-label={wrapperAccessibleName}
+            tabIndex={0}
+            data-testid={
+              props.dataTestId
+                ? `${props.dataTestId}-disabled-wrapper`
+                : undefined
+            }
+            className="inline-flex rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+          >
+            {button}
+          </span>
+        </Tooltip>
+      );
+    }
+
+    return <Tooltip text={translatedTooltip}>{button}</Tooltip>;
   },
 );
 
@@ -262,6 +358,7 @@ export interface ReplayButtonGroupProps {
   /* role="group" by default; the fit and scope toggles pass a label. */
   ariaLabel?: string | undefined;
   role?: string | undefined;
+  canWrap?: boolean | undefined;
   dataTestId?: string | undefined;
   className?: string | undefined;
 }
@@ -273,14 +370,18 @@ export interface ReplayButtonGroupProps {
 export const ReplayButtonGroup: FunctionComponent<ReplayButtonGroupProps> = (
   props: ReplayButtonGroupProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedAriaLabel: string | undefined =
+    translateString(props.ariaLabel) ?? props.ariaLabel;
+
   return (
     <div
       role={props.role || "group"}
-      aria-label={props.ariaLabel}
+      aria-label={translatedAriaLabel}
       data-testid={props.dataTestId}
-      className={`inline-flex shrink-0 items-center gap-0.5 rounded-xl bg-gray-100 p-0.5 ${
-        props.className || ""
-      }`}
+      className={`inline-flex items-center gap-0.5 rounded-xl bg-gray-100 p-0.5 ${
+        props.canWrap ? "max-w-full flex-wrap" : "shrink-0"
+      } ${props.className || ""}`}
     >
       {props.children}
     </div>

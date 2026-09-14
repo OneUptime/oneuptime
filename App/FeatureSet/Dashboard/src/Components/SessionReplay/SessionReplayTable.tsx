@@ -38,7 +38,6 @@ import {
 } from "Common/Types/Rum/SessionReplayApi";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
-import Pagination from "Common/UI/Components/Pagination/Pagination";
 import Table from "Common/UI/Components/Table/Table";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -47,7 +46,6 @@ import SessionReplayFacets, {
   SESSION_REPLAY_FACETS,
   SessionReplayFacet,
 } from "./SessionReplayFacets";
-import { getRecordingHealthActionLink } from "./RecordingHealthCard";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -1241,12 +1239,13 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
   },
-  { title: "Actions", key: "sessionId" },
+  { title: "Actions", key: "sessionId", type: FieldType.Actions },
 ].map(
   (
     column: {
       title: string;
       key: string | null;
+      type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
     },
@@ -1255,7 +1254,7 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     return {
       ...column,
       key: column.key as keyof SessionReplayTableRow | null,
-      type: FieldType.Element,
+      type: column.type || FieldType.Element,
       disableSort: true,
       getElement: (row: SessionReplayTableRow): ReactElement => {
         return row.cells[index] as ReactElement;
@@ -1875,23 +1874,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const cardButtons: Array<CardButtonSchema> = [
     {
-      title: "Users",
-      icon: IconProp.UserGroup,
-      buttonStyle: ButtonStyleType.NORMAL,
-      onClick: openUsersPage,
-    },
-    {
-      title: "Set up recording",
-      icon: IconProp.BookOpen,
-      buttonStyle: ButtonStyleType.NORMAL,
-      onClick: (): void => {
-        return Navigation.navigate(
-          getRecordingHealthActionLink("setup-guide", rumApplicationIdString)
-            .to,
-        );
-      },
-    },
-    {
       ...getRefreshButton(),
       tooltip: "Refresh sessions",
       className: "py-0 pr-0 pl-1 mt-1",
@@ -2045,9 +2027,22 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 currentPageNumber={pageNumber}
                 totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
                 itemsOnPage={itemsOnPage}
-                disablePagination={true}
-                onNavigateToPage={(): void => {
-                  /* Cursor pagination is rendered below. */
+                itemsOnPageOptions={SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS}
+                hasMore={hasMore}
+                paginationDataTestId="session-pagination"
+                onNavigateToPage={(page: number, onPage: number): void => {
+                  /*
+                   * A different page size invalidates every cursor, so it
+                   * restarts from the first page rather than paging with
+                   * offsets that no longer line up.
+                   */
+                  if (onPage !== itemsOnPage) {
+                    setItemsOnPage(onPage);
+                    setPageNumber(1);
+                    return;
+                  }
+
+                  setPageNumber(page);
                 }}
                 sortBy={null}
                 sortOrder={SortOrder.Descending}
@@ -2081,37 +2076,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 }
               />
             </div>
-          )}
-
-          {!error && (rows.length > 0 || pageNumber > 1) && (
-            <Pagination
-              className="mt-4 border-t border-gray-200 pt-4"
-              currentPageNumber={pageNumber}
-              totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
-              itemsOnPage={itemsOnPage}
-              itemsOnCurrentPage={rows.length}
-              itemsOnPageOptions={SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS}
-              hasMore={hasMore}
-              isLoading={isLoading}
-              isError={false}
-              singularLabel="Session"
-              pluralLabel="Sessions"
-              dataTestId="session-pagination"
-              onNavigateToPage={(page: number, onPage: number): void => {
-                /*
-                 * A different page size invalidates every cursor, so it
-                 * restarts from the first page rather than paging with
-                 * offsets that no longer line up.
-                 */
-                if (onPage !== itemsOnPage) {
-                  setItemsOnPage(onPage);
-                  setPageNumber(1);
-                  return;
-                }
-
-                setPageNumber(page);
-              }}
-            />
           )}
         </div>
       </Card>

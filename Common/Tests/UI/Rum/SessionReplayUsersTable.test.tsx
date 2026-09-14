@@ -417,6 +417,31 @@ describe("SessionReplayUsersTable actions", () => {
 });
 
 describe("SessionReplayUsersTable paging, reload, empty and error", () => {
+  it("uses the shared ModelTable footer with the fixed users page size", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    renderTable();
+
+    await waitForUserRows(1);
+
+    const pagination: HTMLElement = screen.getByTestId(
+      "session-users-pagination",
+    );
+
+    expect(pagination.parentElement).toHaveClass("bg-gray-50", "md:-mx-6");
+    expect(
+      Array.from(
+        screen
+          .getByTestId("pagination-items-on-page-select")
+          .querySelectorAll("option"),
+      ).map((option: Element): string | null => {
+        return option.getAttribute("value");
+      }),
+    ).toEqual([String(SESSION_REPLAY_USERS_PAGE_SIZE)]);
+  });
+
   it("Next pages with the server's cursor and Next is disabled on the last page", async () => {
     const cursor: JSONObject = {
       lastSeenUnixMs: NOW - 5 * 60_000,
@@ -544,7 +569,10 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
     expect(screen.getByTestId("session-users-empty")).toHaveTextContent(
       "Widen the time range",
     );
-    expect(screen.queryByTestId("session-users-pagination")).toBeNull();
+    expect(screen.getByTestId("session-users-pagination")).toBeInTheDocument();
+    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
+      "No users",
+    );
   });
 
   it("a failed request reads as its kind, with a Retry that refetches", async () => {

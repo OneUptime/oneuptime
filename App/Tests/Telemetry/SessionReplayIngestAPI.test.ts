@@ -9,6 +9,9 @@ import {
   MAX_SESSION_REPLAY_CHUNK_BYTES,
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
 } from "Common/Types/Rum/SessionReplay";
@@ -225,6 +228,9 @@ import SessionReplayIngestService, {
 } from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import SessionReplayRequestMiddleware from "../../FeatureSet/Telemetry/Middleware/SessionReplayRequestMiddleware";
+import SessionReplayEnvelopeParser, {
+  SessionReplayParseResult,
+} from "../../FeatureSet/Telemetry/Utils/SessionReplayEnvelopeParser";
 // Importing the router module registers the routes on the mocked router.
 import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
 
@@ -355,6 +361,7 @@ function buildBody(overrides?: Partial<SessionReplayChunkEnvelope>): Buffer {
 async function invokeChunkRoute(data: {
   body: unknown;
   headers?: Record<string, string>;
+  resolvedClientOrigin?: string;
 }): Promise<{ res: FakeResponse; nextError: Error | undefined }> {
   const handlers: Array<unknown> = registeredPostHandlers[CHUNK_ROUTE]!;
 
@@ -376,17 +383,23 @@ async function invokeChunkRoute(data: {
     nextError = err;
   }) as NextFunction;
 
+  const req: Record<string, unknown> = {
+    body: data.body,
+    projectId: PROJECT_ID,
+    headers: {
+      [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: APP_IDENTIFIER,
+      origin: "https://shop.example.com",
+      ...(data.headers || {}),
+    },
+    query: {},
+  };
+
+  if (data.resolvedClientOrigin !== undefined) {
+    req["resolvedClientOrigin"] = data.resolvedClientOrigin;
+  }
+
   await handler(
-    {
-      body: data.body,
-      projectId: PROJECT_ID,
-      headers: {
-        [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: APP_IDENTIFIER,
-        origin: "https://shop.example.com",
-        ...(data.headers || {}),
-      },
-      query: {},
-    } as unknown as ExpressRequest,
+    req as unknown as ExpressRequest,
     res as unknown as ExpressResponse,
     next,
   );
@@ -823,6 +836,231 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(lastRejection()["error"]).toBe("app-identifier-mismatch");
     expect(lastRejection()["directive"]).toBe("stop");
     expect(gateMock).not.toHaveBeenCalled();
+  });
+
+  describe("recorder kind and native identity consistency", () => {
+    const MOBILE_APP_IDENTIFIER: string = "com.example.checkout";
+    const MOBILE_APP_ORIGIN: string = `app://${MOBILE_APP_IDENTIFIER}`;
+
+    function mobileRequestHeaders(
+      overrides?: Record<string, string>,
+    ): Record<string, string> {
+      return {
+        origin: "",
+        [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+        [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: MOBILE_APP_IDENTIFIER,
+        ...(overrides || {}),
+      };
+    }
+
+    test("accepts a native frame whose request header and envelope both say rn-view-tree", async () => {
+      const { res } = await invokeChunkRoute({
+        body: buildBody({ recorderKind: "rn-view-tree" }),
+        headers: mobileRequestHeaders(),
+        resolvedClientOrigin: MOBILE_APP_ORIGIN,
+      });
+
+      expect(getStatus(res)).toBe(202);
+      expect(gateMock).toHaveBeenCalledTimes(1);
+      expect((gateMock.mock.calls[0]![0] as JSONObject)["origin"]).toBe(
+        MOBILE_APP_ORIGIN,
+      );
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("native capabilities survive the complete ingest staging and parser round trip", async () => {
+      const body: Buffer = buildBody({
+        recorderKind: "rn-view-tree",
+        capabilities: [
+          ...SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES.slice().reverse(),
+          "mobile-view-tree",
+          "web-vitals",
+          "attacker-controlled-capability",
+        ],
+      });
+
+      const { res } = await invokeChunkRoute({
+        body,
+        headers: mobileRequestHeaders(),
+        resolvedClientOrigin: MOBILE_APP_ORIGIN,
+      });
+
+      expect(getStatus(res)).toBe(202);
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+
+      const stagedBody: Buffer = (addJobMock.mock.calls[0]![0] as JSONObject)[
+        "body"
+      ] as Buffer;
+      expect(stagedBody.equals(body)).toBe(true);
+
+      const reparsed: SessionReplayParseResult =
+        SessionReplayEnvelopeParser.parse(stagedBody, APP_IDENTIFIER);
+      expect(reparsed.isValid).toBe(true);
+
+      if (!reparsed.isValid) {
+        throw new Error(`Unexpected parse failure: ${reparsed.error}`);
+      }
+
+      expect(reparsed.frames[0]!.envelope.recorderKind).toBe("rn-view-tree");
+      expect(reparsed.frames[0]!.envelope.capabilities).toEqual(
+        SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
+      );
+    });
+
+    test("web ingest round trips only the legacy DOM capability vocabulary", async () => {
+      const body: Buffer = buildBody({
+        recorderKind: "dom",
+        capabilities: [
+          "mobile-view-tree",
+          "web-vitals",
+          "click-events",
+          "mobile-touch-events",
+          "unknown",
+        ],
+      });
+
+      const { res } = await invokeChunkRoute({ body });
+
+      expect(getStatus(res)).toBe(202);
+      const stagedBody: Buffer = (addJobMock.mock.calls[0]![0] as JSONObject)[
+        "body"
+      ] as Buffer;
+      const reparsed: SessionReplayParseResult =
+        SessionReplayEnvelopeParser.parse(stagedBody, APP_IDENTIFIER);
+      expect(reparsed.isValid).toBe(true);
+
+      if (!reparsed.isValid) {
+        throw new Error(`Unexpected parse failure: ${reparsed.error}`);
+      }
+
+      expect(reparsed.frames[0]!.envelope.capabilities).toEqual([
+        "click-events",
+        "web-vitals",
+      ]);
+    });
+
+    test("legacy chunks with no recorder-kind header continue to mean dom", async () => {
+      const { res } = await invokeChunkRoute({ body: buildBody() });
+
+      expect(getStatus(res)).toBe(202);
+      expect(gateMock).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      ["DOM", "dom"],
+      ["RN-VIEW-TREE", "rn-view-tree"],
+      ["rn-view-tree ", "rn-view-tree"],
+      ["mobile", "rn-view-tree"],
+      ["", "dom"],
+    ])(
+      "rejects unsupported request recorder-kind %j before policy or storage",
+      async (headerKind: string, envelopeKind: string) => {
+        const { res } = await invokeChunkRoute({
+          body: buildBody({
+            recorderKind: envelopeKind as "dom" | "rn-view-tree",
+          }),
+          headers: {
+            [SESSION_REPLAY_RECORDER_KIND_HEADER]: headerKind,
+          },
+        });
+
+        expect(getStatus(res)).toBe(400);
+        expect(lastRejection()["error"]).toBe("unsupported-recorder-kind");
+        expect(lastRejection()["directive"]).toBe("stop");
+        expect(gateMock).not.toHaveBeenCalled();
+        expect(addJobMock).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      ["missing", undefined],
+      ["empty", ""],
+      ["single-label", "checkout"],
+      ["path-shaped", "../checkout"],
+      ["wildcard", "com.example.*"],
+    ])(
+      "rejects a %s mobile app identifier on rn-view-tree chunks",
+      async (_name: string, identifier: string | undefined) => {
+        const headers: Record<string, string> = mobileRequestHeaders();
+
+        if (identifier === undefined) {
+          delete headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER];
+        } else {
+          headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER] = identifier;
+        }
+
+        const { res } = await invokeChunkRoute({
+          body: buildBody({ recorderKind: "rn-view-tree" }),
+          headers,
+        });
+
+        expect(getStatus(res)).toBe(400);
+        expect(lastRejection()["error"]).toBe("invalid-mobile-app-identifier");
+        expect(gateMock).not.toHaveBeenCalled();
+        expect(addJobMock).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects a dom envelope admitted with rn-view-tree request metadata", async () => {
+      const { res } = await invokeChunkRoute({
+        body: buildBody({ recorderKind: "dom" }),
+        headers: mobileRequestHeaders(),
+        resolvedClientOrigin: MOBILE_APP_ORIGIN,
+      });
+
+      expect(getStatus(res)).toBe(400);
+      expect(lastRejection()["error"]).toBe("recorder-kind-mismatch");
+      expect(gateMock).not.toHaveBeenCalled();
+      expect(addJobMock).not.toHaveBeenCalled();
+    });
+
+    test("rejects an rn-view-tree envelope when the legacy absent header resolves to dom", async () => {
+      const { res } = await invokeChunkRoute({
+        body: buildBody({ recorderKind: "rn-view-tree" }),
+      });
+
+      expect(getStatus(res)).toBe(400);
+      expect(lastRejection()["error"]).toBe("recorder-kind-mismatch");
+      expect(gateMock).not.toHaveBeenCalled();
+    });
+
+    test("rejects an rn-view-tree envelope behind an explicit dom header", async () => {
+      const { res } = await invokeChunkRoute({
+        body: buildBody({ recorderKind: "rn-view-tree" }),
+        headers: { [SESSION_REPLAY_RECORDER_KIND_HEADER]: "dom" },
+      });
+
+      expect(getStatus(res)).toBe(400);
+      expect(lastRejection()["error"]).toBe("recorder-kind-mismatch");
+      expect(gateMock).not.toHaveBeenCalled();
+    });
+
+    test("rejects a mixed dom/native catch-up body atomically", async () => {
+      const mixedBody: Buffer = Buffer.concat([
+        new Uint8Array(buildBody({ recorderKind: "rn-view-tree" })),
+        new Uint8Array(buildBody({ recorderKind: "dom", chunkIndex: 1 })),
+      ]);
+
+      const { res } = await invokeChunkRoute({
+        body: mixedBody,
+        headers: mobileRequestHeaders(),
+        resolvedClientOrigin: MOBILE_APP_ORIGIN,
+      });
+
+      expect(getStatus(res)).toBe(400);
+      expect(lastRejection()["error"]).toBe("recorder-kind-mismatch");
+      expect(gateMock).not.toHaveBeenCalled();
+      expect(addJobMock).not.toHaveBeenCalled();
+    });
+
+    test("web application gate behavior still uses the raw browser Origin", async () => {
+      const { res } = await invokeChunkRoute({ body: buildBody() });
+
+      expect(getStatus(res)).toBe(202);
+      expect((gateMock.mock.calls[0]![0] as JSONObject)["origin"]).toBe(
+        "https://shop.example.com",
+      );
+    });
   });
 
   test("rejects an unsupported wire version with a stop", async () => {

@@ -3,6 +3,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -273,12 +275,12 @@ jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
     RECORDER_VERSION_PATTERN: /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
     getArtifactFilePath: jest.fn(),
     getPinnedRecorderPath: jest.fn(),
-    getRecorderVersion: (): string => {
+    getRecorderVersion: jest.fn((): string | null => {
       return "11.7.3";
-    },
-    getRecorderIntegrity: (): string | null => {
+    }),
+    getRecorderIntegrity: jest.fn((): string | null => {
       return null;
-    },
+    }),
   };
 });
 
@@ -287,6 +289,10 @@ import RumApplicationService from "Common/Server/Services/RumApplicationService"
 import SessionReplayGateCache from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
+import {
+  getRecorderIntegrity,
+  getRecorderVersion,
+} from "../../FeatureSet/BrowserRecorder/Manifest";
 // Importing the router module registers the routes on the mocked router.
 import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
 
@@ -306,11 +312,25 @@ const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
 const updateLastSeenMock: MockedFn =
   RumApplicationService.updateLastSeen as unknown as MockedFn;
+const getRecorderVersionMock: MockedFn =
+  getRecorderVersion as unknown as MockedFn;
+const getRecorderIntegrityMock: MockedFn =
+  getRecorderIntegrity as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 const APP_IDENTIFIER: string = "checkout-web";
 const CONFIG_ROUTE: string = "/session-replay/v1/config";
+const EXPECTED_CONFIG_VARY: string = [
+  "Origin",
+  "x-oneuptime-token",
+  "x-oneuptime-service-token",
+  "x-oneuptime-ingestion-key",
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+].join(", ");
 
 function buildPolicy(overrides?: Record<string, unknown>): unknown {
   return {
@@ -395,6 +415,12 @@ async function callConfigRoute(
 describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
     consumeTargetMock.mockResolvedValue(false as never);
     updateLastSeenMock.mockResolvedValue(undefined as never);
     bytesUsedTodayMock.mockResolvedValue(0 as never);
@@ -482,7 +508,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
 
     /* And Vary keeps a shared cache from reusing them for identified fetches. */
-    expect(res.headers["Vary"]).toBe(SESSION_REPLAY_USER_REF_HEADER);
+    expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
 
     /* No user-ref header arrived, so Redis was never consulted. */
     expect(consumeTargetMock).not.toHaveBeenCalled();
@@ -653,6 +679,142 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(disabled["debug"]).toBe(false);
   });
 
+  describe("web and native recorder negotiation", () => {
+    test("an absent recorder-kind header preserves the web artifact contract", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
+      expect(getRecorderIntegrityMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("an explicit dom kind follows the same web path", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({ [SESSION_REPLAY_RECORDER_KIND_HEADER]: "dom" }),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("11.7.3");
+      expect(getRecorderVersionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("native config is enabled without loading a BrowserRecorder version or integrity", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const res: FakeResponse = buildResponse();
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.checkout",
+        }),
+        res,
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["recorderVersion"]).toBe("");
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      expect(getRecorderIntegrityMock).not.toHaveBeenCalled();
+      expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
+    });
+
+    test("native config remains available when no BrowserRecorder artifact exists", async () => {
+      getRecorderVersionMock.mockImplementation((): null => {
+        return null;
+      });
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+          [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.checkout",
+        }),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+      expect(body["disabledReason"]).toBeUndefined();
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+    });
+
+    test("web config still fails closed when its BrowserRecorder artifact is missing", async () => {
+      getRecorderVersionMock.mockReturnValueOnce(null as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(false);
+      expect(body["disabledReason"]).toBe("recorder-not-built");
+      expect(getPolicyMock).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      "",
+      "DOM",
+      "RN-VIEW-TREE",
+      " rn-view-tree",
+      "rn-view-tree ",
+      "mobile",
+      "unknown",
+    ])("rejects unsupported recorder-kind header %j", async (kind: string) => {
+      const res: FakeResponse = buildResponse();
+      const body: JSONObject = await callConfigRoute(
+        buildRequest({ [SESSION_REPLAY_RECORDER_KIND_HEADER]: kind }),
+        res,
+      );
+
+      expect(body["error"]).toBe("unsupported-recorder-kind");
+      expect(
+        (
+          sendJsonMock.mock.calls[0]?.[3] as {
+            statusCode: { toNumber: () => number };
+          }
+        ).statusCode.toNumber(),
+      ).toBe(400);
+      expect(getPolicyMock).not.toHaveBeenCalled();
+      expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
+    });
+
+    test.each([
+      ["missing", undefined],
+      ["empty", ""],
+      ["single-label", "checkout"],
+      ["path-shaped", "../checkout"],
+      ["wildcard", "com.example.*"],
+    ])(
+      "rejects a %s native mobile app identifier",
+      async (_name: string, identifier: string | undefined) => {
+        const headers: Record<string, string> = {
+          [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+        };
+
+        if (identifier !== undefined) {
+          headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER] = identifier;
+        }
+
+        const body: JSONObject = await callConfigRoute(
+          buildRequest(headers),
+          buildResponse(),
+        );
+
+        expect(body["error"]).toBe("invalid-mobile-app-identifier");
+        expect(getPolicyMock).not.toHaveBeenCalled();
+        expect(getRecorderVersionMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   test("malformed percent-encoding matches the literal header value instead of erroring", async () => {
     getPolicyMock.mockResolvedValue(buildPolicy() as never);
 
@@ -678,6 +840,12 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
 describe("GET /session-replay/v1/config names the switch that is off", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
     consumeTargetMock.mockResolvedValue(false as never);
     updateLastSeenMock.mockResolvedValue(undefined as never);
     bytesUsedTodayMock.mockResolvedValue(0 as never);
@@ -734,6 +902,12 @@ describe("GET /session-replay/v1/config names the switch that is off", () => {
 describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return "11.7.3";
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
     consumeTargetMock.mockResolvedValue(false as never);
     updateLastSeenMock.mockResolvedValue(undefined as never);
     getPolicyMock.mockResolvedValue(buildPolicy() as never);
@@ -760,6 +934,7 @@ describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
 
     /* Short cache, so the pause lifts within a minute of the reset. */
     expect(res.headers["Cache-Control"]).toBe("private, max-age=60");
+    expect(res.headers["Vary"]).toBe(EXPECTED_CONFIG_VARY);
   });
 
   test("the application's monthly budget spent is reported with its own detail", async () => {

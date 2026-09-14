@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -11,12 +13,13 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import TelemetryDetailPanel, {
   TelemetryDetailPanelTab,
 } from "Common/UI/Components/TelemetryViewer/components/TelemetryDetailPanel";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
+import {
+  SessionReplayGap,
+  SessionReplaySealedReason,
+} from "Common/Types/Rum/SessionReplay";
 import SessionReplayMaskingMode, {
   doesMaskingModeRecordReadableContent,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -46,6 +49,14 @@ import {
 } from "./FidelityNoticeCopy";
 import { MASKING_MODE_LABELS, labelEnum } from "./RecordingHealthCard";
 import { ReplayRailTabId } from "./Rail/ReplaySignalTypes";
+import {
+  getReplayClientLabel,
+  getReplayEventFormatLabel,
+  getReplayRecorderKindLabel,
+  isMobileSessionReplay,
+} from "./ReplayRecorderKind";
+import { copyTextToClipboard } from "./ReplayHeader";
+import { DEVICE_TYPE_OPTIONS } from "./SessionReplayFilterFields";
 
 /*
  * Everything the player knows about a session that is not the picture and
@@ -152,23 +163,264 @@ export async function fetchExceptionGroupsByFingerprint(
 
 interface DetailRowProps {
   label: string;
-  value: string;
+  value: ReactNode;
   testId?: string | undefined;
+  mono?: boolean | undefined;
 }
 
 const DetailRow: FunctionComponent<DetailRowProps> = (
   props: DetailRowProps,
 ): ReactElement => {
+  const hasValue: boolean =
+    props.value !== null &&
+    props.value !== undefined &&
+    !(typeof props.value === "string" && props.value.trim().length === 0);
+
   return (
     <div
-      className="flex items-start justify-between gap-4 border-b border-gray-100 py-1.5 last:border-b-0"
+      className="grid gap-1 border-b border-gray-100 py-3 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
       data-testid={props.testId}
     >
-      <div className="text-xs text-gray-500">{props.label}</div>
-      <div className="max-w-[60%] break-words text-right text-xs text-gray-900">
-        {props.value || "—"}
-      </div>
+      <dt className="text-xs font-medium text-gray-500">{props.label}</dt>
+      <dd
+        className={`min-w-0 break-words text-sm text-gray-900 ${
+          props.mono ? "font-mono text-xs" : ""
+        }`}
+      >
+        {hasValue ? props.value : "—"}
+      </dd>
     </div>
+  );
+};
+
+interface DetailCopyButtonProps {
+  value: string;
+  title: string;
+  className?: string | undefined;
+}
+
+const DETAIL_COPY_FEEDBACK_MS: number = 1000;
+
+/* Compact copy control with inline SVG, so its button markup stays valid. */
+const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
+  props: DetailCopyButtonProps,
+): ReactElement => {
+  const [copyStatus, setCopyStatus] = useState<
+    "idle" | "pending" | "copied" | "unavailable"
+  >("idle");
+  const timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null> =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
+  const triggerRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const requestIdRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (copyStatus === "unavailable") {
+      fallbackInputRef.current?.focus();
+      fallbackInputRef.current?.select();
+    }
+  }, [copyStatus]);
+
+  const handleCopy: () => Promise<void> = async (): Promise<void> => {
+    const requestId: number = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    setCopyStatus("pending");
+    const isCopied: boolean = await copyTextToClipboard(props.value);
+
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
+    if (!isCopied) {
+      setCopyStatus("unavailable");
+      return;
+    }
+
+    setCopyStatus("copied");
+    timerRef.current = setTimeout((): void => {
+      timerRef.current = null;
+      setCopyStatus("idle");
+    }, DETAIL_COPY_FEEDBACK_MS);
+  };
+
+  const isCopied: boolean = copyStatus === "copied";
+  const isPending: boolean = copyStatus === "pending";
+  const isUnavailable: boolean = copyStatus === "unavailable";
+  const accessibleLabel: string = isCopied
+    ? "Copied"
+    : isPending
+      ? "Copying"
+      : isUnavailable
+        ? "Clipboard unavailable. Select the displayed value to copy it."
+        : props.title;
+  const valueLabel: string = props.title.replace(/^Copy\s+/, "");
+
+  return (
+    <div className={`relative inline-flex shrink-0 ${props.className || ""}`}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`inline-flex h-8 shrink-0 items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          isCopied
+            ? "w-8 border-emerald-200 bg-emerald-50 text-emerald-600"
+            : isUnavailable
+              ? "gap-1.5 border-amber-200 bg-amber-50 px-2 text-xs font-medium text-amber-700 hover:bg-amber-100"
+              : isPending
+                ? "w-8 cursor-wait border-gray-200 bg-gray-50 text-gray-400"
+                : "w-8 border-gray-200 bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+        }`}
+        onClick={(): void => {
+          void handleCopy();
+        }}
+        disabled={isPending}
+        aria-busy={isPending || undefined}
+        title={accessibleLabel}
+        aria-label={accessibleLabel}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          className="h-4 w-4"
+          aria-hidden="true"
+        >
+          {isCopied ? (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
+          ) : (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+            />
+          )}
+        </svg>
+        {isUnavailable && <span>Copy unavailable</span>}
+      </button>
+      <span role="status" aria-live="polite" className="sr-only">
+        {isCopied
+          ? `${valueLabel} copied.`
+          : isUnavailable
+            ? "Clipboard unavailable. The value is selected for manual copy."
+            : ""}
+      </span>
+      {isUnavailable && (
+        <div
+          role="group"
+          aria-label={`Manual copy help for ${valueLabel}`}
+          className="absolute right-0 top-10 z-20 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-amber-200 bg-white p-2.5 text-xs text-gray-700 shadow-lg"
+          onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              setCopyStatus("idle");
+              triggerRef.current?.focus();
+            }
+          }}
+        >
+          <div className="mb-1.5 font-medium text-amber-800">
+            Clipboard unavailable. Copy manually:
+          </div>
+          <input
+            ref={fallbackInputRef}
+            type="text"
+            readOnly={true}
+            value={props.value}
+            aria-label={`Manual copy ${valueLabel}`}
+            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 font-mono text-[11px] text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            onFocus={(event: React.FocusEvent<HTMLInputElement>): void => {
+              event.currentTarget.select();
+            }}
+          />
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              className="rounded px-1.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onClick={(): void => {
+                setCopyStatus("idle");
+                triggerRef.current?.focus();
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface DetailSectionProps {
+  title: string;
+  description?: string | undefined;
+  icon: IconProp;
+  children: ReactNode;
+  testId: string;
+  badge?: number | undefined;
+}
+
+/* A consistent, scannable card for each kind of session metadata. */
+const DetailSection: FunctionComponent<DetailSectionProps> = (
+  props: DetailSectionProps,
+): ReactElement => {
+  const headingId: string = `${props.testId}-heading`;
+
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="relative rounded-xl border border-gray-200 bg-white shadow-sm"
+      data-testid={props.testId}
+      data-section-icon={props.icon}
+    >
+      <div className="flex items-start gap-3 rounded-t-xl border-b border-gray-100 bg-gray-50/70 px-4 py-3">
+        <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+          <Icon
+            icon={props.icon}
+            className="h-4 w-4"
+            data-testid={`${props.testId}-icon`}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 id={headingId} className="text-sm font-semibold text-gray-900">
+              {props.title}
+            </h3>
+            {props.badge !== undefined && (
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-600">
+                {props.badge}
+              </span>
+            )}
+          </div>
+          {props.description && (
+            <p className="mt-0.5 text-xs leading-5 text-gray-500">
+              {props.description}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="px-4 py-1">{props.children}</div>
+    </section>
   );
 };
 
@@ -183,20 +435,129 @@ const StringMapRows: FunctionComponent<StringMapRowsProps> = (
   props: StringMapRowsProps,
 ): ReactElement => {
   return (
-    <div className="mt-3" data-testid={props.testId}>
-      <div className="mb-1 text-xs font-medium text-gray-700">
+    <div className="border-t border-gray-100 py-3" data-testid={props.testId}>
+      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
         {props.heading} ({Object.keys(props.map).length})
+      </h4>
+      <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {Object.keys(props.map).map((key: string): ReactElement => {
+          return (
+            <div
+              key={key}
+              className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+              data-testid={`${props.testId}-row`}
+            >
+              <dt className="truncate text-[11px] font-medium text-gray-500">
+                {key}
+              </dt>
+              <dd className="mt-0.5 break-words text-xs text-gray-900">
+                {props.map[key] || "—"}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+};
+
+/** Only make recorder-provided URLs clickable when their scheme is safe. */
+export function getReplayDetailsExternalUrl(value: string): string | null {
+  const trimmed: string = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed: URL = new URL(trimmed);
+
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? trimmed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+interface UrlDetailProps {
+  label: string;
+  value: string;
+  testId: string;
+}
+
+const UrlDetail: FunctionComponent<UrlDetailProps> = (
+  props: UrlDetailProps,
+): ReactElement => {
+  const externalUrl: string | null = getReplayDetailsExternalUrl(props.value);
+
+  return (
+    <div
+      className="border-b border-gray-100 py-3 last:border-b-0"
+      data-testid={props.testId}
+    >
+      <div className="mb-1.5 text-xs font-medium text-gray-500">
+        {props.label}
       </div>
-      {Object.keys(props.map).map((key: string): ReactElement => {
-        return (
-          <DetailRow
-            key={key}
-            label={key}
-            value={props.map[key] || ""}
-            testId={`${props.testId}-row`}
+      <div className="flex min-w-0 items-start gap-2">
+        {externalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="group flex min-w-0 flex-1 items-start gap-1.5 rounded-md text-sm text-indigo-700 outline-none hover:text-indigo-900 hover:underline focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            aria-label={`${props.label}: ${props.value} (opens in a new tab)`}
+            title={props.value}
+          >
+            <span className="min-w-0 break-all">{props.value}</span>
+            <Icon
+              icon={IconProp.ExternalLink}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400 group-hover:text-indigo-600"
+            />
+          </a>
+        ) : (
+          <span className="min-w-0 flex-1 break-all text-sm text-gray-900">
+            {props.value || "—"}
+          </span>
+        )}
+        {props.value && (
+          <DetailCopyButton
+            value={props.value}
+            title={`Copy ${props.label}`}
+            className="shrink-0"
           />
-        );
-      })}
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface EnvironmentTileProps {
+  label: string;
+  value: string;
+  icon: IconProp;
+  testId: string;
+}
+
+const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
+  props: EnvironmentTileProps,
+): ReactElement => {
+  return (
+    <div
+      className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5"
+      data-testid={props.testId}
+      data-tile-icon={props.icon}
+    >
+      <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+        <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
+        {props.label}
+      </dt>
+      <dd
+        className="mt-1 truncate text-sm font-medium text-gray-900"
+        title={props.value}
+      >
+        {props.value || "—"}
+      </dd>
     </div>
   );
 };
@@ -240,34 +601,70 @@ interface RailPointerRowProps {
 const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
   props: RailPointerRowProps,
 ): ReactElement => {
-  return (
-    <div
-      className="flex items-center justify-between gap-3 border-b border-gray-100 py-1.5 last:border-b-0"
-      data-testid={`details-rail-${props.railTab}`}
-    >
-      <div className="text-xs text-gray-700">
+  const icon: IconProp =
+    props.railTab === "traces"
+      ? IconProp.FlowDiagram
+      : props.railTab === "errors"
+        ? IconProp.Error
+        : IconProp.Logs;
+
+  const content: ReactElement = (
+    <React.Fragment>
+      <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-gray-500 ring-1 ring-inset ring-gray-200">
+        <Icon icon={icon} className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
         {props.count === null ? (
-          <span>
-            {props.label}{" "}
-            <span className="text-gray-400">(not fetched yet)</span>
-          </span>
+          <React.Fragment>
+            <span className="block text-sm font-semibold capitalize text-gray-900">
+              {props.label}
+            </span>
+            <span className="block text-xs text-gray-500">Not fetched yet</span>
+          </React.Fragment>
         ) : (
-          <span>
-            <span className="font-medium">{props.count}</span> {props.label}
-          </span>
+          <React.Fragment>
+            <span className="block text-sm text-gray-900">
+              <span className="font-semibold tabular-nums">{props.count}</span>{" "}
+              {props.label}
+            </span>
+            <span className="block text-xs text-gray-500">
+              View on timeline
+            </span>
+          </React.Fragment>
         )}
       </div>
       {props.onOpenRailTab && (
-        <Button
+        <Icon
+          icon={IconProp.ArrowRight}
+          className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-600"
+        />
+      )}
+    </React.Fragment>
+  );
+
+  return (
+    <div
+      className={`group relative flex min-w-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 transition-colors ${
+        props.onOpenRailTab
+          ? "hover:border-indigo-200 hover:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2"
+          : ""
+      }`}
+      data-testid={`details-rail-${props.railTab}`}
+    >
+      {content}
+      {props.onOpenRailTab && (
+        <button
+          type="button"
+          className="absolute inset-0 rounded-lg focus:outline-none"
+          data-testid={`details-open-rail-${props.railTab}`}
+          aria-label={`Open ${props.label} in rail`}
           title="Open in rail"
-          buttonSize={ButtonSize.Small}
-          buttonStyle={ButtonStyleType.OUTLINE}
-          icon={IconProp.ArrowCircleRight}
-          dataTestId={`details-open-rail-${props.railTab}`}
           onClick={(): void => {
             props.onOpenRailTab?.(props.railTab);
           }}
-        />
+        >
+          <span className="sr-only">Open {props.label} in rail</span>
+        </button>
       )}
     </div>
   );
@@ -374,223 +771,421 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       : d.identifiedUserLabel ||
         "Anonymous - the page did not call OneUptimeReplay.identify()";
 
+  const shortSessionId: string =
+    props.sessionId.length > 12
+      ? `${props.sessionId.slice(0, 12)}…`
+      : props.sessionId;
+  const isMobileReplay: boolean = isMobileSessionReplay(d.recorderKind);
+  const clientLabel: "App" | "Browser" | "Client" = getReplayClientLabel(
+    d.recorderKind,
+  );
+  const deviceTypeLabel: string =
+    d.deviceType.toLowerCase() === "ios"
+      ? "iOS"
+      : d.deviceType.toLowerCase() === "android"
+        ? "Android"
+        : DEVICE_TYPE_OPTIONS.find((option: DropdownOption): boolean => {
+            return option.value === d.deviceType;
+          })?.label || d.deviceType;
+  const deviceIcon: IconProp =
+    isMobileReplay || d.deviceType === "mobile" || d.deviceType === "tablet"
+      ? IconProp.DevicePhoneMobile
+      : IconProp.ComputerDesktop;
+
   const sessionContent: ReactElement = (
-    <div className="px-1" data-testid="details-tab-session">
-      <DetailRow label="Session id" value={props.sessionId} />
-      <DetailRow label="Entry URL" value={d.entryUrl} />
-      <DetailRow label="Exit URL" value={d.exitUrl} />
-      <DetailRow
-        label="End user"
-        value={endUserValue}
-        testId="replay-details-end-user"
-      />
-      {hasEntries(d.identifiedUserTraits) && (
-        <StringMapRows
-          heading="Traits"
-          map={d.identifiedUserTraits}
-          testId="details-traits"
+    <div
+      className="space-y-4 bg-gray-50/50 p-4"
+      data-testid="details-tab-session"
+    >
+      <DetailSection
+        title="Session"
+        description="Identity and user context captured with this recording."
+        icon={IconProp.Identification}
+        testId="details-section-session"
+      >
+        <dl>
+          <DetailRow
+            label="Session ID"
+            value={
+              <div className="flex min-w-0 items-start gap-2">
+                <span className="min-w-0 flex-1 break-all font-mono text-xs">
+                  {props.sessionId}
+                </span>
+                <DetailCopyButton
+                  value={props.sessionId}
+                  title="Copy Session ID"
+                  className="shrink-0"
+                />
+              </div>
+            }
+            testId="replay-details-session-id"
+          />
+          <DetailRow
+            label="End user"
+            value={endUserValue}
+            testId="replay-details-end-user"
+          />
+        </dl>
+        {hasEntries(d.identifiedUserTraits) && (
+          <StringMapRows
+            heading="Traits"
+            map={d.identifiedUserTraits}
+            testId="details-traits"
+          />
+        )}
+        {hasEntries(d.tags) && (
+          <StringMapRows heading="Tags" map={d.tags} testId="details-tags" />
+        )}
+      </DetailSection>
+
+      <DetailSection
+        title="Journey"
+        description="The first and last pages observed during this session."
+        icon={IconProp.GlobeAlt}
+        testId="details-section-journey"
+      >
+        <UrlDetail
+          label="Entry URL"
+          value={d.entryUrl}
+          testId="replay-details-entry-url"
         />
-      )}
-      {hasEntries(d.tags) && (
-        <StringMapRows heading="Tags" map={d.tags} testId="details-tags" />
-      )}
-      <div className="mt-3">
-        <DetailRow
-          label="Browser"
-          value={[d.browserName, d.browserVersion].filter(Boolean).join(" ")}
+        <UrlDetail
+          label="Exit URL"
+          value={d.exitUrl}
+          testId="replay-details-exit-url"
         />
-        <DetailRow label="OS" value={d.osName} />
-        <DetailRow label="Device" value={d.deviceType} />
-        <DetailRow label="Country" value={d.countryCode} />
-        <DetailRow
-          label="Viewport"
-          value={
-            d.viewportWidth && d.viewportHeight
-              ? `${d.viewportWidth} x ${d.viewportHeight}`
-              : ""
-          }
-        />
-        <DetailRow label="Recorded bytes" value={formatBytes(d.payloadBytes)} />
-      </div>
+      </DetailSection>
+
+      <DetailSection
+        title="Environment"
+        description="Client and device information reported by the recorder."
+        icon={deviceIcon}
+        testId="details-section-environment"
+      >
+        <dl className="grid grid-cols-1 gap-2 py-3 sm:grid-cols-2">
+          <EnvironmentTile
+            label={clientLabel}
+            value={[d.browserName, d.browserVersion].filter(Boolean).join(" ")}
+            icon={isMobileReplay ? IconProp.DevicePhoneMobile : IconProp.Window}
+            testId="replay-details-browser"
+          />
+          <EnvironmentTile
+            label="Operating system"
+            value={d.osName}
+            icon={deviceIcon}
+            testId="replay-details-os"
+          />
+          <EnvironmentTile
+            label="Device"
+            value={deviceTypeLabel}
+            icon={deviceIcon}
+            testId="replay-details-device"
+          />
+          <EnvironmentTile
+            label="Country"
+            value={d.countryCode}
+            icon={IconProp.MapPin}
+            testId="replay-details-country"
+          />
+          <EnvironmentTile
+            label="Viewport"
+            value={
+              d.viewportWidth && d.viewportHeight
+                ? `${d.viewportWidth} × ${d.viewportHeight}`
+                : ""
+            }
+            icon={IconProp.Expand}
+            testId="replay-details-viewport"
+          />
+          <EnvironmentTile
+            label="Recorded data"
+            value={formatBytes(d.payloadBytes)}
+            icon={IconProp.Database}
+            testId="replay-details-payload"
+          />
+        </dl>
+      </DetailSection>
 
       {/*
        * The coarse correlation lists from the header (capped at 50 by the
        * finalizer) stay here for the viewer who wants the ids; the rail is
        * where they live on the clock.
        */}
-      <div className="mb-1 mt-4 text-xs font-medium text-gray-700">
-        In the rail
-      </div>
-      <RailPointerRow
-        label={tracesCount === 1 ? "trace" : "traces"}
-        count={tracesCount}
-        railTab="traces"
-        onOpenRailTab={props.onOpenRailTab}
-      />
-      <RailPointerRow
-        label={errorsCount === 1 ? "error" : "errors"}
-        count={errorsCount}
-        railTab="errors"
-        onOpenRailTab={props.onOpenRailTab}
-      />
-      <RailPointerRow
-        label={logsCount === 1 ? "log" : "logs"}
-        count={logsCount}
-        railTab="logs"
-        onOpenRailTab={props.onOpenRailTab}
-      />
-      <div className="mt-2 text-[11px] text-gray-500">
-        Backend rows reach the rail by carrying this session&apos;s id: the
-        recorder stamps session.id on its own network requests (so spans for
-        instrumented origins correlate by themselves); logs and spans from other
-        SDKs correlate only when they are wired to add session.id, for example
-        through OneUptimeReplay.onSessionChange().
-      </div>
+      <DetailSection
+        title="Related telemetry"
+        description="Open signals correlated to this session on the replay timeline."
+        icon={IconProp.Signal}
+        testId="details-section-telemetry"
+      >
+        <div className="grid grid-cols-1 gap-2 py-3 sm:grid-cols-3">
+          <RailPointerRow
+            label={tracesCount === 1 ? "trace" : "traces"}
+            count={tracesCount}
+            railTab="traces"
+            onOpenRailTab={props.onOpenRailTab}
+          />
+          <RailPointerRow
+            label={errorsCount === 1 ? "error" : "errors"}
+            count={errorsCount}
+            railTab="errors"
+            onOpenRailTab={props.onOpenRailTab}
+          />
+          <RailPointerRow
+            label={logsCount === 1 ? "log" : "logs"}
+            count={logsCount}
+            railTab="logs"
+            onOpenRailTab={props.onOpenRailTab}
+          />
+        </div>
 
-      {d.exceptionFingerprints.length > 0 && (
-        <React.Fragment>
-          <div className="mb-1 mt-4 text-xs font-medium text-gray-700">
-            Exception groups ({d.exceptionFingerprints.length})
-          </div>
-          <div className="space-y-1" data-testid="details-fingerprints">
-            {fingerprintLinks.map(
-              (link: ReplayExceptionGroupLink): ReactElement => {
-                if (!link.route) {
+        <div className="mb-3 flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs leading-5 text-blue-800 ring-1 ring-inset ring-blue-100">
+          <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
+          {isMobileReplay ? (
+            <p>
+              Mobile traces and logs reach this rail when your OpenTelemetry
+              instrumentation attaches this replay&apos;s{" "}
+              <code>session.id</code>. Subscribe with{" "}
+              <code>OneUptimeReplay.onSessionChange()</code> and update the
+              attribute whenever the session rotates.
+            </p>
+          ) : (
+            <p>
+              Signals are matched using <code>session.id</code>. Recorder
+              network spans are linked automatically; other SDK signals must add
+              the same attribute, for example through{" "}
+              <code>OneUptimeReplay.onSessionChange()</code>.
+            </p>
+          )}
+        </div>
+
+        {d.exceptionFingerprints.length > 0 && (
+          <div className="border-t border-gray-100 py-3">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Exception groups ({d.exceptionFingerprints.length})
+            </h4>
+            <div className="space-y-1.5" data-testid="details-fingerprints">
+              {fingerprintLinks.map(
+                (link: ReplayExceptionGroupLink): ReactElement => {
+                  if (!link.route) {
+                    return (
+                      <div
+                        key={link.fingerprint}
+                        className="truncate rounded-md bg-gray-50 px-2.5 py-2 text-xs text-gray-600"
+                        title={link.fingerprint}
+                      >
+                        {link.label}
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={link.fingerprint}
-                      className="truncate text-xs text-gray-600"
-                      title={link.fingerprint}
+                      className="truncate rounded-md bg-gray-50 px-2.5 py-2 hover:bg-indigo-50"
+                      /* The hash stays reachable, as the title. */
+                      title={
+                        link.isDirect
+                          ? link.fingerprint
+                          : `${link.fingerprint} - opens the exceptions list filtered to this group`
+                      }
                     >
-                      {link.label}
+                      <AppLink
+                        to={link.route}
+                        className="text-xs font-medium text-indigo-700 hover:underline"
+                      >
+                        {link.label}
+                      </AppLink>
                     </div>
                   );
-                }
+                },
+              )}
+            </div>
+          </div>
+        )}
 
+        {d.traceIds.length > 0 && (
+          <div className="border-t border-gray-100 py-3">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Trace IDs ({d.traceIds.length})
+            </h4>
+            <div className="space-y-1.5" data-testid="details-trace-ids">
+              {d.traceIds.map((traceId: string): ReactElement => {
                 return (
                   <div
-                    key={link.fingerprint}
-                    className="truncate hover:underline"
-                    /* The hash stays reachable, as the title. */
-                    title={
-                      link.isDirect
-                        ? link.fingerprint
-                        : `${link.fingerprint} - opens the exceptions list filtered to this group`
-                    }
+                    key={traceId}
+                    className="truncate rounded-md bg-gray-50 px-2.5 py-2 hover:bg-indigo-50"
                   >
                     <AppLink
-                      to={link.route}
-                      className="text-xs text-indigo-600"
+                      to={
+                        RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.TRACE_VIEW] as Route,
+                          { modelId: traceId },
+                        ) as Route
+                      }
+                      className="font-mono text-xs font-medium text-indigo-700 hover:underline"
                     >
-                      {link.label}
+                      {traceId}
                     </AppLink>
                   </div>
                 );
-              },
-            )}
+              })}
+            </div>
           </div>
-        </React.Fragment>
-      )}
+        )}
 
-      {d.traceIds.length > 0 && (
-        <React.Fragment>
-          <div className="mb-1 mt-4 text-xs font-medium text-gray-700">
-            Trace ids ({d.traceIds.length})
-          </div>
-          <div className="space-y-1" data-testid="details-trace-ids">
-            {d.traceIds.map((traceId: string): ReactElement => {
-              return (
-                <div key={traceId} className="truncate hover:underline">
-                  <AppLink
-                    to={
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.TRACE_VIEW] as Route,
-                        { modelId: traceId },
-                      ) as Route
-                    }
-                    className="font-mono text-xs text-indigo-600"
-                  >
-                    {traceId}
-                  </AppLink>
-                </div>
-              );
-            })}
-          </div>
-        </React.Fragment>
-      )}
-
-      {(d.traceIds.length > 0 || d.exceptionFingerprints.length > 0) && (
-        <div className="mt-3 text-[11px] text-gray-500">
-          Correlated ids on the header are capped at 50 per session; the rail
-          fetches the full set.
-        </div>
-      )}
+        {(d.traceIds.length > 0 || d.exceptionFingerprints.length > 0) && (
+          <p className="border-t border-gray-100 py-3 text-[11px] leading-4 text-gray-500">
+            Correlated IDs in the session header are capped at 50; the rail
+            fetches the full set.
+          </p>
+        )}
+      </DetailSection>
     </div>
   );
 
   const provenanceContent: ReactElement = (
-    <div className="px-1" data-testid="details-tab-provenance">
-      {/*
-       * Masking mode is the single most important field on this panel. What
-       * a viewer is looking at depends entirely on it, and every mode except
-       * MaskAllText means real page text - potentially real personal data -
-       * was recorded.
-       */}
-      {/*
-       * ux-20: the product label, not a de-camel-cased enum. The settings
-       * page and the recording-health card already describe the modes in
-       * these words; "Mask Sensitive Inputs Only" told a viewer the name
-       * of a constant instead of what was recorded.
-       */}
-      <DetailRow
-        label="Masking mode"
-        value={labelEnum(MASKING_MODE_LABELS, d.maskingMode)}
-        testId="replay-details-masking-mode"
-      />
-      <DetailRow
-        label="Consent"
-        value={getReplayConsentStateLabel(d.consentState)}
-        testId="replay-details-consent"
-      />
-      <DetailRow
-        label="Why recorded"
-        value={getReplayTriggerReasonLabel(d.triggerReason)}
-        testId="replay-details-trigger"
-      />
-      <DetailRow label="Recorder version" value={d.recorderVersion} />
-      <DetailRow label="rrweb version" value={d.rrwebVersion} />
-      {d.recorderCapabilities && d.recorderCapabilities.length > 0 && (
-        <DetailRow
-          label="Recorder capabilities"
-          value={d.recorderCapabilities.join(", ")}
-        />
-      )}
-      <DetailRow
-        label="Client clock skew"
-        value={formatReplayClockSkew(d.clockSkewMs)}
-        testId="replay-details-skew"
-      />
-      {/*
-       * Keyed on "not the wireframe mode" rather than on one named mode.
-       * The previous form tested only MaskInputsOnly, so adding
-       * MaskSensitiveInputsOnly - which records page text AND ordinary
-       * input values - would have silently stopped warning anyone on the
-       * mode that is now the default.
-       */}
-      {doesMaskingModeRecordReadableContent(
-        d.maskingMode as SessionReplayMaskingMode,
-      ) && (
-        <div
-          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800"
-          data-testid="replay-details-readable-warning"
-        >
-          This recording contains readable page content. Any personal data
-          rendered into the page is in it, and{" "}
-          {d.maskingMode === SessionReplayMaskingMode.MaskSensitiveInputsOnly
-            ? "so is anything typed into a field the page did not declare as sensitive."
-            : "only input values were masked."}
+    <div
+      className="space-y-4 bg-gray-50/50 p-4"
+      data-testid="details-tab-provenance"
+    >
+      <DetailSection
+        title="Capture policy"
+        description="What the recorder was allowed to collect in this session."
+        icon={IconProp.ShieldCheck}
+        testId="details-section-capture-policy"
+      >
+        <div className="py-3">
+          {/*
+           * Masking mode is the single most important field on this panel.
+           * Every mode except MaskAllText means real page text - potentially
+           * real personal data - was recorded.
+           */}
+          {doesMaskingModeRecordReadableContent(
+            d.maskingMode as SessionReplayMaskingMode,
+          ) ? (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-amber-900"
+              data-testid="replay-details-readable-warning"
+            >
+              <Icon
+                icon={IconProp.ShieldExclamation}
+                className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
+              />
+              <div>
+                <div className="text-sm font-semibold">
+                  Readable page content was recorded
+                </div>
+                <p className="mt-0.5 text-xs leading-5 text-amber-800">
+                  Any personal data rendered into the page is in this recording,
+                  and{" "}
+                  {d.maskingMode ===
+                  SessionReplayMaskingMode.MaskSensitiveInputsOnly
+                    ? "so is anything typed into a field the page did not declare as sensitive."
+                    : "only input values were masked."}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-emerald-900"
+              data-testid="replay-details-privacy-summary"
+            >
+              <Icon
+                icon={IconProp.ShieldCheck}
+                className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600"
+              />
+              <div>
+                <div className="text-sm font-semibold">
+                  Page content was masked
+                </div>
+                <p className="mt-0.5 text-xs leading-5 text-emerald-800">
+                  Text and input values were replaced before this session left
+                  the device.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <dl className="mt-2">
+            {/*
+             * ux-20: the product label, not a de-camel-cased enum. The
+             * settings page and recording-health card use the same words.
+             */}
+            <DetailRow
+              label="Masking mode"
+              value={labelEnum(MASKING_MODE_LABELS, d.maskingMode)}
+              testId="replay-details-masking-mode"
+            />
+            <DetailRow
+              label="Consent"
+              value={getReplayConsentStateLabel(d.consentState)}
+              testId="replay-details-consent"
+            />
+            <DetailRow
+              label="Why recorded"
+              value={getReplayTriggerReasonLabel(d.triggerReason)}
+              testId="replay-details-trigger"
+            />
+          </dl>
         </div>
-      )}
+      </DetailSection>
+
+      <DetailSection
+        title="Recorder"
+        description="The client versions and capabilities that produced this recording."
+        icon={IconProp.Code}
+        testId="details-section-recorder"
+      >
+        <dl>
+          <DetailRow
+            label="Recording source"
+            value={getReplayRecorderKindLabel(d.recorderKind)}
+            testId="replay-details-recorder-kind"
+          />
+          <DetailRow label="Recorder version" value={d.recorderVersion} />
+          <DetailRow
+            label={getReplayEventFormatLabel(d.recorderKind)}
+            value={d.rrwebVersion}
+          />
+          {d.recorderCapabilities && d.recorderCapabilities.length > 0 && (
+            <DetailRow
+              label="Capabilities"
+              value={
+                <span className="flex flex-wrap gap-1.5">
+                  {d.recorderCapabilities.map(
+                    (capability: string): ReactElement => {
+                      return (
+                        <span
+                          key={capability}
+                          className="rounded-md bg-gray-100 px-2 py-1 font-mono text-[11px] text-gray-700"
+                        >
+                          {capability}
+                        </span>
+                      );
+                    },
+                  )}
+                </span>
+              }
+              testId="replay-details-capabilities"
+            />
+          )}
+        </dl>
+      </DetailSection>
+
+      <DetailSection
+        title="Timing"
+        description="Clock alignment used to place backend telemetry on the replay timeline."
+        icon={IconProp.Clock}
+        testId="details-section-timing"
+      >
+        <dl>
+          <DetailRow
+            label="Client clock skew"
+            value={formatReplayClockSkew(d.clockSkewMs)}
+            testId="replay-details-skew"
+          />
+        </dl>
+      </DetailSection>
     </div>
   );
 
@@ -611,6 +1206,19 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   const sealedReasonCopy: SealedReasonCopy | null = isStillRecording
     ? null
     : getSealedReasonCopy(d.sealedReason);
+  const sealedReasonTone: "info" | "success" | "warn" =
+    sealedReasonCopy?.severity === "warn"
+      ? "warn"
+      : d.sealedReason === SessionReplaySealedReason.FinalChunk
+        ? "success"
+        : "info";
+  const recordingStatusIcon: IconProp = isStillRecording
+    ? IconProp.Clock
+    : !sealedReasonCopy || sealedReasonTone === "info"
+      ? IconProp.Info
+      : sealedReasonTone === "warn"
+        ? IconProp.Alert
+        : IconProp.CheckCircle;
 
   /*
    * Playback problems first: "a stretch is unplayable" must not sit under
@@ -627,114 +1235,224 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   );
 
   const fidelityContent: ReactElement = (
-    <div className="px-1" data-testid="details-tab-fidelity">
-      <div className="mb-2 text-xs font-medium text-gray-700">
-        How the recording ended
-      </div>
-      {sealedReasonCopy ? (
-        <div className="text-xs" data-testid="replay-details-sealed-reason">
-          <div
-            className={`font-medium ${
-              sealedReasonCopy.severity === "warn"
-                ? "text-amber-800"
-                : "text-gray-800"
-            }`}
-          >
-            {sealedReasonCopy.title}
-          </div>
-          <div className="text-gray-500">{sealedReasonCopy.description}</div>
+    <div
+      className="space-y-4 bg-gray-50/50 p-4"
+      data-testid="details-tab-fidelity"
+    >
+      <DetailSection
+        title="Recording status"
+        description="How capture ended and whether final processing is complete."
+        icon={recordingStatusIcon}
+        testId="details-section-recording-status"
+      >
+        <div className="py-3">
+          {sealedReasonCopy ? (
+            <div
+              className={`flex items-start gap-3 rounded-lg border px-3 py-3 ${
+                sealedReasonTone === "warn"
+                  ? "border-amber-200 bg-amber-50"
+                  : sealedReasonTone === "success"
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-blue-200 bg-blue-50"
+              }`}
+              data-testid="replay-details-sealed-reason"
+              data-tone={sealedReasonTone}
+              data-state-icon={
+                sealedReasonTone === "warn"
+                  ? "alert"
+                  : sealedReasonTone === "success"
+                    ? "check-circle"
+                    : "info"
+              }
+            >
+              <Icon
+                icon={
+                  sealedReasonTone === "warn"
+                    ? IconProp.Alert
+                    : sealedReasonTone === "success"
+                      ? IconProp.CheckCircle
+                      : IconProp.Info
+                }
+                className={`mt-0.5 h-5 w-5 shrink-0 ${
+                  sealedReasonTone === "warn"
+                    ? "text-amber-600"
+                    : sealedReasonTone === "success"
+                      ? "text-emerald-600"
+                      : "text-blue-600"
+                }`}
+              />
+              <div>
+                <div
+                  className={`text-sm font-semibold ${
+                    sealedReasonTone === "warn"
+                      ? "text-amber-900"
+                      : sealedReasonTone === "success"
+                        ? "text-emerald-900"
+                        : "text-blue-900"
+                  }`}
+                >
+                  {sealedReasonCopy.title}
+                </div>
+                <p
+                  className={`mt-0.5 text-xs leading-5 ${
+                    sealedReasonTone === "warn"
+                      ? "text-amber-800"
+                      : sealedReasonTone === "success"
+                        ? "text-emerald-800"
+                        : "text-blue-800"
+                  }`}
+                >
+                  {sealedReasonCopy.description}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
+              data-testid="replay-details-sealed-reason"
+            >
+              <Icon
+                icon={isStillRecording ? IconProp.Clock : IconProp.Info}
+                className="mt-0.5 h-5 w-5 shrink-0 text-gray-500"
+              />
+              <p className="text-xs leading-5 text-gray-600">
+                {isStillRecording
+                  ? "Still recording - the session has not been sealed yet, so more chunks may arrive."
+                  : hasRecordingEnded
+                    ? "Every tab of this session has closed, so nothing more is being recorded."
+                    : "The recorder did not report why this recording ended."}
+              </p>
+            </div>
+          )}
+          {hasRecordingEnded && (
+            <div
+              className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs leading-5 text-blue-800 ring-1 ring-inset ring-blue-100"
+              data-testid="replay-details-finalizing"
+            >
+              <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                Still being finalized: duration, pages and signals are counted
+                shortly, when the session is finalized.
+              </p>
+            </div>
+          )}
         </div>
-      ) : (
-        <div
-          className="text-xs text-gray-500"
-          data-testid="replay-details-sealed-reason"
-        >
-          {isStillRecording
-            ? "Still recording - the session has not been sealed yet, so more chunks may arrive."
-            : hasRecordingEnded
-              ? "Every tab of this session has closed, so nothing more is being recorded."
-              : "The recorder did not report why this recording ended."}
-        </div>
-      )}
-      {hasRecordingEnded && (
-        <div
-          className="mt-1 text-xs text-gray-500"
-          data-testid="replay-details-finalizing"
-        >
-          Still being finalized: duration, pages and signals are counted
-          shortly, when the session is finalized.
-        </div>
-      )}
+      </DetailSection>
 
-      <div className="mb-2 mt-4 text-xs font-medium text-gray-700">
-        Recording gaps ({props.gaps.length})
-      </div>
-      {props.gaps.length === 0 && (
-        <div className="text-xs text-gray-500">
-          No chunks are missing from this recording.
+      <DetailSection
+        title="Recording gaps"
+        description="Missing chunks can create jumps in playback."
+        icon={IconProp.SignalSlash}
+        testId="details-section-gaps"
+        badge={props.gaps.length}
+      >
+        <div className="space-y-2 py-3">
+          {props.gaps.length === 0 && (
+            <div
+              className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800 ring-1 ring-inset ring-emerald-100"
+              data-testid="replay-details-gaps-empty"
+            >
+              <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
+              No chunks are missing from this recording.
+            </div>
+          )}
+          {props.gaps.map(
+            (gap: SessionReplayGap, index: number): ReactElement => {
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900"
+                  data-testid="replay-details-gap"
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+                  />
+                  <span>
+                    {formatReplayMilliseconds(gap.missingMs)} missing between
+                    chunk {gap.fromIndex} and chunk {gap.toIndex}
+                  </span>
+                </div>
+              );
+            },
+          )}
         </div>
-      )}
-      <div className="space-y-1">
-        {props.gaps.map(
-          (gap: SessionReplayGap, index: number): ReactElement => {
+      </DetailSection>
+
+      <DetailSection
+        title="Capture limitations"
+        description="Page content the browser could not include in the replay."
+        icon={IconProp.EyeSlash}
+        testId="details-section-limitations"
+        badge={props.fidelityNotices.length}
+      >
+        <div className="space-y-2 py-3">
+          {props.fidelityNotices.length === 0 && (
+            <div
+              className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800 ring-1 ring-inset ring-emerald-100"
+              data-testid="replay-details-limitations-empty"
+            >
+              <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
+              The recorder reported no capture limitations for this session.
+            </div>
+          )}
+          {orderedNotices.map((notice: string): ReactElement => {
+            const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
+            const isPlayback: boolean =
+              getFidelityNoticeSeverity(notice) === "playback";
+
             return (
               <div
-                key={index}
-                className="text-xs text-amber-800"
-                data-testid="replay-details-gap"
+                key={notice}
+                className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 ${
+                  isPlayback
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-gray-200 bg-gray-50"
+                }`}
+                data-testid="replay-details-notice"
               >
-                {formatReplayMilliseconds(gap.missingMs)} missing between chunk{" "}
-                {gap.fromIndex} and chunk {gap.toIndex}
+                <Icon
+                  icon={isPlayback ? IconProp.Alert : IconProp.Info}
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${
+                    isPlayback ? "text-amber-600" : "text-gray-400"
+                  }`}
+                />
+                <div>
+                  <div
+                    className={`text-xs font-semibold ${
+                      isPlayback ? "text-amber-900" : "text-gray-800"
+                    }`}
+                  >
+                    {copy.title}
+                  </div>
+                  <p
+                    className={`mt-0.5 text-xs leading-5 ${
+                      isPlayback ? "text-amber-800" : "text-gray-500"
+                    }`}
+                  >
+                    {copy.description}
+                  </p>
+                </div>
               </div>
             );
-          },
-        )}
-      </div>
-
-      <div className="mb-2 mt-4 text-xs font-medium text-gray-700">
-        Not captured ({props.fidelityNotices.length})
-      </div>
-      {props.fidelityNotices.length === 0 && (
-        <div className="text-xs text-gray-500">
-          The recorder reported no capture limitations for this session.
+          })}
         </div>
-      )}
-      <div className="space-y-2">
-        {orderedNotices.map((notice: string): ReactElement => {
-          const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
-          const isPlayback: boolean =
-            getFidelityNoticeSeverity(notice) === "playback";
-
-          return (
-            <div
-              key={notice}
-              className="text-xs"
-              data-testid="replay-details-notice"
-            >
-              <div
-                className={`font-medium ${
-                  isPlayback ? "text-amber-800" : "text-gray-800"
-                }`}
-              >
-                {copy.title}
-              </div>
-              <div className="text-gray-500">{copy.description}</div>
-            </div>
-          );
-        })}
-      </div>
+      </DetailSection>
 
       {(props.missingAssets?.length ?? 0) > 0 && (
-        <React.Fragment>
-          <div className="mb-2 mt-4 text-xs font-medium text-gray-700">
-            Missing assets ({props.missingAssets?.length ?? 0})
-          </div>
-          <div className="space-y-1">
+        <DetailSection
+          title="Missing assets"
+          description="Resources referenced by the page but unavailable to playback."
+          icon={IconProp.LinkSlash}
+          testId="details-section-missing-assets"
+          badge={props.missingAssets?.length ?? 0}
+        >
+          <div className="space-y-2 py-3">
             {(props.missingAssets ?? []).map((asset: string): ReactElement => {
               return (
                 <div
                   key={asset}
-                  className="truncate text-xs text-gray-600"
+                  className="truncate rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-xs text-gray-600"
                   title={asset}
                 >
                   {asset}
@@ -742,7 +1460,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               );
             })}
           </div>
-        </React.Fragment>
+        </DetailSection>
       )}
     </div>
   );
@@ -772,7 +1490,17 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
     <TelemetryDetailPanel
       isOpen={props.isOpen}
       title="Session details"
-      subtitle={props.sessionId}
+      subtitle={
+        <span title={props.sessionId}>
+          Session <span className="font-mono">{shortSessionId}</span>
+        </span>
+      }
+      headerActions={
+        <DetailCopyButton
+          value={props.sessionId}
+          title="Copy full Session ID"
+        />
+      }
       onClose={props.onClose}
       tabs={tabs}
       activeTabId={activeTabId}

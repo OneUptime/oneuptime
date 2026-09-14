@@ -1102,7 +1102,7 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.JSON,
     title: "Session Replay Allowed Origins",
     description:
-      "Exact browser origins (scheme + host + port) allowed to upload session replay chunks for this application. Empty (the default) accepts any origin. Once you list an origin this becomes a strict allowlist: anything unlisted, and any request with no Origin header, is refused.",
+      "Browser origins (scheme + host + port) and exact React Native app identities (app:// followed by the Android package or iOS bundle id) allowed to upload replays for this application. Empty (the default) accepts any sender. Web origins may use one leading host wildcard; app:// identities never allow wildcards. Once populated, browsers must send a listed Origin and native recorders without Origin must send a listed app identity.",
   })
   @Column({
     type: ColumnType.JSON,

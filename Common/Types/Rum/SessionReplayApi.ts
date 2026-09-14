@@ -549,6 +549,20 @@ export interface SessionReplayViewsResponseDto {
 
 export interface SessionReplayForExceptionRequestDto {
   fingerprint: string;
+  /*
+   * Optional exception-group scope. Fingerprints are unique only within a
+   * primary entity, so callers that know the group must send this to avoid
+   * matching an identically fingerprinted exception from another service.
+   */
+  primaryEntityId?: string;
+  /*
+   * New callers send this wire value with primaryEntityId. The server validates
+   * it against ServiceType before using it; keeping the transport contract a
+   * string also keeps this dependency-free Rum module safe to inline in the
+   * browser recorder. The server accepts an ID-only rolling-compatibility
+   * request through a conservative scoped-unknown path.
+   */
+  primaryEntityType?: string;
   /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;
