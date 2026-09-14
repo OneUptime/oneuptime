@@ -978,13 +978,12 @@ router.get(
        * might treat as transient and retry past.
        */
       /*
-       * The published artifact version comes from the build manifest, never
-       * from an env var. Those were two independent answers to one question
-       * and they were never equal: esbuild names the file after package.json's
-       * version (which SyncPackageVersions.js rewrites every release) while
-       * the env var defaulted to a constant. A loader told to fetch a version
-       * that was never published 404s and silently no-ops on the customer's
-       * page - a failure the server cannot see.
+       * The published artifact locator comes from the build manifest, never
+       * from an env var. It contains the recorder bytes' SHA-384 digest, so
+       * rebuilding different bytes at the same package version still creates
+       * a new immutable URL. A loader told to fetch a locator that was never
+       * published 404s and silently no-ops on the customer's page - a failure
+       * the server cannot see.
        *
        * null means nothing has been built, in which case replay reports
        * itself disabled rather than advertising an artifact that is not there.
@@ -1486,9 +1485,9 @@ router.get(
 );
 
 /*
- * The pinned, immutable artifact. Served ONLY for an exact version match:
- * serving today's bytes under yesterday's version number, cached for a year,
- * is unrecoverable in browsers we do not control.
+ * The pinned, immutable artifact. Served ONLY for an exact content-addressed
+ * version match: serving today's bytes under yesterday's locator, cached for
+ * a year, is unrecoverable in browsers we do not control.
  */
 router.get(
   "/session-replay/v:version/recorder.js",

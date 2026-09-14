@@ -17,8 +17,10 @@
  *                changing one config field instead of waiting out a
  *                year-long immutable cache.
  *
- *   recorder.js  served at /telemetry/session-replay/v<semver>/recorder.js,
- *                immutable, SRI-pinned. Contains rrweb.
+ *   recorder.js  served at
+ *                /telemetry/session-replay/v<semver>-sha384-<hex>/recorder.js,
+ *                immutable and content-addressed from the same SHA-384 digest
+ *                used for SRI. Contains rrweb.
  */
 
 const esbuild = require("esbuild");
@@ -302,6 +304,10 @@ function createBaseConfig(isDev) {
       /*
        * Stamped onto every chunk envelope as recorderVersion, so a bad
        * masking release can be identified in ClickHouse after the fact.
+       * This stays the product semver: the longer content-addressed artifact
+       * locator is generated only after recorder.js exists, and envelope
+       * version fields deliberately have a short length limit.
+       *
        * Read through a typeof guard in src/Config.ts so unit tests, which
        * run without this define, still have a value.
        */
@@ -375,13 +381,20 @@ function assertBundleHygiene(filePath, maxBytes, maxGzipBytes) {
   };
 }
 
-function getSriHash(filePath) {
+function getSha384Hash(filePath) {
   const digest = crypto
     .createHash("sha384")
     .update(fs.readFileSync(filePath))
-    .digest("base64");
+    .digest();
 
-  return `sha384-${digest}`;
+  return {
+    hex: digest.toString("hex"),
+    integrity: `sha384-${digest.toString("base64")}`,
+  };
+}
+
+function getContentAddressedRecorderVersion(packageVersion, sha384Hex) {
+  return `${packageVersion}-sha384-${sha384Hex}`;
 }
 
 async function buildAll() {
@@ -440,24 +453,43 @@ async function buildAll() {
     LOADER_MAX_GZIP_BYTES,
   );
 
+  const recorderHash = getSha384Hash(recorderPath);
+  const loaderHash = getSha384Hash(loaderPath);
+  const recorderVersion = getContentAddressedRecorderVersion(
+    packageJson.version,
+    recorderHash.hex,
+  );
+
+  if (!RECORDER_VERSION_PATTERN.test(recorderVersion)) {
+    throw new Error(
+      `Generated recorder version "${recorderVersion}" is not a semver the ` +
+        `loader will accept.`,
+    );
+  }
+
   /*
    * The manifest is what the config endpoint reads to tell a live recorder
    * which pinned artifact to load, and what integrity attribute to put on
    * the injected script tag.
+   *
+   * recorderVersion includes recorder.js's full SHA-384 digest. Rebuilding
+   * different bytes under the same package version therefore creates a new
+   * immutable URL instead of making a browser compare fresh SRI metadata
+   * with year-cached bytes from an older build.
    */
   const manifest = {
-    recorderVersion: packageJson.version,
+    recorderVersion: recorderVersion,
     rrwebVersion: packageJson.dependencies.rrweb,
     files: {
       "recorder.js": {
         bytes: recorderSizes.fileBytes,
         gzipBytes: recorderSizes.gzipBytes,
-        integrity: getSriHash(recorderPath),
+        integrity: recorderHash.integrity,
       },
       "loader.js": {
         bytes: loaderSizes.fileBytes,
         gzipBytes: loaderSizes.gzipBytes,
-        integrity: getSriHash(loaderPath),
+        integrity: loaderHash.integrity,
       },
     },
   };

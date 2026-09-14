@@ -10,6 +10,8 @@ import Config, {
   getRecorderCapabilities,
 } from "../src/Config";
 
+const CONTENT_ADDRESSED_VERSION: string = `11.7.3-sha384-${"a".repeat(96)}`;
+
 describe("Config", (): void => {
   const validBody: Record<string, unknown> = {
     enabled: true,
@@ -209,12 +211,14 @@ describe("Config", (): void => {
      * produced a <script src> pointing somewhere else entirely on the ingest
      * origin. Only a semver the build could have stamped is accepted.
      */
-    it("refuses a recorder version that is not a plain semver", (): void => {
+    it("refuses a recorder version outside the path-safe grammar", (): void => {
       const rejected: Array<string> = [
         "../../../admin",
         "1.0.0/../../evil",
         "1.0.0?x=1",
         "1.0.0#frag",
+        "1.0.0+sha384.digest",
+        "1.0.0-sha384-abc=",
         "v1.0.0",
         "1.0",
         "latest",
@@ -231,8 +235,13 @@ describe("Config", (): void => {
       }
     });
 
-    it("accepts the semver shapes the build can actually stamp", (): void => {
-      for (const version of ["1.0.0", "11.7.3", "12.0.0-beta.1"]) {
+    it("accepts legacy and content-addressed versions", (): void => {
+      for (const version of [
+        "1.0.0",
+        "11.7.3",
+        "12.0.0-beta.1",
+        CONTENT_ADDRESSED_VERSION,
+      ]) {
         expect(Config.isValidRecorderVersion(version)).toBe(true);
         expect(
           Config.validateConfig({ enabled: true, recorderVersion: version })
@@ -517,8 +526,8 @@ describe("Config", (): void => {
       expect(getChunkUrl(options)).toBe(
         "https://oneuptime.com/telemetry/session-replay/v1/chunk",
       );
-      expect(Config.getArtifactUrl(options, "11.7.3")).toBe(
-        "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js",
+      expect(Config.getArtifactUrl(options, CONTENT_ADDRESSED_VERSION)).toBe(
+        `https://oneuptime.com/telemetry/session-replay/v${CONTENT_ADDRESSED_VERSION}/recorder.js`,
       );
     });
 
@@ -530,7 +539,7 @@ describe("Config", (): void => {
       for (const url of [
         Config.getConfigUrl(options),
         getChunkUrl(options),
-        Config.getArtifactUrl(options, "11.7.3"),
+        Config.getArtifactUrl(options, CONTENT_ADDRESSED_VERSION),
       ]) {
         expect(url).toContain("/telemetry/session-replay");
       }

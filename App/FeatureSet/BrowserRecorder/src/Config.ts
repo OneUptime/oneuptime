@@ -104,17 +104,18 @@ export function getRecorderCapabilities(options?: {
   );
 }
 
-/* Where the pinned, immutable artifact lives. */
+/* Where the pinned, content-addressed immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
 /*
  * recorderVersion is interpolated straight into an artifact URL path, so
  * "non-empty string" is not a sufficient check: a config value of
  * "../../../admin" would produce a request to an entirely different path on
- * the ingest origin. Semver is also exactly what the build stamps (see
- * esbuild.config.js, which asserts package.json's version against this same
- * shape), so anything that does not match cannot correspond to a published
- * artifact and the only safe response is to refuse to record.
+ * the ingest origin. The build emits the package semver plus a SHA-384 hex
+ * suffix (see esbuild.config.js), which stays inside this path-safe grammar.
+ * Bare semvers remain accepted for compatibility with older servers;
+ * anything outside the grammar cannot correspond to a published artifact
+ * and the only safe response is to refuse to record.
  *
  * Kept in sync with RECORDER_VERSION_PATTERN in esbuild.config.js and
  * Manifest.ts - there is a test asserting all three agree.
@@ -456,7 +457,8 @@ export default class Config {
 
   /*
    * Returns null rather than a best-effort URL when the version is not a
-   * semver the build could have produced. The caller then loads nothing,
+   * path-safe semver the build could have produced. The caller then loads
+   * nothing,
    * which is the same fail-closed outcome as a config fetch that failed:
    * a <script src> assembled from an unvalidated config value is a request
    * to an attacker-chosen path on the ingest origin.
