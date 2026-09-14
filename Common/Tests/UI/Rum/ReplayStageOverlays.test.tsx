@@ -336,10 +336,23 @@ describe("ReplayStageOverlays", () => {
       expect(props.onTextSelectionChange).toHaveBeenLastCalledWith(false);
     });
 
-    it("disables text selection when there is no replay document", () => {
-      renderOverlays({ canSelectText: false });
+    it("keeps the error and retry UI available when there is no replay document", () => {
+      renderOverlays({
+        canSelectText: false,
+        isTextSelectionEnabled: true,
+        snapshot: makeSnapshot({
+          buffer: "halted",
+          error: { message: "Playback stopped", retryable: true },
+        }),
+      });
 
       expect(screen.getByTestId("replay-select-text")).toBeDisabled();
+      expect(screen.getByTestId("replay-select-text")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      expect(screen.getByTestId("replay-overlay-error")).toBeInTheDocument();
+      expect(screen.getByTestId("replay-overlay-retry")).toBeInTheDocument();
     });
 
     it("says the URL is not recorded yet rather than showing a blank", () => {
@@ -929,6 +942,38 @@ describe("ReplayStageOverlays", () => {
       expect(
         screen.getByTestId("replay-overlay-shell-notice"),
       ).toHaveTextContent("Opened at the moment of the linked log line");
+    });
+
+    it("removes every top-strip obstruction while selecting replay text", () => {
+      renderOverlays({
+        snapshot: makeSnapshot({
+          intent: "paused",
+          idleBands: [
+            {
+              startMs: 40000,
+              endMs: 82000,
+              kind: "idle",
+              fidelity: "exact",
+            },
+          ],
+          notice: {
+            kind: "seek-clamped",
+            message: "The seek landed on the first available snapshot",
+            requestedMs: 1000,
+            landedAtMs: 40000,
+          },
+        }),
+        shellNotice: "Opened at the linked event",
+        isTextSelectionEnabled: true,
+      });
+
+      expect(screen.queryByTestId("replay-idle-chip")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-overlay-notice"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-overlay-shell-notice"),
+      ).not.toBeInTheDocument();
     });
   });
 

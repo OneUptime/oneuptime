@@ -292,7 +292,9 @@ describe("read-only text selection", () => {
   test("the same selection state is wired to the toolbar and replay stage", () => {
     expect(SOURCE).toContain("isTextSelectionEnabled: isTextSelectionEnabled");
     expect(SOURCE).toContain("onTextSelectionChange: changeTextSelection");
-    expect(SOURCE).toContain("canSelectText: isPlayable && engine !== null");
+    expect(SOURCE).toContain(
+      "isPlayable && engine !== null && isReplayDocumentReady",
+    );
 
     const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
     expect(stageProps).toContain(
@@ -309,6 +311,28 @@ describe("read-only text selection", () => {
 
     expect(manifestReset).toContain("setEngine(null)");
     expect(manifestReset).toContain("setIsTextSelectionEnabled(false)");
+    expect(manifestReset).toContain("setIsReplayDocumentReady(false)");
+  });
+
+  test("the toggle becomes available only while a real replay document exists", () => {
+    const replayerLifecycle: string = slice(
+      SOURCE,
+      "return engine.onReplayer((event: ReplayEngineReplayerEvent): void =>",
+      "const store: ReplayBackendSignalsStore",
+    );
+
+    expect(SOURCE).toContain(
+      "const [isReplayDocumentReady, setIsReplayDocumentReady]",
+    );
+    expect(replayerLifecycle).toContain('event.type === "created"');
+    expect(replayerLifecycle).toContain(
+      'event.type === "fullsnapshot-rebuilded"',
+    );
+    expect(replayerLifecycle).toContain(
+      "event.replayer.iframe.contentDocument",
+    );
+    expect(replayerLifecycle).toContain("setIsReplayDocumentReady(false)");
+    expect(replayerLifecycle).toContain("setIsTextSelectionEnabled(false)");
   });
 });
 

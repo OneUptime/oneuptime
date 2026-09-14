@@ -554,6 +554,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [isTheater, setIsTheater] = useState<boolean>(false);
   const [isTextSelectionEnabled, setIsTextSelectionEnabled] =
     useState<boolean>(false);
+  const [isReplayDocumentReady, setIsReplayDocumentReady] =
+    useState<boolean>(false);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
     urlState.signalId,
@@ -720,6 +722,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     pendingTextSelectionActionRef.current = null;
     isTextSelectionEnabledRef.current = false;
     setIsTextSelectionEnabled(false);
+    setIsReplayDocumentReady(false);
     hasRevealedSignalRef.current = false;
 
     /*
@@ -1014,6 +1017,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return engine.onReplayer((event: ReplayEngineReplayerEvent): void => {
       if (event.type === "created") {
         replayerRef.current = event.replayer;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
 
         if (!prefs.mouseTrail) {
           try {
@@ -1022,11 +1028,35 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             /* A config rrweb rejects is cosmetic; playback continues. */
           }
         }
+      } else if (event.type === "fullsnapshot-rebuilded") {
+        replayerRef.current = event.replayer;
+
+        try {
+          const replayDocument: Document | null =
+            event.replayer.iframe.contentDocument;
+          const isReady: boolean =
+            replayDocument !== null &&
+            replayDocument.documentElement !== null &&
+            replayDocument.body !== null;
+          setIsReplayDocumentReady(isReady);
+
+          if (!isReady) {
+            isTextSelectionEnabledRef.current = false;
+            setIsTextSelectionEnabled(false);
+          }
+        } catch {
+          setIsReplayDocumentReady(false);
+          isTextSelectionEnabledRef.current = false;
+          setIsTextSelectionEnabled(false);
+        }
       } else if (
         event.type === "destroyed" &&
         replayerRef.current === event.replayer
       ) {
         replayerRef.current = null;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
       }
     });
   }, [engine, prefs.mouseTrail]);
@@ -2673,7 +2703,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   scale: scale,
                   fit: fit,
                   onFitChange: setFit,
-                  canSelectText: isPlayable && engine !== null,
+                  canSelectText:
+                    isPlayable && engine !== null && isReplayDocumentReady,
                   isTextSelectionEnabled: isTextSelectionEnabled,
                   onTextSelectionChange: changeTextSelection,
                   onPlayPause: playPause,

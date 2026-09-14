@@ -168,18 +168,43 @@ const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
 const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
   "data-oneuptime-replay-shadow-text-selection-style";
 
-/*
- * One listener set per Document. A full-snapshot rebuild replaces <html> and
- * <head>, but keeps the Document object; the WeakSet prevents duplicate
- * guards while still allowing a destroyed Replayer and its document to be
- * collected.
- */
-const guardedReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
 const enabledReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
 const observedReplayFrames: WeakSet<HTMLIFrameElement> =
   new WeakSet<HTMLIFrameElement>();
-const observedReplayShadowRoots: WeakSet<ShadowRoot> =
-  new WeakSet<ShadowRoot>();
+const replayDocumentMutationObservers: WeakMap<Document, MutationObserver> =
+  new WeakMap<Document, MutationObserver>();
+const replayRootSelectionAttributes: WeakMap<
+  Document,
+  Map<HTMLElement, string | null>
+> = new WeakMap<Document, Map<HTMLElement, string | null>>();
+const replayDocumentSelectionStyles: WeakMap<
+  Document,
+  Set<HTMLStyleElement>
+> = new WeakMap<Document, Set<HTMLStyleElement>>();
+interface ReplayShadowRootState {
+  observer: MutationObserver | null;
+  style: HTMLStyleElement | null;
+}
+const replayShadowRootStates: WeakMap<
+  Document,
+  Map<ShadowRoot, ReplayShadowRootState>
+> = new WeakMap<Document, Map<ShadowRoot, ReplayShadowRootState>>();
+interface ReplayNavigationTargetAttributes {
+  href: string | null;
+  xlinkHref: string | null;
+}
+const replayNavigationTargetHrefs: WeakMap<
+  Document,
+  Map<Element, ReplayNavigationTargetAttributes>
+> = new WeakMap<Document, Map<Element, ReplayNavigationTargetAttributes>>();
+const XLINK_NAMESPACE: string = "http://www.w3.org/1999/xlink";
+/*
+ * A fixed no-op keeps :link selectors intact without giving native browser
+ * menus a destination. The replay iframe has no allow-scripts sandbox token
+ * and REPLAY_DOCUMENT_CSP also declares script-src 'none', so even a browser
+ * UI action that bypasses DOM events cannot evaluate this URL.
+ */
+const DISABLED_REPLAY_NAVIGATION_URL: string = "javascript:void(0)";
 interface ReplayScrollPosition {
   left: number;
   top: number;
@@ -192,6 +217,17 @@ const replayInlineStyles: WeakMap<
   Document,
   Map<Element, string | null>
 > = new WeakMap<Document, Map<Element, string | null>>();
+interface ReplayFrameInteractionAttributes {
+  inert: string | null;
+  tabIndex: string | null;
+}
+const replayFrameInteractionAttributes: WeakMap<
+  Document,
+  Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+> = new WeakMap<
+  Document,
+  Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+>();
 
 function applyReplayInlineStyle(
   doc: Document,
@@ -246,6 +282,205 @@ function restoreReplayInlineStyles(doc: Document): void {
   }
 
   replayInlineStyles.delete(doc);
+}
+
+function getReplayFrameInteractionAttributes(
+  doc: Document,
+  frame: HTMLIFrameElement,
+): ReplayFrameInteractionAttributes {
+  let frames:
+    | Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+    | undefined = replayFrameInteractionAttributes.get(doc);
+
+  if (!frames) {
+    frames = new Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>();
+    replayFrameInteractionAttributes.set(doc, frames);
+  }
+
+  let attributes: ReplayFrameInteractionAttributes | undefined =
+    frames.get(frame);
+
+  if (!attributes) {
+    attributes = {
+      inert: frame.getAttribute("inert"),
+      tabIndex: frame.getAttribute("tabindex"),
+    };
+    frames.set(frame, attributes);
+  }
+
+  return attributes;
+}
+
+function restoreReplayFrameInteractionAttributes(doc: Document): void {
+  const frames:
+    | Map<HTMLIFrameElement, ReplayFrameInteractionAttributes>
+    | undefined = replayFrameInteractionAttributes.get(doc);
+
+  if (!frames) {
+    return;
+  }
+
+  for (const [frame, attributes] of frames) {
+    for (const [name, value] of [
+      ["inert", attributes.inert],
+      ["tabindex", attributes.tabIndex],
+    ] as const) {
+      if (value === null) {
+        frame.removeAttribute(name);
+      } else {
+        frame.setAttribute(name, value);
+      }
+    }
+  }
+
+  replayFrameInteractionAttributes.delete(doc);
+}
+
+function markReplayDocumentRoot(doc: Document, root: HTMLElement): void {
+  let roots: Map<HTMLElement, string | null> | undefined =
+    replayRootSelectionAttributes.get(doc);
+
+  if (!roots) {
+    roots = new Map<HTMLElement, string | null>();
+    replayRootSelectionAttributes.set(doc, roots);
+  }
+
+  if (!roots.has(root)) {
+    roots.set(root, root.getAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE));
+  }
+
+  root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+}
+
+function restoreReplayDocumentRoots(doc: Document): void {
+  const roots: Map<HTMLElement, string | null> | undefined =
+    replayRootSelectionAttributes.get(doc);
+
+  if (!roots) {
+    return;
+  }
+
+  for (const [root, previous] of roots) {
+    if (previous === null) {
+      root.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
+    } else {
+      root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, previous);
+    }
+  }
+
+  replayRootSelectionAttributes.delete(doc);
+}
+
+function ensureReplayDocumentSelectionStyle(
+  doc: Document,
+  head: HTMLHeadElement,
+): void {
+  let styles: Set<HTMLStyleElement> | undefined =
+    replayDocumentSelectionStyles.get(doc);
+
+  if (!styles) {
+    styles = new Set<HTMLStyleElement>();
+    replayDocumentSelectionStyles.set(doc, styles);
+  }
+
+  for (const style of styles) {
+    if (style.parentNode === head) {
+      return;
+    }
+  }
+
+  const style: HTMLStyleElement = doc.createElement("style");
+  style.setAttribute(REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
+  style.textContent = REPLAY_TEXT_SELECTION_CSS;
+  head.appendChild(style);
+  styles.add(style);
+}
+
+function removeReplayDocumentSelectionStyles(doc: Document): void {
+  const styles: Set<HTMLStyleElement> | undefined =
+    replayDocumentSelectionStyles.get(doc);
+
+  if (!styles) {
+    return;
+  }
+
+  for (const style of styles) {
+    style.remove();
+  }
+
+  replayDocumentSelectionStyles.delete(doc);
+}
+
+function neutralizeReplayNavigationTargets(
+  doc: Document,
+  root: ParentNode,
+): void {
+  const targets: NodeListOf<Element> = root.querySelectorAll("a, area");
+  let hrefs: Map<Element, ReplayNavigationTargetAttributes> | undefined =
+    replayNavigationTargetHrefs.get(doc);
+
+  for (const target of Array.from(targets)) {
+    const href: string | null = target.getAttribute("href");
+    const xlinkHref: string | null = target.getAttributeNS(
+      XLINK_NAMESPACE,
+      "href",
+    );
+
+    if (href === null && xlinkHref === null) {
+      continue;
+    }
+
+    if (!hrefs) {
+      hrefs = new Map<Element, ReplayNavigationTargetAttributes>();
+      replayNavigationTargetHrefs.set(doc, hrefs);
+    }
+
+    if (!hrefs.has(target)) {
+      hrefs.set(target, { href: href, xlinkHref: xlinkHref });
+    }
+
+    /*
+     * Keep :link/:any-link/a[href] matching so the paused picture does not
+     * reflow, but replace native context-menu/callout destinations with a
+     * harmless document. Capture listeners remain the first line of defence.
+     */
+    if (href !== null) {
+      target.setAttribute("href", DISABLED_REPLAY_NAVIGATION_URL);
+    }
+
+    if (xlinkHref !== null) {
+      target.setAttributeNS(
+        XLINK_NAMESPACE,
+        "xlink:href",
+        DISABLED_REPLAY_NAVIGATION_URL,
+      );
+    }
+  }
+}
+
+function restoreReplayNavigationTargets(doc: Document): void {
+  const hrefs: Map<Element, ReplayNavigationTargetAttributes> | undefined =
+    replayNavigationTargetHrefs.get(doc);
+
+  if (!hrefs) {
+    return;
+  }
+
+  for (const [target, attributes] of hrefs) {
+    if (attributes.href !== null) {
+      target.setAttribute("href", attributes.href);
+    }
+
+    if (attributes.xlinkHref !== null) {
+      target.setAttributeNS(
+        XLINK_NAMESPACE,
+        "xlink:href",
+        attributes.xlinkHref,
+      );
+    }
+  }
+
+  replayNavigationTargetHrefs.delete(doc);
 }
 
 function getReplayScrollPositions(
@@ -353,6 +588,10 @@ function restoreReplayScrollPosition(
 }
 
 function preventReplayDefault(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
   event.preventDefault();
 }
 
@@ -457,6 +696,10 @@ function rememberReplayScrollPositions(event: Event): void {
  * textareas remain pointer-selectable; every other native control is inert.
  */
 function preventReplayControlPointerMutation(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
   rememberReplayScrollPositions(event);
   const control: Element | null = closestReplayEventElement(
     event,
@@ -474,6 +717,10 @@ function preventReplayControlPointerMutation(event: Event): void {
  * but suppress keys that could edit or operate that recorded control.
  */
 function preventReplayKeyboardMutation(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
   const keyboardEvent: KeyboardEvent = event as KeyboardEvent;
   const key: string = keyboardEvent.key.toLowerCase();
   const interactive: Element | null = closestReplayEventElement(
@@ -539,9 +786,103 @@ function preventReplayKeyboardMutation(event: Event): void {
   }
 }
 
+/*
+ * Keep the native copy menu available over ordinary text (including link
+ * text, whose destination is neutralised separately), but do not expose
+ * browser actions that can reload or navigate a captured frame.
+ */
+function preventReplayNavigationContextMenu(event: Event): void {
+  if (!enabledReplayDocuments.has(event.currentTarget as Document)) {
+    return;
+  }
+
+  if (closestReplayEventElement(event, "iframe")) {
+    event.preventDefault();
+  }
+}
+
+const REPLAY_DEFAULT_GUARD_EVENTS: ReadonlyArray<string> = [
+  "click",
+  "auxclick",
+  "submit",
+  "beforeinput",
+  "paste",
+  "cut",
+  "dragstart",
+  "drop",
+  "wheel",
+  "touchmove",
+];
+const REPLAY_POINTER_GUARD_EVENTS: ReadonlyArray<string> = [
+  "pointerdown",
+  "mousedown",
+  "touchstart",
+];
+
+function removeReplayDocumentGuards(doc: Document): void {
+  for (const type of REPLAY_DEFAULT_GUARD_EVENTS) {
+    doc.removeEventListener(type, preventReplayDefault, true);
+  }
+
+  for (const type of REPLAY_POINTER_GUARD_EVENTS) {
+    doc.removeEventListener(type, preventReplayControlPointerMutation, true);
+  }
+
+  doc.removeEventListener("keydown", preventReplayKeyboardMutation, true);
+  doc.removeEventListener(
+    "contextmenu",
+    preventReplayNavigationContextMenu,
+    true,
+  );
+  replayDocumentMutationObservers.get(doc)?.disconnect();
+  replayDocumentMutationObservers.delete(doc);
+}
+
+function installReplayDocumentGuards(doc: Document): void {
+  /*
+   * rrweb rebuilds a FullSnapshot with document.open(). Chromium keeps the
+   * Document identity but removes its listeners, so a WeakSet cannot tell us
+   * whether guards still exist. Removing the stable callbacks first makes
+   * installation idempotent and also repairs that rebuild case.
+   */
+  removeReplayDocumentGuards(doc);
+
+  for (const type of REPLAY_DEFAULT_GUARD_EVENTS) {
+    doc.addEventListener(type, preventReplayDefault, {
+      capture: true,
+      passive: false,
+    });
+  }
+
+  for (const type of REPLAY_POINTER_GUARD_EVENTS) {
+    doc.addEventListener(type, preventReplayControlPointerMutation, {
+      capture: true,
+      passive: false,
+    });
+  }
+
+  doc.addEventListener("keydown", preventReplayKeyboardMutation, true);
+  doc.addEventListener("contextmenu", preventReplayNavigationContextMenu, true);
+
+  const MutationObserverClass: typeof MutationObserver | undefined =
+    doc.defaultView?.MutationObserver;
+
+  if (MutationObserverClass) {
+    const observer: MutationObserver = new MutationObserverClass((): void => {
+      if (enabledReplayDocuments.has(doc)) {
+        enableNestedReplayDocuments(doc);
+        enableReplayShadowRoots(doc, doc);
+      }
+    });
+    observer.observe(doc, { childList: true, subtree: true });
+    replayDocumentMutationObservers.set(doc, observer);
+  }
+}
+
 /* Recorded open shadow roots need their own cascade and mutation observer. */
 function enableReplayShadowRoots(root: ParentNode, doc: Document): void {
   rememberReplayRootScrollPositions(doc, root);
+  neutralizeReplayNavigationTargets(doc, root);
   const elements: NodeListOf<Element> = root.querySelectorAll("*");
 
   for (const element of Array.from(elements)) {
@@ -551,34 +892,41 @@ function enableReplayShadowRoots(root: ParentNode, doc: Document): void {
       continue;
     }
 
-    if (
-      !shadowRoot.querySelector(
-        `style[${REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE}]`,
-      )
-    ) {
+    let states: Map<ShadowRoot, ReplayShadowRootState> | undefined =
+      replayShadowRootStates.get(doc);
+
+    if (!states) {
+      states = new Map<ShadowRoot, ReplayShadowRootState>();
+      replayShadowRootStates.set(doc, states);
+    }
+
+    let state: ReplayShadowRootState | undefined = states.get(shadowRoot);
+
+    if (!state) {
+      const MutationObserverClass: typeof MutationObserver | undefined =
+        doc.defaultView?.MutationObserver;
+      let observer: MutationObserver | null = null;
+
+      if (MutationObserverClass) {
+        observer = new MutationObserverClass((): void => {
+          if (enabledReplayDocuments.has(doc)) {
+            enableReplayShadowRoots(shadowRoot, doc);
+            enableNestedReplayDocuments(doc, shadowRoot);
+          }
+        });
+        observer.observe(shadowRoot, { childList: true, subtree: true });
+      }
+
+      state = { observer: observer, style: null };
+      states.set(shadowRoot, state);
+    }
+
+    if (!state.style || state.style.parentNode !== shadowRoot) {
       const style: HTMLStyleElement = doc.createElement("style");
       style.setAttribute(REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
       style.textContent = REPLAY_SHADOW_TEXT_SELECTION_CSS;
       shadowRoot.appendChild(style);
-    }
-
-    if (!observedReplayShadowRoots.has(shadowRoot)) {
-      const MutationObserverClass: typeof MutationObserver | undefined =
-        doc.defaultView?.MutationObserver;
-
-      if (MutationObserverClass) {
-        const observer: MutationObserver = new MutationObserverClass(
-          (): void => {
-            if (enabledReplayDocuments.has(doc)) {
-              enableReplayShadowRoots(shadowRoot, doc);
-              enableNestedReplayDocuments(doc, shadowRoot);
-            }
-          },
-        );
-        observer.observe(shadowRoot, { childList: true, subtree: true });
-      }
-
-      observedReplayShadowRoots.add(shadowRoot);
+      state.style = style;
     }
 
     enableNestedReplayDocuments(doc, shadowRoot);
@@ -586,20 +934,17 @@ function enableReplayShadowRoots(root: ParentNode, doc: Document): void {
   }
 }
 
-function disableReplayShadowRoots(root: ParentNode): void {
-  const elements: NodeListOf<Element> = root.querySelectorAll("*");
+function disableReplayShadowRoots(doc: Document): void {
+  const states: Map<ShadowRoot, ReplayShadowRootState> | undefined =
+    replayShadowRootStates.get(doc);
 
-  for (const element of Array.from(elements)) {
-    const shadowRoot: ShadowRoot | null = element.shadowRoot;
+  if (!states) {
+    return;
+  }
 
-    if (!shadowRoot) {
-      continue;
-    }
-
-    shadowRoot
-      .querySelector(`style[${REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
-      ?.remove();
-
+  for (const [shadowRoot, state] of states) {
+    state.observer?.disconnect();
+    state.style?.remove();
     const frames: NodeListOf<HTMLIFrameElement> =
       shadowRoot.querySelectorAll<HTMLIFrameElement>("iframe");
 
@@ -612,9 +957,9 @@ function disableReplayShadowRoots(root: ParentNode): void {
         // Cross-origin shadow children were never enabled.
       }
     }
-
-    disableReplayShadowRoots(shadowRoot);
   }
+
+  replayShadowRootStates.delete(doc);
 }
 
 /*
@@ -625,7 +970,8 @@ function disableReplayShadowRoots(root: ParentNode): void {
  * controls toggle, forms submit and inputs diverge from the recording. Native
  * selection only needs the iframe to receive pointer events. The capture
  * guards below keep every state-changing browser default inert while leaving
- * selection, the context menu and the copy event alone.
+ * selection and copy alone. The context menu is available on ordinary text,
+ * but suppressed on recorded navigation targets.
  */
 function enableReplayDocumentTextSelection(doc: Document): void {
   enabledReplayDocuments.add(doc);
@@ -633,68 +979,20 @@ function enableReplayDocumentTextSelection(doc: Document): void {
   const head: HTMLHeadElement | null = doc.head;
 
   if (root) {
-    root.setAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE, "true");
+    markReplayDocumentRoot(doc, root);
   }
 
-  if (
-    head &&
-    !head.querySelector(`style[${REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
-  ) {
-    const style: HTMLStyleElement = doc.createElement("style");
-    style.setAttribute(REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE, "true");
-    style.textContent = REPLAY_TEXT_SELECTION_CSS;
-    head.appendChild(style);
+  if (head) {
+    ensureReplayDocumentSelectionStyle(doc, head);
   }
 
-  if (!guardedReplayDocuments.has(doc)) {
-    /*
-     * click/auxclick cover links, buttons, checkboxes, details and file
-     * inputs. submit covers keyboard-submitted forms. beforeinput plus the
-     * clipboard and drag events keep inputs/contenteditable nodes read-only
-     * without disabling them (disabled fields cannot select text).
-     */
-    for (const type of [
-      "click",
-      "auxclick",
-      "submit",
-      "beforeinput",
-      "paste",
-      "cut",
-      "dragstart",
-      "drop",
-      "wheel",
-      "touchmove",
-    ]) {
-      doc.addEventListener(type, preventReplayDefault, {
-        capture: true,
-        passive: false,
-      });
-    }
-
-    for (const type of ["pointerdown", "mousedown", "touchstart"]) {
-      doc.addEventListener(type, preventReplayControlPointerMutation, {
-        capture: true,
-        passive: false,
-      });
-    }
-
-    doc.addEventListener("keydown", preventReplayKeyboardMutation, true);
-
-    const MutationObserverClass: typeof MutationObserver | undefined =
-      doc.defaultView?.MutationObserver;
-
-    if (MutationObserverClass) {
-      const observer: MutationObserver = new MutationObserverClass((): void => {
-        if (enabledReplayDocuments.has(doc)) {
-          enableNestedReplayDocuments(doc);
-          enableReplayShadowRoots(doc, doc);
-        }
-      });
-      observer.observe(doc, { childList: true, subtree: true });
-    }
-
-    guardedReplayDocuments.add(doc);
-  }
+  /*
+   * click/auxclick cover links, buttons, checkboxes, details and file inputs.
+   * submit covers keyboard-submitted forms. beforeinput plus clipboard and
+   * drag events keep inputs/contenteditable nodes read-only without disabling
+   * them (disabled fields cannot select text).
+   */
+  installReplayDocumentGuards(doc);
 
   enableNestedReplayDocuments(doc);
   enableReplayShadowRoots(doc, doc);
@@ -710,25 +1008,56 @@ function enableNestedReplayDocuments(
   for (const frame of Array.from(frames)) {
     if (!observedReplayFrames.has(frame)) {
       frame.addEventListener("load", (): void => {
-        try {
-          if (enabledReplayDocuments.has(doc) && frame.contentDocument) {
-            enableReplayDocumentTextSelection(frame.contentDocument);
-          }
-        } catch {
-          // A child that navigated cross-origin is intentionally opaque.
+        if (enabledReplayDocuments.has(doc)) {
+          enableNestedReplayFrame(doc, frame);
         }
       });
       observedReplayFrames.add(frame);
     }
 
-    try {
-      if (frame.contentDocument) {
-        enableReplayDocumentTextSelection(frame.contentDocument);
-      }
-    } catch {
-      // A genuinely cross-origin child remains an opaque recorded frame.
-    }
+    enableNestedReplayFrame(doc, frame);
   }
+}
+
+function enableNestedReplayFrame(
+  parentDocument: Document,
+  frame: HTMLIFrameElement,
+): void {
+  let childDocument: Document | null = null;
+
+  try {
+    childDocument = frame.contentDocument;
+  } catch {
+    // Cross-origin documents are intentionally opaque to the viewer.
+  }
+
+  if (!childDocument) {
+    /*
+     * Events inside an opaque child cannot reach the parent document's
+     * guards. Make the recorded frame inert instead of exposing its links or
+     * controls, and restore its exact inline style when inspection ends.
+     */
+    applyReplayInlineStyle(parentDocument, frame, "pointer-events", "none");
+    getReplayFrameInteractionAttributes(parentDocument, frame);
+    frame.blur();
+    frame.setAttribute("inert", "");
+    frame.setAttribute("tabindex", "-1");
+    return;
+  }
+
+  /* Recorded CSS must not prevent selection inside a safe same-origin child. */
+  const attributes: ReplayFrameInteractionAttributes =
+    getReplayFrameInteractionAttributes(parentDocument, frame);
+  frame.removeAttribute("inert");
+
+  if (attributes.tabIndex === null) {
+    frame.removeAttribute("tabindex");
+  } else {
+    frame.setAttribute("tabindex", attributes.tabIndex);
+  }
+
+  applyReplayInlineStyle(parentDocument, frame, "pointer-events", "auto");
+  enableReplayDocumentTextSelection(childDocument);
 }
 
 function disableReplayDocumentTextSelection(doc: Document): void {
@@ -736,10 +1065,10 @@ function disableReplayDocumentTextSelection(doc: Document): void {
     return;
   }
 
-  doc.documentElement?.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
-  doc.head
-    ?.querySelector(`style[${REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE}]`)
-    ?.remove();
+  removeReplayDocumentGuards(doc);
+
+  restoreReplayDocumentRoots(doc);
+  removeReplayDocumentSelectionStyles(doc);
   doc.defaultView?.getSelection()?.removeAllRanges();
 
   const positions: Map<Element, ReplayScrollPosition> | undefined =
@@ -753,6 +1082,8 @@ function disableReplayDocumentTextSelection(doc: Document): void {
   }
 
   restoreReplayInlineStyles(doc);
+  restoreReplayFrameInteractionAttributes(doc);
+  restoreReplayNavigationTargets(doc);
 
   disableReplayShadowRoots(doc);
 
@@ -1072,6 +1403,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     const unsubscribe: () => void = engine.onReplayer(
       (event: ReplayEngineReplayerEvent): void => {
         if (event.type === "destroyed") {
+          configureReplayTextSelection(event.replayer, false);
           replayersRef.current.delete(event.replayer);
           return;
         }
@@ -1123,6 +1455,11 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
 
     return () => {
       unsubscribe();
+
+      for (const replayer of replayersRef.current) {
+        configureReplayTextSelection(replayer, false);
+      }
+
       replayersRef.current.clear();
 
       for (const timer of timers) {
