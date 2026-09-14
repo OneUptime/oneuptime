@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -123,10 +123,7 @@ const CloudResourceLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Cloud Environment Logs"
-      description="Live OpenTelemetry logs from workloads on this cloud environment. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       <DashboardLogsViewer
         id={`cloud-resource-logs-${modelId.toString()}`}
         logQuery={logQuery}
@@ -135,7 +132,7 @@ const CloudResourceLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found for this cloud environment."
       />
-    </Card>
+    </Fragment>
   );
 };
 

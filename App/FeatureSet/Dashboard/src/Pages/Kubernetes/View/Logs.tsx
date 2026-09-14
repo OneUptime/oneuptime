@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -89,10 +89,7 @@ const KubernetesClusterLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Cluster Logs"
-      description="Live OpenTelemetry logs from all workloads in this Kubernetes cluster. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -130,7 +127,7 @@ const KubernetesClusterLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found for this cluster. Make sure your OTel collector forwards logs with the k8s.cluster.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

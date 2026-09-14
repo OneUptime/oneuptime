@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const ServerlessFunctionLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Function Logs"
-      description="Live OpenTelemetry logs from this serverless function. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * The attribute value is the function's faas.name identifier, which is
        * what the filter must match — but the locked chip would read
@@ -114,7 +111,7 @@ const ServerlessFunctionLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found for this function. Make sure your OTel collector forwards logs with the faas.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

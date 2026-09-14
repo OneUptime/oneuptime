@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const DockerSwarmClusterLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Cluster Logs"
-      description="OpenTelemetry logs ingested with this cluster's docker.swarm.cluster.name resource attribute. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -125,7 +122,7 @@ const DockerSwarmClusterLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found. The Docker Swarm agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this cluster's docker.swarm.cluster.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

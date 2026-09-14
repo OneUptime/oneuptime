@@ -103,43 +103,41 @@ const NetworkDeviceLogs: FunctionComponent<
 
   return (
     <Fragment>
-      <Card
-        title="Device Logs"
-        description="Syslog messages and SNMP traps received from this device."
-      >
-        <DashboardLogsViewer
-          id={`network-device-logs-${modelId.toString()}`}
-          logQuery={logQuery}
-          attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
-          attributeFilterDisplayValues={attributeFilterDisplayValues}
-          showFilters={true}
-          enableRealtime={true}
-          noLogsMessage="No logs received from this device yet. Point the device's syslog and SNMP trap forwarding at the probe and messages will appear here."
-        />
-      </Card>
-      <Card
-        title="Setting up device logging"
-        description="How log data gets here, if this page is empty."
-      >
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>
-            Device logs are collected by your <strong>probe</strong>. It listens
-            for <strong>SNMP traps</strong> on UDP port 162 and for{" "}
-            <strong>syslog</strong> messages on UDP port 5140 (syslog is off by
-            default — enable it with{" "}
-            <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code> on the probe). Point
-            this device&apos;s syslog and trap destinations at the probe&apos;s
-            IP address and messages will appear here within a few minutes.
-          </p>
-          <p className="text-gray-500">
-            On most routers and switches this is two steps: add a remote syslog
-            server pointing at the probe, then add the probe as an SNMP trap
-            receiver. Messages are matched to this device by the sender IP
-            address, which must equal this device&apos;s hostname/IP as
-            registered here.
-          </p>
-        </div>
-      </Card>
+      <DashboardLogsViewer
+        id={`network-device-logs-${modelId.toString()}`}
+        logQuery={logQuery}
+        attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
+        attributeFilterDisplayValues={attributeFilterDisplayValues}
+        showFilters={true}
+        enableRealtime={true}
+        noLogsMessage="No logs received from this device yet. Point the device's syslog and SNMP trap forwarding at the probe and messages will appear here."
+      />
+      <div className="mt-4">
+        <Card
+          title="Setting up device logging"
+          description="How log data gets here, if this page is empty."
+        >
+          <div className="space-y-3 text-sm text-gray-600">
+            <p>
+              Device logs are collected by your <strong>probe</strong>. It
+              listens for <strong>SNMP traps</strong> on UDP port 162 and for{" "}
+              <strong>syslog</strong> messages on UDP port 5140 (syslog is off
+              by default — enable it with{" "}
+              <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code> on the probe).
+              Point this device&apos;s syslog and trap destinations at the
+              probe&apos;s IP address and messages will appear here within a few
+              minutes.
+            </p>
+            <p className="text-gray-500">
+              On most routers and switches this is two steps: add a remote
+              syslog server pointing at the probe, then add the probe as an SNMP
+              trap receiver. Messages are matched to this device by the sender
+              IP address, which must equal this device&apos;s hostname/IP as
+              registered here.
+            </p>
+          </div>
+        </Card>
+      </div>
     </Fragment>
   );
 };
