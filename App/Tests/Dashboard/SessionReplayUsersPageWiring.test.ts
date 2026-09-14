@@ -114,19 +114,13 @@ describe("the toggle is gone from the list", () => {
     expect(filtersSource).not.toMatch(/view:\s*"view"/);
   });
 
-  test("the Users card button and the nudge's See users both go to the new page", () => {
-    /* One navigation helper, used by both. */
+  test("the nudge reaches the Users page without redundant card actions", () => {
     expect(tableSource).toContain(
       "RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS] as Route",
     );
-    expect(tableSource).toContain('title: "Users"');
     expect(tableSource).toMatch(/onShowUsers=\{openUsersPage\}/);
-    expect(tableSource).toMatch(/title: "Users"[\s\S]*?onClick: openUsersPage/);
-
-    /* "Users" sits before "Set up recording" in the card's button row. */
-    expect(tableSource.indexOf('title: "Users"')).toBeLessThan(
-      tableSource.indexOf('title: "Set up recording"'),
-    );
+    expect(tableSource).not.toContain('title: "Users"');
+    expect(tableSource).not.toContain('title: "Set up recording"');
   });
 
   test("the list resolves the Users page's hand-off before its first fetch", () => {

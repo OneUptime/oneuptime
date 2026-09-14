@@ -193,8 +193,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             <div className="space-y-3">
               {renderedColumns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
+                  const customAction: ReactElement | null = column.getElement
+                    ? column.getElement(props.item)
+                    : null;
+
                   return (
                     <div key={i} className="flex flex-wrap gap-2">
+                      {customAction}
                       {error && (
                         <ConfirmModal
                           title={`Error`}
@@ -513,13 +518,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     }
                   }}
                 >
-                  {columnContent !== null && columnContent !== undefined && (
-                    <div className={contentWrapperClassName}>
-                      {columnContent}
-                    </div>
-                  )}
+                  {column.type !== FieldType.Actions &&
+                    columnContent !== null &&
+                    columnContent !== undefined && (
+                      <div className={contentWrapperClassName}>
+                        {columnContent}
+                      </div>
+                    )}
                   {column.type === FieldType.Actions && (
                     <div className={actionsContainerClassName}>
+                      {columnContent}
                       {error && (
                         <div className="text-align-left">
                           <ConfirmModal
