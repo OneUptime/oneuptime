@@ -40,10 +40,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
-import {
-  ParsedKubernetesImageReference,
-  parseKubernetesImageReference,
-} from "../Utils/KubernetesImageReference";
+import KubernetesImageReferenceView from "../../../Components/Kubernetes/KubernetesImageReferenceView";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -339,20 +336,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         value: (
           <div className="space-y-2">
             {containerImages.map((img: string, idx: number) => {
-              const parsedReference: ParsedKubernetesImageReference =
-                parseKubernetesImageReference(img);
-              return (
-                <div key={idx} className="flex items-center gap-2 text-sm">
-                  <span className="font-mono text-gray-900">
-                    {parsedReference.name}
-                  </span>
-                  {parsedReference.suffix && (
-                    <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-700">
-                      {parsedReference.suffix}
-                    </span>
-                  )}
-                </div>
-              );
+              return <KubernetesImageReferenceView key={idx} reference={img} />;
             })}
           </div>
         ),
