@@ -5,8 +5,31 @@ import {
   fireEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddNoteModal from "./AddNoteModal";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 /*
  * A note on an incident is often the only written record of what a responder
@@ -258,5 +281,246 @@ describe("A submit that succeeds", () => {
     );
 
     expect(screen.getByPlaceholderText(PLACEHOLDER).props.value).toBe("");
+  });
+});
+
+describe("The submit button", () => {
+  test("is disabled until there is something to file", async () => {
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+
+    await fireEvent.changeText(screen.getByPlaceholderText(PLACEHOLDER), "   ");
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+
+    await fireEvent.changeText(
+      screen.getByPlaceholderText(PLACEHOLDER),
+      "Restarted the checkout pods.",
+    );
+    expect(screen.getByRole("button", { name: "Submit" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Submit" })).toHaveStyle({
+      backgroundColor: lightColors.actionPrimary,
+    });
+  });
+
+  test("while submitting it is busy, keeps its name, and Cancel cannot close the sheet", async () => {
+    const onClose: jest.Mock = jest.fn();
+    const onSubmit: jest.Mock = jest.fn();
+
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={onClose}
+        onSubmit={onSubmit}
+        isSubmitting={true}
+      />,
+    );
+
+    const submit: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Submit" },
+    );
+    expect(submit).toBeDisabled();
+    expect(submit.props.accessibilityState).toMatchObject({ busy: true });
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
+    await fireEvent.press(submit);
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  test("Cancel is the outlined secondary action beside it", async () => {
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderDefault,
+      borderWidth: 1,
+    });
+  });
+});
+
+describe("The sheet", () => {
+  test("is titled, explains itself and labels the text area", async () => {
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByRole("header", { name: "Add Note" })).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Share an update with your team. Markdown is supported.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Note")).toBe(
+      screen.getByPlaceholderText(PLACEHOLDER),
+    );
+    expect(screen.getByLabelText("Note").props.multiline).toBe(true);
+  });
+
+  test("dims the screen with the overlay token and rounds its top corners", async () => {
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByTestId("add-note-backdrop")).toHaveStyle({
+      backgroundColor: lightColors.overlay,
+    });
+    expect(screen.getByTestId("add-note-sheet")).toHaveStyle({
+      backgroundColor: lightColors.backgroundSecondary,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+    });
+  });
+
+  test("the text area shows a focus ring while it is being typed into", async () => {
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    const input: ReturnType<typeof screen.getByPlaceholderText> =
+      screen.getByPlaceholderText(PLACEHOLDER);
+    expect(input).toHaveStyle({
+      borderColor: lightColors.borderDefault,
+      borderWidth: 1,
+      minHeight: 148,
+    });
+
+    await fireEvent(input, "focus");
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toHaveStyle({
+      borderColor: lightColors.actionPrimary,
+      borderWidth: 2,
+    });
+
+    await fireEvent(screen.getByPlaceholderText(PLACEHOLDER), "blur");
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toHaveStyle({
+      borderWidth: 1,
+    });
+  });
+
+  test("tapping outside an empty sheet closes it", async () => {
+    const onClose: jest.Mock = jest.fn();
+
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={onClose}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    await fireEvent.press(
+      screen.getByTestId("add-note-dismiss-area", {
+        includeHiddenElements: true,
+      }),
+    );
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("tapping outside never throws away a half-written note", async () => {
+    const onClose: jest.Mock = jest.fn();
+
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={onClose}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    await fireEvent.changeText(
+      screen.getByPlaceholderText(PLACEHOLDER),
+      "Failed over to the replica",
+    );
+    await fireEvent.press(
+      screen.getByTestId("add-note-dismiss-area", {
+        includeHiddenElements: true,
+      }),
+    );
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText(PLACEHOLDER).props.value).toBe(
+      "Failed over to the replica",
+    );
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  test("the scrim, sheet, text area and buttons use the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <AddNoteModal
+          visible={true}
+          onClose={noop}
+          onSubmit={noop}
+          isSubmitting={false}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("add-note-backdrop")).toHaveStyle({
+      backgroundColor: darkColors.overlay,
+    });
+    expect(screen.getByTestId("add-note-sheet")).toHaveStyle({
+      backgroundColor: darkColors.backgroundSecondary,
+      borderColor: darkColors.borderSubtle,
+    });
+    const input: ReturnType<typeof screen.getByPlaceholderText> =
+      screen.getByPlaceholderText(PLACEHOLDER);
+    expect(input).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+      color: darkColors.textPrimary,
+    });
+    expect(input.props.placeholderTextColor).toBe(darkColors.textTertiary);
+    expect(input.props.keyboardAppearance).toBe("dark");
+    expect(screen.getByRole("header", { name: "Add Note" })).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+
+    await fireEvent.changeText(input, "Scaled the workers to 12.");
+    expect(screen.getByRole("button", { name: "Submit" })).toHaveStyle({
+      backgroundColor: darkColors.actionPrimary,
+    });
+    expect(screen.getByText("Submit")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
   });
 });

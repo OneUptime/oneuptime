@@ -1,12 +1,11 @@
 import React from "react";
-import { View } from "react-native";
-import { useTheme } from "../theme";
 import {
   formatDuration,
   formatShiftWindow,
   millisecondsUntil,
 } from "../utils/duration";
 import type { OnCallShift } from "../api/types";
+import Card from "./Card";
 import ShiftSummary from "./ShiftSummary";
 
 interface ShiftCardProps {
@@ -18,7 +17,6 @@ export default function ShiftCard({
   shift,
   now,
 }: ShiftCardProps): React.JSX.Element {
-  const { theme } = useTheme();
   const isActive: boolean = shift.status === "active";
   const remaining: number | null = millisecondsUntil(
     isActive ? shift.endsAt : shift.startsAt,
@@ -33,22 +31,13 @@ export default function ShiftCard({
         ? `${formatDuration(remaining)} left`
         : `in ${formatDuration(remaining)}`;
   return (
-    <View
-      testID={`shift-card-${shift.scheduleId}-${shift.status}`}
-      style={{
-        borderRadius: 18,
-        padding: 18,
-        backgroundColor: theme.colors.backgroundElevated,
-      }}
-    >
+    <Card testID={`shift-card-${shift.scheduleId}-${shift.status}`}>
       <ShiftSummary
         name={shift.scheduleName}
         timing={timing}
         window={formatShiftWindow(shift.startsAt, shift.endsAt, now)}
-        accent={
-          isActive ? theme.colors.oncallActive : theme.colors.severityInfo
-        }
+        tone={isActive ? "success" : "info"}
       />
-    </View>
+    </Card>
   );
 }

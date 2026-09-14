@@ -2,11 +2,27 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import LockedFilterChip from "./LockedFilterChip";
+import LockedFilterActions, {
+  LockedFilterActionOptions,
+} from "./LockedFilterActions";
+import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 
 export interface TelemetryActiveFilterChipsProps {
   filters: Array<ActiveFilter>;
   onRemove: (facetKey: string, value: string) => void;
   onClearAll: () => void;
+  /*
+   * Which explorer the read-only chips belong to — names the explorer in the
+   * locked chips' tooltips and in the "Copy filter" / "Open in …" actions.
+   * Without it the chips explain themselves but name no explorer.
+   */
+  signal?: TelemetrySignal | undefined;
+  /*
+   * How the host reproduces its locked scope elsewhere. Rendered after the
+   * read-only chips; nothing is rendered when neither field is set.
+   */
+  lockedFilterActions?: LockedFilterActionOptions | undefined;
 }
 
 const TelemetryActiveFilterChips: FunctionComponent<
@@ -32,19 +48,23 @@ const TelemetryActiveFilterChips: FunctionComponent<
       {readOnlyFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `readonly:${filter.facetKey}:${filter.value}`;
         return (
-          <span
+          <LockedFilterChip
             key={chipKey}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700"
-            title={`${filter.displayKey}: ${filter.displayValue} (applied filter)`}
-          >
-            <Icon icon={IconProp.Lock} className="h-2.5 w-2.5 text-gray-400" />
-            <span className="font-medium text-gray-500">
-              {filter.displayKey}:
-            </span>
-            <span>{filter.displayValue}</span>
-          </span>
+            displayKey={filter.displayKey}
+            displayValue={filter.displayValue}
+            lockedDetail={filter.lockedDetail}
+            signal={props.signal}
+          />
         );
       })}
+      {readOnlyFilters.length > 0 &&
+        props.signal &&
+        props.lockedFilterActions && (
+          <LockedFilterActions
+            signal={props.signal}
+            {...props.lockedFilterActions}
+          />
+        )}
       {removableFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `${filter.facetKey}:${filter.value}`;
         return (

@@ -135,6 +135,23 @@ Note what such a monitor counts: **findings, not the events behind them**. A rul
 
 Security events are metered per GB ingested, like other telemetry, and honor the same retention configuration (project default, per-service override, and a dedicated `securityEvents` retention pillar). Rows are TTL-deleted by ClickHouse when their retention date passes.
 
+## Managed connectors
+
+Besides the ingest endpoint, **Security Events → Connections** can poll a security product directly. A connection holds the product's non-secret settings plus an encrypted credential; a background worker polls it on the interval you set and imports new records as normalized security events, deduplicated by the source's own record identifier.
+
+Every managed connector polls by the time the **source created** a record, not by the time of the underlying activity. A SIEM rule that runs hourly creates its detections long after the events it matched, so a poller that walked forward by event time would skip them; walking by creation time cannot. The first poll looks back 24 hours so a new connection shows recent records right away, and **Test connection** runs from the API without a worker so it can tell you when OneUptime's own workers or scheduler are the problem.
+
+| Connector | Imports | Guide |
+|---|---|---|
+| Google SecOps (Chronicle) | Rule detections, curated detections and alerts as Detection Findings | [Google SecOps](/docs/integrations/google-secops) |
+| Microsoft Sentinel | Incidents as Incident Findings | [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) |
+| Microsoft Defender XDR | Alerts as Detection Findings | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) |
+| CrowdStrike Falcon | Alerts as Detection Findings | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) |
+| Splunk Enterprise Security | Notable events (or any search) as Detection Findings | [Splunk Enterprise Security](/docs/integrations/splunk) |
+| Elastic Security | Detection alerts as Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
+| AWS Security Hub | Findings as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
+| Okta System Log | Authentication, MFA, account and policy events as identity events | [Okta System Log](/docs/integrations/okta) |
+
 ## Google SecOps
 
 See the [Google SecOps integration guide](/docs/integrations/google-secops) for connecting Chronicle: SOAR playbook webhooks, the managed detections connector, and UDM forwarding.

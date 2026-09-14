@@ -6,10 +6,11 @@ import {
   Modal,
   Platform,
   Pressable,
-  Text,
   View,
   useWindowDimensions,
   type ListRenderItemInfo,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -20,8 +21,13 @@ import { useProject } from "../hooks/useProject";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useTheme } from "../theme";
 import type { ProjectItem } from "../api/types";
-import SearchField from "./SearchField";
+import { elevation, radius, spacing } from "../theme/tokens";
+import AppText from "./AppText";
+import Banner from "./Banner";
 import GradientButton from "./GradientButton";
+import IconBadge from "./IconBadge";
+import SearchField from "./SearchField";
+import { getInitials } from "../utils/text";
 
 /** Available in every workspace header; never offers an aggregate project. */
 export default function ProjectSwitcher(): React.JSX.Element {
@@ -44,6 +50,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
       return project.name.toLowerCase().includes(search.trim().toLowerCase());
     },
   );
+  const activeInitials: string = getInitials(activeProject?.name);
 
   const close: () => void = (): void => {
     setVisible(false);
@@ -63,63 +70,78 @@ export default function ProjectSwitcher(): React.JSX.Element {
         accessibilityHint="Select the project shown across the app."
         accessibilityState={{ expanded: visible }}
         aria-expanded={visible}
+        hitSlop={4}
         onPress={() => {
           setSearch("");
           setVisible(true);
         }}
-        style={({ pressed }: { pressed: boolean }) => {
+        style={({ pressed }: { pressed: boolean }): StyleProp<ViewStyle> => {
           return {
-            minHeight: 48,
+            minHeight: 44,
             maxWidth: Math.min(300, Math.max(160, width - 128)),
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
-            opacity: pressed ? 0.7 : 1,
+            gap: spacing.sm,
+            paddingLeft: spacing.xs,
+            paddingRight: spacing.md,
+            paddingVertical: spacing.xs,
+            borderRadius: radius.pill,
+            backgroundColor: pressed
+              ? theme.colors.backgroundTertiary
+              : theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderSubtle,
+            ...elevation("card", theme.dark),
           };
         }}
       >
         <View
+          testID="project-switcher-avatar"
           style={{
             width: 32,
             height: 32,
-            borderRadius: 10,
+            borderRadius: 16,
             backgroundColor: theme.colors.actionPrimary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text
-            style={{
-              color: theme.colors.textInverse,
-              fontWeight: "800",
-              fontSize: 15,
-            }}
-          >
-            {activeProject?.name.trim().charAt(0).toUpperCase() || "P"}
-          </Text>
+          {activeInitials ? (
+            <AppText
+              variant="footnote"
+              weight="800"
+              tone="inverse"
+              maxFontSizeMultiplier={1.3}
+            >
+              {activeInitials}
+            </AppText>
+          ) : (
+            <Ionicons
+              name="layers-outline"
+              size={16}
+              color={theme.colors.textInverse}
+            />
+          )}
         </View>
-        <View style={{ flexShrink: 1, gap: 2 }}>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "700",
-              letterSpacing: 1,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            PROJECT
-          </Text>
-          <Text
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
+          <AppText
+            variant="caption"
+            tone="secondary"
+            weight="600"
             numberOfLines={1}
-            style={{
-              fontSize: 14,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
-            }}
+            maxFontSizeMultiplier={1.3}
+          >
+            Project
+          </AppText>
+          <AppText
+            variant="subhead"
+            weight="700"
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.3}
           >
             {activeProject?.name ||
               (isLoadingProjects ? "Loading project…" : "Choose project")}
-          </Text>
+          </AppText>
         </View>
         <Ionicons
           name="chevron-down"
@@ -139,7 +161,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
           style={{
             flex: 1,
             justifyContent: "flex-end",
-            backgroundColor: "rgba(23, 33, 47, 0.36)",
+            backgroundColor: theme.colors.overlay,
           }}
         >
           <Pressable
@@ -164,67 +186,88 @@ export default function ProjectSwitcher(): React.JSX.Element {
               maxWidth: 640,
               alignSelf: "center",
               backgroundColor: theme.colors.backgroundSecondary,
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              paddingTop: 12,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              borderWidth: theme.dark ? 1 : 0,
+              borderBottomWidth: 0,
+              borderColor: theme.colors.borderSubtle,
+              paddingTop: spacing.md,
               overflow: "hidden",
+              ...elevation("overlay", theme.dark),
             }}
           >
             <View
               style={{
                 width: 36,
-                height: 4,
-                borderRadius: 2,
+                height: 5,
+                borderRadius: radius.pill,
                 backgroundColor: theme.colors.borderDefault,
                 alignSelf: "center",
-                marginBottom: 12,
+                marginBottom: spacing.sm,
               }}
             />
-            <View style={{ paddingHorizontal: 24, paddingBottom: 20 }}>
+            <View
+              style={{
+                paddingHorizontal: spacing.xl,
+                paddingBottom: spacing.lg,
+                gap: spacing.md,
+              }}
+            >
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                }}
               >
-                <Text
+                <AppText
                   accessibilityRole="header"
-                  style={{
-                    flex: 1,
-                    fontSize: 24,
-                    fontWeight: "700",
-                    color: theme.colors.textPrimary,
-                  }}
+                  variant="title2"
+                  style={{ flex: 1 }}
                 >
                   Switch project
-                </Text>
+                </AppText>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close project switcher"
                   onPress={close}
-                  style={{
-                    minWidth: 48,
-                    minHeight: 48,
-                    alignItems: "center",
-                    justifyContent: "center",
+                  style={({
+                    pressed,
+                  }: {
+                    pressed: boolean;
+                  }): StyleProp<ViewStyle> => {
+                    return {
+                      minWidth: 48,
+                      minHeight: 48,
+                      marginRight: -spacing.sm,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    };
                   }}
                 >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={theme.colors.textSecondary}
-                  />
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: theme.colors.backgroundTertiary,
+                    }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={18}
+                      color={theme.colors.textSecondary}
+                    />
+                  </View>
                 </Pressable>
               </View>
-              <Text
-                style={{
-                  fontSize: 15,
-                  lineHeight: 23,
-                  color: theme.colors.textSecondary,
-                  marginTop: 8,
-                  marginBottom: 20,
-                }}
-              >
+              <AppText variant="subhead" tone="secondary">
                 One project at a time. Your selection stays with you when you
                 reopen the app.
-              </Text>
+              </AppText>
               <SearchField
                 value={search}
                 onChangeText={setSearch}
@@ -233,22 +276,22 @@ export default function ProjectSwitcher(): React.JSX.Element {
               />
             </View>
             {projectLoadError ? (
-              <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-                <Text
-                  accessible
-                  accessibilityRole="alert"
-                  style={{
-                    fontSize: 15,
-                    lineHeight: 23,
-                    color: theme.colors.statusError,
-                    marginBottom: 12,
-                  }}
-                >
-                  Could not load projects. Check your connection and try again.
-                </Text>
+              <View
+                testID="project-switcher-error"
+                style={{
+                  paddingHorizontal: spacing.xl,
+                  paddingBottom: spacing.lg,
+                  gap: spacing.md,
+                }}
+              >
+                <Banner
+                  tone="danger"
+                  message="Could not load projects. Check your connection and try again."
+                />
                 <GradientButton
                   label="Retry loading projects"
                   variant="secondary"
+                  icon="refresh"
                   onPress={refreshProjects}
                   loading={isLoadingProjects}
                 />
@@ -263,39 +306,51 @@ export default function ProjectSwitcher(): React.JSX.Element {
               extraData={activeProject?._id}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom }}
+              contentContainerStyle={{
+                paddingHorizontal: spacing.xl,
+                paddingBottom,
+                gap: spacing.sm + 2,
+              }}
               ListEmptyComponent={
                 isLoadingProjects ? (
                   <ActivityIndicator
                     accessibilityLabel="Loading projects"
                     color={theme.colors.actionPrimary}
-                    style={{ marginTop: 24 }}
+                    style={{ marginTop: spacing.xxl }}
                   />
                 ) : (
-                  <View style={{ paddingVertical: 24 }}>
-                    <Text
-                      style={{
-                        fontSize: 17,
-                        fontWeight: "600",
-                        color: theme.colors.textPrimary,
-                      }}
+                  <View
+                    testID="project-switcher-empty"
+                    style={{
+                      alignItems: "center",
+                      gap: spacing.sm,
+                      paddingVertical: spacing.xxl,
+                      paddingHorizontal: spacing.lg,
+                    }}
+                  >
+                    <IconBadge
+                      name={
+                        projectList.length === 0
+                          ? "folder-open-outline"
+                          : "search-outline"
+                      }
+                      size="lg"
+                      shape="circle"
+                    />
+                    <AppText
+                      variant="headline"
+                      align="center"
+                      style={{ marginTop: spacing.xs }}
                     >
                       {projectList.length === 0
                         ? "No projects available"
                         : "No matching projects"}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        lineHeight: 23,
-                        marginTop: 8,
-                        color: theme.colors.textSecondary,
-                      }}
-                    >
+                    </AppText>
+                    <AppText variant="subhead" tone="secondary" align="center">
                       {projectList.length === 0
                         ? "Ask your team to invite you to a project."
                         : "Try another name or clear the search."}
-                    </Text>
+                    </AppText>
                   </View>
                 )
               }
@@ -303,8 +358,10 @@ export default function ProjectSwitcher(): React.JSX.Element {
                 item,
               }: ListRenderItemInfo<ProjectItem>): React.JSX.Element => {
                 const selected: boolean = item._id === activeProject?._id;
+                const initials: string = getInitials(item.name);
                 return (
                   <Pressable
+                    testID={`project-switcher-option-${item._id}`}
                     accessibilityRole="radio"
                     accessibilityLabel={item.name}
                     accessibilityState={{ checked: selected }}
@@ -314,71 +371,78 @@ export default function ProjectSwitcher(): React.JSX.Element {
                       selectProject(item._id);
                       close();
                     }}
-                    style={({ pressed }: { pressed: boolean }) => {
+                    style={({
+                      pressed,
+                    }: {
+                      pressed: boolean;
+                    }): StyleProp<ViewStyle> => {
                       return {
-                        minHeight: 80,
-                        padding: 16,
-                        borderWidth: 1,
+                        minHeight: 72,
+                        // The thicker selected border must not shift the row.
+                        paddingHorizontal: spacing.lg - (selected ? 1 : 0),
+                        paddingVertical: spacing.md - (selected ? 1 : 0),
+                        borderWidth: selected ? 2 : 1,
                         borderColor: selected
                           ? theme.colors.actionPrimary
                           : theme.colors.borderSubtle,
-                        borderRadius: 14,
+                        borderRadius: radius.lg,
                         backgroundColor: selected
-                          ? theme.colors.iconBackground
-                          : theme.colors.backgroundSecondary,
-                        marginBottom: 10,
+                          ? theme.colors.cardAccent
+                          : pressed
+                            ? theme.colors.backgroundTertiary
+                            : theme.colors.backgroundElevated,
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 12,
-                        opacity: pressed ? 0.7 : 1,
+                        gap: spacing.md,
                       };
                     }}
                   >
                     <View
+                      testID={`project-switcher-option-avatar-${item._id}`}
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 12,
+                        borderRadius: radius.md,
                         alignItems: "center",
                         justifyContent: "center",
                         backgroundColor: selected
                           ? theme.colors.actionPrimary
-                          : theme.colors.backgroundTertiary,
+                          : theme.colors.cardAccent,
                       }}
                     >
-                      <Text
-                        style={{
-                          color: selected
-                            ? theme.colors.textInverse
-                            : theme.colors.textSecondary,
-                          fontWeight: "700",
-                          fontSize: 17,
-                        }}
-                      >
-                        {item.name.trim().charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          lineHeight: 23,
-                          fontWeight: "600",
-                          color: theme.colors.textPrimary,
-                        }}
-                      >
-                        {item.name}
-                      </Text>
-                      {selected ? (
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            color: theme.colors.actionPrimary,
-                            marginTop: 4,
-                          }}
+                      {initials ? (
+                        <AppText
+                          variant="subhead"
+                          weight="700"
+                          color={
+                            selected
+                              ? theme.colors.textInverse
+                              : theme.colors.actionPrimary
+                          }
+                          maxFontSizeMultiplier={1.3}
                         >
+                          {initials}
+                        </AppText>
+                      ) : (
+                        <Ionicons
+                          name="folder-outline"
+                          size={18}
+                          color={
+                            selected
+                              ? theme.colors.textInverse
+                              : theme.colors.actionPrimary
+                          }
+                        />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+                      <AppText variant="headline" numberOfLines={2}>
+                        {item.name}
+                      </AppText>
+                      {selected ? (
+                        <AppText variant="footnote" weight="600" tone="accent">
                           Current project
-                        </Text>
+                        </AppText>
                       ) : null}
                     </View>
                     <Ionicons

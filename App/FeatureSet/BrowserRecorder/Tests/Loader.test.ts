@@ -8,9 +8,11 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
  * has been fetched, parsed or executed.
  */
 
+const LATEST_RECORDER_VERSION: string = "latest";
+
 const CONFIG_BODY: Record<string, unknown> = {
   enabled: true,
-  recorderVersion: "11.7.3",
+  recorderVersion: LATEST_RECORDER_VERSION,
   maskingMode: SessionReplayMaskingMode.MaskAllText,
   consentMode: "NotRequired",
   captureTrigger: "OnErrorOrFrustration",
@@ -409,13 +411,13 @@ describe("Loader", (): void => {
       ];
     });
 
-    it("injects the pinned, version-addressed artifact with SRI", async (): Promise<void> => {
+    it("injects the mutable latest artifact with SRI", async (): Promise<void> => {
       await runLoader();
 
       const script: HTMLScriptElement | null = injectedScript();
 
       expect(script?.getAttribute("src")).toBe(
-        "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js",
+        "https://oneuptime.com/telemetry/session-replay/latest/recorder.js",
       );
 
       /* crossOrigin is required for integrity to be enforced cross-origin. */
@@ -431,8 +433,8 @@ describe("Loader", (): void => {
      * chose - and must not get a request for an artifact that was never
      * published either.
      */
-    it("injects nothing when the advertised version is not a semver", async (): Promise<void> => {
-      for (const version of ["../../../admin", "latest", "1.0"]) {
+    it("injects nothing when the advertised label is invalid", async (): Promise<void> => {
+      for (const version of ["../../../admin", "Latest", "1.0"]) {
         document.head.innerHTML = "";
         setConfigResponse({ ...CONFIG_BODY, recorderVersion: version });
 

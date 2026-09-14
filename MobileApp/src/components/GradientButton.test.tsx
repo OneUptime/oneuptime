@@ -1,7 +1,41 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
-import GradientButton from "./GradientButton";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import { Ionicons } from "@expo/vector-icons";
+import GradientButton, { type ButtonVariant } from "./GradientButton";
+import {
+  ThemeProvider,
+  darkColors,
+  lightColors,
+  type ColorTokens,
+} from "../theme";
+import { radius, typography } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+afterEach(() => {
+  mockSystemScheme = "light";
+});
 
 /*
  * The primary action on the login, backup-code and home screens - the button a
@@ -18,6 +52,106 @@ import GradientButton from "./GradientButton";
  */
 
 type Rendered = ReturnType<typeof screen.getByText>;
+
+interface PressHandlers {
+  onResponderGrant?: (event: unknown) => void;
+  onResponderRelease?: (event: unknown) => void;
+}
+
+function touchEvent(): unknown {
+  return {
+    nativeEvent: {
+      touches: [{ pageX: 100, pageY: 200, identifier: 1 }],
+      changedTouches: [{ pageX: 100, pageY: 200, identifier: 1 }],
+      pageX: 100,
+      pageY: 200,
+      timestamp: Date.now(),
+    },
+    currentTarget: 1,
+    persist: (): void => {
+      return undefined;
+    },
+  };
+}
+
+/**
+ * Hold a finger on the button without lifting it. `fireEvent(el, "pressIn")`
+ * cannot: Pressable never hands an onPressIn prop to its host view, so the
+ * pressed style would never render. The responder handler is what the touch
+ * system calls.
+ */
+async function holdDown(element: Rendered): Promise<void> {
+  await act(async (): Promise<void> => {
+    (element.props as PressHandlers).onResponderGrant?.(touchEvent());
+  });
+}
+
+async function letGo(element: Rendered): Promise<void> {
+  await act(async (): Promise<void> => {
+    (element.props as PressHandlers).onResponderRelease?.(touchEvent());
+  });
+}
+
+function flat(element: Rendered): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as ViewStyle &
+    TextStyle;
+}
+
+function glyphFor(name: keyof typeof Ionicons.glyphMap): string {
+  const glyph: string | number = Ionicons.glyphMap[name];
+  return typeof glyph === "string" ? glyph : String.fromCodePoint(glyph);
+}
+
+interface VariantTokens {
+  background: keyof ColorTokens | "transparent";
+  pressed: keyof ColorTokens;
+  content: keyof ColorTokens;
+  border?: keyof ColorTokens;
+}
+
+/*
+ * The design system's button contract, written as token NAMES so the same
+ * table checks the light and the dark palette.
+ */
+const VARIANTS: Record<ButtonVariant, VariantTokens> = {
+  primary: {
+    background: "actionPrimary",
+    pressed: "actionPrimaryPressed",
+    content: "textInverse",
+  },
+  secondary: {
+    background: "backgroundElevated",
+    pressed: "backgroundTertiary",
+    content: "textPrimary",
+    border: "borderDefault",
+  },
+  tonal: {
+    background: "cardAccent",
+    pressed: "backgroundTertiary",
+    content: "actionPrimary",
+  },
+  destructive: {
+    background: "actionDestructive",
+    pressed: "actionDestructivePressed",
+    content: "textInverse",
+  },
+  ghost: {
+    background: "transparent",
+    pressed: "backgroundTertiary",
+    content: "actionPrimary",
+  },
+};
+
+const VARIANT_NAMES: Array<ButtonVariant> = Object.keys(
+  VARIANTS,
+) as Array<ButtonVariant>;
+
+function tokenValue(
+  colors: ColorTokens,
+  token: keyof ColorTokens | "transparent",
+): string {
+  return token === "transparent" ? "transparent" : colors[token];
+}
 
 /**
  * The spinner has no text and no label, so there is nothing to query it by
@@ -267,5 +401,238 @@ describe("The secondary variant", () => {
     );
 
     expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe("How each variant is painted", () => {
+  test.each(VARIANT_NAMES)(
+    "%s uses its background, label and border tokens",
+    async (variant: ButtonVariant) => {
+      await render(
+        <GradientButton
+          label="Acknowledge"
+          icon="checkmark"
+          variant={variant}
+          onPress={jest.fn()}
+        />,
+      );
+
+      const tokens: VariantTokens = VARIANTS[variant];
+      const button: Rendered = screen.getByRole("button", {
+        name: "Acknowledge",
+      });
+      expect(button).toHaveStyle({
+        backgroundColor: tokenValue(lightColors, tokens.background),
+        borderWidth: tokens.border ? 1 : 0,
+        opacity: 1,
+      });
+      if (tokens.border) {
+        expect(button).toHaveStyle({ borderColor: lightColors[tokens.border] });
+      }
+      expect(screen.getByText("Acknowledge")).toHaveStyle({
+        color: lightColors[tokens.content],
+        fontWeight: "600",
+      });
+      expect(flat(screen.getByText(glyphFor("checkmark"))).color).toBe(
+        lightColors[tokens.content],
+      );
+    },
+  );
+
+  test("primary is the default variant", async () => {
+    await render(<GradientButton label="Save" onPress={jest.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Save" })).toHaveStyle({
+      backgroundColor: lightColors.actionPrimary,
+    });
+  });
+
+  test("the spinner takes the variant's content colour", async () => {
+    await render(
+      <GradientButton
+        label="Save"
+        variant="tonal"
+        loading
+        onPress={jest.fn()}
+      />,
+    );
+
+    const spinner: Rendered = screen.container.queryAll((node: Rendered) => {
+      return node.type === "ActivityIndicator";
+    })[0];
+    expect(spinner.props.color).toBe(lightColors.actionPrimary);
+  });
+});
+
+describe("Pressed feedback", () => {
+  test.each(VARIANT_NAMES)(
+    "%s swaps to its pressed fill while held and back after release",
+    async (variant: ButtonVariant) => {
+      const onPress: jest.Mock = jest.fn();
+      await render(
+        <GradientButton label="Page" variant={variant} onPress={onPress} />,
+      );
+      const button: Rendered = screen.getByRole("button", { name: "Page" });
+      const tokens: VariantTokens = VARIANTS[variant];
+
+      await holdDown(button);
+      expect(button).toHaveStyle({
+        backgroundColor: lightColors[tokens.pressed],
+        borderRadius: radius.md,
+      });
+
+      await letGo(button);
+      expect(onPress).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Page" })).toHaveStyle({
+          backgroundColor: tokenValue(lightColors, tokens.background),
+        });
+      });
+    },
+  );
+
+  test("a disabled button shows no pressed fill", async () => {
+    await render(<GradientButton label="Page" disabled onPress={jest.fn()} />);
+    const button: Rendered = screen.getByRole("button", { name: "Page" });
+
+    await holdDown(button);
+
+    expect(button).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+  });
+});
+
+describe("Disabled and loading appearance", () => {
+  test.each([
+    ["disabled", { disabled: true }],
+    ["loading", { loading: true }],
+  ] as Array<[string, { disabled?: boolean; loading?: boolean }]>)(
+    "a %s button is dimmed but keeps its fill",
+    async (
+      _label: string,
+      props: { disabled?: boolean; loading?: boolean },
+    ) => {
+      await render(
+        <GradientButton label="Page" onPress={jest.fn()} {...props} />,
+      );
+
+      expect(screen.getByRole("button", { name: "Page" })).toHaveStyle({
+        opacity: 0.55,
+        backgroundColor: lightColors.actionPrimary,
+      });
+    },
+  );
+});
+
+describe("Sizes", () => {
+  test("md is a 50pt target with callout text and an 18pt icon", async () => {
+    await render(
+      <GradientButton label="Save" icon="save" onPress={jest.fn()} />,
+    );
+
+    const button: Rendered = screen.getByRole("button", { name: "Save" });
+    expect(flat(button).minHeight).toBe(50);
+    expect(flat(button).borderRadius).toBe(radius.md);
+    expect(screen.getByText("Save")).toHaveStyle({
+      fontSize: typography.callout.fontSize,
+      lineHeight: typography.callout.lineHeight,
+    });
+    expect(flat(screen.getByText(glyphFor("save"))).fontSize).toBe(18);
+  });
+
+  test("sm is a compact control that still meets the 44pt minimum, with subhead text and a 16pt icon", async () => {
+    await render(
+      <GradientButton label="Save" icon="save" size="sm" onPress={jest.fn()} />,
+    );
+
+    const button: Rendered = screen.getByRole("button", { name: "Save" });
+    expect(flat(button).minHeight).toBe(44);
+    expect(Number(flat(button).paddingHorizontal)).toBeLessThan(18);
+    expect(screen.getByText("Save")).toHaveStyle({
+      fontSize: typography.subhead.fontSize,
+      lineHeight: typography.subhead.lineHeight,
+    });
+    expect(flat(screen.getByText(glyphFor("save"))).fontSize).toBe(16);
+  });
+
+  test("the label always has a line height, so descenders are not clipped", async () => {
+    for (const size of ["md", "sm"] as const) {
+      const view: Awaited<ReturnType<typeof render>> = await render(
+        <GradientButton label="Paging" size={size} onPress={jest.fn()} />,
+      );
+      const style: TextStyle = flat(screen.getByText("Paging"));
+      expect(Number(style.lineHeight)).toBeGreaterThanOrEqual(
+        Number(style.fontSize),
+      );
+      await view.unmount();
+    }
+  });
+
+  test("a caller's style is applied after the button's own", async () => {
+    await render(
+      <GradientButton
+        label="Save"
+        onPress={jest.fn()}
+        style={{ marginTop: 12, borderRadius: 999 }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Save" })).toHaveStyle({
+      marginTop: 12,
+      borderRadius: 999,
+      backgroundColor: lightColors.actionPrimary,
+    });
+  });
+});
+
+describe("In dark mode", () => {
+  test.each(VARIANT_NAMES)(
+    "%s uses the dark palette for its fill and label",
+    async (variant: ButtonVariant) => {
+      mockSystemScheme = "dark";
+      await render(
+        <ThemeProvider>
+          <GradientButton label="Page" variant={variant} onPress={jest.fn()} />
+        </ThemeProvider>,
+      );
+
+      const tokens: VariantTokens = VARIANTS[variant];
+      expect(screen.getByRole("button", { name: "Page" })).toHaveStyle({
+        backgroundColor: tokenValue(darkColors, tokens.background),
+      });
+      expect(screen.getByText("Page")).toHaveStyle({
+        color: darkColors[tokens.content],
+      });
+    },
+  );
+
+  test("the primary label is the DARK inverse text, because dark-mode fills are light", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <GradientButton label="Acknowledge" onPress={jest.fn()} />
+      </ThemeProvider>,
+    );
+
+    const color: TextStyle["color"] = flat(
+      screen.getByText("Acknowledge"),
+    ).color;
+    expect(color).toBe(darkColors.textInverse);
+    expect(color).not.toBe(lightColors.textInverse);
+  });
+
+  test("the dark pressed fill is the lighter pressed action colour", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <GradientButton label="Page" onPress={jest.fn()} />
+      </ThemeProvider>,
+    );
+    const button: Rendered = screen.getByRole("button", { name: "Page" });
+
+    await holdDown(button);
+
+    expect(button).toHaveStyle({
+      backgroundColor: darkColors.actionPrimaryPressed,
+    });
   });
 });

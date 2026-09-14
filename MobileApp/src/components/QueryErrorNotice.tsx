@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
 
 interface QueryErrorNoticeProps {
   message: string;
@@ -9,6 +10,7 @@ interface QueryErrorNoticeProps {
   onRetry: () => unknown;
 }
 
+/** A failed read, said plainly, with the way to try again right beside it. */
 export default function QueryErrorNotice({
   message,
   retryLabel,
@@ -19,30 +21,33 @@ export default function QueryErrorNotice({
   return (
     <View
       style={{
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: theme.colors.backgroundSecondary,
-        borderWidth: 1,
-        borderColor: theme.colors.borderDefault,
-        marginBottom: 16,
-        gap: 8,
+        padding: spacing.md + 2,
+        borderRadius: radius.lg,
+        backgroundColor: theme.colors.statusWarningBg,
+        marginBottom: spacing.lg,
+        gap: spacing.sm + 2,
       }}
     >
-      <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.md,
+        }}
+      >
         <Ionicons
-          name="information-circle-outline"
+          name="cloud-offline-outline"
           size={20}
-          color={theme.colors.textSecondary}
+          color={theme.colors.statusWarning}
           style={{ marginTop: 1 }}
         />
         <Text
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
           style={{
+            ...typography.subhead,
             flex: 1,
-            color: theme.colors.textSecondary,
-            fontSize: 14,
-            lineHeight: 22,
+            color: theme.colors.textPrimary,
           }}
         >
           {message}
@@ -52,22 +57,24 @@ export default function QueryErrorNotice({
         accessibilityRole="button"
         accessibilityLabel={retryLabel}
         onPress={onRetry}
+        hitSlop={6}
         style={({ pressed }: { pressed: boolean }) => {
           return {
-            alignSelf: "flex-start" as const,
-            justifyContent: "center" as const,
-            minHeight: 48,
-            paddingHorizontal: 12,
-            borderRadius: 8,
-            backgroundColor: theme.colors.cardAccent,
+            alignSelf: "flex-start",
+            marginLeft: 32,
+            justifyContent: "center",
+            minHeight: 40,
+            paddingHorizontal: spacing.md,
+            borderRadius: radius.pill,
+            backgroundColor: theme.colors.backgroundElevated,
             opacity: pressed ? 0.7 : 1,
           };
         }}
       >
         <Text
           style={{
-            fontSize: 14,
-            fontWeight: "600",
+            ...typography.footnote,
+            fontWeight: "700",
             color: theme.colors.actionPrimary,
           }}
         >

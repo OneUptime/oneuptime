@@ -8,12 +8,16 @@ import {
   type PanResponderGestureState,
   type PanResponderInstance,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
 import { useHaptics } from "../hooks/useHaptics";
 
 interface SwipeAction {
   label: string;
+  /** The fill behind the row. Pick a token whose label pairing is checked. */
   color: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   onAction: () => void;
 }
 
@@ -21,14 +25,22 @@ interface SwipeableCardProps {
   children: React.ReactNode;
   leftAction?: SwipeAction;
   rightAction?: SwipeAction;
+  /**
+   * Space the row keeps below its own surface. ResponseRow cards carry a
+   * bottom margin, and without this the action fill would paint that gap too
+   * and show up taller than the card it sits behind.
+   */
+  actionInsetBottom?: number;
 }
 
 const SWIPE_THRESHOLD: number = 80;
+const MAX_SWIPE: number = 120;
 
 export default function SwipeableCard({
   children,
   leftAction,
   rightAction,
+  actionInsetBottom = 0,
 }: SwipeableCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { mediumImpact } = useHaptics();
@@ -78,7 +90,7 @@ export default function SwipeableCard({
         _: GestureResponderEvent,
         gestureState: PanResponderGestureState,
       ) => {
-        const maxSwipe: number = 120;
+        const maxSwipe: number = MAX_SWIPE;
         let dx: number = gestureState.dx;
         if (!rightActionRef.current && dx < 0) {
           dx = 0;
@@ -126,76 +138,82 @@ export default function SwipeableCard({
     }),
   ).current;
 
-  return (
-    <View style={{ overflow: "hidden", borderRadius: 12, marginBottom: 12 }}>
-      {/* Background actions */}
-      <View
+  /*
+   * Each panel is only painted while the row is dragged towards it. At rest
+   * nothing sits behind the card, so its rounded corners never show a sliver
+   * of colour, and the row needs no canvas-coloured backing of its own - which
+   * is what used to leave square corners on a moving card in dark mode.
+   */
+  const rightOpacity: Animated.AnimatedInterpolation<number> =
+    translateX.interpolate({
+      inputRange: [-MAX_SWIPE, -1, 0],
+      outputRange: [1, 1, 0],
+      extrapolate: "clamp",
+    });
+  const leftOpacity: Animated.AnimatedInterpolation<number> =
+    translateX.interpolate({
+      inputRange: [0, 1, MAX_SWIPE],
+      outputRange: [0, 1, 1],
+      extrapolate: "clamp",
+    });
+
+  const renderAction: (
+    action: SwipeAction,
+    side: "left" | "right",
+  ) => React.JSX.Element = (
+    action: SwipeAction,
+    side: "left" | "right",
+  ): React.JSX.Element => {
+    return (
+      <Animated.View
+        testID={`swipe-action-${side}`}
         style={{
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: actionInsetBottom,
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
+          justifyContent: side === "right" ? "flex-end" : "flex-start",
+          gap: spacing.sm,
+          paddingHorizontal: spacing.xl,
+          borderRadius: radius.lg,
+          backgroundColor: action.color,
+          opacity: side === "right" ? rightOpacity : leftOpacity,
         }}
       >
-        {leftAction ? (
-          <View
-            style={{
-              flex: 1,
-              height: "100%",
-              justifyContent: "center",
-              paddingLeft: 20,
-              borderRadius: 12,
-              backgroundColor: leftAction.color,
-            }}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 14,
-                fontWeight: "bold",
-                letterSpacing: -0.5,
-              }}
-            >
-              {leftAction.label}
-            </Text>
-          </View>
+        {action.icon ? (
+          <Ionicons
+            name={action.icon}
+            size={20}
+            color={theme.colors.textInverse}
+          />
         ) : null}
-        {rightAction ? (
-          <View
-            style={{
-              flex: 1,
-              height: "100%",
-              justifyContent: "center",
-              alignItems: "flex-end",
-              paddingRight: 20,
-              borderRadius: 12,
-              backgroundColor: rightAction.color,
-            }}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 14,
-                fontWeight: "bold",
-                letterSpacing: -0.5,
-              }}
-            >
-              {rightAction.label}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+        <Text
+          style={{
+            ...typography.subhead,
+            fontWeight: "700",
+            color: theme.colors.textInverse,
+          }}
+        >
+          {action.label}
+        </Text>
+      </Animated.View>
+    );
+  };
+
+  return (
+    <View style={{ overflow: "hidden" }}>
+      {/* Background actions */}
+      {leftAction ? renderAction(leftAction, "left") : null}
+      {rightAction ? renderAction(rightAction, "right") : null}
 
       {/* Foreground content */}
       <Animated.View
         style={{
           zIndex: 1,
           transform: [{ translateX }],
-          backgroundColor: theme.colors.backgroundPrimary,
         }}
         {...panResponder.panHandlers}
       >

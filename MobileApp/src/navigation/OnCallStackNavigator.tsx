@@ -1,8 +1,7 @@
 import React from "react";
-import ProjectSwitcher from "../components/ProjectSwitcher";
 import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useTheme } from "../theme";
+import { useStackScreenOptions } from "./useStackScreenOptions";
 import OnCallOverviewScreen from "../screens/OnCallOverviewScreen";
 import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
 import WhoIsOnCallScreen from "../screens/WhoIsOnCallScreen";
@@ -17,35 +16,11 @@ const Stack: ReturnType<
 > = createNativeStackNavigator<OnCallStackParamList>();
 
 export default function OnCallStackNavigator(): React.JSX.Element {
-  const { theme } = useTheme();
+  const screenOptions: ReturnType<typeof useStackScreenOptions> =
+    useStackScreenOptions();
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTitle: () => {
-          return <ProjectSwitcher />;
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.backgroundSecondary,
-        },
-        headerTintColor: theme.colors.actionPrimary,
-        headerTitleStyle: {
-          fontSize: 17,
-          fontWeight: "600",
-          color: theme.colors.textPrimary,
-        },
-        headerShadowVisible: false,
-        headerBackButtonDisplayMode: "minimal",
-        ...(Platform.OS === "ios"
-          ? {
-              headerLargeTitle: false,
-              headerLargeStyle: {
-                backgroundColor: theme.colors.backgroundSecondary,
-              },
-            }
-          : {}),
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="OnCallOverview"
         component={OnCallOverviewScreen}

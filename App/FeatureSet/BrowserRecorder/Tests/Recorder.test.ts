@@ -13,7 +13,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import ClickRecorder from "../src/ClickRecorder";
-import { RecorderInitOptions } from "../src/Config";
+import { RECORDER_VERSION, RecorderInitOptions } from "../src/Config";
 import ConsoleRecorder, { MAX_CONSOLE_RECORDED } from "../src/ConsoleRecorder";
 import ErrorRecorder from "../src/ErrorRecorder";
 import NetworkRecorder from "../src/NetworkRecorder";
@@ -35,6 +35,8 @@ const INIT_OPTIONS: RecorderInitOptions = {
   token: "test-token",
   appIdentifier: "app-1",
 };
+
+const LATEST_ARTIFACT_LABEL: string = "latest";
 
 const baseConfig: () => SessionReplayConfigResponse =
   (): SessionReplayConfigResponse => {
@@ -1308,7 +1310,10 @@ describe("Recorder", (): void => {
 
   describe("envelope", (): void => {
     it("carries identity, versions and policy for the ingest gate", async (): Promise<void> => {
-      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const instance: Recorder = startRecorder({
+        samplePercentage: 100,
+        recorderVersion: LATEST_ARTIFACT_LABEL,
+      });
 
       await flushUploads();
 
@@ -1325,6 +1330,14 @@ describe("Recorder", (): void => {
       expect(post.envelope.tabId).toBe(instance.getTabId());
       expect(post.envelope.chunkIndex).toBe(0);
       expect(post.envelope.rrwebVersion).toBe("2.1.1");
+      /*
+       * Config's value is an artifact label. The envelope carries the
+       * recorder build's short product version for diagnostics, so these
+       * meanings must remain separate.
+       */
+      expect(post.envelope.recorderVersion).toBe(RECORDER_VERSION);
+      expect(post.envelope.recorderVersion).not.toBe(LATEST_ARTIFACT_LABEL);
+      expect(post.envelope.recorderVersion.length).toBeLessThanOrEqual(32);
       expect(post.envelope.recorderKind).toBe("dom");
       expect(post.envelope.maskingMode).toBe(
         SessionReplayMaskingMode.MaskAllText,

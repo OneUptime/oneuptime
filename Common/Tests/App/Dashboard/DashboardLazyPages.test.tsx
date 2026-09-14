@@ -15,6 +15,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React from "react";
 import * as Router from "react-router-dom";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -227,6 +229,28 @@ const persistentSharedRouteBundles: Array<string> = [
   "NetworkSiteRoutes",
   "InventoryRoutes",
   "TopologyRoutes",
+];
+
+interface ProductRouteBundleCase {
+  page: PageMap;
+  module: string;
+}
+
+const productRouteBundles: Array<ProductRouteBundleCase> = [
+  { page: PageMap.MONITORS, module: "MonitorsRoutes" },
+  { page: PageMap.STATUS_PAGES, module: "StatusPagesRoutes" },
+  { page: PageMap.ON_CALL_DUTY, module: "OnCallDutyRoutes" },
+];
+
+interface ProductSwitchCase {
+  initial: ProductRouteBundleCase;
+  target: ProductRouteBundleCase;
+}
+
+const productSwitchCases: Array<ProductSwitchCase> = [
+  { initial: productRouteBundles[0]!, target: productRouteBundles[1]! },
+  { initial: productRouteBundles[1]!, target: productRouteBundles[2]! },
+  { initial: productRouteBundles[2]!, target: productRouteBundles[0]! },
 ];
 
 interface PageCase {
@@ -447,7 +471,7 @@ function mockSecondaryPage(module: string): void {
   });
 }
 
-function mockPersistentSharedRouteBundle(module: string): void {
+function mockRouteBundle(module: string): void {
   const moduleName: string = `Routes/${module}`;
 
   jest.doMock(`${dashboardSource}/Routes/${module}`, () => {
@@ -530,8 +554,13 @@ beforeEach(() => {
     mockSecondaryPage(module);
   }
 
-  for (const module of persistentSharedRouteBundles) {
-    mockPersistentSharedRouteBundle(module);
+  for (const module of new Set([
+    ...persistentSharedRouteBundles,
+    ...productRouteBundles.map((route: ProductRouteBundleCase): string => {
+      return route.module;
+    }),
+  ])) {
+    mockRouteBundle(module);
   }
 
   for (const module of [
@@ -607,8 +636,11 @@ afterEach(() => {
 });
 
 /*
- * `useRouterTransition: false` is how a caller asks to OBSERVE the Suspense
- * fallback at all.
+ * Production explicitly opts out of router transitions so a pending lazy
+ * product reveals the existing Suspense fallback instead of leaving the old
+ * product painted. Keep false as this helper's default so navigation tests
+ * exercise the production scheduler. A test can still pass true when it
+ * deliberately needs React Router's concurrent behavior.
  *
  * Every react-router v7 router wraps its location update in
  * React.startTransition unless it is told not to (BrowserRouter and
@@ -623,7 +655,7 @@ afterEach(() => {
  * when it stopped being a flag; the parameter outlived its wiring and both
  * branches became the same render.
  */
-function renderApp(path: string, useRouterTransition: boolean = true): void {
+function renderApp(path: string, useRouterTransition: boolean = false): void {
   const App: React.FunctionComponent = (
     jest.requireActual(`${dashboardSource}/App`) as {
       default: React.FunctionComponent;
@@ -640,7 +672,32 @@ function renderApp(path: string, useRouterTransition: boolean = true): void {
   );
 }
 
+function expectPageNotVisible(pageText: string): void {
+  const page: HTMLElement | null = screen.queryByText(pageText);
+
+  if (page) {
+    expect(page).not.toBeVisible();
+  }
+}
+
 describe("dashboard secondary page loading", () => {
+  test("production BrowserRouter keeps route updates synchronous so Suspense can reveal the page loader", () => {
+    const indexSource: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Index.tsx",
+      ),
+      "utf8",
+    );
+    const browserRouterTags: Array<string> =
+      indexSource.match(/<BrowserRouter\b[^>]*>/g) || [];
+
+    expect(browserRouterTags).toHaveLength(1);
+    expect(browserRouterTags[0]).toMatch(
+      /\buseTransitions\s*=\s*\{\s*false\s*\}/,
+    );
+  });
+
   test(
     "renders Home without loading any secondary leaf modules",
     async () => {
@@ -732,6 +789,96 @@ describe("dashboard secondary page loading", () => {
       "Global/UserProfile/Index",
       "Global/ActiveAlerts",
     ]);
+  });
+
+  test.each(productSwitchCases)(
+    "replaces a pending $initial.module product with the loader before $target.module is ready",
+    async (routeCase: ProductSwitchCase) => {
+      const gate: SuspensionGate = createSuspensionGate();
+      suspendedModule = "Routes/" + routeCase.target.module;
+      pageSuspensionGate = gate;
+
+      renderApp(pathFor(routeCase.initial.page));
+
+      const initialModuleName: string = "Routes/" + routeCase.initial.module;
+      const targetModuleName: string = "Routes/" + routeCase.target.module;
+
+      expect(await screen.findByText(initialModuleName)).toBeVisible();
+      expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+
+      await act(async () => {
+        navigateHook(pathFor(routeCase.target.page));
+      });
+
+      expect(screen.getByTestId("page-loader")).toBeVisible();
+      expect(screen.getByText("Dashboard shell")).toBeInTheDocument();
+      expectPageNotVisible(initialModuleName);
+      expectPageNotVisible(targetModuleName);
+
+      await act(async () => {
+        gate.resolve();
+        await gate.promise;
+      });
+
+      expect(await screen.findByText(targetModuleName)).toBeInTheDocument();
+      expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+      expectPageNotVisible(initialModuleName);
+    },
+  );
+
+  test("keeps the loader on the latest product when navigating again before the first product is ready", async () => {
+    const statusPagesGate: SuspensionGate = createSuspensionGate();
+    suspendedModule = "Routes/StatusPagesRoutes";
+    pageSuspensionGate = statusPagesGate;
+
+    renderApp(pathFor(PageMap.MONITORS));
+    expect(
+      await screen.findByText("Routes/MonitorsRoutes"),
+    ).toBeInTheDocument();
+
+    const statusPagesPath: string = pathFor(PageMap.STATUS_PAGES);
+    await act(async () => {
+      navigateHook(statusPagesPath);
+    });
+
+    expect(currentPath).toBe(statusPagesPath);
+    expect(screen.getByTestId("page-loader")).toBeVisible();
+    expect(screen.getByText("Dashboard shell")).toBeInTheDocument();
+    expectPageNotVisible("Routes/MonitorsRoutes");
+
+    const onCallGate: SuspensionGate = createSuspensionGate();
+    suspendedModule = "Routes/OnCallDutyRoutes";
+    pageSuspensionGate = onCallGate;
+
+    const onCallPath: string = pathFor(PageMap.ON_CALL_DUTY);
+    await act(async () => {
+      navigateHook(onCallPath);
+    });
+
+    expect(currentPath).toBe(onCallPath);
+    expect(screen.getByTestId("page-loader")).toBeVisible();
+    expectPageNotVisible("Routes/StatusPagesRoutes");
+
+    await act(async () => {
+      statusPagesGate.resolve();
+      await statusPagesGate.promise;
+    });
+
+    expect(currentPath).toBe(onCallPath);
+    expect(screen.getByTestId("page-loader")).toBeVisible();
+    expectPageNotVisible("Routes/StatusPagesRoutes");
+    expectPageNotVisible("Routes/OnCallDutyRoutes");
+
+    await act(async () => {
+      onCallGate.resolve();
+      await onCallGate.promise;
+    });
+
+    expect(
+      await screen.findByText("Routes/OnCallDutyRoutes"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expectPageNotVisible("Routes/StatusPagesRoutes");
   });
 
   test.each(appRouteWiringCases)(

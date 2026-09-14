@@ -1,18 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
-  Text,
   Modal,
   Pressable,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing, touchTarget } from "../theme/tokens";
 import type { ProjectUserItem } from "../api/types";
 import SearchField from "./SearchField";
+import AppText from "./AppText";
+import IconBadge from "./IconBadge";
+import { getInitials } from "./RosterScheduleCard";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 
@@ -75,6 +79,7 @@ export default function UserPickerModal({
   onClose,
 }: UserPickerModalProps): React.JSX.Element {
   const { theme } = useTheme();
+  const { colors } = theme;
   const paddingBottom: number = useScreenPadding({ tabBar: false });
   const [searchTerm, setSearchTerm] = useState<string>("");
   useEffect(() => {
@@ -95,69 +100,84 @@ export default function UserPickerModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
+        testID="user-picker-overlay"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{
           flex: 1,
           justifyContent: "flex-end",
-          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          backgroundColor: colors.overlay,
         }}
       >
         <View
+          testID="user-picker-sheet"
           style={{
-            maxHeight: "80%",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            paddingTop: 20,
+            maxHeight: "85%",
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            paddingTop: spacing.sm,
             paddingBottom,
-            backgroundColor: theme.colors.backgroundElevated,
+            backgroundColor: colors.backgroundSecondary,
             borderTopWidth: 1,
-            borderColor: theme.colors.borderGlass,
+            borderColor: colors.borderSubtle,
+            ...elevation("overlay", theme.dark),
           }}
         >
+          <View
+            style={{
+              alignSelf: "center",
+              width: 36,
+              height: 5,
+              borderRadius: radius.pill,
+              backgroundColor: colors.borderDefault,
+              marginBottom: spacing.sm,
+            }}
+          />
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              paddingHorizontal: 20,
-              marginBottom: 14,
+              paddingHorizontal: spacing.xl,
+              marginBottom: spacing.sm,
             }}
           >
-            <Text
+            <AppText
               accessibilityRole="header"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                marginRight: 12,
-                fontSize: 18,
-                fontWeight: "bold",
-                letterSpacing: -0.4,
-                color: theme.colors.textPrimary,
-              }}
+              variant="title3"
+              style={{ flex: 1, minWidth: 0, marginRight: spacing.md }}
             >
               {title}
-            </Text>
+            </AppText>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close user picker"
               onPress={onClose}
               style={{
-                minWidth: 48,
-                minHeight: 48,
+                minWidth: touchTarget,
+                minHeight: touchTarget,
                 flexShrink: 0,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons
-                name="close"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.backgroundTertiary,
+                }}
+              >
+                <Ionicons name="close" size={18} color={colors.textSecondary} />
+              </View>
             </Pressable>
           </View>
 
-          <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+          <View
+            style={{ paddingHorizontal: spacing.xl, marginBottom: spacing.md }}
+          >
             <SearchField
               testID="user-picker-search"
               placeholder="Search by name or email"
@@ -167,99 +187,150 @@ export default function UserPickerModal({
           </View>
 
           {isLoading ? (
-            <View style={{ paddingVertical: 40, alignItems: "center" }}>
-              <ActivityIndicator color={theme.colors.actionPrimary} />
+            <View
+              testID="user-picker-loading"
+              style={{
+                paddingVertical: spacing.xxxl,
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <ActivityIndicator color={colors.actionPrimary} />
+              <AppText variant="subhead" tone="secondary">
+                Loading teammates…
+              </AppText>
             </View>
           ) : visibleUsers.length === 0 ? (
-            <View style={{ paddingVertical: 40, paddingHorizontal: 20 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  textAlign: "center",
-                  color: theme.colors.textSecondary,
-                }}
-              >
+            <View
+              testID="user-picker-empty"
+              style={{
+                paddingVertical: spacing.xxxl,
+                paddingHorizontal: spacing.xl,
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <IconBadge
+                name={users.length === 0 ? "people-outline" : "search-outline"}
+                color={colors.textSecondary}
+                size="lg"
+                shape="circle"
+              />
+              <AppText variant="subhead" tone="secondary" align="center">
                 {users.length === 0
                   ? "No teammates found in this project."
                   : "No teammates match that search."}
-              </Text>
+              </AppText>
             </View>
           ) : (
             <ScrollView
               keyboardShouldPersistTaps="handled"
-              style={{ paddingHorizontal: 20 }}
-              contentContainerStyle={{ paddingBottom: 16 }}
+              contentContainerStyle={{
+                paddingHorizontal: spacing.xl,
+                paddingBottom: spacing.lg,
+              }}
             >
-              {visibleUsers.map((user: ProjectUserItem) => {
-                const isSelected: boolean = user.userId === selectedUserId;
+              <View
+                testID="user-picker-list"
+                style={{
+                  borderRadius: radius.lg,
+                  borderWidth: 1,
+                  borderColor: colors.borderSubtle,
+                  backgroundColor: colors.backgroundElevated,
+                  overflow: "hidden",
+                }}
+              >
+                {visibleUsers.map((user: ProjectUserItem, index: number) => {
+                  const isSelected: boolean = user.userId === selectedUserId;
+                  const displayName: string = user.name || user.email;
 
-                return (
-                  <Pressable
-                    key={user.userId}
-                    testID={`user-option-${user.userId}`}
-                    accessibilityRole="button"
-                    {...getToggleAccessibilityProps(isSelected)}
-                    accessibilityLabel={`Select ${user.name || user.email}`}
-                    accessibilityHint={
-                      user.name && user.email ? user.email : undefined
-                    }
-                    onPress={() => {
-                      onSelect(user);
-                    }}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      minHeight: 56,
-                      paddingVertical: 14,
-                      paddingHorizontal: 14,
-                      borderRadius: 14,
-                      marginBottom: 8,
-                      backgroundColor: isSelected
-                        ? theme.colors.oncallActiveBg
-                        : theme.colors.backgroundTertiary,
-                      borderWidth: 1,
-                      borderColor: isSelected
-                        ? theme.colors.oncallActive + "55"
-                        : theme.colors.borderSubtle,
-                    }}
-                  >
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text
+                  return (
+                    <Pressable
+                      key={user.userId}
+                      testID={`user-option-${user.userId}`}
+                      accessibilityRole="button"
+                      {...getToggleAccessibilityProps(isSelected)}
+                      accessibilityLabel={`Select ${displayName}`}
+                      accessibilityHint={
+                        user.name && user.email ? user.email : undefined
+                      }
+                      onPress={() => {
+                        onSelect(user);
+                      }}
+                      style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                        return {
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: spacing.md,
+                          minHeight: 60,
+                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.lg,
+                          borderTopWidth: index > 0 ? 1 : 0,
+                          borderTopColor: colors.borderSubtle,
+                          backgroundColor: pressed
+                            ? colors.backgroundTertiary
+                            : isSelected
+                              ? colors.cardAccent
+                              : "transparent",
+                        };
+                      }}
+                    >
+                      <View
+                        testID={`user-avatar-${user.userId}`}
                         style={{
-                          fontSize: 15,
-                          lineHeight: 22,
-                          fontWeight: "600",
-                          color: theme.colors.textPrimary,
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isSelected
+                            ? colors.actionPrimary
+                            : colors.cardAccent,
                         }}
-                        numberOfLines={2}
                       >
-                        {user.name || user.email}
-                      </Text>
-                      {user.name && user.email ? (
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            lineHeight: 20,
-                            marginTop: 2,
-                            color: theme.colors.textTertiary,
-                          }}
+                        <AppText
+                          variant="subhead"
+                          weight="700"
+                          color={
+                            isSelected
+                              ? colors.textInverse
+                              : colors.actionPrimary
+                          }
+                        >
+                          {getInitials(displayName)}
+                        </AppText>
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <AppText
+                          variant="callout"
+                          weight="600"
                           numberOfLines={2}
                         >
-                          {user.email}
-                        </Text>
-                      ) : null}
-                    </View>
+                          {displayName}
+                        </AppText>
+                        {user.name && user.email ? (
+                          <AppText
+                            variant="footnote"
+                            tone="secondary"
+                            numberOfLines={2}
+                            style={{ marginTop: spacing.xxs }}
+                          >
+                            {user.email}
+                          </AppText>
+                        ) : null}
+                      </View>
 
-                    {isSelected ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={18}
-                        color={theme.colors.oncallActive}
-                      />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+                      {isSelected ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={22}
+                          color={colors.actionPrimary}
+                        />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
             </ScrollView>
           )}
         </View>

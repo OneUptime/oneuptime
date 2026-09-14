@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
 
 export type SeverityLevel = "critical" | "major" | "minor" | "warning" | "info";
 
@@ -61,18 +62,19 @@ export default function SeverityBadge({
   return (
     <View
       style={{
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xxs,
+        borderRadius: radius.pill,
         alignSelf: "flex-start",
         backgroundColor: colors.bg,
       }}
     >
       <Text
+        numberOfLines={1}
         style={{
-          fontSize: 12,
-          fontWeight: "600",
-          letterSpacing: 0.5,
+          ...typography.caption,
+          fontWeight: "700",
+          letterSpacing: 0.4,
           color: colors.text,
         }}
       >

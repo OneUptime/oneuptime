@@ -45,6 +45,8 @@ import {
   collectServiceFacetSelections,
   isResourceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
@@ -140,13 +142,24 @@ import {
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
+  StoredQueryChipContext,
   buildFacetDisplayNames,
   buildLockedAttributeChip,
   buildTraceEntityTypeHints,
   collectTraceEntityIdsToResolve,
+  describeStoredQueryChip,
+  entityScopeForAttributeKey,
   getSpanEntity,
   resolveTraceChipDisplay,
 } from "./TracesEntityDisplay";
+import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
+import {
+  LOCKED_FILTER_SOURCE_PAGE,
+  buildLockedScopeCopyText,
+  describeLockedAttributeFilter,
+  describeLockedEntityFilter,
+} from "../../Utils/LockedTelemetryScope";
+import { buildLockedScopeExplorerLink } from "../../Utils/LockedTelemetryScopeLink";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -983,12 +996,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * Host / docker host / podman host / Kubernetes cluster selections do
-     * NOT read out of `primaryEntityId`: a span that carries a
-     * `service.name` is primary-keyed on its Service and only records the
-     * host / cluster in `entityKeys`. They ride `resourceFilters` so the
-     * server can resolve each id to the resource's entity key, one AND
-     * group per facet. See ResourceEntityFilter.
+     * Selections on the other resource facets (hosts, clusters, vCenters,
+     * serverless functions, … — see ResourceFacetCatalog) do NOT read out
+     * of `primaryEntityId`: a span that carries a `service.name` is
+     * primary-keyed on its Service and only records the host / cluster in
+     * `entityKeys`. They ride `resourceFilters` so the server can resolve
+     * each id to the resource's entity key, one AND group per facet. See
+     * ResourceEntityFilter.
      */
     const resourceFilters: ResourceEntityFacetSelections =
       collectResourceEntityFacetSelections(Object.entries(facetGroups));
@@ -1645,7 +1659,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     /*
      * Mirror the list query: the Services facet narrows `serviceIds`, while
-     * host / docker / podman / Kubernetes selections travel under
+     * every other resource facet's selections travel under
      * `resourceFilters` so the server matches them through the resource's
      * entity key instead of against a column that only holds Service ids.
      */
@@ -1847,10 +1861,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ...aggregationRequest,
       facetKeys: [
         "primaryEntityId",
-        "hostId",
-        "dockerHostId",
-        "podmanHostId",
-        "kubernetesClusterId",
+        /*
+         * Every resource type in the catalog. The server answers each with
+         * the project's full list from Postgres, so a type the project has
+         * none of comes back empty and the sidebar folds it away.
+         */
+        ...RESOURCE_FACET_CATALOG_KEYS,
         "statusCode",
         "kind",
         // Backs the "Span Type" facet (root vs non-root counts).
@@ -2054,42 +2070,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     };
 
     return [
+      // Never folded away while empty — only the resource type facets below are.
       {
         key: "primaryEntityId",
         title: "Service",
+        icon: IconProp.SquareStack,
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
         serverSearchable: true,
       },
-      {
-        key: "hostId",
-        title: "Host",
-        valueDisplayMap: hostNameMap,
-        priority: 2,
-        serverSearchable: true,
-      },
-      {
-        key: "dockerHostId",
-        title: "Docker Host",
-        valueDisplayMap: dockerHostNameMap,
-        priority: 3,
-        serverSearchable: true,
-      },
-      {
-        key: "podmanHostId",
-        title: "Podman Host",
-        valueDisplayMap: podmanHostNameMap,
-        priority: 4,
-        serverSearchable: true,
-      },
-      {
-        key: "kubernetesClusterId",
-        title: "Kubernetes Cluster",
-        valueDisplayMap: clusterNameMap,
-        priority: 5,
-        serverSearchable: true,
-      },
+      /*
+       * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
+       * 2.11 so they stay grouped under Service and above Status. Each folds
+       * away while empty. Types without a preloaded list are named by the
+       * server's facet displayName.
+       */
+      ...buildResourceFacetConfigs({
+        basePriority: 2,
+        valueDisplayMaps: {
+          hostId: hostNameMap,
+          dockerHostId: dockerHostNameMap,
+          podmanHostId: podmanHostNameMap,
+          kubernetesClusterId: clusterNameMap,
+        },
+      }),
       {
         key: "statusCode",
         title: "Status",
@@ -2354,16 +2359,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
-   * Read-only chips for prop-level scoping (e.g. service view page), merged
-   * with the user-added chips. Display labels are re-derived here (see
+   * Display labels are re-derived on every render (see
    * resolveTraceChipDisplay) so URL-restored chips (which only carry
    * facetKey/value) still show the human-readable label once services, facets
    * and entity names load.
    */
-  const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
-      chip: ActiveFilter,
-    ) => {
+  const resolveChipDisplay: (chip: ActiveFilter) => ActiveFilter = useCallback(
+    (chip: ActiveFilter): ActiveFilter => {
       return resolveTraceChipDisplay(chip, {
         facetConfigs,
         facetDisplayNames,
@@ -2371,8 +2373,25 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         scopeEntityId,
         scopeEntityType: props.scopeEntityType,
       });
-    };
+    },
+    [
+      facetConfigs,
+      facetDisplayNames,
+      entityNames,
+      scopeEntityId,
+      props.scopeEntityType,
+    ],
+  );
 
+  /*
+   * Read-only chips for prop-level scoping (a service page's entity, a
+   * snapshot's stored query, a resource page's attribute filters). Each
+   * carries a LockedFilterDetail — what it matches and why it is locked —
+   * which the chip renders as its tooltip and the "Copy filter" / "Open in
+   * Traces" actions below are built from. Kept apart from the user's chips
+   * so those actions describe the pinned scope alone.
+   */
+  const lockedChips: Array<ActiveFilter> = useMemo(() => {
     const base: Array<ActiveFilter> = [];
     if (props.exceptionScope) {
       base.push({
@@ -2383,18 +2402,47 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           props.exceptionScopeLabel ||
           props.exceptionScope.fingerprint.slice(0, 12),
         readOnly: true,
+        lockedDetail: {
+          source: LOCKED_FILTER_SOURCE_PAGE,
+          summary: "Only spans in which this exception was raised are shown.",
+          predicates: [
+            {
+              label: "Exception",
+              expression: `fingerprint = ${JSON.stringify(
+                props.exceptionScope.fingerprint,
+              )}`,
+              note: "Matched through the exception's recorded occurrences.",
+            },
+          ],
+          combinator: "all",
+          searchTokenUnavailableReason:
+            "The traces search cannot filter spans by exception.",
+        },
       });
     }
     if (props.primaryEntityId) {
-      base.push(
-        resolveDisplay({
-          facetKey: "primaryEntityId",
-          value: props.primaryEntityId.toString(),
-          displayKey: "Service",
-          displayValue: props.primaryEntityId.toString(),
-          readOnly: true,
+      const entityId: string = props.primaryEntityId.toString();
+      /*
+       * Described AFTER resolving: the seed says "Service: <id>", the
+       * resolved chip says "RUM Application: checkout-web", and the
+       * explanation must use the latter.
+       */
+      const resolved: ActiveFilter = resolveChipDisplay({
+        facetKey: "primaryEntityId",
+        value: entityId,
+        displayKey: "Service",
+        displayValue: entityId,
+        readOnly: true,
+      });
+      base.push({
+        ...resolved,
+        lockedDetail: describeLockedEntityFilter({
+          signal: "traces",
+          entityTypeLabel: resolved.displayKey,
+          id: entityId,
+          name: resolved.displayValue,
         }),
-      );
+      });
     }
     /*
      * The host's stored scope, as chips the user can see but not remove. A
@@ -2435,36 +2483,92 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
     }
 
+    /*
+     * A single stored span name / status message is compiled as a SUBSTRING
+     * match (see the query builder's TEXT_CHIP_FIELDS); the chip's tooltip
+     * has to say "contains", and only the scope knows which columns took
+     * that path.
+     */
+    const storedQueryContext: StoredQueryChipContext = {
+      substringColumns: new Set<string>([
+        ...(spanScope.spanNameSearch ? ["name"] : []),
+        ...(spanScope.statusMessageSearch ? ["statusMessage"] : []),
+      ]),
+    };
+
     for (const chip of spanScope.chips as Array<SpanScopeChip>) {
       if (userFilteredFacetKeys.has(chip.facetKey)) {
         continue;
       }
 
-      base.push(
-        resolveDisplay({
-          facetKey: chip.facetKey,
-          value: chip.value,
-          displayKey: chip.displayKey,
-          displayValue: chip.displayValue,
-          readOnly: true,
-        }),
-      );
+      /*
+       * The scope chip is a plain {facetKey, value, displayKey, displayValue}
+       * and this literal is where the viewer turns it into an ActiveFilter —
+       * the detail has to be attached HERE or it never reaches the chip.
+       */
+      const resolved: ActiveFilter = resolveChipDisplay({
+        facetKey: chip.facetKey,
+        value: chip.value,
+        displayKey: chip.displayKey,
+        displayValue: chip.displayValue,
+        readOnly: true,
+      });
+
+      base.push({
+        ...resolved,
+        lockedDetail: describeStoredQueryChip(resolved, storedQueryContext),
+      });
     }
     if (props.attributeFilters) {
       for (const [key, value] of Object.entries(props.attributeFilters)) {
         if (!value) {
           continue;
         }
-        base.push(
-          buildLockedAttributeChip({
-            key,
-            value,
-            displayKeys: props.attributeFilterDisplayKeys,
-            displayValues: props.attributeFilterDisplayValues,
+        /*
+         * The builder gives the label; the explanation is attached here so
+         * TracesEntityDisplay stays loadable without a window (see the
+         * builder's comment). The entity scope rides only the chip whose
+         * attribute it names.
+         */
+        const attributeChip: ActiveFilter = buildLockedAttributeChip({
+          key,
+          value,
+          displayKeys: props.attributeFilterDisplayKeys,
+          displayValues: props.attributeFilterDisplayValues,
+        });
+
+        base.push({
+          ...attributeChip,
+          lockedDetail: describeLockedAttributeFilter({
+            signal: "traces",
+            attributeKey: key,
+            rawValue: value,
+            displayKey: attributeChip.displayKey,
+            displayValue: attributeChip.displayValue,
+            entityScope: entityScopeForAttributeKey(props.entityScope, key),
           }),
-        );
+        });
       }
     }
+    return base;
+  }, [
+    props.exceptionScope,
+    props.exceptionScopeLabel,
+    props.primaryEntityId,
+    props.attributeFilters,
+    props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    props.entityScope,
+    spanScope,
+    activeFilters,
+    submittedSearch,
+    resolveChipDisplay,
+  ]);
+
+  /*
+   * The locked chips, then the user's own, then the root-only marker.
+   */
+  const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     /*
      * Surface the root-only scope as a (removable) chip so the Span Type facet
      * row shows selected and the active-filter bar reflects it. It lives in
@@ -2483,24 +2587,51 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           },
         ]
       : [];
-    return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
-  }, [
-    props.exceptionScope,
-    props.exceptionScopeLabel,
-    props.primaryEntityId,
-    props.scopeEntityType,
-    props.attributeFilters,
-    props.attributeFilterDisplayKeys,
-    props.attributeFilterDisplayValues,
-    scopeEntityId,
-    spanScope,
-    activeFilters,
-    submittedSearch,
-    facetConfigs,
-    facetDisplayNames,
-    entityNames,
-    rootOnly,
-  ]);
+    return [
+      ...lockedChips,
+      ...activeFilters.map(resolveChipDisplay),
+      ...spanTypeChip,
+    ];
+  }, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);
+
+  /*
+   * How the pinned scope travels to the main Traces explorer: every locked
+   * chip as search syntax to paste into its search bar, and a link that
+   * opens it with the same chips and window already applied. Built from the
+   * locked chips alone — the user's own chips are theirs to carry. The link
+   * builder reads the current URL for the project route; a host without one
+   * (a preview outside the dashboard shell) keeps the copy affordance only
+   * rather than losing the chip bar to a thrown error.
+   */
+  const lockedFilterActions: LockedFilterActionOptions | undefined =
+    useMemo(() => {
+      if (lockedChips.length === 0) {
+        return undefined;
+      }
+
+      const copyText: string = buildLockedScopeCopyText("traces", lockedChips);
+
+      try {
+        const link: ReturnType<typeof buildLockedScopeExplorerLink> =
+          buildLockedScopeExplorerLink({
+            signal: "traces",
+            filters: lockedChips.map(
+              (chip: ActiveFilter): { facetKey: string; value: string } => {
+                return { facetKey: chip.facetKey, value: chip.value };
+              },
+            ),
+            timeRange,
+          });
+
+        return {
+          copyText,
+          openExplorerRoute: link.url,
+          notCarried: link.notCarried,
+        };
+      } catch {
+        return { copyText };
+      }
+    }, [lockedChips, timeRange]);
 
   /*
    * "Create metric…" from the analytics view — prefill a Trace Recording
@@ -2711,6 +2842,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           props.entityScope ||
             (props.entityKeysFilter && props.entityKeysFilter.length > 0),
         ),
+        /*
+         * The attribute half of the entity scope. The pivot carries the same
+         * attribute through scopeAttributeFilters, so with this it knows the
+         * scope is not lost and stops reporting "entity scope" as not
+         * carried on every resource page.
+         */
+        entityScope: props.entityScope
+          ? {
+              attributeKey: props.entityScope.attributeKey,
+              attributeValue: props.entityScope.attributeValue,
+            }
+          : undefined,
         startTime: dateRange.startValue,
         endTime: dateRange.endValue,
       });
@@ -3161,6 +3304,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
+      lockedFilterSignal="traces"
+      lockedFilterActions={lockedFilterActions}
       // Histogram
       showHistogram={true}
       histogramBuckets={histogramBuckets}

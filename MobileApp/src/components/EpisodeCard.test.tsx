@@ -1,8 +1,10 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import EpisodeCard from "./EpisodeCard";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
 import { rgbToHex } from "../utils/color";
 import {
   makeAlertEpisode,
@@ -35,9 +37,35 @@ interface PressHandlers {
   onResponderGrant?: (event: unknown) => void;
 }
 
+/**
+ * The resolved style of a host element. Styles may arrive as arrays, so they
+ * are flattened rather than read as a plain object.
+ */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 function cardSurface(): RenderedElement {
   return screen.getByRole("button");
@@ -88,8 +116,8 @@ describe("An incident episode", () => {
       />,
     );
 
-    expect(screen.getByText("Incident episode")).toBeTruthy();
-    expect(screen.getByText("#2")).toBeTruthy();
+    /* The number and the kind share one meta line under the title. */
+    expect(screen.getByText("#2 · Incident episode")).toBeTruthy();
     expect(screen.getByText("Rolling checkout outage")).toBeTruthy();
   });
 
@@ -153,8 +181,7 @@ describe("An alert episode", () => {
       <EpisodeCard episode={makeAlertEpisode()} type="alert" onPress={noop} />,
     );
 
-    expect(screen.getByText("Alert episode")).toBeTruthy();
-    expect(screen.getByText("#3")).toBeTruthy();
+    expect(screen.getByText("#3 · Alert episode")).toBeTruthy();
     expect(screen.getByText("Repeated disk pressure")).toBeTruthy();
   });
 
@@ -338,7 +365,7 @@ describe("An episode missing the pieces the type promises", () => {
       <EpisodeCard episode={episode} type="incident" onPress={noop} />,
     );
 
-    expect(screen.getByText("#2")).toBeTruthy();
+    expect(screen.getByText("#2 · Incident episode")).toBeTruthy();
   });
 });
 
@@ -358,7 +385,7 @@ describe("State markers preserve server colours while text stays readable", () =
     const label: RenderedElement = screen.getByText("Resolved");
     const dot: RenderedElement = screen.getByTestId("response-status-marker");
 
-    expect(styleOf(label).color).toBe(darkColors.textPrimary);
+    expect(styleOf(label).color).toBe(lightColors.textPrimary);
     expect(styleOf(dot).backgroundColor).toBe(
       rgbToHex({ r: 34, g: 197, b: 94 }),
     );
@@ -375,7 +402,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<EpisodeCard episode={episode} type="alert" onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unclassified")).color).toBe(
-      darkColors.textSecondary,
+      lightColors.textSecondary,
     );
     expect(styleOf(screen.getByText("Unclassified")).color).not.toBe("#000000");
   });
@@ -391,7 +418,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<EpisodeCard episode={episode} type="alert" onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unclassified")).color).toBe(
-      darkColors.textSecondary,
+      lightColors.textSecondary,
     );
   });
 });
@@ -456,7 +483,7 @@ describe("Pressing the card", () => {
     );
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
 
     await fireEvent.press(screen.getByText("Rolling checkout outage"));
@@ -474,7 +501,7 @@ describe("Pressing the card", () => {
     );
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
   });
 
@@ -491,7 +518,106 @@ describe("Pressing the card", () => {
     await holdDown(cardSurface());
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundTertiary,
+      lightColors.backgroundTertiary,
     );
+  });
+});
+
+describe("The card surface", () => {
+  test("an episode is the same rounded, padded card as a single incident", async () => {
+    await render(
+      <EpisodeCard
+        episode={makeIncidentEpisode()}
+        type="incident"
+        onPress={noop}
+      />,
+    );
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    });
+  });
+
+  test("an alert episode keeps that surface too", async () => {
+    await render(
+      <EpisodeCard episode={makeAlertEpisode()} type="alert" onPress={noop} />,
+    );
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(styleOf(cardSurface()).boxShadow).toEqual(expect.any(String));
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockColorScheme = "dark";
+  });
+
+  test.each(["incident", "alert"] as const)(
+    "a %s episode card reads from the dark palette",
+    async (type: "incident" | "alert") => {
+      await render(
+        <ThemeProvider>
+          {type === "incident" ? (
+            <EpisodeCard
+              episode={makeIncidentEpisode()}
+              type="incident"
+              onPress={noop}
+            />
+          ) : (
+            <EpisodeCard
+              episode={makeAlertEpisode()}
+              type="alert"
+              onPress={noop}
+            />
+          )}
+        </ThemeProvider>,
+      );
+
+      expect(cardSurface()).toHaveStyle({
+        backgroundColor: darkColors.backgroundElevated,
+        borderColor: darkColors.borderSubtle,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+      });
+      expect(
+        screen.getByText(
+          type === "incident"
+            ? "Rolling checkout outage"
+            : "Repeated disk pressure",
+        ),
+      ).toHaveStyle({ color: darkColors.textPrimary });
+      expect(
+        screen.getByText(type === "incident" ? "3 incidents" : "4 alerts"),
+      ).toHaveStyle({ color: darkColors.textSecondary });
+    },
+  );
+
+  test("holding a finger on a dark episode uses the dark pressed fill", async () => {
+    await render(
+      <ThemeProvider>
+        <EpisodeCard
+          episode={makeIncidentEpisode()}
+          type="incident"
+          onPress={noop}
+          muted
+        />
+      </ThemeProvider>,
+    );
+
+    await holdDown(cardSurface());
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
   });
 });

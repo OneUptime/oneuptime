@@ -27,10 +27,21 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  LockedFilterDetail,
+  LockedFilterPredicate,
+} from "Common/Types/Telemetry/LockedFilterDetail";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
   METRICS_POLYMORPHIC_ENTITY_FACET_KEYS,
   METRICS_TYPED_ENTITY_FACET_KEYS,
@@ -69,6 +80,8 @@ const HOST_ID: string = "55555555-5555-4555-8555-555555555555";
 const CLUSTER_ID: string = "66666666-6666-4666-8666-666666666666";
 const DOCKER_HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 const PODMAN_HOST_ID: string = "88888888-8888-4888-8888-888888888888";
+const PROXMOX_CLUSTER_ID: string = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+const IOT_FLEET_ID: string = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb";
 
 const SERVICE_FACET_CONFIG: FacetConfig = {
   key: "primaryEntityId",
@@ -126,17 +139,49 @@ describe("entity facet key registry", () => {
   });
 
   test("each resource-id key maps to its own table", () => {
+    /*
+     * Spelled out rather than rebuilt from the catalog, so a catalog edit
+     * that re-points a key at the wrong table fails here. IoT fleet
+     * telemetry is stamped IoTDevice, and a RUM application RealUserMonitor.
+     */
     expect(METRICS_TYPED_ENTITY_FACET_KEYS).toEqual({
       hostId: ServiceType.Host,
       dockerHostId: ServiceType.DockerHost,
       podmanHostId: ServiceType.PodmanHost,
       kubernetesClusterId: ServiceType.KubernetesCluster,
+      dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
+      proxmoxClusterId: ServiceType.ProxmoxCluster,
+      vmwareVCenterId: ServiceType.VMwareVCenter,
+      cephClusterId: ServiceType.CephCluster,
+      serverlessFunctionId: ServiceType.ServerlessFunction,
+      cloudResourceId: ServiceType.CloudResource,
+      rumApplicationId: ServiceType.RealUserMonitor,
+      iotFleetId: ServiceType.IoTDevice,
     });
     expect(getMetricsTypedEntityFacetType("hostId")).toBe(ServiceType.Host);
     expect(getMetricsTypedEntityFacetType("primaryEntityId")).toBeUndefined();
     // Object.prototype members are not facet keys.
     expect(getMetricsTypedEntityFacetType("toString")).toBeUndefined();
     expect(getMetricsTypedEntityFacetType("constructor")).toBeUndefined();
+  });
+
+  test("REGRESSION: every resource facet another explorer offers is a typed key here", () => {
+    /*
+     * A Traces / Logs / Exceptions link can now carry a Proxmox, vCenter,
+     * Ceph, Swarm, Serverless, Cloud, RUM or IoT chip; untyped, it would read
+     * "proxmoxClusterId: <uuid>" in the Metrics chip bar.
+     */
+    expect(Object.keys(METRICS_TYPED_ENTITY_FACET_KEYS)).toEqual([
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      expect(getMetricsTypedEntityFacetType(definition.facetKey)).toBe(
+        definition.serviceType,
+      );
+      expect(isMetricsPolymorphicEntityFacetKey(definition.facetKey)).toBe(
+        false,
+      );
+    }
   });
 
   test("isMetricsEntityFacetKey covers both groups and nothing else", () => {
@@ -147,6 +192,14 @@ describe("entity facet key registry", () => {
       "dockerHostId",
       "podmanHostId",
       "kubernetesClusterId",
+      "dockerSwarmClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "cephClusterId",
+      "serverlessFunctionId",
+      "cloudResourceId",
+      "rumApplicationId",
+      "iotFleetId",
     ]) {
       expect(isMetricsEntityFacetKey(key)).toBe(true);
     }
@@ -586,6 +639,63 @@ describe("resolveMetricsChipDisplay — resource id chips", () => {
   );
 });
 
+describe("resolveMetricsChipDisplay — every catalog resource type", () => {
+  const RESOURCE_ID: string = "99999999-9999-4999-8999-999999999999";
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (
+        definition: ResourceFacetDefinition,
+      ): [string, ResourceFacetDefinition] => {
+        return [definition.facetKey, definition];
+      },
+    ),
+  )(
+    "%s reads its catalog label, is hinted to its table, and is never applied to the list",
+    (facetKey: string, definition: ResourceFacetDefinition) => {
+      const chip: ActiveFilter = restoredChip(facetKey, RESOURCE_ID);
+
+      const lookup: MetricsEntityLookup = collectMetricsEntityLookup({
+        scopeIds: undefined,
+        scopeEntityType: undefined,
+        filters: [chip],
+      });
+      expect(lookup).toEqual({
+        ids: [RESOURCE_ID],
+        typeHints: { [RESOURCE_ID]: definition.serviceType },
+      });
+
+      const unresolved: ActiveFilter = resolveMetricsChipDisplay({
+        chip,
+        facetConfigs: [],
+        nameMap: {},
+      });
+      expect(unresolved.displayKey).toBe(definition.label);
+      expect(unresolved.displayValue).toBe(RESOURCE_ID);
+
+      const resolved: ActiveFilter = resolveMetricsChipDisplay({
+        chip,
+        facetConfigs: [],
+        nameMap: entity(
+          RESOURCE_ID,
+          "friendly-name",
+          definition.serviceType,
+          definition.label,
+        ),
+      });
+      expect(resolved).toEqual({
+        facetKey,
+        value: RESOURCE_ID,
+        displayKey: definition.label,
+        displayValue: "friendly-name",
+      });
+
+      // Metrics has no filter path for it: labelled, never applied.
+      expect(getMetricsAppliedEntityFilterIds([chip])).toEqual([]);
+    },
+  );
+});
+
 describe("resolveMetricsChipDisplay — other chips are unchanged", () => {
   test("an attribute chip shows the typed value, not its grammar escaping", () => {
     const escaped: ActiveFilter = resolveMetricsChipDisplay({
@@ -651,7 +761,7 @@ describe("buildMetricsLockedAttributeChips", () => {
         attributeFilterDisplayKeys: { "resource.host.name": "Host" },
         attributeFilterDisplayValues: { "resource.host.name": "web-1" },
       }),
-    ).toEqual([
+    ).toMatchObject([
       {
         facetKey: "attributes.resource.host.name",
         value: "ip-10-0-0-12",
@@ -667,7 +777,7 @@ describe("buildMetricsLockedAttributeChips", () => {
       buildMetricsLockedAttributeChips({
         attributeFilters: { "resource.service.name": "api" },
       }),
-    ).toEqual([
+    ).toMatchObject([
       {
         facetKey: "attributes.resource.service.name",
         value: "api",
@@ -718,7 +828,7 @@ describe("buildMetricsLockedScopeChips", () => {
       facetConfigs: [],
       nameMap: {},
     });
-    expect(before).toEqual([
+    expect(before).toMatchObject([
       {
         facetKey: "primaryEntityId",
         value: RUM_APP_ID,
@@ -894,6 +1004,226 @@ describe("buildMetricsActiveFilterChips", () => {
   });
 });
 
+/*
+ * The locked chips explain themselves. The chip bar used to say nothing
+ * beyond "(applied filter)", so a reader could not tell that "Cluster:
+ * production" is an attribute equality with an entity-key fallback, nor how
+ * to reproduce it on the main Metrics page. The wording itself is owned by
+ * LockedTelemetryScope.test.ts; these pin that the metrics builders attach
+ * the right explanation to the right chip.
+ */
+describe("locked metrics chips carry their explanation", () => {
+  const CLUSTER_SCOPE: {
+    entityKeys: Array<string>;
+    attributeKey: string;
+    attributeValue: string;
+  } = {
+    entityKeys: ["3f9a1b2c4d5e6f70"],
+    attributeKey: "resource.k8s.cluster.name",
+    attributeValue: "prod-eks-01",
+  };
+
+  type DetailOfFunction = (
+    chip: ActiveFilter | undefined,
+  ) => LockedFilterDetail;
+
+  const detailOf: DetailOfFunction = (
+    chip: ActiveFilter | undefined,
+  ): LockedFilterDetail => {
+    expect(chip).toBeDefined();
+    expect(chip!.lockedDetail).toBeDefined();
+
+    return chip!.lockedDetail as LockedFilterDetail;
+  };
+
+  test("an attribute chip is explained as an attribute equality with the metrics search token", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
+      attributeFilterDisplayKeys: { "resource.host.name": "Host" },
+      attributeFilterDisplayValues: { "resource.host.name": "web-1" },
+    });
+
+    const detail: LockedFilterDetail = detailOf(chips[0]);
+
+    expect(detail.source).toBe("Pinned by this page");
+    expect(detail.summary).toBe("Only metrics from this host are shown.");
+    expect(detail.combinator).toBe("all");
+    expect(detail.predicates).toEqual([
+      {
+        label: "Attribute",
+        expression: 'resource.host.name = "ip-10-0-0-12"',
+      },
+    ]);
+    expect(detail.searchToken).toBe("@resource.host.name:ip-10-0-0-12");
+    expect(detail.searchTokenUnavailableReason).toBeUndefined();
+  });
+
+  test("the entity scope is attached to the chip for its own key, alongside the attribute (all of)", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: {
+        "resource.k8s.cluster.name": "prod-eks-01",
+        "resource.container.runtime": "docker",
+      },
+      entityScope: CLUSTER_SCOPE,
+    });
+
+    /*
+     * The page pins the attribute equality AND the entity scope (whose own
+     * OR includes the same attribute), so the tooltip must say "all of" —
+     * an "any of" would promise rows the query never returns.
+     */
+    const cluster: LockedFilterDetail = detailOf(chips[0]);
+    expect(cluster.combinator).toBe("all");
+    expect(
+      cluster.predicates.map((predicate: LockedFilterPredicate): string => {
+        return predicate.label;
+      }),
+    ).toEqual(["Attribute", "Entity scope"]);
+    expect(cluster.predicates[1]!.expression).toBe(
+      'entityKeys has 3f9a1b2c4d5e6f70 OR resource.k8s.cluster.name = "prod-eks-01"',
+    );
+    expect(cluster.searchToken).toBe("@resource.k8s.cluster.name:prod-eks-01");
+
+    // The runtime chip is a plain attribute filter; the scope is not its.
+    const runtime: LockedFilterDetail = detailOf(chips[1]);
+    expect(runtime.combinator).toBe("all");
+    expect(runtime.predicates).toHaveLength(1);
+  });
+
+  test("an entity scope for a key the page does not filter by is not attached anywhere", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: { "resource.host.name": "web-1" },
+      entityScope: CLUSTER_SCOPE,
+    });
+
+    const detail: LockedFilterDetail = detailOf(chips[0]);
+    expect(detail.combinator).toBe("all");
+    expect(detail.predicates).toHaveLength(1);
+  });
+
+  test("the display overrides never leak into the predicate — it names the filter, not the label", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
+      attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
+      attributeFilterDisplayValues: {
+        "resource.k8s.cluster.name": "production",
+      },
+    });
+
+    const detail: LockedFilterDetail = detailOf(chips[0]);
+    expect(detail.predicates[0]!.expression).toBe(
+      'resource.k8s.cluster.name = "prod-eks-01"',
+    );
+    expect(detail.searchToken).toBe("@resource.k8s.cluster.name:prod-eks-01");
+    expect(chips[0]!.displayValue).toBe("production");
+  });
+
+  test("buildMetricsActiveFilterChips passes the entity scope through to the attribute chips", () => {
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
+      entityScope: CLUSTER_SCOPE,
+      activeFilters: [restoredChip("attributes.container.name", "postgres")],
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    expect(detailOf(chips[0]).combinator).toBe("all");
+    expect(detailOf(chips[0]).predicates[1]!.label).toBe("Entity scope");
+    // The user's own chip is not a locked one and carries no explanation.
+    expect(chips[1]!.lockedDetail).toBeUndefined();
+  });
+
+  test("a scope chip is explained by entity id, with the metrics-specific copy note, and names the resolved entity", () => {
+    const before: Array<ActiveFilter> = buildMetricsLockedScopeChips({
+      scopeIds: [new ObjectID(RUM_APP_ID)],
+      scopeEntityType: ServiceType.RealUserMonitor,
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    const unresolved: LockedFilterDetail = detailOf(before[0]);
+    expect(unresolved.summary).toBe(
+      "Only metrics emitted by this RUM Application are shown.",
+    );
+    expect(unresolved.predicates).toEqual([
+      {
+        label: "Entity id",
+        expression: `primaryEntityId = "${RUM_APP_ID}"`,
+        note: "The RUM Application's OneUptime id, stored on every row it emits.",
+      },
+    ]);
+    // The Metrics search bar matches services by NAME, so no token is offered.
+    expect(unresolved.searchToken).toBeUndefined();
+    expect(unresolved.searchTokenUnavailableReason).toContain(
+      "use Open in Metrics",
+    );
+
+    const after: Array<ActiveFilter> = buildMetricsLockedScopeChips({
+      scopeIds: [new ObjectID(RUM_APP_ID)],
+      scopeEntityType: ServiceType.RealUserMonitor,
+      facetConfigs: [],
+      nameMap: RUM_NAME_MAP,
+    });
+
+    const resolved: LockedFilterDetail = detailOf(after[0]);
+    expect(resolved.summary).toBe(
+      "Only metrics emitted by this RUM Application are shown.",
+    );
+    expect(after[0]!.displayValue).toBe("checkout-web");
+  });
+
+  test("a scope chip without a scope type is explained with the resolved entity's type", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedScopeChips({
+      scopeIds: [RUM_APP_ID],
+      scopeEntityType: undefined,
+      facetConfigs: [],
+      nameMap: RUM_NAME_MAP,
+    });
+
+    expect(detailOf(chips[0]).summary).toBe(
+      "Only metrics emitted by this RUM Application are shown.",
+    );
+
+    const serviceChips: Array<ActiveFilter> = buildMetricsLockedScopeChips({
+      scopeIds: [SERVICE_ID],
+      scopeEntityType: undefined,
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    expect(detailOf(serviceChips[0]).summary).toBe(
+      "Only metrics emitted by this Service are shown.",
+    );
+  });
+
+  test("every locked chip carries an explanation and no user chip does", () => {
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: [new ObjectID(RUM_APP_ID)],
+      scopeEntityType: ServiceType.RealUserMonitor,
+      attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
+      activeFilters: [
+        restoredChip("hostId", HOST_ID),
+        restoredChip("attributes.container.name", "postgres"),
+      ],
+      facetConfigs: [],
+      nameMap: RUM_NAME_MAP,
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): [boolean, boolean] => {
+        return [Boolean(chip.readOnly), Boolean(chip.lockedDetail)];
+      }),
+    ).toEqual([
+      [true, true],
+      [true, true],
+      [false, false],
+      [false, false],
+    ]);
+  });
+});
+
 describe("getMetricsScopeFallbackLabel", () => {
   test("names a resolved entity and falls back to the id", () => {
     expect(
@@ -932,6 +1262,11 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
         },
       ],
     ],
+    [
+      ProxmoxCluster,
+      [{ id: new ObjectID(PROXMOX_CLUSTER_ID), name: "pve-prod" }],
+    ],
+    [IoTFleet, [{ id: new ObjectID(IOT_FLEET_ID), name: "warehouse-sensors" }]],
   ];
 
   beforeEach(() => {
@@ -990,7 +1325,7 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
       facetConfigs: [],
       nameMap,
     });
-    expect(chips).toEqual([
+    expect(chips).toMatchObject([
       {
         facetKey: "primaryEntityId",
         value: RUM_APP_ID,
@@ -1040,6 +1375,51 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
       ["Host", "web-1"],
       ["Kubernetes Cluster", "prod-eks"],
       ["Service", "Unknown Service"],
+    ]);
+  });
+
+  test("chips for the newly offered resource types go straight to their own tables", async () => {
+    const activeFilters: Array<ActiveFilter> = [
+      restoredChip("proxmoxClusterId", PROXMOX_CLUSTER_ID),
+      restoredChip("iotFleetId", IOT_FLEET_ID),
+    ];
+    const lookup: MetricsEntityLookup = collectMetricsEntityLookup({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      filters: activeFilters,
+    });
+    const nameMap: TelemetryEntityNameMap =
+      await TelemetryEntityNameResolver.resolve({
+        ids: lookup.ids,
+        projectId: PROJECT_ID,
+        typeHints: lookup.typeHints,
+      });
+
+    // Hinted: no Service probe, no fall-through across every table.
+    const queried: Array<unknown> = getListMock.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { modelType: unknown }).modelType;
+      },
+    );
+    expect(queried).toHaveLength(2);
+    expect(queried).toEqual(expect.arrayContaining([ProxmoxCluster, IoTFleet]));
+
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: undefined,
+      activeFilters,
+      facetConfigs: [],
+      nameMap,
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): [string, string] => {
+        return [chip.displayKey, chip.displayValue];
+      }),
+    ).toEqual([
+      ["Proxmox Cluster", "pve-prod"],
+      ["IoT Fleet", "warehouse-sensors"],
     ]);
   });
 
@@ -1179,6 +1559,10 @@ describe("getMetricsAppliedEntityFilterIds (the metric list's entity filter)", (
         getMetricsAppliedEntityFilterIds([restoredChip(key, HOST_ID)]),
       ).toEqual([]);
     }
+    // The shared resource list is the whole catalog, not the original four.
+    expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual(
+      expect.arrayContaining([...RESOURCE_FACET_CATALOG_KEYS]),
+    );
   });
 
   test("the Viewer applies the same service ids the Metrics Insights tab applies", () => {

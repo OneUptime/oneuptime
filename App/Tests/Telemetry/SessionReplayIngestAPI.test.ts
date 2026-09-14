@@ -23,6 +23,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import zlib from "zlib";
+import * as BrowserRecorderManifest from "../../FeatureSet/BrowserRecorder/Manifest";
 
 /*
  * Capture every handler registered per route so the middleware ORDER can be
@@ -267,6 +268,8 @@ interface FakeResponse {
   end: () => void;
   json: (body: unknown) => void;
   on: (event: string, listener: () => void) => void;
+  sendFile: (filePath: string, callback: (error?: Error) => void) => void;
+  sentFilePath: string | null;
   headersSent: boolean;
 }
 
@@ -277,6 +280,7 @@ function buildResponse(): FakeResponse {
     ended: false,
     body: undefined,
     locals: {},
+    sentFilePath: null,
     headersSent: false,
     setHeader: (name: string, value: string): void => {
       res.headers[name] = value;
@@ -295,6 +299,11 @@ function buildResponse(): FakeResponse {
     },
     on: (): void => {
       // Metric listeners are not exercised here.
+    },
+    sendFile: (filePath: string, callback: (error?: Error) => void): void => {
+      res.sentFilePath = filePath;
+      res.headersSent = true;
+      callback();
     },
   };
 
@@ -1175,7 +1184,7 @@ describe("recorder artifact delivery", () => {
       registeredGetHandlers["/session-replay/v1/recorder.js"],
     ).toBeDefined();
     expect(
-      registeredGetHandlers["/session-replay/v:version/recorder.js"],
+      registeredGetHandlers["/session-replay/latest/recorder.js"],
     ).toBeDefined();
   });
 
@@ -1189,7 +1198,7 @@ describe("recorder artifact delivery", () => {
       registeredGetHandlers["/session-replay/v1/recorder.js"],
     ).not.toContain(authMiddleware);
     expect(
-      registeredGetHandlers["/session-replay/v:version/recorder.js"],
+      registeredGetHandlers["/session-replay/latest/recorder.js"],
     ).not.toContain(authMiddleware);
   });
 
@@ -1206,9 +1215,9 @@ describe("recorder artifact delivery", () => {
     }
   });
 
-  test("a malformed version is 404ed rather than reaching the filesystem", async () => {
+  test("latest serves the current artifact with no-store and CORS", async () => {
     const handlers: Array<unknown> | undefined =
-      registeredGetHandlers["/session-replay/v:version/recorder.js"];
+      registeredGetHandlers["/session-replay/latest/recorder.js"];
 
     const handler: (
       req: ExpressRequest,
@@ -1218,31 +1227,51 @@ describe("recorder artifact delivery", () => {
       res: ExpressResponse,
     ) => void | Promise<void>;
 
-    /*
-     * Traversal and junk both go down the same path: the version is matched
-     * against the semver pattern before the manifest is consulted, so the
-     * segment is never joined onto a directory.
-     */
-    for (const badVersion of [
-      "../../../../etc/passwd",
-      "1.0",
-      "latest",
-      "",
-      "1.0.0/../../secret",
-    ]) {
-      const res: FakeResponse = buildResponse();
+    const latestPathSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(BrowserRecorderManifest, "getLatestRecorderPath")
+      .mockReturnValue("/tmp/recorder.js");
+    const res: FakeResponse = buildResponse();
 
-      await handler(
-        {
-          params: { version: badVersion },
-          headers: {},
-        } as unknown as ExpressRequest,
-        res as unknown as ExpressResponse,
-      );
+    await handler(
+      { params: {}, headers: {} } as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+    );
 
-      expect(res.statusCode).toBe(404);
-      expect(res.ended).toBe(true);
-    }
+    expect(res.sentFilePath).toBe("/tmp/recorder.js");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+    expect(res.headers["Access-Control-Allow-Origin"]).toBe("*");
+    expect(res.headers["X-Content-Type-Options"]).toBe("nosniff");
+
+    latestPathSpy.mockRestore();
+  });
+
+  test("latest 404 is no-store so a missing build cannot poison the stable URL", async () => {
+    const handlers: Array<unknown> | undefined =
+      registeredGetHandlers["/session-replay/latest/recorder.js"];
+
+    const handler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+    ) => void | Promise<void> = handlers![handlers!.length - 1] as (
+      req: ExpressRequest,
+      res: ExpressResponse,
+    ) => void | Promise<void>;
+
+    const latestPathSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(BrowserRecorderManifest, "getLatestRecorderPath")
+      .mockReturnValue(null);
+    const res: FakeResponse = buildResponse();
+
+    await handler(
+      { params: {}, headers: {} } as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+    );
+
+    expect(res.statusCode).toBe(404);
+    expect(res.sentFilePath).toBeNull();
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+
+    latestPathSpy.mockRestore();
   });
 });
 

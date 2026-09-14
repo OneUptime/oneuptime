@@ -326,6 +326,13 @@ export function buildTelemetryScopeFilterTuples(
  * Human labels for the facet keys an Insights tab carries but cannot apply.
  * Anything unlisted falls back to its raw key, which is still more useful to
  * a user staring at a chip than silence would be.
+ *
+ * Read mid-sentence ("not applied here: severity, Proxmox cluster"), so
+ * generic nouns are lower case and product names / acronyms keep their
+ * casing — the rule the Logs pivot hint uses for the same resource types.
+ * Every entry of ResourceFacetCatalog has one; TelemetryTabScope.test.ts
+ * walks the catalog so a new resource type cannot surface here as
+ * "proxmoxClusterId".
  */
 const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   severityText: "severity",
@@ -333,9 +340,17 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   traceId: "trace id",
   spanId: "span id",
   hostId: "host",
-  dockerHostId: "docker host",
-  podmanHostId: "podman host",
-  kubernetesClusterId: "kubernetes cluster",
+  dockerHostId: "Docker host",
+  podmanHostId: "Podman host",
+  kubernetesClusterId: "Kubernetes cluster",
+  dockerSwarmClusterId: "Docker Swarm cluster",
+  proxmoxClusterId: "Proxmox cluster",
+  vmwareVCenterId: "vCenter",
+  cephClusterId: "Ceph cluster",
+  serverlessFunctionId: "serverless function",
+  cloudResourceId: "cloud resource",
+  rumApplicationId: "RUM application",
+  iotFleetId: "IoT fleet",
 };
 
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";

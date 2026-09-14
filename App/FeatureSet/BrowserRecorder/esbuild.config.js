@@ -12,13 +12,12 @@
  *
  *   loader.js    served at /telemetry/session-replay/v1/recorder.js with a
  *                short max-age. Fetches config, honours enabled/consent/
- *                DNT/GPC, then loads the pinned artifact. Kept tiny and
+ *                DNT/GPC, then loads the latest artifact. Kept tiny and
  *                rrweb-free so a bad recorder release is recoverable by
- *                changing one config field instead of waiting out a
- *                year-long immutable cache.
+ *                replacing one mutable artifact.
  *
- *   recorder.js  served at /telemetry/session-replay/v<semver>/recorder.js,
- *                immutable, SRI-pinned. Contains rrweb.
+ *   recorder.js  served at /telemetry/session-replay/latest/recorder.js with
+ *                Cache-Control: no-store and SRI. Contains rrweb.
  */
 
 const esbuild = require("esbuild");
@@ -30,13 +29,12 @@ const zlib = require("zlib");
 const packageJson = require("./package.json");
 
 /*
- * Must stay identical to RECORDER_VERSION_PATTERN in src/Config.ts and
- * Manifest.ts. The version is interpolated into the artifact's URL path and
- * validated by the loader before it will build that URL, so a package.json
- * version this does not match would produce an artifact no loader will ever
- * request. Failing the build is the only place that can be caught.
+ * The short build version stamped into diagnostics and upload envelopes; the
+ * public artifact itself is deliberately addressed as `latest` and does not
+ * expose this version in its URL.
  */
 const RECORDER_VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/;
+const LATEST_RECORDER_VERSION = "latest";
 
 const OUT_DIR = path.resolve(__dirname, "./public/dist");
 
@@ -302,6 +300,10 @@ function createBaseConfig(isDev) {
       /*
        * Stamped onto every chunk envelope as recorderVersion, so a bad
        * masking release can be identified in ClickHouse after the fact.
+       * This stays the product semver even though the public artifact locator
+       * is `latest`; envelope version fields deliberately have a short length
+       * limit and need a useful diagnostic value.
+       *
        * Read through a typeof guard in src/Config.ts so unit tests, which
        * run without this define, still have a value.
        */
@@ -390,16 +392,14 @@ async function buildAll() {
   const base = createBaseConfig(isDev);
 
   /*
-   * Asserted before anything is emitted. The version names the artifact's URL
-   * path and the loader refuses to build that URL from anything that is not
-   * this shape, so an unpublishable version must fail here rather than
-   * produce an artifact nothing will ever fetch.
+   * Asserted before anything is emitted. This version is written to replay
+   * diagnostics and upload envelopes, whose parser expects a short semver.
    */
   if (!RECORDER_VERSION_PATTERN.test(packageJson.version)) {
     throw new Error(
       `package.json version "${packageJson.version}" is not a semver the ` +
-        `loader will accept. src/Config.ts validates recorderVersion against ` +
-        `${RECORDER_VERSION_PATTERN} before it will build an artifact URL.`,
+        `recorder can publish in diagnostics and upload envelopes. Expected ` +
+        `${RECORDER_VERSION_PATTERN}.`,
     );
   }
 
@@ -440,24 +440,31 @@ async function buildAll() {
     LOADER_MAX_GZIP_BYTES,
   );
 
+  const recorderIntegrity = getSriHash(recorderPath);
+  const loaderIntegrity = getSriHash(loaderPath);
+
   /*
    * The manifest is what the config endpoint reads to tell a live recorder
-   * which pinned artifact to load, and what integrity attribute to put on
+   * which artifact to load, and what integrity attribute to put on
    * the injected script tag.
+   *
+   * The public locator is always `latest`. Its response is `no-store`, so a
+   * new build replaces the bytes at that stable URL without allowing a
+   * browser or intermediary to reuse an older response against this SRI.
    */
   const manifest = {
-    recorderVersion: packageJson.version,
+    recorderVersion: LATEST_RECORDER_VERSION,
     rrwebVersion: packageJson.dependencies.rrweb,
     files: {
       "recorder.js": {
         bytes: recorderSizes.fileBytes,
         gzipBytes: recorderSizes.gzipBytes,
-        integrity: getSriHash(recorderPath),
+        integrity: recorderIntegrity,
       },
       "loader.js": {
         bytes: loaderSizes.fileBytes,
         gzipBytes: loaderSizes.gzipBytes,
-        integrity: getSriHash(loaderPath),
+        integrity: loaderIntegrity,
       },
     },
   };
@@ -505,6 +512,7 @@ if (require.main === module) {
 module.exports = {
   ALLOWED_COMMON_PREFIXES,
   COMMON_ROOT,
+  LATEST_RECORDER_VERSION,
   RECORDER_VERSION_PATTERN,
   RECORDER_MAX_GZIP_BYTES,
   LOADER_MAX_GZIP_BYTES,

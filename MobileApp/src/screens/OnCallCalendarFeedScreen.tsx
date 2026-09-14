@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   Platform,
   Linking,
@@ -9,9 +8,11 @@ import {
   Alert,
   RefreshControl,
   Pressable,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -25,6 +26,15 @@ import { getFriendlyErrorMessage } from "../utils/error";
 import GradientButton from "../components/GradientButton";
 import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
+import AppText from "../components/AppText";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
+import EmptyState from "../components/EmptyState";
+import IconBadge from "../components/IconBadge";
+import StatusPill, {
+  getToneColors,
+  type StatusTone,
+} from "../components/StatusPill";
 import {
   ANDROID_SUBSCRIBE_HINT,
   IOS_SUBSCRIBE_HINT,
@@ -218,41 +228,38 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       }
 
       return (
-        <View
+        <Banner
           testID={`feed-notice-${notice.kind}`}
-          style={{
-            marginTop: 14,
-            padding: 12,
-            borderRadius: 12,
-            backgroundColor:
-              notice.kind === "error"
-                ? theme.colors.statusErrorBg
-                : theme.colors.statusSuccessBg,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 22,
-              color:
-                notice.kind === "error"
-                  ? theme.colors.statusError
-                  : theme.colors.statusSuccess,
-            }}
-          >
-            {notice.text}
-          </Text>
-        </View>
+          tone={notice.kind === "error" ? "danger" : "success"}
+          message={notice.text}
+        />
       );
     };
+
+  const renderRetry: () => React.JSX.Element = (): React.JSX.Element => {
+    return (
+      <GradientButton
+        testID="retry-feed"
+        label="Try again"
+        icon="refresh-outline"
+        variant="secondary"
+        loading={refreshing}
+        onPress={onRefresh}
+      />
+    );
+  };
 
   const renderBody: () => React.JSX.Element = (): React.JSX.Element => {
     if (projectList.length === 0) {
       return (
-        <InfoCard testID="feed-no-projects">
-          You are not a member of any project yet, so there is nothing to
-          subscribe to.
-        </InfoCard>
+        <Card testID="feed-no-projects" variant="outlined">
+          <EmptyState
+            compact
+            icon="default"
+            title="No projects yet"
+            subtitle="You are not a member of any project yet, so there is nothing to subscribe to."
+          />
+        </Card>
       );
     }
 
@@ -274,222 +281,248 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
 
     if (feed.isUnsupported) {
       return (
-        <InfoCard testID="feed-unsupported" tone="warning">
-          This OneUptime server does not offer calendar feeds yet. Ask whoever
-          runs it to upgrade, then come back here.
-        </InfoCard>
+        <Banner
+          testID="feed-unsupported"
+          tone="warning"
+          icon="cloud-offline-outline"
+          title="Not available on this server"
+          message="This OneUptime server does not offer calendar feeds yet. Ask whoever runs it to upgrade, then come back here."
+        />
       );
     }
 
     if (feed.isSsoRequired) {
       return (
-        <View testID="feed-sso-required">
-          <InfoCard tone="warning">
-            {`${
+        <View testID="feed-sso-required" style={{ gap: spacing.md }}>
+          <Banner
+            tone="warning"
+            icon="lock-closed-outline"
+            title="Sign-in required"
+            message={`${
               selectedProject ? selectedProject.name : "This project"
             } requires an SSO sign-in before the server will answer for it. Authenticate under Settings → Projects, then come back.`}
-          </InfoCard>
-          <GradientButton
-            testID="retry-feed"
-            label="Try again"
-            variant="secondary"
-            loading={refreshing}
-            onPress={onRefresh}
-            style={{ marginTop: 12 }}
           />
+          {renderRetry()}
         </View>
       );
     }
 
     if (feed.isError || !status) {
       return (
-        <View testID="feed-error">
-          <InfoCard tone="error">
-            {`Could not load your calendar link. ${getFriendlyErrorMessage(
-              feed.error,
-            )}`}
-          </InfoCard>
-          <GradientButton
-            testID="retry-feed"
-            label="Try again"
-            variant="secondary"
-            loading={refreshing}
-            onPress={onRefresh}
-            style={{ marginTop: 12 }}
+        <View testID="feed-error" style={{ gap: spacing.md }}>
+          <Banner
+            tone="danger"
+            title="Could not load your calendar link"
+            message={getFriendlyErrorMessage(feed.error)}
           />
+          {renderRetry()}
         </View>
       );
     }
 
     if (!status.exists) {
       return (
-        <View testID="feed-empty">
-          <InfoCard>
-            {`No calendar link yet${
-              selectedProject ? ` for ${selectedProject.name}` : ""
-            }. Generate one and every on-call shift you hold there - including shifts you cover for others - shows up in your calendar app.`}
-          </InfoCard>
-          <GradientButton
-            testID="generate-feed"
-            label="Generate calendar link"
-            icon="calendar-outline"
-            loading={feed.isRotating}
-            onPress={rotate}
-            style={{ marginTop: 16 }}
-          />
+        <View testID="feed-empty" style={{ gap: spacing.lg }}>
+          <Card testID="feed-empty-card">
+            <IconBadge name="calendar-outline" size="lg" />
+            <AppText
+              variant="title3"
+              accessibilityRole="header"
+              style={{ marginTop: spacing.md }}
+            >
+              No calendar link yet
+            </AppText>
+            <AppText
+              variant="subhead"
+              tone="secondary"
+              style={{ marginTop: spacing.xs }}
+            >
+              {`Generate a private link${
+                selectedProject ? ` for ${selectedProject.name}` : ""
+              } and every on-call shift you hold there - including shifts you cover for others - shows up in your calendar app.`}
+            </AppText>
+            <GradientButton
+              testID="generate-feed"
+              label="Generate calendar link"
+              icon="calendar-outline"
+              loading={feed.isRotating}
+              onPress={rotate}
+              style={{ marginTop: spacing.lg }}
+            />
+          </Card>
           {renderNotice()}
+          <Card testID="feed-how-it-works" variant="outlined">
+            <AppText variant="headline" accessibilityRole="header">
+              How it works
+            </AppText>
+            <View style={{ marginTop: spacing.md, gap: spacing.md }}>
+              <Step number={1}>
+                Generate a private link that only you hold.
+              </Step>
+              <Step number={2}>
+                Subscribe to it from Apple Calendar, Google Calendar or Outlook.
+              </Step>
+              <Step number={3}>
+                Your shifts, including cover you take, stay in your calendar.
+              </Step>
+            </View>
+          </Card>
         </View>
       );
     }
 
+    const hasFetched: boolean =
+      status.fetchCount > 0 || Boolean(status.lastFetchedAt);
+    const statusTone: StatusTone = status.needsRegeneration
+      ? "danger"
+      : !status.isEnabled
+        ? "warning"
+        : hasFetched
+          ? "success"
+          : "info";
+    const statusLabel: string = status.needsRegeneration
+      ? "Needs regeneration"
+      : !status.isEnabled
+        ? "Switched off"
+        : hasFetched
+          ? "Active"
+          : "Waiting for first sync";
+    const statusColor: string = getToneColors(theme, statusTone).text;
+
     return (
-      <View testID="feed-active">
-        <View style={{ marginBottom: 20 }}>
-          <SectionHeader title="Your subscription" />
-          <Text
+      <View testID="feed-active" style={{ gap: spacing.lg }}>
+        <Card testID="feed-status-card">
+          <View
             style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
             }}
           >
-            {Platform.OS === "ios"
-              ? "Open Calendar to subscribe, or copy the link into another calendar app."
-              : "Share the link with yourself, then add it to Google Calendar or Outlook on a computer."}
-          </Text>
-        </View>
+            <IconBadge name="calendar" color={statusColor} />
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <AppText variant="headline" accessibilityRole="header">
+                Your subscription
+              </AppText>
+              <StatusPill
+                testID="feed-status-pill"
+                label={statusLabel}
+                tone={statusTone}
+                size="sm"
+                dotColor={statusColor}
+              />
+            </View>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.sm,
+              marginTop: spacing.md,
+              paddingTop: spacing.md,
+              borderTopWidth: 1,
+              borderTopColor: theme.colors.borderSubtle,
+            }}
+          >
+            <Ionicons
+              name="sync-outline"
+              size={15}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 2 }}
+            />
+            <AppText
+              testID="feed-fetch-status"
+              variant="footnote"
+              tone="secondary"
+              style={{ flex: 1 }}
+            >
+              {describeFetchStatus(status, now)}
+            </AppText>
+          </View>
+        </Card>
+
         {!status.isEnabled ? (
-          <View testID="feed-disabled" style={{ marginBottom: 16 }}>
-            <InfoCard tone="warning">
-              This link is switched off. Calendar apps that have it see an empty
-              calendar until it is enabled again.
-            </InfoCard>
+          <View testID="feed-disabled" style={{ gap: spacing.md }}>
+            <Banner
+              tone="warning"
+              message="This link is switched off. Calendar apps that have it see an empty calendar until it is enabled again."
+            />
             <GradientButton
               testID="enable-feed"
               label="Enable link"
+              icon="power-outline"
               variant="secondary"
               loading={feed.isUpdating}
               onPress={enable}
-              style={{ marginTop: 12 }}
             />
           </View>
         ) : null}
 
         {status.needsRegeneration ? (
-          <View testID="feed-needs-regeneration" style={{ marginBottom: 16 }}>
-            <InfoCard tone="warning">
-              This link can no longer be read by the server (its encryption key
-              changed). Regenerate it and subscribe again.
-            </InfoCard>
+          <View testID="feed-needs-regeneration" style={{ gap: spacing.md }}>
+            <Banner
+              tone="warning"
+              message="This link can no longer be read by the server (its encryption key changed). Regenerate it and subscribe again."
+            />
             <GradientButton
               testID="regenerate-feed-now"
               label="Regenerate link"
               icon="refresh-outline"
               loading={feed.isRotating}
               onPress={rotate}
-              style={{ marginTop: 12 }}
             />
           </View>
         ) : null}
 
-        {links ? (
-          <View style={{ marginTop: 16, gap: 10 }}>
-            {Platform.OS === "ios" ? (
-              <>
-                <GradientButton
-                  testID="open-in-calendar"
-                  label="Open in Calendar"
-                  icon="calendar-outline"
-                  onPress={openInCalendar}
-                />
-                <Text
-                  testID="ios-subscribe-hint"
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 21,
-                    marginHorizontal: 4,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  {IOS_SUBSCRIBE_HINT}
-                </Text>
-              </>
-            ) : (
-              <Text
-                testID="android-subscribe-hint"
-                style={{
-                  fontSize: 14,
-                  lineHeight: 21,
-                  marginHorizontal: 4,
-                  marginBottom: 2,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {ANDROID_SUBSCRIBE_HINT}
-              </Text>
-            )}
+        {status.hostWarning ? (
+          <Banner
+            testID="feed-host-warning"
+            tone="warning"
+            message={status.hostWarning}
+          />
+        ) : null}
 
-            <GradientButton
-              testID="share-feed"
-              label="Share link"
-              icon="share-outline"
-              variant={Platform.OS === "ios" ? "secondary" : "primary"}
-              onPress={shareLink}
-            />
-            <GradientButton
-              testID="copy-feed"
-              label="Copy https link"
-              icon="copy-outline"
-              variant="secondary"
-              onPress={copyLink}
-            />
-          </View>
+        {status.protocolWarning ? (
+          <Banner
+            testID="feed-protocol-warning"
+            tone="warning"
+            message={status.protocolWarning}
+          />
+        ) : null}
+
+        {status.lastRenderTruncated ? (
+          <Banner
+            testID="feed-truncated-warning"
+            tone="warning"
+            message="The last time a calendar app fetched this link, the server had to shorten it: not every shift made it in. Shorten the window on the web to fix this."
+          />
+        ) : null}
+
+        {looksUnreachable(status, now) ? (
+          <Banner
+            testID="feed-unreachable-hint"
+            tone="warning"
+            message="Nothing has fetched this link in two days. Google Calendar and Outlook on the web fetch from their own servers, so this OneUptime server has to be reachable from the internet for them."
+          />
         ) : null}
 
         {links ? (
-          <Text
-            testID="feed-privacy-warning"
-            style={{
-              fontSize: 14,
-              lineHeight: 22,
-              color: theme.colors.textSecondary,
-              marginTop: 14,
-            }}
-          >
-            This link is private to you — treat it like a password. Anyone who
-            has it can see your shifts.
-          </Text>
-        ) : null}
-
-        {links ? (
-          <View
-            testID="feed-link-box"
-            style={{
-              marginTop: 20,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderRadius: 16,
-              padding: 16,
-            }}
-          >
+          <Card testID="feed-link-box">
             <View
-              style={{ flexDirection: "row", gap: 10, alignItems: "center" }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
             >
-              <Ionicons
-                name="link-outline"
-                size={19}
-                color={theme.colors.textSecondary}
-              />
-              <Text
-                style={{
-                  flex: 1,
-                  fontSize: 15,
-                  lineHeight: 22,
-                  fontWeight: "600",
-                  color: theme.colors.textPrimary,
-                }}
+              <IconBadge name="lock-closed-outline" />
+              <AppText
+                variant="headline"
+                accessibilityRole="header"
+                style={{ flex: 1 }}
               >
                 Your private link
-              </Text>
+              </AppText>
               <Pressable
                 testID="toggle-private-link"
                 accessibilityRole="button"
@@ -505,155 +538,223 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
                     isPrivateLinkVisible ? null : privateLinkIdentity,
                   );
                 }}
-                style={{
-                  minHeight: 48,
-                  minWidth: 48,
-                  paddingHorizontal: 6,
-                  justifyContent: "center",
-                  alignItems: "center",
+                hitSlop={4}
+                style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                  return {
+                    minHeight: touchTarget,
+                    minWidth: touchTarget,
+                    paddingHorizontal: spacing.md,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: spacing.xs + 2,
+                    borderRadius: radius.pill,
+                    backgroundColor: pressed
+                      ? theme.colors.backgroundTertiary
+                      : theme.colors.cardAccent,
+                  };
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: theme.colors.actionPrimary,
-                  }}
-                >
+                <Ionicons
+                  name={
+                    isPrivateLinkVisible ? "eye-off-outline" : "eye-outline"
+                  }
+                  size={16}
+                  color={theme.colors.actionPrimary}
+                />
+                <AppText variant="subhead" weight="600" tone="accent">
                   {isPrivateLinkVisible ? "Hide" : "Show"}
-                </Text>
+                </AppText>
               </Pressable>
             </View>
-            {isPrivateLinkVisible ? (
-              <Text
-                testID="feed-https-url"
-                selectable
-                style={{
-                  fontSize: 13,
-                  marginTop: 10,
-                  lineHeight: 20,
-                  color: theme.colors.textSecondary,
-                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                }}
-              >
-                {links.https}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
 
-        <Text
-          testID="feed-fetch-status"
-          style={{
-            fontSize: 14,
-            marginTop: 10,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {describeFetchStatus(status, now)}
-        </Text>
+            <View
+              testID="feed-link-field"
+              style={{
+                marginTop: spacing.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.md,
+                borderRadius: radius.md,
+                backgroundColor: theme.colors.backgroundTertiary,
+              }}
+            >
+              {isPrivateLinkVisible ? (
+                <AppText
+                  testID="feed-https-url"
+                  selectable
+                  variant="footnote"
+                  tone="secondary"
+                  style={{ fontFamily: MONOSPACE_FONT }}
+                >
+                  {links.https}
+                </AppText>
+              ) : (
+                <AppText
+                  testID="feed-link-concealed"
+                  variant="footnote"
+                  tone="tertiary"
+                  accessibilityLabel="Link hidden"
+                  style={{ fontFamily: MONOSPACE_FONT, letterSpacing: 1 }}
+                >
+                  https://•••••••••••••••••••••
+                </AppText>
+              )}
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.sm,
+                marginTop: spacing.md,
+              }}
+            >
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={16}
+                color={theme.colors.textTertiary}
+                style={{ marginTop: 1 }}
+              />
+              <AppText
+                testID="feed-privacy-warning"
+                variant="footnote"
+                tone="secondary"
+                style={{ flex: 1 }}
+              >
+                This link is private to you — treat it like a password. Anyone
+                who has it can see your shifts.
+              </AppText>
+            </View>
+
+            <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
+              {Platform.OS === "ios" ? (
+                <GradientButton
+                  testID="open-in-calendar"
+                  label="Open in Calendar"
+                  icon="calendar-outline"
+                  onPress={openInCalendar}
+                />
+              ) : null}
+              <GradientButton
+                testID="share-feed"
+                label="Share link"
+                icon="share-outline"
+                variant={Platform.OS === "ios" ? "secondary" : "primary"}
+                onPress={shareLink}
+              />
+              <GradientButton
+                testID="copy-feed"
+                label="Copy https link"
+                icon="copy-outline"
+                variant="secondary"
+                onPress={copyLink}
+              />
+            </View>
+
+            {links.differsFromServer ? (
+              <Banner
+                testID="feed-rebuilt-note"
+                tone="info"
+                message={`This link uses the address this app connects to. Your server says its public address is ${
+                  links.serverHost ?? "different"
+                } - use whichever your calendar app can reach.`}
+                style={{ marginTop: spacing.md }}
+              />
+            ) : null}
+          </Card>
+        ) : null}
 
         {renderNotice()}
 
-        {links?.differsFromServer ? (
-          <InfoCard testID="feed-rebuilt-note" style={{ marginTop: 16 }}>
-            {`This link uses the address this app connects to. Your server says its public address is ${
-              links.serverHost ?? "different"
-            } - use whichever your calendar app can reach.`}
-          </InfoCard>
+        {links ? (
+          <Card testID="feed-how-to-subscribe">
+            <AppText variant="headline" accessibilityRole="header">
+              How to subscribe
+            </AppText>
+            <View style={{ marginTop: spacing.md, gap: spacing.md }}>
+              {Platform.OS === "ios" ? (
+                <>
+                  <Step number={1}>
+                    Tap Open in Calendar to subscribe, or copy the link into
+                    another calendar app.
+                  </Step>
+                  <Step number={2} testID="ios-subscribe-hint">
+                    {IOS_SUBSCRIBE_HINT}
+                  </Step>
+                </>
+              ) : (
+                <>
+                  <Step number={1}>
+                    Share the link with yourself, then add it to Google Calendar
+                    or Outlook on a computer.
+                  </Step>
+                  <Step number={2} testID="android-subscribe-hint">
+                    {ANDROID_SUBSCRIBE_HINT}
+                  </Step>
+                </>
+              )}
+            </View>
+          </Card>
         ) : null}
 
-        {status.hostWarning ? (
-          <InfoCard
-            testID="feed-host-warning"
-            tone="warning"
-            style={{ marginTop: 16 }}
-          >
-            {status.hostWarning}
-          </InfoCard>
-        ) : null}
-
-        {status.protocolWarning ? (
-          <InfoCard
-            testID="feed-protocol-warning"
-            tone="warning"
-            style={{ marginTop: 16 }}
-          >
-            {status.protocolWarning}
-          </InfoCard>
-        ) : null}
-
-        {status.lastRenderTruncated ? (
-          <InfoCard
-            testID="feed-truncated-warning"
-            tone="warning"
-            style={{ marginTop: 16 }}
-          >
-            The last time a calendar app fetched this link, the server had to
-            shorten it: not every shift made it in. Shorten the window on the
-            web to fix this.
-          </InfoCard>
-        ) : null}
-
-        {looksUnreachable(status, now) ? (
-          <InfoCard
-            testID="feed-unreachable-hint"
-            tone="warning"
-            style={{ marginTop: 16 }}
-          >
-            Nothing has fetched this link in two days. Google Calendar and
-            Outlook on the web fetch from their own servers, so this OneUptime
-            server has to be reachable from the internet for them.
-          </InfoCard>
-        ) : null}
-
-        <InfoCard testID="feed-refresh-copy" style={{ marginTop: 16 }}>
-          {REFRESH_CADENCE_COPY}
-        </InfoCard>
-
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 21,
-            marginTop: 12,
-            marginHorizontal: 4,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {PLANNING_ONLY_COPY}
-        </Text>
-
-        <View
-          style={{
-            marginTop: 28,
-            paddingTop: 20,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.borderSubtle,
-          }}
-        >
-          <SectionHeader title="Manage your link" />
-          <Text
+        <Card testID="feed-refresh-card" variant="outlined">
+          <View
             style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
             }}
           >
-            Generate a replacement if this private link was shared by mistake.
-            You will need to subscribe again.
-          </Text>
-          <GradientButton
-            testID="regenerate-feed"
-            label="Regenerate link"
-            icon="refresh-outline"
-            variant="secondary"
-            loading={feed.isRotating}
-            onPress={() => {
-              lightImpact();
-              confirmRegenerate();
-            }}
-            style={{ marginTop: 20 }}
-          />
+            <IconBadge
+              name="time-outline"
+              color={theme.colors.textSecondary}
+              size="sm"
+            />
+            <AppText
+              variant="headline"
+              accessibilityRole="header"
+              style={{ flex: 1 }}
+            >
+              How often it updates
+            </AppText>
+          </View>
+          <AppText
+            testID="feed-refresh-copy"
+            variant="subhead"
+            tone="secondary"
+            style={{ marginTop: spacing.md }}
+          >
+            {REFRESH_CADENCE_COPY}
+          </AppText>
+          <AppText
+            variant="footnote"
+            tone="tertiary"
+            style={{ marginTop: spacing.sm }}
+          >
+            {PLANNING_ONLY_COPY}
+          </AppText>
+        </Card>
+
+        <View style={{ marginTop: spacing.md }}>
+          <SectionHeader title="Manage your link" iconName="key-outline" />
+          <Card testID="feed-manage-card">
+            <AppText variant="subhead" tone="secondary">
+              Generate a replacement if this private link was shared by mistake.
+              You will need to subscribe again.
+            </AppText>
+            <GradientButton
+              testID="regenerate-feed"
+              label="Regenerate link"
+              icon="refresh-outline"
+              variant="destructive"
+              loading={feed.isRotating}
+              onPress={() => {
+                lightImpact();
+                confirmRegenerate();
+              }}
+              style={{ marginTop: spacing.lg }}
+            />
+          </Card>
         </View>
       </View>
     );
@@ -664,7 +765,10 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       testID="calendar-feed-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -676,71 +780,88 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       <ScreenIntro
         title="Calendar sync"
         description="Your on-call schedule, alongside the rest of your day."
+        style={{ marginBottom: spacing.md }}
       />
       {projectList[0] ? (
-        <Text
-          testID="calendar-project-name"
+        <View
           style={{
-            fontSize: 14,
-            color: theme.colors.textSecondary,
-            marginBottom: 24,
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            gap: spacing.xs + 2,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.xs + 2,
+            marginBottom: spacing.xl,
+            borderRadius: radius.pill,
+            backgroundColor: theme.colors.backgroundTertiary,
           }}
         >
-          Project: {projectList[0].name}
-        </Text>
-      ) : null}
+          <Ionicons
+            name="folder-open-outline"
+            size={14}
+            color={theme.colors.textSecondary}
+          />
+          <AppText
+            testID="calendar-project-name"
+            variant="footnote"
+            weight="600"
+            tone="secondary"
+          >
+            {`Project: ${projectList[0].name}`}
+          </AppText>
+        </View>
+      ) : (
+        <View style={{ height: spacing.sm }} />
+      )}
 
       {renderBody()}
     </ScrollView>
   );
 }
 
-function InfoCard({
+const MONOSPACE_FONT: string = Platform.OS === "ios" ? "Menlo" : "monospace";
+
+function Step({
+  number,
   children,
-  tone = "info",
   testID,
-  style,
 }: {
+  number: number;
   children: React.ReactNode;
-  tone?: "info" | "warning" | "error";
   testID?: string;
-  style?: { marginTop?: number; marginBottom?: number };
 }): React.JSX.Element {
   const { theme } = useTheme();
 
-  const color: string =
-    tone === "warning"
-      ? theme.colors.severityWarning
-      : tone === "error"
-        ? theme.colors.statusError
-        : theme.colors.textSecondary;
-
-  const background: string =
-    tone === "warning"
-      ? theme.colors.severityWarningBg
-      : tone === "error"
-        ? theme.colors.statusErrorBg
-        : theme.colors.backgroundElevated;
-
   return (
     <View
-      testID={testID}
       style={{
-        borderRadius: tone === "info" ? 0 : 14,
-        padding: tone === "info" ? 0 : 16,
-        backgroundColor: tone === "info" ? "transparent" : background,
-        ...style,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.md,
       }}
     >
-      <Text
+      <View
         style={{
-          fontSize: 15,
-          lineHeight: 23,
-          color: tone === "info" ? theme.colors.textSecondary : color,
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.cardAccent,
         }}
       >
+        <AppText variant="caption" weight="700" tone="accent">
+          {String(number)}
+        </AppText>
+      </View>
+      <AppText
+        testID={testID}
+        variant="subhead"
+        tone="secondary"
+        style={{ flex: 1 }}
+      >
         {children}
-      </Text>
+      </AppText>
     </View>
   );
 }

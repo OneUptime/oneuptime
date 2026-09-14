@@ -1,9 +1,38 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NotesSection from "./NotesSection";
 import { makeNote } from "../__tests__/testSupport";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 import type { NoteItem } from "../api/types";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 const mockOpenUrl: jest.Mock = jest.fn(async () => {
   return true;
@@ -377,5 +406,229 @@ describe("Adding a note", () => {
     await fireEvent.press(screen.getByText(ADD_NOTE));
 
     expect(setNoteModalVisible).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("A note card", () => {
+  test("shows the author's initials in an avatar that screen readers skip", async () => {
+    await render(
+      <NotesSection
+        notes={[
+          makeNote({ createdByUser: { _id: "u1", name: "Ada Lovelace" } }),
+        ]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    const initials: ReturnType<typeof screen.getByText> = screen.getByTestId(
+      "note-avatar-initials",
+      { includeHiddenElements: true },
+    );
+    expect(initials).toHaveTextContent("AL");
+    expect(initials).toHaveStyle({ color: lightColors.actionPrimary });
+    expect(
+      screen.getByTestId("note-avatar", { includeHiddenElements: true }),
+    ).toHaveStyle({
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: withAlpha(lightColors.actionPrimary, 0.12),
+    });
+    // The name beside it is what gets read out, not "A L".
+    expect(screen.queryByText("AL")).toBeNull();
+  });
+
+  test("an anonymous note gets an icon avatar instead of made-up initials", async () => {
+    await render(
+      <NotesSection
+        notes={[makeNote({ createdByUser: null })]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("note-avatar-initials", {
+        includeHiddenElements: true,
+      }),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("note-avatar", { includeHiddenElements: true }),
+    ).toHaveStyle({ backgroundColor: lightColors.backgroundTertiary });
+  });
+
+  test("the time says how long ago first, then the exact date", async () => {
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.parse("2026-08-30T10:52:00.000Z"));
+
+    await render(
+      <NotesSection
+        notes={[makeNote({ createdAt: "2026-08-30T10:07:00.000Z" })]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    const time: ReturnType<typeof screen.getByText> =
+      screen.getByTestId("note-time");
+    expect(time).toHaveTextContent(/^45m ago · .*2026/);
+    expect(time).toHaveStyle({ color: lightColors.textTertiary });
+  });
+
+  test("author, time and body belong to the same card", async () => {
+    await render(
+      <NotesSection
+        notes={[
+          makeNote({
+            _id: "note-1",
+            note: "Rolled back release 4021.",
+            createdByUser: { _id: "u1", name: "Ada Lovelace" },
+          }),
+          makeNote({
+            _id: "note-2",
+            note: "Latency is flat again.",
+            createdByUser: { _id: "u2", name: "Grace Hopper" },
+          }),
+        ]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    const cards: Array<ReturnType<typeof screen.getByText>> =
+      screen.getAllByTestId("note-card");
+    expect(cards).toHaveLength(2);
+    expect(within(cards[0]).getByText("Ada Lovelace")).toBeTruthy();
+    expect(
+      within(cards[0]).getByText("Rolled back release 4021."),
+    ).toBeTruthy();
+    expect(within(cards[1]).getByText("Grace Hopper")).toBeTruthy();
+    expect(within(cards[1]).queryByText("Ada Lovelace")).toBeNull();
+  });
+
+  test("each note is a rounded card on the elevated surface", async () => {
+    await render(
+      <NotesSection notes={[makeNote()]} setNoteModalVisible={noop} />,
+    );
+
+    expect(screen.getByTestId("note-card")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: lightColors.borderSubtle,
+    });
+  });
+
+  test("the heading counts the notes, and leaves the count off when there are none", async () => {
+    const view: { rerender: (element: React.ReactElement) => Promise<void> } =
+      await render(
+        <NotesSection
+          notes={[makeNote({ _id: "n1" }), makeNote({ _id: "n2" })]}
+          setNoteModalVisible={noop}
+        />,
+      );
+
+    expect(screen.getByLabelText("2 notes")).toHaveTextContent("2");
+
+    await view.rerender(<NotesSection notes={[]} setNoteModalVisible={noop} />);
+
+    expect(screen.queryByTestId("notes-count")).toBeNull();
+  });
+});
+
+describe("The add note control", () => {
+  test("is a real button with a comfortable target and the tonal accent", async () => {
+    await render(<NotesSection notes={[]} setNoteModalVisible={noop} />);
+
+    expect(screen.getByRole("button", { name: ADD_NOTE })).toHaveStyle({
+      minHeight: 44,
+      backgroundColor: lightColors.cardAccent,
+    });
+    expect(screen.getByText(ADD_NOTE)).toHaveStyle({
+      color: lightColors.actionPrimary,
+    });
+  });
+});
+
+describe("The empty and loading states", () => {
+  test("an empty list is a card that says what a note is for", async () => {
+    await render(<NotesSection notes={[]} setNoteModalVisible={noop} />);
+
+    expect(screen.getByTestId("notes-empty")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+    expect(
+      screen.getByText(
+        "Record what you tried so the next responder can pick up from here.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("loading is a quiet card with a spinner and a polite announcement", async () => {
+    await render(
+      <NotesSection notes={undefined} setNoteModalVisible={noop} isLoading />,
+    );
+
+    expect(screen.getByTestId("notes-loading")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+    expect(
+      screen.getByText("Loading notes…").props.accessibilityLiveRegion,
+    ).toBe("polite");
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  test("cards, names, times and the avatar use the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <NotesSection
+          notes={[
+            makeNote({ createdByUser: { _id: "u1", name: "Ada Lovelace" } }),
+          ]}
+          setNoteModalVisible={noop}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("note-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+    });
+    expect(screen.getByText("Ada Lovelace")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByTestId("note-time")).toHaveStyle({
+      color: darkColors.textTertiary,
+    });
+    expect(
+      screen.getByTestId("note-avatar", { includeHiddenElements: true }),
+    ).toHaveStyle({
+      backgroundColor: withAlpha(darkColors.actionPrimary, 0.22),
+    });
+    expect(screen.getByRole("header", { name: "Internal Notes" })).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByRole("button", { name: ADD_NOTE })).toHaveStyle({
+      backgroundColor: darkColors.cardAccent,
+    });
+  });
+
+  test("the empty state card is dark too", async () => {
+    await render(
+      <ThemeProvider>
+        <NotesSection notes={[]} setNoteModalVisible={noop} />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("notes-empty")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(screen.getByText(EMPTY_MESSAGE)).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
   });
 });

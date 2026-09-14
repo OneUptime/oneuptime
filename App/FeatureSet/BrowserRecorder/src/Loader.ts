@@ -15,13 +15,13 @@ import {
 /*
  * The loader stub. This - not the recorder - is what a customer pastes into
  * their page, and it is served with a five minute cache while the recorder
- * artifact it loads is immutable for a year.
+ * artifact it loads is fetched from the mutable `latest` URL without caching.
  *
  * That split is the entire point. Without it, a masking regression is live in
  * every customer's browser for the full cache TTL with no remedy: the bundle
  * is cached, the customers are third parties, and there is no way to reach
- * their end users. With it, rolling back is changing one field in the config
- * response, and the kill switch stops RECORDING rather than merely stopping
+ * their end users. With it, rolling back replaces the bytes and SRI published
+ * at `latest`, and the kill switch stops RECORDING rather than merely stopping
  * ingest.
  *
  * Everything this file does before loading the artifact is a gate:
@@ -186,8 +186,8 @@ export async function load(): Promise<void> {
  *
  * Two reasons, both structural: an IIFE bundle imported as a module exposes
  * an empty namespace object, and import() has no way to carry an integrity
- * attribute - so SRI, which is the whole reason the artifact URL is version
- * pinned and immutable, would be unavailable.
+ * attribute - so SRI, which verifies the mutable latest response against the
+ * configuration fetched for this page load, would be unavailable.
  */
 function loadArtifact(
   options: RecorderInitOptions,
@@ -200,15 +200,14 @@ function loadArtifact(
   );
 
   /*
-   * A version the build could never have stamped means there is no artifact
-   * to pin to. Loading nothing is the fail-closed outcome; guessing a URL
-   * would put a <script src> built from an unvalidated config value onto the
-   * customer's page.
+   * An unrecognised artifact label must fail closed. Guessing a URL would put
+   * a <script src> built from an unvalidated config value onto the customer's
+   * page.
    */
   if (!url) {
     debugWarn(
       "artifact-url-invalid",
-      "The policy names a version this loader will not build a URL from.",
+      "The policy names an artifact this loader will not build a URL from.",
       { recorderVersion: config.recorderVersion },
     );
 

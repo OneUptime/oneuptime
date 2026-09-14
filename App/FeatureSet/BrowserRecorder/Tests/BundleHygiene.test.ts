@@ -41,14 +41,35 @@ interface ProcessLike {
   execPath: string;
 }
 
+interface HashLike {
+  update: (value: string) => HashLike;
+  digest: (encoding: string) => string;
+}
+
+interface CryptoLike {
+  createHash: (algorithm: string) => HashLike;
+}
+
+interface VmLike {
+  runInNewContext: (
+    source: string,
+    context: Record<string, unknown>,
+  ) => unknown;
+}
+
 declare const process: ProcessLike;
 
 const fs: FileSystem = require("fs") as FileSystem;
 const nodePath: PathModule = require("path") as PathModule;
 const childProcess: ChildProcess = require("child_process") as ChildProcess;
+const crypto: CryptoLike = require("crypto") as CryptoLike;
+const nodeVm: VmLike = require("vm") as VmLike;
 
 const PACKAGE_ROOT: string = nodePath.join(__dirname, "..");
 const DIST: string = nodePath.join(PACKAGE_ROOT, "public", "dist");
+const packageJson: { version: string } = require(
+  nodePath.join(PACKAGE_ROOT, "package.json"),
+) as { version: string };
 
 describe("bundle hygiene", (): void => {
   let recorderBundle: string = "";
@@ -89,6 +110,37 @@ describe("bundle hygiene", (): void => {
     expect(manifest.files["recorder.js"]?.integrity).toMatch(/^sha384-/);
   });
 
+  it("publishes latest with SRI for the exact recorder bytes", (): void => {
+    const sha384Base64: string = crypto
+      .createHash("sha384")
+      .update(recorderBundle)
+      .digest("base64");
+
+    expect(manifest.recorderVersion).toBe("latest");
+    expect(manifest.files["recorder.js"]?.integrity).toBe(
+      `sha384-${sha384Base64}`,
+    );
+  });
+
+  it("keeps the runtime recorder version separate from the artifact locator", (): void => {
+    const context: Record<string, unknown> = {};
+
+    nodeVm.runInNewContext(recorderBundle, context);
+
+    const api: {
+      getDiagnostics: () => { version: string };
+      version: string;
+    } = context["OneUptimeReplay"] as {
+      getDiagnostics: () => { version: string };
+      version: string;
+    };
+
+    expect(api.version).toBe(packageJson.version);
+    expect(api.getDiagnostics().version).toBe(packageJson.version);
+    expect(api.version).not.toBe(manifest.recorderVersion);
+    expect(api.version.length).toBeLessThanOrEqual(32);
+  });
+
   /*
    * Gzip is what the customer's browser downloads, and it was previously
    * unbudgeted: only the raw size was checked, and minified JavaScript
@@ -118,16 +170,8 @@ describe("bundle hygiene", (): void => {
     expect(loaderGzip).toBeLessThanOrEqual(5 * 1024);
   });
 
-  /*
-   * The version is what names the artifact's URL path, and src/Config.ts
-   * refuses to build that URL from anything that is not a plain semver. A
-   * build that stamps something else produces an artifact no loader will ever
-   * request.
-   */
-  it("stamps a version the loader will accept", (): void => {
-    expect(manifest.recorderVersion).toMatch(
-      /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
-    );
+  it("stamps the mutable artifact label the loader will request", (): void => {
+    expect(manifest.recorderVersion).toBe("latest");
   });
 
   /*
@@ -185,9 +229,8 @@ describe("bundle hygiene", (): void => {
   });
 
   /*
-   * The customer's page loads the stub, and only then the pinned artifact.
-   * That two-stage load is what makes a bad masking release recoverable by
-   * changing one config field instead of waiting out a cache TTL.
+   * The customer's page loads the stub, and only then the latest artifact.
+   * That two-stage load keeps privacy policy ahead of recorder startup.
    */
   it("has the loader fetch config before loading anything", (): void => {
     expect(loaderBundle).toContain("/session-replay/v1/config");

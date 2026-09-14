@@ -1,8 +1,10 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import AlertCard from "./AlertCard";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
 import { rgbToHex } from "../utils/color";
 import { makeAlert, makeNamedEntityWithColor } from "../__tests__/testSupport";
 import type { AlertItem, ColorField } from "../api/types";
@@ -27,9 +29,35 @@ interface PressHandlers {
   onResponderGrant?: (event: unknown) => void;
 }
 
+/**
+ * The resolved style of a host element. Styles may arrive as arrays, so they
+ * are flattened rather than read as a plain object.
+ */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 function cardSurface(): RenderedElement {
   return screen.getByRole("button");
@@ -94,8 +122,8 @@ describe("What an ordinary alert row shows", () => {
     await render(<AlertCard alert={makeAlert()} onPress={noop} />);
 
     expect(screen.getByText("Disk almost full")).toBeTruthy();
-    expect(screen.getByText("#12")).toBeTruthy();
-    expect(screen.getByText("Alert")).toBeTruthy();
+    /* The number and the kind share one meta line under the title. */
+    expect(screen.getByText("#12 · Alert")).toBeTruthy();
   });
 
   test("the current state and the severity, by name", async () => {
@@ -108,8 +136,7 @@ describe("What an ordinary alert row shows", () => {
   test("the monitor the alert came from, under a caption saying what it is", async () => {
     await render(<AlertCard alert={makeAlert()} onPress={noop} />);
 
-    expect(screen.getByText("api.example.com")).toBeTruthy();
-    expect(screen.getByText("Linked monitor")).toBeTruthy();
+    expect(screen.getByText("Linked monitor: api.example.com")).toBeTruthy();
   });
 
   test("how long ago it fired, in the list's shorthand", async () => {
@@ -166,7 +193,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     const label: RenderedElement = screen.getByText("Acknowledged");
-    expect(styleOf(label).color).toBe(darkColors.textPrimary);
+    expect(styleOf(label).color).toBe(lightColors.textPrimary);
     expect(styleOf(statusMarker()).backgroundColor).toBe(
       rgbToHex({ r: 245, g: 158, b: 11 }),
     );
@@ -183,7 +210,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Warning")).color).toBe(
-      darkColors.textSecondary,
+      lightColors.textSecondary,
     );
   });
 
@@ -206,7 +233,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     const label: RenderedElement = screen.getByText("Triaged");
-    expect(styleOf(label).color).toBe(darkColors.textPrimary);
+    expect(styleOf(label).color).toBe(lightColors.textPrimary);
     expect(styleOf(label).color).not.toBe("#000000");
   });
 
@@ -221,7 +248,7 @@ describe("State markers preserve server colours while text stays readable", () =
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Triaged")).color).toBe(
-      darkColors.textPrimary,
+      lightColors.textPrimary,
     );
   });
 });
@@ -238,7 +265,7 @@ describe("An alert missing the fields the type promises", () => {
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     expect(screen.getByText("Disk almost full")).toBeTruthy();
-    expect(screen.queryByText("Linked monitor")).toBeNull();
+    expect(screen.queryByText(/Linked monitor/)).toBeNull();
   });
 
   test("an alert with no monitor is still pressable", async () => {
@@ -282,7 +309,7 @@ describe("An alert missing the fields the type promises", () => {
 
     await render(<AlertCard alert={alert} onPress={noop} />);
 
-    expect(screen.getByText("#12")).toBeTruthy();
+    expect(screen.getByText("#12 · Alert")).toBeTruthy();
   });
 });
 
@@ -367,7 +394,7 @@ describe("Pressing the row", () => {
     await render(<AlertCard alert={makeAlert()} onPress={onPress} muted />);
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
 
     await fireEvent.press(screen.getByText("Disk almost full"));
@@ -379,7 +406,7 @@ describe("Pressing the row", () => {
     await render(<AlertCard alert={makeAlert()} onPress={noop} />);
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
   });
 
@@ -389,7 +416,7 @@ describe("Pressing the row", () => {
     await holdDown(cardSurface());
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundTertiary,
+      lightColors.backgroundTertiary,
     );
   });
 
@@ -404,7 +431,118 @@ describe("Pressing the row", () => {
     await holdDown(cardSurface());
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+  });
+});
+
+describe("The card surface", () => {
+  test("it is a rounded, padded, bordered card on the elevated surface", async () => {
+    await render(<AlertCard alert={makeAlert()} onPress={noop} />);
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    });
+  });
+
+  test("pressing keeps the shape and only changes the fill", async () => {
+    await render(<AlertCard alert={makeAlert()} onPress={noop} />);
+
+    await holdDown(cardSurface());
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+  });
+
+  test("a resolved alert drops the shadow but keeps the card", async () => {
+    await render(<AlertCard alert={makeAlert()} onPress={noop} muted />);
+
+    expect(styleOf(cardSurface()).boxShadow).toBeUndefined();
+    expect(styleOf(statusMarker()).opacity).toBe(0.6);
+    expect(screen.getByText("Disk almost full")).toHaveStyle({
+      color: lightColors.textSecondary,
+    });
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockColorScheme = "dark";
+  });
+
+  async function renderDark(muted?: boolean): Promise<void> {
+    await render(
+      <ThemeProvider>
+        <AlertCard alert={makeAlert()} onPress={noop} muted={muted} />
+      </ThemeProvider>,
+    );
+  }
+
+  test("the card surface uses the dark elevated surface and subtle border", async () => {
+    await renderDark();
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+  });
+
+  test("title, state, severity, time and context use dark text tokens", async () => {
+    await renderDark();
+
+    expect(screen.getByText("Disk almost full")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Created")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Critical")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+    expect(screen.getByText("#12 · Alert")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+    expect(screen.getByText("Linked monitor: api.example.com")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+  });
+
+  test("the server colour on the status dot is kept in dark mode", async () => {
+    await renderDark();
+
+    expect(styleOf(statusMarker()).backgroundColor).toBe(
+      rgbToHex(makeAlert().currentAlertState.color),
+    );
+  });
+
+  test("a pressed dark card uses the dark tertiary fill, not the light one", async () => {
+    await renderDark();
+
+    await holdDown(cardSurface());
+
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
       darkColors.backgroundTertiary,
     );
+    expect(styleOf(cardSurface()).backgroundColor).not.toBe(
+      lightColors.backgroundTertiary,
+    );
+  });
+
+  test("a resolved dark card quiets its title with the dark secondary text", async () => {
+    await renderDark(true);
+
+    expect(screen.getByText("Disk almost full")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
   });
 });

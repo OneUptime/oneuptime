@@ -96,6 +96,135 @@ describe("GoogleSecOpsAlertNormalizer", () => {
         }),
       ).toBe(false);
     });
+
+    /*
+     * Google documents six Collection types and only RULE_DETECTION carries
+     * a detection entry. The others arrive with an id and a type, which is
+     * what the created-time search and the alerts view return for them.
+     */
+    test.each([
+      "GCTI_FINDING",
+      "TELEMETRY_ALERT",
+      "UPPERCASE_ALERT",
+      "MACHINE_INTELLIGENCE_ALERT",
+      "SOAR_ALERT",
+    ])("accepts a %s Collection carrying a string id", (type: string) => {
+      expect(
+        GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert({
+          id: "col_1",
+          type,
+          createdTime: "2026-09-14T11:00:00Z",
+        }),
+      ).toBe(true);
+    });
+
+    test("a non-rule type without a string id is still rejected", () => {
+      expect(
+        GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert({
+          type: "TELEMETRY_ALERT",
+        }),
+      ).toBe(false);
+      expect(
+        GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert({
+          id: 42,
+          type: "SOAR_ALERT",
+        }),
+      ).toBe(false);
+    });
+
+    test("an id with an undocumented type is rejected", () => {
+      expect(
+        GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert({
+          id: "x",
+          type: "SOMETHING_ELSE",
+        }),
+      ).toBe(false);
+    });
+  });
+
+  describe("normalize: non-rule Collection types", () => {
+    test("a SOAR alert takes its title from the source rule and keeps an empty rule name", () => {
+      const result: NormalizedSecurityEvent =
+        GoogleSecOpsAlertNormalizer.normalize({
+          id: "soar_1",
+          type: "SOAR_ALERT",
+          createdTime: "2026-09-14T11:02:00Z",
+          detectionTime: "2026-09-14T11:00:00Z",
+          severity: "CRITICAL",
+          soarAlertMetadata: {
+            alertId: "ext-9",
+            sourceRule: "Impossible travel",
+            vendor: "Acme",
+            product: "EDR",
+          },
+        });
+
+      expect(result.eventUid).toBe("soar_1");
+      expect(result.message).toBe("Impossible travel");
+      expect(result.ruleName).toBe("");
+      expect(result.ruleId).toBe("");
+      expect(result.severityName).toBe(OcsfSeverity.Critical);
+      expect(result.time.toISOString()).toBe("2026-09-14T11:00:00.000Z");
+      expect(result.classUid).toBe(2004);
+      expect(result.vendorName).toBe("Google");
+      expect(result.productName).toBe("Google SecOps");
+    });
+
+    test("a SOAR alert without a source rule names its originating system", () => {
+      const result: NormalizedSecurityEvent =
+        GoogleSecOpsAlertNormalizer.normalize({
+          id: "soar_2",
+          type: "SOAR_ALERT",
+          soarAlertMetadata: { vendor: "Acme", product: "EDR" },
+        });
+
+      expect(result.message).toBe("Acme EDR alert");
+    });
+
+    test("a telemetry alert falls back to its tags, then to its type", () => {
+      const tagged: NormalizedSecurityEvent =
+        GoogleSecOpsAlertNormalizer.normalize({
+          id: "tel_1",
+          type: "TELEMETRY_ALERT",
+          createdTime: "2026-09-14T11:02:00Z",
+          tags: ["malware", "endpoint"],
+        });
+      expect(tagged.message).toBe("malware, endpoint");
+      expect(tagged.time.toISOString()).toBe("2026-09-14T11:02:00.000Z");
+
+      const bare: NormalizedSecurityEvent =
+        GoogleSecOpsAlertNormalizer.normalize({
+          id: "mi_1",
+          type: "MACHINE_INTELLIGENCE_ALERT",
+        });
+      expect(bare.message).toBe("Google SecOps machine intelligence alert");
+      expect(bare.eventUid).toBe("mi_1");
+      expect(bare.severityName).toBe(OcsfSeverity.Unknown);
+    });
+
+    test("a GCTI finding with sample events still mines observables", () => {
+      const result: NormalizedSecurityEvent =
+        GoogleSecOpsAlertNormalizer.normalize({
+          id: "gcti_1",
+          type: "GCTI_FINDING",
+          collectionElements: [
+            {
+              references: [
+                {
+                  event: {
+                    metadata: { event_type: "NETWORK_CONNECTION" },
+                    principal: { hostname: "finding-host" },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+      expect(result.message).toBe("Google SecOps gcti finding");
+      expect(result.observables).toEqual(["finding-host"]);
+      expect(result.principalHost).toBe("finding-host");
+    });
   });
 
   describe("normalize: detection stream payload", () => {

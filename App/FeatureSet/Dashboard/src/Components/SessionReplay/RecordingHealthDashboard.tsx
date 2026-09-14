@@ -59,7 +59,7 @@ import {
  *   3. What is the server doing with the uploads? Refusals and drops by
  *      reason, and both byte budgets.
  *   4. What was the recorder told, and what can it do? The policy as the
- *      recorder receives it, the published build and its capabilities.
+ *      recorder receives it, the published artifact label and its capabilities.
  *   5. What does the browser say? The paste box for getDiagnostics().
  *
  * The rule every health surface keeps holds here too: a counter that could
@@ -684,9 +684,9 @@ function PolicyPanel(props: {
 
 /*
  * docs-and-design-fidelity-3: this copy is what the docs send an operator to
- * when a visitor is stuck on a stale cached artifact, so its null copy has
- * to name WHICH silence it is looking at. "unknown" for both causes read as
- * a bug on every application that had simply never recorded.
+ * when a visitor is running an older, long-lived page, so its null copy has
+ * to name WHICH silence it is looking at. "unknown" for both causes read as a
+ * bug on every application that had simply never recorded.
  */
 export function describeRecorderCapabilities(
   status: RecordingHealthStatus,
@@ -702,13 +702,16 @@ export function describeRecorderCapabilities(
       };
     }
 
+    if (status.publishedRecorderVersion === null) {
+      return {
+        value: "not reported",
+        hint: "Capabilities are announced on a session's first chunk, but the newest recording announced none and this deployment did not report a current recorder artifact to reload.",
+      };
+    }
+
     return {
       value: "not reported",
-      hint: `Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording was taken by an artifact older than the one that reports them${
-        status.publishedRecorderVersion === null
-          ? ""
-          : ` (this deployment publishes ${status.publishedRecorderVersion})`
-      }. A browser holding a cached artifact refreshes within its cache window.`,
+      hint: "Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording came from an older recorder, possibly on a page opened before the current deployment. A reload fetches the latest artifact.",
     };
   }
 
@@ -721,7 +724,7 @@ export function describeRecorderCapabilities(
 
   return {
     value: recorderCapabilities,
-    hint: "Read from the newest session's first chunk. A browser holding an older cached artifact refreshes within its cache window; until then its sessions lack the features missing here.",
+    hint: "Read from the newest session's first chunk. Long-lived pages can keep an older recorder until they reload and fetch the latest artifact.",
   };
 }
 
@@ -759,7 +762,8 @@ function RecorderPanel(props: {
                 {status.publishedRecorderVersion}
               </p>
               <p className="mt-0.5 text-xs text-gray-500">
-                The build the /config route hands out to new page loads.
+                The artifact label the /config route hands out to new page
+                loads. Runtime chunks still report their exact build version.
               </p>
             </>
           )}

@@ -1,8 +1,11 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
+import AppText from "./AppText";
 import GradientButton from "./GradientButton";
+import IconBadge from "./IconBadge";
 
 type EmptyIcon =
   | "incidents"
@@ -10,6 +13,8 @@ type EmptyIcon =
   | "episodes"
   | "notes"
   | "monitors"
+  | "success"
+  | "error"
   | "default";
 
 interface EmptyStateProps {
@@ -18,6 +23,8 @@ interface EmptyStateProps {
   icon?: EmptyIcon;
   actionLabel?: string;
   onAction?: () => void;
+  /** Keep the state tight when it sits inside a card or a short section. */
+  compact?: boolean;
 }
 
 const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
@@ -26,6 +33,8 @@ const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
   episodes: "layers-outline",
   notes: "document-text-outline",
   monitors: "pulse-outline",
+  success: "checkmark-circle-outline",
+  error: "cloud-offline-outline",
   default: "remove-circle-outline",
 };
 
@@ -35,68 +44,60 @@ export default function EmptyState({
   icon = "default",
   actionLabel,
   onAction,
+  compact = false,
 }: EmptyStateProps): React.JSX.Element {
   const { theme } = useTheme();
+  const iconColor: string =
+    icon === "success"
+      ? theme.colors.statusSuccess
+      : icon === "error"
+        ? theme.colors.statusError
+        : theme.colors.actionPrimary;
 
   return (
     <View
       style={{
-        flex: 1,
+        flex: compact ? undefined : 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 24,
-        paddingVertical: 48,
+        paddingHorizontal: spacing.xxl,
+        paddingVertical: compact ? spacing.xxl : spacing.xxxl + spacing.lg,
       }}
     >
-      <View
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 16,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.iconBackground,
-        }}
-      >
-        <Ionicons
-          name={iconMap[icon]}
-          size={32}
-          color={theme.colors.actionPrimary}
-        />
-      </View>
+      <IconBadge
+        name={iconMap[icon] ?? iconMap.default}
+        color={iconColor}
+        size="lg"
+        shape="circle"
+      />
 
-      <Text
+      <AppText
         accessibilityRole="header"
-        style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          color: theme.colors.textPrimary,
-          textAlign: "center",
-          marginTop: 24,
-          letterSpacing: -0.3,
-        }}
+        variant="title3"
+        align="center"
+        style={{ marginTop: spacing.lg, fontSize: 19, lineHeight: 25 }}
       >
         {title}
-      </Text>
+      </AppText>
 
       {subtitle ? (
-        <Text
-          style={{
-            fontSize: 15,
-            color: theme.colors.textSecondary,
-            textAlign: "center",
-            marginTop: 8,
-            lineHeight: 22,
-            maxWidth: 280,
-          }}
+        <AppText
+          variant="subhead"
+          tone="secondary"
+          align="center"
+          style={{ marginTop: spacing.sm, maxWidth: 300 }}
         >
           {subtitle}
-        </Text>
+        </AppText>
       ) : null}
 
       {actionLabel && onAction ? (
-        <View style={{ marginTop: 24, width: 180 }}>
-          <GradientButton label={actionLabel} onPress={onAction} />
+        <View style={{ marginTop: spacing.xl, minWidth: 180 }}>
+          <GradientButton
+            label={actionLabel}
+            onPress={onAction}
+            variant="tonal"
+          />
         </View>
       ) : null}
     </View>

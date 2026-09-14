@@ -814,7 +814,7 @@ describe("RecordingHealthDashboardView policy panel", () => {
 });
 
 describe("RecordingHealthDashboardView recorder panel", () => {
-  it("shows the published build and the newest session's capabilities as chips", () => {
+  it("shows the published artifact label and the newest session's capabilities as chips", () => {
     renderView(
       makeSnapshot(makeStatus(), {
         extras: {
@@ -857,7 +857,7 @@ describe("RecordingHealthDashboardView recorder panel", () => {
     expect(neverRecorded.value).toBe("not reported yet");
     expect(neverRecorded.hint).toContain("No chunk has arrived");
     expect(olderArtifact.value).toBe("not reported");
-    expect(olderArtifact.hint).toContain("this deployment publishes 1.4.0");
+    expect(olderArtifact.hint).toContain("reload fetches the latest artifact");
     expect(describeRecorderCapabilities(makeStatus(), []).value).toBe(
       "none announced",
     );
@@ -866,7 +866,7 @@ describe("RecordingHealthDashboardView recorder panel", () => {
         makeStatus({ publishedRecorderVersion: null }),
         null,
       ).hint,
-    ).not.toContain("this deployment publishes");
+    ).not.toContain("reload fetches the latest artifact");
   });
 });
 

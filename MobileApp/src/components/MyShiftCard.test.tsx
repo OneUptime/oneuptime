@@ -1,8 +1,23 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test } from "@jest/globals";
 import MyShiftCard from "./MyShiftCard";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { MyOnCallShift } from "../api/types";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * The card for a server-materialized shift. What it adds over ShiftCard is
@@ -202,3 +217,105 @@ describe("MyShiftCard", () => {
     expect(screen.queryByTestId("get-cover-schedule-1:100")).toBeNull();
   });
 });
+
+describe("MyShiftCard surface", () => {
+  test("an upcoming shift is an elevated card with an info timing pill", async (): Promise<void> => {
+    await render(<MyShiftCard shift={shift()} now={NOW} />);
+
+    const style: Record<string, unknown> = flatStyle(
+      "my-shift-card-schedule-1:100",
+    );
+    expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(style.borderRadius).toBe(radius.lg);
+    expect(style.boxShadow).toBeTruthy();
+    expect(pillBackground("in 21h")).toBe(lightColors.statusInfoBg);
+  });
+
+  test("a running shift has a success pill", async (): Promise<void> => {
+    await render(
+      <MyShiftCard
+        shift={shift({
+          start: new Date(2026, 2, 3, 9, 0).toISOString(),
+          end: new Date(2026, 2, 3, 17, 30).toISOString(),
+        })}
+        now={NOW}
+      />,
+    );
+
+    expect(pillBackground("5h 30m left")).toBe(lightColors.statusSuccessBg);
+  });
+
+  test("an ended shift steps back to an outlined card with a neutral pill", async (): Promise<void> => {
+    await render(
+      <MyShiftCard
+        shift={shift({
+          start: new Date(2026, 2, 2, 9, 0).toISOString(),
+          end: new Date(2026, 2, 2, 17, 0).toISOString(),
+        })}
+        now={NOW}
+      />,
+    );
+
+    const style: Record<string, unknown> = flatStyle(
+      "my-shift-card-schedule-1:100",
+    );
+    expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(style.borderRadius).toBe(radius.lg);
+    expect(style.boxShadow).toBeUndefined();
+    expect(pillBackground("Ended")).toBe(lightColors.backgroundTertiary);
+  });
+
+  test("'Get cover' is a soft accent button with an accent label", async (): Promise<void> => {
+    await render(
+      <MyShiftCard shift={shift()} now={NOW} onRequestCover={jest.fn()} />,
+    );
+
+    const button: Record<string, unknown> = flatStyle(
+      "get-cover-schedule-1:100",
+    );
+    expect(button.backgroundColor).toBe(lightColors.cardAccent);
+    expect(button.borderRadius).toBe(radius.md);
+    expect(screen.getByText("Get cover")).toHaveStyle({
+      color: lightColors.actionPrimary,
+    });
+    expect(
+      screen.getByRole("button", { name: "Get cover for Primary" }),
+    ).toBeTruthy();
+  });
+
+  test("dark mode uses the dark card, pill and accent tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    try {
+      await render(
+        <ThemeProvider>
+          <MyShiftCard shift={shift()} now={NOW} onRequestCover={jest.fn()} />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("my-shift-card-schedule-1:100").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(pillBackground("in 21h")).toBe(darkColors.statusInfoBg);
+      expect(flatStyle("get-cover-schedule-1:100").backgroundColor).toBe(
+        darkColors.cardAccent,
+      );
+      expect(screen.getByText("Get cover")).toHaveStyle({
+        color: darkColors.actionPrimary,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}
+
+function pillBackground(label: string): unknown {
+  const pill: ReturnType<typeof screen.getByText>["parent"] =
+    screen.getByText(label).parent;
+  return (StyleSheet.flatten(pill?.props.style) as Record<string, unknown>)
+    .backgroundColor;
+}

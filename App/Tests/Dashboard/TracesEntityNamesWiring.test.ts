@@ -127,8 +127,13 @@ describe("TracesViewer resolves entity names with one lookup", () => {
 });
 
 describe("TracesViewer chips", () => {
+  /*
+   * The chip pipeline: the shared resolver, the locked chips (page scope,
+   * stored query, attribute filters), then the merged bar — one contiguous
+   * region, ending where the next concern starts.
+   */
   const mergedStart: number = TRACES_VIEWER.indexOf(
-    "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+    "const resolveChipDisplay: (chip: ActiveFilter) => ActiveFilter =",
   );
   const mergedEnd: number = TRACES_VIEWER.indexOf(
     "const handleCreateMetric:",
@@ -139,6 +144,9 @@ describe("TracesViewer chips", () => {
   test("the merged chip block is found", () => {
     expect(mergedStart).toBeGreaterThan(-1);
     expect(mergedEnd).toBeGreaterThan(mergedStart);
+    expect(MERGED).toContain(
+      "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+    );
   });
 
   test("every non-attribute chip goes through resolveTraceChipDisplay with the entity context", () => {
@@ -151,12 +159,12 @@ describe("TracesViewer chips", () => {
 
     // The locked scope chip, the stored-query chips, and user chips.
     expect(MERGED).toContain(
-      'resolveDisplay({ facetKey: "primaryEntityId", value: props.primaryEntityId.toString(),',
+      'resolveChipDisplay({ facetKey: "primaryEntityId", value: entityId,',
     );
     expect(MERGED).toContain(
-      "base.push( resolveDisplay({ facetKey: chip.facetKey, value: chip.value, displayKey: chip.displayKey,",
+      "resolveChipDisplay({ facetKey: chip.facetKey, value: chip.value, displayKey: chip.displayKey,",
     );
-    expect(MERGED).toContain("...activeFilters.map(resolveDisplay)");
+    expect(MERGED).toContain("...activeFilters.map(resolveChipDisplay)");
   });
 
   test("the old Service-only lookup is gone from the chip path", () => {
@@ -177,24 +185,49 @@ describe("TracesViewer chips", () => {
     expect(MERGED).not.toContain("displayValue: value, readOnly: true,");
   });
 
-  test("the memo re-runs when names, facets or the scope type change", () => {
-    const depsStart: number = MERGED.lastIndexOf("}, [");
-    const deps: string = MERGED.substring(depsStart);
+  test("the chips re-render when names, facets or the scope type change", () => {
+    /*
+     * The names live in the resolver's dependencies; the locked chips depend
+     * on the resolver (and on the scope props), and the merged bar on the
+     * locked chips — so a late name still reaches every chip.
+     */
+    const resolverDeps: string = MERGED.substring(
+      0,
+      MERGED.indexOf("const lockedChips: Array<ActiveFilter> = useMemo("),
+    );
+
+    for (const dependency of [
+      "facetConfigs",
+      "facetDisplayNames",
+      "entityNames",
+      "scopeEntityId",
+      "props.scopeEntityType",
+    ]) {
+      expect(resolverDeps).toContain(`${dependency},`);
+    }
+
+    const lockedDeps: string = MERGED.substring(
+      MERGED.indexOf("const lockedChips: Array<ActiveFilter> = useMemo("),
+      MERGED.indexOf(
+        "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+      ),
+    );
 
     for (const dependency of [
       "props.primaryEntityId",
-      "props.scopeEntityType",
       "props.attributeFilters",
       "props.attributeFilterDisplayKeys",
       "props.attributeFilterDisplayValues",
       "spanScope",
       "activeFilters",
-      "facetConfigs",
-      "facetDisplayNames",
-      "entityNames",
+      "resolveChipDisplay",
     ]) {
-      expect(deps).toContain(`${dependency},`);
+      expect(lockedDeps).toContain(`${dependency},`);
     }
+
+    expect(MERGED).toContain(
+      "}, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);",
+    );
   });
 
   test("a sidebar chip seeds its value from the server facet displayName", () => {
@@ -202,6 +235,86 @@ describe("TracesViewer chips", () => {
       "facetData[facetKey]?.find((facet: FacetValue): boolean => { return facet.value === value; })?.displayName || value",
     );
     expect(TRACES_VIEWER).toContain("[facetConfigs, facetData],");
+  });
+});
+
+describe("TracesViewer resource facets come from the shared catalog", () => {
+  const facetConfigsStart: number = TRACES_VIEWER.indexOf(
+    "const facetConfigs: Array<FacetConfig> = useMemo(",
+  );
+  const facetConfigsEnd: number = TRACES_VIEWER.indexOf(
+    "const histogramSeries:",
+    facetConfigsStart,
+  );
+  const FACET_CONFIGS: string = TRACES_VIEWER.substring(
+    facetConfigsStart,
+    facetConfigsEnd,
+  );
+
+  test("the facet config block is found", () => {
+    expect(facetConfigsStart).toBeGreaterThan(-1);
+    expect(facetConfigsEnd).toBeGreaterThan(facetConfigsStart);
+  });
+
+  test("imports the catalog keys and the shared config builder", () => {
+    expect(TRACES_VIEWER).toContain(
+      'import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";',
+    );
+    expect(TRACES_VIEWER).toContain(
+      'import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";',
+    );
+  });
+
+  test("the facets request asks for Service, every catalog resource, then the span facets in their old order", () => {
+    expect(TRACES_VIEWER).toContain(
+      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "statusCode", "kind", "isRootSpan", "hasException", "name", ...Array.from(ATTRIBUTE_FACET_KEYS), ],',
+    );
+  });
+
+  test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
+    expect(FACET_CONFIGS).toContain(
+      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+    );
+    for (const key of [
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "iotFleetId",
+    ]) {
+      expect(FACET_CONFIGS).not.toContain(`key: "${key}"`);
+    }
+  });
+
+  test("Service stays first, always shown, with its icon; Status keeps its place after the resources", () => {
+    expect(FACET_CONFIGS).toContain(
+      'key: "primaryEntityId", title: "Service", icon: IconProp.SquareStack, valueDisplayMap: serviceNameMap, valueColorMap: serviceColorMap, priority: 1, serverSearchable: true, },',
+    );
+    expect(FACET_CONFIGS.indexOf('title: "Service"')).toBeLessThan(
+      FACET_CONFIGS.indexOf("...buildResourceFacetConfigs({"),
+    );
+    expect(
+      FACET_CONFIGS.indexOf("...buildResourceFacetConfigs({"),
+    ).toBeLessThan(FACET_CONFIGS.indexOf('key: "statusCode"'));
+    expect(FACET_CONFIGS).toContain(
+      'key: "statusCode", title: "Status", valueDisplayMap: statusLabelMap, valueColorMap: statusColorMap, priority: 6,',
+    );
+    // Only resource facets fold away while empty.
+    expect(FACET_CONFIGS).not.toContain("hideWhenEmpty");
+  });
+
+  test("resource selections never become Span column filters", () => {
+    expect(TRACES_VIEWER).toContain(
+      "for (const key of Object.keys(facetGroups)) { if (isResourceFacetKey(key)) { continue; }",
+    );
+    expect(TRACES_VIEWER).toContain(
+      "collectResourceEntityFacetSelections(Object.entries(facetGroups));",
+    );
+    expect(TRACES_VIEWER).toContain(
+      "collectResourceEntityFacetSelections(Object.entries(groups));",
+    );
   });
 });
 

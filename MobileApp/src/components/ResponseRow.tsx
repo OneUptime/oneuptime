@@ -1,7 +1,8 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing, typography } from "../theme/tokens";
 
 interface ResponseRowProps {
   title: string;
@@ -20,7 +21,10 @@ interface ResponseRowProps {
   onPress: () => void;
 }
 
-/** A scan-friendly response row: the problem first, its context second. */
+/**
+ * A scan-friendly response card: status first, then the problem, then where
+ * it came from. State is always spelled out; the coloured dot only repeats it.
+ */
 export default function ResponseRow({
   title,
   kind,
@@ -38,178 +42,174 @@ export default function ResponseRow({
   onPress,
 }: ResponseRowProps): React.JSX.Element {
   const { theme } = useTheme();
+  const meta: string = [number, kind].filter(Boolean).join(" · ");
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
-      style={({ pressed }: { pressed: boolean }) => {
+      style={({ pressed }: { pressed: boolean }): ViewStyle => {
         return {
-          minHeight: 112,
-          padding: 18,
-          marginBottom: 8,
-          borderRadius: 18,
+          padding: spacing.lg,
+          marginBottom: spacing.md,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
           backgroundColor: pressed
             ? theme.colors.backgroundTertiary
             : theme.colors.backgroundElevated,
+          ...elevation(muted ? "none" : "card", theme.dark),
         };
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+        }}
+      >
         <View
-          testID="response-status-marker"
           style={{
-            width: 4,
-            minHeight: 42,
-            borderRadius: 2,
-            marginTop: 3,
-            backgroundColor: stateColor,
-            opacity: muted ? 0.65 : 1,
+            flex: 1,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "center",
+            columnGap: spacing.sm,
+            rowGap: spacing.xs,
           }}
-        />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={3}
-            style={{
-              fontSize: 17,
-              lineHeight: 24,
-              fontWeight: "600",
-              letterSpacing: -0.2,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {title}
-          </Text>
+        >
           <View
+            testID="response-status-marker"
             style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 7,
-              marginTop: 7,
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: stateColor,
+              opacity: muted ? 0.6 : 1,
             }}
-          >
+          />
+          {state ? (
             <Text
               style={{
-                color: theme.colors.textSecondary,
-                fontSize: 13,
-                lineHeight: 20,
+                ...typography.footnote,
+                fontWeight: "700",
+                color: theme.colors.textPrimary,
               }}
             >
-              {number || kind}
+              {state}
             </Text>
-            {number ? (
-              <Text
-                style={{
-                  color: theme.colors.textSecondary,
-                  fontSize: 13,
-                  lineHeight: 20,
-                }}
-              >
-                {kind}
-              </Text>
-            ) : null}
+          ) : null}
+          {state && severity ? (
             <Text
               style={{
+                ...typography.footnote,
                 color: theme.colors.textTertiary,
-                fontSize: 13,
-                lineHeight: 20,
               }}
             >
               ·
             </Text>
+          ) : null}
+          {severity ? (
             <Text
               style={{
+                ...typography.footnote,
+                fontWeight: "500",
                 color: theme.colors.textSecondary,
-                fontSize: 13,
-                lineHeight: 20,
               }}
             >
-              {time}
-            </Text>
-          </View>
-          {state || severity ? (
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
-                marginTop: 10,
-              }}
-            >
-              {state ? (
-                <Text
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 20,
-                    fontWeight: "600",
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {state}
-                </Text>
-              ) : null}
-              {state && severity ? (
-                <Text style={{ color: theme.colors.textTertiary }}>·</Text>
-              ) : null}
-              {severity ? (
-                <Text
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 20,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  {severity}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-          {context ? (
-            <View style={{ marginTop: 10, gap: 2 }}>
-              {contextLabel ? (
-                <Text
-                  style={{
-                    color: theme.colors.textSecondary,
-                    fontSize: 13,
-                    lineHeight: 19,
-                  }}
-                >
-                  {contextLabel}
-                </Text>
-              ) : null}
-              <Text
-                numberOfLines={2}
-                style={{
-                  color: theme.colors.textSecondary,
-                  fontSize: 14,
-                  lineHeight: 21,
-                }}
-              >
-                {context}
-              </Text>
-            </View>
-          ) : null}
-          {projectName ? (
-            <Text
-              numberOfLines={1}
-              style={{
-                marginTop: 9,
-                color: theme.colors.textSecondary,
-                fontSize: 13,
-                lineHeight: 19,
-              }}
-            >
-              {projectName}
+              {severity}
             </Text>
           ) : null}
         </View>
+        <Text
+          style={{
+            ...typography.footnote,
+            color: theme.colors.textTertiary,
+            fontVariant: ["tabular-nums"],
+          }}
+        >
+          {time}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.sm,
+          marginTop: spacing.sm,
+        }}
+      >
+        <Text
+          numberOfLines={3}
+          style={{
+            ...typography.headline,
+            fontSize: 17,
+            lineHeight: 23,
+            flex: 1,
+            minWidth: 0,
+            color: muted
+              ? theme.colors.textSecondary
+              : theme.colors.textPrimary,
+          }}
+        >
+          {title}
+        </Text>
         <Ionicons
           name="chevron-forward"
-          size={17}
+          size={18}
           color={theme.colors.textTertiary}
-          style={{ marginTop: 4 }}
+          style={{ marginTop: 2 }}
         />
+      </View>
+
+      <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
+        <Text
+          numberOfLines={1}
+          style={{ ...typography.footnote, color: theme.colors.textSecondary }}
+        >
+          {meta}
+        </Text>
+        {context ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.xs + 2,
+            }}
+          >
+            <Ionicons
+              name="pulse-outline"
+              size={14}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 2 }}
+            />
+            <Text
+              numberOfLines={2}
+              style={{
+                ...typography.footnote,
+                flex: 1,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              {contextLabel ? `${contextLabel}: ${context}` : context}
+            </Text>
+          </View>
+        ) : null}
+        {projectName ? (
+          <Text
+            numberOfLines={1}
+            style={{
+              ...typography.footnote,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {projectName}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );

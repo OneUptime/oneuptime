@@ -1,4 +1,4 @@
-import { rgbToHex } from "./color";
+import { rgbToHex, withAlpha } from "./color";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -222,4 +222,101 @@ describe("rgbToHex with channels", () => {
       expect(rgbToHex(input)).toBe(NEUTRAL);
     },
   );
+});
+
+/*
+ * withAlpha is how every tinted tile, pill and pressed state gets its soft
+ * fill. It replaced appending two hex digits to a colour string, which only
+ * worked for six-digit hex and silently produced an invalid colour - drawn as
+ * nothing at all - for anything else a theme or the server handed over.
+ */
+describe("withAlpha", () => {
+  test("turns six-digit hex into rgba at the requested opacity", () => {
+    expect(withAlpha("#4F46E5", 0.12)).toBe("rgba(79, 70, 229, 0.12)");
+    expect(withAlpha("#000000", 0.5)).toBe("rgba(0, 0, 0, 0.5)");
+    expect(withAlpha("ffffff", 1)).toBe("rgba(255, 255, 255, 1)");
+  });
+
+  test("expands three-digit hex first", () => {
+    expect(withAlpha("#f0a", 0.2)).toBe("rgba(255, 0, 170, 0.2)");
+    expect(withAlpha("fff", 0.3)).toBe("rgba(255, 255, 255, 0.3)");
+  });
+
+  test("reads the same channel and wrapper shapes rgbToHex does", () => {
+    expect(withAlpha({ r: 220, g: 38, b: 38 }, 0.4)).toBe(
+      "rgba(220, 38, 38, 0.4)",
+    );
+    expect(withAlpha({ red: 1, green: 2, blue: 3 }, 0.4)).toBe(
+      "rgba(1, 2, 3, 0.4)",
+    );
+    expect(withAlpha({ value: "#00ff00" }, 0.4)).toBe("rgba(0, 255, 0, 0.4)");
+    expect(withAlpha({ color: "#0000ff" }, 0.4)).toBe("rgba(0, 0, 255, 0.4)");
+  });
+
+  test("keeps a genuine black black", () => {
+    expect(withAlpha({ r: 0, g: 0, b: 0 }, 0.1)).toBe("rgba(0, 0, 0, 0.1)");
+  });
+
+  test.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["a colour name", "red"],
+    ["a css function", "rgb(255, 0, 0)"],
+    ["eight-digit hex", "#ff0000ff"],
+    ["an empty object", {}],
+  ] as Array<[string, Parameters<typeof withAlpha>[0]]>)(
+    "falls back to the neutral grey for %s, at the requested opacity",
+    (_label: string, input: Parameters<typeof withAlpha>[0]): void => {
+      /*
+       * Grey at the asked-for opacity, never an unparseable string: an
+       * invalid colour is a tile that silently draws nothing.
+       */
+      expect(withAlpha(input, 0.12)).toBe("rgba(156, 163, 175, 0.12)");
+    },
+  );
+
+  test("clamps opacity into 0-1", () => {
+    expect(withAlpha("#ffffff", 1.5)).toBe("rgba(255, 255, 255, 1)");
+    expect(withAlpha("#ffffff", -0.2)).toBe("rgba(255, 255, 255, 0)");
+    expect(withAlpha("#ffffff", 0)).toBe("rgba(255, 255, 255, 0)");
+  });
+
+  test.each([
+    ["NaN", NaN],
+    ["Infinity", Infinity],
+    ["-Infinity", -Infinity],
+  ])(
+    "treats a non-finite opacity (%s) as fully opaque rather than invisible",
+    (_label: string, alpha: number): void => {
+      expect(withAlpha("#4f46e5", alpha)).toBe("rgba(79, 70, 229, 1)");
+    },
+  );
+
+  test("rounds opacity to three decimal places", () => {
+    /*
+     * Arithmetic such as 0.1 * 3 would otherwise print as
+     * 0.30000000000000004 in every style it reaches.
+     */
+    expect(withAlpha("#ffffff", 0.1 * 3)).toBe("rgba(255, 255, 255, 0.3)");
+    expect(withAlpha("#ffffff", 0.12345)).toBe("rgba(255, 255, 255, 0.123)");
+    expect(withAlpha("#ffffff", 0.9996)).toBe("rgba(255, 255, 255, 1)");
+  });
+
+  test("always produces a string React Native can parse as rgba", () => {
+    const inputs: Array<Parameters<typeof withAlpha>[0]> = [
+      "#abc",
+      "#ABCDEF",
+      { r: 300, g: -1, b: 12.6 },
+      "garbage",
+      null,
+    ];
+    for (const input of inputs) {
+      expect(withAlpha(input, 0.5)).toMatch(
+        /^rgba\((\d{1,3}), (\d{1,3}), (\d{1,3}), (0|1|0?\.\d{1,3}|\d(\.\d{1,3})?)\)$/,
+      );
+    }
+    expect(withAlpha({ r: 300, g: -1, b: 12.6 }, 0.5)).toBe(
+      "rgba(255, 0, 13, 0.5)",
+    );
+  });
 });

@@ -5,10 +5,10 @@ import {
   ScrollView,
   RefreshControl,
   Text,
-  Pressable,
   Alert,
   SectionListRenderItemInfo,
   DefaultSectionT,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing, typography } from "../theme/tokens";
 import ListFilters from "../components/ListFilters";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
@@ -41,6 +42,11 @@ import type {
   ProjectIncidentEpisodeItem,
 } from "../api/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import {
+  ListSectionHeader,
+  ViewSwitch,
+  type ViewOption,
+} from "../components/ResponseListControls";
 
 const PAGE_SIZE: number = 20;
 
@@ -66,73 +72,24 @@ interface EpisodeSection {
   data: ProjectIncidentEpisodeItem[];
 }
 
-function SectionHeader({
-  title,
-  count,
-  isActive,
-}: {
-  title: string;
-  count: number;
-  isActive: boolean;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingBottom: 12,
-        paddingTop: 8,
-        backgroundColor: theme.colors.backgroundPrimary,
-      }}
-    >
-      <Ionicons
-        name={isActive ? "flame" : "checkmark-done"}
-        size={18}
-        color={
-          isActive ? theme.colors.severityCritical : theme.colors.textTertiary
-        }
-        style={{ marginRight: 6 }}
-      />
-      <Text
-        accessibilityRole="header"
-        style={{
-          fontSize: 15,
-          fontWeight: "600",
-          color: isActive
-            ? theme.colors.textPrimary
-            : theme.colors.textTertiary,
-          letterSpacing: 0.6,
-        }}
-      >
-        {title}
-      </Text>
-      <View
-        style={{
-          marginLeft: 8,
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-          borderRadius: 4,
-          backgroundColor: isActive
-            ? theme.colors.severityCritical + "18"
-            : theme.colors.backgroundTertiary,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 13,
-            fontWeight: "bold",
-            color: isActive
-              ? theme.colors.severityCritical
-              : theme.colors.textTertiary,
-          }}
-        >
-          {count}
-        </Text>
-      </View>
-    </View>
-  );
-}
+const VIEW_OPTIONS: Array<ViewOption<Segment>> = [
+  {
+    key: "incidents",
+    label: "Incidents",
+    icon: "list-outline",
+    accessibilityHint: "Show individual incidents",
+  },
+  {
+    key: "episodes",
+    label: "Episodes",
+    icon: "layers-outline",
+    accessibilityHint: "Show related incidents grouped into episodes",
+  },
+];
+
+const INCIDENTS_DESCRIPTION: string = "Each incident, listed on its own.";
+const EPISODES_DESCRIPTION: string =
+  "Related incidents, grouped into episodes.";
 
 interface IncidentsScreenProps {
   embedded?: boolean;
@@ -434,74 +391,36 @@ export default function IncidentsScreen({
     setVisibleCount(PAGE_SIZE);
     setVisibleEpisodeCount(PAGE_SIZE);
   };
+  const viewDescription: string =
+    segment === "incidents" ? INCIDENTS_DESCRIPTION : EPISODES_DESCRIPTION;
   const listHeader: React.JSX.Element = (
-    <View style={{ marginBottom: 8 }}>
+    <View style={{ marginBottom: spacing.xs }}>
       {!embedded ? (
         <ScreenIntro
           title="Incidents"
           description="One place to understand what needs your response."
         />
       ) : null}
-      <View
+      <ViewSwitch<Segment>
+        options={VIEW_OPTIONS}
+        selected={segment}
+        onSelect={(next: Segment) => {
+          setSegment(next);
+          setVisibleCount(PAGE_SIZE);
+          setVisibleEpisodeCount(PAGE_SIZE);
+        }}
+      />
+      <Text
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
+          ...typography.footnote,
+          marginTop: spacing.sm,
+          paddingHorizontal: spacing.xs,
+          color: theme.colors.textSecondary,
         }}
       >
-        <Text
-          style={{
-            flex: 1,
-            fontSize: 14,
-            lineHeight: 21,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {segment === "incidents"
-            ? "Individual incidents"
-            : "Related incidents, grouped"}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            segment === "incidents" ? "Episodes" : "Incidents"
-          }
-          accessibilityHint={
-            segment === "incidents"
-              ? "Show related incidents grouped into episodes"
-              : "Show individual incidents"
-          }
-          onPress={() => {
-            setSegment(segment === "incidents" ? "episodes" : "incidents");
-            setVisibleCount(PAGE_SIZE);
-            setVisibleEpisodeCount(PAGE_SIZE);
-          }}
-          style={{
-            minHeight: 48,
-            paddingHorizontal: 4,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: theme.colors.actionPrimary,
-            }}
-          >
-            {segment === "incidents" ? "Episodes" : "Incidents"}
-          </Text>
-          <Ionicons
-            name="swap-horizontal-outline"
-            size={16}
-            color={theme.colors.actionPrimary}
-          />
-        </Pressable>
-      </View>
-      <View style={{ marginTop: 12 }}>
+        {viewDescription}
+      </Text>
+      <View style={{ marginTop: spacing.md }}>
         <SearchField
           value={search}
           onChangeText={(value: string) => {
@@ -514,25 +433,42 @@ export default function IncidentsScreen({
         />
         {(segment === "incidents" ? allIncidents.length : allEpisodes.length) >=
         100 ? (
-          <Text
+          <View
             style={{
-              marginTop: 10,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.xs + 2,
+              marginTop: spacing.sm,
+              paddingHorizontal: spacing.xs,
             }}
           >
-            Search covers the 100 most recent{" "}
-            {segment === "incidents" ? "incidents" : "episodes"}.
-          </Text>
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 1 }}
+            />
+            <Text
+              style={{
+                ...typography.footnote,
+                flex: 1,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Search covers the 100 most recent{" "}
+              {segment === "incidents" ? "incidents" : "episodes"}.
+            </Text>
+          </View>
         ) : null}
       </View>
       {statesError && hasStateMetadata ? (
-        <QueryErrorNotice
-          message="Could not refresh incident states. Showing last loaded states."
-          retryLabel="Retry incident states"
-          onRetry={onRefresh}
-        />
+        <View style={{ marginTop: spacing.md }}>
+          <QueryErrorNotice
+            message="Could not refresh incident states. Showing last loaded states."
+            retryLabel="Retry incident states"
+            onRetry={onRefresh}
+          />
+        </View>
       ) : null}
       <ListFilters
         options={[
@@ -565,24 +501,38 @@ export default function IncidentsScreen({
     </View>
   );
 
+  const refreshControl: React.JSX.Element = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={theme.colors.textSecondary}
+      colors={[theme.colors.actionPrimary]}
+      progressBackgroundColor={theme.colors.backgroundElevated}
+    />
+  );
+  const contentContainerStyle: ViewStyle = {
+    padding: spacing.xl,
+    paddingBottom: bottomPadding,
+    flexGrow: 1,
+  };
+
   if (showLoading) {
     return (
       <View
+        testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView
+          testID="response-list-status"
           contentInsetAdjustmentBehavior="automatic"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
+          refreshControl={refreshControl}
+          contentContainerStyle={contentContainerStyle}
         >
           {listHeader}
-          <View>
+          <View
+            testID="response-list-loading"
+            style={{ marginTop: spacing.xs }}
+          >
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -595,18 +545,14 @@ export default function IncidentsScreen({
   if (showError) {
     return (
       <View
+        testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView
+          testID="response-list-status"
           contentInsetAdjustmentBehavior="automatic"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
+          refreshControl={refreshControl}
+          contentContainerStyle={contentContainerStyle}
         >
           {listHeader}
           <EmptyState
@@ -618,7 +564,7 @@ export default function IncidentsScreen({
                   ? "Failed to load incidents. Pull to refresh or try again."
                   : "Failed to load incident episodes. Pull to refresh or try again."
             }
-            icon="incidents"
+            icon="error"
             actionLabel="Retry"
             onAction={onRefresh}
           />
@@ -628,7 +574,10 @@ export default function IncidentsScreen({
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
+    <View
+      testID="response-screen"
+      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+    >
       {segment === "incidents" ? (
         <SectionList
           sections={incidentSections}
@@ -641,16 +590,12 @@ export default function IncidentsScreen({
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
+          contentContainerStyle={contentContainerStyle}
           renderSectionHeader={(params: {
             section: DefaultSectionT & IncidentSection;
           }) => {
             return (
-              <SectionHeader
+              <ListSectionHeader
                 title={params.section.title}
                 count={params.section.count}
                 isActive={params.section.isActive}
@@ -674,6 +619,7 @@ export default function IncidentsScreen({
               });
             return (
               <SwipeableCard
+                actionInsetBottom={spacing.md}
                 rightAction={
                   !isResolved &&
                   acknowledgeState &&
@@ -681,7 +627,8 @@ export default function IncidentsScreen({
                     acknowledgeState._id
                     ? {
                         label: "Acknowledge",
-                        color: theme.colors.stateResolved,
+                        icon: "checkmark-circle",
+                        color: theme.colors.statusSuccess,
                         onAction: () => {
                           return handleAcknowledge(wrapped);
                         },
@@ -709,13 +656,11 @@ export default function IncidentsScreen({
               }
               actionLabel={hasFilters ? "Clear filters" : undefined}
               onAction={hasFilters ? resetFilters : undefined}
-              icon="incidents"
+              icon={hasFilters ? "incidents" : "success"}
             />
           }
           stickySectionHeadersEnabled={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={refreshControl}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
         />
@@ -731,16 +676,12 @@ export default function IncidentsScreen({
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
+          contentContainerStyle={contentContainerStyle}
           renderSectionHeader={(params: {
             section: DefaultSectionT & EpisodeSection;
           }) => {
             return (
-              <SectionHeader
+              <ListSectionHeader
                 title={params.section.title}
                 count={params.section.count}
                 isActive={params.section.isActive}
@@ -782,9 +723,7 @@ export default function IncidentsScreen({
             />
           }
           stickySectionHeadersEnabled={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={refreshControl}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
         />

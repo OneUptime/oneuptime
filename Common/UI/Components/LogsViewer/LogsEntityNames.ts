@@ -10,6 +10,10 @@ import {
   isResourceFacetKey,
   isServiceFacetKey,
 } from "../../../Types/Telemetry/ResourceEntityFacet";
+import {
+  getResourceFacetLabelMap,
+  getResourceFacetServiceTypeMap,
+} from "../../../Types/Telemetry/ResourceFacetCatalog";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
@@ -57,14 +61,14 @@ export interface LogsEntityResolutionRequest {
 
 /*
  * Non-Service resource facets name one specific table, so their ids can
- * skip the Service-first probe and go straight to it.
+ * skip the Service-first probe and go straight to it. Every catalog resource
+ * type is listed — not only the four the viewer preloads — so a Proxmox
+ * cluster or IoT fleet facet value / chip is still sent to its own table.
+ * Catalog order is kept: findLoadedLogsResourceEntity probes the preloaded
+ * maps in this order.
  */
-export const LOGS_RESOURCE_FACET_ENTITY_TYPES: Record<string, ServiceType> = {
-  hostId: ServiceType.Host,
-  dockerHostId: ServiceType.DockerHost,
-  podmanHostId: ServiceType.PodmanHost,
-  kubernetesClusterId: ServiceType.KubernetesCluster,
-};
+export const LOGS_RESOURCE_FACET_ENTITY_TYPES: Record<string, ServiceType> =
+  Object.fromEntries(getResourceFacetServiceTypeMap());
 
 /*
  * Telemetry entity ids are Postgres UUIDs. A chip value that is not one (a
@@ -755,10 +759,7 @@ export const ANALYTICS_DIMENSION_LABELS: Record<string, string> = {
   severityText: "Severity",
   primaryEntityId: "Service",
   serviceId: "Service",
-  hostId: "Host",
-  dockerHostId: "Docker Host",
-  podmanHostId: "Podman Host",
-  kubernetesClusterId: "Kubernetes Cluster",
+  ...getResourceFacetLabelMap(),
   traceId: "Trace ID",
   spanId: "Span ID",
 };

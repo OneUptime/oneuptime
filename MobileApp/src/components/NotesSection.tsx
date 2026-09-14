@@ -1,12 +1,15 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
-import { formatDateTime } from "../utils/date";
-import { toPlainText } from "../utils/text";
+import { elevation, radius, spacing, typography } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 import type { NoteItem } from "../api/types";
 import QueryErrorNotice from "./QueryErrorNotice";
 import MarkdownContent from "./MarkdownContent";
+import GradientButton from "./GradientButton";
+import { formatResponseTimestamp } from "./ResponseDetailLayout";
+import { getInitials, toPlainText } from "../utils/text";
 
 interface NotesSectionProps {
   notes: NoteItem[] | undefined;
@@ -16,6 +19,8 @@ interface NotesSectionProps {
   onRetry?: () => unknown;
 }
 
+const AVATAR_SIZE: number = 34;
+
 export default function NotesSection({
   notes,
   setNoteModalVisible,
@@ -24,83 +29,109 @@ export default function NotesSection({
   onRetry,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = theme.colors.actionPrimary;
+  const surface: {
+    borderRadius: number;
+    backgroundColor: string;
+    borderWidth: number;
+    borderColor: string;
+  } = {
+    borderRadius: radius.lg,
+    backgroundColor: theme.colors.backgroundElevated,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+  };
 
   return (
-    <View style={{ marginBottom: 8, marginTop: 4 }}>
+    <View testID="notes-section" style={{ marginBottom: spacing.sm }}>
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: 8,
-          marginBottom: 14,
+          gap: spacing.sm,
+          marginBottom: spacing.md,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons
-            name="chatbubble-outline"
-            size={14}
-            color={theme.colors.textSecondary}
-            style={{ marginRight: 6 }}
-          />
-          <Text
-            accessibilityRole="header"
+        <Ionicons
+          name="chatbubbles-outline"
+          size={18}
+          color={theme.colors.textTertiary}
+          style={{ width: 20, textAlign: "center" }}
+        />
+        <Text
+          accessibilityRole="header"
+          style={{
+            ...typography.title3,
+            flexShrink: 1,
+            color: theme.colors.textPrimary,
+          }}
+        >
+          Internal Notes
+        </Text>
+        {notes && notes.length > 0 ? (
+          <View
+            testID="notes-count"
             style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
+              minWidth: 24,
+              paddingHorizontal: spacing.sm - 1,
+              paddingVertical: 1,
+              borderRadius: radius.pill,
+              backgroundColor: theme.colors.backgroundTertiary,
+              alignItems: "center",
             }}
           >
-            Internal Notes
-          </Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add Note"
-          style={({ pressed }: { pressed: boolean }) => {
-            return {
-              flexDirection: "row" as const,
-              alignItems: "center" as const,
-              justifyContent: "center" as const,
-              minHeight: 48,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              backgroundColor: theme.colors.cardAccent,
-              opacity: pressed ? 0.85 : 1,
-            };
-          }}
+            <Text
+              accessibilityLabel={`${notes.length} ${
+                notes.length === 1 ? "note" : "notes"
+              }`}
+              style={{
+                ...typography.caption,
+                fontWeight: "700",
+                color: theme.colors.textSecondary,
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {notes.length}
+            </Text>
+          </View>
+        ) : null}
+        <View style={{ flex: 1 }} />
+        <GradientButton
+          testID="add-note-button"
+          label="Add Note"
+          icon="add"
+          variant="tonal"
+          size="sm"
+          style={{ minHeight: 44 }}
           onPress={() => {
             return setNoteModalVisible(true);
           }}
-        >
-          <Ionicons
-            name="add"
-            size={14}
-            color={addNoteContentColor}
-            style={{ marginRight: 4 }}
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: addNoteContentColor,
-            }}
-          >
-            Add Note
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {isLoading ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{ color: theme.colors.textSecondary, paddingVertical: 16 }}
+        <View
+          testID="notes-loading"
+          style={{
+            ...surface,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+            padding: spacing.lg,
+            marginBottom: spacing.md,
+          }}
         >
-          Loading notes…
-        </Text>
+          <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{
+              ...typography.subhead,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Loading notes…
+          </Text>
+        </View>
       ) : null}
       {isError && onRetry ? (
         <QueryErrorNotice
@@ -110,83 +141,140 @@ export default function NotesSection({
         />
       ) : null}
 
-      {notes && notes.length > 0
-        ? notes.map((note: NoteItem, index: number) => {
+      {notes && notes.length > 0 ? (
+        <View style={{ gap: spacing.md }}>
+          {notes.map((note: NoteItem, index: number) => {
             const noteText: string = toPlainText(note.note);
             const authorName: string = toPlainText(note.createdByUser?.name);
+            const initials: string = note.createdByUser
+              ? getInitials(authorName)
+              : "";
 
             return (
               <View
                 key={note._id || `${note.createdAt}-${index}`}
+                testID="note-card"
                 style={{
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  marginBottom: 10,
-                  backgroundColor: theme.colors.backgroundElevated,
-                  borderWidth: 0,
-                  borderLeftWidth: 3,
-                  borderColor: theme.colors.borderGlass,
-                  shadowColor: "#000",
-                  shadowOpacity: 0,
-                  shadowOffset: { width: 0, height: 5 },
-                  shadowRadius: 10,
-                  elevation: 0,
+                  ...surface,
+                  ...elevation("card", theme.dark),
+                  padding: spacing.lg,
                 }}
               >
-                <View style={{ padding: 16 }}>
-                  <MarkdownContent content={noteText} />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.md,
+                    marginBottom: spacing.sm,
+                  }}
+                >
                   <View
+                    testID="note-avatar"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      flexWrap: "wrap",
-                      gap: 4,
-                      marginTop: 10,
+                      width: AVATAR_SIZE,
+                      height: AVATAR_SIZE,
+                      borderRadius: AVATAR_SIZE / 2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: initials
+                        ? withAlpha(
+                            theme.colors.actionPrimary,
+                            theme.dark ? 0.22 : 0.12,
+                          )
+                        : theme.colors.backgroundTertiary,
                     }}
                   >
+                    {initials ? (
+                      <Text
+                        testID="note-avatar-initials"
+                        style={{
+                          ...typography.footnote,
+                          fontWeight: "700",
+                          color: theme.colors.actionPrimary,
+                        }}
+                      >
+                        {initials}
+                      </Text>
+                    ) : (
+                      <Ionicons
+                        name={
+                          note.createdByUser
+                            ? "person-outline"
+                            : "sparkles-outline"
+                        }
+                        size={16}
+                        color={theme.colors.textSecondary}
+                      />
+                    )}
+                  </View>
+                  <View style={{ flex: 1, gap: 1 }}>
                     {note.createdByUser ? (
                       <Text
+                        numberOfLines={1}
                         style={{
-                          fontSize: 12,
-                          color: theme.colors.textTertiary,
+                          ...typography.subhead,
+                          fontWeight: "600",
+                          color: theme.colors.textPrimary,
                         }}
                       >
                         {authorName}
                       </Text>
                     ) : null}
                     <Text
+                      testID="note-time"
                       style={{
-                        fontSize: 12,
+                        ...typography.footnote,
                         color: theme.colors.textTertiary,
+                        fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {formatDateTime(note.createdAt)}
+                      {formatResponseTimestamp(note.createdAt)}
                     </Text>
                   </View>
                 </View>
+                <MarkdownContent content={noteText} />
               </View>
             );
-          })
-        : null}
+          })}
+        </View>
+      ) : null}
 
       {notes && notes.length === 0 && !isLoading && !isError ? (
         <View
+          testID="notes-empty"
           style={{
-            borderRadius: 16,
-            padding: 16,
+            ...surface,
             alignItems: "center",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
+            gap: spacing.xs,
+            paddingVertical: spacing.xl,
+            paddingHorizontal: spacing.lg,
           }}
         >
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={24}
+            color={theme.colors.textTertiary}
+          />
           <Text
             style={{
-              fontSize: 13,
-              color: theme.colors.textTertiary,
+              ...typography.subhead,
+              fontWeight: "600",
+              marginTop: spacing.xs,
+              color: theme.colors.textSecondary,
             }}
           >
             No notes yet.
+          </Text>
+          <Text
+            style={{
+              ...typography.footnote,
+              textAlign: "center",
+              color: theme.colors.textTertiary,
+            }}
+          >
+            Record what you tried so the next responder can pick up from here.
           </Text>
         </View>
       ) : null}

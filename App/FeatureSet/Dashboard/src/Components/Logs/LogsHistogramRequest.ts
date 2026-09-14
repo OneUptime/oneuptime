@@ -2,6 +2,11 @@ import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
+import Query from "Common/Types/BaseDatabase/Query";
+import ObjectID from "Common/Types/ObjectID";
+import Log from "Common/Models/AnalyticsModels/Log";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -43,6 +48,13 @@ export interface LogsHistogramRequestParams {
   entityKeys?: Array<string> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;
+  /*
+   * The viewer's list query as it stands — base scope, chips AND whatever
+   * the user typed into the search bar. The typed part reaches the list
+   * only through this object, so it has to reach the chart through it too;
+   * see applyTypedLogFilterToRequest.
+   */
+  typedFilter?: Record<string, unknown> | undefined;
 }
 
 /**
@@ -173,7 +185,7 @@ export function buildLogsHistogramRequest(
 
     const compiled: unknown = compileAttributeChipValues(Array.from(values));
 
-    if (compiled === undefined) {
+    if (compiled === undefined || !isAggregateAttributeValue(compiled)) {
       continue;
     }
 
@@ -189,5 +201,284 @@ export function buildLogsHistogramRequest(
     requestData["entityKeys"] = params.entityKeys;
   }
 
+  // Last, so what the user typed wins exactly as it does in the list query.
+  applyTypedLogFilterToRequest(requestData, params.typedFilter);
+
   return requestData;
 }
+
+type ListQueryValuesFunction = (value: unknown) => Array<string>;
+
+/*
+ * The forms a typed column filter takes in the list query: one value, or
+ * an Includes for `(a OR b)`. Any other operator (a negation, a wildcard) has
+ * no aggregate-endpoint field and is left to the list alone.
+ */
+const listQueryValues: ListQueryValuesFunction = (
+  value: unknown,
+): Array<string> => {
+  if (value instanceof Includes) {
+    return value.values
+      .map((item: string | number | ObjectID): string => {
+        return item.toString();
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0 ? [value] : [];
+  }
+
+  if (typeof value === "number" || value instanceof ObjectID) {
+    return [value.toString()];
+  }
+
+  return [];
+};
+
+type IsAggregateAttributeValueFunction = (value: unknown) => boolean;
+
+/*
+ * Whether one attribute filter value can be sent to the aggregate endpoints.
+ *
+ * Two filters on one key (`@k:a* @k:*b`, or a mixed chip group) compile to
+ * an ARRAY of operator instances, which the list evaluates element by
+ * element but the histogram / facets endpoints read as `IN (...)` — and an
+ * operator object stringified into an IN list is `'[object Object]'`, a
+ * chart of nothing under a table of rows. The endpoints cannot express an
+ * AND of predicates on one key, so such a value is left to the list: a
+ * wider chart is honest, an impossible one is not.
+ */
+const isAggregateAttributeValue: IsAggregateAttributeValueFunction = (
+  value: unknown,
+): boolean => {
+  return !Array.isArray(value);
+};
+
+type ApplyTypedLogFilterToRequestFunction = (
+  requestData: JSONObject,
+  typedFilter: Record<string, unknown> | undefined,
+) => JSONObject;
+
+/**
+ * Fold the viewer's list query onto a histogram / facets request.
+ *
+ * A search typed into the bar — `@attr:value`, `severity:error`,
+ * `service:<id>`, `trace:<id>`, free text — used to reach the LIST only: the
+ * chart above it and the facet counts beside it were built from the base
+ * scope and the chips, so after pasting a copied filter the list narrowed
+ * while the chart kept counting every row the page pinned. The list query is
+ * the one statement of what the user is looking at, so the fields it carries
+ * REPLACE the request's (a typed `service:` is a drill-down, exactly as it
+ * is for the list) and its attributes merge over the base + chip map, typed
+ * keys winning. Operator objects pass through untouched: they serialize to
+ * the same `{_type, value}` wire shape the base attributes already use.
+ *
+ * Mutates and returns `requestData`, like the rest of this builder.
+ */
+export const applyTypedLogFilterToRequest: ApplyTypedLogFilterToRequestFunction =
+  (
+    requestData: JSONObject,
+    typedFilter: Record<string, unknown> | undefined,
+  ): JSONObject => {
+    if (!typedFilter || typeof typedFilter !== "object") {
+      return requestData;
+    }
+
+    const typedAttributes: unknown = typedFilter["attributes"];
+
+    if (
+      typedAttributes &&
+      typeof typedAttributes === "object" &&
+      !Array.isArray(typedAttributes)
+    ) {
+      const merged: JSONObject = {
+        ...((requestData["attributes"] as JSONObject | undefined) || {}),
+      };
+
+      for (const [key, value] of Object.entries(
+        typedAttributes as Record<string, unknown>,
+      )) {
+        if (
+          !key ||
+          value === undefined ||
+          value === null ||
+          !isAggregateAttributeValue(value)
+        ) {
+          continue;
+        }
+
+        merged[key] = value as unknown as JSONObject;
+      }
+
+      if (Object.keys(merged).length > 0) {
+        requestData["attributes"] = merged;
+      }
+    }
+
+    const columnFields: Array<[string, string]> = [
+      ["severityText", "severityTexts"],
+      ["primaryEntityId", "serviceIds"],
+      ["traceId", "traceIds"],
+      ["spanId", "spanIds"],
+      ["sessionId", "sessionIds"],
+    ];
+
+    for (const [queryKey, requestKey] of columnFields) {
+      const values: Array<string> = listQueryValues(typedFilter[queryKey]);
+
+      if (values.length > 0) {
+        requestData[requestKey] = values;
+      }
+    }
+
+    /*
+     * Host / cluster chips ride `resourceFilters` on the list query (see
+     * applyLogsFacetFiltersToQuery); the facets endpoint resolves the same
+     * field, so a cluster the sidebar selected scopes the sidebar's own
+     * counts — otherwise the Services facet kept counting every cluster
+     * while the list showed one.
+     */
+    const resourceFilters: unknown = typedFilter["resourceFilters"];
+
+    if (
+      resourceFilters &&
+      typeof resourceFilters === "object" &&
+      !Array.isArray(resourceFilters) &&
+      Object.keys(resourceFilters as Record<string, unknown>).length > 0
+    ) {
+      requestData["resourceFilters"] = resourceFilters as JSONObject;
+    }
+
+    /*
+     * Only a Search reaches the chart. A body chip and free text compile to
+     * a Search, which the aggregate endpoints read as a contains-match — the
+     * same predicate. A typed `message:x` compiles to an EQUALITY on the
+     * body, for which the endpoints have no field; forwarding it as a
+     * contains-match would draw bars above an (almost always) empty table,
+     * so like every other operator they cannot express it is left to the
+     * list alone.
+     */
+    const body: unknown = typedFilter["body"];
+
+    if (body instanceof Search && body.toString().trim().length > 0) {
+      requestData["bodySearchText"] = body.toString();
+    }
+
+    return requestData;
+  };
+
+type PreserveBaseAttributesInTypedFilterFunction = (
+  filter: Query<Log>,
+  baseAttributes: Dictionary<DictionaryEntryValue> | undefined,
+) => Query<Log>;
+
+/**
+ * Keep the page's pinned attributes under whatever the search bar typed.
+ *
+ * The bar's submit spreads its parsed filter over the current query, and a
+ * parsed `@attr:value` arrives as a fresh `attributes` object — so on a page
+ * scoped by attribute alone (a Docker host, a pod, a serverless function)
+ * one typed attribute search silently replaced the page's scope in the list
+ * while the locked chip above it still claimed it. Typed keys still win over
+ * a pinned key of the same name: that is the drill-down precedence chips
+ * have always had.
+ */
+export const preserveBaseAttributesInTypedFilter: PreserveBaseAttributesInTypedFilterFunction =
+  (
+    filter: Query<Log>,
+    baseAttributes: Dictionary<DictionaryEntryValue> | undefined,
+  ): Query<Log> => {
+    if (!baseAttributes || Object.keys(baseAttributes).length === 0) {
+      return filter;
+    }
+
+    const typedAttributes: Record<string, unknown> =
+      ((filter as unknown as Record<string, unknown>)["attributes"] as
+        | Record<string, unknown>
+        | undefined) || {};
+
+    return {
+      ...filter,
+      attributes: { ...baseAttributes, ...typedAttributes },
+    } as unknown as Query<Log>;
+  };
+
+/*
+ * The keys of the list query the aggregate requests read — everything
+ * applyTypedLogFilterToRequest looks at, and nothing else. `time` is
+ * deliberately absent: the requests resolve their own window.
+ */
+export const TYPED_LOG_FILTER_KEYS: ReadonlyArray<string> = [
+  "attributes",
+  "severityText",
+  "primaryEntityId",
+  "traceId",
+  "spanId",
+  "sessionId",
+  "body",
+  "resourceFilters",
+];
+
+type PickTypedLogFilterFunction = (
+  filter: Record<string, unknown> | undefined,
+) => Record<string, unknown> | undefined;
+
+/**
+ * The slice of the list query the histogram / facets requests depend on.
+ *
+ * The viewer rebuilds its whole list query on every base-scope pass (and a
+ * fresh object is a new identity even when nothing in it changed), so the
+ * aggregate fetchers must not key on the query object itself: they would
+ * refetch twice per mount and, worse, once with the PREVIOUS scope in the
+ * render before the query catches up with new props. Keying them on this
+ * slice — compared by value through {@link serializeTypedLogFilter} — means
+ * they refetch exactly when what they send changes.
+ */
+export const pickTypedLogFilter: PickTypedLogFilterFunction = (
+  filter: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined => {
+  if (!filter || typeof filter !== "object") {
+    return undefined;
+  }
+
+  const picked: Record<string, unknown> = {};
+  const source: Record<string, unknown> = filter as Record<string, unknown>;
+
+  for (const key of TYPED_LOG_FILTER_KEYS) {
+    const value: unknown = source[key];
+
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    picked[key] = value;
+  }
+
+  return Object.keys(picked).length > 0 ? picked : undefined;
+};
+
+type SerializeTypedLogFilterFunction = (
+  filter: Record<string, unknown> | undefined,
+) => string;
+
+/**
+ * A value key for {@link pickTypedLogFilter}'s slice: equal content, equal
+ * string. Operator instances serialize through their own `toJSON` (the same
+ * `{_type, value}` shape the wire carries), so an `Includes` of the same ids
+ * is the same key however many times it was rebuilt.
+ */
+export const serializeTypedLogFilter: SerializeTypedLogFilterFunction = (
+  filter: Record<string, unknown> | undefined,
+): string => {
+  const picked: Record<string, unknown> | undefined =
+    pickTypedLogFilter(filter);
+
+  if (!picked) {
+    return "";
+  }
+
+  return JSON.stringify(picked);
+};

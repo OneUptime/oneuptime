@@ -1,8 +1,26 @@
 import React from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { MockedFunction } from "jest-mock";
 import ForgotPasswordScreen from "./ForgotPasswordScreen";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * THE HEADLINE PROPERTY OF THIS SCREEN IS THAT IT TELLS YOU NOTHING.
@@ -121,6 +139,7 @@ beforeEach(() => {
    * rejection or a deliberately hanging request from an earlier test would
    * otherwise decide this one.
    */
+  mockSystemScheme = "light";
   mockRequestPasswordReset.mockReset();
   mockNavigate.mockReset();
 
@@ -509,6 +528,107 @@ test("the recovery email field can shrink within its icon row on a narrow phone"
   const field: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
     "forgot-password-email-input",
   );
-  expect(field.props.style.minWidth).toBe(0);
-  expect(field.props.style.fontSize).toBeGreaterThanOrEqual(16);
+  expect(StyleSheet.flatten(field.props.style).minWidth).toBe(0);
+  expect(StyleSheet.flatten(field.props.style).fontSize).toBeGreaterThanOrEqual(
+    16,
+  );
+});
+
+function viewStyle(testID: string): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId(testID).props.style,
+  ) as ViewStyle;
+}
+
+describe("How the recovery form looks", () => {
+  test("a labelled email field with an accent icon tile above the title", async () => {
+    await render(<ForgotPasswordScreen />);
+
+    expect(screen.getByText("Email")).toBeTruthy();
+    expect(viewStyle("auth-icon").backgroundColor).toBe(lightColors.cardAccent);
+    expect(viewStyle("forgot-password-email-field")).toMatchObject({
+      minHeight: 52,
+      borderRadius: 12,
+    });
+  });
+
+  test("an empty submission outlines the field and shows one alert", async () => {
+    await render(<ForgotPasswordScreen />);
+
+    await pressSend();
+    await settleSubmit();
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(viewStyle("forgot-password-email-field").borderColor).toBe(
+      lightColors.statusError,
+    );
+  });
+
+  test("the confirmation turns the icon green and makes going back the main action", async () => {
+    await render(<ForgotPasswordScreen />);
+
+    await submitAddress(KNOWN_ADDRESS);
+
+    expect(viewStyle("auth-icon").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+    const back: ViewStyle = StyleSheet.flatten(
+      screen.getByRole("button", { name: "Back to sign in" }).props.style,
+    ) as ViewStyle;
+    expect(back.backgroundColor).toBe(lightColors.actionPrimary);
+    expect(back.minHeight).toBe(52);
+  });
+
+  test("while sending, the button is busy and the field is locked", async () => {
+    let release: () => void = (): void => {
+      return undefined;
+    };
+    mockRequestPasswordReset.mockImplementation((): Promise<void> => {
+      return new Promise<void>((resolve: () => void): void => {
+        release = resolve;
+      });
+    });
+    await render(<ForgotPasswordScreen />);
+    await typeEmail(KNOWN_ADDRESS);
+
+    fireEvent.press(screen.getByTestId("send-reset-link"));
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(
+      screen.getByTestId("send-reset-link").props.accessibilityState,
+    ).toMatchObject({ busy: true, disabled: true });
+    expect(
+      screen.getByTestId("forgot-password-email-input").props.editable,
+    ).toBe(false);
+
+    release();
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+  });
+
+  test("dark mode uses the dark canvas, field and keyboard", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <ForgotPasswordScreen />
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByTestId("forgot-password-email-input").props
+        .keyboardAppearance,
+    ).toBe("dark");
+    expect(viewStyle("forgot-password-email-field").backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
+    expect(viewStyle("auth-keyboard").backgroundColor).toBe(
+      darkColors.backgroundPrimary,
+    );
+    expect(screen.getByTestId("forgot-password-subtitle")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+  });
 });

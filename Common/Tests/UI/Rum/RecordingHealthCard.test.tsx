@@ -583,15 +583,15 @@ describe("buildInstallationCheckRows", () => {
       "Recorder capabilities: not reported by the newest recording",
     );
     expect(rowByKey(rows, "capabilities").detail).toContain(
-      "this deployment publishes 1.4.0",
+      "fetches the latest artifact",
     );
   });
 
   /*
    * docs-and-design-fidelity-3. The route did not send recorderCapabilities
    * at all, so this row read "not reported yet" for every application - and
-   * the copy blamed a stale cached artifact even for an application that had
-   * never recorded anything, where there is no artifact to blame. Now that
+   * the copy blamed an older artifact even for an application that had never
+   * recorded anything, where there is no artifact to blame. Now that
    * the field is on the wire, the two silences get their own sentences.
    */
   it("capabilities: names WHICH silence it is - nothing recorded yet vs an artifact too old to announce them", () => {
@@ -607,7 +607,7 @@ describe("buildInstallationCheckRows", () => {
 
     expect(neverRecorded.title).toBe("Recorder capabilities: not reported yet");
     expect(neverRecorded.detail).toContain("No chunk has arrived");
-    /* Nothing recorded means no cached artifact to wait on. */
+    /* Nothing recorded means there is no older recorder to reload. */
     expect(neverRecorded.detail).not.toContain("cache window");
 
     const recordedButSilent: CheckRow = rowByKey(
@@ -618,7 +618,24 @@ describe("buildInstallationCheckRows", () => {
     expect(recordedButSilent.title).toBe(
       "Recorder capabilities: not reported by the newest recording",
     );
-    expect(recordedButSilent.detail).toContain("cache window");
+    expect(recordedButSilent.detail).toContain("fetches the latest artifact");
+
+    const missingPublishedArtifact: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus({ publishedRecorderVersion: null }),
+        NO_EXTRAS,
+        NOW,
+        APP_ID,
+      ),
+      "capabilities",
+    );
+
+    expect(missingPublishedArtifact.detail).toContain(
+      "did not report a current recorder artifact",
+    );
+    expect(missingPublishedArtifact.detail).not.toContain(
+      "fetches the latest artifact",
+    );
 
     const announced: CheckRow = rowByKey(
       buildInstallationCheckRows(

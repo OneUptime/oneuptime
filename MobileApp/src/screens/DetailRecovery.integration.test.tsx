@@ -318,6 +318,7 @@ describe.each(responseCases)(
         ).toBeNull();
       });
       expect(screen.getByText("Resolved")).toBeTruthy();
+      expect(screen.getByText("Response complete")).toBeTruthy();
       expect(Alert.alert).not.toHaveBeenCalled();
       expect(requestCount(detail.kind)).toBe(2);
       expect(postMock).toHaveBeenCalledWith(
@@ -352,6 +353,8 @@ describe.each(responseCases)(
         screen.getByRole("button", { name: `Resolve ${detail.label}` }),
       ).toBeEnabled();
       expect(screen.queryByText("Resolved")).toBeNull();
+      expect(screen.queryByText("Response complete")).toBeNull();
+      expect(screen.getByText("Needs a responder")).toBeTruthy();
     });
   },
 );

@@ -626,6 +626,34 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/google-secops",
       },
       {
+        title: "Microsoft Sentinel",
+        url: "/docs/integrations/microsoft-sentinel",
+      },
+      {
+        title: "Microsoft Defender XDR",
+        url: "/docs/integrations/microsoft-defender-xdr",
+      },
+      {
+        title: "CrowdStrike Falcon",
+        url: "/docs/integrations/crowdstrike-falcon",
+      },
+      {
+        title: "Splunk Enterprise Security",
+        url: "/docs/integrations/splunk",
+      },
+      {
+        title: "Elastic Security",
+        url: "/docs/integrations/elastic-security",
+      },
+      {
+        title: "AWS Security Hub",
+        url: "/docs/integrations/aws-security-hub",
+      },
+      {
+        title: "Okta System Log",
+        url: "/docs/integrations/okta",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },

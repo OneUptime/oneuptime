@@ -15,8 +15,16 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import { describe, expect, test } from "@jest/globals";
+import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import {
+  TELEMETRY_ENTITY_TYPES,
+  TelemetryEntityNameMap,
+} from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import {
   LOGS_SCOPE_FACET_ENTITY_TYPES,
   TOP_ERROR_PATTERN_RESOURCE_LABEL_LIMIT,
@@ -99,9 +107,44 @@ describe("LOGS_SCOPE_FACET_ENTITY_TYPES", () => {
       dockerHostId: ServiceType.DockerHost,
       podmanHostId: ServiceType.PodmanHost,
       kubernetesClusterId: ServiceType.KubernetesCluster,
+      dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
+      proxmoxClusterId: ServiceType.ProxmoxCluster,
+      vmwareVCenterId: ServiceType.VMwareVCenter,
+      cephClusterId: ServiceType.CephCluster,
+      serverlessFunctionId: ServiceType.ServerlessFunction,
+      cloudResourceId: ServiceType.CloudResource,
+      rumApplicationId: ServiceType.RealUserMonitor,
+      /*
+       * IoT fleet telemetry is stamped IoTDevice with the fleet id; the
+       * resolver's IoTDevice entry reads the IoTFleet table.
+       */
+      iotFleetId: ServiceType.IoTDevice,
     });
     expect(LOGS_SCOPE_FACET_ENTITY_TYPES["primaryEntityId"]).toBeUndefined();
+    expect(LOGS_SCOPE_FACET_ENTITY_TYPES["serviceId"]).toBeUndefined();
   });
+
+  test("covers exactly the resource facet catalog, in catalog order", () => {
+    expect(Object.keys(LOGS_SCOPE_FACET_ENTITY_TYPES)).toEqual([
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+  });
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): [string, ServiceType, string] => {
+        return [definition.facetKey, definition.serviceType, definition.label];
+      },
+    ),
+  )(
+    "%s hints %s, a table the resolver can read and label %p",
+    (facetKey: string, serviceType: ServiceType, label: string) => {
+      expect(LOGS_SCOPE_FACET_ENTITY_TYPES[facetKey]).toBe(serviceType);
+      expect(toServiceType(serviceType)).toBe(serviceType);
+      expect(TELEMETRY_ENTITY_TYPES[serviceType].modelType).toBeDefined();
+      expect(TELEMETRY_ENTITY_TYPES[serviceType].label).toBe(label);
+    },
+  );
 });
 
 describe("collectLogsResourceIds", () => {
@@ -385,6 +428,70 @@ describe("collectLogsInsightsResourceRefs", () => {
         selectedScopeValues: [],
       }),
     ).toEqual([]);
+  });
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): [string, ServiceType] => {
+        return [definition.facetKey, definition.serviceType];
+      },
+    ),
+  )(
+    "an unnamed %s picker option is hinted to %s",
+    (facetKey: string, serviceType: ServiceType) => {
+      const refs: Array<LogsResourceRef> = collectLogsInsightsResourceRefs({
+        breakdownResourceIds: [],
+        scopeFacets: {
+          [facetKey]: [{ value: UNRESOLVED_ID, displayName: UNRESOLVED_ID }],
+        },
+        selectedScopeValues: [],
+      });
+
+      expect(refs).toEqual([
+        { resourceId: UNRESOLVED_ID, resourceType: serviceType },
+      ]);
+      expect(buildLogsResourceTypeHints(refs)).toEqual({
+        [UNRESOLVED_ID]: serviceType,
+      });
+    },
+  );
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): [string, ServiceType] => {
+        return [definition.facetKey, definition.serviceType];
+      },
+    ),
+  )(
+    "a %s selection whose option left the list is still hinted to %s",
+    (facetKey: string, serviceType: ServiceType) => {
+      const refs: Array<LogsResourceRef> = collectLogsInsightsResourceRefs({
+        breakdownResourceIds: [],
+        scopeFacets: {},
+        selectedScopeValues: [encodeScopeSelection(facetKey, UNRESOLVED_ID)],
+      });
+
+      expect(buildLogsResourceTypeHints(refs)).toEqual({
+        [UNRESOLVED_ID]: serviceType,
+      });
+    },
+  );
+
+  test("a named new-type option is not looked up again", () => {
+    const refs: Array<LogsResourceRef> = collectLogsInsightsResourceRefs({
+      breakdownResourceIds: [],
+      scopeFacets: {
+        proxmoxClusterId: [{ value: CLUSTER_ID, displayName: "pve-lab" }],
+        iotFleetId: [{ value: UNRESOLVED_ID, displayName: "" }],
+      },
+      selectedScopeValues: [
+        encodeScopeSelection("proxmoxClusterId", CLUSTER_ID),
+      ],
+    });
+
+    expect(refs).toEqual([
+      { resourceId: UNRESOLVED_ID, resourceType: ServiceType.IoTDevice },
+    ]);
   });
 });
 

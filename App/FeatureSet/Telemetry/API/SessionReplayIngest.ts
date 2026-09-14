@@ -56,9 +56,8 @@ import {
   ARTIFACT_CONTENT_TYPE,
   LOADER_CACHE_CONTROL,
   RECORDER_CACHE_CONTROL,
-  RECORDER_VERSION_PATTERN,
   getArtifactFilePath,
-  getPinnedRecorderPath,
+  getLatestRecorderPath,
   getRecorderIntegrity,
   getRecorderVersion,
 } from "../../BrowserRecorder/Manifest";
@@ -896,12 +895,10 @@ router.post(
  * This endpoint is what makes every server-side privacy control actually
  * reachable: without it, changing a masking mode or a block selector would
  * never take effect in a browser that had already loaded the recorder. It
- * also carries the pinned artifact version, which is the staged-rollout and
- * instant-rollback mechanism, and a directive so a disabled application
- * stops recording rather than merely stopping ingest.
- *
- * Cached privately for 5 minutes. The gate's Redis kill key is what closes
- * the resulting window on the server side within ~5 seconds.
+ * also carries the `latest` artifact label and its SRI hash, and a directive
+ * so a disabled application stops recording rather than merely stopping
+ * ingest. Every response is no-store so neither policy nor the hash paired
+ * with the mutable artifact can drift across browser cache generations.
  */
 router.get(
   "/session-replay/v1/config",
@@ -913,6 +910,7 @@ router.get(
   ): Promise<void> => {
     try {
       setSessionReplayConfigVary(res);
+      res.setHeader("Cache-Control", "no-store");
 
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const appIdentifier: string = readAppIdentifier(req);
@@ -978,13 +976,9 @@ router.get(
        * might treat as transient and retry past.
        */
       /*
-       * The published artifact version comes from the build manifest, never
-       * from an env var. Those were two independent answers to one question
-       * and they were never equal: esbuild names the file after package.json's
-       * version (which SyncPackageVersions.js rewrites every release) while
-       * the env var defaulted to a constant. A loader told to fetch a version
-       * that was never published 404s and silently no-ops on the customer's
-       * page - a failure the server cannot see.
+       * The published artifact label comes from the build manifest, never
+       * from an env var. Current builds advertise `latest`, whose response is
+       * deliberately mutable and never cached.
        *
        * null means nothing has been built, in which case replay reports
        * itself disabled rather than advertising an artifact that is not there.
@@ -1102,19 +1096,15 @@ router.get(
        * anyway, so a page told "enabled" here loaded rrweb, buffered,
        * compressed and posted just to be told no - once per page load, for
        * the rest of the day (audit finding ingest-10). Answered as a
-       * complete disabled config with its own reason and a reset time, cached
-       * briefly so the first page load after the reset records. An unknown
-       * counter (Redis down) does NOT disable: the chunk gate fails closed on
-       * its own, and a config that said "off" on a Redis blip would lose
-       * five minutes of every visitor's recording.
+       * complete disabled config with its own reason and a reset time. It is
+       * still no-store: policy responses and the current artifact's SRI are a
+       * single mutable snapshot. An unknown counter (Redis down) does NOT
+       * disable: the chunk gate fails closed on its own.
        */
       const budgetPause: SessionReplayBudgetPause | null =
         await resolveBudgetPause(projectId, policy);
 
       if (budgetPause) {
-        res.setHeader("Cache-Control", "private, max-age=60");
-        setSessionReplayConfigVary(res);
-
         Response.sendJsonObjectResponse(req, res, {
           ...sendDisabledConfig(
             disabledResponse,
@@ -1175,11 +1165,10 @@ router.get(
       };
 
       /*
-       * SRI for the pinned artifact. Without it the loader injects the script
-       * with no integrity attribute, which throws away the whole point of
-       * publishing an immutable, hash-pinned build. Optional on the wire: a
-       * server that cannot produce one yields a script tag without integrity
-       * rather than no recording at all.
+       * SRI for the latest artifact. Without it the loader injects the script
+       * with no integrity attribute. Optional on the wire: a server that
+       * cannot produce one yields a script tag without integrity rather than
+       * no recording at all.
        */
       /*
        * Deployment-wide recorder diagnostics. Adds console output on the
@@ -1198,34 +1187,14 @@ router.get(
       }
 
       /*
-       * Cache semantics carry the whole targeting handshake:
-       *
-       *  - Any response to a request that IDENTIFIED a user is no-store,
-       *    not just the targeted ones. The primary flow is "support agent
-       *    arms the target, asks the user to reload" - if that user's
-       *    browser can serve a cached isTargeted:false for up to 300s,
-       *    "record the NEXT session" silently becomes "record no session
-       *    for five minutes".
-       *  - The inverse is as bad: a cached isTargeted:true would re-arm
-       *    capture on every reload, turning "next" into "every".
-       *  - Vary tells any shared/HTTP cache that an anonymous response
-       *    must never be reused for an identified fetch.
-       *
-       * Anonymous fetches (no user ref on the page - the overwhelming
-       * majority) keep the 5-minute private cache.
+       * The config and mutable `latest` artifact are one consistency unit:
+       * config carries the SRI hash for the bytes currently served there.
+       * Caching this response could pair an old hash with new bytes and make
+       * the browser reject the recorder, so every live config is no-store.
+       * This also preserves the targeting handshake: neither a stale
+       * isTargeted:false nor a stale isTargeted:true can survive a reload.
+       * Vary remains explicit for defensive intermediary behaviour.
        */
-      setSessionReplayConfigVary(res);
-
-      const hasUserRef: boolean = Boolean(
-        headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]),
-      );
-
-      if (config.isTargeted || hasUserRef) {
-        res.setHeader("Cache-Control", "no-store");
-      } else {
-        res.setHeader("Cache-Control", "private, max-age=300");
-      }
-
       Response.sendJsonObjectResponse(
         req,
         res,
@@ -1464,8 +1433,8 @@ const sendArtifact: ArtifactSender = (
  * The loader stub, at a FIXED v1 path with a short cache. This is the URL
  * customers paste into their site and never change. Everything version-
  * specific is resolved at runtime from the config response, which is what
- * makes a bad recorder release rollback-able by changing one field instead
- * of waiting out an immutable cache in browsers we cannot reach.
+ * makes a bad recorder release rollback-able without asking customers to
+ * change their installed snippet.
  */
 router.get(
   "/session-replay/v1/recorder.js",
@@ -1486,27 +1455,17 @@ router.get(
 );
 
 /*
- * The pinned, immutable artifact. Served ONLY for an exact version match:
- * serving today's bytes under yesterday's version number, cached for a year,
- * is unrecoverable in browsers we do not control.
+ * The mutable recorder artifact. Its stable `latest` URL is intentionally
+ * no-store: config supplies SRI for the current bytes, so reusing an older
+ * cached response would make the browser reject the script.
  */
 router.get(
-  "/session-replay/v:version/recorder.js",
-  (req: ExpressRequest, res: ExpressResponse): void => {
-    const requestedVersion: string = String(req.params["version"] || "");
+  "/session-replay/latest/recorder.js",
+  (_req: ExpressRequest, res: ExpressResponse): void => {
+    /* A missing build must not become a cached negative for this stable URL. */
+    res.setHeader("Cache-Control", RECORDER_CACHE_CONTROL);
 
-    /*
-     * Validated against the version pattern before it reaches the manifest.
-     * getPinnedRecorderPath is name-based and never joins this segment onto a
-     * directory, but rejecting a malformed version here keeps the traversal
-     * argument local and obvious rather than resting on a callee's contract.
-     */
-    if (!RECORDER_VERSION_PATTERN.test(requestedVersion)) {
-      res.status(404).end();
-      return;
-    }
-
-    const filePath: string | null = getPinnedRecorderPath(requestedVersion);
+    const filePath: string | null = getLatestRecorderPath();
 
     if (!filePath) {
       res.status(404).end();

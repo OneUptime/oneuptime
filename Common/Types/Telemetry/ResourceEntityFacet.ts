@@ -1,3 +1,5 @@
+import { RESOURCE_FACET_CATALOG_KEYS } from "./ResourceFacetCatalog";
+
 /*
  * The resource facets of the telemetry explorers (Logs / Traces), split by
  * how a selection has to be turned into a predicate.
@@ -8,8 +10,9 @@
  * selection has to be matched against depends on the ingestion path:
  *
  *   - Agent-ingested resource telemetry (Infrastructure / Docker / Podman /
- *     Kubernetes agents) has no `service.name`, so the resource IS the
- *     primary entity and `primaryEntityId` holds its Postgres id.
+ *     Kubernetes / Proxmox / Ceph / VMware ... agents) has no
+ *     `service.name`, so the resource IS the primary entity and
+ *     `primaryEntityId` holds its Postgres id.
  *   - OTLP telemetry that carries a `service.name` is primary-keyed on its
  *     Service (`OtelIngestBaseService.selectPrimaryEntity`); the host /
  *     cluster it runs on is recorded only in `entityKeys`.
@@ -34,16 +37,20 @@ export const SERVICE_FACET_KEYS: ReadonlyArray<string> = [
 ];
 
 /**
- * Facets whose values are ids of a NON-Service resource row. These are the
- * ones that need the entity-key treatment; the value is a Postgres id
- * (Host / DockerHost / PodmanHost / KubernetesCluster) which the server
- * resolves to the resource's identifying value and then to its entity key.
+ * Facets whose values are ids of a NON-Service resource row — every entry
+ * of the shared resource facet catalog, in catalog (sidebar) order. The
+ * value is a Postgres id which the server resolves, where the resource type
+ * has a telemetry identity, to its identifying value and from there to its
+ * entity key and resource attribute (see ResourceEntityFilter). Types with
+ * no such identity keep an id-only `primaryEntityId IN (...)` predicate.
+ *
+ * Derived rather than listed: a hand-kept copy of the catalog is exactly
+ * how Proxmox / vCenter / Ceph / Docker Swarm / Serverless / Cloud / RUM /
+ * IoT selections ended up silently dropped by the parser below while their
+ * facets were already on screen.
  */
 export const RESOURCE_ENTITY_FACET_KEYS: ReadonlyArray<string> = [
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
+  ...RESOURCE_FACET_CATALOG_KEYS,
 ];
 
 const RESOURCE_ENTITY_FACET_KEY_SET: ReadonlySet<string> = new Set<string>(

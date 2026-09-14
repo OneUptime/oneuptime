@@ -3,6 +3,10 @@ import Dictionary from "Common/Types/Dictionary";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import {
+  RESOURCE_FACET_CATALOG,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
 import type {
   ServiceScopedInsightsUrlScope,
   TelemetryFilterTuple,
@@ -314,6 +318,114 @@ describe("describeUnappliedScopeFilters", () => {
 
   test("says nothing when nothing was carried, so no chip renders", () => {
     expect(Scope.describeUnappliedScopeFilters([])).toBe("");
+  });
+
+  test("REGRESSION: names every resource type the explorers offer a facet for", () => {
+    /*
+     * Metrics Insights cannot apply resource facets, so a Proxmox cluster
+     * chip carried from the Viewer lands in this hint — it used to read
+     * "proxmoxClusterId".
+     */
+    const expected: Record<string, string> = {
+      hostId: "host",
+      dockerHostId: "Docker host",
+      podmanHostId: "Podman host",
+      kubernetesClusterId: "Kubernetes cluster",
+      dockerSwarmClusterId: "Docker Swarm cluster",
+      proxmoxClusterId: "Proxmox cluster",
+      vmwareVCenterId: "vCenter",
+      cephClusterId: "Ceph cluster",
+      serverlessFunctionId: "serverless function",
+      cloudResourceId: "cloud resource",
+      rumApplicationId: "RUM application",
+      iotFleetId: "IoT fleet",
+    };
+
+    expect(
+      RESOURCE_FACET_CATALOG.map((definition: ResourceFacetDefinition) => {
+        return definition.facetKey;
+      }).sort(),
+    ).toEqual(Object.keys(expected).sort());
+
+    for (const [facetKey, label] of Object.entries(expected)) {
+      expect(
+        Scope.describeUnappliedScopeFilters([[facetKey, ["0195d6c1"]]]),
+      ).toBe(`Also filtered in the Viewer, not applied here: ${label}`);
+    }
+  });
+
+  test("no catalog resource type ever falls back to its raw facet key", () => {
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      const sentence: string = Scope.describeUnappliedScopeFilters([
+        [definition.facetKey, ["x"]],
+      ]);
+      const label: string = sentence.replace(
+        "Also filtered in the Viewer, not applied here: ",
+        "",
+      );
+
+      expect(label).not.toBe(definition.facetKey);
+      // The same words as the sidebar title, only cased for mid-sentence.
+      expect(label.toLowerCase()).toBe(definition.label.toLowerCase());
+    }
+  });
+
+  test("lists several carried resource types once each, in carried order", () => {
+    expect(
+      Scope.describeUnappliedScopeFilters([
+        ["iotFleetId", ["a"]],
+        ["vmwareVCenterId", ["b"]],
+        ["iotFleetId", ["c"]],
+        ["severityText", ["Error"]],
+      ]),
+    ).toBe(
+      "Also filtered in the Viewer, not applied here: IoT fleet, vCenter, severity",
+    );
+  });
+});
+
+describe("resource facet selections carried to an Insights tab", () => {
+  test("a tab that applies resource facets carries every catalog type as a resourceFilter", () => {
+    const tuples: Array<TelemetryFilterTuple> = RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): TelemetryFilterTuple => {
+        return [definition.facetKey, [CLUSTER_ID]];
+      },
+    );
+
+    const selection: TelemetryScopeSelection = Scope.splitTelemetryScopeFilters(
+      tuples,
+      { supportsResourceEntityFacets: true },
+    );
+
+    expect(selection.unsupported).toEqual([]);
+    expect(Object.keys(selection.resourceFilters)).toEqual(
+      RESOURCE_FACET_CATALOG.map((definition: ResourceFacetDefinition) => {
+        return definition.facetKey;
+      }),
+    );
+  });
+
+  test("a tab that cannot apply them keeps every catalog type as unapplied, and names each", () => {
+    const tuples: Array<TelemetryFilterTuple> = RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): TelemetryFilterTuple => {
+        return [definition.facetKey, [CLUSTER_ID]];
+      },
+    );
+
+    const selection: TelemetryScopeSelection = Scope.splitTelemetryScopeFilters(
+      tuples,
+      { supportsResourceEntityFacets: false },
+    );
+
+    expect(selection.resourceFilters).toEqual({});
+    expect(selection.unsupported).toEqual(tuples);
+
+    const sentence: string = Scope.describeUnappliedScopeFilters(
+      selection.unsupported,
+    );
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      expect(sentence).not.toContain(definition.facetKey);
+    }
   });
 });
 
@@ -1168,7 +1280,7 @@ describe("a whole Traces Viewer URL survives the trip to Insights and back", () 
         rootOnly: scope.rootOnly,
       }),
     ).toBe(
-      "Also filtered in the Viewer, not applied here: attribute http.route, kubernetes cluster, search text, root spans only",
+      "Also filtered in the Viewer, not applied here: attribute http.route, Kubernetes cluster, search text, root spans only",
     );
   });
 });

@@ -1,14 +1,33 @@
 import React from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 import {
   act,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import LoginScreen from "./LoginScreen";
 import { LoginResponse } from "../../api/auth";
 import { PasskeySignInOptions } from "../../passkeys/signIn";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * Sign-in is the first thing somebody sees at night, so it is also rendered
+ * inside the real ThemeProvider with the system appearance stood in for.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 const mockLogin: jest.Mock = jest.fn();
 const mockLoginWithPasskey: jest.Mock = jest.fn();
@@ -67,6 +86,7 @@ const session: LoginResponse = {
 let finish: ((response: LoginResponse | null) => void) | undefined;
 let options: PasskeySignInOptions | undefined;
 beforeEach(() => {
+  mockSystemScheme = "light";
   mockGetServerUrl.mockReset();
   mockGetServerUrl.mockResolvedValue("https://selfhosted.example.com");
   mockFocus = undefined;
@@ -340,13 +360,233 @@ test("compact login fields can shrink beside icons and the full-size password vi
   for (const label of ["Email", "Password"]) {
     const field: ReturnType<typeof screen.getByLabelText> =
       screen.getByLabelText(label);
-    expect(field.props.style.minWidth).toBe(0);
-    expect(field.props.style.fontSize).toBeGreaterThanOrEqual(16);
+    expect(StyleSheet.flatten(field.props.style).minWidth).toBe(0);
+    expect(
+      StyleSheet.flatten(field.props.style).fontSize,
+    ).toBeGreaterThanOrEqual(16);
   }
   const reveal: ReturnType<typeof screen.getByRole> = screen.getByRole(
     "button",
     { name: "Show password" },
   );
-  expect(reveal.props.style.minWidth).toBeGreaterThanOrEqual(48);
-  expect(reveal.props.style.minHeight).toBeGreaterThanOrEqual(48);
+  expect(
+    StyleSheet.flatten(reveal.props.style).minWidth,
+  ).toBeGreaterThanOrEqual(48);
+  expect(
+    StyleSheet.flatten(reveal.props.style).minHeight,
+  ).toBeGreaterThanOrEqual(48);
+});
+
+function boxStyle(testID: string): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId(testID).props.style,
+  ) as ViewStyle;
+}
+
+function isBusy(name: string): { disabled?: boolean; busy?: boolean } {
+  return screen.getByRole("button", { name }).props.accessibilityState;
+}
+
+describe("The sign-in form", () => {
+  test("uses labelled 52-point fields that ring in the action colour on focus", async () => {
+    await show();
+    expect(screen.getByText("Email")).toBeTruthy();
+    expect(screen.getByText("Password")).toBeTruthy();
+    expect(boxStyle("login-email-field")).toMatchObject({
+      minHeight: 52,
+      borderRadius: 12,
+      borderColor: lightColors.borderDefault,
+    });
+
+    await fireEvent(screen.getByLabelText("Email"), "focus");
+    expect(boxStyle("login-email-field").borderColor).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(boxStyle("login-password-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+
+    await fireEvent(screen.getByLabelText("Email"), "blur");
+    await fireEvent(screen.getByLabelText("Password"), "focus");
+    expect(boxStyle("login-email-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+    expect(boxStyle("login-password-field").borderColor).toBe(
+      lightColors.actionPrimary,
+    );
+  });
+
+  test("a missing credential outlines only the empty field and shows one alert", async () => {
+    await show();
+    await fireEvent.changeText(
+      screen.getByLabelText("Email"),
+      "responder@example.com",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByText("Email and password are required.")).toBeTruthy();
+    expect(boxStyle("login-password-field").borderColor).toBe(
+      lightColors.statusError,
+    );
+    expect(boxStyle("login-email-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+
+    await fireEvent.changeText(screen.getByLabelText("Password"), "secret");
+    expect(boxStyle("login-password-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a refused sign-in is explained without blaming a field that was filled in", async () => {
+    mockLogin.mockRejectedValue(new Error("Invalid login."));
+    await show();
+    await fireEvent.changeText(
+      screen.getByLabelText("Email"),
+      "responder@example.com",
+    );
+    await fireEvent.changeText(screen.getByLabelText("Password"), "wrong");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+
+    expect(await screen.findByText("Invalid login.")).toBeTruthy();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(boxStyle("login-email-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+    expect(boxStyle("login-password-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+  });
+
+  test("while signing in the primary button is busy and every other route waits", async () => {
+    let finishLogin: ((response: LoginResponse) => void) | undefined;
+    mockLogin.mockImplementation((): Promise<LoginResponse> => {
+      return new Promise((resolve: (response: LoginResponse) => void) => {
+        finishLogin = resolve;
+      });
+    });
+    await show();
+    await fireEvent.changeText(
+      screen.getByLabelText("Email"),
+      "responder@example.com",
+    );
+    await fireEvent.changeText(screen.getByLabelText("Password"), "secret");
+    fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+
+    await waitFor(() => {
+      expect(isBusy("Sign In")).toMatchObject({ disabled: true, busy: true });
+    });
+    expect(screen.queryByText("Sign In")).toBeNull();
+    expect(isBusy("Sign in with a passkey").disabled).toBe(true);
+    expect(isBusy("Sign in with SSO").disabled).toBe(true);
+    expect(isBusy("Forgot password?").disabled).toBe(true);
+    expect(isBusy("Change Server").disabled).toBe(true);
+    expect(screen.getByLabelText("Email").props.editable).toBe(false);
+    expect(boxStyle("login-email-field").backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+
+    await act(() => {
+      finishLogin?.(session);
+    });
+
+    expect(isBusy("Sign In")).toMatchObject({ disabled: false, busy: false });
+    expect(screen.getByLabelText("Email").props.editable).toBe(true);
+    expect(mockLogin).toHaveBeenCalledTimes(1);
+  });
+
+  test("the primary button spans the form and matches the field height", async () => {
+    await show();
+    const style: ViewStyle = StyleSheet.flatten(
+      screen.getByRole("button", { name: "Sign In" }).props.style,
+    ) as ViewStyle;
+
+    expect(style.minHeight).toBe(52);
+    expect(style.backgroundColor).toBe(lightColors.actionPrimary);
+    expect(style.alignSelf).toBeUndefined();
+    expect(style.width).toBeUndefined();
+  });
+
+  test("the connected server sits in its own card with the way to change it", async () => {
+    await show();
+    const card: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("connected-server");
+
+    expect(within(card).getByText("Connected server")).toBeTruthy();
+    expect(
+      within(card).getByText("https://selfhosted.example.com"),
+    ).toBeTruthy();
+    expect(
+      within(card).getByRole("button", { name: "Change Server" }),
+    ).toBeTruthy();
+  });
+
+  test("passkey progress is a polite status, not an alert", async () => {
+    await show();
+    await fireEvent.press(screen.getByTestId("passkey-sign-in"));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(isBusy("Preparing passkey sign-in…").busy).toBe(true);
+    expect(isBusy("Sign In").disabled).toBe(true);
+  });
+});
+
+describe("Sign-in in dark mode", () => {
+  test("uses dark tokens and the dark keyboard for every field", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <LoginScreen />
+      </ThemeProvider>,
+    );
+    await screen.findByText("https://selfhosted.example.com");
+
+    for (const label of ["Email", "Password"]) {
+      const field: ReturnType<typeof screen.getByLabelText> =
+        screen.getByLabelText(label);
+      expect(field.props.keyboardAppearance).toBe("dark");
+      expect(field.props.placeholderTextColor).toBe(darkColors.textTertiary);
+      expect(StyleSheet.flatten(field.props.style).color).toBe(
+        darkColors.textPrimary,
+      );
+    }
+    expect(boxStyle("login-email-field").backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
+    expect(
+      StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
+        .backgroundColor,
+    ).toBe(darkColors.backgroundPrimary);
+    const signIn: ViewStyle = StyleSheet.flatten(
+      screen.getByRole("button", { name: "Sign In" }).props.style,
+    ) as ViewStyle;
+    expect(signIn.backgroundColor).toBe(darkColors.actionPrimary);
+    expect(screen.getByText("Sign In")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
+    const wordmark: { props: { xml: string } } = screen.getByTestId(
+      "auth-brand",
+    ).children[0] as unknown as { props: { xml: string } };
+    expect(wordmark.props.xml).toContain(`fill="${darkColors.textPrimary}"`);
+  });
+
+  test("errors use the dark error colours", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <LoginScreen />
+      </ThemeProvider>,
+    );
+    await screen.findByText("https://selfhosted.example.com");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+
+    expect(
+      StyleSheet.flatten(screen.getByRole("alert").props.style).backgroundColor,
+    ).toBe(darkColors.statusErrorBg);
+    expect(boxStyle("login-email-field").borderColor).toBe(
+      darkColors.statusError,
+    );
+  });
 });

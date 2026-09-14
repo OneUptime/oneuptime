@@ -2445,7 +2445,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and Google SecOps connections. Security data is not readable through any other role.",
+          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Security data is not readable through any other role.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2455,7 +2455,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure Google SecOps connections.",
+          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,

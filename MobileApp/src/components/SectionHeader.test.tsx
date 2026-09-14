@@ -1,9 +1,39 @@
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import { Ionicons } from "@expo/vector-icons";
 import SectionHeader from "./SectionHeader";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, typography } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+afterEach(() => {
+  mockSystemScheme = "light";
+});
+
+function flat(element: { props: { style?: unknown } }): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props.style as ViewStyle) ??
+    {}) as ViewStyle & TextStyle;
+}
+
+function noop(): void {
+  return undefined;
+}
 
 /*
  * The little icon-and-caption line that divides a detail screen into
@@ -97,7 +127,7 @@ describe("What the header shows", () => {
     const iconStyles: Array<Record<string, unknown>> = icon.props
       .style as Array<Record<string, unknown>>;
 
-    expect(iconStyles[0].color).toBe(darkColors.textTertiary);
+    expect(iconStyles[0].color).toBe(lightColors.textTertiary);
   });
 
   test("a title of one word, or of many, is rendered whole", async () => {
@@ -109,5 +139,171 @@ describe("What the header shows", () => {
     );
 
     expect(screen.getByText("Everything else worth knowing")).toBeTruthy();
+  });
+});
+
+describe("How the title is set", () => {
+  test("in the title3 step of the type scale and the primary text colour", async () => {
+    await render(<SectionHeader title="Details" />);
+
+    expect(screen.getByText("Details")).toHaveStyle({
+      fontSize: typography.title3.fontSize,
+      lineHeight: typography.title3.lineHeight,
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("no icon is drawn when none is asked for", async () => {
+    await render(<SectionHeader title="Details" />);
+
+    expect(screen.queryByText(glyphFor("time-outline"))).toBeNull();
+    expect(screen.getByRole("header", { name: "Details" })).toBeTruthy();
+  });
+});
+
+describe("The count beside the title", () => {
+  test("shows the number on a muted pill", async () => {
+    await render(<SectionHeader title="Active incidents" count={3} />);
+
+    const count: RenderedElement = screen.getByText("3");
+    expect(count).toHaveStyle({
+      color: lightColors.textSecondary,
+      fontWeight: "700",
+      fontVariant: ["tabular-nums"],
+    });
+    expect(count.parent as RenderedElement).toHaveStyle({
+      borderRadius: radius.pill,
+      backgroundColor: lightColors.backgroundTertiary,
+    });
+  });
+
+  test("a count of zero is still shown, because none is an answer", async () => {
+    await render(<SectionHeader title="Active incidents" count={0} />);
+
+    expect(screen.getByText("0")).toBeTruthy();
+  });
+
+  test("no pill when there is no count", async () => {
+    await render(<SectionHeader title="Active incidents" />);
+
+    expect(screen.queryByText(/^\d+$/)).toBeNull();
+  });
+
+  test("the count is not part of the heading's name", async () => {
+    await render(<SectionHeader title="Active incidents" count={3} />);
+
+    expect(
+      screen.getByRole("header", { name: "Active incidents" }),
+    ).toBeTruthy();
+  });
+});
+
+describe("The action link", () => {
+  test("is a named button in the accent colour that runs onAction", async () => {
+    const onAction: jest.Mock = jest.fn();
+    await render(
+      <SectionHeader
+        title="On call"
+        actionLabel="See all"
+        onAction={onAction}
+      />,
+    );
+
+    const action: RenderedElement = screen.getByRole("button", {
+      name: "See all",
+    });
+    expect(screen.getByText("See all")).toHaveStyle({
+      color: lightColors.actionPrimary,
+      fontWeight: "600",
+      fontSize: typography.subhead.fontSize,
+    });
+    await fireEvent.press(action);
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  test("keeps a usable hit area", async () => {
+    await render(
+      <SectionHeader title="On call" actionLabel="See all" onAction={noop} />,
+    );
+
+    const action: RenderedElement = screen.getByRole("button", {
+      name: "See all",
+    });
+    expect(action.props.hitSlop).toBe(10);
+    expect(Number(flat(action).minHeight) + 20).toBeGreaterThanOrEqual(44);
+  });
+
+  test("dims while held", async () => {
+    await render(
+      <SectionHeader title="On call" actionLabel="See all" onAction={noop} />,
+    );
+    const action: RenderedElement = screen.getByRole("button", {
+      name: "See all",
+    });
+    expect(action).toHaveStyle({ opacity: 1 });
+
+    /*
+     * fireEvent(el, "pressIn") never reaches Pressable's own press state, so
+     * the responder handler the touch system calls is used instead.
+     */
+    await act(async (): Promise<void> => {
+      (
+        action.props as { onResponderGrant: (event: unknown) => void }
+      ).onResponderGrant({
+        nativeEvent: {
+          touches: [{ pageX: 1, pageY: 1, identifier: 1 }],
+          changedTouches: [],
+        },
+        currentTarget: 1,
+        persist: noop,
+      });
+    });
+
+    expect(action).toHaveStyle({ opacity: 0.6 });
+  });
+
+  test.each([
+    ["a label with no handler", { actionLabel: "See all" }],
+    ["a handler with no label", { onAction: noop }],
+  ] as Array<[string, { actionLabel?: string; onAction?: () => void }]>)(
+    "is left out for %s",
+    async (
+      _label: string,
+      props: { actionLabel?: string; onAction?: () => void },
+    ) => {
+      await render(<SectionHeader title="On call" {...props} />);
+
+      expect(screen.queryByRole("button")).toBeNull();
+    },
+  );
+});
+
+describe("In dark mode", () => {
+  test("title, icon, count and action follow the dark palette", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <SectionHeader
+          title="Details"
+          iconName="time-outline"
+          count={2}
+          actionLabel="Edit"
+          onAction={noop}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("Details")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(flat(screen.getByText(glyphFor("time-outline"))).color).toBe(
+      darkColors.textTertiary,
+    );
+    expect(screen.getByText("2").parent as RenderedElement).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+    expect(screen.getByText("Edit")).toHaveStyle({
+      color: darkColors.actionPrimary,
+    });
   });
 });

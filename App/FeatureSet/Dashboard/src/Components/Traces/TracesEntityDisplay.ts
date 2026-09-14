@@ -39,6 +39,19 @@ import {
   ATTRIBUTE_SEARCH_CHIP_PREFIX,
 } from "./TracesSearchCompile";
 import { getAttributeDisplayName } from "../Logs/LogsAttributeFilterChips";
+import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
+/*
+ * The PURE describers only. Their route-aware sibling
+ * (Utils/LockedTelemetryScopeLink) reads `window` at load through RouteMap
+ * and must never be imported here: this module's suite runs in plain Node.
+ */
+import {
+  LOCKED_FILTER_SOURCE_STORED_QUERY,
+  describeLockedEntityFilter,
+  describeLockedSpanFilter,
+  describeLockedStoredQueryFilter,
+  describeLockedTraceFilter,
+} from "../../Utils/LockedTelemetryScope";
 
 /** The Span column every entity chip ultimately filters. */
 export const TRACE_PRIMARY_ENTITY_FACET_KEY: string = "primaryEntityId";
@@ -399,41 +412,144 @@ export const resolveTraceChipDisplay: ResolveTraceChipDisplayFunction = (
   };
 };
 
-type BuildLockedAttributeChipFunction = (data: {
+export interface BuildLockedAttributeChipInput {
   key: string;
   value: string;
   displayKeys?: Record<string, string> | undefined;
   displayValues?: Record<string, string> | undefined;
-}) => ActiveFilter;
+}
+
+type BuildLockedAttributeChipFunction = (
+  data: BuildLockedAttributeChipInput,
+) => ActiveFilter;
 
 /**
  * The read-only chip for a host's attribute scope (`attributeFilters`).
  * Resource pages scope by a machine identifier — a cluster identifier, a
  * function ARN — while already holding the resource's friendly name, so the
  * chip shows that name. The filter value itself is untouched.
+ *
+ * Label only. The chip's explanation (its LockedFilterDetail) is attached by
+ * the viewer, next to the entity scope only the viewer knows; the display
+ * rules here stay independent of what the tooltip says.
  */
-export const buildLockedAttributeChip: BuildLockedAttributeChipFunction =
-  (data: {
-    key: string;
-    value: string;
-    displayKeys?: Record<string, string> | undefined;
-    displayValues?: Record<string, string> | undefined;
-  }): ActiveFilter => {
-    return {
-      facetKey: `${ATTRIBUTE_CHIP_PREFIX}${data.key}`,
-      value: data.value,
-      /*
-       * The host's explicit label first, then the same friendly label the
-       * Logs tab of that page gives the key ("Cluster", "Host"), then the key.
-       */
-      displayKey: getReadOnlyAttributeChipDisplayKey({
-        attributeKey: data.key,
-        seededDisplayKey: data.displayKeys?.[data.key],
-      }),
-      displayValue: data.displayValues?.[data.key] || data.value,
-      readOnly: true,
-    };
+export const buildLockedAttributeChip: BuildLockedAttributeChipFunction = (
+  data: BuildLockedAttributeChipInput,
+): ActiveFilter => {
+  return {
+    facetKey: `${ATTRIBUTE_CHIP_PREFIX}${data.key}`,
+    value: data.value,
+    /*
+     * The host's explicit label first, then the same friendly label the
+     * Logs tab of that page gives the key ("Cluster", "Host"), then the key.
+     */
+    displayKey: getReadOnlyAttributeChipDisplayKey({
+      attributeKey: data.key,
+      seededDisplayKey: data.displayKeys?.[data.key],
+    }),
+    displayValue: data.displayValues?.[data.key] || data.value,
+    readOnly: true,
   };
+};
+
+/** The shape of a host page's `entityScope` prop. */
+export interface AttributeEntityScope {
+  entityKeys: Array<string>;
+  attributeKey: string;
+  attributeValue: string;
+}
+
+type EntityScopeForAttributeKeyFunction = (
+  entityScope: AttributeEntityScope | undefined,
+  attributeKey: string,
+) => AttributeEntityScope | undefined;
+
+/**
+ * The host's entity scope, but only for the chip whose attribute it names.
+ *
+ * A page can pin several attributes while its entity key belongs to exactly
+ * one of them — a Docker host's Logs tab pins the host name AND the container
+ * runtime, and only the host name has an entity key behind it. Attaching the
+ * scope to every chip would have the runtime chip claim an entity-key match
+ * the query never makes for it.
+ */
+export const entityScopeForAttributeKey: EntityScopeForAttributeKeyFunction = (
+  entityScope: AttributeEntityScope | undefined,
+  attributeKey: string,
+): AttributeEntityScope | undefined => {
+  if (!entityScope || entityScope.attributeKey !== attributeKey) {
+    return undefined;
+  }
+
+  return entityScope;
+};
+
+export interface StoredQueryChipContext {
+  /*
+   * Columns whose single stored value the viewer compiles as a SUBSTRING
+   * match — `name` when the scope carries `spanNameSearch`, `statusMessage`
+   * for `statusMessageSearch` (a trace monitor stores `new Search(name)`,
+   * and the viewer mirrors that for one value). The chip cannot tell this
+   * from its value alone; the scope that produced it can.
+   */
+  substringColumns?: ReadonlySet<string> | undefined;
+}
+
+type DescribeStoredQueryChipFunction = (
+  chip: ActiveFilter,
+  context?: StoredQueryChipContext | undefined,
+) => LockedFilterDetail;
+
+/**
+ * What a chip derived from the host's stored span query (an incident, alert
+ * or monitor snapshot) says about itself. The columns with a search token
+ * (trace, span, the entity id) get the same explanation a page-pinned chip
+ * would, under the stored-query source line; everything else — a status, a
+ * kind, an attribute the query pinned — is explained as the predicate it is.
+ * Reads the RESOLVED chip so the entity label and value are the ones the
+ * chip shows, not the "Service"/id seed the scope started with.
+ */
+export const describeStoredQueryChip: DescribeStoredQueryChipFunction = (
+  chip: ActiveFilter,
+  context?: StoredQueryChipContext | undefined,
+): LockedFilterDetail => {
+  if (chip.facetKey === "traceId") {
+    return describeLockedTraceFilter({
+      signal: "traces",
+      traceId: chip.value,
+      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
+    });
+  }
+
+  if (chip.facetKey === "spanId") {
+    return describeLockedSpanFilter({
+      signal: "traces",
+      spanId: chip.value,
+      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
+    });
+  }
+
+  if (TRACE_ENTITY_FACET_KEYS.has(chip.facetKey)) {
+    return describeLockedEntityFilter({
+      signal: "traces",
+      entityTypeLabel: chip.displayKey,
+      id: chip.value,
+      name: chip.displayValue,
+      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
+    });
+  }
+
+  return describeLockedStoredQueryFilter({
+    signal: "traces",
+    facetKey: chip.facetKey,
+    value: chip.value,
+    displayKey: chip.displayKey,
+    displayValue: chip.displayValue,
+    matches: context?.substringColumns?.has(chip.facetKey)
+      ? "contains"
+      : "equals",
+  });
+};
 
 export interface SpanEntityDisplay {
   name: string;

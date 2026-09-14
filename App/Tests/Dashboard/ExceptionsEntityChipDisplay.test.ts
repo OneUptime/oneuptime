@@ -22,6 +22,12 @@ import { describe, expect, test } from "@jest/globals";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
+import {
   ActiveFilter,
   FacetConfig,
   FacetData,
@@ -125,12 +131,49 @@ describe("facet key classification", () => {
   });
 
   test("typed resource keys map to exactly their own table", () => {
+    /*
+     * Spelled out rather than rebuilt from the catalog, so a catalog edit
+     * that re-points a key at the wrong table fails here. IoT fleet
+     * telemetry is stamped IoTDevice, and a RUM application RealUserMonitor.
+     */
     expect(EXCEPTION_TYPED_RESOURCE_FACET_TYPES).toEqual({
       hostId: ServiceType.Host,
       dockerHostId: ServiceType.DockerHost,
       podmanHostId: ServiceType.PodmanHost,
       kubernetesClusterId: ServiceType.KubernetesCluster,
+      dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
+      proxmoxClusterId: ServiceType.ProxmoxCluster,
+      vmwareVCenterId: ServiceType.VMwareVCenter,
+      cephClusterId: ServiceType.CephCluster,
+      serverlessFunctionId: ServiceType.ServerlessFunction,
+      cloudResourceId: ServiceType.CloudResource,
+      rumApplicationId: ServiceType.RealUserMonitor,
+      iotFleetId: ServiceType.IoTDevice,
     });
+  });
+
+  test("REGRESSION: every resource facet the sidebar offers is a typed resource key", () => {
+    /*
+     * Proxmox / vCenter / Ceph / Swarm / Serverless / Cloud / RUM / IoT
+     * facets are on screen now; a chip for one that is not typed here would
+     * never be named and would read "proxmoxClusterId: <uuid>".
+     */
+    expect(Object.keys(EXCEPTION_TYPED_RESOURCE_FACET_TYPES)).toEqual([
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      expect(EXCEPTION_TYPED_RESOURCE_FACET_TYPES[definition.facetKey]).toBe(
+        definition.serviceType,
+      );
+      expect(isExceptionNamedResourceFacetKey(definition.facetKey)).toBe(true);
+      expect(isExceptionEntityIdFacetKey(definition.facetKey)).toBe(false);
+    }
+  });
+
+  test("Object.prototype members are not typed resource keys", () => {
+    for (const key of ["toString", "constructor", "hasOwnProperty"]) {
+      expect(isExceptionNamedResourceFacetKey(key)).toBe(false);
+    }
   });
 
   test("only id-valued facets are sent to the name resolver", () => {
@@ -141,6 +184,14 @@ describe("facet key classification", () => {
       "dockerHostId",
       "podmanHostId",
       "kubernetesClusterId",
+      "dockerSwarmClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "cephClusterId",
+      "serverlessFunctionId",
+      "cloudResourceId",
+      "rumApplicationId",
+      "iotFleetId",
     ]) {
       expect(isExceptionNamedResourceFacetKey(key)).toBe(true);
     }
@@ -888,5 +939,174 @@ describe("getExceptionFacetIncludeDisplayValue", () => {
         facetValues: [{ value: UNRESOLVED_ID, count: 1, displayName: " " }],
       }),
     ).toBe(UNRESOLVED_ID);
+  });
+});
+
+describe("every catalog resource type through the chip pipeline", () => {
+  const RESOURCE_ID: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+
+  const RESOURCE_CONFIGS: Array<FacetConfig> = buildResourceFacetConfigs({
+    basePriority: 2,
+  });
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (
+        definition: ResourceFacetDefinition,
+      ): [string, ResourceFacetDefinition] => {
+        return [definition.facetKey, definition];
+      },
+    ),
+  )(
+    "%s: a URL-restored chip is looked up in its own table and labelled with its facet title",
+    (_facetKey: string, definition: ResourceFacetDefinition) => {
+      const restored: ActiveFilter = chip(definition.facetKey, RESOURCE_ID);
+
+      expect(
+        collectExceptionEntityChipIds({
+          chips: [restored],
+          knownIds: buildExceptionKnownChipIds({
+            facetConfigs: RESOURCE_CONFIGS,
+            facetDisplayNames: {},
+          }),
+        }),
+      ).toEqual([RESOURCE_ID]);
+
+      expect(
+        buildExceptionEntityTypeHints({
+          chips: [restored],
+        }),
+      ).toEqual({ [RESOURCE_ID]: definition.serviceType });
+
+      const config: FacetConfig | undefined = RESOURCE_CONFIGS.find(
+        (candidate: FacetConfig): boolean => {
+          return candidate.key === definition.facetKey;
+        },
+      );
+      expect(config).toBeDefined();
+
+      const display: ActiveFilter = resolveExceptionChipDisplay({
+        chip: restored,
+        config,
+        entityNames: {
+          [RESOURCE_ID]: {
+            id: RESOURCE_ID,
+            name: "resolved-name",
+            entityType: definition.serviceType,
+            typeLabel: definition.label,
+          },
+        },
+      });
+
+      expect(display.displayKey).toBe(definition.label);
+      expect(display.displayValue).toBe("resolved-name");
+      // Display only: the filter still carries the key and id it came with.
+      expect(display.facetKey).toBe(definition.facetKey);
+      expect(display.value).toBe(RESOURCE_ID);
+    },
+  );
+
+  test("a server facet name for a new resource type means no lookup is needed", () => {
+    const facetDisplayNames: Record<
+      string,
+      Record<string, string>
+    > = buildExceptionFacetDisplayNames({
+      proxmoxClusterId: [
+        { value: RESOURCE_ID, count: 0, displayName: "pve-prod" },
+      ],
+    });
+
+    const knownIds: ExceptionKnownChipIds = buildExceptionKnownChipIds({
+      facetConfigs: RESOURCE_CONFIGS,
+      facetDisplayNames,
+    });
+
+    expect(Array.from(knownIds["proxmoxClusterId"] || [])).toEqual([
+      RESOURCE_ID,
+    ]);
+    expect(
+      collectExceptionEntityChipIds({
+        chips: [chip("proxmoxClusterId", RESOURCE_ID)],
+        knownIds,
+      }),
+    ).toEqual([]);
+
+    const display: ActiveFilter = resolveExceptionChipDisplay({
+      chip: chip("proxmoxClusterId", RESOURCE_ID),
+      config: RESOURCE_CONFIGS.find((candidate: FacetConfig): boolean => {
+        return candidate.key === "proxmoxClusterId";
+      }),
+      entityNames: undefined,
+      facetDisplayNames: facetDisplayNames["proxmoxClusterId"],
+    });
+    expect(display.displayKey).toBe("Proxmox Cluster");
+    expect(display.displayValue).toBe("pve-prod");
+  });
+
+  test("known-ness stays per facet: a vCenter name does not name the same id under iotFleetId", () => {
+    const knownIds: ExceptionKnownChipIds = buildExceptionKnownChipIds({
+      facetConfigs: RESOURCE_CONFIGS,
+      facetDisplayNames: {
+        vmwareVCenterId: { [RESOURCE_ID]: "vc-01" },
+      },
+    });
+
+    expect(
+      collectExceptionEntityChipIds({
+        chips: [chip("iotFleetId", RESOURCE_ID)],
+        knownIds,
+      }),
+    ).toEqual([RESOURCE_ID]);
+  });
+
+  test("without a facet config a new resource chip reads its catalog label, not the raw key", () => {
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      const display: ActiveFilter = resolveExceptionChipDisplay({
+        chip: chip(definition.facetKey, RESOURCE_ID),
+        config: undefined,
+        entityNames: undefined,
+      });
+
+      expect(display.displayKey).toBe(definition.label);
+      expect(display.displayKey).not.toBe(definition.facetKey);
+      // Nothing names the id: the id itself, never a wrong name.
+      expect(display.displayValue).toBe(RESOURCE_ID);
+    }
+  });
+
+  test("an IoT fleet chip never adopts the page scope's type label", () => {
+    const display: ActiveFilter = resolveExceptionChipDisplay({
+      chip: chip("iotFleetId", RUM_APP_ID),
+      config: undefined,
+      entityNames: NAMES,
+      scopeEntityId: RUM_APP_ID,
+      scopeEntityType: ServiceType.RealUserMonitor,
+    });
+
+    expect(display.displayKey).toBe("IoT Fleet");
+  });
+
+  test("the scope type hint still wins over a new resource chip's hint for the same id", () => {
+    expect(
+      buildExceptionEntityTypeHints({
+        scopeEntityId: RESOURCE_ID,
+        scopeEntityType: ServiceType.CephCluster,
+        chips: [chip("serverlessFunctionId", RESOURCE_ID)],
+      }),
+    ).toEqual({ [RESOURCE_ID]: ServiceType.CephCluster });
+  });
+
+  test("the facet include uses the server displayName for a type without a preloaded list", () => {
+    expect(
+      getExceptionFacetIncludeDisplayValue({
+        value: RESOURCE_ID,
+        config: RESOURCE_CONFIGS.find((candidate: FacetConfig): boolean => {
+          return candidate.key === "cloudResourceId";
+        }),
+        facetValues: [
+          { value: RESOURCE_ID, count: 3, displayName: "  orders-bucket  " },
+        ],
+      }),
+    ).toBe("orders-bucket");
   });
 });

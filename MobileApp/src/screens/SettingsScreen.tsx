@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   ScrollView,
   Switch,
   Pressable,
   Alert,
+  type StyleProp,
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useTheme } from "../theme";
+import {
+  darkColors,
+  lightColors,
+  useTheme,
+  type AppearancePreference,
+  type ColorTokens,
+  type Theme,
+} from "../theme";
+import { radius, spacing } from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import {
@@ -23,195 +31,266 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { getServerUrl } from "../storage/serverUrl";
+import AppText from "../components/AppText";
+import Card from "../components/Card";
+import { ListGroup, ListItem } from "../components/ListGroup";
 import ScreenIntro from "../components/ScreenIntro";
 import type { SettingsStackParamList } from "../navigation/types";
+import { getInitials } from "../utils/text";
 
 type SettingsNavigationProp = NativeStackNavigationProp<
   SettingsStackParamList,
   "SettingsList"
 >;
 
-interface SettingsRowProps {
-  label: string;
-  description?: string;
-  value?: string;
-  onPress?: () => void;
-  rightElement?: React.ReactNode;
-  destructive?: boolean;
-  iconName: keyof typeof Ionicons.glyphMap;
-  testID?: string;
-}
+type IconName = keyof typeof Ionicons.glyphMap;
 
-function SettingsRow({
-  label,
-  description,
-  value,
-  onPress,
-  rightElement,
-  destructive,
-  iconName,
-  testID,
-}: SettingsRowProps): React.JSX.Element {
-  const { theme } = useTheme();
-  const content: React.JSX.Element = (
-    <View
-      style={{
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        minHeight: 64,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-      }}
-    >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: destructive
-            ? theme.colors.statusErrorBg
-            : theme.colors.iconBackground,
-        }}
-      >
-        <Ionicons
-          name={iconName}
-          size={18}
-          color={
-            destructive
-              ? theme.colors.actionDestructive
-              : theme.colors.actionPrimary
-          }
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            fontSize: 15,
-            lineHeight: 23,
-            fontWeight: "600",
-            color: destructive
-              ? theme.colors.actionDestructive
-              : theme.colors.textPrimary,
-          }}
-        >
-          {label}
-        </Text>
-        {description ? (
-          <Text
-            style={{
-              fontSize: 13,
-              lineHeight: 20,
-              marginTop: 2,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {description}
-          </Text>
-        ) : null}
-        {value ? (
-          <Text
-            selectable
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              marginTop: 4,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {value}
-          </Text>
-        ) : null}
-      </View>
-      {rightElement ??
-        (onPress ? (
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={theme.colors.textTertiary}
-          />
-        ) : null)}
-    </View>
-  );
-  const surface: ViewStyle = {
-    backgroundColor: theme.colors.backgroundSecondary,
+/*
+ * Native switches take their colours as props, so they cannot inherit the
+ * theme. The "on" thumb uses the label colour of filled controls; the "off"
+ * thumb stays light on light surfaces and becomes a mid-tone on dark ones, so
+ * it never disappears into its track.
+ */
+function getSwitchColors(
+  theme: Theme,
+  value: boolean,
+): {
+  trackColor: { false: string; true: string };
+  thumbColor: string;
+  ios_backgroundColor: string;
+} {
+  return {
+    trackColor: {
+      false: theme.colors.borderDefault,
+      true: theme.colors.actionPrimary,
+    },
+    thumbColor: value
+      ? theme.colors.textInverse
+      : theme.dark
+        ? theme.colors.textSecondary
+        : theme.colors.backgroundElevated,
+    ios_backgroundColor: theme.colors.borderDefault,
   };
-  return onPress ? (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={description}
-      onPress={onPress}
-      style={({ pressed }: { pressed: boolean }) => {
-        return [surface, { opacity: pressed ? 0.7 : 1 }];
+}
+
+interface AppearanceOption {
+  key: AppearancePreference;
+  label: string;
+  hint: string;
+}
+
+const appearanceOptions: ReadonlyArray<AppearanceOption> = [
+  {
+    key: "system",
+    label: "System",
+    hint: "Match your device's light or dark setting.",
+  },
+  { key: "light", label: "Light", hint: "Always use the light appearance." },
+  { key: "dark", label: "Dark", hint: "Always use the dark appearance." },
+];
+
+/*
+ * A miniature of the screen in each palette. It deliberately reads BOTH
+ * palettes, whatever is showing now, so "Dark" previews dark even while the
+ * app is light. "System" is split down the middle.
+ */
+function AppearanceSwatch({
+  preference,
+}: {
+  preference: AppearancePreference;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  const palettes: Array<ColorTokens> =
+    preference === "system"
+      ? [lightColors, darkColors]
+      : [preference === "dark" ? darkColors : lightColors];
+
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: "100%",
+        maxWidth: 76,
+        height: 46,
+        flexDirection: "row",
+        borderRadius: radius.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.borderDefault,
+        overflow: "hidden",
       }}
     >
-      {content}
-    </Pressable>
-  ) : (
-    <View testID={testID} style={surface}>
-      {content}
+      {palettes.map((palette: ColorTokens, index: number) => {
+        return (
+          <View
+            key={index}
+            style={{
+              flex: 1,
+              padding: spacing.xs + 1,
+              gap: spacing.xs - 1,
+              backgroundColor: palette.backgroundPrimary,
+            }}
+          >
+            <View
+              style={{
+                width: "55%",
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: palette.actionPrimary,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 3,
+                borderWidth: 1,
+                borderColor: palette.borderSubtle,
+                backgroundColor: palette.backgroundElevated,
+              }}
+            />
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function SettingsSection({
-  title,
-  children,
-  testID,
+function AppearancePicker({
+  onChange,
 }: {
-  title: string;
-  children: React.ReactNode;
+  onChange: () => void;
+}): React.JSX.Element {
+  const { theme, preference, setPreference } = useTheme();
+
+  return (
+    <View
+      testID="settings-appearance"
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Appearance"
+      style={{
+        flexDirection: "row",
+        gap: spacing.sm,
+        padding: spacing.md,
+      }}
+    >
+      {appearanceOptions.map((option: AppearanceOption) => {
+        const selected: boolean = option.key === preference;
+        return (
+          <Pressable
+            key={option.key}
+            testID={`settings-appearance-${option.key}`}
+            accessibilityRole="radio"
+            accessibilityLabel={option.label}
+            accessibilityHint={option.hint}
+            accessibilityState={{ checked: selected }}
+            aria-checked={selected}
+            onPress={() => {
+              if (selected) {
+                return;
+              }
+              setPreference(option.key);
+              onChange();
+            }}
+            style={({
+              pressed,
+            }: {
+              pressed: boolean;
+            }): StyleProp<ViewStyle> => {
+              return {
+                flex: 1,
+                minWidth: 0,
+                minHeight: 112,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: spacing.sm,
+                paddingVertical: spacing.md,
+                paddingHorizontal: spacing.sm,
+                borderRadius: radius.md,
+                borderWidth: 2,
+                borderColor: selected
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderSubtle,
+                backgroundColor: selected
+                  ? theme.colors.cardAccent
+                  : pressed
+                    ? theme.colors.backgroundTertiary
+                    : theme.colors.backgroundElevated,
+              };
+            }}
+          >
+            <AppearanceSwatch preference={option.key} />
+            <AppText
+              variant="subhead"
+              weight={selected ? "700" : "500"}
+              color={
+                selected ? theme.colors.actionPrimary : theme.colors.textPrimary
+              }
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              {option.label}
+            </AppText>
+            <Ionicons
+              name={selected ? "radio-button-on" : "radio-button-off"}
+              size={18}
+              color={
+                selected
+                  ? theme.colors.actionPrimary
+                  : theme.colors.textTertiary
+              }
+            />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Help or status text under a group, with an icon that repeats its tone. */
+function GroupFootnote({
+  tone,
+  icon,
+  isAlert = false,
+  testID,
+  children,
+}: {
+  tone: "danger" | "success";
+  icon: IconName;
+  isAlert?: boolean;
   testID?: string;
+  children: React.ReactNode;
 }): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View testID={testID} style={{ marginBottom: 24 }}>
-      <Text
-        accessibilityRole="header"
-        style={{
-          fontSize: 12,
-          letterSpacing: 1,
-          fontWeight: "700",
-          color: theme.colors.textTertiary,
-          textTransform: "uppercase",
-          marginBottom: 10,
-        }}
+    <View
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.xs + 2,
+        marginHorizontal: spacing.xs,
+      }}
+    >
+      <Ionicons
+        name={icon}
+        size={15}
+        color={
+          tone === "danger"
+            ? theme.colors.statusError
+            : theme.colors.statusSuccess
+        }
+        style={{ marginTop: 2 }}
+      />
+      <AppText
+        variant="footnote"
+        tone={tone}
+        accessibilityRole={isAlert ? "alert" : undefined}
+        accessibilityLiveRegion="polite"
+        style={{ flex: 1 }}
       >
-        {title}
-      </Text>
-      <View
-        style={{
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-          backgroundColor: theme.colors.backgroundSecondary,
-          overflow: "hidden",
-        }}
-      >
-        {React.Children.toArray(children).map(
-          (child: React.ReactNode, index: number): React.JSX.Element => {
-            return (
-              <View
-                key={index}
-                style={
-                  index > 0
-                    ? {
-                        borderTopWidth: 1,
-                        borderTopColor: theme.colors.borderSubtle,
-                      }
-                    : undefined
-                }
-              >
-                {child}
-              </View>
-            );
-          },
-        )}
-      </View>
+        {children}
+      </AppText>
     </View>
   );
 }
@@ -268,199 +347,191 @@ export default function SettingsScreen(): React.JSX.Element {
     );
   };
 
+  const initials: string = getInitials(user?.name?.trim() || user?.email);
+
   return (
     <ScrollView
       testID="settings-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom,
+        gap: spacing.xxl,
+      }}
     >
       <ScreenIntro
         title="Settings"
         description="Your account, workspace and preferences."
         compact
+        style={{ marginBottom: 0 }}
       />
 
-      <View
-        testID="settings-account-identity"
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 14,
-          paddingVertical: 8,
-          marginBottom: 28,
-        }}
-      >
+      <Card testID="settings-account-identity">
         <View
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: theme.colors.iconBackground,
+            gap: spacing.md + 2,
           }}
         >
-          <Ionicons
-            name="person-outline"
-            size={24}
-            color={theme.colors.actionPrimary}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
+          <View
+            testID="settings-account-avatar"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={{
-              fontSize: 20,
-              fontWeight: "700",
-              lineHeight: 27,
-              color: theme.colors.textPrimary,
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.colors.actionPrimary,
             }}
           >
-            {user?.name || "Your account"}
-          </Text>
-          <Text
-            selectable
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              marginTop: 3,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {user?.email || "Signed in to OneUptime"}
-          </Text>
+            {initials ? (
+              <AppText variant="title3" weight="700" tone="inverse">
+                {initials}
+              </AppText>
+            ) : (
+              <Ionicons
+                name="person"
+                size={26}
+                color={theme.colors.textInverse}
+              />
+            )}
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+            <AppText variant="title3" numberOfLines={2}>
+              {user?.name || "Your account"}
+            </AppText>
+            <AppText variant="subhead" tone="secondary" selectable>
+              {user?.email || "Signed in to OneUptime"}
+            </AppText>
+          </View>
         </View>
-      </View>
+      </Card>
 
-      <SettingsSection title="Workspace" testID="settings-workspace-section">
-        <SettingsRow
-          label="Manage Projects"
-          description="Project access and single sign-on"
-          iconName="grid-outline"
+      <ListGroup title="Workspace" testID="settings-workspace-section">
+        <ListItem
+          title="Manage Projects"
+          subtitle="Project access and single sign-on"
+          icon="grid-outline"
           onPress={() => {
             navigation.navigate("ProjectsList");
           }}
         />
-        <SettingsRow
-          label="Server URL"
+        <ListItem
+          title="Server URL"
           value={serverUrl || "Loading server…"}
-          iconName="globe-outline"
+          icon="globe-outline"
+          selectableValue
         />
-      </SettingsSection>
+      </ListGroup>
+
+      <ListGroup
+        title="Appearance"
+        testID="settings-section-appearance"
+        footer="System follows your device's light or dark setting."
+      >
+        <AppearancePicker onChange={selectionFeedback} />
+      </ListGroup>
 
       {criticalAlerts.isSupported ? (
-        <SettingsSection title="Notifications">
-          <SettingsRow
-            label="Critical On-Call Alerts"
-            iconName="notifications-outline"
-            description="Only urgent on-call notifications override silent mode or Do Not Disturb."
-            rightElement={
-              <Switch
-                accessibilityLabel="Critical On-Call Alerts"
-                accessibilityHint="Allow urgent on-call notifications to override silent mode."
-                value={criticalAlerts.isEnabled}
-                onValueChange={handleCriticalAlertsToggle}
-                disabled={criticalAlerts.isBusy}
-                trackColor={{
-                  false: theme.colors.backgroundTertiary,
-                  true: theme.colors.actionPrimary,
-                }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
+        <View
+          testID="settings-section-notifications"
+          style={{ gap: spacing.sm }}
+        >
+          <ListGroup title="Notifications">
+            <ListItem
+              title="Critical On-Call Alerts"
+              icon="notifications-outline"
+              subtitle="Only urgent on-call notifications override silent mode or Do Not Disturb."
+              trailing={
+                <Switch
+                  accessibilityLabel="Critical On-Call Alerts"
+                  accessibilityHint="Allow urgent on-call notifications to override silent mode."
+                  value={criticalAlerts.isEnabled}
+                  onValueChange={handleCriticalAlertsToggle}
+                  disabled={criticalAlerts.isBusy}
+                  {...getSwitchColors(theme, criticalAlerts.isEnabled)}
+                />
+              }
+            />
+          </ListGroup>
           {criticalAlerts.error ? (
-            <Text
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={{
-                padding: 16,
-                fontSize: 14,
-                marginTop: 12,
-                lineHeight: 21,
-                color: theme.colors.statusError,
-              }}
+            <GroupFootnote
+              testID="settings-critical-alerts-error"
+              tone="danger"
+              icon="alert-circle"
+              isAlert
             >
               {criticalAlerts.error}
-            </Text>
+            </GroupFootnote>
           ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={{
-                padding: 16,
-                fontSize: 14,
-                marginTop: 12,
-                lineHeight: 21,
-                color: theme.colors.statusSuccess,
-              }}
+            <GroupFootnote
+              testID="settings-critical-alerts-status"
+              tone="success"
+              icon="checkmark-circle"
             >
               {criticalAlerts.statusMessage}
-            </Text>
+            </GroupFootnote>
           ) : null}
-        </SettingsSection>
+        </View>
       ) : null}
 
       {biometric.isAvailable ? (
-        <SettingsSection title="Security">
-          <SettingsRow
-            label="Biometrics Login"
-            description="Require biometrics to unlock the app"
-            iconName="finger-print-outline"
-            rightElement={
+        <ListGroup title="Security" testID="settings-section-security">
+          <ListItem
+            title="Biometrics Login"
+            subtitle="Require biometrics to unlock the app"
+            icon="finger-print-outline"
+            trailing={
               <Switch
                 accessibilityLabel="Biometrics Login"
                 accessibilityHint="Require your fingerprint, face, or device passcode when opening OneUptime."
                 value={biometric.isEnabled}
                 onValueChange={handleBiometricToggle}
-                trackColor={{
-                  false: theme.colors.backgroundTertiary,
-                  true: theme.colors.actionPrimary,
-                }}
-                thumbColor="#FFFFFF"
+                {...getSwitchColors(theme, biometric.isEnabled)}
               />
             }
           />
-        </SettingsSection>
+        </ListGroup>
       ) : null}
 
       {calendarFeed.isAvailable ? (
-        <SettingsSection title="On-Call" testID="settings-section-oncall">
-          <SettingsRow
+        <ListGroup title="On-Call" testID="settings-section-oncall">
+          <ListItem
             testID="settings-row-calendar-feed"
-            label="Calendar feed"
-            description="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
-            iconName="calendar-outline"
+            title="Calendar feed"
+            subtitle="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
+            icon="calendar-outline"
             onPress={() => {
               navigation.navigate("OnCallCalendarFeed");
             }}
           />
-        </SettingsSection>
+        </ListGroup>
       ) : null}
 
-      <SettingsSection title="Account">
-        <SettingsRow
-          label="Log Out"
-          description="Sign out of this device."
-          iconName="log-out-outline"
+      <ListGroup title="Account" testID="settings-section-account">
+        <ListItem
+          title="Log Out"
+          subtitle="Sign out of this device."
+          icon="log-out-outline"
           onPress={confirmLogout}
           destructive
         />
-      </SettingsSection>
+      </ListGroup>
 
-      <View style={{ alignItems: "center", paddingTop: 8, gap: 8 }}>
-        <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>
+      <View
+        testID="settings-footer"
+        style={{ alignItems: "center", gap: spacing.xs }}
+      >
+        <AppText variant="footnote" tone="secondary" align="center">
           OneUptime · Version {Constants.expoConfig?.version || "unknown"}
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 21,
-            color: theme.colors.textTertiary,
-            textAlign: "center",
-          }}
-        >
+        </AppText>
+        <AppText variant="footnote" tone="tertiary" align="center">
           Built with care by the open source community.
-        </Text>
+        </AppText>
       </View>
     </ScrollView>
   );

@@ -59,6 +59,87 @@ const count: CountFunction = (source: string, needle: string): number => {
   return source.split(needle).length - 1;
 };
 
+describe("ExceptionsViewer resource facets come from the shared catalog", () => {
+  const facetConfigsStart: number = EXCEPTIONS_VIEWER.indexOf(
+    "const facetConfigs: Array<FacetConfig> = useMemo(",
+  );
+  const facetConfigsEnd: number = EXCEPTIONS_VIEWER.indexOf(
+    "const fetchFacets:",
+    facetConfigsStart,
+  );
+  const FACET_CONFIGS: string = EXCEPTIONS_VIEWER.substring(
+    facetConfigsStart,
+    facetConfigsEnd,
+  );
+
+  test("the facet config block is found", () => {
+    expect(facetConfigsStart).toBeGreaterThan(-1);
+    expect(facetConfigsEnd).toBeGreaterThan(facetConfigsStart);
+  });
+
+  test("the resource key set is Service plus every catalog key", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      'import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";',
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      'const RESOURCE_FACET_KEYS: Set<string> = new Set<string>([ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, ]);',
+    );
+  });
+
+  test("every resource selection joins the one primaryEntityId id list, never a column literal", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "RESOURCE_FACET_KEYS.has(facetKey) || isExceptionAttributeFacetKey(facetKey)",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "for (const facetKey of RESOURCE_FACET_KEYS) { for (const value of facetGroups[facetKey] || []) { ids.add(value); } }",
+    );
+  });
+
+  test("the facets request asks for Service, every catalog resource, then type and environment", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "exceptionType", "environment", ],',
+    );
+  });
+
+  test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      'import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";',
+    );
+    expect(FACET_CONFIGS).toContain(
+      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+    );
+    for (const key of [
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+      "cephClusterId",
+      "serverlessFunctionId",
+    ]) {
+      expect(FACET_CONFIGS).not.toContain(`key: "${key}"`);
+    }
+  });
+
+  test("Service first with its icon; Exception Type, Environment and Error Class keep their priorities", () => {
+    expect(FACET_CONFIGS).toContain(
+      'key: "primaryEntityId", title: "Service", icon: IconProp.SquareStack, valueDisplayMap: serviceNameMap, valueColorMap: serviceColorMap, priority: 1, serverSearchable: true, },',
+    );
+    expect(FACET_CONFIGS).toContain(
+      'key: "exceptionType", title: "Exception Type", priority: 6, }',
+    );
+    expect(FACET_CONFIGS).toContain(
+      'key: "environment", title: "Environment", priority: 7, }',
+    );
+    expect(FACET_CONFIGS).toContain(
+      'key: EXCEPTION_ERROR_CLASS_COLUMN, title: "Error Class", valueDisplayMap: ERROR_CLASS_DISPLAY_NAMES, priority: 8, }',
+    );
+    expect(
+      FACET_CONFIGS.indexOf("...buildResourceFacetConfigs({"),
+    ).toBeLessThan(FACET_CONFIGS.indexOf('key: "exceptionType"'));
+    expect(FACET_CONFIGS).not.toContain("hideWhenEmpty");
+  });
+});
+
 describe("ExceptionsViewer names every entity chip", () => {
   test("declares the scopeEntityType prop from the shared contract", () => {
     expect(EXCEPTIONS_VIEWER).toContain(

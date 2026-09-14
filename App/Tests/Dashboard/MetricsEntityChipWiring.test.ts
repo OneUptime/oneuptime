@@ -96,12 +96,13 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
 
   test("builds the chip bar from the pure helper with the resolved names", () => {
     expect(METRICS_VIEWER).toContain(
-      "buildMetricsActiveFilterChips({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, attributeFilters: props.attributeFilters, attributeFilterDisplayKeys: props.attributeFilterDisplayKeys, attributeFilterDisplayValues: props.attributeFilterDisplayValues, activeFilters, facetConfigs, nameMap: entityNameMap, })",
+      "buildMetricsActiveFilterChips({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, attributeFilters: props.attributeFilters, attributeFilterDisplayKeys: props.attributeFilterDisplayKeys, attributeFilterDisplayValues: props.attributeFilterDisplayValues, entityScope: props.entityScope, activeFilters, facetConfigs, nameMap: entityNameMap, })",
     );
     // Every input is a memo dependency, so a late name re-renders the chip.
     for (const dependency of [
       "props.scopeEntityType,",
       "props.attributeFilterDisplayValues,",
+      "props.entityScope,",
       "entityNameMap,",
     ]) {
       expect(METRICS_VIEWER).toContain(dependency);
@@ -122,6 +123,22 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
       "buildMetricsIncludedFacetChip({ facetKey, value, facetConfigs, facetData, })",
     );
     expect(METRICS_VIEWER).toContain("[facetConfigs, facetData]");
+  });
+});
+
+describe("MetricsViewer offers no resource facets it cannot apply", () => {
+  test("the facets request asks for Services only", () => {
+    expect(METRICS_VIEWER).toContain('facetKeys: ["primaryEntityId"],');
+    expect(METRICS_VIEWER).not.toContain("RESOURCE_FACET_CATALOG_KEYS");
+    expect(METRICS_VIEWER).not.toContain("buildResourceFacetConfigs");
+  });
+
+  test("the one Service facet carries the same icon as the other explorers", () => {
+    expect(METRICS_VIEWER).toContain(
+      'key: "primaryEntityId", title: "Service", icon: IconProp.SquareStack, valueDisplayMap: serviceNameMap, valueColorMap: serviceColorMap, priority: 1, serverSearchable: true, },',
+    );
+    expect(METRICS_VIEWER).not.toContain('key: "hostId"');
+    expect(METRICS_VIEWER).not.toContain("hideWhenEmpty");
   });
 });
 

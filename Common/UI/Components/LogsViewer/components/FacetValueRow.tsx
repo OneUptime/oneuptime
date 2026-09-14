@@ -23,6 +23,12 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
 
   const displayLabel: string = props.displayValue || props.value || "(empty)";
   const isActive: boolean = props.isActive || false;
+  /*
+   * Resource facets list every resource in the project, including ones with
+   * no telemetry in the range (count 0). Muting those lets the rows that do
+   * have data stand out without dropping the rest from the list.
+   */
+  const isZeroCount: boolean = props.count === 0 && !isActive;
 
   return (
     <div className="group flex items-center gap-2 py-0.5">
@@ -54,7 +60,11 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
         )}
         <span
           className={`min-w-0 truncate text-[12px] ${
-            isActive ? "font-medium text-indigo-700" : "text-gray-700"
+            isActive
+              ? "font-medium text-indigo-700"
+              : isZeroCount
+                ? "text-gray-400"
+                : "text-gray-700"
           }`}
         >
           {displayLabel}
@@ -77,7 +87,11 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
         </div>
         <span
           className={`min-w-[2rem] text-right font-mono text-[10px] tabular-nums ${
-            isActive ? "font-medium text-indigo-600" : "text-gray-400"
+            isActive
+              ? "font-medium text-indigo-600"
+              : isZeroCount
+                ? "text-gray-300"
+                : "text-gray-400"
           }`}
         >
           {props.count.toLocaleString()}
@@ -92,6 +106,7 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
           props.onExclude(props.value);
         }}
         title={`Exclude ${displayLabel}`}
+        aria-label={`Exclude ${displayLabel}`}
       >
         -
       </button>

@@ -13,7 +13,11 @@ import {
   SearchToken,
   SearchTokenType,
   SearchValueOperator,
+  SearchValuePredicate,
+  buildSearchTokenValue,
+  compileAttributeChipValues,
   parseSearchQuery,
+  parseSearchValue,
 } from "../../../Types/Telemetry/TelemetrySearchQuery";
 import { describe, expect, test } from "@jest/globals";
 
@@ -257,13 +261,65 @@ describe("toLogsExplorerQueryParams", () => {
 
   describe("Escaping via JSON", () => {
     test("quotes, colons, spaces, unicode and @ survive the filters JSON round trip", () => {
+      /*
+       * The chip value is a search-grammar token (the explorer re-parses it
+       * as one), so the quote is escaped and the whitespace wraps it in
+       * quotes — and parsing that token back yields the literal value.
+       */
       const trickyValue: string = ' spaced "quoted" @at:colon 100% ünïcødé ';
       const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
         attributes: { "deploy.note": trickyValue },
       });
 
+      const tuples: Array<[string, Array<string>]> = JSON.parse(
+        result.params["filters"] as string,
+      );
+
+      expect(tuples).toEqual([
+        ["attributes.deploy.note", [buildSearchTokenValue(trickyValue)]],
+      ]);
+
+      const parsed: SearchValuePredicate = parseSearchValue(tuples[0]![1][0]!);
+
+      expect(parsed.operator).toBe(SearchValueOperator.Equals);
+      expect(parsed.value).toBe(trickyValue);
+    });
+
+    test("a value the logs explorer would read as grammar is escaped to mean itself", () => {
+      /*
+       * Regression: these arrived raw, and applyLogsFacetFiltersToQuery
+       * compiled `/api/*` into a wildcard over every path under /api and
+       * `~internal` into a contains-match — a pivot that promised "this
+       * exact scope" quietly widened it.
+       */
+      const values: Array<string> = ["/api/*", "-foo", "~internal", "!x", ">5"];
+
+      for (const value of values) {
+        const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+          attributes: { "http.route": value },
+        });
+
+        const tuples: Array<[string, Array<string>]> = JSON.parse(
+          result.params["filters"] as string,
+        );
+        const emitted: string = tuples[0]![1][0]!;
+
+        expect(emitted).not.toBe(value);
+        expect(parseSearchValue(emitted)).toMatchObject({
+          operator: SearchValueOperator.Equals,
+          value,
+        });
+        expect(compileAttributeChipValues([emitted])).toBe(value);
+      }
+    });
+
+    test("a plain value is emitted unchanged", () => {
+      const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+        attributes: { "resource.k8s.cluster.name": "prod-eks-01" },
+      });
+
       expect(JSON.parse(result.params["filters"] as string)).toEqual([
-        ["attributes.deploy.note", [trickyValue]],
+        ["attributes.resource.k8s.cluster.name", ["prod-eks-01"]],
       ]);
     });
 

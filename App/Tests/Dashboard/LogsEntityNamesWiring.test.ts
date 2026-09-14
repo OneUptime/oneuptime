@@ -154,9 +154,19 @@ describe("DashboardLogsViewer entity chips", () => {
   test("the base chips re-render when a name lands or the overrides change", () => {
     const baseMemo: string =
       LOGS_VIEWER.split("constbaseActiveFilters:Array<ActiveFilter>=")[1] || "";
-    // Only the dependency array, not the memo body that also names these.
+    /*
+     * Only the dependency array, not the memo body that also names these.
+     * Located from the memo's closing `]);` backwards to the `},[` that opens
+     * the array, so the body's last statement can change (it used to be
+     * `return filters;`, now the chips are decorated on the way out) without
+     * this test claiming the dependencies vanished.
+     */
+    const memoEnd: number = baseMemo.indexOf("]);");
+    const depsStart: number = baseMemo.lastIndexOf("},[", memoEnd);
     const deps: string =
-      baseMemo.split("returnfilters;},[")[1]?.split("]);")[0] || "";
+      memoEnd > 0 && depsStart >= 0
+        ? baseMemo.slice(depsStart + "},[".length, memoEnd)
+        : "";
 
     expect(deps).not.toBe("");
 

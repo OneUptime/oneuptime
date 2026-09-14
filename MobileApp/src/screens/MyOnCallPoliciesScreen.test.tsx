@@ -1,14 +1,35 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   act,
   render,
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
-import MyOnCallPoliciesScreen from "./MyOnCallPoliciesScreen";
-import type { ProjectOnCallAssignments } from "../api/types";
+import MyOnCallPoliciesScreen, {
+  getAssignmentBadge,
+} from "./MyOnCallPoliciesScreen";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
+import type {
+  OnCallAssignmentType,
+  ProjectOnCallAssignments,
+} from "../api/types";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * This screen is the answer to the only question the app exists to answer:
@@ -304,3 +325,120 @@ describe("Refresh recovery", () => {
     },
   );
 });
+
+type BadgeColour = "statusSuccess" | "statusInfo" | "accentCyan";
+type BadgeBackground = "statusSuccessBg" | "statusInfoBg" | "accentCyanBg";
+
+const BADGE_CASES: Array<
+  [OnCallAssignmentType, string, BadgeColour, BadgeBackground]
+> = [
+  ["user", "Direct", "statusSuccess", "statusSuccessBg"],
+  ["team", "Team", "statusInfo", "statusInfoBg"],
+  ["schedule", "Schedule", "accentCyan", "accentCyanBg"],
+];
+
+describe("Assignment presentation", () => {
+  test.each(BADGE_CASES)(
+    "a %s assignment reads '%s' in theme tokens for both palettes",
+    (
+      type: OnCallAssignmentType,
+      label: string,
+      color: BadgeColour,
+      background: BadgeBackground,
+    ) => {
+      for (const palette of [lightColors, darkColors]) {
+        const badge: ReturnType<typeof getAssignmentBadge> = getAssignmentBadge(
+          type,
+          palette,
+        );
+        expect(badge.label).toBe(label);
+        expect(badge.color).toBe(palette[color]);
+        expect(badge.background).toBe(palette[background]);
+      }
+    },
+  );
+
+  test("no hard-coded purple survives for schedule assignments", () => {
+    const badge: ReturnType<typeof getAssignmentBadge> = getAssignmentBadge(
+      "schedule",
+      lightColors,
+    );
+    expect([badge.color, badge.background]).not.toContain("#6B3AB8");
+    expect([badge.color, badge.background]).not.toContain("#F0EAF9");
+  });
+
+  test("assignments render as rows in a rounded group under their project", async (): Promise<void> => {
+    mockOnCallPolicies.current = resultWith({
+      projects: [
+        makeProjectAssignments({
+          assignments: [
+            {
+              projectId: "project-1",
+              projectName: "Acme Production",
+              policyId: "policy-1",
+              policyName: "Database Escalation",
+              escalationRuleName: "First responders",
+              assignmentType: "schedule",
+              assignmentDetail: "On the Primary roster",
+            },
+          ],
+        }),
+      ],
+      totalAssignments: 1,
+    });
+
+    await render(<MyOnCallPoliciesScreen />);
+
+    const project: HostElement = screen.getByTestId(
+      "policies-project-project-1",
+    );
+    expect(within(project).getByText("Acme Production")).toBeTruthy();
+    expect(within(project).getByText("1 active")).toBeTruthy();
+    expect(within(project).getByText("Rule: First responders")).toBeTruthy();
+    expect(flatStyle("assignment-badge-schedule").backgroundColor).toBe(
+      lightColors.accentCyanBg,
+    );
+    const summary: Record<string, unknown> = flatStyle("policies-summary");
+    expect(summary.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(summary.borderRadius).toBe(radius.lg);
+    expect(screen.getByTestId("policies-total")).toHaveTextContent("1");
+  });
+
+  test("dark mode renders the badges and cards with dark tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    mockOnCallPolicies.current = resultWith({
+      projects: [makeProjectAssignments()],
+      totalAssignments: 1,
+    });
+
+    try {
+      await render(
+        <ThemeProvider>
+          <MyOnCallPoliciesScreen />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("oncall-policies-scroll").backgroundColor).toBe(
+        darkColors.backgroundPrimary,
+      );
+      expect(flatStyle("policies-summary").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(flatStyle("assignment-badge-user").backgroundColor).toBe(
+        darkColors.statusSuccessBg,
+      );
+      expect(screen.getByText("Database Escalation")).toHaveStyle({
+        color: darkColors.textPrimary,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

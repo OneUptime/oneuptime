@@ -1,7 +1,7 @@
 /*
  * The SERVER's view of the built recorder artifacts.
  *
- * This is the single source of truth for "which recorder version is
+ * This is the single source of truth for "which recorder artifact is
  * published, and what is its SRI hash". Everything that needs to answer that
  * question - the config endpoint's recorderVersion and recorderIntegrity
  * fields, and whatever route serves public/dist - must read it from here.
@@ -37,32 +37,24 @@ interface PathModuleLike {
 const fs: FileSystemLike = require("fs") as FileSystemLike;
 const nodePath: PathModuleLike = require("path") as PathModuleLike;
 
-/*
- * Must stay identical to RECORDER_VERSION_PATTERN in src/Config.ts and in
- * esbuild.config.js. Duplicated rather than imported because importing
- * src/Config.ts here would pull browser code (and its Common/* path alias)
- * into the server bundle. Tests/RecorderManifest.test.ts asserts all three
- * agree.
- */
-export const RECORDER_VERSION_PATTERN: RegExp =
-  /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/;
-
 /* Mount point for both artifacts. Mirrors ARTIFACT_PATH_PREFIX in src/Config.ts. */
 export const ARTIFACT_ROUTE_PREFIX: string = "/telemetry/session-replay";
 
+export const LATEST_RECORDER_VERSION: string = "latest";
+
 /*
  * The loader stub lives at a FIXED "v1" path with a short cache, and the
- * recorder lives at a version-pinned path cached for a year. That asymmetry
- * is the whole two-stage design: a bad masking release is rolled back by
- * changing which version the config advertises, not by waiting out an
- * immutable cache in browsers we cannot reach.
+ * recorder lives at a mutable `latest` path which must never be cached. A bad
+ * recorder release is therefore replaced at one stable URL, and every page
+ * load receives the SRI value for the bytes that deployment currently serves.
  */
 export const LOADER_ROUTE_PATH: string = `${ARTIFACT_ROUTE_PREFIX}/v1/recorder.js`;
 
+export const LATEST_RECORDER_ROUTE_PATH: string = `${ARTIFACT_ROUTE_PREFIX}/latest/recorder.js`;
+
 export const LOADER_CACHE_CONTROL: string = "public, max-age=300";
 
-export const RECORDER_CACHE_CONTROL: string =
-  "public, max-age=31536000, immutable";
+export const RECORDER_CACHE_CONTROL: string = "no-store";
 
 export const ARTIFACT_CONTENT_TYPE: string =
   "application/javascript; charset=utf-8";
@@ -76,6 +68,12 @@ export interface RecorderManifest {
   recorderVersion: string;
   rrwebVersion: string;
   files: Record<string, RecorderArtifact>;
+}
+
+const SHA384_INTEGRITY_PATTERN: RegExp = /^sha384-([A-Za-z0-9+/]{64})$/;
+
+function isSha384Integrity(integrity: string): boolean {
+  return SHA384_INTEGRITY_PATTERN.test(integrity);
 }
 
 const DIST_DIRECTORY: string = nodePath.join(__dirname, "public", "dist");
@@ -143,10 +141,7 @@ export function validateManifest(parsed: unknown): RecorderManifest | null {
   const rrwebVersion: unknown = raw["rrwebVersion"];
   const files: unknown = raw["files"];
 
-  if (
-    typeof recorderVersion !== "string" ||
-    !RECORDER_VERSION_PATTERN.test(recorderVersion)
-  ) {
+  if (recorderVersion !== LATEST_RECORDER_VERSION) {
     return null;
   }
 
@@ -181,7 +176,7 @@ export function validateManifest(parsed: unknown): RecorderManifest | null {
      * weaker or unrecognised algorithm here would silently downgrade the
      * integrity attribute the loader puts on the injected script tag.
      */
-    if (typeof integrity !== "string" || !integrity.startsWith("sha384-")) {
+    if (typeof integrity !== "string" || !isSha384Integrity(integrity)) {
       return null;
     }
 
@@ -211,7 +206,7 @@ export function getRecorderVersion(): string | null {
   return manifest ? manifest.recorderVersion : null;
 }
 
-/* SRI hash for the pinned artifact, for the config response's recorderIntegrity. */
+/* SRI hash for the latest artifact, for the config response's recorderIntegrity. */
 export function getRecorderIntegrity(): string | null {
   const manifest: RecorderManifest | null = getRecorderManifest();
   const file: RecorderArtifact | undefined = manifest
@@ -238,17 +233,9 @@ export function getArtifactFilePath(fileName: string): string | null {
 }
 
 /*
- * The pinned artifact path for a given version, or null when the requested
- * version is not the one this build published. The immutable cache header is
- * only truthful for an exact match: serving today's bytes under yesterday's
- * version number, cached for a year, is unrecoverable.
+ * The mutable latest artifact, or null when this deployment did not build it.
+ * No caller-controlled path segment is accepted or joined to the filesystem.
  */
-export function getPinnedRecorderPath(version: string): string | null {
-  const manifest: RecorderManifest | null = getRecorderManifest();
-
-  if (!manifest || manifest.recorderVersion !== version) {
-    return null;
-  }
-
+export function getLatestRecorderPath(): string | null {
   return getArtifactFilePath("recorder.js");
 }
