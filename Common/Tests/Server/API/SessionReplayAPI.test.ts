@@ -11,6 +11,8 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import SessionReplayIdentity from "../../../Server/Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayReadService, {
   DEFAULT_SESSION_REPLAY_USERS_LIMIT,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
   SessionReplayUsersRequest,
 } from "../../../Server/Utils/SessionReplay/SessionReplayReadService";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -129,6 +131,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
+const SUMMARIES_ROUTE: string = "/telemetry/rum/session-replay/summaries";
 const MANIFEST_ROUTE: string = "/telemetry/rum/session-replay/manifest";
 const CHUNKS_ROUTE: string = "/telemetry/rum/session-replay/chunks";
 const HEARTBEAT_ROUTE: string = "/telemetry/rum/session-replay/heartbeat";
@@ -563,9 +566,10 @@ describe("Session replay playback API", () => {
   }
 
   describe("guard shape", () => {
-    test("all eight routes are registered and every one carries the three-middleware guard", () => {
+    test("all nine routes are registered and every one carries the three-middleware guard", () => {
       for (const uri of [
         LIST_ROUTE,
+        SUMMARIES_ROUTE,
         USERS_ROUTE,
         MANIFEST_ROUTE,
         CHUNKS_ROUTE,
@@ -613,6 +617,16 @@ describe("Session replay playback API", () => {
       expect(findRoute(FOR_EXCEPTION_ROUTE).handlers[2]).toBe(listGuard);
       /* The rollup projects nothing the list does not: same guard instance. */
       expect(findRoute(USERS_ROUTE).handlers[2]).toBe(listGuard);
+      /*
+       * Audit summaries admit audit-only roles so optional enrichment cannot
+       * redirect them, but the handler exposes metadata only after a separate
+       * application-scoped list-permission check.
+       */
+      const summaryGuard: RouterFunction | undefined =
+        findRoute(SUMMARIES_ROUTE).handlers[2];
+      expect(summaryGuard).toBeDefined();
+      expect(summaryGuard).not.toBe(listGuard);
+      expect(summaryGuard).not.toBe(payloadGuard);
     });
   });
 
@@ -2355,6 +2369,341 @@ describe("Session replay playback API", () => {
       expect(row["endTimeUnixMs"]).toBe(1700000090000);
       expect(row["identifiedUserLabel"]).toBe("jane@example.com");
       expect(row["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    });
+  });
+
+  describe("session summary batch", () => {
+    function principalWith(
+      permissions: Array<Permission>,
+      labelIds: Array<ObjectID> = [],
+    ): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+        labelIds: labelIds,
+      });
+
+      mockProps(principal.databaseProps);
+      return principal;
+    }
+
+    function summaryRow(data: {
+      sessionId: string;
+      startTimeUnixMs: number;
+      entryUrl: string;
+    }): JSONObject {
+      return {
+        sessionId: data.sessionId,
+        aggStartTime: data.startTimeUnixMs,
+        aggDurationMs: 62000,
+        aggEntryUrl: data.entryUrl,
+        aggBrowserName: "Chrome",
+        aggBrowserVersion: "128",
+        aggOsName: "macOS",
+        aggDeviceType: "desktop",
+        /* Even a surprising driver row cannot add identity to the reply. */
+        aggIdentifiedUserLabel: "jane@example.com",
+        aggVisitorId: VISITOR_ID,
+      };
+    }
+
+    test("returns compact summaries in request order from one application-pinned query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay]);
+
+      mockApplication({ id: applicationAId, labelIds: [] });
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          summaryRow({
+            sessionId: "session-b",
+            startTimeUnixMs: 1700000200000,
+            entryUrl: "https://example.com/checkout",
+          }),
+          summaryRow({
+            sessionId: "session-a",
+            startTimeUnixMs: 1700000100000,
+            entryUrl: "https://example.com/",
+          }),
+        ]) as never,
+      );
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a", "session-b", "session-a"],
+          /* Caller-supplied tenancy is ignored. */
+          projectId: otherProjectId.toString(),
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.reachedHandler).toBe(true);
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const values: Array<unknown> = Object.values(statement.query_params);
+
+      expect(statement.query).toContain("sessionId IN (");
+      expect(statement.query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(statement.query).toContain("argMax(startTime, version)");
+      expect(statement.query).toContain("retentionDate >= now()");
+      expect(statement.query).not.toContain("identifiedUserLabel");
+      expect(statement.query).not.toContain("identifiedUserTraits");
+      expect(statement.query).not.toContain("visitorId");
+      expect(values).toContain(projectId.toString());
+      expect(values).toContain(applicationAId.toString());
+      expect(values).not.toContain(otherProjectId.toString());
+      expect(values).toContainEqual(["session-a", "session-b"]);
+
+      expect((result.jsonBody as JSONObject)["sessions"]).toEqual([
+        {
+          sessionId: "session-a",
+          startTime: new Date(1700000100000),
+          startTimeUnixMs: 1700000100000,
+          durationMs: 62000,
+          entryUrl: "https://example.com/",
+          browserName: "Chrome",
+          browserVersion: "128",
+          osName: "macOS",
+          deviceType: "desktop",
+        },
+        {
+          sessionId: "session-b",
+          startTime: new Date(1700000200000),
+          startTimeUnixMs: 1700000200000,
+          durationMs: 62000,
+          entryUrl: "https://example.com/checkout",
+          browserName: "Chrome",
+          browserVersion: "128",
+          osName: "macOS",
+          deviceType: "desktop",
+        },
+      ]);
+    });
+
+    test("the list and watch permissions can resolve summaries, while Viewer cannot", async () => {
+      for (const permission of [
+        Permission.ReadRumSessionReplay,
+        Permission.ReadRumSessionReplayPayload,
+      ]) {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([permission]);
+        mockApplication({ id: applicationAId, labelIds: [] });
+
+        const result: CallResult = await callRoute({
+          uri: SUMMARIES_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            sessionIds: ["session-a"],
+          },
+        });
+
+        expect(result.deniedWith).toBeUndefined();
+        expect(result.thrownToNext).toBeUndefined();
+
+        jest.clearAllMocks();
+      }
+
+      const viewer: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.Viewer]);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const denied: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: viewer.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(denied.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(denied.reachedHandler).toBe(false);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an audit-only caller gets an empty success without reading session metadata", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayAudit]);
+
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.reachedHandler).toBe(true);
+      expect(result.jsonBody).toEqual({ sessions: [] });
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an audit grant for this application cannot borrow a list grant from another label", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayAudit], [labelAId]);
+      const tenantPermission: UserTenantAccessPermission | undefined =
+        principal.databaseProps.userTenantAccessPermission?.[
+          projectId.toString()
+        ];
+
+      if (!tenantPermission) {
+        throw new Error("Principal has no tenant permission to extend.");
+      }
+
+      tenantPermission.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.ReadRumSessionReplay,
+        labelIds: [labelBId],
+        isBlockPermission: false,
+      });
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody).toEqual({ sessions: [] });
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a label-scoped caller cannot probe another application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay], [labelAId]);
+
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationBId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      { name: "a missing array", sessionIds: undefined },
+      { name: "a scalar", sessionIds: "session-a" },
+      { name: "an empty array", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      { name: "a numeric id", sessionIds: [123] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+    ])(
+      "rejects $name before authorization or querying",
+      async ({ sessionIds }: { sessionIds: unknown }) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ProjectOwner]);
+
+        const body: JSONObject = {
+          rumApplicationId: applicationAId.toString(),
+        };
+
+        if (sessionIds !== undefined) {
+          body["sessionIds"] = sessionIds as never;
+        }
+
+        const result: CallResult = await callRoute({
+          uri: SUMMARIES_ROUTE,
+          request: principal.request,
+          body: body,
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(findOneBySpy).not.toHaveBeenCalled();
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects an oversized raw batch even when every id is the same", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: Array<string>(
+            MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1,
+          ).fill("session-a"),
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects a malformed application id before any database read", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: "not-a-uuid",
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
     });
   });
 

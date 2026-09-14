@@ -100,6 +100,15 @@ export const DEFAULT_SESSION_REPLAY_LIST_LIMIT: number = 50;
 export const MAX_SESSION_REPLAY_LIST_LIMIT: number = 200;
 
 /*
+ * Audit tables resolve the opaque session ids on one page in a single
+ * ClickHouse read. Keep both the number of bound IN values and each value's
+ * size bounded; session ids are browser-minted 32-character hex strings, but
+ * older recorders and hand-written API callers may have stored another shape.
+ */
+export const MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE: number = 200;
+export const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
+
+/*
  * Page sizes for the per-user rollup (listUsers). Same figures as the
  * list, but the cost model differs: every page of the rollup
  * re-aggregates the whole window (see listUsers), so the cap bounds the
@@ -308,6 +317,29 @@ export interface SessionReplayListItem {
 export interface SessionReplayListResult {
   sessions: Array<SessionReplayListItem>;
   nextCursor: SessionReplayListCursor | null;
+}
+
+export interface SessionReplaySummariesRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  sessionIds: Array<string>;
+}
+
+/*
+ * Deliberately excludes every identity field. An audit list needs enough
+ * context to distinguish recordings, not the person or browser identifier
+ * attached to them.
+ */
+export interface SessionReplaySummary {
+  sessionId: string;
+  startTime: Date;
+  startTimeUnixMs: number;
+  durationMs: number;
+  entryUrl: string;
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
 }
 
 /* Routes projected onto a list row; the table shows three and says "(N pages)". */
@@ -731,6 +763,36 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   { alias: "aggExpiresAt", expression: argMaxDate("retentionDate") },
   { alias: "aggTags", expression: argMaxColumn("tags") },
 ];
+
+/*
+ * The narrow projection used by the audit-table summary lookup. Derive it
+ * from the list's aggregates so live duration and replacement-row handling
+ * cannot drift between the two reads.
+ */
+const SESSION_SUMMARY_AGGREGATE_ALIASES: ReadonlyArray<string> = [
+  "aggStartTime",
+  "aggDurationMs",
+  "aggEntryUrl",
+  "aggBrowserName",
+  "aggBrowserVersion",
+  "aggOsName",
+  "aggDeviceType",
+];
+
+const SESSION_SUMMARY_AGGREGATES: Array<AggregatedColumn> =
+  SESSION_SUMMARY_AGGREGATE_ALIASES.map((alias: string): AggregatedColumn => {
+    const column: AggregatedColumn | undefined = HEADER_AGGREGATES.find(
+      (candidate: AggregatedColumn): boolean => {
+        return candidate.alias === alias;
+      },
+    );
+
+    if (!column) {
+      throw new Error(`HEADER_AGGREGATES has no column aliased ${alias}`);
+    }
+
+    return column;
+  });
 
 /* Only the manifest needs these; the list never renders them. */
 const HEADER_DETAIL_AGGREGATES: Array<AggregatedColumn> = [
@@ -1200,6 +1262,120 @@ export default class SessionReplayReadService {
   /* Test seam: the summary cache is process-local. */
   public static clearActivitySummaryCache(): void {
     activitySummaryCache.clear();
+  }
+
+  /*
+   * Resolve the opaque ids stored on audit rows into compact session facts.
+   * This is intentionally one bespoke query instead of N getSessionHeader
+   * calls (or AnalyticsModelAPI, which RumSession does not expose). The
+   * project and application are both pinned before the caller-controlled IN
+   * list, and argMax collapses provisional/finalized ReplacingMergeTree rows.
+   */
+  @CaptureSpan()
+  public static async getSessionSummaries(
+    request: SessionReplaySummariesRequest,
+  ): Promise<Array<SessionReplaySummary>> {
+    if (request.sessionIds.length === 0) {
+      throw new BadDataException("sessionIds must contain at least one id");
+    }
+
+    if (request.sessionIds.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+      throw new BadDataException(
+        `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+      );
+    }
+
+    for (const sessionId of request.sessionIds) {
+      if (typeof sessionId !== "string" || sessionId.length === 0) {
+        throw new BadDataException(
+          "Every sessionId must be a non-empty string",
+        );
+      }
+
+      if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+        throw new BadDataException(
+          `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+        );
+      }
+    }
+
+    /* Preserve first occurrence order while binding every id only once. */
+    const sessionIds: Array<string> = Array.from(
+      new Set<string>(request.sessionIds),
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+        sessionId,
+    `;
+
+    statement.append(`    ${toSelectList(SESSION_SUMMARY_AGGREGATES)}`);
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.rumApplicationId,
+        }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(
+      " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC",
+    );
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const requestedIds: Set<string> = new Set<string>(sessionIds);
+    const summariesById: Map<string, SessionReplaySummary> = new Map<
+      string,
+      SessionReplaySummary
+    >();
+
+    for (const row of response.data || []) {
+      const sessionId: string = readString(row, "sessionId");
+
+      /* A malformed/unexpected driver row can never add data to the reply. */
+      if (!requestedIds.has(sessionId) || summariesById.has(sessionId)) {
+        continue;
+      }
+
+      const startTime: Date = readDate(row, "aggStartTime");
+
+      summariesById.set(sessionId, {
+        sessionId: sessionId,
+        startTime: startTime,
+        startTimeUnixMs: startTime.getTime(),
+        durationMs: readNumber(row, "aggDurationMs"),
+        entryUrl: readString(row, "aggEntryUrl"),
+        browserName: readString(row, "aggBrowserName"),
+        browserVersion: readString(row, "aggBrowserVersion"),
+        osName: readString(row, "aggOsName"),
+        deviceType: readString(row, "aggDeviceType"),
+      });
+    }
+
+    /* Stable request order makes consumers deterministic; missing ids omit. */
+    return sessionIds.flatMap(
+      (sessionId: string): Array<SessionReplaySummary> => {
+        const summary: SessionReplaySummary | undefined =
+          summariesById.get(sessionId);
+
+        return summary ? [summary] : [];
+      },
+    );
   }
 
   /*
