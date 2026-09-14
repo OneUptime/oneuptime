@@ -1076,7 +1076,79 @@ test("event search, error selection, details and rail collapse keep their state"
   await expect(page.getByTestId("details-tab-session")).toContainText(
     "alex@example.com",
   );
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("tab", { name: "Session" }),
+  ).toBeFocused();
+  await expect(
+    detailsDialog.getByRole("heading", { name: "Journey", exact: true }),
+  ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("heading", {
+      name: "Related telemetry",
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  const sectionBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      [
+        "details-section-session",
+        "details-section-journey",
+        "details-section-environment",
+        "details-section-telemetry",
+      ].map((testId: string) => {
+        return page.getByTestId(testId).boundingBox();
+      }),
+    );
+
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(600);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(610);
+  expect(sectionBounds.every(Boolean)).toBe(true);
+
+  for (let index: number = 0; index < sectionBounds.length; index++) {
+    expect(sectionBounds[index]!.x).toBeCloseTo(sectionBounds[0]!.x, 0);
+    expect(sectionBounds[index]!.width).toBeCloseTo(sectionBounds[0]!.width, 0);
+
+    if (index > 0) {
+      expect(sectionBounds[index]!.y).toBeGreaterThan(
+        sectionBounds[index - 1]!.y + sectionBounds[index - 1]!.height,
+      );
+    }
+  }
+
+  const railCardBounds: Array<Awaited<ReturnType<Locator["boundingBox"]>>> =
+    await Promise.all(
+      ["traces", "errors", "logs"].map((railTab: string) => {
+        return page.getByTestId(`details-rail-${railTab}`).boundingBox();
+      }),
+    );
+
+  expect(railCardBounds.every(Boolean)).toBe(true);
+  expect(railCardBounds[1]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  expect(railCardBounds[2]!.y).toBeCloseTo(railCardBounds[0]!.y, 0);
+  await detailsDialog.getByRole("tab", { name: "Privacy" }).click();
+  await expect(
+    page.getByTestId("details-section-capture-policy"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: /Fidelity/ }).click();
+  await expect(
+    page.getByTestId("details-section-recording-status"),
+  ).toBeVisible();
+  await detailsDialog.getByRole("tab", { name: "Session" }).click();
   await screenshot(page, "session-replay-details");
+  await page.getByTestId("details-open-rail-logs").click();
+  await expect(detailsDialog).toHaveCount(0);
+  await expect(page.getByTestId("rail-tab-logs")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("recording tabs support keyboard selection while skipping tabs without footage", async ({
@@ -1184,6 +1256,68 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await page.getByTestId("rail-search-input").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("rail-row").first()).toBeVisible();
   await screenshot(page, "session-replay-player-mobile");
+  await page
+    .getByRole("button", { name: "Session details", exact: true })
+    .click();
+  const detailsDialog: Locator = page.getByRole("dialog", {
+    name: "Session details",
+  });
+  await expect(detailsDialog).toBeVisible();
+  const dialogBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await detailsDialog.boundingBox();
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(390);
+  expect(dialogBounds!.width).toBeGreaterThanOrEqual(360);
+  expect(dialogBounds!.width).toBeLessThanOrEqual(372);
+  await expect(page.getByTestId("details-section-session")).toBeVisible();
+
+  const browserTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await page.getByTestId("replay-details-browser").boundingBox();
+  const osTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-details-os")
+    .boundingBox();
+
+  expect(browserTileBounds).not.toBeNull();
+  expect(osTileBounds).not.toBeNull();
+  expect(osTileBounds!.y).toBeGreaterThan(
+    browserTileBounds!.y + browserTileBounds!.height,
+  );
+  expect(osTileBounds!.width).toBeCloseTo(browserTileBounds!.width, 0);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-details-mobile");
+
+  await page.evaluate((): void => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  const exitUrl: Locator = page.getByTestId("replay-details-exit-url");
+  await exitUrl
+    .getByRole("button", { name: "Copy Exit URL", exact: true })
+    .click();
+  const manualCopyInput: Locator = exitUrl.getByRole("textbox", {
+    name: "Manual copy Exit URL",
+    exact: true,
+  });
+  await expect(manualCopyInput).toBeVisible();
+  await expect(manualCopyInput).toBeFocused();
+  expect(
+    await manualCopyInput.evaluate((input: HTMLInputElement): boolean => {
+      const rect: DOMRect = input.getBoundingClientRect();
+      const hit: Element | null = document.elementFromPoint(
+        rect.x + rect.width / 2,
+        rect.y + rect.height / 2,
+      );
+
+      return hit === input || input.contains(hit);
+    }),
+  ).toBe(true);
+  await exitUrl.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(
+    exitUrl.getByRole("button", { name: "Copy Exit URL", exact: true }),
+  ).toBeFocused();
 });
 
 test("playback controls fit the initial laptop viewport without scrolling", async ({
