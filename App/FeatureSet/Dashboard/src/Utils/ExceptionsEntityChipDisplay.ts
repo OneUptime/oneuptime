@@ -16,6 +16,11 @@ import {
   getTelemetryEntityTypeLabel,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { getAttributeDisplayName } from "../Components/Logs/LogsAttributeFilterChips";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "./LockedEntityKeyChips";
+import { ENTITY_KEYS_FACET_KEY } from "./LockedTelemetryScope";
 
 /*
  * Display labels for the exceptions explorer's filter chips.
@@ -433,4 +438,47 @@ export const getExceptionFacetIncludeDisplayValue: (data: {
     ?.displayName?.trim();
 
   return serverName || data.value;
+};
+
+/*
+ * The locked pill for the page's entity-key scope — an Inventory item's
+ * Exceptions tab, which narrows the list to groups with an occurrence
+ * carrying the item's key. That scope reaches the list, the chart and the
+ * facet counts through the instance scope (buildExceptionEntityKeyScope),
+ * and until now nothing reached the chip bar: a filtered list sat under an
+ * empty one, reading like every exception in the window.
+ *
+ * Built by the shared entity-key chip so the pill reads the same on the
+ * five Inventory signal tabs. A key the host's stored query already shows as
+ * its own `entityKeys` chip is skipped: the chip bar keys its pills by facet
+ * and value, so the same key twice would be two pills under one React key.
+ *
+ * Display only, like everything in this module: the chip is never folded
+ * into the instance scope, and the viewer keeps it out of
+ * resolveExceptionChipDisplay so no facet title can rename the entity the
+ * page named.
+ */
+export const buildExceptionLockedEntityKeyChips: (data: {
+  entityKeysFilter: ReadonlyArray<string> | undefined;
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  storedScopeChips?: ReadonlyArray<ExceptionEntityChipRef> | undefined;
+}) => Array<ActiveFilter> = (data: {
+  entityKeysFilter: ReadonlyArray<string> | undefined;
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  storedScopeChips?: ReadonlyArray<ExceptionEntityChipRef> | undefined;
+}): Array<ActiveFilter> => {
+  const storedEntityKeys: Array<string> = [];
+
+  for (const chip of data.storedScopeChips || []) {
+    if (chip.facetKey === ENTITY_KEYS_FACET_KEY) {
+      storedEntityKeys.push(chip.value);
+    }
+  }
+
+  return buildLockedEntityKeyChips({
+    rows: "exceptions",
+    entityKeys: data.entityKeysFilter,
+    displays: data.entityKeyDisplays,
+    skipEntityKeys: storedEntityKeys,
+  });
 };

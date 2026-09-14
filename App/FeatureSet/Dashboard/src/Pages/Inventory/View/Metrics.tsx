@@ -11,7 +11,12 @@ const InventoryItemMetrics: FunctionComponent<
   return (
     <InventorySignalPage
       render={(signal: InventorySignalRenderProps): ReactElement => {
-        return <MetricsViewer entityKeysFilter={[signal.entityKey]} />;
+        return (
+          <MetricsViewer
+            entityKeysFilter={[signal.entityKey]}
+            entityKeyDisplays={signal.entityKeyDisplays}
+          />
+        );
       }}
     />
   );

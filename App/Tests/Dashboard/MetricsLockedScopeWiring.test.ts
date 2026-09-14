@@ -162,72 +162,41 @@ describe("MetricsViewer offers Copy filter / Open in Metrics for the locked scop
     ")",
   );
 
-  test("imports the copy text from the pure scope util and the link from its route-aware sibling", () => {
+  test("imports the actions builder from the route-aware link module", () => {
     /*
      * Membership, not the exact import statement: another feature adding a
-     * name to either list must not read as this wiring having been undone.
+     * name to the list must not read as this wiring having been undone.
      */
-    const importListFrom: (moduleSpecifier: string) => string = (
-      moduleSpecifier: string,
-    ): string => {
-      const fromIndex: number = METRICS_VIEWER.indexOf(
-        `from "${moduleSpecifier}"`,
-      );
+    const fromIndex: number = METRICS_VIEWER.indexOf(
+      'from "../../Utils/LockedTelemetryScopeLink"',
+    );
 
-      expect(fromIndex).toBeGreaterThanOrEqual(0);
-
-      return METRICS_VIEWER.slice(
+    expect(fromIndex).toBeGreaterThanOrEqual(0);
+    expect(
+      METRICS_VIEWER.slice(
         METRICS_VIEWER.lastIndexOf("import", fromIndex),
         fromIndex,
-      );
-    };
-
-    expect(importListFrom("../../Utils/LockedTelemetryScope")).toContain(
-      "buildLockedScopeCopyText",
-    );
-    expect(importListFrom("../../Utils/LockedTelemetryScopeLink")).toContain(
-      "buildLockedScopeExplorerLink",
-    );
+      ),
+    ).toContain("buildLockedScopeFilterActions");
   });
 
-  test("derives the actions from the locked chips only", () => {
-    expect(actions).toContain("mergedActiveFilters.filter(");
-    expect(actions).toContain("return Boolean(chip.readOnly);");
-    expect(actions).toContain(
-      "if (lockedChips.length === 0) { return undefined; }",
-    );
-  });
-
-  test("builds the copy text and the explorer link for the metrics signal, with the current window", () => {
-    const copyCall: string = blockAfter(
+  test("hands the shared builder the chip bar and the current window, for the metrics signal", () => {
+    /*
+     * The builder keeps the locked chips only, withholds a link that carries
+     * none of them and keeps the copy text when the route cannot resolve.
+     * Those rules run on real chips in MetricsEntityKeyLockedActions.test.ts
+     * and LockedTelemetryScopeLink.test.ts; this pins what the viewer hands it.
+     */
+    const call: string = blockAfter(
       actions,
-      "buildLockedScopeCopyText(",
-      "(",
-      ")",
-    );
-    expect(copyCall).toContain('"metrics"');
-    expect(copyCall).toContain("lockedChips");
-
-    const linkCall: string = blockAfter(
-      actions,
-      "buildLockedScopeExplorerLink(",
+      "buildLockedScopeFilterActions(",
       "{",
       "}",
     );
-    expect(linkCall).toContain('signal: "metrics",');
-    expect(linkCall).toContain("timeRange,");
-    // The link is built from facetKey / value pairs, never from display text.
-    expect(linkCall).toContain(
-      "return { facetKey: chip.facetKey, value: chip.value };",
-    );
 
-    expect(actions).toContain("openExplorerRoute: link.url,");
-    expect(actions).toContain("notCarried: link.notCarried,");
-  });
-
-  test("a host that cannot resolve the explorer route still gets the copyable text", () => {
-    expect(actions).toContain("try {");
-    expect(actions).toContain("catch { return { copyText }; }");
+    expect(call).toContain('signal: "metrics"');
+    expect(call).toContain("chips: mergedActiveFilters");
+    expect(call).toContain("timeRange");
   });
 
   test("recomputes when the locked chips or the window change", () => {
@@ -262,5 +231,427 @@ describe("MetricsViewer offers Copy filter / Open in Metrics for the locked scop
       expect(propIndex).toBeGreaterThan(elementStart);
       expect(propIndex).toBeLessThan(componentEnd);
     }
+  });
+});
+
+/*
+ * An Inventory item's Metrics page scopes the list by entity key alone, and
+ * the chip bar used to stay empty. The chip itself is unit-tested in
+ * MetricsEntityChipDisplay.test.ts and its actions in
+ * MetricsEntityKeyLockedActions.test.ts; what is left is what only the
+ * source can show — that the viewer accepts the page's names, hands the
+ * bare entity-key scope (and never the entityScope's keys) to the builder,
+ * recomputes when either changes, and that the chip array stays display
+ * only: nothing that builds a query, the URL or a saved view reads it.
+ */
+describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
+  type ImportListFromFunction = (
+    source: string,
+    moduleSpecifier: string,
+  ) => string;
+
+  const importListFrom: ImportListFromFunction = (
+    source: string,
+    moduleSpecifier: string,
+  ): string => {
+    const fromIndex: number = source.indexOf(`from "${moduleSpecifier}"`);
+
+    expect(fromIndex).toBeGreaterThanOrEqual(0);
+
+    return source.slice(source.lastIndexOf("import", fromIndex), fromIndex);
+  };
+
+  type IndexesOfFunction = (source: string, needle: string) => Array<number>;
+
+  const indexesOf: IndexesOfFunction = (
+    source: string,
+    needle: string,
+  ): Array<number> => {
+    const indexes: Array<number> = [];
+    let index: number = source.indexOf(needle);
+
+    while (index >= 0) {
+      indexes.push(index);
+      index = source.indexOf(needle, index + needle.length);
+    }
+
+    return indexes;
+  };
+
+  type ContextAtFunction = (source: string, index: number) => string;
+
+  // Enough of the surroundings to name the offending line in a failure.
+  const contextAt: ContextAtFunction = (
+    source: string,
+    index: number,
+  ): string => {
+    return source.slice(Math.max(0, index - 80), index + 60);
+  };
+
+  type DependenciesOfFunction = (memo: string) => Array<string>;
+
+  /*
+   * A memo's dependency list, sliced from its closing `]);` back to the last
+   * `}, [` — not from a return statement, which a memo body can repeat.
+   */
+  const dependenciesOf: DependenciesOfFunction = (
+    memo: string,
+  ): Array<string> => {
+    const close: number = memo.lastIndexOf("]);");
+    const open: number = memo.lastIndexOf("}, [", close);
+
+    expect(open).toBeGreaterThanOrEqual(0);
+    expect(close).toBeGreaterThan(open);
+
+    return memo
+      .slice(open + "}, [".length, close)
+      .split(",")
+      .map((dependency: string): string => {
+        return dependency.trim();
+      })
+      .filter((dependency: string): boolean => {
+        return dependency.length > 0;
+      });
+  };
+
+  /*
+   * The chip memo, from its declaration through the `]);` that closes its
+   * dependency list — the builder call inside it holds no `]);` of its own.
+   */
+  const MEMO_MARKER: string =
+    "const mergedActiveFilters: Array<ActiveFilter> = useMemo(";
+  const memoStart: number = METRICS_VIEWER.indexOf(MEMO_MARKER);
+  const memoEnd: number =
+    METRICS_VIEWER.indexOf("]);", memoStart) + "]);".length;
+  const MEMO: string = METRICS_VIEWER.slice(memoStart, memoEnd);
+
+  test("the chip memo is where the slices below expect it", () => {
+    expect(memoStart).toBeGreaterThanOrEqual(0);
+    expect(memoEnd).toBeGreaterThan(memoStart);
+    expect(MEMO).toContain("buildMetricsActiveFilterChips({");
+  });
+
+  test("declares the display map next to the entity-key filter, typed from the shared chip module", () => {
+    const props: string = blockAfter(
+      METRICS_VIEWER,
+      "interface Props",
+      "{",
+      "}",
+    );
+
+    expect(props).toContain("entityKeysFilter?: Array<string> | undefined;");
+    expect(props).toContain(
+      "entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;",
+    );
+    expect(
+      importListFrom(METRICS_VIEWER, "../../Utils/LockedEntityKeyChips"),
+    ).toContain("LockedEntityKeyDisplayMap");
+  });
+
+  test("hands the bare entity-key scope and its names to the chip builder, alongside the entity scope", () => {
+    const call: string = blockAfter(
+      MEMO,
+      "buildMetricsActiveFilterChips(",
+      "{",
+      "}",
+    );
+
+    expect(call).toContain("entityKeysFilter: props.entityKeysFilter,");
+    expect(call).toContain("entityKeyDisplays: props.entityKeyDisplays,");
+    expect(call).toContain("entityScope: props.entityScope,");
+
+    /*
+     * REGRESSION: a Kubernetes / host / Docker page's entityScope carries
+     * entity keys too, but its attribute chip already explains them. Handing
+     * those keys to the entity-key chip would give every such page a second
+     * pill that reads like a second, AND-ed filter.
+     */
+    expect(call).not.toContain("entityScope.entityKeys");
+    expect(call).not.toContain("entityScope?.entityKeys");
+  });
+
+  test("recomputes the chips when the entity keys or their names change", () => {
+    const dependencies: Array<string> = dependenciesOf(MEMO);
+
+    expect(dependencies).toContain("props.entityKeysFilter");
+    expect(dependencies).toContain("props.entityKeyDisplays");
+    expect(dependencies).toContain("props.entityScope");
+  });
+
+  test("the page's names reach the chip builder and nothing else", () => {
+    const uses: Array<number> = indexesOf(
+      METRICS_VIEWER,
+      "props.entityKeyDisplays",
+    );
+
+    expect(uses.length).toBeGreaterThan(0);
+
+    const outsideTheChipMemo: Array<string> = uses
+      .filter((index: number): boolean => {
+        return index < memoStart || index >= memoEnd;
+      })
+      .map((index: number): string => {
+        return contextAt(METRICS_VIEWER, index);
+      });
+
+    expect(outsideTheChipMemo).toEqual([]);
+  });
+
+  test("the chip array is display only: it reaches the chip bar and the locked actions, and nothing that builds a query, the URL or a saved view", () => {
+    const actionsMarker: string =
+      "const lockedFilterActions: LockedFilterActionOptions | undefined =";
+    const actions: string = blockAfter(METRICS_VIEWER, actionsMarker, "(", ")");
+    const actionsStart: number = METRICS_VIEWER.indexOf(
+      actions,
+      METRICS_VIEWER.indexOf(actionsMarker),
+    );
+    const actionsEnd: number = actionsStart + actions.length;
+
+    const chipBarPropIndex: number = METRICS_VIEWER.indexOf(
+      "activeFilters={mergedActiveFilters}",
+    );
+
+    expect(chipBarPropIndex).toBeGreaterThanOrEqual(0);
+
+    const chipBarReference: number =
+      chipBarPropIndex + "activeFilters={".length;
+
+    /*
+     * Every read of the chip array is one of: its own memo, the actions memo
+     * (which keeps the locked chips only), or the chip bar prop. The metric
+     * list query, the metric-name and sparkline loads, the URL mirror, the
+     * saved-view capture, the facet include and the row click all read the
+     * `activeFilters` state instead — which the locked chips never enter.
+     */
+    const unexpectedReads: Array<string> = indexesOf(
+      METRICS_VIEWER,
+      "mergedActiveFilters",
+    )
+      .filter((index: number): boolean => {
+        const inChipMemo: boolean = index >= memoStart && index < memoEnd;
+        const inActions: boolean = index >= actionsStart && index < actionsEnd;
+
+        return !inChipMemo && !inActions && index !== chipBarReference;
+      })
+      .map((index: number): string => {
+        return contextAt(METRICS_VIEWER, index);
+      });
+
+    expect(unexpectedReads).toEqual([]);
+    expect(METRICS_VIEWER).not.toContain(
+      "setActiveFilters(mergedActiveFilters",
+    );
+  });
+
+  test("the chip builder adds the entity-key chips through the shared builder, for the metrics rows", () => {
+    expect(importListFrom(CHIP_DISPLAY, "./LockedEntityKeyChips")).toContain(
+      "buildLockedEntityKeyChips",
+    );
+
+    const body: string = bodyAfter(
+      CHIP_DISPLAY,
+      "export const buildMetricsActiveFilterChips",
+    );
+    const call: string = blockAfter(
+      body,
+      "buildLockedEntityKeyChips(",
+      "{",
+      "}",
+    );
+
+    expect(call).toContain('rows: "metrics",');
+    expect(call).toContain("entityKeys: data.entityKeysFilter,");
+    expect(call).toContain("displays: data.entityKeyDisplays,");
+
+    // The same regression, one layer down.
+    expect(body).not.toContain("entityScope.entityKeys");
+    expect(body).not.toContain("entityScope?.entityKeys");
+  });
+});
+
+type MemoDependenciesFunction = (hook: string) => Array<string>;
+
+/*
+ * A hook's dependency list, sliced from its closing `]);` back to the last
+ * `}, [` — not from a return statement, which a hook body can repeat.
+ */
+const memoDependencies: MemoDependenciesFunction = (
+  hook: string,
+): Array<string> => {
+  const close: number = hook.lastIndexOf("]);");
+  const open: number = hook.lastIndexOf("}, [", close);
+
+  expect(open).toBeGreaterThanOrEqual(0);
+  expect(close).toBeGreaterThan(open);
+
+  return hook
+    .slice(open + "}, [".length, close)
+    .split(",")
+    .map((dependency: string): string => {
+      return dependency.trim();
+    })
+    .filter((dependency: string): boolean => {
+      return dependency.length > 0;
+    });
+};
+
+type HookFromFunction = (source: string, marker: string) => string;
+
+// A hook from its declaration through the `]);` closing its dependency list.
+const hookFrom: HookFromFunction = (source: string, marker: string): string => {
+  const start: number = source.indexOf(marker);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  return source.slice(start, source.indexOf("]);", start) + "]);".length);
+};
+
+/*
+ * An Inventory item's Metrics page pins `entityKeysFilter` alone, and the
+ * viewer used to treat that as the unscoped explorer: a project-wide Service
+ * facet with project-wide counts (picking a service the item does not emit
+ * AND-ed the list down to nothing), and the project's saved views with its
+ * DEFAULT view auto-applying over the item's scope. A Kubernetes / Host page
+ * (entityScope) never had any of that. `isScoped` is the switch for both, so
+ * this pins that the entity-key scope throws it, and that each thing it
+ * controls gives the scoped-page behaviour. The project's service list is NOT
+ * one of them: a typed `service:` token still needs it on that page.
+ */
+describe("an entity-key scope makes the metrics list a scoped page, as an entity scope does", () => {
+  const IS_SCOPED_MARKER: string = "const isScoped: boolean = useMemo(";
+
+  test("a non-empty entity-key filter counts, beside the entity scope", () => {
+    const memo: string = hookFrom(METRICS_VIEWER, IS_SCOPED_MARKER);
+
+    expect(memo).toContain("props.entityKeysFilter");
+    expect(memo).toContain(".length > 0");
+
+    const returned: string = memo.slice(
+      memo.lastIndexOf("return"),
+      memo.lastIndexOf("}, ["),
+    );
+
+    expect(returned).toContain("hasEntityKeysFilter");
+    expect(returned).toContain("Boolean(props.entityScope)");
+  });
+
+  test("recomputes when the entity keys change", () => {
+    const dependencies: Array<string> = memoDependencies(
+      hookFrom(METRICS_VIEWER, IS_SCOPED_MARKER),
+    );
+
+    expect(dependencies).toContain("props.entityKeysFilter");
+    expect(dependencies).toContain("props.entityScope");
+  });
+
+  test("scoped, the Service facet is not offered: no facet configs and no sidebar", () => {
+    const facetConfigsMemo: string = blockAfter(
+      METRICS_VIEWER,
+      "const facetConfigs: Array<FacetConfig> = useMemo(",
+      "{",
+      "}",
+    );
+
+    expect(facetConfigsMemo).toContain("if (isScoped) { return []; }");
+    expect(METRICS_VIEWER).toContain("showFacetSidebar={!isScoped}");
+  });
+
+  test("scoped, the project-wide facet request is never made, so no scope has to be threaded through it", () => {
+    const FETCH_FACETS_MARKER: string =
+      "const fetchFacets: () => Promise<void> = useCallback(";
+    const GUARD: string = "if (isScoped) { setFacetData({}); return; }";
+
+    const body: string = blockAfter(
+      METRICS_VIEWER,
+      FETCH_FACETS_MARKER,
+      "{",
+      "}",
+    );
+    const parts: Array<string> = body.split(GUARD);
+
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).not.toContain("postApi(");
+    expect(parts[1]).toContain("postApi(");
+    expect(parts[1]).toContain('"/telemetry/metrics/facets"');
+
+    expect(
+      memoDependencies(hookFrom(METRICS_VIEWER, FETCH_FACETS_MARKER)),
+    ).toContain("isScoped");
+  });
+
+  test("the project's services still load under an entity-key scope, so a typed service: token is applied rather than dropped", () => {
+    /*
+     * A `service:<name>` token applies only once the service list has
+     * loaded. Gating that load on `isScoped` made the Inventory item's
+     * Metrics page ignore a submitted `service:checkout` while still offering
+     * the token, so the load has its own flag, which the entity-key scope
+     * does not throw.
+     */
+    const loadServicesAt: number = METRICS_VIEWER.indexOf(
+      "const loadServices: () => Promise<void> = async () =>",
+    );
+
+    expect(loadServicesAt).toBeGreaterThanOrEqual(0);
+
+    const effect: string = hookFrom(
+      METRICS_VIEWER.slice(
+        METRICS_VIEWER.lastIndexOf("useEffect(", loadServicesAt),
+      ),
+      "useEffect(",
+    );
+    const guard: string = effect.slice(0, effect.indexOf("const loadServices"));
+
+    expect(guard).toContain("if (skipsServiceList)");
+    expect(guard).not.toContain("isScoped");
+    expect(memoDependencies(effect)).toContain("skipsServiceList");
+
+    const flag: string = hookFrom(
+      METRICS_VIEWER,
+      "const skipsServiceList: boolean = useMemo(",
+    );
+
+    for (const scope of [
+      "props.serviceIds",
+      "props.attributeFilters",
+      "props.entityScope",
+    ]) {
+      expect(flag).toContain(scope);
+    }
+
+    expect(flag).not.toContain("entityKeysFilter");
+    expect(flag).not.toContain("isScoped");
+  });
+
+  test("scoped, no saved views are offered, so the project's default view cannot apply over the page's scope", () => {
+    expect(METRICS_VIEWER.split("<TelemetrySavedViewsControl").length - 1).toBe(
+      1,
+    );
+
+    const toolbar: string = blockAfter(
+      METRICS_VIEWER,
+      "toolbarLeadingActions={",
+      "{",
+      "}",
+    );
+
+    expect(toolbar).toContain("isScoped");
+    expect(toolbar).toContain("<TelemetrySavedViewsControl");
+  });
+});
+
+/*
+ * The same entity-key scope has no explorer URL chip, so the only link the
+ * link builder can make for it is the window alone — every metric in the
+ * project under "Open in Metrics". buildLockedScopeFilterActions withholds
+ * that link (on real chips in MetricsEntityKeyLockedActions.test.ts); this
+ * pins that the viewer has no second path around it.
+ */
+describe("Open in Metrics is withheld when the link carries none of the locked scope", () => {
+  test("the viewer builds neither a link nor copy text of its own, so the shared builder decides both", () => {
+    expect(METRICS_VIEWER).not.toContain("buildLockedScopeExplorerLink(");
+    expect(METRICS_VIEWER).not.toContain("buildLockedScopeCopyText(");
+    expect(METRICS_VIEWER).toContain(
+      "lockedFilterActions={lockedFilterActions}",
+    );
   });
 });

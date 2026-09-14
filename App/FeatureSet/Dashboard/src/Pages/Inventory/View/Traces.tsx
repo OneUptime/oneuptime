@@ -11,7 +11,12 @@ const InventoryItemTraces: FunctionComponent<
   return (
     <InventorySignalPage
       render={(signal: InventorySignalRenderProps): ReactElement => {
-        return <TracesViewer entityKeysFilter={[signal.entityKey]} />;
+        return (
+          <TracesViewer
+            entityKeysFilter={[signal.entityKey]}
+            entityKeyDisplays={signal.entityKeyDisplays}
+          />
+        );
       }}
     />
   );

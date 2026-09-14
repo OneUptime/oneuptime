@@ -95,9 +95,35 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
   });
 
   test("builds the chip bar from the pure helper with the resolved names", () => {
-    expect(METRICS_VIEWER).toContain(
-      "buildMetricsActiveFilterChips({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, attributeFilters: props.attributeFilters, attributeFilterDisplayKeys: props.attributeFilterDisplayKeys, attributeFilterDisplayValues: props.attributeFilterDisplayValues, entityScope: props.entityScope, activeFilters, facetConfigs, nameMap: entityNameMap, })",
+    /*
+     * Membership inside the call rather than its exact text: the entity-key
+     * scope added two inputs here, and a call pinned verbatim reads every
+     * such addition as this wiring having been undone.
+     */
+    const callStart: number = METRICS_VIEWER.indexOf(
+      "buildMetricsActiveFilterChips({",
     );
+
+    expect(callStart).toBeGreaterThanOrEqual(0);
+
+    const call: string = METRICS_VIEWER.slice(
+      callStart,
+      METRICS_VIEWER.indexOf("})", callStart) + "})".length,
+    );
+
+    for (const argument of [
+      "scopeIds: props.serviceIds,",
+      "scopeEntityType: props.scopeEntityType,",
+      "attributeFilters: props.attributeFilters,",
+      "attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,",
+      "attributeFilterDisplayValues: props.attributeFilterDisplayValues,",
+      "entityScope: props.entityScope,",
+      "activeFilters,",
+      "facetConfigs,",
+      "nameMap: entityNameMap,",
+    ]) {
+      expect(call).toContain(argument);
+    }
     // Every input is a memo dependency, so a late name re-renders the chip.
     for (const dependency of [
       "props.scopeEntityType,",

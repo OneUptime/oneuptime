@@ -69,11 +69,8 @@ import {
   collectMetricsEntityLookup,
   getMetricsAppliedEntityFilterIds,
 } from "../../Utils/MetricsEntityChipDisplay";
-import { buildLockedScopeCopyText } from "../../Utils/LockedTelemetryScope";
-import {
-  LockedScopeExplorerLink,
-  buildLockedScopeExplorerLink,
-} from "../../Utils/LockedTelemetryScopeLink";
+import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import { buildLockedScopeFilterActions } from "../../Utils/LockedTelemetryScopeLink";
 import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
@@ -420,6 +417,14 @@ interface Props {
    * compiles to `hasAny(entityKeys, [...])` server-side.
    */
   entityKeysFilter?: Array<string> | undefined;
+  /*
+   * How the locked chip for each key in `entityKeysFilter` reads — an
+   * Inventory item's "Kubernetes Pod: checkout-7d9f" instead of the key hash.
+   * Display only: without it the chip still renders, as "Resource: <key>",
+   * because a list filtered by an entity key with an empty chip bar is
+   * exactly what left readers unable to tell the list was scoped at all.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   entityScope?: EntityScopeFilter | undefined;
   /*
    * Controlled shared window (the entity telemetry hub). When set, the
@@ -617,6 +622,19 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
+  /*
+   * Whether a host page pins the list to one resource. A scoped list hides
+   * the project-wide Service facet (and skips its facet request), and offers
+   * no saved views — so the project's DEFAULT view cannot auto-apply over the
+   * page's scope either. Whether the project's service list loads is a
+   * separate question, answered by `skipsServiceList` below.
+   *
+   * The entity-key scope counts exactly like `entityScope`: an Inventory
+   * item's Metrics page pins `entityKeysFilter` alone, and leaving it
+   * unscoped showed project-wide facet counts, let a picked service AND the
+   * item's metrics down to an empty list, and let the project default view
+   * replace the item's window and filters a tick after mount.
+   */
   const isScoped: boolean = useMemo(() => {
     const hasServiceIds: boolean = Boolean(
       props.serviceIds && props.serviceIds.length > 0,
@@ -624,7 +642,41 @@ const MetricsViewer: FunctionComponent<Props> = (
     const hasAttributeFilters: boolean = Boolean(
       props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
     );
-    return hasServiceIds || hasAttributeFilters || Boolean(props.entityScope);
+    const hasEntityKeysFilter: boolean = Boolean(
+      props.entityKeysFilter && props.entityKeysFilter.length > 0,
+    );
+    return (
+      hasServiceIds ||
+      hasAttributeFilters ||
+      hasEntityKeysFilter ||
+      Boolean(props.entityScope)
+    );
+  }, [
+    props.serviceIds,
+    props.attributeFilters,
+    props.entityKeysFilter,
+    props.entityScope,
+  ]);
+
+  /*
+   * Whether the project's service list is skipped. Besides the Service facet,
+   * that list is what resolves a typed `service:<name>` token, which applies
+   * only once names are loaded. The entity-key scope is deliberately NOT
+   * counted here: an Inventory item's Metrics page still offers the token
+   * (placeholder, help rows, suggestions), and without the list a submitted
+   * `service:checkout` was dropped without a sign while the list kept every
+   * metric of the item. Loaded, the token ANDs with the item's entity keys,
+   * as it did before that page counted as scoped.
+   */
+  const skipsServiceList: boolean = useMemo(() => {
+    return (
+      Boolean(props.serviceIds && props.serviceIds.length > 0) ||
+      Boolean(
+        props.attributeFilters &&
+          Object.keys(props.attributeFilters).length > 0,
+      ) ||
+      Boolean(props.entityScope)
+    );
   }, [props.serviceIds, props.attributeFilters, props.entityScope]);
 
   /*
@@ -683,8 +735,12 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   // Load services and telemetry attributes once
   useEffect(() => {
-    if (isScoped) {
-      // No service facet in scoped views, so skip the fetch.
+    if (skipsServiceList) {
+      /*
+       * Neither the Service facet nor a `service:` token has a use for the
+       * project's services on a page pinned by service, attribute or entity
+       * scope, so skip the fetch.
+       */
       return;
     }
     const loadServices: () => Promise<void> = async () => {
@@ -712,7 +768,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void loadServices();
-  }, [isScoped]);
+  }, [skipsServiceList]);
 
   // Load telemetry attributes for autocomplete
   useEffect(() => {
@@ -1342,6 +1398,12 @@ const MetricsViewer: FunctionComponent<Props> = (
       attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: props.attributeFilterDisplayValues,
       entityScope: props.entityScope,
+      /*
+       * The bare entity-key scope gets its own locked chip; `entityScope`
+       * above does not (its attribute chip already explains it).
+       */
+      entityKeysFilter: props.entityKeysFilter,
+      entityKeyDisplays: props.entityKeyDisplays,
       activeFilters,
       facetConfigs,
       nameMap: entityNameMap,
@@ -1353,6 +1415,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
     props.entityScope,
+    props.entityKeysFilter,
+    props.entityKeyDisplays,
     activeFilters,
     facetConfigs,
     entityNameMap,
@@ -1364,41 +1428,17 @@ const MetricsViewer: FunctionComponent<Props> = (
    * explorer's URL, and the main /metrics page has no locked chips at all,
    * so there the group never renders. The link resolves the current route
    * and project; a host that cannot (a preview outside the dashboard shell)
-   * still gets the copyable text.
+   * still gets the copyable text. The locked-chip filter, the carried-count
+   * guard and that fallback live in the shared builder, where they are
+   * exercised on real chips rather than on a copy of this memo.
    */
   const lockedFilterActions: LockedFilterActionOptions | undefined =
     useMemo(() => {
-      const lockedChips: Array<ActiveFilter> = mergedActiveFilters.filter(
-        (chip: ActiveFilter): boolean => {
-          return Boolean(chip.readOnly);
-        },
-      );
-
-      if (lockedChips.length === 0) {
-        return undefined;
-      }
-
-      const copyText: string = buildLockedScopeCopyText("metrics", lockedChips);
-
-      try {
-        const link: LockedScopeExplorerLink = buildLockedScopeExplorerLink({
-          signal: "metrics",
-          filters: lockedChips.map(
-            (chip: ActiveFilter): { facetKey: string; value: string } => {
-              return { facetKey: chip.facetKey, value: chip.value };
-            },
-          ),
-          timeRange,
-        });
-
-        return {
-          copyText,
-          openExplorerRoute: link.url,
-          notCarried: link.notCarried,
-        };
-      } catch {
-        return { copyText };
-      }
+      return buildLockedScopeFilterActions({
+        signal: "metrics",
+        chips: mergedActiveFilters,
+        timeRange,
+      });
     }, [mergedActiveFilters, timeRange]);
 
   // Row click → navigate to metric viewer

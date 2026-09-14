@@ -27,6 +27,8 @@ const InventoryItemLogs: FunctionComponent<
                   entityKeys: new Includes([signal.entityKey]),
                 } as Query<Log>
               }
+              entityKeyDisplays={signal.entityKeyDisplays}
+              entityKeysPinnedByPage={true}
               showFilters={true}
               enableRealtime={true}
               noLogsMessage="No logs found for this inventory item."

@@ -1,15 +1,22 @@
 import useInventoryItem, {
   UseInventoryItemResult,
 } from "../../../Components/Inventory/useInventoryItem";
+import { buildInventoryEntityKeyDisplays } from "../../../Components/Inventory/InventoryTelemetryScope";
+import { LockedEntityKeyDisplayMap } from "../../../Utils/LockedEntityKeyChips";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface InventorySignalRenderProps {
   entityKey: string;
+  /*
+   * How the viewer's locked pill names the scope — "Kubernetes Pod:
+   * checkout-7d9f" rather than the entity key hash the filter matches on.
+   */
+  entityKeyDisplays: LockedEntityKeyDisplayMap;
   item: InventoryItem;
   modelId: ObjectID;
 }
@@ -34,6 +41,19 @@ const InventorySignalPage: FunctionComponent<ComponentProps> = (
   const { item, isLoading, error }: UseInventoryItemResult =
     useInventoryItem(modelId);
 
+  /*
+   * Memoised on the fields it reads: the viewers list the map in their chip
+   * memos, and a fresh object on every render would rebuild the chips for
+   * nothing.
+   */
+  const entityKeyDisplays: LockedEntityKeyDisplayMap = useMemo(() => {
+    return buildInventoryEntityKeyDisplays({
+      entityKey: item?.entityKey,
+      entityType: item?.entityType,
+      displayName: item?.displayName,
+    });
+  }, [item?.entityKey, item?.entityType, item?.displayName]);
+
   if (isLoading) {
     return <ComponentLoader />;
   }
@@ -46,7 +66,12 @@ const InventorySignalPage: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message="This inventory item could not be found." />;
   }
 
-  return props.render({ entityKey: item.entityKey, item, modelId });
+  return props.render({
+    entityKey: item.entityKey,
+    entityKeyDisplays,
+    item,
+    modelId,
+  });
 };
 
 export default InventorySignalPage;
