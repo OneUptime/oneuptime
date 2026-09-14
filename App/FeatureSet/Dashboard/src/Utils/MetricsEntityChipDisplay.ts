@@ -15,6 +15,11 @@ import {
   getTelemetryEntityTypeLabel,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { ATTRIBUTE_FACET_PREFIX } from "../Components/Metrics/MetricsSearchQuery";
+import {
+  LockedEntityScope,
+  describeLockedAttributeFilter,
+  describeLockedEntityFilter,
+} from "./LockedTelemetryScope";
 
 /*
  * Display rules for the metrics explorer's filter chips.
@@ -405,27 +410,50 @@ export const resolveMetricsChipDisplay: (data: {
  * Read-only chips for a host page's attribute scope (e.g. a host page's
  * `resource.host.name`). The filter value is untouched; the page may supply
  * a friendlier key and value for display.
+ *
+ * Each chip also carries its explanation (LockedFilterDetail): the chip
+ * bar used to say nothing beyond "(applied filter)", so a reader could not
+ * tell that "Cluster: production" is an attribute equality — nor that the
+ * page's entityScope, when it names the same key, lets newer rows match on
+ * their entity key instead. The entity scope belongs to exactly one of the
+ * page's attributes, so it is attached only to the chip for that key.
  */
 export const buildMetricsLockedAttributeChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
+  entityScope?: LockedEntityScope | undefined;
 }) => Array<ActiveFilter> = (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
+  entityScope?: LockedEntityScope | undefined;
 }): Array<ActiveFilter> => {
   const chips: Array<ActiveFilter> = [];
   for (const [key, value] of Object.entries(data.attributeFilters || {})) {
     if (!value) {
       continue;
     }
+    const displayKey: string = data.attributeFilterDisplayKeys?.[key] || key;
+    const displayValue: string =
+      data.attributeFilterDisplayValues?.[key] || value;
     chips.push({
       facetKey: `${ATTRIBUTE_FACET_PREFIX}${key}`,
       value,
-      displayKey: data.attributeFilterDisplayKeys?.[key] || key,
-      displayValue: data.attributeFilterDisplayValues?.[key] || value,
+      displayKey,
+      displayValue,
       readOnly: true,
+      lockedDetail: describeLockedAttributeFilter({
+        signal: "metrics",
+        attributeKey: key,
+        rawValue: value,
+        displayKey,
+        displayValue,
+        entityScope:
+          data.entityScope && data.entityScope.attributeKey === key
+            ? data.entityScope
+            : undefined,
+      }),
     });
   }
   return chips;
@@ -453,20 +481,32 @@ export const buildMetricsLockedScopeChips: (data: {
     if (!id) {
       continue;
     }
-    chips.push(
-      resolveMetricsChipDisplay({
-        chip: {
-          facetKey: "primaryEntityId",
-          value: id,
-          displayKey: getTelemetryEntityTypeLabel(data.scopeEntityType),
-          displayValue: id,
-          readOnly: true,
-        },
-        facetConfigs: data.facetConfigs,
-        nameMap: data.nameMap,
-        scopeEntityType: data.scopeEntityType,
+    const resolved: ActiveFilter = resolveMetricsChipDisplay({
+      chip: {
+        facetKey: "primaryEntityId",
+        value: id,
+        displayKey: getTelemetryEntityTypeLabel(data.scopeEntityType),
+        displayValue: id,
+        readOnly: true,
+      },
+      facetConfigs: data.facetConfigs,
+      nameMap: data.nameMap,
+      scopeEntityType: data.scopeEntityType,
+    });
+    /*
+     * Described AFTER display resolution so the explanation names the entity
+     * the way the chip does ("RUM Application", not the seeded "Service")
+     * and improves as names load, exactly like the chip text.
+     */
+    chips.push({
+      ...resolved,
+      lockedDetail: describeLockedEntityFilter({
+        signal: "metrics",
+        entityTypeLabel: resolved.displayKey,
+        id,
+        name: resolved.displayValue !== id ? resolved.displayValue : undefined,
       }),
-    );
+    });
   }
   return chips;
 };
@@ -482,6 +522,8 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
+  // The page's entity scope, explained on the attribute chip it names.
+  entityScope?: LockedEntityScope | undefined;
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
@@ -491,6 +533,7 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
+  entityScope?: LockedEntityScope | undefined;
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
@@ -506,6 +549,7 @@ export const buildMetricsActiveFilterChips: (data: {
       attributeFilters: data.attributeFilters,
       attributeFilterDisplayKeys: data.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: data.attributeFilterDisplayValues,
+      entityScope: data.entityScope,
     }),
     ...data.activeFilters.map((chip: ActiveFilter): ActiveFilter => {
       return resolveMetricsChipDisplay({

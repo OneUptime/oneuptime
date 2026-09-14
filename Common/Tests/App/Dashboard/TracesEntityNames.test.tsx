@@ -419,13 +419,36 @@ describe("TracesViewer names non-Service entities", () => {
 
     const chips: Array<ActiveFilter> = lastViewerProps()
       .activeFilters as Array<ActiveFilter>;
-    expect(chips).toContainEqual({
+    const clusterChip: ActiveFilter | undefined = chips.find(
+      (chip: ActiveFilter): boolean => {
+        return chip.facetKey === "attributes.resource.k8s.cluster.name";
+      },
+    );
+
+    /*
+     * A partial match: the chip also carries its explanation (lockedDetail),
+     * which is display-only and pinned by its own suites. What this test
+     * protects is that the override changes the label and never the filter.
+     */
+    expect(clusterChip).toMatchObject({
       facetKey: "attributes.resource.k8s.cluster.name",
       value: "prod-eu-1-7f3a",
       displayKey: "Cluster",
       displayValue: "Production EU",
       readOnly: true,
     });
+
+    /*
+     * The explanation must describe the FILTER (the identifier the rows
+     * carry), not the friendly name the chip shows — a reader copying the
+     * search syntax needs the value that matches.
+     */
+    expect(clusterChip?.lockedDetail?.searchToken).toBe(
+      "@resource.k8s.cluster.name:prod-eu-1-7f3a",
+    );
+    expect(clusterChip?.lockedDetail?.predicates[0]?.expression).toBe(
+      'resource.k8s.cluster.name = "prod-eu-1-7f3a"',
+    );
   });
 
   test("REGRESSION: span rows name a RUM application instead of 'unknown service'", async () => {

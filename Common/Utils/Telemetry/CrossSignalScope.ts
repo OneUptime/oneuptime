@@ -44,9 +44,12 @@ const PERCENT: RegExp = /%/;
  *    `attributes.<key>` for telemetry attributes (dots in <key> are kept —
  *    only the first "attributes." prefix is stripped). A `body` chip is the
  *    one whose value compiles to a CONTAINS match rather than an equality
- *    (LogsCrossSignalPivot.applyLogsFacetFiltersToQuery). `range` is a
- *    TimeRange enum value; a Custom range additionally needs `start` and
- *    `end` (parsed with `new Date(...)`). There is no `search` param.
+ *    (LogsCrossSignalPivot.applyLogsFacetFiltersToQuery). An `attributes.`
+ *    chip value is re-parsed by the shared search grammar when the explorer
+ *    compiles it, so it is escaped by that grammar's buildSearchTokenValue
+ *    here, like the traces chips. `range` is a TimeRange enum value; a
+ *    Custom range additionally needs `start` and `end` (parsed with
+ *    `new Date(...)`). There is no `search` param.
  *
  *  - Traces explorer (App/FeatureSet/Dashboard/src/Components/Traces/
  *    TracesViewer.tsx, readInitialUrlState + TracesSearchCompile): `search`
@@ -292,10 +295,12 @@ function resolveTimeWindow(
  *
  * Field support: serviceIds -> `primaryEntityId` filter tuple, severityTexts
  * -> `severityText` (canonicalized casing), traceIds -> `traceId`, spanIds
- * -> `spanId`, attributes -> `attributes.<key>` tuples, bodyContains ->
- * `body` (a contains-match chip), startTime+endTime -> `range=Custom` +
- * `start`/`end`. Every scope field is expressible in the logs grammar, so
- * `dropped` only ever reports a lone time endpoint.
+ * -> `spanId`, attributes -> `attributes.<key>` tuples (values escaped with
+ * the search grammar's buildSearchTokenValue, because the explorer re-parses
+ * a chip value as grammar), bodyContains -> `body` (a contains-match chip),
+ * startTime+endTime -> `range=Custom` + `start`/`end`. Every scope field is
+ * expressible in the logs grammar, so `dropped` only ever reports a lone
+ * time endpoint.
  */
 export function toLogsExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -349,7 +354,16 @@ export function toLogsExplorerQueryParams(
   }
 
   for (const [key, value] of sanitizeAttributeEntries(scope.attributes)) {
-    tuples.push([`attributes.${key}`, [value]]);
+    /*
+     * The logs explorer compiles an `attributes.<key>` chip through the
+     * search grammar (applyLogsFacetFiltersToQuery -> compileAttributeChipValues),
+     * exactly like a typed `@key:value`, so a raw `/api/*` arrived as a
+     * wildcard matching every path under /api and a raw `~internal` as a
+     * contains-match. Escaping with the grammar's own token builder makes the
+     * chip mean the literal value — the same treatment the traces serializer
+     * has always given its chips.
+     */
+    tuples.push([`attributes.${key}`, [buildSearchTokenValue(value)]]);
   }
 
   const bodyContains: string = sanitizeBodyContains(scope.bodyContains);

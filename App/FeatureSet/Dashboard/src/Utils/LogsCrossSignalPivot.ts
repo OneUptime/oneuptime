@@ -545,8 +545,16 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
         const attributeKey: string = key.substring(
           ATTRIBUTE_FACET_PREFIX.length,
         );
-        const existing: Record<string, unknown> =
-          ((query as any).attributes as Record<string, unknown>) || {};
+        /*
+         * A COPY, never the map that was handed in. The viewer's base query
+         * carries the host page's own `logQuery.attributes` object; writing
+         * the chip into it pinned the chip to the page — remove the chip and
+         * the list, chart and facets kept filtering by it, and it came back
+         * as a page-locked chip whose tooltip claimed the page pinned it.
+         */
+        const existing: Record<string, unknown> = {
+          ...(((query as any).attributes as Record<string, unknown>) || {}),
+        };
 
         /*
          * An attribute chip carries the value exactly as it was typed into

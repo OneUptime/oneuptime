@@ -127,8 +127,13 @@ describe("TracesViewer resolves entity names with one lookup", () => {
 });
 
 describe("TracesViewer chips", () => {
+  /*
+   * The chip pipeline: the shared resolver, the locked chips (page scope,
+   * stored query, attribute filters), then the merged bar — one contiguous
+   * region, ending where the next concern starts.
+   */
   const mergedStart: number = TRACES_VIEWER.indexOf(
-    "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+    "const resolveChipDisplay: (chip: ActiveFilter) => ActiveFilter =",
   );
   const mergedEnd: number = TRACES_VIEWER.indexOf(
     "const handleCreateMetric:",
@@ -139,6 +144,9 @@ describe("TracesViewer chips", () => {
   test("the merged chip block is found", () => {
     expect(mergedStart).toBeGreaterThan(-1);
     expect(mergedEnd).toBeGreaterThan(mergedStart);
+    expect(MERGED).toContain(
+      "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+    );
   });
 
   test("every non-attribute chip goes through resolveTraceChipDisplay with the entity context", () => {
@@ -151,12 +159,12 @@ describe("TracesViewer chips", () => {
 
     // The locked scope chip, the stored-query chips, and user chips.
     expect(MERGED).toContain(
-      'resolveDisplay({ facetKey: "primaryEntityId", value: props.primaryEntityId.toString(),',
+      'resolveChipDisplay({ facetKey: "primaryEntityId", value: entityId,',
     );
     expect(MERGED).toContain(
-      "base.push( resolveDisplay({ facetKey: chip.facetKey, value: chip.value, displayKey: chip.displayKey,",
+      "resolveChipDisplay({ facetKey: chip.facetKey, value: chip.value, displayKey: chip.displayKey,",
     );
-    expect(MERGED).toContain("...activeFilters.map(resolveDisplay)");
+    expect(MERGED).toContain("...activeFilters.map(resolveChipDisplay)");
   });
 
   test("the old Service-only lookup is gone from the chip path", () => {
@@ -177,24 +185,49 @@ describe("TracesViewer chips", () => {
     expect(MERGED).not.toContain("displayValue: value, readOnly: true,");
   });
 
-  test("the memo re-runs when names, facets or the scope type change", () => {
-    const depsStart: number = MERGED.lastIndexOf("}, [");
-    const deps: string = MERGED.substring(depsStart);
+  test("the chips re-render when names, facets or the scope type change", () => {
+    /*
+     * The names live in the resolver's dependencies; the locked chips depend
+     * on the resolver (and on the scope props), and the merged bar on the
+     * locked chips — so a late name still reaches every chip.
+     */
+    const resolverDeps: string = MERGED.substring(
+      0,
+      MERGED.indexOf("const lockedChips: Array<ActiveFilter> = useMemo("),
+    );
+
+    for (const dependency of [
+      "facetConfigs",
+      "facetDisplayNames",
+      "entityNames",
+      "scopeEntityId",
+      "props.scopeEntityType",
+    ]) {
+      expect(resolverDeps).toContain(`${dependency},`);
+    }
+
+    const lockedDeps: string = MERGED.substring(
+      MERGED.indexOf("const lockedChips: Array<ActiveFilter> = useMemo("),
+      MERGED.indexOf(
+        "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+      ),
+    );
 
     for (const dependency of [
       "props.primaryEntityId",
-      "props.scopeEntityType",
       "props.attributeFilters",
       "props.attributeFilterDisplayKeys",
       "props.attributeFilterDisplayValues",
       "spanScope",
       "activeFilters",
-      "facetConfigs",
-      "facetDisplayNames",
-      "entityNames",
+      "resolveChipDisplay",
     ]) {
-      expect(deps).toContain(`${dependency},`);
+      expect(lockedDeps).toContain(`${dependency},`);
     }
+
+    expect(MERGED).toContain(
+      "}, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);",
+    );
   });
 
   test("a sidebar chip seeds its value from the server facet displayName", () => {

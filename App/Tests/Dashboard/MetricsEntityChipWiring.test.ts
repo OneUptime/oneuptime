@@ -96,12 +96,13 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
 
   test("builds the chip bar from the pure helper with the resolved names", () => {
     expect(METRICS_VIEWER).toContain(
-      "buildMetricsActiveFilterChips({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, attributeFilters: props.attributeFilters, attributeFilterDisplayKeys: props.attributeFilterDisplayKeys, attributeFilterDisplayValues: props.attributeFilterDisplayValues, activeFilters, facetConfigs, nameMap: entityNameMap, })",
+      "buildMetricsActiveFilterChips({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, attributeFilters: props.attributeFilters, attributeFilterDisplayKeys: props.attributeFilterDisplayKeys, attributeFilterDisplayValues: props.attributeFilterDisplayValues, entityScope: props.entityScope, activeFilters, facetConfigs, nameMap: entityNameMap, })",
     );
     // Every input is a memo dependency, so a late name re-renders the chip.
     for (const dependency of [
       "props.scopeEntityType,",
       "props.attributeFilterDisplayValues,",
+      "props.entityScope,",
       "entityNameMap,",
     ]) {
       expect(METRICS_VIEWER).toContain(dependency);

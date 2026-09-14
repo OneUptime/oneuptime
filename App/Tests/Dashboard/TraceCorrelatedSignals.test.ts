@@ -553,6 +553,93 @@ describe("buildTracesPivotScope", () => {
     );
   });
 
+  /*
+   * Every resource page passes its scope twice: as entityScope (entity keys
+   * OR attribute) and as the bare attribute filter. The attribute half is
+   * carried, so the pivot used to tell the user "not carried over: entity
+   * scope" on a Kubernetes cluster's traces tab although the logs it opened
+   * were scoped to exactly that cluster.
+   */
+  describe("entity scope reporting", () => {
+    test("an entity scope whose attribute is also a scope attribute filter is carried, not reported", () => {
+      const result: TracesPivotScopeResult = buildTracesPivotScope(
+        pivotInput({
+          scopeAttributeFilters: {
+            "resource.k8s.cluster.name": "prod-eks-01",
+          },
+          hasEntityScope: true,
+          entityScope: {
+            attributeKey: "resource.k8s.cluster.name",
+            attributeValue: "prod-eks-01",
+          },
+        }),
+      );
+
+      expect(result.notCarried).toEqual([]);
+      expect(result.scope.attributes).toEqual({
+        "resource.k8s.cluster.name": "prod-eks-01",
+      });
+    });
+
+    test("an entity scope with no attribute counterpart (entityKeys only) is reported", () => {
+      const result: TracesPivotScopeResult = buildTracesPivotScope(
+        pivotInput({
+          hasEntityScope: true,
+          entityScope: {
+            attributeKey: "resource.k8s.cluster.name",
+            attributeValue: "prod-eks-01",
+          },
+        }),
+      );
+
+      expect(result.notCarried).toEqual(["entity scope"]);
+    });
+
+    test("an entity scope whose attribute value differs from the carried one is reported", () => {
+      const result: TracesPivotScopeResult = buildTracesPivotScope(
+        pivotInput({
+          scopeAttributeFilters: {
+            "resource.k8s.cluster.name": "staging-eks",
+          },
+          hasEntityScope: true,
+          entityScope: {
+            attributeKey: "resource.k8s.cluster.name",
+            attributeValue: "prod-eks-01",
+          },
+        }),
+      );
+
+      expect(result.notCarried).toEqual(["entity scope"]);
+    });
+
+    test("the legacy boolean-only call keeps reporting the scope", () => {
+      const result: TracesPivotScopeResult = buildTracesPivotScope(
+        pivotInput({
+          scopeAttributeFilters: {
+            "resource.k8s.cluster.name": "prod-eks-01",
+          },
+          hasEntityScope: true,
+        }),
+      );
+
+      expect(result.notCarried).toEqual(["entity scope"]);
+    });
+
+    test("no entity scope means nothing to report, with or without the attribute half", () => {
+      const result: TracesPivotScopeResult = buildTracesPivotScope(
+        pivotInput({
+          hasEntityScope: false,
+          entityScope: {
+            attributeKey: "resource.k8s.cluster.name",
+            attributeValue: "prod-eks-01",
+          },
+        }),
+      );
+
+      expect(result.notCarried).toEqual([]);
+    });
+  });
+
   test("ignores blank filter values instead of emitting empty scope entries", () => {
     const result: TracesPivotScopeResult = buildTracesPivotScope(
       pivotInput({

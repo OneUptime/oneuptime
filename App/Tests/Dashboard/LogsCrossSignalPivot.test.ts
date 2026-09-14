@@ -839,6 +839,61 @@ describe("applyLogsFacetFiltersToQuery", () => {
     );
   });
 
+  test("an attribute chip is written into a COPY of the query's attributes, never the map handed in", () => {
+    /*
+     * The viewer's base query carries the host page's own `logQuery.attributes`
+     * object. Writing the chip into it pinned the chip to the page: remove
+     * the chip and the list, chart and facets kept filtering by it, and it
+     * came back as a page-locked chip whose tooltip claimed the page pinned
+     * it.
+     */
+    const pinned: Record<string, unknown> = {
+      "resource.host.name": "web-01",
+    };
+    const query: Record<string, unknown> = { attributes: pinned };
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ "attributes.env": ["prod"] }),
+    );
+
+    expect(query["attributes"]).toEqual({
+      "resource.host.name": "web-01",
+      env: "prod",
+    });
+    expect(query["attributes"]).not.toBe(pinned);
+    expect(pinned).toEqual({ "resource.host.name": "web-01" });
+  });
+
+  test("chips applied over a typed query: a chip wins its own column, typed values on other keys survive", () => {
+    /*
+     * The search bar's submit hands the viewer a query whose `attributes`
+     * hold only what was typed. The viewer re-applies the chips on top so a
+     * chip the user can see stays true — it wins over a typed value for the
+     * same key — while typed filters on other keys are kept.
+     */
+    const typed: Record<string, unknown> = {
+      attributes: { env: "typed", "http.method": "GET" },
+      severityText: "Warning",
+    };
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      typed as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({
+        "attributes.env": ["chip"],
+        "attributes.k8s.namespace": ["payments"],
+        severityText: ["Error"],
+      }),
+    );
+
+    expect(typed["attributes"]).toEqual({
+      env: "chip",
+      "http.method": "GET",
+      "k8s.namespace": "payments",
+    });
+    expect(typed["severityText"]).toBe("Error");
+  });
+
   test("a body chip never becomes an Includes set", () => {
     const query: Record<string, unknown> = {};
 

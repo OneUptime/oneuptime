@@ -7,14 +7,22 @@ import {
   test,
 } from "@jest/globals";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
+import Log from "Common/Models/AnalyticsModels/Log";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
+  applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  pickTypedLogFilter,
+  preserveBaseAttributesInTypedFilter,
   RESOURCE_FACET_KEYS,
+  serializeTypedLogFilter,
+  TYPED_LOG_FILTER_KEYS,
 } from "../../FeatureSet/Dashboard/src/Components/Logs/LogsHistogramRequest";
 
 const NOW: Date = new Date("2026-08-05T12:00:00.000Z");
@@ -511,5 +519,463 @@ describe("buildLogsHistogramRequest - attribute chips reach the chart", () => {
 
     expect(request["attributes"]).toBeUndefined();
     expect(request["severityTexts"]).toEqual(["Error"]);
+  });
+});
+
+/*
+ * What the search bar typed reaches the list through the viewer's
+ * filterOptions and nowhere else. These pin that the chart (and, through the
+ * same helper, the facets) is built over the same rows the list shows —
+ * before this, a pasted `@attr:value` narrowed the list while the chart
+ * above it kept counting every row the page pinned.
+ */
+describe("typed search on the histogram request", () => {
+  beforeEach(() => {
+    freezeClock();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("an absent or irrelevant typed filter changes nothing", () => {
+    /*
+     * Against a literal, not against another build() of the same params —
+     * two identical calls agree even when both are wrong.
+     */
+    const withoutKey: JSONObject = buildLogsHistogramRequest({
+      timeRange: PAST_ONE_HOUR,
+      appliedFacetFilters: facets({ severityText: ["Error"] }),
+    });
+
+    const expected: JSONObject = {
+      startTime: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
+      endTime: NOW.toISOString(),
+      severityTexts: ["Error"],
+    };
+
+    expect(withoutKey).toEqual(expected);
+    expect(
+      build({
+        appliedFacetFilters: facets({ severityText: ["Error"] }),
+        typedFilter: undefined,
+      }),
+    ).toEqual(expected);
+    expect(
+      build({
+        appliedFacetFilters: facets({ severityText: ["Error"] }),
+        typedFilter: {},
+      }),
+    ).toEqual(expected);
+    expect(
+      build({
+        appliedFacetFilters: facets({ severityText: ["Error"] }),
+        typedFilter: { time: new InBetween<Date>(NOW, NOW), unknown: "x" },
+      }),
+    ).toEqual(expected);
+  });
+
+  test("typed attributes merge over the base and chip attributes, typed keys winning", () => {
+    const request: JSONObject = build({
+      attributes: { pinned: "yes", shared: "base" } as never,
+      appliedFacetFilters: facets({ "attributes.chip": ["c"] }),
+      typedFilter: {
+        attributes: { typed: "t", shared: "typed" },
+      },
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["pinned"]).toBe("yes");
+    expect(attributes["chip"]).toBe("c");
+    expect(attributes["typed"]).toBe("t");
+    expect(attributes["shared"]).toBe("typed");
+  });
+
+  test("a typed operator attribute passes through as the operator instance", () => {
+    const includes: Includes = new Includes(["a", "b"]);
+    const request: JSONObject = build({
+      typedFilter: { attributes: { k: includes } },
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["k"]).toBe(includes);
+  });
+
+  test("typed severity, service, trace, span and session REPLACE the request's — a typed column is a drill-down, as it is for the list", () => {
+    const request: JSONObject = build({
+      serviceIds: ["base-service"],
+      traceIds: ["base-trace"],
+      typedFilter: {
+        severityText: "Error",
+        primaryEntityId: new Includes(["s-1", "s-2"]),
+        traceId: "t-1",
+        spanId: new Includes(["sp-1"]),
+        sessionId: "sess-1",
+      },
+    });
+
+    expect(request["severityTexts"]).toEqual(["Error"]);
+    expect(request["serviceIds"]).toEqual(["s-1", "s-2"]);
+    expect(request["traceIds"]).toEqual(["t-1"]);
+    expect(request["spanIds"]).toEqual(["sp-1"]);
+    expect(request["sessionIds"]).toEqual(["sess-1"]);
+  });
+
+  test("a typed body Search becomes bodySearchText; a plain-string body (an equality) is left to the list", () => {
+    expect(
+      build({ typedFilter: { body: new Search("out of memory") } })[
+        "bodySearchText"
+      ],
+    ).toBe("out of memory");
+    /*
+     * `message:timeout` compiles to `body = 'timeout'`. The aggregate
+     * endpoints only know a contains-match, which would count every line
+     * containing the word above a table that shows the exact ones — so it
+     * is not forwarded at all.
+     */
+    expect(
+      build({ typedFilter: { body: "connection refused" } })["bodySearchText"],
+    ).toBeUndefined();
+    expect(
+      build({ typedFilter: { body: new Search("   ") } })["bodySearchText"],
+    ).toBeUndefined();
+  });
+
+  test("a typed body that is neither a Search nor a string is ignored", () => {
+    expect(
+      build({ typedFilter: { body: ["a", "b"] } })["bodySearchText"],
+    ).toBeUndefined();
+  });
+
+  test("an operator the aggregate endpoints cannot express is left to the list", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ severityText: ["Error"] }),
+      typedFilter: { severityText: { _type: "NotEqual", value: "Debug" } },
+    });
+
+    // The chip's own severity stays; the negation is neither applied nor lost as a crash.
+    expect(request["severityTexts"]).toEqual(["Error"]);
+  });
+
+  test("time, entityScope and unknown keys of the list query are ignored", () => {
+    const request: JSONObject = build({
+      typedFilter: {
+        time: new InBetween<Date>(NOW, NOW),
+        entityScope: {
+          entityKeys: ["k"],
+          attributeKey: "a",
+          attributeValue: "v",
+        },
+        somethingElse: "x",
+      },
+    });
+
+    expect(request).toEqual(build());
+  });
+});
+
+describe("applyTypedLogFilterToRequest", () => {
+  test("mutates and returns the request it was given", () => {
+    const request: JSONObject = { startTime: "a", endTime: "b" };
+
+    expect(
+      applyTypedLogFilterToRequest(request, { severityText: "Error" }),
+    ).toBe(request);
+    expect(request["severityTexts"]).toEqual(["Error"]);
+  });
+
+  test("tolerates a missing or non-object typed filter", () => {
+    expect(applyTypedLogFilterToRequest({}, undefined)).toEqual({});
+    expect(applyTypedLogFilterToRequest({}, "nope" as never)).toEqual({});
+    expect(applyTypedLogFilterToRequest({}, { attributes: ["x"] })).toEqual({});
+  });
+});
+
+/*
+ * The search bar's submit spreads its parsed filter over the current query,
+ * and a parsed `@attr:value` arrives as a FRESH `attributes` object — so on a
+ * page scoped by attribute alone (a Docker host, a pod) one typed attribute
+ * search replaced the page's scope in the list while the locked chip above
+ * it still claimed it.
+ */
+describe("preserveBaseAttributesInTypedFilter", () => {
+  test("the page's pinned attributes are kept under the typed ones", () => {
+    const typed: Query<Log> = {
+      attributes: { "http.status_code": "500" },
+      severityText: "Error",
+    } as unknown as Query<Log>;
+
+    const merged: Query<Log> = preserveBaseAttributesInTypedFilter(typed, {
+      "resource.host.name": "web-01",
+      "resource.container.runtime": "docker",
+    });
+
+    expect((merged as Record<string, unknown>)["attributes"]).toEqual({
+      "resource.host.name": "web-01",
+      "resource.container.runtime": "docker",
+      "http.status_code": "500",
+    });
+    // Everything else the bar produced is untouched.
+    expect((merged as Record<string, unknown>)["severityText"]).toBe("Error");
+    // The input is not mutated.
+    expect((typed as Record<string, unknown>)["attributes"]).toEqual({
+      "http.status_code": "500",
+    });
+  });
+
+  test("a typed key with the same name as a pinned one wins — the drill-down precedence chips have", () => {
+    const merged: Query<Log> = preserveBaseAttributesInTypedFilter(
+      {
+        attributes: { "resource.host.name": "web-02" },
+      } as unknown as Query<Log>,
+      { "resource.host.name": "web-01" },
+    );
+
+    expect((merged as Record<string, unknown>)["attributes"]).toEqual({
+      "resource.host.name": "web-02",
+    });
+  });
+
+  test("a submit that typed no attributes at all still restores the pinned ones", () => {
+    const merged: Query<Log> = preserveBaseAttributesInTypedFilter(
+      { severityText: "Error" } as unknown as Query<Log>,
+      { "resource.host.name": "web-01" },
+    );
+
+    expect((merged as Record<string, unknown>)["attributes"]).toEqual({
+      "resource.host.name": "web-01",
+    });
+  });
+
+  test("with nothing pinned the filter is returned as-is", () => {
+    const typed: Query<Log> = {
+      attributes: { k: "v" },
+    } as unknown as Query<Log>;
+
+    expect(preserveBaseAttributesInTypedFilter(typed, undefined)).toBe(typed);
+    expect(preserveBaseAttributesInTypedFilter(typed, {})).toBe(typed);
+  });
+});
+
+/*
+ * Two filters on one attribute key (`@k:a* @k:*b`, or a mixed chip group)
+ * compile to an ARRAY of operators, which the list evaluates one by one but
+ * the aggregate endpoints read as `IN (...)` — and an operator stringified
+ * into an IN list is '[object Object]', a chart of nothing under a table of
+ * rows. Such a value is left to the list on both paths.
+ */
+describe("attribute values the aggregate endpoints cannot express", () => {
+  beforeEach(() => {
+    freezeClock();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("a typed array of operators on one key is not forwarded", () => {
+    const request: JSONObject = build({
+      attributes: { pinned: "yes" } as never,
+      typedFilter: {
+        attributes: {
+          "http.route": [new Wildcard(["/api%"]), new Wildcard(["%users"])],
+          env: "prod",
+        },
+      },
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["http.route"]).toBeUndefined();
+    // The keys that CAN be expressed still travel.
+    expect(attributes["env"]).toBe("prod");
+    expect(attributes["pinned"]).toBe("yes");
+  });
+
+  test("a mixed chip group (glob + contains) on one key is not forwarded either", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({
+        "attributes.http.route": ["/api*", "~users"],
+        "attributes.env": ["prod"],
+      }),
+    });
+    const attributes: JSONObject = request["attributes"] as JSONObject;
+
+    expect(attributes["http.route"]).toBeUndefined();
+    expect(attributes["env"]).toBe("prod");
+  });
+
+  test("a typed array on the ONLY key sends no attributes field at all", () => {
+    const request: JSONObject = build({
+      typedFilter: {
+        attributes: { k: [new Search("a"), new Search("b")] },
+      },
+    });
+
+    expect(request["attributes"]).toBeUndefined();
+  });
+});
+
+/*
+ * Host / cluster chips ride `resourceFilters` on the list query. The facets
+ * endpoint resolves the same field, so forwarding it is what lets a cluster
+ * selected in the sidebar scope the sidebar's own counts.
+ */
+describe("resource filters on the typed filter", () => {
+  test("resourceFilters are forwarded verbatim", () => {
+    const request: JSONObject = applyTypedLogFilterToRequest(
+      {},
+      {
+        resourceFilters: {
+          kubernetesClusterId: ["cluster-1"],
+          hostId: ["host-1", "host-2"],
+        },
+      },
+    );
+
+    expect(request["resourceFilters"]).toEqual({
+      kubernetesClusterId: ["cluster-1"],
+      hostId: ["host-1", "host-2"],
+    });
+  });
+
+  test("an empty, array-shaped or missing resourceFilters leaves the request alone", () => {
+    expect(
+      applyTypedLogFilterToRequest({}, { resourceFilters: {} })[
+        "resourceFilters"
+      ],
+    ).toBeUndefined();
+    expect(
+      applyTypedLogFilterToRequest({}, { resourceFilters: ["x"] })[
+        "resourceFilters"
+      ],
+    ).toBeUndefined();
+    expect(
+      applyTypedLogFilterToRequest({}, {})["resourceFilters"],
+    ).toBeUndefined();
+  });
+
+  test("typed resourceFilters replace the chip-derived ones on the histogram (they are the same chips, compiled)", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ kubernetesClusterId: ["cluster-1"] }),
+      typedFilter: {
+        resourceFilters: { kubernetesClusterId: ["cluster-1"] },
+      },
+    });
+
+    expect(request["resourceFilters"]).toEqual({
+      kubernetesClusterId: ["cluster-1"],
+    });
+  });
+});
+
+/*
+ * The aggregate fetchers are keyed on the SLICE of the list query they read,
+ * compared by value — the list query object is rebuilt on every base-scope
+ * pass, and keying on it refetched the chart and the facets twice per mount
+ * and once with the previous scope on every host prop change.
+ */
+describe("pickTypedLogFilter / serializeTypedLogFilter", () => {
+  test("picks exactly the keys applyTypedLogFilterToRequest reads", () => {
+    expect(TYPED_LOG_FILTER_KEYS).toEqual([
+      "attributes",
+      "severityText",
+      "primaryEntityId",
+      "traceId",
+      "spanId",
+      "sessionId",
+      "body",
+      "resourceFilters",
+    ]);
+
+    const includes: Includes = new Includes(["s-1"]);
+    /*
+     * Typed as a plain record: contextually typing this literal against
+     * Query<Log> is the TS2589 deep-instantiation the viewers sidestep the
+     * same way, and the picker accepts either shape.
+     */
+    const listQuery: Record<string, unknown> = {
+      attributes: { k: "v" },
+      primaryEntityId: includes,
+      time: new InBetween<Date>(NOW, NOW),
+      entityScope: {
+        entityKeys: ["e"],
+        attributeKey: "a",
+        attributeValue: "v",
+      },
+      resourceFilters: { hostId: ["h"] },
+    };
+    const picked: Record<string, unknown> | undefined =
+      pickTypedLogFilter(listQuery);
+
+    expect(picked).toEqual({
+      attributes: { k: "v" },
+      primaryEntityId: includes,
+      resourceFilters: { hostId: ["h"] },
+    });
+    // The same instance, so the request carries the real operator.
+    expect(picked!["primaryEntityId"]).toBe(includes);
+  });
+
+  test("nothing aggregate-relevant picks as undefined and serializes as the empty key", () => {
+    expect(pickTypedLogFilter({ time: new InBetween<Date>(NOW, NOW) })).toBe(
+      undefined,
+    );
+    expect(pickTypedLogFilter(undefined)).toBeUndefined();
+    expect(pickTypedLogFilter("nope" as never)).toBeUndefined();
+    expect(
+      serializeTypedLogFilter({ time: new InBetween<Date>(NOW, NOW) }),
+    ).toBe("");
+    expect(serializeTypedLogFilter(undefined)).toBe("");
+  });
+
+  test("equal content is the same key however many times the query was rebuilt", () => {
+    // Plain records, not Query<Log> literals: see the TS2589 note above.
+    const firstQuery: Record<string, unknown> = {
+      attributes: { k: "v" },
+      primaryEntityId: new Includes(["s-1", "s-2"]),
+      body: new Search("boom"),
+      time: new InBetween<Date>(NOW, NOW),
+    };
+    const rebuiltQuery: Record<string, unknown> = {
+      attributes: { k: "v" },
+      primaryEntityId: new Includes(["s-1", "s-2"]),
+      body: new Search("boom"),
+      time: new InBetween<Date>(new Date(0), new Date(1)),
+    };
+    const first: string = serializeTypedLogFilter(firstQuery);
+    const rebuilt: string = serializeTypedLogFilter(rebuiltQuery);
+
+    expect(rebuilt).toBe(first);
+    expect(first.length).toBeGreaterThan(0);
+  });
+
+  test("a change in what would be sent is a different key", () => {
+    const base: Record<string, unknown> = {
+      attributes: { k: "v" },
+      primaryEntityId: new Includes(["s-1"]),
+    };
+
+    expect(
+      serializeTypedLogFilter({
+        ...base,
+        primaryEntityId: new Includes(["s-2"]),
+      }),
+    ).not.toBe(serializeTypedLogFilter(base));
+    expect(
+      serializeTypedLogFilter({ ...base, attributes: { k: "w" } }),
+    ).not.toBe(serializeTypedLogFilter(base));
+    expect(
+      serializeTypedLogFilter({ ...base, severityText: "Error" }),
+    ).not.toBe(serializeTypedLogFilter(base));
+  });
+
+  test("operators serialize through their wire shape, so the key survives JSON like the request does", () => {
+    const key: string = serializeTypedLogFilter({
+      attributes: { k: new Wildcard(["a%"]) },
+    });
+
+    expect(JSON.parse(key)).toEqual({
+      attributes: { k: { _type: "Wildcard", value: ["a%"] } },
+    });
   });
 });

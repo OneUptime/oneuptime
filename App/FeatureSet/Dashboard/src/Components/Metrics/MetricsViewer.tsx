@@ -68,6 +68,12 @@ import {
   collectMetricsEntityLookup,
   getMetricsAppliedEntityFilterIds,
 } from "../../Utils/MetricsEntityChipDisplay";
+import { buildLockedScopeCopyText } from "../../Utils/LockedTelemetryScope";
+import {
+  LockedScopeExplorerLink,
+  buildLockedScopeExplorerLink,
+} from "../../Utils/LockedTelemetryScopeLink";
+import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
@@ -1325,6 +1331,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       attributeFilters: props.attributeFilters,
       attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: props.attributeFilterDisplayValues,
+      entityScope: props.entityScope,
       activeFilters,
       facetConfigs,
       nameMap: entityNameMap,
@@ -1335,10 +1342,54 @@ const MetricsViewer: FunctionComponent<Props> = (
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
+    props.entityScope,
     activeFilters,
     facetConfigs,
     entityNameMap,
   ]);
+
+  /*
+   * "Copy filter" / "Open in Metrics" for the chips the page pinned. Only
+   * the locked chips travel: the user's own chips already live in this
+   * explorer's URL, and the main /metrics page has no locked chips at all,
+   * so there the group never renders. The link resolves the current route
+   * and project; a host that cannot (a preview outside the dashboard shell)
+   * still gets the copyable text.
+   */
+  const lockedFilterActions: LockedFilterActionOptions | undefined =
+    useMemo(() => {
+      const lockedChips: Array<ActiveFilter> = mergedActiveFilters.filter(
+        (chip: ActiveFilter): boolean => {
+          return Boolean(chip.readOnly);
+        },
+      );
+
+      if (lockedChips.length === 0) {
+        return undefined;
+      }
+
+      const copyText: string = buildLockedScopeCopyText("metrics", lockedChips);
+
+      try {
+        const link: LockedScopeExplorerLink = buildLockedScopeExplorerLink({
+          signal: "metrics",
+          filters: lockedChips.map(
+            (chip: ActiveFilter): { facetKey: string; value: string } => {
+              return { facetKey: chip.facetKey, value: chip.value };
+            },
+          ),
+          timeRange,
+        });
+
+        return {
+          copyText,
+          openExplorerRoute: link.url,
+          notCarried: link.notCarried,
+        };
+      } catch {
+        return { copyText };
+      }
+    }, [mergedActiveFilters, timeRange]);
 
   // Row click → navigate to metric viewer
   const handleRowClick: (metric: MetricType) => void = useCallback(
@@ -1626,6 +1677,8 @@ const MetricsViewer: FunctionComponent<Props> = (
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
+      lockedFilterSignal="metrics"
+      lockedFilterActions={lockedFilterActions}
       // No top histogram for metrics
       showHistogram={false}
       // Pagination
