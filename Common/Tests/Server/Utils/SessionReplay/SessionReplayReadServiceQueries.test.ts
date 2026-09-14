@@ -33,6 +33,7 @@ import {
   SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
 } from "../../../../Types/Rum/SessionReplay";
 import { SessionReplaySortBy } from "../../../../Types/Rum/SessionReplayApi";
+import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -2693,6 +2694,234 @@ describe("SessionReplayReadService statements", () => {
       const headers: Statement = statementOf(headerQuerySpy);
       expect(whereSection(headers.query)).toContain("AND sessionId = ");
       expect(boundValues(headers)).toContain("s-9");
+    });
+
+    test("binds both live-instance and finalized-header RUM matches to the exception application", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "scoped-live-session" }]) as never,
+      );
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "shared-fingerprint",
+        primaryEntityId: primaryEntityId,
+        primaryEntityType: ServiceType.RealUserMonitor,
+        accessibleRumApplicationIds: null,
+        limit: 5,
+      });
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).toContain("AND primaryEntityType = ");
+      expect(boundValues(instances)).toContain(primaryEntityId.toString());
+      expect(boundValues(instances)).toContain(ServiceType.RealUserMonitor);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const where: string = whereSection(headers.query);
+      expect(where).toMatch(/AND rumApplicationId = \{p\d+:String\}/);
+      expect(where).toContain("hasAny(exceptionFingerprints");
+      expect(where).toContain("OR sessionId IN (");
+      expect(headers.query).toContain(
+        "HAVING (hasAny(aggExceptionFingerprints",
+      );
+      expect(boundValues(headers)).toContain(primaryEntityId.toString());
+      expect(boundValues(headers)).toContainEqual(["scoped-live-session"]);
+    });
+
+    test("a scoped backend exception admits only instance-proven sessions", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "backend-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "backend-session",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+            matchedApplicationCount: 1,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]?.sessionId).toBe("backend-session");
+      expect(sessions[0]?.rumApplicationId).toBe(rumApplicationId.toString());
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).toContain(
+        "ifNull(primaryEntityType, '') = '' OR primaryEntityType = ",
+      );
+      expect(boundValues(instances)).toContain(ServiceType.OpenTelemetry);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(whereSection(headers.query)).toContain("sessionId IN (");
+      expect(headers.query).not.toContain("hasAny(exceptionFingerprints");
+      expect(headers.query).not.toContain("hasAny(aggExceptionFingerprints");
+      expect(boundValues(headers)).toContainEqual(["backend-session"]);
+    });
+
+    test("an id-only legacy scope uses the same conservative instance and ambiguity guards", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "legacy-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "legacy-session",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+            matchedApplicationCount: 1,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toHaveLength(1);
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).not.toContain("AND primaryEntityType = ");
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(headers.query).not.toContain("hasAny(exceptionFingerprints");
+      expect(headers.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(headers.query).toContain("QUALIFY matchedApplicationCount = 1");
+    });
+
+    test("rejects a scoped backend session id shared by two applications before authorization and limit", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+      const accessibleApplicationId: ObjectID = ObjectID.generate();
+      const startTime: Date = new Date("2026-08-14T10:00:00.000Z");
+      const endTime: Date = new Date("2026-08-14T11:00:00.000Z");
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "colliding-session" }]) as never,
+      );
+      /* The selected pre-limit window count also makes the mapper fail closed. */
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "colliding-session",
+            applicationId: accessibleApplicationId.toString(),
+            aggStartTime: startTime.getTime(),
+            matchedApplicationCount: 2,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: [accessibleApplicationId],
+          startTime: startTime,
+          endTime: endTime,
+          limit: 1,
+        });
+
+      expect(sessions).toEqual([]);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const where: string = whereSection(headers.query);
+      const qualifyIndex: number = headers.query.indexOf(
+        "QUALIFY matchedApplicationCount = 1",
+      );
+      const authorizationIndex: number = headers.query.indexOf(
+        "rumApplicationId IN (",
+      );
+      const orderIndex: number = headers.query.indexOf("ORDER BY");
+      const limitIndex: number = headers.query.indexOf("LIMIT");
+
+      expect(headers.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(where).not.toContain("rumApplicationId IN (");
+      expect(where).not.toContain("startTime >= ");
+      expect(headers.query).toMatch(/aggStartTime >= \{p\d+:Int64\}/);
+      expect(headers.query).toMatch(/aggStartTime <= \{p\d+:Int64\}/);
+      expect(qualifyIndex).toBeGreaterThan(headers.query.indexOf("GROUP BY"));
+      expect(authorizationIndex).toBeGreaterThan(qualifyIndex);
+      expect(orderIndex).toBeGreaterThan(authorizationIndex);
+      expect(limitIndex).toBeGreaterThan(orderIndex);
+      expect(boundValues(headers)).toContainEqual([
+        accessibleApplicationId.toString(),
+      ]);
+      expect(boundValues(headers)).toContain(startTime.getTime());
+      expect(boundValues(headers)).toContain(endTime.getTime());
+    });
+
+    test("a scoped backend exception with no proven session fails closed", async () => {
+      exceptionQuerySpy.mockResolvedValue(fakeResultSet([]) as never);
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityId: ObjectID.generate(),
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toEqual([]);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects a type without an id or an invalid entity type before querying", async () => {
+      await expect(
+        SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+
+      await expect(
+        SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityId: ObjectID.generate(),
+          primaryEntityType: "invalid" as ServiceType,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+
+      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
     test("a pinned session the instance table has never seen falls back to the fingerprint alone", async () => {

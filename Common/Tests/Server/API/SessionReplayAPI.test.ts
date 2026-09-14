@@ -42,6 +42,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import UserType from "../../../Types/UserType";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import zlib from "zlib";
 import {
   afterEach,
@@ -4683,6 +4684,183 @@ describe("Session replay playback API", () => {
 
       expect(statement.query).not.toContain("rumApplicationId IN (");
       expect(findBySpy).not.toHaveBeenCalled();
+    });
+
+    test("validates entity scope and refuses a type without an id", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const bad: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: "not-an-id",
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+      });
+
+      expect(bad.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+
+      for (const body of [
+        {
+          fingerprint: "fp-1",
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+        {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+          primaryEntityType: "not-a-service-type",
+        },
+      ]) {
+        jest.clearAllMocks();
+        mockProps(principal.databaseProps);
+
+        const result: CallResult = await callRoute({
+          uri: FOR_EXCEPTION_ROUTE,
+          request: principal.request,
+          body: body,
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+        expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      }
+    });
+
+    test("accepts a legacy id-only scope in conservative scoped-unknown mode", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "legacy-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "legacy-session",
+            applicationId: applicationAId.toString(),
+            matchedApplicationCount: 2,
+          },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("AND primaryEntityId = ");
+      expect(instanceStatement.query).not.toContain("AND primaryEntityType = ");
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(headerStatement.query).toContain(
+        "QUALIFY matchedApplicationCount = 1",
+      );
+      expect(headerStatement.query).not.toContain(
+        "hasAny(exceptionFingerprints",
+      );
+      expect(result.jsonBody?.["sessions"]).toEqual([]);
+    });
+
+    test("an id-only scope with no instance proof performs no header lookup", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["sessions"]).toEqual([]);
+      expect(exceptionQuerySpy).toHaveBeenCalledTimes(1);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("applies both parts of a RUM exception's primary-entity scope", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+      });
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("AND primaryEntityId = ");
+      expect(instanceStatement.query).toContain("AND primaryEntityType = ");
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        ServiceType.RealUserMonitor,
+      );
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain("rumApplicationId = ");
+      expect(Object.values(headerStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
     });
 
     test("projects the frustration counters and masking mode the replay card renders", async () => {

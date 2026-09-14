@@ -39,6 +39,7 @@ import {
 } from "../../../Types/Rum/SessionReplayApi";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 
 /*
  * Bespoke ClickHouse reads for session-replay playback.
@@ -2636,14 +2637,28 @@ export default class SessionReplayReadService {
    * fingerprint present only on a superseded row does not produce a false
    * positive.
    *
-   * Always windowed. RumSession is partitioned by day, so without a
-   * window this scanned every partition the project ever wrote on every
-   * exception page load.
+   * Typed RUM and fully unscoped legacy lookups are windowed in WHERE for
+   * partition pruning. Scoped non-RUM and ID-only type-unknown lookups apply
+   * the window in QUALIFY: their instance-proven session ids must first be
+   * checked across every retained application in the project so a duplicate
+   * id cannot be hidden outside the caller's time or authorization scope.
    */
   @CaptureSpan()
   public static async getSessionsForException(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    /*
+     * Exception fingerprints are unique per primary entity, not per project.
+     * Keep this optional for older callers, but exception pages should always
+     * provide it so neither the live side index nor finalized headers can mix
+     * identically fingerprinted groups from different services.
+     */
+    primaryEntityId?: ObjectID | undefined;
+    /*
+     * Identifies the owning entity table. ID-only is accepted as a rolling
+     * compatibility mode and uses the conservative scoped-unknown branch.
+     */
+    primaryEntityType?: ServiceType | undefined;
     /*
      * null means "no label restriction". An EMPTY array means the caller
      * can reach no applications at all and must get no rows - the two are
@@ -2657,6 +2672,20 @@ export default class SessionReplayReadService {
     sessionId?: string | undefined;
     limit: number;
   }): Promise<Array<SessionReplayExceptionSession>> {
+    const hasPrimaryEntityId: boolean = data.primaryEntityId !== undefined;
+    const hasPrimaryEntityType: boolean = data.primaryEntityType !== undefined;
+
+    if (!hasPrimaryEntityId && hasPrimaryEntityType) {
+      throw new BadDataException("primaryEntityId is required with its type");
+    }
+
+    if (
+      data.primaryEntityType !== undefined &&
+      !Object.values(ServiceType).includes(data.primaryEntityType)
+    ) {
+      throw new BadDataException("primaryEntityType is not valid");
+    }
+
     if (
       data.accessibleRumApplicationIds &&
       data.accessibleRumApplicationIds.length === 0
@@ -2681,10 +2710,27 @@ export default class SessionReplayReadService {
       await SessionReplayReadService.getSessionIdsForExceptionInstances({
         projectId: data.projectId,
         exceptionFingerprint: data.exceptionFingerprint,
+        primaryEntityId: data.primaryEntityId,
+        primaryEntityType: data.primaryEntityType,
         startTime: startTime,
         endTime: endTime,
         sessionId: data.sessionId,
       });
+
+    const isScopedRumException: boolean =
+      data.primaryEntityType === ServiceType.RealUserMonitor;
+    const isScopedNonRumOrUnknownException: boolean =
+      hasPrimaryEntityId && !isScopedRumException;
+
+    /*
+     * A finalized replay header has only a flat fingerprint list. For a
+     * non-RUM or legacy type-unknown entity that list cannot prove ownership,
+     * so only the scoped instance side index may admit a session. Failure or
+     * an empty lookup must therefore fail closed.
+     */
+    if (isScopedNonRumOrUnknownException && instanceSessionIds.length === 0) {
+      return [];
+    }
 
     const selectList: string = toSelectList([
       { alias: "aggStartTime", expression: argMaxDateTime("startTime") },
@@ -2735,6 +2781,13 @@ export default class SessionReplayReadService {
 
     statement.append(`    ${selectList}`);
 
+    if (isScopedNonRumOrUnknownException) {
+      /* One grouped row per application makes this a cross-app collision count. */
+      statement.append(
+        ", count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+    }
+
     statement.append(SQL`
       FROM ${AnalyticsTableName.RumSession}
       WHERE projectId = ${{
@@ -2743,7 +2796,12 @@ export default class SessionReplayReadService {
       }}
     `);
 
-    if (data.accessibleRumApplicationIds) {
+    /*
+     * For non-RUM and legacy type-unknown exceptions, authorization belongs
+     * in QUALIFY after the window has counted inaccessible applications too.
+     * Applying it here would make an ambiguous id appear unique.
+     */
+    if (!isScopedNonRumOrUnknownException && data.accessibleRumApplicationIds) {
       statement.append(
         SQL` AND rumApplicationId IN (${{
           type: TableColumnType.ObjectID,
@@ -2752,15 +2810,17 @@ export default class SessionReplayReadService {
       );
     }
 
-    statement.append(
-      SQL` AND startTime >= ${{
-        type: TableColumnType.DateTime64,
-        value: startTime,
-      }} AND startTime <= ${{
-        type: TableColumnType.DateTime64,
-        value: endTime,
-      }}`,
-    );
+    if (!isScopedNonRumOrUnknownException) {
+      statement.append(
+        SQL` AND startTime >= ${{
+          type: TableColumnType.DateTime64,
+          value: startTime,
+        }} AND startTime <= ${{
+          type: TableColumnType.DateTime64,
+          value: endTime,
+        }}`,
+      );
+    }
 
     statement.append(RETENTION_FILTER);
 
@@ -2773,14 +2833,35 @@ export default class SessionReplayReadService {
       );
     }
 
-    statement.append(
-      SQL` AND (hasAny(exceptionFingerprints, [${{
-        type: TableColumnType.Text,
-        value: data.exceptionFingerprint,
-      }}])`,
-    );
+    if (isScopedRumException && data.primaryEntityId) {
+      /* Both finalized fingerprints and instance-proven ids stay in this RUM app. */
+      statement.append(
+        SQL` AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
 
-    if (instanceSessionIds.length > 0) {
+    statement.append(" AND (");
+
+    if (isScopedNonRumOrUnknownException) {
+      statement.append(
+        SQL`sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(instanceSessionIds),
+        }})`,
+      );
+    } else {
+      statement.append(
+        SQL`hasAny(exceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+    }
+
+    if (!isScopedNonRumOrUnknownException && instanceSessionIds.length > 0) {
       statement.append(
         SQL` OR sessionId IN (${{
           type: TableColumnType.Text,
@@ -2791,24 +2872,52 @@ export default class SessionReplayReadService {
 
     statement.append(")");
 
-    statement.append(
-      SQL` GROUP BY projectId, rumApplicationId, sessionId
-           HAVING (hasAny(aggExceptionFingerprints, [${{
-             type: TableColumnType.Text,
-             value: data.exceptionFingerprint,
-           }}])`,
-    );
+    statement.append(" GROUP BY projectId, rumApplicationId, sessionId");
 
-    if (instanceSessionIds.length > 0) {
+    if (isScopedNonRumOrUnknownException) {
+      /*
+       * Windowing happens over every application before either the time
+       * window or accessible-app filter is applied. QUALIFY also precedes
+       * ORDER/LIMIT, so a second application can never be sorted away.
+       */
+      statement.append(" QUALIFY matchedApplicationCount = 1");
       statement.append(
-        SQL` OR sessionId IN (${{
-          type: TableColumnType.Text,
-          value: new Includes(instanceSessionIds),
-        }})`,
+        SQL` AND aggStartTime >= ${{
+          type: TableColumnType.BigNumber,
+          value: startTime.getTime(),
+        }} AND aggStartTime <= ${{
+          type: TableColumnType.BigNumber,
+          value: endTime.getTime(),
+        }}`,
       );
-    }
 
-    statement.append(")");
+      if (data.accessibleRumApplicationIds) {
+        statement.append(
+          SQL` AND rumApplicationId IN (${{
+            type: TableColumnType.ObjectID,
+            value: new Includes(data.accessibleRumApplicationIds),
+          }})`,
+        );
+      }
+    } else {
+      statement.append(" HAVING (");
+      statement.append(
+        SQL`hasAny(aggExceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+      if (instanceSessionIds.length > 0) {
+        statement.append(
+          SQL` OR sessionId IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(instanceSessionIds),
+          }})`,
+        );
+      }
+
+      statement.append(")");
+    }
 
     statement.append(
       SQL` ORDER BY aggStartTime DESC
@@ -2825,7 +2934,21 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
-    return (response.data || []).map(
+    const responseRows: Array<JSONObject> = (response.data || []).filter(
+      (row: JSONObject): boolean => {
+        /*
+         * QUALIFY is authoritative. Its count was computed over every app
+         * before ORDER/LIMIT, so retaining only count=1 is also a fail-closed
+         * guard if a changed driver ever returns a row that should not survive.
+         */
+        return (
+          !isScopedNonRumOrUnknownException ||
+          readNumber(row, "matchedApplicationCount") === 1
+        );
+      },
+    );
+
+    return responseRows.map(
       (row: JSONObject): SessionReplayExceptionSession => {
         return {
           sessionId: readString(row, "sessionId"),
@@ -2857,9 +2980,10 @@ export default class SessionReplayReadService {
    * session, so a session that started inside the window threw inside
    * [startTime, endTime + max session length].
    *
-   * Best-effort: the side index only ADDS live sessions to the answer, so
-   * a failure here degrades to the finalized-only lookup with a warning
-   * rather than failing the exception page's replay card.
+   * Best-effort for fully unscoped legacy and typed RUM lookups: there it only
+   * ADDS live sessions, so a failure degrades to finalized headers. Scoped
+   * non-RUM and ID-only lookups rely on it as their sole entity-ownership
+   * proof and therefore fail closed.
    *
    * A caller-pinned sessionId narrows the lookup rather than bypassing it,
    * so the pin can never assert that a session threw something the
@@ -2868,6 +2992,8 @@ export default class SessionReplayReadService {
   private static async getSessionIdsForExceptionInstances(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    primaryEntityId?: ObjectID | undefined;
+    primaryEntityType?: ServiceType | undefined;
     startTime: Date;
     endTime: Date;
     sessionId?: string | undefined;
@@ -2895,6 +3021,32 @@ export default class SessionReplayReadService {
           ),
         }}
     `;
+
+    if (data.primaryEntityId) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
+
+    if (data.primaryEntityType === ServiceType.OpenTelemetry) {
+      /* NULL/empty is the historical discriminator for an OTel service. */
+      statement.append(
+        SQL` AND (ifNull(primaryEntityType, '') = '' OR primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (data.primaryEntityType) {
+      statement.append(
+        SQL` AND primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: data.primaryEntityType as string,
+        }}`,
+      );
+    }
 
     /*
      * A pinned sessionId narrows this lookup; it does NOT replace it.
@@ -2945,7 +3097,7 @@ export default class SessionReplayReadService {
         });
     } catch (err: unknown) {
       logger.warn(
-        "SessionReplayReadService: could not look up exception instances by session; answering from finalized headers only",
+        "SessionReplayReadService: could not look up exception instances by session; scoped non-RUM lookups fail closed and other lookups answer from finalized headers only",
       );
       logger.warn(err);
 
