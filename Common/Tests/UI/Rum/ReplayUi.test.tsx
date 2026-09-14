@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   REPLAY_CONTROL_HEIGHT_CLASS,
@@ -13,6 +13,29 @@ import {
   ReplayToolbarDivider,
   getReplaySegmentClassName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
+
+jest.mock("Common/UI/Utils/Translation", () => {
+  return {
+    __esModule: true,
+    default: (): {
+      translateString: (value: string | undefined) => string | undefined;
+    } => {
+      return {
+        translateString: (value: string | undefined): string | undefined => {
+          if (value === "Localized action") {
+            return "Translated action";
+          }
+
+          if (value === "Localized explanation") {
+            return "Translated explanation";
+          }
+
+          return value;
+        },
+      };
+    },
+  };
+});
 
 /*
  * The player's shared chrome.
@@ -88,6 +111,29 @@ describe("ReplayToolButton accessible name", () => {
     });
 
     expect(button).toHaveTextContent("10s");
+  });
+
+  it("translates its visible label and focus-triggered explanation", async () => {
+    render(
+      <ReplayToolButton
+        label="Localized action"
+        tooltip="Localized explanation"
+        onClick={noop}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Translated action",
+    });
+
+    fireEvent.focus(button);
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Translated explanation",
+    );
+    await waitFor((): void => {
+      expect(button).toHaveAttribute("aria-describedby");
+    });
   });
 });
 
@@ -172,6 +218,109 @@ describe("ReplayToolButton disabled state", () => {
     expect(screen.getByRole("button").className).toContain("text-gray-300");
     expect(screen.getByRole("button").className).not.toContain("shadow-sm");
   });
+
+  it("keeps a loading action labelled, busy and inside the shared geometry", () => {
+    let clicks: number = 0;
+
+    render(
+      <ReplayToolButton
+        label="Pin recording"
+        icon={IconProp.Flag}
+        variant="segment"
+        isLoading={true}
+        onClick={(): void => {
+          clicks += 1;
+        }}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Pin recording",
+    });
+    const spinner: Element | null = button.querySelector(".animate-spin");
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.className).toContain(REPLAY_CONTROL_HEIGHT_CLASS);
+    expect(button.className).toContain("rounded-lg");
+    expect(spinner).not.toBeNull();
+
+    fireEvent.click(button);
+    expect(clicks).toBe(0);
+  });
+
+  it("overlays the spinner so an iconless action does not grow while loading", () => {
+    const { rerender } = render(
+      <ReplayToolButton label="Unpin" variant="segment" onClick={noop} />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", { name: "Unpin" });
+    expect(button.className).toContain("px-2.5");
+    expect(button.querySelector(".animate-spin")).toBeNull();
+
+    rerender(
+      <ReplayToolButton
+        label="Unpin"
+        variant="segment"
+        isLoading={true}
+        onClick={noop}
+      />,
+    );
+
+    const loadingButton: HTMLElement = screen.getByRole("button", {
+      name: "Unpin",
+    });
+    const spinner: Element | null =
+      loadingButton.querySelector(".animate-spin");
+    const originalContent: Element | null = loadingButton.querySelector(
+      ":scope > span:not([aria-hidden])",
+    );
+    const loadingOverlay: Element | null = loadingButton.querySelector(
+      ":scope > span[aria-hidden='true']",
+    );
+
+    expect(loadingButton.className).toContain("px-2.5");
+    expect(originalContent?.className).toContain("invisible");
+    expect(spinner).not.toBeNull();
+    expect(loadingOverlay?.className).toContain("absolute");
+  });
+
+  it("gives a disabled tooltip trigger mouse hit-testing, a name and visible keyboard focus", async () => {
+    render(
+      <ReplayToolButton
+        label="Pin recording"
+        tooltip="Keep this recording"
+        isLoading={true}
+        dataTestId="pin"
+        onClick={noop}
+      />,
+    );
+
+    const trigger: HTMLElement = screen.getByTestId("pin-disabled-wrapper");
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Pin recording",
+    });
+
+    expect(trigger).toBe(screen.getByRole("group", { name: "Pin recording" }));
+    expect(trigger).toHaveAttribute("tabindex", "0");
+    expect(trigger.className).toContain("focus-visible:ring-2");
+    expect(button).toHaveClass("pointer-events-none");
+
+    fireEvent.mouseEnter(trigger);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Keep this recording",
+    );
+
+    fireEvent.mouseLeave(trigger);
+    await waitFor((): void => {
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
+
+    fireEvent.focus(trigger);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Keep this recording",
+    );
+  });
 });
 
 describe("ReplayToolButton geometry", () => {
@@ -203,6 +352,27 @@ describe("ReplayToolButton geometry", () => {
 
     rerender(<ReplayToolButton label="Details" onClick={noop} />);
     expect(screen.getByRole("button").className).toContain("px-2.5");
+  });
+
+  it("collapses an icon-and-label action to a named square on small screens", () => {
+    render(
+      <ReplayToolButton
+        label="Details"
+        icon={IconProp.Info}
+        collapseLabelOnSmallScreens={true}
+        onClick={noop}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Details",
+    });
+    const label: HTMLElement = screen.getByText("Details");
+
+    expect(button.className).toContain("w-8");
+    expect(button.className).toContain("sm:w-auto");
+    expect(label.className).toContain("sr-only");
+    expect(label.className).toContain("sm:not-sr-only");
   });
 
   /*
@@ -335,6 +505,23 @@ describe("ReplayButtonGroup", () => {
     expect(
       screen.getByRole("tablist", { name: "Browser tabs" }),
     ).toBeInTheDocument();
+  });
+
+  it("can wrap dense actions without forcing the enclosing card wider", () => {
+    render(
+      <ReplayButtonGroup ariaLabel="Recording actions" canWrap={true}>
+        <ReplayToolButton label="Pin recording" onClick={noop} />
+        <ReplayToolButton label="Copy link" onClick={noop} />
+      </ReplayButtonGroup>,
+    );
+
+    const group: HTMLElement = screen.getByRole("group", {
+      name: "Recording actions",
+    });
+
+    expect(group.className).toContain("max-w-full");
+    expect(group.className).toContain("flex-wrap");
+    expect(group.className).not.toContain("shrink-0");
   });
 });
 

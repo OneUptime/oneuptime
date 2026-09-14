@@ -69,9 +69,11 @@ Like label rules, owner rules apply at creation time only.
 By default a RUM application's telemetry follows the project's retention settings. Two overrides are available per application:
 
 - **Retain Telemetry Data For Days** — a single value for all of this application's telemetry.
-- **Telemetry Data Retention Overrides** — per-pillar values (logs, metrics, traces separately). Anything left unset falls back to the application default, then to the project setting.
+- **Telemetry Data Retention Overrides** — per-pillar values (logs, metrics, traces, and profiles separately). Anything left unset falls back to the application default, then to the project setting.
 
-Session Replay recordings have their **own** retention, set on the application's _Replay Policy_ page and defaulting to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
+Open the application and choose **Settings** to configure both overrides.
+
+Session Replay recordings have their **own** retention on that Settings page and on the application's _Replay Policy_ page. Both controls update the same policy, which defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 
 RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.
 

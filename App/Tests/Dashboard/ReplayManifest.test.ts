@@ -106,6 +106,7 @@ function fullResponse(): JSONObject {
       maskingMode: "mask-all-text",
       consentState: "granted",
       triggerReason: "always",
+      recorderKind: "rn-view-tree",
       recorderVersion: "1.4.0",
       rrwebVersion: "2.1.1",
       fidelityNotices: ["fonts-not-captured"],
@@ -195,6 +196,11 @@ describe("parseManifest with the current server", () => {
     expect(manifest.isChunkIndexTruncated).toBe(false);
   });
 
+  test("preserves the recorder kind for the player shell and details panel", () => {
+    expect(manifest.recorderKind).toBe("rn-view-tree");
+    expect(manifest.details.recorderKind).toBe("rn-view-tree");
+  });
+
   test("orders tabs by where their footage starts and puts chunkless tabs last", () => {
     expect(
       manifest.tabs.map((tab: SessionReplayManifestTab): string => {
@@ -263,6 +269,7 @@ describe("parseManifest with an older server", () => {
     "identifiedUserKey",
     "visitorId",
     "recorderCapabilities",
+    "recorderKind",
     "routes",
   ]) {
     delete header[key];
@@ -304,6 +311,8 @@ describe("parseManifest with an older server", () => {
     expect(manifest.tags).toEqual({});
     expect(manifest.recorderCapabilities).toEqual([]);
     expect(manifest.routes).toEqual([]);
+    expect(manifest.recorderKind).toBe("");
+    expect(manifest.details.recorderKind).toBe("");
   });
 
   test("derives firstChunkStartOffsetMs from the first chunk row", () => {

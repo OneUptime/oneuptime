@@ -20,7 +20,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { SessionReplayUsersCursorDto } from "Common/Types/Rum/SessionReplayApi";
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import Pagination from "Common/UI/Components/Pagination/Pagination";
 import Table from "Common/UI/Components/Table/Table";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -396,12 +395,13 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
   },
-  { title: "Actions", key: "lastSessionId" },
+  { title: "Actions", key: "lastSessionId", type: FieldType.Actions },
 ].map(
   (
     column: {
       title: string;
       key: string | null;
+      type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
     },
@@ -410,7 +410,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     return {
       ...column,
       key: column.key as keyof SessionReplayUsersTableRow | null,
-      type: FieldType.Element,
+      type: column.type || FieldType.Element,
       disableSort: true,
       getElement: (row: SessionReplayUsersTableRow): ReactElement => {
         return row.cells[index] as ReactElement;
@@ -592,9 +592,11 @@ const SessionReplayUsersTable: FunctionComponent<
           SESSION_REPLAY_USERS_PAGE_SIZE * (pageNumber - 1) + rows.length
         }
         itemsOnPage={SESSION_REPLAY_USERS_PAGE_SIZE}
-        disablePagination={true}
-        onNavigateToPage={(): void => {
-          /* Cursor pagination is rendered below. */
+        itemsOnPageOptions={[SESSION_REPLAY_USERS_PAGE_SIZE]}
+        hasMore={hasMore}
+        paginationDataTestId="session-users-pagination"
+        onNavigateToPage={(next: number): void => {
+          setPage({ number: next, queryKey: queryKey });
         }}
         sortBy={null}
         sortOrder={SortOrder.Descending}
@@ -639,28 +641,6 @@ const SessionReplayUsersTable: FunctionComponent<
           </div>
         }
       />
-
-      {(rows.length > 0 || pageNumber > 1) && (
-        <Pagination
-          className="mt-4 border-t border-gray-200 pt-4"
-          currentPageNumber={pageNumber}
-          totalItemsCount={
-            SESSION_REPLAY_USERS_PAGE_SIZE * (pageNumber - 1) + rows.length
-          }
-          itemsOnPage={SESSION_REPLAY_USERS_PAGE_SIZE}
-          itemsOnCurrentPage={rows.length}
-          itemsOnPageOptions={[SESSION_REPLAY_USERS_PAGE_SIZE]}
-          hasMore={hasMore}
-          isLoading={isLoading}
-          isError={false}
-          singularLabel="User"
-          pluralLabel="Users"
-          dataTestId="session-users-pagination"
-          onNavigateToPage={(next: number): void => {
-            setPage({ number: next, queryKey: queryKey });
-          }}
-        />
-      )}
     </div>
   );
 };

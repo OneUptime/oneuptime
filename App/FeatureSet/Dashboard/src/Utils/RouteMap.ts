@@ -622,6 +622,11 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
   [PageMap.EXCEPTIONS_VIEW_ROOT]: "",
   [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.EXCEPTIONS_VIEW_STACK_TRACE]: `${RouteParams.ModelID}/stack-trace`,
+  [PageMap.EXCEPTIONS_VIEW_OCCURRENCES]: `${RouteParams.ModelID}/occurrences`,
+  [PageMap.EXCEPTIONS_VIEW_CONTEXT]: `${RouteParams.ModelID}/context`,
+  [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
+  [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
 };
 
@@ -6258,6 +6263,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_STACK_TRACE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_STACK_TRACE]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_OCCURRENCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_OCCURRENCES]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_CONTEXT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_CONTEXT]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_SETTINGS]
     }`,
   ),
 

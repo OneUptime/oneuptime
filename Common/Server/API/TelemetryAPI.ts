@@ -12,6 +12,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
 import SourceMapResolver, {
@@ -130,6 +131,8 @@ import SessionReplayReadService, {
   DEFAULT_SESSION_REPLAY_USERS_LIMIT,
   MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
   MAX_SESSION_REPLAY_LIST_LIMIT,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
   MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
   SessionReplayApplicationActivitySummary,
@@ -142,6 +145,7 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplaySummary,
   SessionReplayUsersCursor,
   SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
@@ -3544,7 +3548,7 @@ router.post(
  * Session replay playback
  * ---------------------------------------------------------------------
  *
- * These five routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
+ * These routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
  * both analytics models deliberately omit `crudApiPath`, so there is no
  * generic CRUD surface for them and ModelPermission is NEVER invoked on
  * this path.
@@ -3628,6 +3632,26 @@ const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
    * card on every exception page.
    */
   Permission.ReadRumSessionReplayPayload,
+];
+
+/*
+ * The optional audit-table enrichment must admit an audit-only reviewer so a
+ * 403 from the shared browser API does not navigate them away from the audit
+ * page. The handler still returns metadata only after a separate LIST-scope
+ * check for the resolved application; audit access alone receives an empty,
+ * successful response.
+ */
+const SESSION_REPLAY_SUMMARY_PERMISSIONS: Array<Permission> = [
+  ...SESSION_REPLAY_LIST_PERMISSIONS,
+  Permission.ReadRumSessionReplayAudit,
+];
+
+const requireSessionReplaySummaryAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+  }),
 ];
 
 const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
@@ -4074,6 +4098,40 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = (data: {
     application: data.application,
   });
 };
+
+type CanReadSessionReplayListMetadataFunction = (data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  application: RumApplication;
+}) => boolean;
+
+/*
+ * Audit-only roles may load the summaries route so the optional request can
+ * fail closed without a browser-wide forbidden redirect. They still must not
+ * gain the session-list metadata this endpoint projects. Re-evaluate the
+ * list scope against the already-resolved application and turn unsupported
+ * scope shapes into "no metadata" rather than an authorization error.
+ */
+const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction =
+  (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    application: RumApplication;
+  }): boolean => {
+    let scope: SessionReplayScope;
+
+    try {
+      scope = getSessionReplayLabelScope(
+        data.databaseProps,
+        SESSION_REPLAY_LIST_PERMISSIONS,
+      );
+    } catch {
+      return false;
+    }
+
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: data.application,
+    });
+  };
 
 /*
  * The set of applications a label-scoped caller may reach, for the
@@ -4559,8 +4617,6 @@ type ReadSessionIdFromBodyFunction = (body: JSONObject) => string;
  * callers exist - but it is a cap: an unbounded caller-supplied string
  * reaches ClickHouse as a bound parameter on a hot path.
  */
-const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
-
 const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   body: JSONObject,
 ): string => {
@@ -4577,6 +4633,51 @@ const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   }
 
   return sessionId;
+};
+
+type ReadSessionIdsFromBodyFunction = (body: JSONObject) => Array<string>;
+
+/*
+ * The summaries route accepts one audit-table page at a time. Validate the
+ * raw array before de-duplicating it so repeated values cannot be used to
+ * bypass the request-size ceiling, then preserve first-occurrence order.
+ */
+const readSessionIdsFromBody: ReadSessionIdsFromBodyFunction = (
+  body: JSONObject,
+): Array<string> => {
+  const value: unknown = body["sessionIds"];
+
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new BadDataException("sessionIds must be a non-empty array");
+  }
+
+  if (value.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+    throw new BadDataException(
+      `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+    );
+  }
+
+  const sessionIds: Array<string> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const sessionId of value) {
+    if (typeof sessionId !== "string" || sessionId.length === 0) {
+      throw new BadDataException("Every sessionId must be a non-empty string");
+    }
+
+    if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+      throw new BadDataException(
+        `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+      );
+    }
+
+    if (!seen.has(sessionId)) {
+      seen.add(sessionId);
+      sessionIds.push(sessionId);
+    }
+  }
+
+  return sessionIds;
 };
 
 /*
@@ -5126,6 +5227,79 @@ router.post(
          * filters" from "an older server that never said".
          */
         ignoredFilters: ignoredFilters as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Summary Batch Endpoint ---
+
+/*
+ * Audit rows store only the session id. Resolve one page of those ids into
+ * compact, non-identity session context. Audit-only callers receive an empty
+ * success; session-list metadata is returned only after the resolved
+ * application passes the list scope. The service performs one
+ * application-pinned argMax query, so this route never turns an audit page
+ * into an N+1 ClickHouse workload.
+ */
+router.post(
+  "/telemetry/rum/session-replay/summaries",
+  ...requireSessionReplaySummaryAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+      const sessionIds: Array<string> = readSessionIdsFromBody(body);
+
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+        });
+
+      if (
+        !canReadSessionReplayListMetadata({
+          databaseProps: databaseProps,
+          application: application,
+        })
+      ) {
+        return Response.sendJsonObjectResponse(req, res, { sessions: [] });
+      }
+
+      const sessions: Array<SessionReplaySummary> =
+        await SessionReplayReadService.getSessionSummaries({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionIds: sessionIds,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: sessions as unknown as JSONArray,
       });
     } catch (err: unknown) {
       next(err);
@@ -6056,6 +6230,32 @@ router.post(
         );
       }
 
+      const primaryEntityId: ObjectID | undefined =
+        readOptionalObjectIdFromBody(body, "primaryEntityId");
+      const rawPrimaryEntityType: unknown = body["primaryEntityType"];
+      let primaryEntityType: ServiceType | undefined = undefined;
+
+      if (
+        rawPrimaryEntityType !== undefined &&
+        rawPrimaryEntityType !== null &&
+        rawPrimaryEntityType !== ""
+      ) {
+        if (
+          typeof rawPrimaryEntityType !== "string" ||
+          !Object.values(ServiceType).includes(
+            rawPrimaryEntityType as ServiceType,
+          )
+        ) {
+          throw new BadDataException("primaryEntityType is not valid");
+        }
+
+        primaryEntityType = rawPrimaryEntityType as ServiceType;
+      }
+
+      if (primaryEntityId === undefined && primaryEntityType !== undefined) {
+        throw new BadDataException("primaryEntityId is required with its type");
+      }
+
       /*
        * An exception is not scoped to a RUM application, so there is no
        * single application to authorize against. Restrict the query to
@@ -6116,6 +6316,8 @@ router.post(
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
+          ...(primaryEntityId !== undefined && { primaryEntityId }),
+          ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),

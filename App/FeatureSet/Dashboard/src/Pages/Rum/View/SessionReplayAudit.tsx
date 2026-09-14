@@ -5,17 +5,26 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Route from "Common/Types/API/Route";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import UserElement from "../../../Components/User/User";
 import User from "Common/Models/DatabaseModels/User";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import AppLink from "../../../Components/AppLink/AppLink";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import SessionReplayAuditSessionLink from "../../../Components/SessionReplay/SessionReplayAuditSessionLink";
+import {
+  fetchSessionReplayAuditSummaries,
+  SessionReplayAuditSummary,
+} from "../../../Components/SessionReplay/SessionReplayAuditSummary";
 
 /*
  * Who watched a real end user's screen, and for how long.
@@ -50,11 +59,101 @@ export function describeSecondsWatched(
 
   return `${seconds}s`;
 }
+
+interface SessionSummaryState {
+  rumApplicationId: string;
+  summaries: Map<string, SessionReplayAuditSummary>;
+}
+
 const RumApplicationSessionReplayAudit: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Route is ":id/session-replay-audit", so the model id is one from the end.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelIdString: string = modelId.toString();
+  const currentModelIdStringRef: React.MutableRefObject<string> =
+    useRef<string>(modelIdString);
+  currentModelIdStringRef.current = modelIdString;
+  const summaryRequestGenerationRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+  const [sessionSummaryState, setSessionSummaryState] =
+    useState<SessionSummaryState>({
+      rumApplicationId: modelIdString,
+      summaries: new Map<string, SessionReplayAuditSummary>(),
+    });
+  const sessionSummaries: Map<string, SessionReplayAuditSummary> =
+    sessionSummaryState.rumApplicationId === modelIdString
+      ? sessionSummaryState.summaries
+      : new Map<string, SessionReplayAuditSummary>();
+
+  /*
+   * The audit list is Postgres-backed while replay headers live in
+   * ClickHouse. Enrich one whole table page in one request. A generation
+   * token prevents a slow response for page 1 replacing page 2's context.
+   * Failure is intentionally quiet: audit-only roles and expired/erased
+   * recordings still get the compact, linked id fallback.
+   */
+  const loadSessionSummaries: (items: Array<RumSessionReplayView>) => void =
+    useCallback(
+      (items: Array<RumSessionReplayView>): void => {
+        /* Ignore a table request that completed after route-param navigation. */
+        if (currentModelIdStringRef.current !== modelIdString) {
+          return;
+        }
+
+        const generation: number = ++summaryRequestGenerationRef.current;
+        const sessionIds: Array<string | undefined> = items.map(
+          (item: RumSessionReplayView): string | undefined => {
+            return item.sessionId;
+          },
+        );
+
+        setSessionSummaryState({
+          rumApplicationId: modelIdString,
+          summaries: new Map<string, SessionReplayAuditSummary>(),
+        });
+
+        fetchSessionReplayAuditSummaries({
+          rumApplicationId: new ObjectID(modelIdString),
+          sessionIds: sessionIds,
+        })
+          .then((summaries: Map<string, SessionReplayAuditSummary>): void => {
+            if (
+              generation === summaryRequestGenerationRef.current &&
+              currentModelIdStringRef.current === modelIdString
+            ) {
+              setSessionSummaryState({
+                rumApplicationId: modelIdString,
+                summaries: summaries,
+              });
+            }
+          })
+          .catch((): void => {
+            if (
+              generation === summaryRequestGenerationRef.current &&
+              currentModelIdStringRef.current === modelIdString
+            ) {
+              setSessionSummaryState({
+                rumApplicationId: modelIdString,
+                summaries: new Map<string, SessionReplayAuditSummary>(),
+              });
+            }
+          });
+      },
+      [modelIdString],
+    );
+
+  useEffect((): (() => void) => {
+    summaryRequestGenerationRef.current++;
+    setSessionSummaryState({
+      rumApplicationId: modelIdString,
+      summaries: new Map<string, SessionReplayAuditSummary>(),
+    });
+
+    return (): void => {
+      summaryRequestGenerationRef.current++;
+    };
+  }, [modelIdString]);
 
   /*
    * The cast is unavoidable: rumApplicationId is a relation column and
@@ -79,6 +178,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
         isViewable={false}
         showRefreshButton={true}
         query={query}
+        onFetchSuccess={loadSessionSummaries}
         sortBy="viewedAt"
         sortOrder={SortOrder.Descending}
         selectMoreFields={{ sessionId: true }}
@@ -160,24 +260,16 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
             title: "Session",
             type: FieldType.Element,
             getElement: (item: RumSessionReplayView): ReactElement => {
-              if (!item.sessionId) {
-                return <span className="text-sm text-gray-500">—</span>;
-              }
-
               return (
-                <AppLink
-                  to={
-                    RouteUtil.populateRouteParams(
-                      RouteMap[
-                        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW
-                      ] as Route,
-                      { modelId: modelId, subModelId: item.sessionId },
-                    ) as Route
+                <SessionReplayAuditSessionLink
+                  rumApplicationId={modelId}
+                  sessionId={item.sessionId}
+                  summary={
+                    item.sessionId
+                      ? sessionSummaries.get(item.sessionId)
+                      : undefined
                   }
-                  className="font-mono text-sm text-indigo-600 hover:underline"
-                >
-                  {item.sessionId}
-                </AppLink>
+                />
               );
             },
           },

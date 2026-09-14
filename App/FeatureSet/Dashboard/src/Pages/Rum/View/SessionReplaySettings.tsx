@@ -12,15 +12,10 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
-import {
-  DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
-  SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-} from "Common/Types/Rum/SessionReplay";
 import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -32,6 +27,10 @@ import RecordingHealthCard, {
 import PrivacySummaryCard from "../../../Components/SessionReplay/PrivacySummaryCard";
 import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
 import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
+import {
+  formatSessionReplayRetention,
+  SESSION_REPLAY_RETENTION_OPTIONS,
+} from "../../../Components/SessionReplay/SessionReplayRetention";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
   SessionReplayHealthSnapshot,
@@ -59,22 +58,6 @@ import React, {
  * undone for recordings already taken, and tightening it does not scrub
  * recordings already stored.
  */
-
-/*
- * Retention is a closed set rather than a free number: under expiry-based
- * partitioning each distinct value creates its own ClickHouse partition per
- * ingest day, and it bounds the blast radius of a mis-set value.
- */
-const RETENTION_OPTIONS: Array<DropdownOption> =
-  SESSION_REPLAY_ALLOWED_RETENTION_DAYS.map((days: number): DropdownOption => {
-    return {
-      label:
-        days === DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS
-          ? `${days} days (default)`
-          : `${days} day${days === 1 ? "" : "s"}`,
-      value: days,
-    };
-  });
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
 export const REPLAY_POLICY_ANCHOR_ID: string = "replay-policy";
@@ -463,8 +446,8 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               title: "Retention",
               stepId: "limits",
               fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: RETENTION_OPTIONS,
-              required: false,
+              dropdownOptions: SESSION_REPLAY_RETENTION_OPTIONS,
+              required: true,
               description:
                 "How long recordings are kept. Defaults to 7 days, not the 15 the other telemetry pillars use: replay is the highest-sensitivity pillar and a short retention is itself a privacy control. The session row - counts, signals, device - expires together with its footage; only the session's logs, spans and exceptions follow the telemetry retention.",
             },
@@ -738,9 +721,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {days
-                        ? `${days} day${days === 1 ? "" : "s"}`
-                        : `not set (defaults to ${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days)`}
+                      {formatSessionReplayRetention(days)}
                     </span>
                   );
                 },

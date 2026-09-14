@@ -104,5 +104,46 @@ describe("SessionReplayGateCache.isOriginAllowed", () => {
         ),
       ).toBe(false);
     });
+
+    it("accepts the exact synthesized app:// origin for a native recorder", () => {
+      const mobilePolicy: SessionReplayGatePolicy = buildPolicy([
+        "app://com.example.checkout",
+      ]);
+
+      expect(
+        SessionReplayGateCache.isOriginAllowed(
+          mobilePolicy,
+          "app://com.example.checkout",
+        ),
+      ).toBe(true);
+    });
+
+    it("normalizes case on an exact synthesized app:// origin", () => {
+      const mobilePolicy: SessionReplayGatePolicy = buildPolicy([
+        "APP://COM.EXAMPLE.CHECKOUT",
+      ]);
+
+      expect(
+        SessionReplayGateCache.isOriginAllowed(
+          mobilePolicy,
+          "app://com.example.checkout",
+        ),
+      ).toBe(true);
+    });
+
+    it("refuses sibling mobile ids and app:// wildcards", () => {
+      expect(
+        SessionReplayGateCache.isOriginAllowed(
+          buildPolicy(["app://com.example.checkout"]),
+          "app://com.example.attacker",
+        ),
+      ).toBe(false);
+      expect(
+        SessionReplayGateCache.isOriginAllowed(
+          buildPolicy(["app://*.example.checkout"]),
+          "app://com.example.checkout",
+        ),
+      ).toBe(false);
+    });
   });
 });

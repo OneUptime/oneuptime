@@ -55,6 +55,7 @@ function makeDetails(
     maskingMode: SessionReplayMaskingMode.MaskAllText,
     consentState: "NotRequired",
     triggerReason: "error",
+    recorderKind: "dom",
     recorderVersion: "1.4.0",
     rrwebVersion: "2.0.0",
     viewportWidth: 1440,
@@ -143,6 +144,28 @@ describe("ReplayCorrelationPanel tabs", () => {
 });
 
 describe("ReplayCorrelationPanel Session tab", () => {
+  it("labels React Native recordings as an app rather than a browser", () => {
+    renderPanel({
+      details: makeDetails({
+        recorderKind: "rn-view-tree",
+        browserName: "Acme Mobile",
+        browserVersion: "4.2.0",
+        osName: "ios 18.1",
+        deviceType: "ios",
+      }),
+    });
+
+    expect(screen.getByText("App")).toBeInTheDocument();
+    expect(screen.getByText("Acme Mobile 4.2.0")).toBeInTheDocument();
+    expect(screen.queryByText("Browser")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Mobile traces and logs reach this rail/),
+    ).toHaveTextContent("OneUptimeReplay.onSessionChange()");
+    expect(
+      screen.queryByText(/recorder stamps session.id on its own network/),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders tags and traits from the details", () => {
     renderPanel({
       details: makeDetails({
@@ -361,6 +384,41 @@ describe("ReplayCorrelationPanel Session tab", () => {
 });
 
 describe("ReplayCorrelationPanel Privacy tab", () => {
+  it("shows the mobile recording source and synthetic event format", () => {
+    renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        recorderKind: "rn-view-tree",
+        recorderVersion: "0.1.0",
+        rrwebVersion: "synthetic-1",
+      }),
+    });
+
+    expect(
+      screen.getByTestId("replay-details-recorder-kind"),
+    ).toHaveTextContent("Recording sourceReact Native app");
+    expect(
+      screen.getByText("Synthetic rrweb event format"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("synthetic-1")).toBeInTheDocument();
+    expect(screen.queryByText("rrweb version")).not.toBeInTheDocument();
+  });
+
+  it.each(["dom", ""])(
+    "keeps web and legacy manifests on the web presentation (%s)",
+    (recorderKind: string) => {
+      renderPanel({
+        activeTabId: "provenance",
+        details: makeDetails({ recorderKind: recorderKind }),
+      });
+
+      expect(
+        screen.getByTestId("replay-details-recorder-kind"),
+      ).toHaveTextContent("Web browser");
+      expect(screen.getByText("rrweb version")).toBeInTheDocument();
+    },
+  );
+
   it("keeps the readable-content warning per masking mode", () => {
     const first: ReturnType<typeof render> = renderPanel({
       activeTabId: "provenance",

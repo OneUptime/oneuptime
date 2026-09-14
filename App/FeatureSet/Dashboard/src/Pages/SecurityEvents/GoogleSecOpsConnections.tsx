@@ -1,6 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -21,6 +23,9 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import GoogleSecOpsDiagnostics from "../../Components/SecurityEvents/GoogleSecOpsDiagnostics";
 import { googleSecOpsHealth } from "../../Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
 import React, {
@@ -30,10 +35,18 @@ import React, {
   useState,
 } from "react";
 
+const googleSecOpsRegionOptions: Array<DropdownOption> =
+  GOOGLE_SECOPS_SUPPORTED_REGIONS.map((region: string): DropdownOption => {
+    return {
+      value: region,
+      label: region,
+    };
+  });
+
 const documentationMarkdown: string = `
 ### How the Google SecOps Connector Works
 
-The managed connector polls your Google SecOps (Chronicle) tenant on the interval set here and ingests each matching detection as a **Detection Finding** security event, attributed to a \`Google SecOps\` telemetry service. Choose **Alerts only** or **Alerts and detections** explicitly. A rule detection does not necessarily create an alert. From there the findings are searchable, correlatable, and available to detection rules, alerts and monitors.
+The managed connector polls your Google SecOps (Chronicle) tenant on the interval set here and ingests each matching detection as a **Detection Finding** security event, attributed to a \`Google SecOps\` telemetry service. **Alerts** are always imported. Select **Detections** to also import non-alerting rule matches. From there the findings are searchable, correlatable, and available to detection rules, alerts and monitors.
 
 - **Region** is your tenant's regional endpoint prefix (\`us\`, \`europe\`, ...). It is used to build the Chronicle API base URL.
 - **Instance Resource Name** comes from your SecOps **SIEM Settings → Profile** and looks like \`projects/{project}/locations/{location}/instances/{instance}\`.
@@ -194,11 +207,11 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             title: "Region",
             stepId: "google-secops",
             description:
-              "Your tenant's Google SecOps regional endpoint prefix — 'us', 'europe', and so on. It is used to build the Chronicle API base URL.",
-            fieldType: FormFieldSchemaType.Text,
+              "Select the Google SecOps regional endpoint that matches the location in your instance resource name.",
+            fieldType: FormFieldSchemaType.Dropdown,
             required: true,
-            placeholder: "us",
-            disableSpellCheck: true,
+            placeholder: "Select a region",
+            dropdownOptions: googleSecOpsRegionOptions,
           },
           {
             field: {
@@ -236,12 +249,52 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             field: {
               includeNonAlertingDetections: true,
             },
-            title: "Alerts and detections",
+            title: "Data to import",
             stepId: "polling",
             description:
-              "Off: Alerts only. On: Alerts and detections, including rule matches that did not generate an alert.",
-            fieldType: FormFieldSchemaType.Toggle,
+              "Alerts are always imported because Google's API always returns them. Select Detections to also import rule matches that did not generate an alert.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
+            hideOptionalLabel: true,
+            getCustomElement: (
+              values: FormValues<GoogleSecOpsConnection>,
+              fieldProps: CustomElementProps,
+            ): ReactElement => {
+              const includeNonAlertingDetections: boolean =
+                values.includeNonAlertingDetections === true;
+
+              return (
+                <div
+                  aria-label="Data to import"
+                  className="space-y-3"
+                  role="group"
+                >
+                  <CheckboxElement
+                    ariaLabel="Alerts"
+                    dataTestId="google-secops-alerts-checkbox"
+                    disabled={true}
+                    hoverText="Google's alerts API always includes alerts."
+                    initialValue={true}
+                    readOnly={true}
+                    title="Alerts"
+                    value={true}
+                  />
+                  <CheckboxElement
+                    ariaLabel="Detections"
+                    dataTestId="google-secops-detections-checkbox"
+                    error={fieldProps.error}
+                    initialValue={includeNonAlertingDetections}
+                    onBlur={fieldProps.onBlur}
+                    onChange={(value: boolean): void => {
+                      fieldProps.onChange?.(value);
+                    }}
+                    tabIndex={fieldProps.tabIndex}
+                    title="Detections"
+                    value={includeNonAlertingDetections}
+                  />
+                </div>
+              );
+            },
           },
           {
             field: {

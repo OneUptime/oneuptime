@@ -1,4 +1,4 @@
-import { Locator, Page, expect, test } from "@playwright/test";
+import { FrameLocator, Locator, Page, expect, test } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
 
@@ -74,6 +74,20 @@ const openPlayer: (page: Page, query?: string) => Promise<void> = async (
       .getByText("Complete your order"),
   ).toBeVisible();
 };
+const openMobilePlayer: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.goto(`${playerRoute}?recorder=mobile`);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .locator('[data-oneuptime-mobile-view="view"]')
+      .first(),
+  ).toBeVisible();
+};
 const facet: (
   page: Page,
   field: string,
@@ -136,6 +150,19 @@ test("uses the shared table and groups replay navigation in its own category", a
     page.getByRole("columnheader", { name: "User & device", exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("session-replay-facets")).toBeVisible();
+  await expect(page.getByTestId("session-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
+  await expect(
+    page.getByTestId("pagination-items-on-page-select").locator("option"),
+  ).toHaveText(["20", "50", "100"]);
+  await expect(
+    page.getByRole("button", { name: "Users", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Set up recording", exact: true }),
+  ).toHaveCount(0);
   const section: Locator = page
     .locator("h6")
     .filter({ hasText: /^Session Replay$/ })
@@ -364,6 +391,10 @@ test("the users page rolls the window up by person and hands one person to the l
   await expect(
     page.getByRole("columnheader", { name: "Last seen", exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("session-users-pagination")).toBeVisible();
+  await expect(
+    page.getByTestId("session-users-pagination").locator(".."),
+  ).toHaveClass(/bg-gray-50/);
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-users");
   /*
@@ -386,7 +417,7 @@ test("the users page rolls the window up by person and hands one person to the l
   >;
   expect(typeof filters["visitorId"]).toBe("string");
   expect(filters["identifiedUserRef"]).toBeUndefined();
-  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("link", { name: "Replay Users", exact: true }).click();
   /* The default window crosses as absence: the bare route, no query. */
   await expect(page).toHaveURL(new RegExp(`${usersRoute}$`));
 });
@@ -504,9 +535,10 @@ test("the first recording empty state keeps setup documentation on the session r
   await expect(page.locator("pre")).toHaveCount(0);
   await expect(page.getByTestId("session-replay-facets")).toBeVisible();
   await screenshot(page, "session-replay-empty");
-  await page
-    .getByRole("button", { name: "Set up recording", exact: true })
-    .click();
+  await expect(page.getByTestId("list-empty-action")).toHaveText(
+    "Open the setup guide",
+  );
+  await page.getByTestId("list-empty-action").click();
   await expect(page).toHaveURL(documentationRoute);
   await expect(
     page.getByText("Create a telemetry ingestion key", { exact: true }),
@@ -580,6 +612,38 @@ test("watch opens real footage and the return link restores list filters", async
   await expect(page.getByTestId("replay-header-user")).toHaveText(
     "alex@example.com",
   );
+  const toolbar: Locator = page.getByRole("group", {
+    name: "Session recording controls",
+  });
+  const recordingActions: Locator = toolbar.getByRole("group", {
+    name: "Recording actions",
+  });
+  const playerLayout: Locator = toolbar.getByRole("group", {
+    name: "Player layout",
+  });
+
+  await expect(toolbar).toBeVisible();
+  await expect(recordingActions.getByRole("button")).toHaveText([
+    "Pin recording",
+    "Copy link",
+    "Session details",
+  ]);
+  await expect(playerLayout.getByRole("button")).toHaveText([
+    "Wide",
+    "Theater",
+  ]);
+
+  const controlHeights: Array<number> = await toolbar
+    .getByRole("button")
+    .evaluateAll((buttons: Array<HTMLElement>): Array<number> => {
+      return buttons.map((button: HTMLElement): number => {
+        return button.getBoundingClientRect().height;
+      });
+    });
+
+  expect(
+    Math.max(...controlHeights) - Math.min(...controlHeights),
+  ).toBeLessThanOrEqual(1);
   await page.getByTestId("replay-back-link").click();
   await expect(page).toHaveURL(/browser=Chrome/);
   await expect(rows(page)).toHaveCount(3);
@@ -629,6 +693,33 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   await expect(page.getByTestId("replay-phase")).toHaveText("playing");
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-player");
+});
+
+test("plays a React Native view tree while keeping text, images and webviews private", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openMobilePlayer(page);
+  const replayFrame: FrameLocator = page.frameLocator(
+    '[data-testid="replay-stage"] iframe',
+  );
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="image"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="webview"]'),
+  ).toBeVisible();
+  await expect(
+    replayFrame.locator('[data-oneuptime-mobile-view="masked"]'),
+  ).toBeVisible();
+  const replayedText: string = await replayFrame.locator("body").innerText();
+  expect(replayedText).toContain("•••");
+  expect(replayedText).not.toContain("Place order");
+  expect(replayedText).not.toContain("alex@example.com");
+  await expect(page.getByTestId("replay-time")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-react-native-player");
 });
 
 test("event search, error selection, details and rail collapse keep their state", async ({
@@ -708,6 +799,54 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await expect(page.getByTestId("replay-play-pause")).toBeVisible();
   await expect(page.getByTestId("replay-speed")).toBeVisible();
   await expect(page.getByTestId("rail-search-input")).toBeVisible();
+  const headerToolbar: Locator = page.getByTestId("replay-header-toolbar");
+
+  await expect(headerToolbar).toBeVisible();
+  await expect(page.getByTestId("replay-pin-button")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+
+  const headerGeometry: {
+    viewportWidth: number;
+    scrollWidth: number;
+    clientWidth: number;
+    childBounds: Array<{ left: number; right: number }>;
+  } = await headerToolbar.evaluate(
+    (
+      toolbar: HTMLElement,
+    ): {
+      viewportWidth: number;
+      scrollWidth: number;
+      clientWidth: number;
+      childBounds: Array<{ left: number; right: number }>;
+    } => {
+      return {
+        viewportWidth: window.innerWidth,
+        scrollWidth: toolbar.scrollWidth,
+        clientWidth: toolbar.clientWidth,
+        childBounds: Array.from(
+          toolbar.querySelectorAll("button, [role='group']"),
+        ).map((element: Element): { left: number; right: number } => {
+          const bounds: DOMRect = element.getBoundingClientRect();
+
+          return { left: bounds.left, right: bounds.right };
+        }),
+      };
+    },
+  );
+
+  expect(headerGeometry.scrollWidth).toBeLessThanOrEqual(
+    headerGeometry.clientWidth + 1,
+  );
+  headerGeometry.childBounds.forEach(
+    (bounds: { left: number; right: number }): void => {
+      expect(bounds.left).toBeGreaterThanOrEqual(-1);
+      expect(bounds.right).toBeLessThanOrEqual(
+        headerGeometry.viewportWidth + 1,
+      );
+    },
+  );
+  await noHorizontalOverflow(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await noHorizontalOverflow(page);
   const legendBottom: number = await page
     .getByTestId("timeline-legend")

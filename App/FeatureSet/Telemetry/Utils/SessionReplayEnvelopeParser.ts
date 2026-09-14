@@ -8,6 +8,7 @@ import {
   SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
+  SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
   SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
@@ -436,6 +437,7 @@ export default class SessionReplayEnvelopeParser {
        */
       const capabilities: Array<string> = this.readCapabilities(
         raw["capabilities"],
+        envelope.recorderKind,
       );
 
       if (capabilities.length > 0) {
@@ -603,11 +605,16 @@ export default class SessionReplayEnvelopeParser {
   }
 
   /*
-   * The subset of SESSION_REPLAY_RECORDER_CAPABILITIES the envelope names,
-   * in the canonical list's order and without duplicates, so two recorders
-   * that spell the same set differently store the same header value.
+   * The subset of the recorder-kind-specific canonical capability list the
+   * envelope names, in canonical order and without duplicates, so two
+   * recorders that spell the same set differently store the same header
+   * value. Never union the lists: a DOM frame must not claim native view-tree
+   * capture, and a native frame must not claim web-vitals it cannot produce.
    */
-  private static readCapabilities(value: unknown): Array<string> {
+  private static readCapabilities(
+    value: unknown,
+    recorderKind: SessionReplayRecorderKind,
+  ): Array<string> {
     if (!Array.isArray(value)) {
       return [];
     }
@@ -620,11 +627,14 @@ export default class SessionReplayEnvelopeParser {
       }
     }
 
-    return SESSION_REPLAY_RECORDER_CAPABILITIES.filter(
-      (capability: string): boolean => {
-        return named.has(capability);
-      },
-    );
+    const allowedCapabilities: ReadonlyArray<string> =
+      recorderKind === "rn-view-tree"
+        ? SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES
+        : SESSION_REPLAY_RECORDER_CAPABILITIES;
+
+    return allowedCapabilities.filter((capability: string): boolean => {
+      return named.has(capability);
+    });
   }
 
   private static readSnapshotPart(

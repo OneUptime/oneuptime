@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import fs from "fs";
 import nodePath from "path";
 
@@ -79,6 +80,9 @@ const FORM_STEP_PATTERN: RegExp =
 const SELECT_MORE_FIELDS_PATTERN: RegExp =
   /selectMoreFields=\{\{([\s\S]*?)\}\}/;
 const LAST_ERROR_SELECTION_PATTERN: RegExp = /\blastError:\s*true/;
+/* The model defaults mirrored by ModelTable's create form. */
+const CREATE_INITIAL_VALUES_PATTERN: RegExp =
+  /createInitialValues=\{\{([\s\S]*?)\}\}/;
 /* Matches the page import in SecurityEventsRoutes.tsx. */
 const CONNECTIONS_PAGE_IMPORT_PATTERN: RegExp =
   /import\s+(\w+)\s+from\s+"\.\.\/Pages\/SecurityEvents\/GoogleSecOpsConnections"/;
@@ -94,6 +98,37 @@ const HELM_WORKER_BLOCK_PATTERN: RegExp = /^worker:\s*$/m;
 const HELM_ENABLED_PATTERN: RegExp = /^ {2}enabled:\s*(\S+)\s*$/m;
 /* Matches the start of the next top-level key in the Helm values file. */
 const HELM_TOP_LEVEL_PATTERN: RegExp = /^[A-Za-z_]/m;
+
+/*
+ * Pin Google's published endpoint prefixes independently of the shared
+ * constant. The page and server deliberately consume one shared list, while
+ * this test remains capable of catching a truncated or accidentally broadened
+ * list in that source of truth.
+ */
+const DOCUMENTED_GOOGLE_SECOPS_REGIONS: Array<string> = [
+  "us",
+  "eu",
+  "europe",
+  "africa-south1",
+  "asia-east1",
+  "asia-northeast1",
+  "asia-northeast3",
+  "asia-south1",
+  "asia-southeast1",
+  "asia-southeast2",
+  "australia-southeast1",
+  "europe-central2",
+  "europe-west12",
+  "europe-west2",
+  "europe-west3",
+  "europe-west6",
+  "europe-west9",
+  "me-central1",
+  "me-central2",
+  "me-west1",
+  "northamerica-northeast2",
+  "southamerica-east1",
+];
 
 const REPO_ROOT: string = nodePath.join(__dirname, "..", "..", "..");
 
@@ -248,6 +283,29 @@ function getEntry(entries: Array<FieldEntry>, columnName: string): FieldEntry {
   }
 
   return entry;
+}
+
+/*
+ * Isolate one self-closing control before checking attributes. Source-wide
+ * assertions could borrow `disabled`, `value` or `onChange` from the other
+ * checkbox and let the two controls silently swap their semantics.
+ */
+function extractControlByTestId(source: string, dataTestId: string): string {
+  const marker: string = `dataTestId="${dataTestId}"`;
+  const markerIndex: number = source.indexOf(marker);
+
+  if (markerIndex === -1) {
+    throw new Error(`No control with dataTestId "${dataTestId}"`);
+  }
+
+  const start: number = source.lastIndexOf("<CheckboxElement", markerIndex);
+  const end: number = source.indexOf("/>", markerIndex);
+
+  if (start === -1 || end === -1) {
+    throw new Error(`Unbalanced CheckboxElement for "${dataTestId}"`);
+  }
+
+  return source.slice(start, end + 2);
 }
 
 const formFieldEntries: Array<FieldEntry> = splitFieldEntries(
@@ -522,6 +580,92 @@ describe("Security events connections page content", () => {
     );
 
     expect(serviceAccountField.body).toContain("doNotShowWhenEditing: true");
+  });
+
+  test("Region is a required dropdown backed by the shared endpoint allowlist", () => {
+    const regionField: FieldEntry = getEntry(formFieldEntries, "region");
+
+    expect(regionField.body).toContain(
+      "fieldType: FormFieldSchemaType.Dropdown",
+    );
+    expect(regionField.body).not.toContain(
+      "fieldType: FormFieldSchemaType.Text",
+    );
+    expect(regionField.body).toContain("required: true");
+    expect(regionField.body).toContain(
+      "dropdownOptions: googleSecOpsRegionOptions",
+    );
+    expect(regionField.body).toContain('placeholder: "Select a region"');
+
+    expect(connectionsPageSource).toContain(
+      'import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion"',
+    );
+    expect(connectionsPageSource).toContain(
+      "GOOGLE_SECOPS_SUPPORTED_REGIONS.map",
+    );
+    expect(connectionsPageSource).toContain("value: region");
+    expect(connectionsPageSource).toContain("label: region");
+
+    expect([...GOOGLE_SECOPS_SUPPORTED_REGIONS]).toEqual(
+      DOCUMENTED_GOOGLE_SECOPS_REGIONS,
+    );
+    expect(new Set(GOOGLE_SECOPS_SUPPORTED_REGIONS).size).toBe(
+      GOOGLE_SECOPS_SUPPORTED_REGIONS.length,
+    );
+  });
+
+  test("Alerts are fixed while Detections controls the persisted scope", () => {
+    const scopeField: FieldEntry = getEntry(
+      formFieldEntries,
+      "includeNonAlertingDetections",
+    );
+
+    expect(titleOf(scopeField)).toBe("Data to import");
+    expect(scopeField.body).toContain(
+      "fieldType: FormFieldSchemaType.CustomComponent",
+    );
+    expect(scopeField.body).not.toContain(
+      "fieldType: FormFieldSchemaType.Toggle",
+    );
+    expect(scopeField.body).toContain("getCustomElement:");
+    expect(scopeField.body).toContain('aria-label="Data to import"');
+    expect(scopeField.body).toContain('role="group"');
+    expect(scopeField.body).toContain(
+      "values.includeNonAlertingDetections === true",
+    );
+
+    const alertsCheckbox: string = extractControlByTestId(
+      scopeField.body,
+      "google-secops-alerts-checkbox",
+    );
+    expect(alertsCheckbox).toContain('ariaLabel="Alerts"');
+    expect(alertsCheckbox).toContain("disabled={true}");
+    expect(alertsCheckbox).toContain("readOnly={true}");
+    expect(alertsCheckbox).toContain("initialValue={true}");
+    expect(alertsCheckbox).toContain("value={true}");
+
+    const detectionsCheckbox: string = extractControlByTestId(
+      scopeField.body,
+      "google-secops-detections-checkbox",
+    );
+    expect(detectionsCheckbox).toContain('ariaLabel="Detections"');
+    expect(detectionsCheckbox).not.toContain("disabled=");
+    expect(detectionsCheckbox).not.toContain("readOnly=");
+    expect(detectionsCheckbox).toContain(
+      "initialValue={includeNonAlertingDetections}",
+    );
+    expect(detectionsCheckbox).toContain(
+      "value={includeNonAlertingDetections}",
+    );
+    expect(detectionsCheckbox).toContain("fieldProps.onChange?.(value)");
+  });
+
+  test("new connections retain alerts-only as their explicit default", () => {
+    const initialValues: RegExpMatchArray | null =
+      CREATE_INITIAL_VALUES_PATTERN.exec(connectionsPageSource);
+
+    expect(initialValues).not.toBeNull();
+    expect(initialValues![1]).toContain("includeNonAlertingDetections: false");
   });
 
   test("the form has the exact ordered Google SecOps workflow", () => {

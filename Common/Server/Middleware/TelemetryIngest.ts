@@ -3,6 +3,11 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
+import {
+  SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_KIND_HEADER,
+  parseSessionReplayRecorderKindHeader,
+} from "../../Types/Rum/SessionReplay";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
 } from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
@@ -40,6 +45,14 @@ export interface TelemetryRequest extends ExpressRequest {
    * further into the system than it needs to go.
    */
   ingestionKeyPolicy: TelemetryIngestionKeyPolicy;
+
+  /*
+   * The identity already used to authorize a public ingestion key. Session
+   * replay's application-level allowlist must consume this exact value rather
+   * than re-reading Origin and disagreeing with the outer guard. For native
+   * replay this is a synthesized, normalized app:// origin.
+   */
+  resolvedClientOrigin?: string;
 }
 
 /*
@@ -104,6 +117,81 @@ type TelemetryIngestMiddlewareFunction = (
   res: ExpressResponse,
   next: NextFunction,
 ) => Promise<void>;
+
+interface ResolveTelemetryClientOriginOptions {
+  req: ExpressRequest;
+  surface: TelemetryIngestSurface | null;
+  isBrowserKey: boolean;
+}
+
+/*
+ * Resolve the client identity used by a Browser/public ingestion key.
+ *
+ * A real Origin always wins, including on a request that also carries mobile
+ * headers. Browsers attach Origin themselves and page JavaScript cannot
+ * remove or replace it, so permitting a header-selected fallback in that
+ * case would let a web page choose the weaker native identity path.
+ *
+ * Native applications do not have that browser-controlled header. Only the
+ * session replay surface, only an exact rn-view-tree kind, only a Browser key
+ * and only a validated package/bundle id receive the app:// fallback. Server
+ * keys retain their historical behaviour and never need to invent an origin.
+ */
+export function resolveTelemetryClientOrigin(
+  options: ResolveTelemetryClientOriginOptions,
+): string | undefined {
+  const hasStandardOriginHeader: boolean = Object.prototype.hasOwnProperty.call(
+    options.req.headers,
+    "origin",
+  );
+  const standardOrigin: string | undefined = headerValueToString(
+    options.req.headers["origin"],
+  );
+
+  if (hasStandardOriginHeader) {
+    /*
+     * A blank/malformed-but-present Origin is still authoritative: it must be
+     * refused as missing, never replaced with caller-selected mobile headers.
+     * app:// is never accepted from this caller-controlled header either. It
+     * is an internal authorization identity that may only be synthesized by
+     * the origin-less native replay branch below after all mobile headers and
+     * the ingest surface have been validated.
+     */
+    if (
+      standardOrigin &&
+      OriginAllowList.normalizeOrigin(standardOrigin).startsWith("app://")
+    ) {
+      return "";
+    }
+
+    return standardOrigin || "";
+  }
+
+  if (
+    !options.isBrowserKey ||
+    options.surface !== TelemetryIngestSurface.SessionReplay
+  ) {
+    return undefined;
+  }
+
+  const recorderKind: string | null = parseSessionReplayRecorderKindHeader(
+    options.req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+  );
+
+  if (recorderKind !== "rn-view-tree") {
+    return undefined;
+  }
+
+  const mobileAppIdentifier: string | undefined = headerValueToString(
+    options.req.headers[SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER],
+  );
+
+  if (!mobileAppIdentifier) {
+    return undefined;
+  }
+
+  return OriginAllowList.getMobileAppOrigin(mobileAppIdentifier);
+}
 
 export default class TelemetryIngest {
   /*
@@ -293,6 +381,17 @@ export default class TelemetryIngest {
       const isBrowserKey: boolean =
         policy.keyType === TelemetryIngestionKeyType.Browser;
 
+      const resolvedClientOrigin: string | undefined =
+        resolveTelemetryClientOrigin({
+          req: req,
+          surface: surface,
+          isBrowserKey: isBrowserKey,
+        });
+
+      if (resolvedClientOrigin !== undefined) {
+        (req as TelemetryRequest).resolvedClientOrigin = resolvedClientOrigin;
+      }
+
       if (isBrowserKey) {
         /*
          * Surface allowlist. `surface === null` (the legacy alias) is not in
@@ -318,7 +417,7 @@ export default class TelemetryIngest {
         }
 
         const originRefusalMessage: string | null =
-          TelemetryIngest.getOriginRefusalMessage(req, policy);
+          TelemetryIngest.getOriginRefusalMessage(resolvedClientOrigin, policy);
 
         if (originRefusalMessage) {
           return Response.sendErrorResponse(
@@ -494,13 +593,9 @@ export default class TelemetryIngest {
    * telemetry, and the kill switch ends it outright.
    */
   private static getOriginRefusalMessage(
-    req: ExpressRequest,
+    origin: string | undefined,
     policy: TelemetryIngestionKeyPolicy,
   ): string | null {
-    const origin: string | undefined = headerValueToString(
-      req.headers["origin"],
-    );
-
     if (!origin) {
       /*
        * Say the header is missing rather than echoing an empty string into

@@ -572,23 +572,22 @@ export default class SessionReplayIngestService {
     }
 
     /*
-     * Consent is asserted by the recorder and verified here. The shipped
-     * recorder never uploads while consent is Unknown under RequireExplicit,
-     * so a request that does is a stale policy (the page's cached config
-     * predates the switch to explicit consent) or a hand-crafted POST. Both
-     * used to be accepted and dropped in the worker, after a 202 that told
-     * the recorder its chunk had landed. Refused HERE, with a reason, and
-     * WITHOUT a stop: the page may call grantConsent() a moment from now,
-     * and the frames it sends after that are the ones this feature exists
-     * to keep. The worker keeps its own check for the mixed case.
+     * Consent is asserted by the recorder and verified here. Under an
+     * explicit-consent policy, only a Granted frame is eligible to land.
+     * Unknown can come from a recorder that skipped the handshake, while
+     * NotRequired can come from a recorder using a stale policy after the
+     * application switched to RequireExplicit. Refuse an all-non-Granted
+     * request HERE, with a reason, and WITHOUT a stop: the application may
+     * call grantConsent() a moment from now, and the frames it sends after
+     * that are the ones this feature exists to keep. The worker keeps its
+     * own check for mixed jobs and queue races.
      */
     const consentStates: Array<string> = data.consentStates || [];
 
     if (
       policy.consentMode === SessionReplayConsentMode.RequireExplicit &&
-      consentStates.length > 0 &&
-      consentStates.every((state: string): boolean => {
-        return state === "Unknown";
+      !consentStates.some((state: string): boolean => {
+        return state === "Granted";
       })
     ) {
       return {
@@ -1061,16 +1060,17 @@ export default class SessionReplayIngestService {
 
       /*
        * Consent is asserted by the recorder and verified here, so a
-       * recorder that skips the handshake fails closed server-side too. The
-       * gate refuses a request whose EVERY frame says Unknown (with a reason
-       * the recorder sees); this catches the mixed case and any body that
-       * reached the queue by another route.
+       * recorder that skips the handshake or uses a stale NotRequired
+       * policy fails closed server-side too. The gate refuses requests with
+       * no Granted frames; this worker check drops every non-Granted frame
+       * from a mixed job and covers bodies that reached the queue by another
+       * route.
        */
       if (
         policy.consentMode === SessionReplayConsentMode.RequireExplicit &&
-        envelope.consentState === "Unknown"
+        envelope.consentState !== "Granted"
       ) {
-        this.recordDrop("consent-unknown", dropScope);
+        this.recordDrop("consent-not-granted", dropScope);
         continue;
       }
 

@@ -52,6 +52,8 @@ describe("Pagination in a Table", () => {
     currentPageNumber?: number;
     totalItemsCount?: number;
     itemsOnPage?: number;
+    itemsOnPageOptions?: Array<number>;
+    paginationDataTestId?: string;
     rowCount?: number;
   }) => MockFunction;
 
@@ -59,6 +61,8 @@ describe("Pagination in a Table", () => {
     currentPageNumber?: number;
     totalItemsCount?: number;
     itemsOnPage?: number;
+    itemsOnPageOptions?: Array<number>;
+    paginationDataTestId?: string;
     rowCount?: number;
   }): MockFunction => {
     const onNavigateToPage: MockFunction = getJestMockFunction();
@@ -71,6 +75,8 @@ describe("Pagination in a Table", () => {
         currentPageNumber={overrides?.currentPageNumber ?? 1}
         totalItemsCount={overrides?.totalItemsCount ?? 240}
         itemsOnPage={overrides?.itemsOnPage ?? 10}
+        itemsOnPageOptions={overrides?.itemsOnPageOptions}
+        paginationDataTestId={overrides?.paginationDataTestId}
         onNavigateToPage={
           onNavigateToPage as unknown as (
             pageNumber: number,
@@ -105,6 +111,25 @@ describe("Pagination in a Table", () => {
     });
 
     expect(onNavigateToPage).toHaveBeenCalledWith(1, 25);
+  });
+
+  it("forwards a consumer's page sizes and stable id to the shared footer", () => {
+    renderTable({
+      itemsOnPage: 20,
+      itemsOnPageOptions: [20, 50, 100],
+      paginationDataTestId: "custom-table-pagination",
+    });
+
+    expect(screen.getByTestId("custom-table-pagination")).toBeInTheDocument();
+    expect(
+      Array.from(
+        screen
+          .getByTestId("pagination-items-on-page-select")
+          .querySelectorAll("option"),
+      ).map((option: Element): string | null => {
+        return option.getAttribute("value");
+      }),
+    ).toEqual(["20", "50", "100"]);
   });
 
   it("jumps straight to a page from the table footer", () => {

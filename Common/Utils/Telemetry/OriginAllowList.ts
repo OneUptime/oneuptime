@@ -1,6 +1,7 @@
 /*
- * Origin allowlist matching and validation, shared by every surface that has
- * to decide "is this browser allowed to write into this project?".
+ * Client-origin allowlist matching and validation, shared by every surface
+ * that has to decide "is this browser or installed app allowed to write into
+ * this project?".
  *
  * This module is deliberately PURE and isomorphic - no server imports, no
  * Redis, no models - because the same rules have to hold in three places that
@@ -30,6 +31,8 @@
  *     origin binding is exactly the credential we are trying to stop
  *     shipping.
  */
+import { SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH } from "../../Types/Rum/SessionReplay";
+
 /*
  * Hoisted rather than written inline at each call site: none carries the `g`
  * flag, so `.test` is stateless and one compiled instance is safe to share,
@@ -38,8 +41,84 @@
 const WHITESPACE_ANYWHERE: RegExp = /\s/;
 const DIGITS_ONLY: RegExp = /^[0-9]+$/;
 const HOST_LABEL_CHARACTERS: RegExp = /^[a-z0-9-]+$/;
+const MOBILE_APP_IDENTIFIER_LABEL_CHARACTERS: RegExp = /^[a-z0-9_-]+$/;
 
 export default class OriginAllowList {
+  /*
+   * Validate an Android application id / Apple bundle identifier before it
+   * is allowed to participate in authorization. The accepted grammar is the
+   * safe common shape of the two platforms: reverse-DNS labels made from
+   * ASCII letters, digits, hyphens and underscores. Requiring at least two
+   * labels prevents short, ambiguous values such as `debug` from becoming a
+   * project-wide identity by accident.
+   */
+  public static validateMobileAppIdentifier(identifier: string): string | null {
+    if (typeof identifier !== "string") {
+      return "Mobile app identifier must be text.";
+    }
+
+    const trimmed: string = identifier.trim();
+
+    if (!trimmed) {
+      return "Mobile app identifier cannot be empty.";
+    }
+
+    if (trimmed.length > SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH) {
+      return `Mobile app identifier cannot exceed ${SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH} characters.`;
+    }
+
+    if (WHITESPACE_ANYWHERE.test(trimmed)) {
+      return "Mobile app identifier cannot contain spaces.";
+    }
+
+    const labels: Array<string> = trimmed.toLowerCase().split(".");
+
+    if (labels.length < 2) {
+      return "Mobile app identifier must use at least two reverse-DNS labels, for example com.example.app.";
+    }
+
+    for (const label of labels) {
+      if (!label) {
+        return "Mobile app identifier cannot contain an empty label.";
+      }
+
+      if (!MOBILE_APP_IDENTIFIER_LABEL_CHARACTERS.test(label)) {
+        return "Mobile app identifier may contain only letters, digits, hyphens, underscores and dots.";
+      }
+
+      if (
+        label.startsWith("-") ||
+        label.endsWith("-") ||
+        label.startsWith("_") ||
+        label.endsWith("_")
+      ) {
+        return "Each mobile app identifier label must start and end with a letter or digit.";
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Canonical identifier used in an app:// authorization origin. Returning
+   * an empty string on invalid input keeps the hot ingest path branchless at
+   * the call site and mirrors normalizeOrigin's invalid-input contract.
+   */
+  public static normalizeMobileAppIdentifier(identifier: string): string {
+    if (this.validateMobileAppIdentifier(identifier) !== null) {
+      return "";
+    }
+
+    return identifier.trim().toLowerCase();
+  }
+
+  public static getMobileAppOrigin(identifier: string): string | undefined {
+    const normalizedIdentifier: string =
+      this.normalizeMobileAppIdentifier(identifier);
+
+    return normalizedIdentifier ? `app://${normalizedIdentifier}` : undefined;
+  }
+
   /*
    * Canonical form for comparison: trimmed, lowercased, with trailing
    * slashes removed.
@@ -129,6 +208,18 @@ export default class OriginAllowList {
         return true;
       }
 
+      /*
+       * Wildcards exist only for HTTP(S) host names. An app:// identity is an
+       * exact installed binary identifier; allowing app://*.example would let
+       * any sibling application claim the public ingestion key.
+       */
+      if (
+        !normalizedAllowed.startsWith("http://*.") &&
+        !normalizedAllowed.startsWith("https://*.")
+      ) {
+        continue;
+      }
+
       const wildcardIndex: number = normalizedAllowed.indexOf("://*.");
 
       if (wildcardIndex === -1) {
@@ -184,6 +275,7 @@ export default class OriginAllowList {
    *                                    real; no public-suffix check is
    *                                    attempted because it is wrong more
    *                                    often than right on internal TLDs)
+   *   app://com.example.checkout       exact mobile bundle/package id
    *
    * REJECTED
    *   ""  /  "   "                     empty
@@ -217,6 +309,8 @@ export default class OriginAllowList {
    *   https://example..com             empty label
    *   https://-example.com             label starting or ending with "-"
    *   https://exa_mple.com             character not legal in a hostname
+   *   app://*.example.com              mobile identities never wildcard
+   *   app://com.example.app:123        mobile identities never carry ports
    */
   public static validateOriginPattern(pattern: string): string | null {
     if (typeof pattern !== "string") {
@@ -244,13 +338,54 @@ export default class OriginAllowList {
     const schemeSeparatorIndex: number = value.indexOf("://");
 
     if (schemeSeparatorIndex === -1) {
-      return `"${trimmed}" must start with http:// or https://.`;
+      return `"${trimmed}" must start with http://, https:// or app://.`;
     }
 
     const scheme: string = value.substring(0, schemeSeparatorIndex);
 
+    if (scheme === "app") {
+      let identifier: string = value.substring(schemeSeparatorIndex + 3);
+
+      if (identifier.endsWith("/")) {
+        identifier = identifier.substring(0, identifier.length - 1);
+      }
+
+      if (identifier.includes("*")) {
+        return `"${trimmed}" cannot wildcard a mobile app identifier. List each app:// identifier exactly.`;
+      }
+
+      if (identifier.includes("/")) {
+        return `"${trimmed}" must not contain a path. Use only app:// followed by the bundle or package identifier.`;
+      }
+
+      if (identifier.includes("?")) {
+        return `"${trimmed}" must not contain a query string.`;
+      }
+
+      if (identifier.includes("#")) {
+        return `"${trimmed}" must not contain a fragment.`;
+      }
+
+      if (identifier.includes("@")) {
+        return `"${trimmed}" must not contain a username or password.`;
+      }
+
+      if (identifier.includes(":")) {
+        return `"${trimmed}" must not contain a port. Mobile app identifiers are exact.`;
+      }
+
+      const identifierError: string | null =
+        this.validateMobileAppIdentifier(identifier);
+
+      if (identifierError) {
+        return `"${trimmed}" is not a valid mobile app origin. ${identifierError}`;
+      }
+
+      return null;
+    }
+
     if (scheme !== "http" && scheme !== "https") {
-      return `"${trimmed}" must use the http:// or https:// scheme.`;
+      return `"${trimmed}" must use the http://, https:// or app:// scheme.`;
     }
 
     let authority: string = value.substring(schemeSeparatorIndex + 3);

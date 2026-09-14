@@ -8,10 +8,7 @@ import React, {
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -19,6 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
+import { ReplayToolButton } from "./ReplayUi";
 
 /*
  * Pin / Unpin for the recording on screen.
@@ -86,6 +84,11 @@ export const PIN_REMOVED_COPY: string =
   "Pin removed: the recording had already expired, so there was nothing left to protect";
 export const PIN_UNPINNED_COPY: string =
   "Unpinned - the protected copy is removed within an hour and ordinary retention applies again";
+
+const CONTROL_ROW_CLASS: string =
+  "inline-flex min-w-0 max-w-full flex-wrap items-center gap-2";
+const CONTROL_MESSAGE_CLASS: string =
+  "min-w-0 max-w-full whitespace-normal break-words text-xs leading-4 sm:max-w-64";
 
 function isPermissionDenial(error: unknown): boolean {
   return (
@@ -306,21 +309,20 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
 
   if (state.kind === "load-error") {
     return (
-      <div
-        className="inline-flex items-center gap-2"
-        data-testid="replay-pin-control"
-      >
+      <div className={CONTROL_ROW_CLASS} data-testid="replay-pin-control">
         <span
-          className="text-xs text-red-700"
+          className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
           data-testid="replay-pin-error"
           title={state.message}
         >
           Could not check whether this recording is pinned: {state.message}
         </span>
-        <Button
-          title="Retry"
-          buttonStyle={ButtonStyleType.OUTLINE}
-          buttonSize={ButtonSize.Small}
+        <ReplayToolButton
+          label="Retry"
+          icon={IconProp.Refresh}
+          collapseLabelOnSmallScreens={true}
+          tooltip="Retry checking the pin status"
+          variant="segment"
           dataTestId="replay-pin-retry"
           onClick={retryLoad}
         />
@@ -331,7 +333,7 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
   const pinError: ReactElement | null =
     actionError && actionError.kind === "pin" ? (
       <span
-        className="text-xs text-red-700"
+        className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
         data-testid="replay-pin-error"
         title={actionError.message}
       >
@@ -345,32 +347,32 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
     state.kind === "removed-by-worker"
   ) {
     return (
-      <div
-        className="inline-flex items-center gap-2"
-        data-testid="replay-pin-control"
-      >
+      <div className={CONTROL_ROW_CLASS} data-testid="replay-pin-control">
         {state.kind === "unpinned" && (
           <span
-            className="text-xs text-gray-600"
+            className={`${CONTROL_MESSAGE_CLASS} text-gray-600`}
             data-testid="replay-pin-status"
+            title={PIN_UNPINNED_COPY}
           >
             {PIN_UNPINNED_COPY}
           </span>
         )}
         {state.kind === "removed-by-worker" && (
           <span
-            className="text-xs text-amber-700"
+            className={`${CONTROL_MESSAGE_CLASS} text-amber-700`}
             data-testid="replay-pin-status"
+            title={PIN_REMOVED_COPY}
           >
             {PIN_REMOVED_COPY}
           </span>
         )}
         {pinError}
-        <Button
-          title={pinError ? "Retry pin" : "Pin recording"}
+        <ReplayToolButton
+          label={pinError ? "Retry pin" : "Pin recording"}
           icon={IconProp.Flag}
-          buttonStyle={ButtonStyleType.OUTLINE}
+          variant="segment"
           isLoading={isWorking}
+          collapseLabelOnSmallScreens={true}
           dataTestId="replay-pin-button"
           tooltip="Keep a copy of this recording past its retention window"
           onClick={(): void => {
@@ -392,12 +394,9 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
     : "The pin is queued. Until the recording is finalized and the copy is written, this recording is NOT yet protected from retention.";
 
   return (
-    <div
-      className="inline-flex items-center gap-2"
-      data-testid="replay-pin-control"
-    >
+    <div className={CONTROL_ROW_CLASS} data-testid="replay-pin-control">
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+        className={`inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
           isProtected
             ? "bg-emerald-50 text-emerald-700"
             : "bg-amber-50 text-amber-700"
@@ -406,16 +405,25 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         data-testid="replay-pin-status"
       >
         <span
-          className={`h-2 w-2 rounded-full ${
+          className={`h-2 w-2 shrink-0 rounded-full ${
             isProtected ? "bg-emerald-500" : "animate-pulse bg-amber-500"
           }`}
         />
-        {isProtected ? "Pinned" : PIN_PENDING_COPY}
+        <span className="max-w-36 truncate sm:max-w-64">
+          {isProtected ? (
+            "Pinned"
+          ) : (
+            <>
+              <span className="sm:hidden">Pin pending</span>
+              <span className="hidden sm:inline">{PIN_PENDING_COPY}</span>
+            </>
+          )}
+        </span>
       </span>
 
       {actionError && actionError.kind === "unpin" && !isConfirmingUnpin && (
         <span
-          className="text-xs text-red-700"
+          className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
           data-testid="replay-pin-error"
           title={actionError.message}
         >
@@ -423,11 +431,14 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         </span>
       )}
 
-      <Button
-        title={
+      <ReplayToolButton
+        label={
           actionError && actionError.kind === "unpin" ? "Retry unpin" : "Unpin"
         }
-        buttonStyle={ButtonStyleType.OUTLINE}
+        icon={IconProp.Trash}
+        collapseLabelOnSmallScreens={true}
+        tooltip="Remove pinned retention protection"
+        variant="segment"
         isLoading={isWorking}
         dataTestId="replay-unpin-button"
         onClick={(): void => {
