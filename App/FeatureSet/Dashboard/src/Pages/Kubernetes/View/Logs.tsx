@@ -100,10 +100,22 @@ const KubernetesClusterLogs: FunctionComponent<
        * `logQuery.attributes` stays for the histogram / facet scoping —
        * display behavior is unchanged. Drop the attribute fallback (here and
        * in the logQuery merge) once deploy-date + max retention has passed.
+       *
+       * The attribute value is the cluster's k8s.cluster.name identifier,
+       * which is what the filter must match — but the locked chip would read
+       * "resource.k8s.cluster.name: <identifier>". The display overrides label
+       * it "Cluster: <name>" without touching the filter.
        */}
       <DashboardLogsViewer
         id={`kubernetes-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.k8s.cluster.name": "Cluster",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.k8s.cluster.name":
+            cluster.name || cluster.clusterIdentifier!,
+        }}
         entityScope={{
           entityKeys: [
             keyForKubernetesCluster(

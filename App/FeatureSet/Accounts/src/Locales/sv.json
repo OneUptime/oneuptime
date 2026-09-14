@@ -31,8 +31,26 @@
     "errorOnSignUp": "Slutför captcha-utmaningen innan du registrerar dig."
   },
   "login": {
+    "passkey": {
+      "signIn": "Logga in med en passnyckel",
+      "description": "Använd ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod.",
+      "passwordAlternative": "eller logga in med ett lösenord",
+      "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
+      "title": "Använd en sparad passnyckel",
+      "helpTitle": "Är passnycklar nytt för dig?",
+      "help": "Logga in med ditt lösenord eller SSO och öppna sedan Användarprofil → Passnycklar och tvåfaktorsautentisering för att skapa din första passnyckel.",
+      "preparing": "Förbereder din passnyckel…",
+      "waiting": "Titta på din enhet",
+      "waitingDescription": "Följ anvisningarna från webbläsaren eller lösenordshanteraren.",
+      "verifying": "Loggar in dig…",
+      "cancelled": "Inloggningen med passnyckel avbröts. Försök igen eller använd ditt lösenord.",
+      "notCompleted": "Inloggningen med passnyckel avbröts eller tog för lång tid. Försök igen eller logga in med ditt lösenord.",
+      "unsupported": "Passnycklar är inte tillgängliga i den här webbläsaren. Du kan fortfarande logga in med ditt lösenord eller SSO.",
+      "insecure": "Passnycklar kräver en säker anslutning (HTTPS). Du kan fortfarande logga in med ditt lösenord eller SSO.",
+      "tryAgain": "Försök med passnyckeln igen"
+    },
     "title": "Logga in på ditt konto",
-    "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "subtitle": "Använd en passnyckel, ett lösenord eller organisationens SSO.",
     "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "useSso": "Använd istället enkel inloggning (SSO)",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Följ instruktionerna på din säkerhetsnyckelenhet.",
       "codeFieldDescription": "Ange koden från din autentiseringsapp",
       "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering",
-      "useBackupCode": "Använd en reservkod i stället",
       "backupCodeInstruction": "Ange en av de reservkoder du sparade när du konfigurerade tvåfaktorsautentisering. Varje kod fungerar bara en gång.",
       "backupCodeFieldTitle": "Reservkod",
-      "backupCodeFieldDescription": "Reservkoder ser ut som ABCDE-12345. Stora och små bokstäver samt bindestrecket spelar ingen roll."
+      "backupCodeFieldDescription": "Reservkoder ser ut som ABCDE-12345. Stora och små bokstäver samt bindestrecket spelar ingen roll.",
+      "confirmSubtitle": "Bekräfta att det är du för att slutföra inloggningen.",
+      "recoverySubtitle": "Använd en reservkod, eller ta reda på hur du kommer in igen utan en sådan.",
+      "lostAccess": "Förlorat åtkomsten till din autentiseringsapp?",
+      "noBackupCodesStrong": "Du har inga reservkoder.",
+      "noBackupCodes": "Det finns ingen kod du kan ange här, eftersom det här kontot aldrig har tilldelats en uppsättning.",
+      "noBackupCodesInstruction": "Be en administratör för den här OneUptime-instansen att återställa tvåfaktorsautentiseringen för ditt konto. Då kan du logga in med ditt lösenord och konfigurera en ny autentiseringsapp, och samtidigt skapas reservkoder åt dig.",
+      "lostAccessSecurityKey": "Förlorat åtkomsten till din säkerhetsnyckel?"
     },
     "twoFactorEnrolment": {
       "title": "Konfigurera tvåfaktorsautentisering",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Ange den sexsiffriga koden som din autentiseringsapp visar.",
       "submitButton": "Verifiera och logga in",
       "backToSignIn": "Logga in som en annan användare"
+    },
+    "backupCodes": {
+      "title": "Spara dina reservkoder",
+      "subtitle": "Använd en av dessa för att logga in om du någon gång förlorar åtkomsten till din autentiseringsapp eller säkerhetsnyckel.",
+      "showOnceStrong": "Det här är enda gången koderna visas.",
+      "showOnce": "Spara dem någon annanstans än på enheten som genererar dina koder. Varje kod kan användas en gång.",
+      "download": "Ladda ner som textfil",
+      "savedConfirmation": "Jag har sparat koderna på ett säkert ställe.",
+      "continue": "Fortsätt till instrumentpanelen",
+      "fileHeading": "Reservkoder för tvåfaktorsautentisering i OneUptime",
+      "fileInstruction": "Varje kod kan användas en gång. Förvara den här filen på ett säkert ställe och åtskild från enheten som kör din autentiseringsapp.",
+      "setUpTitle": "Konfigurera reservkoder",
+      "setUpSubtitle": "En sista sak innan du fortsätter.",
+      "noneStrong": "Du har inga reservkoder.",
+      "none": "Om du förlorar din autentiseringsapp eller säkerhetsnyckel måste en administratör återställa tvåfaktorsautentiseringen innan du kan logga in igen.",
+      "generate": "Generera reservkoder",
+      "skip": "Hoppa över tills vidare",
+      "generateFailed": "Inga reservkoder returnerades. Försök igen från Användarprofil > Tvåfaktorsautentisering."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Logga in på OneUptime On-Call",
+    "description": "Använd en nyckel som sparats för den här OneUptime-servern.",
+    "returnDescription": "Efter att du har godkänt återvänder du till mobilappen.",
+    "invalid": "Starta inloggningen från OneUptimes mobilapp. Begäran saknas eller är ogiltig.",
+    "insecure": "Nycklar kräver HTTPS. Gå tillbaka till appen och kontrollera serveradressen.",
+    "failed": "Det gick inte att slutföra inloggningen. Gå tillbaka till appen och försök igen.",
+    "complete": "Din nyckel har verifierats. Gå tillbaka till appen för att slutföra inloggningen.",
+    "returnToApp": "Tillbaka till appen",
+    "cancel": "Avbryt och återgå till appen",
+    "setup": "Skapa en nyckel under Användarprofil → Nycklar och tvåfaktorsautentisering i webbpanelen."
+  },
+  "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
+  "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",
+  "Password meets requirements": "Lösenordet uppfyller kraven",
+  "Password must be at least 15 characters.": "Lösenordet måste innehålla minst 15 tecken.",
+  "Password cannot be more than 100 characters.": "Lösenordet får inte innehålla fler än 100 tecken.",
+  "Choose a less predictable password. Try a few unrelated words.": "Välj ett mindre förutsägbart lösenord. Prova några ord utan koppling till varandra.",
+  "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
+  "Password is required.": "Lösenord krävs.",
+  "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "Account details": "Kontouppgifter",
+  "Secure your account": "Skydda ditt konto",
+  "Between {{minimum}} and {{maximum}} characters": "Mellan {{minimum}} och {{maximum}} tecken",
+  "Avoid common or repeated patterns": "Undvik vanliga eller upprepade mönster",
+  "Password length": "Lösenordets längd",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tecken",
+  "Complete:": "Uppfyllt:",
+  "Incomplete:": "Inte uppfyllt:",
+  "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
 }

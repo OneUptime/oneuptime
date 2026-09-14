@@ -313,15 +313,27 @@ export default class MonitorTemplate extends BaseModel {
       Permission.EditMonitorTemplate,
     ],
   })
+  /*
+   * OPTIONAL, and the reason it is optional is the whole of issue #3486.
+   *
+   * A Network Device auto-import rule names every monitor it provisions
+   * "<device> - <this>". While this column was required, an operator who only
+   * wanted the device's own name had nothing to type that would not become a
+   * suffix on every imported router in the estate. Left blank, the monitor is
+   * named after the resource alone.
+   *
+   * Nullable rather than defaulted: a default would put the same invented
+   * suffix back on every template that never asked for one.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     title: "Monitor Name",
     description:
-      "Default name applied to monitors created from this template. Users can override on creation.",
+      "Default name applied to monitors created from this template. Users can override on creation. Leave it blank to name each monitor after the resource it watches.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })

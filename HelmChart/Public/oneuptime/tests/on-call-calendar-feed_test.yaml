@@ -1,0 +1,133 @@
+# The on-call calendar feed routes are public, token-in-URL endpoints polled by
+# Google Calendar / Outlook / Apple Calendar. Two operator knobs have to reach
+# the app for that to be safe to ship:
+#
+#   - DISABLE_ON_CALL_CALENDAR_FEED, the kill switch. An operator who sets
+#     onCallCalendarFeed.disabled: true expects every feed to answer 503 -- if
+#     the value never reaches the container the feeds keep serving.
+#   - the three rate-limit values. A raised limit that silently stays at the
+#     default is how a team's calendars start getting 429s; a lowered one that
+#     stays at the default leaves the public route wider open than intended.
+#
+# And they have to reach EVERY workload that serves HTTP, not only app: the
+# worker also boots the same server and reads the same config.
+suite: on-call calendar feed
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships the feeds enabled with the documented default limits
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_ON_CALL_CALENDAR_FEED
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS
+            value: "60"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW
+            value: "60"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
+            value: "3000"
+
+  - it: passes the kill switch through when an operator turns the feeds off
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      onCallCalendarFeed.disabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_ON_CALL_CALENDAR_FEED
+            value: "true"
+
+  - it: passes raised rate limits through as strings
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      onCallCalendarFeed.rateLimit.windowSeconds: 120
+      onCallCalendarFeed.rateLimit.perTokenPerWindow: 240
+      onCallCalendarFeed.rateLimit.perIpPerWindow: 9000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS
+            value: "120"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW
+            value: "240"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
+            value: "9000"
+
+  - it: passes lowered rate limits through too
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      onCallCalendarFeed.rateLimit.perTokenPerWindow: 5
+      onCallCalendarFeed.rateLimit.perIpPerWindow: 50
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW
+            value: "5"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
+            value: "50"
+
+  - it: reaches the worker too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Off by default; the worker Deployment renders nothing without this.
+      worker.enabled: true
+      onCallCalendarFeed.disabled: true
+      onCallCalendarFeed.rateLimit.perIpPerWindow: 7000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_ON_CALL_CALENDAR_FEED
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
+            value: "7000"

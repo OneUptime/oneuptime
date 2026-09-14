@@ -62,6 +62,12 @@ export interface ComponentProps {
    * buckets calls back with the [start, end) of the selected time range.
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Double-click on the plot: undoes whatever drag-to-select produced.
+   * Supply it only when a reset is actually possible — see ChartLibrary
+   * onTimeRangeReset for why an idle handler costs click latency.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
   // Plain click on a bucket — see ChartLibrary onBucketClick.
   onBucketClick?:
     | ((
@@ -116,6 +122,13 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     const formatter: (value: Date) => string = XAxisUtil.getFormatter({
       xAxisMax: props.xAxis.options.max,
       xAxisMin: props.xAxis.options.min,
+      /*
+       * Exemplars are placed by label with no index fallback, so they have
+       * to be formatted at the axis's own grid step — a pinned axis
+       * labelled at a different precision would put every exemplar on a
+       * category that does not exist, and they would silently vanish.
+       */
+      precision: props.xAxis.options.precision,
     });
 
     return props.exemplarPoints.map((exemplar: ExemplarPoint) => {
@@ -136,8 +149,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       return TimeAnnotationUtil.formatTimeReferenceLines({
         timeReferenceLines: props.timeReferenceLines,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps marker indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.timeReferenceLines, props.xAxis]);
+    }, [props.timeReferenceLines, props.xAxis, props.data]);
 
   const formattedReferenceRegions: Array<FormattedReferenceRegion> =
     useMemo(() => {
@@ -147,8 +162,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       return TimeAnnotationUtil.formatReferenceRegions({
         referenceRegions: props.referenceRegions,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps region indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.referenceRegions, props.xAxis]);
+    }, [props.referenceRegions, props.xAxis, props.data]);
 
   const hasNoData: boolean =
     !props.data ||
@@ -221,6 +238,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         }
         onExemplarClick={props.onExemplarClick}
         onTimeRangeSelect={props.onTimeRangeSelect}
+        onTimeRangeReset={props.onTimeRangeReset}
         onBucketClick={props.onBucketClick}
         ghostCategories={props.ghostSeriesNames}
       />

@@ -278,9 +278,9 @@ export const ArchitectureTiers: Array<ArchitectureTier> = [
         scaling: "Altinity shards and replicas",
       },
       {
-        name: "Redis",
+        name: "Valkey",
         description:
-          "Queues, caching, and coordination between the API and worker tiers.",
+          "Queues, caching, and coordination between the API and worker tiers. The bundled container speaks the Redis protocol, so any compatible server can take its place.",
         scaling: "Bundled or external",
       },
       {
@@ -307,7 +307,7 @@ export const ArchitectureTiers: Array<ArchitectureTier> = [
       {
         name: "Agents",
         description:
-          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, Kubernetes, and Ceph agents report into the same ingest path.",
+          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, VMware, Kubernetes, and Ceph agents report into the same ingest path.",
         scaling: "One per host or cluster",
       },
       {
@@ -378,7 +378,7 @@ export const InfrastructureRequirements: Array<RequirementGroup> = [
   {
     title: "Data stores",
     items: [
-      "PostgreSQL, ClickHouse, and Redis — bundled with the chart, or point at your own",
+      "PostgreSQL, ClickHouse, and Valkey — bundled with the chart, or point at your own",
       "Database operators (CloudNativePG, Altinity) for replicated production databases",
       "Persistent volume backups — configured with your storage provider or CloudNativePG scheduled backups",
       "Retention policy sized against your telemetry volume; storage is the dominant cost at scale",
@@ -435,7 +435,7 @@ export const AvailabilityControls: Array<ResilienceControl> = [
 ];
 
 export const DisasterRecoveryPractices: Array<string> = [
-  "Pin the OneUptime image tag and the PostgreSQL, Redis, and ClickHouse versions so a restore is reproducible.",
+  "Pin the OneUptime image tag and the PostgreSQL, Valkey, and ClickHouse versions so a restore is reproducible.",
   "Back up persistent volumes on the cadence your RPO requires — the chart does not do this for you.",
   "Test restores on a schedule. A backup you have never restored is not a backup.",
   "Keep your values.yaml in version control; it is the other half of your recovery plan.",

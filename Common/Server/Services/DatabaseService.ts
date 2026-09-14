@@ -1,6 +1,10 @@
 import { EncryptionSecret, WorkflowHostname } from "../EnvironmentConfig";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
+import AggregateBy, {
+  AggregateColumn,
+  AggregateRow,
+} from "../Types/Database/AggregateBy";
 import CountBy from "../Types/Database/CountBy";
 import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -37,11 +41,14 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import RelationOnlyRuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RelationOnlyRuleBaseModel";
+import RuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Sort from "../../Types/BaseDatabase/Sort";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLength";
 import Columns from "../../Types/Database/Columns";
@@ -65,6 +72,12 @@ import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
+import { getRuleCriteriaValidationError } from "../../Utils/Rules/RuleCriteriaMatcher";
+import RuleCriteria, {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
 import {
   DataSource,
   Driver,
@@ -81,6 +94,13 @@ import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
+
+const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
+  new Set<RuleCriteriaOperator>([
+    RuleCriteriaOperator.HasAnyOf,
+    RuleCriteriaOperator.HasAllOf,
+    RuleCriteriaOperator.HasNoneOf,
+  ]);
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -612,19 +632,288 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     throw PostgresErrorTranslator.translateException(error);
   }
 
+  /*
+   * Both halves of @SlugifyColumn are resolved BY NAME off the object rather
+   * than through the schema, so a name matching no declared column misfires
+   * silently: a missing source reads `undefined` and Slug.getSlug answers with
+   * a random Faker name, and a missing destination is assigned to a property
+   * TypeORM drops on insert. ModelRegistryInvariants sweeps every model for
+   * both, so the pairing is guaranteed by a test rather than by this code.
+   *
+   * The ceiling comes from the DESTINATION column, not from Slug: getSlug
+   * appends a dash and ten random digits, and checkMaxLengthOfFields -- which
+   * runs later in the same create -- THROWS on overflow rather than
+   * truncating. Sources are routinely wider than the slug they feed
+   * (Incident.title is varchar(500) against a varchar(100) slug), so without
+   * this a long title would be a failed insert rather than a long slug.
+   */
   private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
-    if (createBy.data.getSlugifyColumn()) {
-      (createBy.data as any)[createBy.data.getSaveSlugToColumn() as string] =
-        Slug.getSlug(
-          (createBy.data as any)[createBy.data.getSlugifyColumn() as string]
-            ? ((createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
-              ] as string)
-            : null,
-        );
+    const slugifyColumn: string | null = createBy.data.getSlugifyColumn();
+    const saveSlugToColumn: string | null = createBy.data.getSaveSlugToColumn();
+
+    if (!slugifyColumn || !saveSlugToColumn) {
+      return createBy;
     }
 
+    const source: JSONValue = (createBy.data as any)[slugifyColumn];
+
+    (createBy.data as any)[saveSlugToColumn] = Slug.getSlug(
+      source ? String(source) : null,
+      this.getMaxLengthOfColumn(saveSlugToColumn),
+    );
+
     return createBy;
+  }
+
+  /*
+   * The declared width of a column, or undefined for a column that declares
+   * none -- including a name that is not a column at all, which is what
+   * getTableColumnMetadata answers for.
+   */
+  private getMaxLengthOfColumn(columnName: string): number | undefined {
+    const columnType: TableColumnType | undefined =
+      this.model.getTableColumnMetadata(columnName)?.type;
+
+    return columnType ? getMaxLengthFromTableColumnType(columnType) : undefined;
+  }
+
+  private validateRuleCriteriaForModel(criteria: RuleCriteria): void {
+    const allowedFields: ReadonlyArray<string> | undefined =
+      getRuleCriteriaFieldsForModel(this.modelName);
+
+    if (!allowedFields) {
+      throw new BadDataException(
+        `Rule criteria fields are not registered for ${this.modelName}.`,
+      );
+    }
+
+    if (
+      criteria.isEnabled !== undefined &&
+      !(this.model instanceof RelationOnlyRuleBaseModel)
+    ) {
+      throw new BadDataException(
+        `Rule criteria isEnabled is only supported for relation-only rules.`,
+      );
+    }
+
+    for (const filter of criteria.filters) {
+      if (!allowedFields.includes(filter.field)) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" is not supported for ${this.modelName}.`,
+        );
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(filter.field);
+
+      if (!metadata) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" is not a column on ${this.modelName}.`,
+        );
+      }
+
+      const isRelationField: boolean =
+        metadata.type === TableColumnType.EntityArray;
+      const isRelationOperator: boolean = RULE_CRITERIA_RELATION_OPERATORS.has(
+        filter.operator,
+      );
+
+      if (isRelationOperator && !isRelationField) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" does not support relation operators.`,
+        );
+      }
+
+      if (!isRelationOperator && isRelationField) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" requires a relation operator.`,
+        );
+      }
+
+      if (
+        isRelationOperator &&
+        (filter.value as Array<string>).some((value: string): boolean => {
+          return !ObjectID.isValidUUID(value);
+        })
+      ) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" requires valid resource IDs.`,
+        );
+      }
+    }
+  }
+
+  private getRuleCriteriaEffectiveEnabledQuery(
+    query: Query<TBaseModel>,
+  ): Query<TBaseModel> {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return query;
+    }
+
+    const requestedEnabledState: unknown = (query as Record<string, unknown>)[
+      "isEnabled"
+    ];
+
+    if (typeof requestedEnabledState !== "boolean") {
+      return query;
+    }
+
+    return {
+      ...query,
+      isEnabled: QueryHelper.booleanForCriteriaBackedRule(
+        "criteria",
+        requestedEnabledState,
+      ),
+    } as Query<TBaseModel>;
+  }
+
+  private addRuleCriteriaEffectiveEnabledToSelect(
+    select: Select<TBaseModel> | null | undefined,
+  ): boolean {
+    if (
+      !(this.model instanceof RelationOnlyRuleBaseModel) ||
+      !select ||
+      !(select as Record<string, unknown>)["isEnabled"]
+    ) {
+      return false;
+    }
+
+    const criteriaWasSelected: boolean = Boolean(
+      (select as Record<string, unknown>)["criteria"],
+    );
+    (select as Record<string, unknown>)["criteria"] = true;
+
+    return !criteriaWasSelected;
+  }
+
+  private applyRuleCriteriaEffectiveEnabledToItem(
+    item: TBaseModel,
+    mapEffectiveEnabled: boolean = true,
+    removeInternallySelectedCriteria: boolean = false,
+  ): void {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return;
+    }
+
+    const relationOnlyRule: RelationOnlyRuleBaseModel =
+      item as unknown as RelationOnlyRuleBaseModel;
+
+    if (
+      mapEffectiveEnabled &&
+      relationOnlyRule.criteria !== undefined &&
+      relationOnlyRule.criteria !== null
+    ) {
+      (item as Record<string, unknown>)["isEnabled"] =
+        (item as Record<string, unknown>)["isEnabled"] === null;
+    }
+
+    if (removeInternallySelectedCriteria) {
+      delete (item as Record<string, unknown>)["criteria"];
+    }
+  }
+
+  private applyRelationOnlyRuleRolloutState(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    options: {
+      hasConfiguredCriteria: boolean;
+      isUpdate: boolean;
+    },
+  ): void {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return;
+    }
+
+    if (!options.hasConfiguredCriteria) {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+    const criteria: RuleCriteria = record["criteria"] as RuleCriteria;
+    const requestedEnabledState: unknown =
+      typeof criteria.isEnabled === "boolean"
+        ? criteria.isEnabled
+        : record["isEnabled"];
+
+    if (options.isUpdate && typeof requestedEnabledState !== "boolean") {
+      throw new BadDataException(
+        "isEnabled must be supplied when updating criteria for this rule.",
+      );
+    }
+
+    const logicalEnabledState: boolean =
+      typeof requestedEnabledState === "boolean" ? requestedEnabledState : true;
+
+    record["criteria"] = {
+      ...criteria,
+      isEnabled: logicalEnabledState,
+    };
+    record["isEnabled"] = logicalEnabledState ? null : false;
+  }
+
+  private applyLegacyRuleCriteriaSafetyShadow(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    const allowedFields: ReadonlyArray<string> | undefined =
+      getRuleCriteriaFieldsForModel(this.modelName);
+
+    if (!allowedFields) {
+      return;
+    }
+
+    if (this.model instanceof RelationOnlyRuleBaseModel) {
+      /*
+       * Omit legacy many-to-many fields from the server-side write. An empty
+       * array would clear existing junction rows and route updates through
+       * repository.save(), whose upsert semantics can resurrect a deleted row.
+       * The fail-closed isEnabled shadow keeps these rules hidden from older
+       * workers without touching their legacy relations.
+       */
+      for (const field of allowedFields) {
+        delete (data as Record<string, unknown>)[field];
+      }
+
+      return;
+    }
+
+    /*
+     * Scalar rule families can expose a never-matching regular expression to
+     * older workers. Relation-only criteria rules encode enabled as null and
+     * disabled as false; older workers query true and therefore see neither.
+     */
+    const safetyPatternField: string | undefined = allowedFields.find(
+      (field: string): boolean => {
+        const metadata: TableColumnMetadata | undefined =
+          this.model.getTableColumnMetadata(field);
+
+        return (
+          metadata?.type !== TableColumnType.EntityArray &&
+          field.match(/(pattern|regex)/i) !== null
+        );
+      },
+    );
+
+    if (!safetyPatternField) {
+      return;
+    }
+
+    for (const field of allowedFields) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(field);
+
+      if (!metadata) {
+        continue;
+      }
+
+      if (metadata.type === TableColumnType.EntityArray) {
+        // Preserve existing junction rows and keep this on repository.update().
+        delete (data as Record<string, unknown>)[field];
+      } else {
+        (data as Record<string, unknown>)[field] = null;
+      }
+    }
+
+    (data as Record<string, unknown>)[safetyPatternField] =
+      RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
   }
 
   private async sanitizeCreateOrUpdate(
@@ -632,6 +921,42 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     props: DatabaseCommonInteractionProps,
     isUpdate: boolean = false,
   ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
+    const criteriaValue: unknown = (data as Record<string, unknown>)[
+      "criteria"
+    ];
+    const hasConfiguredCriteria: boolean =
+      criteriaValue !== undefined && criteriaValue !== null;
+
+    if (
+      this.model instanceof RelationOnlyRuleBaseModel &&
+      isUpdate &&
+      criteriaValue === null
+    ) {
+      throw new BadDataException(
+        "Configured criteria cannot be cleared from this rule. Save an empty criteria set to match every resource.",
+      );
+    }
+
+    if (this.model instanceof RuleBaseModel && hasConfiguredCriteria) {
+      const validationError: string | null =
+        getRuleCriteriaValidationError(criteriaValue);
+
+      if (validationError) {
+        throw new BadDataException(validationError);
+      }
+
+      this.validateRuleCriteriaForModel(criteriaValue as RuleCriteria);
+    }
+
+    this.applyRelationOnlyRuleRolloutState(data, {
+      hasConfiguredCriteria: hasConfiguredCriteria,
+      isUpdate: isUpdate,
+    });
+
+    if (this.model instanceof RuleBaseModel && hasConfiguredCriteria) {
+      this.applyLegacyRuleCriteriaSafetyShadow(data);
+    }
+
     data = this.checkMaxLengthOfFields(data as TBaseModel);
 
     const columns: Columns = this.model.getTableColumns();
@@ -1033,6 +1358,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     try {
       createBy.data = await this.getRepository().save(createBy.data);
+      this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
@@ -1431,6 +1757,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         limit = new PositiveNumber(limit);
       }
 
+      query = this.getRuleCriteriaEffectiveEnabledQuery(query);
+
       const findBy: FindBy<TBaseModel> = {
         query,
         skip,
@@ -1475,6 +1803,288 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } catch (error) {
       await this.onCountError(error as Exception);
       throw this.getException(error as Exception);
+    }
+  }
+
+  /*
+   * A plain identifier, because an alias is interpolated into `AS "..."` and
+   * is structure rather than data — there is no parameter form for it.
+   */
+  private static readonly aggregateAliasPattern: RegExp =
+    /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
+  /**
+   * Answers a question ABOUT the matched rows — how many, how much, how many
+   * of each — without loading them.
+   *
+   * Same permission pipeline as `findBy` and `countBy`: the query is run
+   * through `checkReadQueryPermission` first, so tenant scoping and
+   * label-block filtering apply exactly as they do to a list read (a blocked
+   * label produces the same relation join here that it produces there — the
+   * count cannot see rows the list would hide).
+   *
+   * Returns one row per group, or exactly one row when `groupBy` is omitted.
+   * Values come back as the driver produced them; read them through
+   * `AggregateResultUtil` rather than indexing in directly, because Postgres
+   * hands COUNT and SUM back as strings.
+   *
+   * See `AggregateBy` for the trust boundary on `expression`: constants only,
+   * every dynamic value through `parameters`.
+   */
+  @CaptureSpan()
+  public async aggregateBy(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): Promise<Array<AggregateRow>> {
+    try {
+      this.setTelemetryContextFromProps(aggregateBy.props);
+
+      if (!aggregateBy.select || aggregateBy.select.length === 0) {
+        throw new BadDataException(
+          "aggregateBy needs at least one aggregate column to select.",
+        );
+      }
+
+      const groupByColumns: Array<AggregateColumn> = aggregateBy.groupBy || [];
+
+      /*
+       * Grouped columns are selected as well as grouped on. Doing it here
+       * rather than making callers list them twice is what keeps a group key
+       * and the bucket it labels from ever drifting apart.
+       */
+      const selectColumns: Array<AggregateColumn> = [
+        ...groupByColumns,
+        ...aggregateBy.select,
+      ];
+
+      const seenAliases: Set<string> = new Set<string>();
+
+      for (const column of selectColumns) {
+        DatabaseService.assertSafeAggregateExpression(column.expression);
+
+        if (!DatabaseService.aggregateAliasPattern.test(column.alias)) {
+          throw new BadDataException(
+            `Invalid aggregate alias: ${column.alias}. Aliases must be plain identifiers.`,
+          );
+        }
+
+        if (seenAliases.has(column.alias)) {
+          throw new BadDataException(
+            `Duplicate aggregate alias: ${column.alias}.`,
+          );
+        }
+
+        seenAliases.add(column.alias);
+      }
+
+      /*
+       * Validated here rather than in the loop that applies them, so every
+       * expression in the request is checked BEFORE anything reaches the
+       * database — and so the check is reachable without a live connection,
+       * which is what makes it testable.
+       */
+      for (const order of aggregateBy.orderBy || []) {
+        DatabaseService.assertSafeAggregateExpression(order.expression);
+      }
+
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadQueryPermission(
+          this.modelType,
+          this.getRuleCriteriaEffectiveEnabledQuery(aggregateBy.query),
+          null,
+          aggregateBy.props,
+        );
+
+      const queryBuilder: SelectQueryBuilder<TBaseModel> =
+        this.buildAggregateScope(checkReadPermissionType.query);
+
+      let isFirstColumn: boolean = true;
+
+      for (const column of selectColumns) {
+        if (isFirstColumn) {
+          queryBuilder.select(column.expression, column.alias);
+          isFirstColumn = false;
+        } else {
+          queryBuilder.addSelect(column.expression, column.alias);
+        }
+      }
+
+      for (const column of groupByColumns) {
+        queryBuilder.addGroupBy(column.expression);
+      }
+
+      for (const order of aggregateBy.orderBy || []) {
+        queryBuilder.addOrderBy(
+          order.expression,
+          order.sortOrder === SortOrder.Ascending ? "ASC" : "DESC",
+        );
+      }
+
+      if (aggregateBy.parameters) {
+        queryBuilder.setParameters(aggregateBy.parameters);
+      }
+
+      if (aggregateBy.limit !== undefined) {
+        if (!Number.isInteger(aggregateBy.limit) || aggregateBy.limit < 0) {
+          throw new BadDataException(
+            `Invalid aggregate limit: ${aggregateBy.limit}. It must be a non-negative integer.`,
+          );
+        }
+
+        /*
+         * `.limit`, not `.take`: this is a raw read, and `take` is the
+         * entity-hydrating pagination that would wrap the whole aggregate in
+         * a distinct-id subquery.
+         */
+        queryBuilder.limit(aggregateBy.limit);
+      }
+
+      return (await queryBuilder.getRawMany()) as Array<AggregateRow>;
+    } catch (error) {
+      await this.onCountError(error as Exception);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  /**
+   * A query builder scoped to exactly the rows this read may see, and — this
+   * is the whole point — scoped so that each of them appears ONCE.
+   *
+   * The permission pipeline expresses a label-scoped ALLOW as a condition on
+   * the access-control RELATION — `{ labels: [permittedIds] }`, which
+   * QueryUtil.serializeQuery then nests into `{ labels: { _id: <a set
+   * membership operator> } }`. Handed to TypeORM's FindOptions machinery that
+   * becomes a join through the many-to-many junction table — and a join
+   * multiplies rows. A device carrying two permitted labels comes back twice.
+   *
+   * A label BLOCK no longer takes that route, and it is worth being precise
+   * about why, because the shape reads like the allow half's mirror image and
+   * is not. A relation condition cannot express "has NONE of these labels" at
+   * all: a device labelled {blocked, other} still matches the join through its
+   * "other" row. So ReadPermission writes the block as a flat predicate on the
+   * owner's own id instead — `_id NOT IN (SELECT ownerId FROM the junction
+   * table WHERE labelId IN (...))`. Flat means no join, which means no
+   * duplicate rows, which means the block half needs nothing from this method
+   * beyond the cheap path below.
+   *
+   * The allow half is not the only producer of relation-keyed conditions
+   * either. `@CanAccessIfCanReadOn` makes BasePermission write
+   * `query[relation] = { <the related model's access-control column>: ids }`
+   * for StatusPageResource, IncidentInternalNote, AlertEpisodeMember and
+   * others, and that arrives here indistinguishable from a label allow.
+   *
+   * `findBy` never notices, because entity hydration de-duplicates by primary
+   * key on the way out. An aggregate has no such step: COUNT(*) would report
+   * that device as two devices and SUM("interfacesDown") would double its dark
+   * ports — silently, and only for the label-scoped enterprise users who are
+   * least able to spot it. (Verified against Postgres: one device, two
+   * permitted labels, `COUNT(*) = 2`, `SUM = 2` for a stored value of 1.)
+   *
+   * `COUNT(DISTINCT _id)` would fix the counts and do nothing for the sums, so
+   * the de-duplication happens one level down instead: when the scoped query
+   * touches a relation at all, the aggregate runs over the base table filtered
+   * by a DISTINCT subquery of ids. The joins live inside that subquery, where
+   * duplicate rows collapse before anything is added up.
+   *
+   * The subquery is skipped when the query is flat — every read by a user with
+   * no label-scoped allow grant and no `@CanAccessIfCanReadOn` relation, which
+   * is the hot path, and the block half above with it — so the ordinary
+   * full-fleet aggregate stays a single sequential scan.
+   */
+  private buildAggregateScope(
+    query: Query<TBaseModel>,
+  ): SelectQueryBuilder<TBaseModel> {
+    if (!this.queryTouchesARelation(query)) {
+      const flatBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
+        this.modelName,
+      );
+
+      flatBuilder.setFindOptions({ where: query as any });
+
+      return flatBuilder;
+    }
+
+    /*
+     * A separate alias, so the subquery's joins cannot collide with the outer
+     * statement's table reference.
+     */
+    const scopeAlias: string = `${this.modelName}_aggregate_scope`;
+
+    const scopeBuilder: SelectQueryBuilder<TBaseModel> =
+      this.getQueryBuilder(scopeAlias);
+
+    scopeBuilder.setFindOptions({ where: query as any });
+    scopeBuilder.select(`DISTINCT "${scopeAlias}"."_id"`, "_id");
+
+    const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
+      this.modelName,
+    );
+
+    /*
+     * The alias is QUOTED. TypeORM renders it quoted everywhere else, and an
+     * unquoted `NetworkDevice."_id"` in a raw fragment is folded to lower case
+     * by Postgres — which then does not match the quoted alias at all.
+     */
+    queryBuilder.where(
+      `"${this.modelName}"."_id" IN (${scopeBuilder.getQuery()})`,
+    );
+    /*
+     * The subquery's own bound values, copied across under whatever names they
+     * already carry. Two naming schemes reach this line: TypeORM auto-names
+     * the parameters it creates itself (`orm_param_N`), but a label predicate
+     * arrives as a `Raw` operator carrying its own object-literal parameters,
+     * and TypeORM registers those verbatim — QueryHelper names them with ten
+     * random characters apiece. Neither can clash with the outer builder,
+     * which generates no parameters of its own here: its only WHERE is the raw
+     * string above. Caller-supplied parameters are named and applied later.
+     */
+    queryBuilder.setParameters(scopeBuilder.getParameters());
+
+    return queryBuilder;
+  }
+
+  /*
+   * Whether any top-level key of the query names a RELATION rather than a
+   * column — the shape that turns into a join.
+   *
+   * Deliberately conservative in both directions: a many-to-one relation joins
+   * at most one row and would not actually multiply anything, and metadata
+   * being unavailable is treated as "yes, there might be one". Both err
+   * towards the de-duplicating path, which is always correct and merely
+   * slower.
+   */
+  private queryTouchesARelation(query: Query<TBaseModel>): boolean {
+    let metadata: EntityMetadata;
+
+    try {
+      metadata = this.getRepository().metadata;
+    } catch {
+      return true;
+    }
+
+    for (const key of Object.keys(query as Record<string, unknown>)) {
+      if (metadata.findRelationWithPropertyPath(key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * A tripwire on the constants-only contract, not a sanitizer: an expression
+   * assembled from request data can be perfectly valid SQL and still be an
+   * injection. What this catches is the one shape that turns a leaked value
+   * into a second statement.
+   */
+  private static assertSafeAggregateExpression(expression: string): void {
+    if (!expression || !expression.trim()) {
+      throw new BadDataException("Aggregate expression cannot be empty.");
+    }
+
+    if (expression.includes(";")) {
+      throw new BadDataException(
+        "Aggregate expressions cannot contain statement separators.",
+      );
     }
   }
 
@@ -1534,6 +2144,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+
+      beforeDeleteBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeDeleteBy.query,
+      );
 
       beforeDeleteBy.query = await ModelPermission.checkDeleteQueryPermission(
         this.modelType,
@@ -1599,6 +2213,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
       const carryForward: any = onDelete.carryForward;
+
+      beforeDeleteBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeDeleteBy.query,
+      );
 
       beforeDeleteBy.query = await ModelPermission.checkDeleteQueryPermission(
         this.modelType,
@@ -1841,6 +2459,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (onBeforeFind.select as any)["_id"] = true;
       }
 
+      onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        onBeforeFind.query,
+      );
+
       const result: {
         query: Query<TBaseModel>;
         select: Select<TBaseModel> | null;
@@ -1854,6 +2476,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       onBeforeFind.query = result.query;
       onBeforeFind.select = result.select || undefined;
+
+      const mapEffectiveEnabled: boolean = Boolean(
+        (onBeforeFind.select as Record<string, unknown> | undefined)?.[
+          "isEnabled"
+        ],
+      );
+      const removeInternallySelectedCriteria: boolean =
+        this.addRuleCriteriaEffectiveEnabledToSelect(onBeforeFind.select);
 
       const sortColumnsAddedToSelect: Array<string> =
         this.addSortColumnsToSelect(onBeforeFind);
@@ -1873,6 +2503,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         throw new BadDataException("GroupBy is currently not supported");
       }
 
+      /*
+       * Complete the caller's sort into a TOTAL order.
+       *
+       * Everything here pages with LIMIT/OFFSET, and OFFSET only means
+       * anything against an ordering that has no ties: rows that compare
+       * equal may come back in any order, and Postgres is free to return them
+       * differently for the two queries that fetch page 1 and page 2. A tied
+       * row can therefore be served on both pages while another is served on
+       * neither — the same row apparently listed twice.
+       *
+       * Ties are not exotic. The Inventory list sorts on `lastSeenAt`, which
+       * the entity reconciler rewrites for every live entity every few
+       * minutes, and the inventory mirror stamps one identical timestamp
+       * across a whole page of rows; "created at" sorts tie for anything
+       * bulk-inserted in one statement. Appending the primary key breaks
+       * every tie deterministically and costs nothing — `_id` is the PK, and
+       * it is already in the select (see above), so this adds no column to
+       * the projection and nothing to strip afterwards.
+       */
+      const sortSoFar: Dictionary<SortOrder> =
+        (onBeforeFind.sort as Dictionary<SortOrder> | undefined) || {};
+
+      if (!sortSoFar["_id"]) {
+        // Copied, never mutated: callers reuse their sort objects across queries.
+        onBeforeFind.sort = {
+          ...sortSoFar,
+          _id: SortOrder.Ascending,
+        } as Sort<TBaseModel>;
+      }
+
       const items: Array<TBaseModel> = await this.getRepository().find({
         skip: onBeforeFind.skip.toNumber(),
         take: onBeforeFind.limit.toNumber(),
@@ -1886,6 +2546,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       let decryptedItems: Array<TBaseModel> = [];
 
       for (const item of items) {
+        this.applyRuleCriteriaEffectiveEnabledToItem(
+          item,
+          mapEffectiveEnabled,
+          removeInternallySelectedCriteria,
+        );
         decryptedItems.push(await this.decrypt(item));
       }
 
@@ -2165,6 +2830,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
       const carryForward: any = onUpdate.carryForward;
 
+      beforeUpdateBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeUpdateBy.query,
+      );
+
       beforeUpdateBy.query = await ModelPermission.checkUpdateQueryPermissions(
         this.modelType,
         beforeUpdateBy.query,
@@ -2209,6 +2878,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: true,
         ...Object.fromEntries(dataColumns),
       };
+
+      if (
+        this.model instanceof RelationOnlyRuleBaseModel &&
+        typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+        (data as Record<string, unknown>)["criteria"] === undefined
+      ) {
+        (selectColumns as Record<string, unknown>)["criteria"] = true;
+      }
 
       if (this.getModel().getTenantColumn()) {
         (selectColumns as any)[this.getModel().getTenantColumn()!.toString()] =
@@ -2305,10 +2982,63 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * primary key, INSERTs instead of updating, and dies on the first
          * NOT NULL column.
          */
+        const dataForItem: PartialEntity<TBaseModel> = { ...data };
+
+        if (
+          this.model instanceof RelationOnlyRuleBaseModel &&
+          (data as Record<string, unknown>)["criteria"] === undefined &&
+          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+          (item as unknown as RelationOnlyRuleBaseModel).criteria !==
+            undefined &&
+          (item as unknown as RelationOnlyRuleBaseModel).criteria !== null
+        ) {
+          const logicalEnabled: boolean = (data as Record<string, unknown>)[
+            "isEnabled"
+          ] as boolean;
+          const existingCriteria: RuleCriteria = (
+            item as unknown as RelationOnlyRuleBaseModel
+          ).criteria!;
+
+          /*
+           * Keep the transport shadow synchronized with the physical state.
+           * Otherwise a later criteria edit that round-trips this JSON without
+           * a top-level isEnabled value can restore a stale enabled state.
+           */
+          (dataForItem as Record<string, unknown>)["criteria"] = {
+            ...existingCriteria,
+            isEnabled: logicalEnabled,
+          };
+          (dataForItem as Record<string, unknown>)["isEnabled"] = logicalEnabled
+            ? null
+            : false;
+        }
+
         const updatedItem: any = {
-          ...data,
+          ...dataForItem,
           _id: item._id!,
         } as any;
+        const updatedItemForComparison: any = { ...updatedItem };
+        const updateCriteriaValue: unknown = (data as Record<string, unknown>)[
+          "criteria"
+        ];
+        const existingCriteriaValue: unknown = (
+          item as unknown as RelationOnlyRuleBaseModel
+        ).criteria;
+        const isCriteriaBackedComparison: boolean =
+          (updateCriteriaValue !== undefined && updateCriteriaValue !== null) ||
+          (updateCriteriaValue === undefined &&
+            existingCriteriaValue !== undefined &&
+            existingCriteriaValue !== null);
+
+        if (
+          this.model instanceof RelationOnlyRuleBaseModel &&
+          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+          isCriteriaBackedComparison
+        ) {
+          updatedItemForComparison.isEnabled = (
+            data as Record<string, unknown>
+          )["isEnabled"];
+        }
 
         if (isDebugLogEnabled) {
           logger.debug("Updated Item", {
@@ -2355,7 +3085,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         if (
           this.getModel().enableWorkflowOn?.update &&
           // Only trigger workflow if there's a change in values
-          !this.hasSameValues({ item, updatedItem })
+          !this.hasSameValues({ item, updatedItem: updatedItemForComparison })
         ) {
           let tenantId: ObjectID | undefined = updateBy.props.tenantId;
 
@@ -2380,7 +3110,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (
           this.getModel().enableAuditLogOn?.update &&
-          !this.hasSameValues({ item, updatedItem }) &&
+          !this.hasSameValues({
+            item,
+            updatedItem: updatedItemForComparison,
+          }) &&
           item.id
         ) {
           const auditLogService: typeof AuditLogServiceType =
@@ -2437,13 +3170,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const { item, updatedItem } = data;
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
+      const currentValue: unknown = item.getColumnValue(column);
+      const updatedValue: unknown = updatedItem[column];
+      const isJSONColumn: boolean =
+        item.getTableColumnMetadata(column)?.type === TableColumnType.JSON;
+
+      /*
+       * Plain JSON objects all stringify through Object.toString as
+       * "[object Object]". Compare their contents instead, while ignoring
+       * insignificant object-key ordering.
+       */
       if (
+        isJSONColumn &&
+        !JSONFunctions.deepEqual(currentValue, updatedValue)
+      ) {
+        return false;
+      }
+
+      if (
+        !isJSONColumn &&
         /*
          * `toString()` is necessary so we can compare wrapped values
          * (e.g. `ObjectID`) with raw values (e.g. `string`)
          */
-        item.getColumnValue(column)?.toString() !==
-        updatedItem[column]?.toString()
+        currentValue?.toString() !== updatedValue?.toString()
       ) {
         return false;
       }

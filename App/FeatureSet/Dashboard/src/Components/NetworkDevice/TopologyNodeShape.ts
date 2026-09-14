@@ -1,6 +1,7 @@
 import {
   NetworkTopologyDeviceRole,
   NetworkTopologyNode,
+  NetworkTopologyNodeShape,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { labelForDeviceRole } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
 import { isEndpointNode } from "./EndpointNodeUtil";
@@ -32,15 +33,13 @@ import { TopologyPoint } from "./TopologyGraphUtil";
  * also means every silhouette is unit-testable without a DOM.
  */
 
-export type TopologyNodeShape =
-  | "circle"
-  | "rounded-square"
-  | "diamond"
-  | "triangle"
-  | "hexagon"
-  | "tower"
-  | "cylinder"
-  | "rect";
+/*
+ * The union itself moved to Common, next to the roles, because a device role
+ * is a per-project row that STORES the shape it is drawn with and the model
+ * has to name the same eight values. This alias keeps every existing import
+ * of TopologyNodeShape resolving to exactly that union.
+ */
+export type TopologyNodeShape = NetworkTopologyNodeShape;
 
 /*
  * The size a node is drawn at before its shape's aspect ratio is applied.
@@ -122,11 +121,53 @@ export function roleOfNode(
  * rect it has always been, and an unclassified device stays a circle.
  */
 export function shapeForNode(node: NetworkTopologyNode): TopologyNodeShape {
+  /*
+   * The project's own answer first. Roles are configurable rows now, so the
+   * shape a role is drawn with is a per-project setting the server stamps onto
+   * the node - and it is the only source that can describe a CUSTOM role,
+   * which by definition has no entry in the built-in map below.
+   */
+  if (node.roleShape) {
+    return node.roleShape;
+  }
+
   const role: NetworkTopologyDeviceRole = roleOfNode(node);
   if (role === "unknown") {
     return isEndpointNode(node) ? "rect" : "circle";
   }
   return SHAPE_BY_ROLE[role];
+}
+
+/**
+ * The node's role KEY - the project's configured key when it has one,
+ * otherwise the built-in role.
+ *
+ * Different from {@link roleOfNode}, which can only ever return one of the
+ * twelve built-in values. This is what the legend groups by and what search
+ * matches, so a project's own role is a group of its own instead of being
+ * folded into whatever the classifier happened to guess.
+ */
+export function roleKeyOfNode(node: NetworkTopologyNode): string {
+  return node.roleKey || roleOfNode(node);
+}
+
+/**
+ * The name to show for a node's role: the project's configured label when
+ * there is one, otherwise the built-in label for the classified role.
+ */
+export function roleDisplayLabelForNode(node: NetworkTopologyNode): string {
+  return node.roleLabel || labelForDeviceRole(roleOfNode(node));
+}
+
+/**
+ * True when a node's role says nothing - no configured role and no
+ * classification. Readers must treat this the same as an absent role.
+ */
+export function isUnclassifiedNode(node: NetworkTopologyNode): boolean {
+  if (node.roleKey) {
+    return false;
+  }
+  return roleOfNode(node) === "unknown";
 }
 
 /** The size class a node is drawn at, before shape ratios. */
@@ -281,7 +322,13 @@ export function cylinderCapPathAt(
   return `M ${round(cx + w)} ${top} A ${w} ${ry} 0 0 1 ${round(cx - w)} ${top}`;
 }
 
-/** Display name of a node's role, e.g. "Switch". */
+/**
+ * Display name of a node's role, e.g. "Switch".
+ *
+ * The project's configured label wins, so a role renamed in Network >
+ * Settings > Device Roles is renamed on the map too, and a custom role reads
+ * as itself rather than as whatever the classifier guessed underneath it.
+ */
 export function roleLabelForNode(node: NetworkTopologyNode): string {
-  return labelForDeviceRole(roleOfNode(node));
+  return roleDisplayLabelForNode(node);
 }

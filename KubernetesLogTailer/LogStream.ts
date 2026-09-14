@@ -49,17 +49,19 @@ export type PodContext = {
   serviceName: string;
 };
 
+type KubernetesLogClient = Pick<k8s.Log, "log">;
+
 export class LogStream {
   private readonly key: StreamKey;
   private readonly context: PodContext;
-  private readonly log: k8s.Log;
+  private readonly log: KubernetesLogClient;
   private readonly batcher: OTLPBatcher;
   /*
-   * @kubernetes/client-node's Log.log() returns a `request.Request` (from the
-   * legacy `request` library) with an `.abort()` method. We only need that,
-   * so we store it with a minimal structural type.
+   * @kubernetes/client-node 2.x returns an AbortController for each streaming
+   * request. Retaining the controller is what lets a pod deletion or process
+   * shutdown tear down the underlying undici request immediately.
    */
-  private activeRequest: { abort: () => void } | null = null;
+  private activeRequest: AbortController | null = null;
   private stopped: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private consecutiveFailures: number = 0;
@@ -76,10 +78,11 @@ export class LogStream {
     kubeConfig: k8s.KubeConfig,
     context: PodContext,
     batcher: OTLPBatcher,
+    logClient?: KubernetesLogClient,
   ) {
     this.key = makeStreamKey(context);
     this.context = context;
-    this.log = new k8s.Log(kubeConfig);
+    this.log = logClient || new k8s.Log(kubeConfig);
     this.batcher = batcher;
   }
 
@@ -156,12 +159,12 @@ export class LogStream {
       this.firstStart = false;
       /*
        * @kubernetes/client-node's Log.log() streams the response body into
-       * the given writable and returns a Request handle whose `.abort()` we
-       * use to cancel. When the underlying HTTP connection ends (container
-       * exits, network blip), the writable gets its "end" event — which we
-       * then handle by reconnecting with backoff.
+       * the given writable and returns an AbortController. When the underlying
+       * HTTP connection ends (container exits, network blip), the writable
+       * gets its "end" event — which we then handle by reconnecting with
+       * backoff.
        */
-      const req: { abort: () => void } = (await this.log.log(
+      const req: AbortController = await this.log.log(
         this.context.namespace,
         this.context.podName,
         this.context.containerName,
@@ -171,7 +174,7 @@ export class LogStream {
           timestamps: true,
           sinceSeconds,
         },
-      )) as unknown as { abort: () => void };
+      );
       if (this.stopped) {
         try {
           req.abort();

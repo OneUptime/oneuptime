@@ -93,7 +93,14 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [parsedRows, setParsedRows] = useState<Array<CSVRow>>([]);
   const [fileName, setFileName] = useState<string>("");
-  const fileInputRef: React.RefObject<HTMLInputElement | null> =
+  /*
+   * The element type goes in T on its own: RefObject<T> already declares
+   * `current` as `T | null`, and RefObject<HTMLInputElement | null> is a
+   * structurally identical but non-assignable type, rejected on the `ref`
+   * prop below because RefObject is covariant in T. That mismatch is what
+   * used to need a cast there.
+   */
+  const fileInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
 
   const downloadTemplate: DownloadTemplateFunction = (): void => {
@@ -270,7 +277,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
           </div>
           <p className="text-xs text-gray-500">CSV files only</p>
           <input
-            ref={fileInputRef as React.RefObject<HTMLInputElement>}
+            ref={fileInputRef}
             type="file"
             accept=".csv"
             className="sr-only"

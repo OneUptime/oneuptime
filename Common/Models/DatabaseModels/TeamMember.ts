@@ -27,7 +27,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectAdmin,
-    Permission.CreateProjectTeam,
     Permission.InviteProjectTeamMembers,
   ],
   read: [
@@ -80,7 +79,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -123,7 +121,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -158,7 +155,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -201,7 +197,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -238,7 +233,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -280,7 +274,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -410,7 +403,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [
@@ -448,7 +440,6 @@ export default class TeamMember extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
       Permission.InviteProjectTeamMembers,
     ],
     read: [

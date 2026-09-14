@@ -23,6 +23,7 @@ import { MonitorStepHostMonitorUtil } from "../../../../../Types/Monitor/Monitor
 import { MonitorStepKubernetesMonitorUtil } from "../../../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepPodmanMonitorUtil } from "../../../../../Types/Monitor/MonitorStepPodmanMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "../../../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import { MonitorStepVMwareMonitorUtil } from "../../../../../Types/Monitor/MonitorStepVMwareMonitor";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../../Types/ObjectID";
 
@@ -312,6 +313,15 @@ describe("MetricMonitorCriteria — other telemetry step shapes", () => {
       assignShape: (data: MonitorStepType, v: MetricsViewConfig) => {
         data.proxmoxMonitor = {
           ...MonitorStepProxmoxMonitorUtil.getDefault(),
+          metricViewConfig: v,
+        };
+      },
+    },
+    {
+      name: "vmwareMonitor",
+      assignShape: (data: MonitorStepType, v: MetricsViewConfig) => {
+        data.vmwareMonitor = {
+          ...MonitorStepVMwareMonitorUtil.getDefault(),
           metricViewConfig: v,
         };
       },

@@ -14,6 +14,7 @@ import { execFileSync } from "child_process";
 import { AddressInfo } from "net";
 import * as https from "https";
 import { IncomingMessage, ServerResponse } from "http";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 
 interface CertSet {
   caCertPath: string;
@@ -121,8 +122,23 @@ describe("WebsiteMonitor mTLS (client certificate)", () => {
   let certs: CertSet;
   let server: https.Server;
   let serverUrl: URL;
+  let egressGuardSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    /*
+     * These tests exercise mTLS, not the private-network policy. Scope the
+     * opt-in to this fixture and return the same loopback address the local
+     * server binds, preserving the production destination-pinning path.
+     */
+    egressGuardSpy = jest
+      .spyOn(DataSourceEgressGuard, "assertUrlAllowed")
+      .mockImplementation(async (rawUrl: string) => {
+        return {
+          url: new globalThis.URL(rawUrl),
+          addresses: [{ address: "127.0.0.1", family: 4 }],
+        };
+      });
+
     workDir = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-mtls-web-"));
     certs = generateCerts(workDir);
 
@@ -151,12 +167,14 @@ describe("WebsiteMonitor mTLS (client certificate)", () => {
   }, 30000);
 
   afterAll(async () => {
+    server.closeAllConnections();
     await new Promise<void>((resolve: () => void) => {
       server.close(() => {
         resolve();
       });
     });
     fs.rmSync(workDir, { recursive: true, force: true });
+    egressGuardSpy.mockRestore();
   });
 
   it("succeeds when a valid client certificate + key are supplied", async () => {

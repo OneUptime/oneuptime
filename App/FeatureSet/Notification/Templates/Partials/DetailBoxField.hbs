@@ -1,18 +1,44 @@
-<!-- Detail Card Field -->
-<div
-  class="st-DetailCard-field"
-  style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"
->
-  {{#if title}}
-    <p
-      class="st-DetailCard-label"
-      style="Margin:0 0 4px 0;font-size:11px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:16px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"
-    >{{{title}}}</p>
+<div class="st-DetailCard-field" style="padding: 14px 0; border-bottom: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word;">
+  {{#if title}}<p class="st-DetailCard-label" style="margin: 0 0 4px; font-size: 12px; line-height: 18px; color: #64748b; font-weight: 600;">{{title}}</p>{{/if}}
+  {{!--
+    THE ESCAPING CONTRACT FOR THIS PARTIAL.
+
+    `text` is RAW HTML and is rendered unescaped. Only pass it a value that
+    was produced by Markdown.convertToHTML (which escapes the raw-HTML tokens
+    a user typed) or by
+    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones (which emits
+    <br/> of its own).
+
+    `plainText` is escaped by Handlebars at render time. Everything else
+    belongs here: alert titles, monitor names, series labels, severity and
+    state names, user names. Those are composed from Kubernetes resource
+    attributes and from free text a project member typed, and a value
+    containing markup in `text` puts an attacker-authored <a href> into an
+    email the recipient trusts.
+
+    The same rule is already written down for the rollup email in
+    Common/Server/Utils/EmailRollup/EmailRollupRenderer.ts - "a raw value in a
+    triple stache is an XSS hole in somebody's mail client". This partial is
+    where that rule is enforced for everyone else.
+
+    The two branches are deliberately separate rather than one branch with a
+    flag: ~330 existing call sites pass HTML through `text` and must stay
+    byte-identical, and the HTML/plain split is not expressible per variable
+    name (incidentDescription is Markdown-HTML in one sender and raw in
+    another).
+
+    `blockText` carries the same trusted HTML contract as `text`. Both
+    use a div so Markdown paragraphs, lists and tables remain inside the
+    styled value container. Keep both names for existing callers; dates
+    also continue to use the inline HTML `text` slot.
+  --}}
+  {{#if blockText}}
+    <div
+      class="st-DetailCard-value st-Rich"
+      style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;"
+    >{{{blockText}}}</div>
   {{/if}}
-  {{#if text}}
-    <p
-      class="st-DetailCard-value"
-      style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;"
-    >{{{text}}}</p>
-  {{/if}}
+
+  {{#if text}}<div class="st-DetailCard-value st-Rich" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{{text}}}</div>{{/if}}
+  {{#if plainText}}<div class="st-DetailCard-value" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{plainText}}</div>{{/if}}
 </div>

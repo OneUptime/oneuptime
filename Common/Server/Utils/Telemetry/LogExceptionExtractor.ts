@@ -56,10 +56,22 @@ const MAX_MESSAGE_LENGTH: number = 1024;
  * Single pre-compiled signature for "this body plausibly contains a stack
  * trace". Evaluated once before the (more expensive) multi-language parser.
  * Covers: Python traceback header, JS/Java `at file:line`, Go panic/goroutine,
- * Python `File "...", line N`, and a typed `SomethingException`/`SomethingError`.
+ * Python `File "...", line N`, a Firefox/Safari `fn@url:line:col` frame, and a
+ * typed `SomethingException`/`SomethingError`.
+ *
+ * The `fn@url:line` alternative mirrors the shape StackTraceParser's browser
+ * parser accepts and must stay in step with it. Without it a SpiderMonkey or
+ * JavaScriptCore stack reaches this gate with no `at ` frame and — unless the
+ * app happened to log a `*Error`/`*Exception` token above it — is rejected
+ * here, before the parser ever runs. The name class admits spaces (Safari's
+ * `global code@…`, Firefox's `promise callback*fn@…`) but never a colon, which
+ * is what keeps ordinary `key: value` log prose out. It also absorbs a log
+ * body's leading indentation, so do NOT prepend a `[ \t]*` — space and tab are
+ * already in the class, and the two overlapping quantifiers backtrack
+ * quadratically (a hostile 16 KB body measured 11 ms against 0.1 ms without).
  */
 const LOOKS_LIKE_STACK_TRACE: RegExp =
-  /(?:Traceback \(most recent call last\)|\n\s+at\s+.+:\d+|\bpanic:\s|goroutine\s+\d+\s+\[|\n\s*File\s+"[^"]+",\s+line\s+\d+|\b[A-Za-z_][\w.$]*(?:Exception|Error)\b)/;
+  /(?:Traceback \(most recent call last\)|\n\s+at\s+.+:\d+|\bpanic:\s|goroutine\s+\d+\s+\[|\n\s*File\s+"[^"]+",\s+line\s+\d+|(?:^|\n)[^@:\n]{0,256}@[A-Za-z][A-Za-z0-9+.-]{0,31}:[^\s]{1,2048}:\d{1,9}|\b[A-Za-z_][\w.$]*(?:Exception|Error)\b)/;
 
 // Header parsers for deriving exceptionType + message from a raw body.
 const PYTHON_TRACEBACK_HEADER: RegExp = /^Traceback \(most recent call last\):/;

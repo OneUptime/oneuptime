@@ -3,10 +3,19 @@ import Span, { SpanStatus, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import SpanUtil from "../../Utils/SpanUtil";
+import { formatAbsoluteTime } from "./TraceTimeFormat";
+import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 
 export interface TraceRowProps {
   span: Span;
   service?: Service | undefined;
+  /*
+   * The span's entity when it is not a loaded Service — a RUM application,
+   * a host — as resolved by the explorer's entity-name lookup. Named in the
+   * pill instead of "unknown service".
+   */
+  entity?: ResolvedTelemetryEntity | undefined;
   maxDurationNano: number;
   // Whether the inline span detail panel is open for this row.
   isExpanded?: boolean | undefined;
@@ -85,15 +94,6 @@ function formatRelativeTime(time: Date): string {
   return `${yr}y ago`;
 }
 
-function formatAbsoluteTime(time: Date): string {
-  return time.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
 const TraceRow: FunctionComponent<TraceRowProps> = (
   props: TraceRowProps,
 ): ReactElement => {
@@ -117,8 +117,12 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
     ? OneUptimeDate.fromString(span.startTime as unknown as string)
     : null;
 
-  const serviceName: string = service?.name || "unknown service";
-  const serviceColor: string | undefined = service?.serviceColor?.toString();
+  const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
+    service,
+    entity: props.entity,
+  });
+  const serviceName: string = entityDisplay.name;
+  const serviceColor: string | undefined = entityDisplay.color;
 
   const spanName: string = span.name || "(unnamed)";
   const traceIdStr: string = span.traceId?.toString() || "";
@@ -187,7 +191,11 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
                 : "var(--ou-surface-secondary, #f9fafb)",
               color: "var(--ou-text-secondary, #374151)",
             }}
-            title={serviceName}
+            title={
+              props.entity && !service
+                ? `${entityDisplay.typeLabel}: ${serviceName}`
+                : serviceName
+            }
           >
             <span
               className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"

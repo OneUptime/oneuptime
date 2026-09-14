@@ -58,6 +58,25 @@ export type NetworkTopologyDeviceRole =
   | "unknown";
 
 /*
+ * The silhouette a node is drawn with on the topology map.
+ *
+ * It lives here, next to the roles, rather than in the renderer that owns
+ * the geometry, because a project's device roles are configurable
+ * (NetworkDeviceRole) and each one stores the shape it is drawn with. The
+ * renderer re-exports this type, so every existing import of it still
+ * resolves to exactly this union.
+ */
+export type NetworkTopologyNodeShape =
+  | "circle"
+  | "rounded-square"
+  | "diamond"
+  | "triangle"
+  | "hexagon"
+  | "tower"
+  | "cylinder"
+  | "rect";
+
+/*
  * Why a device is drawn with no links.
  *
  * "The router is not linked to any device" is a report we could previously
@@ -100,6 +119,48 @@ export interface NetworkTopologyNode {
    * name one — readers must treat both the same way.
    */
   role?: NetworkTopologyDeviceRole | undefined;
+  /*
+   * The project's OWN role for this node, from the configurable
+   * NetworkDeviceRole table (Network > Settings > Device Roles).
+   *
+   * `role` above is the built-in vocabulary the classifier speaks and can
+   * only ever be one of the twelve values in NetworkTopologyDeviceRole.
+   * A project may rename those roles or add roles of its own ("PoS
+   * Terminal", "SD-WAN Edge"), and neither survives that union — so the
+   * four fields here carry the configured answer alongside it.
+   *
+   * They are additive and every one of them is optional: a payload built
+   * before this existed, or for a project with no roles configured, simply
+   * omits them and every reader falls back to `role` exactly as before.
+   * When present they WIN, because they are what the operator configured.
+   *
+   * `roleKey` is the role's stable key — the built-in key ("switch") for a
+   * built-in role however it has been renamed, or a derived key for a
+   * custom one. It is what the legend groups by and what search matches.
+   */
+  roleKey?: string | undefined;
+  // The configured display name, e.g. "Edge Router" for a renamed "router".
+  roleLabel?: string | undefined;
+  // The configured silhouette. Falls back to the built-in shape for `role`.
+  roleShape?: NetworkTopologyNodeShape | undefined;
+  /*
+   * Whether devices of this role sit at the top of the network. Load-bearing:
+   * the tiered and radial layouts band by it, so a custom role can be placed
+   * at core level without the layout having to recognise its name.
+   */
+  isCoreLayerRole?: boolean | undefined;
+  /*
+   * Whether devices of this role are worth walking with SNMP. Read by the
+   * adopt-a-neighbour flow to decide whether it opens on SNMP polling or on
+   * a monitor.
+   */
+  isSnmpWalkableRole?: boolean | undefined;
+  /*
+   * The NetworkDeviceRole row's id, so a form can preselect the role the map
+   * already shows without resolving the key itself. Absent when the project
+   * has no row for this role.
+   */
+  roleId?: string | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   // Extra device identity for search and the detail panel (managed nodes).
@@ -108,10 +169,17 @@ export interface NetworkTopologyNode {
   // For unmanaged CDP peers this carries the reported platform string.
   deviceModel?: string | undefined;
   /*
-   * Endpoint identity (endpoint nodes only), all best-effort: MAC from the
-   * FDB, IP from the ARP join, classification from OUI/heuristics (e.g.
-   * "pos-terminal", "camera", "printer"), VLAN from the FDB entry that
-   * learned the MAC. Optional so older payloads stay valid.
+   * Endpoint identity, all best-effort: MAC from the FDB, IP from the ARP
+   * join, classification from OUI/heuristics (e.g. "pos-terminal",
+   * "camera", "printer"), VLAN from the FDB entry that learned the MAC.
+   * Optional so older payloads stay valid.
+   *
+   * `ipAddress` is the exception to "endpoint nodes only": an UNMANAGED
+   * peer carries it too, from the management address its neighbours
+   * advertise for it (CDP cdpCacheAddress / LLDP lldpRemManAddrTable). It
+   * is the field that makes such a peer actionable rather than merely
+   * visible — nothing can be monitored without an address — so a reader
+   * must not assume a node with an ipAddress is an endpoint.
    */
   macAddress?: string | undefined;
   ipAddress?: string | undefined;
@@ -169,6 +237,19 @@ export interface NetworkTopologyEdge {
    * absent is "not stated", never "these are peers".
    */
   parentNodeId?: string | undefined;
+  /*
+   * On an "fdb" edge, the end whose forwarding table LEARNED the other
+   * end's MAC — the switch. Always one of `fromNodeId`/`toNodeId`.
+   *
+   * Needed because the pair may already have been joined the other way
+   * round: a hand-drawn link stored device→switch, or an LLDP edge read
+   * from the device's side, keeps its ends when the attachment merges in,
+   * so "the switch is the from end" is true of a fresh attachment and
+   * false of a merged one. Readers that need to know which end learned
+   * (the drawer's "Connected to", the link panel's sentence) read this,
+   * and fall back to `fromNodeId` on a payload that predates it.
+   */
+  learnedByNodeId?: string | undefined;
 }
 
 export default interface NetworkTopology {

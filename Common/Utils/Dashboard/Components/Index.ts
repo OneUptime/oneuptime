@@ -50,6 +50,8 @@ import DashboardTraceChartComponentUtil from "./DashboardTraceChartComponent";
 import DashboardTraceTableComponentUtil from "./DashboardTraceTableComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
+import DashboardVMwareHostListComponentUtil from "./DashboardVMwareHostListComponent";
+import DashboardVMwareVirtualMachineListComponentUtil from "./DashboardVMwareVirtualMachineListComponent";
 
 export default class DashboardComponentsUtil {
   public static getComponentSettingsArguments(
@@ -314,6 +316,20 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.ProxmoxGuestList) {
       return DashboardProxmoxGuestListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.VMwareHostList) {
+      return DashboardVMwareHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.VMwareVirtualMachineList
+    ) {
+      return DashboardVMwareVirtualMachineListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

@@ -109,6 +109,10 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
     [Permission.TelemetryMember]: IconProp.ChartBar,
     [Permission.TelemetryViewer]: IconProp.ChartBar,
 
+    [Permission.SecurityAdmin]: IconProp.ShieldExclamation,
+    [Permission.SecurityMember]: IconProp.ShieldExclamation,
+    [Permission.SecurityViewer]: IconProp.ShieldExclamation,
+
     [Permission.SettingsAdmin]: IconProp.Settings,
     [Permission.SettingsMember]: IconProp.Settings,
     [Permission.SettingsViewer]: IconProp.Settings,

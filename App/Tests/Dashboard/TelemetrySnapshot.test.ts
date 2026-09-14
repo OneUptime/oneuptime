@@ -179,6 +179,6 @@ describe("episode telemetry wiring", () => {
     expect(panel).toContain("TelemetryType.Trace");
     expect(panel).toContain("TelemetryType.Metric");
     expect(panel).toContain("TelemetryType.Exception");
-    expect(panel).toContain("disableUrlState={true}");
+    expect(panel).toContain("disableUrlSync={true}");
   });
 });

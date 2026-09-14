@@ -1,7 +1,7 @@
 import Project from "./Project";
 import Runbook from "./Runbook";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -71,7 +71,7 @@ import {
   tableDescription:
     "Auto-attach runbooks to incidents, alerts, or scheduled maintenance events when they are created.",
 })
-export default class RunbookRule extends BaseModel {
+export default class RunbookRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

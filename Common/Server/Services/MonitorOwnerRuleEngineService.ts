@@ -15,6 +15,9 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class MonitorOwnerRuleEngineServiceClass {
   /**
@@ -39,6 +42,7 @@ class MonitorOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             monitorLabels: { _id: true },
             monitorNamePattern: true,
@@ -46,9 +50,15 @@ class MonitorOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "MonitorOwnerRule",
+        projectId: monitor.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -268,6 +278,24 @@ class MonitorOwnerRuleEngineServiceClass {
   }
 
   private doesMonitorMatchRule(
+    monitor: Monitor,
+    rule: MonitorOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "monitorLabels",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: MonitorOwnerRule): boolean => {
+        return this.doesMonitorMatchLegacyRule(monitor, legacyRule);
+      },
+    });
+  }
+
+  private doesMonitorMatchLegacyRule(
     monitor: Monitor,
     rule: MonitorOwnerRule,
   ): boolean {

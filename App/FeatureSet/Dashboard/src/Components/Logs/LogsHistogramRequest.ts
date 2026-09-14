@@ -5,6 +5,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
+import { compileAttributeChipValues } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
   ALL_RESOURCE_FACET_KEYS,
   ResourceEntityFacetSelections,
@@ -20,6 +21,9 @@ import {
  * has to go through the resource's entity key).
  */
 export const RESOURCE_FACET_KEYS: Array<string> = [...ALL_RESOURCE_FACET_KEYS];
+
+/** Facet-key prefix that routes a chip into `query.attributes[<key>]`. */
+export const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 
 export interface LogsHistogramRequestParams {
   /** Current picker selection. Preset ranges resolve against "now" on every call. */
@@ -147,8 +151,38 @@ export function buildLogsHistogramRequest(
     }
   }
 
-  if (params.attributes) {
-    requestData["attributes"] = params.attributes;
+  /*
+   * Attribute filters, from two sources that have to end up in ONE map:
+   * the host page's pinned `logQuery.attributes`, and the `attributes.<key>`
+   * chips the user applied. Only the former used to be forwarded, so an
+   * attribute filter narrowed the list while the chart above it kept counting
+   * every row in the project — the chart and the table disagreeing about a
+   * filter the user could see applied.
+   *
+   * Chip values are compiled with the shared search grammar, exactly as the
+   * list query compiles them, so `a*` is a prefix match in both.
+   */
+  const attributeFilters: JSONObject = {
+    ...((params.attributes || {}) as unknown as JSONObject),
+  };
+
+  for (const [facetKey, values] of params.appliedFacetFilters.entries()) {
+    if (!facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
+      continue;
+    }
+
+    const compiled: unknown = compileAttributeChipValues(Array.from(values));
+
+    if (compiled === undefined) {
+      continue;
+    }
+
+    attributeFilters[facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)] =
+      compiled as unknown as JSONObject;
+  }
+
+  if (Object.keys(attributeFilters).length > 0) {
+    requestData["attributes"] = attributeFilters;
   }
 
   if (params.entityKeys) {

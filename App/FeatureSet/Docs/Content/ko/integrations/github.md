@@ -4,7 +4,7 @@ OneUptime 인시던트가 생성될 때 자동으로 [GitHub](https://github.com
 
 이 통합은 **아웃바운드**: OneUptime이 [GitHub REST API](https://docs.github.com/en/rest/issues/issues)를 호출합니다. **Incident → On Create** 트리거와 **API 컴포넌트** 를 갖춘 OneUptime **[Workflow](/docs/workflows/index)** 를 사용합니다.
 
-> **더 깊은 GitHub 연결을 원하시나요?** OneUptime에는 코드 저장소 연결을 위한 네이티브 **GitHub App** 통합도 있습니다(AI 에이전트 및 코드 기능에 사용됨). 이것은 워크플로가 아닌 환경 변수로 설정합니다 — [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration)을 참조하세요. 이 페이지는 _인시던트에서 이슈 제출_ 에 관한 것입니다.
+> **더 깊은 GitHub 연결을 원하시나요?** OneUptime에는 코드 저장소 연결을 위한 네이티브 **GitHub App** 통합도 있습니다(AI 에이전트 및 코드 기능에 사용됨). 저장소 안에서 그 앱에 말을 걸 수 있습니다 — 이슈나 풀 리퀘스트에서 멘션하면 구현하거나, 고치거나, 리뷰해 줍니다. [GitHub에서 OneUptime 사용하기](/docs/ai/github-app)를 보시고, 설치 방법은 [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration)을 참조하세요. 이 페이지는 _인시던트에서 이슈 제출_ 에 관한 것입니다.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,3 +74,10 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [통합 개요](/docs/integrations/index) — 패턴과 인증 빠른 참조.
 - [GitLab](/docs/integrations/gitlab) — GitLab에 대한 동일한 아이디어.
 - [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration) — 네이티브 GitHub App 연결.
+- [GitHub에서 OneUptime 사용하기](/docs/ai/github-app) — 이슈나 풀 리퀘스트에서 GitHub App에 명령하기.
+
+## 자체 호스팅 배포의 네트워크 액세스
+
+이 페이지의 이슈 생성 워크플로에는 DNS 확인과 OneUptime에서 `api.github.com`으로의 아웃바운드 HTTPS(TCP 443)가 필요합니다. GitHub의 인바운드 콜백은 필요하지 않습니다. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+아웃바운드 연결, 인바운드 콜백 및 비공개 배포에 대한 자세한 내용은 [GitHub 통합](/docs/self-hosted/github-integration)의 네트워크 액세스 섹션을 참조하세요.

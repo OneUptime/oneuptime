@@ -164,7 +164,7 @@ Kubernetes **events** are not namespace-filterable at the agent. They arrive fro
 
 Accepts `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` keeps WARN, ERROR and FATAL and drops INFO, DEBUG and TRACE. The default (`""`) keeps everything. It applies in **both** log modes — in `daemonset` mode via the collector, in `api` mode inside the log tailer itself — so the presets cannot switch it off under you.
 
-Container runtimes do not record a severity on the log line, so the agent parses one out of the log text itself (`[ERROR]`, `WARN:`, `level=info`, …).
+Container runtimes do not record a severity on the log line, so the agent parses one out of the log text itself (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Kubernetes events and resource specs are never filtered by this.** They arrive from the Kubernetes API with no severity of their own, so a threshold would delete the entire feed rather than thin it — including the `FailedScheduling`, `BackOff` and `OOMKilling` warnings you most want. They are low-volume and high-value, so the agent always ships them. To thin them out, use the dashboard's server-side **Logs → Settings → Drop Filters** instead.
 

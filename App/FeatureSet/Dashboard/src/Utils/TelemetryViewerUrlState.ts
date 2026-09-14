@@ -21,6 +21,15 @@ export const TelemetryViewerUrlParamNames: Array<string> = [
   "view",
   "rootOnly",
   "status",
+  /*
+   * The saved view the explorer currently has selected. Owned so that
+   * DESELECTING one removes it — a lingering id would silently re-apply a
+   * view the user cleared on the next refresh. It is also what lets the
+   * Insights tab name the view whose scope it inherited, and what lets the
+   * trip back re-select it rather than leaving the user with the view's
+   * filters but no view.
+   */
+  "savedView",
 ];
 
 export type BuildTelemetryViewerUrlParamsFunction = (
@@ -69,4 +78,60 @@ export type WriteTelemetryViewerUrlStateFunction = (
 export const writeTelemetryViewerUrlState: WriteTelemetryViewerUrlStateFunction =
   (values: Dictionary<string | null>): void => {
     Navigation.setQueryString(buildTelemetryViewerUrlParams(values));
+    notifyTelemetryViewerUrlStateListeners();
+  };
+
+export type TelemetryViewerUrlStateListener = () => void;
+
+/*
+ * Everything that wants to re-read the URL after an explorer writes it.
+ *
+ * `Navigation.setQueryString` goes through `history.replaceState`, which
+ * fires no event and triggers no react-router render — that is the whole
+ * point of it, and it is why the surrounding page never learns that the
+ * explorer's scope moved. The Viewer / Insights tab links need to learn,
+ * though: their hrefs carry the current scope, so a link computed at the
+ * last render would hand the sibling tab a stale slice (or none at all,
+ * for a filter the user set after the tabs rendered).
+ *
+ * A module-level listener set rather than a context: the writer is a plain
+ * function called from effects deep inside three different explorers, and
+ * threading a provider through all of them to deliver a notification would
+ * be far more machinery than the notification is worth.
+ */
+const urlStateListeners: Set<TelemetryViewerUrlStateListener> =
+  new Set<TelemetryViewerUrlStateListener>();
+
+export type SubscribeToTelemetryViewerUrlStateFunction = (
+  listener: TelemetryViewerUrlStateListener,
+) => () => void;
+
+/** Subscribe to explorer URL writes. Returns the unsubscribe function. */
+export const subscribeToTelemetryViewerUrlState: SubscribeToTelemetryViewerUrlStateFunction =
+  (listener: TelemetryViewerUrlStateListener): (() => void) => {
+    urlStateListeners.add(listener);
+
+    return (): void => {
+      urlStateListeners.delete(listener);
+    };
+  };
+
+export type NotifyTelemetryViewerUrlStateListenersFunction = () => void;
+
+/**
+ * Tell every subscriber the URL moved.
+ *
+ * Exported so a surface that changes the query string by another route can
+ * keep the tab links honest. Each listener is isolated: one that throws must
+ * not stop the rest from hearing about the change.
+ */
+export const notifyTelemetryViewerUrlStateListeners: NotifyTelemetryViewerUrlStateListenersFunction =
+  (): void => {
+    for (const listener of Array.from(urlStateListeners)) {
+      try {
+        listener();
+      } catch {
+        // A broken subscriber is not a reason to drop the notification.
+      }
+    }
   };

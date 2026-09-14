@@ -4,73 +4,80 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement, Ref } from "react";
+import React, {
+  FormEvent,
+  FunctionComponent,
+  ReactElement,
+  Ref,
+  useRef,
+} from "react";
 
 export interface ComponentProps {
   onError: (error: string) => void;
   onSuccess: () => void;
-  formRef: Ref<any>;
+  formRef: Ref<HTMLButtonElement>;
 }
 
 const CheckoutForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const stripe: any = useStripe();
-  const elements: any = useElements();
+  const stripe: ReturnType<typeof useStripe> = useStripe();
+  const elements: ReturnType<typeof useElements> = useElements();
+  const isSubmitting: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
-  type SubmitFormFunction = (event: Event) => Promise<void>;
-
-  const submitForm: SubmitFormFunction = async (
-    event: Event,
+  const submitForm: (
+    event: FormEvent<HTMLFormElement>,
+  ) => Promise<void> = async (
+    event: FormEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault();
-    /*
-     * We don't want to let default form submission happen here,
-     * which would refresh the page.
-     */
-    event.preventDefault();
 
-    if (!stripe || !elements) {
-      /*
-       * Stripe.js has not yet loaded.
-       * Make sure to disable form submission until Stripe.js has loaded.
-       */
+    if (isSubmitting.current) {
       return;
     }
 
-    const { error } = await stripe.confirmSetup({
-      //`Elements` instance that was used to create the Payment Element
-      elements,
-      confirmParams: {
-        return_url: Navigation.getCurrentURL().removeQueryString().toString(),
-      },
-    });
-
-    if (error) {
-      /*
-       * This point will only be reached if there is an immediate error when
-       * confirming the payment. Show error to your customer (for example, payment
-       * details incomplete)
-       */
-
+    if (!stripe || !elements) {
       props.onError(
-        error.message?.toString() ||
-          "Unknown error with your payemnt provider.",
+        "The payment form is still loading. Please try again in a moment.",
       );
-    } else {
-      /*
-       * Your customer will be redirected to your `return_url`. For some payment
-       * methods like iDEAL, your customer will be redirected to an indeterminate
-       * site first to authorize the payment, then redirected to the `return_url`.
-       */
-      props.onSuccess();
+      return;
+    }
+
+    isSubmitting.current = true;
+
+    try {
+      const { error } = await stripe.confirmSetup({
+        elements,
+        confirmParams: {
+          return_url: Navigation.getCurrentURL().removeQueryString().toString(),
+        },
+      });
+
+      if (error) {
+        props.onError(
+          error.message ||
+            "Unable to save your payment method. Please try again.",
+        );
+      } else {
+        props.onSuccess();
+      }
+    } catch {
+      props.onError("Unable to save your payment method. Please try again.");
+    } finally {
+      isSubmitting.current = false;
     }
   };
 
   return (
-    <div ref={props.formRef} onClick={submitForm as any}>
+    <form onSubmit={submitForm}>
       <PaymentElement />
-    </div>
+      <button
+        ref={props.formRef}
+        type="submit"
+        hidden={true}
+        aria-label="Save payment method"
+      />
+    </form>
   );
 };
 

@@ -21,7 +21,10 @@ import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefre
 import useLogsHistogram, {
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
-import { buildLogsHistogramRequest } from "./LogsHistogramRequest";
+import {
+  ATTRIBUTE_FACET_PREFIX,
+  buildLogsHistogramRequest,
+} from "./LogsHistogramRequest";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
@@ -41,6 +44,10 @@ import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
+import {
+  describeSearchValue,
+  queryValueToChipValues,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -50,7 +57,6 @@ import AnalyticsModelAPI, {
 import Query from "Common/Types/BaseDatabase/Query";
 import Realtime from "Common/UI/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
-import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
 import React, {
   FunctionComponent,
@@ -65,7 +71,16 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import useServiceNames from "../Telemetry/useServiceNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  applyLogsEntityChipDisplay,
+  buildFacetDisplayNames,
+  buildLogsEntityTypeHints,
+  buildLogsScopeEntityChips,
+  collectLogsEntityIds,
+} from "./LogsEntityChipDisplay";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -87,6 +102,14 @@ import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRa
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  InitialSavedViewResolution,
+  resolveInitialSavedView,
+} from "../../Utils/InitialSavedView";
+import {
+  LOGS_CHIP_FACET_KEYS,
+  buildSavedViewQueryForOverrides,
+} from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
@@ -100,22 +123,41 @@ import {
 import {
   applyLogsFacetFiltersToQuery,
   applyLogsSessionScopeToQuery,
-  BODY_FACET_KEY,
   buildLogsPivotScope,
-  buildSessionReplayRoute,
   buildSpanChipOpenRoute,
   buildTraceViewRoute,
-  extractRumApplicationIdFromRumSessions,
+  carrySessionScopeIntoTracesPivot,
+  dropSessionScopeFromPivot,
   extractTraceIdFromSpans,
   formatDroppedScopeHint,
   LogsPivotScopeInput,
   LogsPivotScopeResult,
   mergeDroppedScopeFields,
 } from "../../Utils/LogsCrossSignalPivot";
+import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
+import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 
 export interface ComponentProps {
   id: string;
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * What the `serviceIds` actually are. A log row's `primaryEntityId` is
+   * polymorphic — a RUM application page passes its RumApplication id here,
+   * a host page its Host id — so the locked scope chip reads e.g.
+   * "RUM Application: checkout-web" instead of "Service: <uuid>". Display
+   * only: the filter is the id either way. Omitted means "resolve it".
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
+   * Display-only overrides for the locked chips built from
+   * `logQuery.attributes`, keyed by the attribute key as it appears there
+   * (e.g. "resource.host.name"). A resource page scopes by a machine
+   * identifier the telemetry carries but already has the friendly name
+   * loaded; these let the chip show "Host: web-01" while the filter keeps
+   * matching the identifier.
+   */
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -182,19 +224,53 @@ const SAVED_VIEWS_LIMIT: number = 100;
  * chip says so — and the histogram, which builds its request from the
  * chips, then counts rows the list excludes.
  */
-const FACET_FILTER_KEYS: Array<string> = [
-  "severityText",
-  "primaryEntityId",
-  "traceId",
-  "spanId",
-  BODY_FACET_KEY,
-];
+const FACET_FILTER_KEYS: ReadonlyArray<string> = LOGS_CHIP_FACET_KEYS;
 
 interface InitialUrlState {
   facetFilters: Map<string, Set<string>>;
   timeRange: RangeStartAndEndDateTime;
   page: number;
   pageSize: number;
+  /*
+   * The saved view the link named, if any — written by this viewer when one
+   * is selected, and carried onto the Insights tab and back so a round trip
+   * through Insights returns to the same named view rather than to its
+   * filters with the view deselected.
+   */
+  savedViewId: string | null;
+  /*
+   * Whether the link described a slice of its own (chips or a window). The
+   * project's default saved view must not auto-apply over one: a
+   * cross-signal pivot, an AI-investigation link or a hand-off from the
+   * Insights tab all arrive this way, and overwriting them a tick after
+   * mount is what made those links appear to work and then not.
+   */
+  hasScope: boolean;
+  /*
+   * Which halves of that slice the link actually spelled out. A link
+   * carrying chips but no window is not saying "use the default window" —
+   * it is saying nothing about the window, and a saved view named in the
+   * same link should keep its own.
+   */
+  hasFilters: boolean;
+  hasRange: boolean;
+}
+
+/*
+ * How a saved view is applied when the URL that named it also describes a
+ * slice of its own.
+ *
+ * That happens on the way back from the Insights tab: the link says "the
+ * DV-IMS view, but with the window and the services I ended up on". The URL
+ * is the more recent statement of the two, so it wins over the view's own
+ * window and chips — while the view still supplies everything the URL does
+ * not carry (columns, sort, page size) and, crucially, its own identity, so
+ * the user lands back inside the view they started in rather than on its
+ * filters with nothing selected.
+ */
+interface ApplySavedViewOptions {
+  overrideTimeRange?: RangeStartAndEndDateTime | undefined;
+  overrideFacetFilters?: Map<string, Set<string>> | undefined;
 }
 
 const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
@@ -273,7 +349,31 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : defaultPageSize;
 
-  return { facetFilters, timeRange, page, pageSize };
+  const savedViewIdRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewIdRaw && savedViewIdRaw.trim().length > 0
+      ? savedViewIdRaw.trim()
+      : null;
+
+  /*
+   * Read from the raw params rather than from the parsed values above: a
+   * `range` the parser rejected (an unknown enum) still means the link was
+   * trying to describe a window, and `timeRange` has already fallen back to
+   * the default by this point.
+   */
+  const hasFilters: boolean = facetFilters.size > 0;
+  const hasRange: boolean = Boolean(params.get("range"));
+
+  return {
+    facetFilters,
+    timeRange,
+    page,
+    pageSize,
+    savedViewId,
+    hasScope: hasFilters || hasRange,
+    hasFilters,
+    hasRange,
+  };
 }
 
 function getColumnsStorageKey(viewerId: string): string {
@@ -352,6 +452,36 @@ function buildFacetFiltersFromQuery(
 
     if (values.length > 0) {
       nextFilters.set(facetKey, new Set(values));
+    }
+  }
+
+  /*
+   * `attributes.<key>` chips, the same way. Attribute filters were the one
+   * group applyLogsFacetFiltersToQuery compiled INTO a query and nothing read
+   * back out, so a saved view carrying `@platform.team:a*` reopened with the
+   * filter applied and no chip showing it — and the next chip edit, which
+   * recompiles from the chips it can see, silently dropped it.
+   */
+  const savedAttributes: Record<string, unknown> =
+    ((query as any)["attributes"] as Record<string, unknown>) || {};
+  const baseAttributes: Record<string, unknown> =
+    ((baseQuery as any)["attributes"] as Record<string, unknown>) || {};
+
+  for (const attributeKey of Object.keys(savedAttributes)) {
+    // A filter pinned by the host page is not the user's to edit or remove.
+    if (baseAttributes[attributeKey] !== undefined) {
+      continue;
+    }
+
+    const chipValues: Array<string> = queryValueToChipValues(
+      savedAttributes[attributeKey],
+    );
+
+    if (chipValues.length > 0) {
+      nextFilters.set(
+        `${ATTRIBUTE_FACET_PREFIX}${attributeKey}`,
+        new Set(chipValues),
+      );
     }
   }
 
@@ -525,8 +655,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
   const [savedViews, setSavedViews] = useState<Array<LogSavedView>>([]);
+  /*
+   * Seeded from the URL like every other carried field.
+   *
+   * Seeded null, the mirror effect below ran on the first commit with
+   * nothing to write, and buildTelemetryViewerUrlParams pre-nulls every
+   * owned param — so setQueryString DELETED the id the link had just handed
+   * over, and the notify pushed the stripped query string into the nav tabs,
+   * taking it out of the Insights href too. It came back once the saved-view
+   * fetch resolved, but was lost for good if that fetch failed, and lost for
+   * any refresh or tab click inside that window.
+   */
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
-    null,
+    initialUrlState?.savedViewId ?? null,
   );
   const [selectedColumns, setSelectedColumns] = useState<Array<string>>(() => {
     return loadSelectedColumns(props.id);
@@ -540,6 +681,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     LogSavedView | undefined
   >(undefined);
   const [isSavedViewLoading, setIsSavedViewLoading] = useState<boolean>(false);
+  /*
+   * Set once the saved-view fetch has settled, however it settled.
+   *
+   * The initial-view effect used to gate on `!isSavedViewLoading`, which it
+   * reads out of the same commit that STARTS the fetch — the flag is still
+   * false there, so the effect ran against an empty list, marked itself done,
+   * and no default view was ever applied. Gating on "has the fetch finished"
+   * instead of "is it not running" removes the race.
+   */
+  const [hasFetchedSavedViews, setHasFetchedSavedViews] =
+    useState<boolean>(false);
   const [viewMode, setViewMode] = useState<LogsViewMode>("list");
 
   const liveRequestInFlight: React.MutableRefObject<boolean> =
@@ -649,9 +801,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       });
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the Viewer and
+     * Insights tabs now hand their scope to each other through these params,
+     * and a window that is not written down cannot be carried — "absent
+     * means my default" quietly changes the window whenever the two tabs
+     * start from different ones.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
@@ -662,6 +819,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (pageSize !== effectiveDefaultPageSize) {
       params.set("pageSize", String(pageSize));
     }
+    /*
+     * The selected saved view travels with the filters it produced. Without
+     * it the Insights tab could inherit the right slice but not the name of
+     * the view it came from, and coming back would leave the user with a
+     * view's filters and no view selected — which looks like the selection
+     * was lost.
+     */
+    if (selectedSavedViewId) {
+      params.set("savedView", selectedSavedViewId);
+    }
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
@@ -671,6 +838,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     page,
     pageSize,
     effectiveDefaultPageSize,
+    selectedSavedViewId,
   ]);
 
   const select: Select<Log> = useMemo(() => {
@@ -679,6 +847,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       time: true,
       projectId: true,
       primaryEntityId: true,
+      /*
+       * primaryEntityId is polymorphic. The row's type is the hint the
+       * shared viewer passes to the name resolver, so a RUM application or
+       * host id goes straight to its own table instead of probing each one.
+       */
+      primaryEntityType: true,
       spanId: true,
       traceId: true,
       sessionId: true,
@@ -699,12 +873,29 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.serviceIds]);
 
   /*
-   * Resolve the scoped service id(s) to names so the read-only "Service" chip
-   * shows the service name instead of a raw UUID. Filtering still uses the
-   * stable id (primaryEntityId); this only maps that id to a friendly label.
+   * Resolve every entity id a chip can show — the page's locked scope and
+   * any user / URL / saved-view `primaryEntityId` chip — in ONE lookup, so
+   * chips name the entity ("RUM Application: checkout-web") instead of
+   * showing a raw UUID. Not Service-only: a RUM application, host or
+   * cluster id lives in its own table. When the page said what its scope
+   * ids are, they are hinted straight to that table. Filtering still uses
+   * the stable id; this only maps that id to a label.
    */
-  const scopedServiceNameMap: Record<string, string> = useServiceNames(
-    props.serviceIds,
+  const entityChipIds: Array<string> = useMemo(() => {
+    return collectLogsEntityIds({
+      scopeIds: props.serviceIds,
+      appliedFacetFilters,
+    });
+  }, [props.serviceIds, appliedFacetFilters]);
+
+  const entityTypeHints: Record<string, ServiceType> | undefined =
+    useMemo(() => {
+      return buildLogsEntityTypeHints(props.serviceIds, props.scopeEntityType);
+    }, [props.serviceIds, props.scopeEntityType]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityChipIds,
+    { typeHints: entityTypeHints },
   );
 
   /*
@@ -852,6 +1043,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setError(API.getFriendlyMessage(err));
       } finally {
         setIsSavedViewLoading(false);
+        setHasFetchedSavedViews(true);
       }
     }, []);
 
@@ -1100,8 +1292,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [isLiveEnabled]);
 
-  const applySavedView: (savedView: LogSavedView) => void = useCallback(
-    (savedView: LogSavedView): void => {
+  const applySavedView: (
+    savedView: LogSavedView,
+    options?: ApplySavedViewOptions | undefined,
+  ) => void = useCallback(
+    (
+      savedView: LogSavedView,
+      options?: ApplySavedViewOptions | undefined,
+    ): void => {
       const baseQuery: Query<Log> = buildBaseQuery(props);
       const rawQuery: JSONObject =
         (savedView.query as unknown as JSONObject) || {};
@@ -1116,25 +1314,52 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
        * window it produced on the day it was saved.
        */
       const nextTimeRange: RangeStartAndEndDateTime =
+        options?.overrideTimeRange ||
         resolveLogSavedViewTimeRange({
           timeRange: savedView.timeRange,
           query: savedQuery,
         });
 
+      /*
+       * With an override chip set, every user-removable predicate is stripped
+       * off the saved query first so the incoming chips are the whole truth.
+       * applyLogsFacetFiltersToQuery only ever WRITES the keys a selection
+       * holds — and for attributes it MERGES into the existing object — so
+       * without the strip, a scope narrowed elsewhere comes back widened by
+       * whatever the view originally had, with no chip to show for it.
+       *
+       * The strip lives in Utils/SavedViewQueryMerge so it can be tested
+       * against the read-back directly, and so the two lists cannot drift.
+       */
+      const merged: JSONObject = options?.overrideFacetFilters
+        ? buildSavedViewQueryForOverrides({
+            savedQuery: savedQuery as unknown as JSONObject,
+            baseQuery: baseQuery as unknown as JSONObject,
+          })
+        : {
+            ...(savedQuery as unknown as JSONObject),
+            ...(baseQuery as unknown as JSONObject),
+          };
+
       const mergedQuery: Query<Log> = withResolvedTime(
-        {
-          ...(savedQuery as unknown as JSONObject),
-          ...(baseQuery as unknown as JSONObject),
-        } as unknown as Query<Log>,
+        merged as unknown as Query<Log>,
         nextTimeRange,
       );
 
+      const nextFacetFilters: Map<
+        string,
+        Set<string>
+      > = options?.overrideFacetFilters ||
+      buildFacetFiltersFromQuery(mergedQuery, baseQuery);
+
       setTimeRange(nextTimeRange);
 
-      setAppliedFacetFilters(
-        buildFacetFiltersFromQuery(mergedQuery, baseQuery),
+      setAppliedFacetFilters(nextFacetFilters);
+      setFilterOptions(
+        options?.overrideFacetFilters
+          ? applyLogsFacetFiltersToQuery(mergedQuery, nextFacetFilters)
+          : mergedQuery,
       );
-      setFilterOptions(mergedQuery);
       setPage(1);
       setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
       setSortField((savedView.sortField as LogsSortField) || "time");
@@ -1232,42 +1457,93 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.id, selectedColumns]);
 
   useEffect(() => {
-    if (hasAppliedInitialSavedView.current || isSavedViewLoading) {
+    if (hasAppliedInitialSavedView.current || !hasFetchedSavedViews) {
       return;
     }
 
     hasAppliedInitialSavedView.current = true;
 
     /*
-     * A pinned window came from the host, not from the user browsing logs, and
-     * a saved view carries its own time range — auto-applying the project
-     * default here would move an incident's preview off the moment it is
-     * about. A controlled window (the entity telemetry hub) owns the view the
-     * same way. The user can still pick a saved view by hand.
+     * Precedence lives in resolveInitialSavedView so it can be pinned in
+     * tests: a view the link named wins; a link that carries its own scope
+     * is left alone; a host-owned window (an incident's pinned moment, the
+     * entity hub's cursor) is left alone; otherwise the project default
+     * applies as it always has.
      */
-    if (pinnedTimeRange || props.timeRangeOverride) {
-      return;
+    const resolution: InitialSavedViewResolution<LogSavedView> =
+      resolveInitialSavedView<LogSavedView>({
+        savedViews,
+        getId: (savedView: LogSavedView): string | null => {
+          return savedView.id?.toString() || null;
+        },
+        isDefault: (savedView: LogSavedView): boolean => {
+          return Boolean(savedView.isDefault);
+        },
+        urlSavedViewId: initialUrlState?.savedViewId,
+        hasUrlScope: Boolean(initialUrlState?.hasScope),
+        /*
+         * `!syncUrlState` is this viewer's marker for "embedded in another
+         * page" — an incident, an alert, a service's Logs tab. The project
+         * default view is a standalone-explorer idea (it is what the Traces
+         * and Metrics explorers already mean by enableSavedViews): applying
+         * one inside a service's Logs tab would silently re-window and
+         * re-filter a panel the user opened to see that service's logs. A
+         * view the URL NAMES still applies anywhere, because that is the
+         * user asking for it.
+         */
+        hostOwnsView: Boolean(
+          pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState,
+        ),
+      });
+
+    if (resolution.isUrlSavedViewMissing) {
+      /*
+       * The link named a view that is gone — deleted, or another project's.
+       * Clear it deliberately so the stale id stops travelling in the URL
+       * promising a view nothing can produce, rather than leaving it to the
+       * prune effect's side effect.
+       */
+      setSelectedSavedViewId(null);
     }
 
-    const defaultSavedView: LogSavedView | undefined = savedViews.find(
-      (savedView: LogSavedView) => {
-        return Boolean(savedView.isDefault);
-      },
-    );
-
-    if (defaultSavedView) {
-      applySavedView(defaultSavedView);
+    if (resolution.savedView) {
+      applySavedView(
+        resolution.savedView,
+        /*
+         * A view the URL named is applied UNDER the scope the same URL
+         * carries; a project default (nobody asked for it) is applied as
+         * saved.
+         */
+        resolution.source === "url" && initialUrlState?.hasScope
+          ? {
+              overrideTimeRange: initialUrlState.hasRange
+                ? initialUrlState.timeRange
+                : undefined,
+              overrideFacetFilters: initialUrlState.hasFilters
+                ? initialUrlState.facetFilters
+                : undefined,
+            }
+          : undefined,
+      );
     }
   }, [
     applySavedView,
-    isSavedViewLoading,
+    hasFetchedSavedViews,
     savedViews,
     pinnedTimeRange,
     props.timeRangeOverride,
+    props.syncUrlState,
+    initialUrlState,
   ]);
 
   useEffect(() => {
-    if (!selectedSavedViewId) {
+    /*
+     * Gated on the fetch having settled. Without the gate this clears the
+     * freshly-seeded id against a still-empty list on the very first commit,
+     * which strips it from the URL a render later and undoes the seeding
+     * above.
+     */
+    if (!selectedSavedViewId || !hasFetchedSavedViews) {
       return;
     }
 
@@ -1278,7 +1554,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (!exists) {
       setSelectedSavedViewId(null);
     }
-  }, [savedViews, selectedSavedViewId]);
+  }, [savedViews, selectedSavedViewId, hasFetchedSavedViews]);
 
   /*
    * Live polling. The list and the histogram come from different endpoints,
@@ -1649,57 +1925,46 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * The session replay route needs the rumApplicationId, which a bare log row
    * doesn't carry — resolved lazily (the details panel calls this on expand)
-   * via one RumSession lookup by session id, and cached.
+   * through Utils/RumSessionLookup, one cached read per session id shared
+   * with the span panel and the occurrence table.
    */
-  const sessionRumApplicationIdCacheRef: React.MutableRefObject<
-    Map<string, string | null>
-  > = useRef<Map<string, string | null>>(new Map());
-
   const getSessionRoute: (
     sessionId: string,
     log: Log,
   ) => Promise<Route | URL | undefined> = useCallback(
-    async (sessionId: string, _log: Log): Promise<Route | URL | undefined> => {
+    async (sessionId: string, log: Log): Promise<Route | URL | undefined> => {
       if (!sessionId) {
         return undefined;
       }
 
-      let rumApplicationId: string | null | undefined =
-        sessionRumApplicationIdCacheRef.current.get(sessionId);
+      /*
+       * The log's own timestamp travels as ?at= and its id as
+       * ?signal=log:<id>, so the player opens on the moment of THIS line
+       * with the row selected in the logs rail - not at 0:00 of a possibly
+       * twenty-minute recording (correlation-4). The application lookup is
+       * the shared cached one; a failure rejects and is left uncached so
+       * the next expand can retry.
+       */
+      const logTime: Date | undefined =
+        log.time instanceof Date
+          ? log.time
+          : log.time
+            ? new Date(log.time as unknown as string)
+            : undefined;
+      const logId: string = log.id?.toString() || "";
 
-      if (rumApplicationId === undefined) {
-        try {
-          const listResult: ListResult<RumSession> =
-            await AnalyticsModelAPI.getList<RumSession>({
-              modelType: RumSession,
-              query: { sessionId: sessionId } as Query<RumSession>,
-              limit: 1,
-              skip: 0,
-              select: {
-                rumApplicationId: true,
-              },
-              sort: {},
-            });
-
-          rumApplicationId = extractRumApplicationIdFromRumSessions(
-            listResult.data,
-          );
-        } catch {
-          // Left uncached so a transient failure can retry on the next expand.
-          return undefined;
-        }
-
-        sessionRumApplicationIdCacheRef.current.set(
-          sessionId,
-          rumApplicationId,
-        );
-      }
-
-      if (!rumApplicationId) {
+      try {
+        return await resolveReplayMomentRouteForSession({
+          sessionId: sessionId,
+          ...(logTime && !Number.isNaN(logTime.getTime())
+            ? { at: logTime }
+            : {}),
+          ...(logId ? { signal: makeLogSignalId(logId) } : {}),
+          rail: "logs",
+        });
+      } catch {
         return undefined;
       }
-
-      return buildSessionReplayRoute(rumApplicationId, sessionId);
     },
     [],
   );
@@ -1757,8 +2022,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useCallback((): CrossSignalQueryParams => {
       const { scope, dropped }: LogsPivotScopeResult =
         buildLogsPivotScope(pivotScopeInput);
+      /*
+       * The shared serializer has no session field; the session scope is
+       * appended as Span.sessionId filter tuples afterwards so "traces of
+       * this session" means that and not "every trace in the window".
+       */
       const serialized: CrossSignalQueryParams =
-        toTracesExplorerQueryParams(scope);
+        carrySessionScopeIntoTracesPivot(
+          toTracesExplorerQueryParams(scope),
+          scope.sessionIds,
+        );
 
       return {
         params: serialized.params,
@@ -1770,8 +2043,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useCallback((): CrossSignalQueryParams => {
       const { scope, dropped }: LogsPivotScopeResult =
         buildLogsPivotScope(pivotScopeInput);
-      const serialized: CrossSignalQueryParams =
-        toMetricsExplorerQueryParams(scope);
+      const serialized: CrossSignalQueryParams = dropSessionScopeFromPivot(
+        toMetricsExplorerQueryParams(scope),
+        scope.sessionIds,
+      );
 
       return {
         params: serialized.params,
@@ -1885,21 +2160,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // Build read-only base filter chips from props (serviceIds, traceIds, spanIds, logQuery attributes)
   const baseActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    const filters: Array<ActiveFilter> = [];
-
-    if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const primaryEntityId of props.serviceIds) {
-        const serviceIdString: string = primaryEntityId.toString();
-        filters.push({
-          facetKey: "primaryEntityId",
-          value: serviceIdString,
-          displayKey: "Service",
-          displayValue:
-            scopedServiceNameMap[serviceIdString] || serviceIdString,
-          readOnly: true,
-        });
-      }
-    }
+    /*
+     * The scope chip names the entity with its real type — "RUM Application"
+     * the moment the page says so, the resolved type otherwise, "Service"
+     * until then — and its resolved name, never the raw id.
+     */
+    const filters: Array<ActiveFilter> = buildLogsScopeEntityChips({
+      scopeIds: props.serviceIds,
+      nameMap: entityNameMap,
+      scopeEntityType: props.scopeEntityType,
+    });
 
     if (props.traceIds && props.traceIds.length > 0) {
       for (const traceId of props.traceIds) {
@@ -1939,18 +2209,34 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    filters.push(...buildAttributeFilterChips(logQueryAttributes));
+    filters.push(
+      ...buildAttributeFilterChips(logQueryAttributes, {
+        displayKeys: props.attributeFilterDisplayKeys,
+        displayValues: props.attributeFilterDisplayValues,
+      }),
+    );
 
     return filters;
   }, [
     props.serviceIds,
+    props.scopeEntityType,
     props.traceIds,
     props.spanIds,
     props.sessionIds,
     traceIdStrings,
     logQueryAttributes,
-    scopedServiceNameMap,
+    props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    entityNameMap,
   ]);
+
+  /*
+   * Names the server already resolved for the entity facet. Derived once per
+   * facet response so the chip list does not rebuild on unrelated facets.
+   */
+  const entityFacetDisplayNames: Record<string, string> = useMemo(() => {
+    return buildFacetDisplayNames(facetData["primaryEntityId"]);
+  }, [facetData]);
 
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
@@ -1988,6 +2274,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         ? facetKey.substring("attributes.".length)
         : facetKeyDisplayNames[facetKey] || facetKey;
 
+      const isAttributeFacet: boolean = facetKey.startsWith(
+        ATTRIBUTE_FACET_PREFIX,
+      );
+
       for (const value of values) {
         const openRoute: Route | undefined =
           facetKey === "traceId"
@@ -2000,14 +2290,39 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           facetKey,
           value,
           displayKey,
-          displayValue: value,
+          /*
+           * An attribute chip stores the value in the search grammar, so a
+           * literal asterisk arrives escaped (`a\*b`). The chip has to show
+           * the value the user typed, not its escaping.
+           */
+          displayValue: isAttributeFacet ? describeSearchValue(value) : value,
           openRoute,
         });
       }
     }
 
-    return filters;
-  }, [appliedFacetFilters, traceIdStrings]);
+    /*
+     * Entity chips (a facet click, the search bar, a URL or saved view) carry
+     * an id. Name them here — the server's facet displayName first, the
+     * generic resolver for the ids it does not cover (a RUM application,
+     * host, cluster…) — so the shared viewer's own Service-only enrichment
+     * never has to know about other entity types. It only overrides a chip
+     * whose id IS a loaded Service, with that same service name.
+     */
+    return applyLogsEntityChipDisplay(filters, {
+      nameMap: entityNameMap,
+      scopeIds: props.serviceIds,
+      scopeEntityType: props.scopeEntityType,
+      knownNames: entityFacetDisplayNames,
+    });
+  }, [
+    appliedFacetFilters,
+    traceIdStrings,
+    entityNameMap,
+    props.serviceIds,
+    props.scopeEntityType,
+    entityFacetDisplayNames,
+  ]);
 
   if (error) {
     return <ErrorMessage message={error} />;

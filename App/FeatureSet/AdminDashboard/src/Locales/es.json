@@ -36,6 +36,7 @@
     "projectTeams": "Equipos",
     "projectTeam": "Equipo",
     "projectSubscription": "Suscripción",
+    "projectSupport": "Soporte",
     "settings": "Ajustes",
     "authentication": "Autenticación",
     "emailSettings": "Ajustes de correo",
@@ -94,6 +95,8 @@
     "teams": "Equipos",
     "billing": "Facturación",
     "subscription": "Suscripción",
+    "support": "Soporte",
+    "customerSupportAccess": "Acceso del soporte al cliente",
     "advanced": "Avanzado",
     "overview": "Vista general",
     "projects": "Proyectos",
@@ -334,6 +337,16 @@
       "amountTooLarge": "El importe no puede superar los {{max}} USD en un solo ajuste.",
       "amountTooPrecise": "El importe no puede tener más de dos decimales.",
       "reasonRequired": "Por favor, introduzca un motivo para este ajuste."
+    },
+    "projectSupport": {
+      "title": "Acceso del soporte al cliente",
+      "cardTitle": "Acceso del soporte al cliente",
+      "cardDescription": "Si el soporte al cliente de OneUptime puede acceder a este proyecto para solucionar problemas. Es el mismo interruptor que el cliente tiene en la configuración de su proyecto.",
+      "editButton": "Editar el acceso del soporte al cliente",
+      "fieldLabel": "Permitir que el soporte al cliente acceda al proyecto",
+      "fieldDescription": "Cuando está activado, el soporte al cliente de OneUptime puede abrir este proyecto para investigar un problema. Desactívelo de nuevo cuando termine la investigación.",
+      "consentWarning": "Actívelo solo cuando el cliente haya pedido al soporte que revise su proyecto. El cliente puede activarlo y desactivarlo desde la configuración del proyecto, así que es preferible pedírselo a él, y desactívelo cuando termine la investigación.",
+      "billingDisabled": "La facturación no está habilitada en esta instancia, por lo que no hay un equipo de soporte al cliente de OneUptime al que conceder acceso. Este ajuste solo se aplica a la edición alojada de OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",
@@ -803,9 +816,9 @@
   "You can find this in your Twilio console.": "Puede encontrar esto en su consola de Twilio.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "El nombre de usuario de Telegram de su bot, sin la @ inicial. Los nombres de usuario de Telegram terminan en 'bot'.",
   "ClickHouse disk": "Disco de ClickHouse",
-  "Postgres, ClickHouse, Redis and queue health at a glance.": "Estado de Postgres, ClickHouse, Redis y la cola de un vistazo.",
+  "Postgres, ClickHouse, Valkey and queue health at a glance.": "Estado de Postgres, ClickHouse, Valkey y la cola de un vistazo.",
   "Projects, users, monitors and incidents across the instance.": "Proyectos, usuarios, monitores e incidentes en toda la instancia.",
-  "Redis memory": "Memoria de Redis",
+  "Valkey memory": "Memoria de Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Detecta acumulaciones y fallos de tareas antes de que provoquen incidentes.",
   "Track database disk and memory utilization before you run out.": "Supervisa el uso de disco y memoria de la base de datos antes de quedarte sin recursos."
 }

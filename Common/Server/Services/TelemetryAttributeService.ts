@@ -1,4 +1,8 @@
-import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "../Utils/AnalyticsDatabase/Statement";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import LogDatabaseService from "./LogService";
 import MetricDatabaseService from "./MetricService";
@@ -503,6 +507,11 @@ export class TelemetryAttributeService {
      * ATTRIBUTE_VALUES_LIMIT values (alphabetically) are ever reachable,
      * which hides matches on high-cardinality keys (host.name, url, ...).
      * Mirrors the ILIKE idiom used for bodySearchText / nameSearchText.
+     *
+     * The typed text is escaped so `%` and `_` narrow rather than widen —
+     * unescaped, typing `100%` listed every value under the key and typing
+     * `a_b` matched `axb` as well, so the one value the user was reaching for
+     * sat below the LIMIT among values that do not contain what they typed.
      */
     if (data.searchText && data.searchText.trim().length > 0) {
       statement.append(
@@ -512,7 +521,7 @@ export class TelemetryAttributeService {
           value: data.attributeKey,
         }}] ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${data.searchText.trim()}%`,
+          value: `%${escapeIlikePattern(data.searchText.trim())}%`,
         }}`,
       );
     }
@@ -670,6 +679,7 @@ export class TelemetryAttributeService {
           value: data.attributeKey,
         }})`);
 
+    // Escaped like the immutable path above; see the note there.
     if (data.searchText && data.searchText.trim().length > 0) {
       statement.append(
         SQL`
@@ -678,7 +688,7 @@ export class TelemetryAttributeService {
           value: data.attributeKey,
         }}] ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${data.searchText.trim()}%`,
+          value: `%${escapeIlikePattern(data.searchText.trim())}%`,
         }}`,
       );
     }

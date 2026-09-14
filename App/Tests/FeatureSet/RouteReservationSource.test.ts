@@ -580,6 +580,89 @@ describe("scanAppGetPaths", () => {
     expect(result.getPaths).toEqual(["/docs", "/docs/zh/*"]);
   });
 
+  test("expands every docs redirect prefix registered in a const for-of loop", () => {
+    const result: ReturnType<typeof scanAppGetPaths> = scanAppGetPaths(
+      fixture(
+        [
+          'for (const prefix of ["/docs/as-markdown", "/docs"]) {',
+          "  app.get(`${prefix}/:lang/self-hosted/integration-network-access`, handler);",
+          "  app.get(`${prefix}/self-hosted/integration-network-access`, handler);",
+          "}",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.getPaths).toEqual([
+      "/docs/as-markdown/:lang/self-hosted/integration-network-access",
+      "/docs/:lang/self-hosted/integration-network-access",
+      "/docs/as-markdown/self-hosted/integration-network-access",
+      "/docs/self-hosted/integration-network-access",
+    ]);
+    expect(result.unreadable).toEqual([]);
+  });
+
+  test("resolves reused loop names from the enclosing loop only", () => {
+    const result: ReturnType<typeof scanAppGetPaths> = scanAppGetPaths(
+      fixture(
+        [
+          'for (const prefix of ["/first", "/second"]) {',
+          "  app.get(prefix, handler);",
+          "}",
+          'for (const prefix of ["/third"]) {',
+          "  app.get(`${prefix}/page`, handler);",
+          "}",
+          "app.get(`${prefix}/outside-loop`, handler);",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.getPaths).toEqual(["/first", "/second", "/third/page"]);
+    expect(result.unreadable).toHaveLength(1);
+    expect(result.unreadable[0]?.text).toContain("outside-loop");
+  });
+
+  test.each([
+    "const prefix of loadPrefixes()",
+    'const prefix of ["/docs", unknownPrefix]',
+    'let prefix of ["/docs"]',
+  ])("reports an unresolved loop binding: %s", (binding: string) => {
+    const result: ReturnType<typeof scanAppGetPaths> = scanAppGetPaths(
+      fixture(
+        [
+          'const prefix = "/unrelated";',
+          `for (${binding}) {`,
+          "  app.get(`${prefix}/page`, handler);",
+          "}",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.getPaths).toEqual([]);
+    expect(result.unreadable).toHaveLength(1);
+    expect(result.unreadable[0]?.reason).toMatch(/not statically resolvable/);
+  });
+
+  test.each([
+    '{ const prefix = "/other"; app.get(`${prefix}/page`, handler); }',
+    "{ const { prefix } = config; app.get(`${prefix}/page`, handler); }",
+    "register((prefix) => { app.get(`${prefix}/page`, handler); });",
+    "for (const [prefix] of nestedPrefixes) { app.get(`${prefix}/page`, handler); }",
+    "switch (mode) { case 1: const prefix = loadPrefix(); app.get(`${prefix}/page`, handler); }",
+    "switch (mode) { default: const prefix = loadPrefix(); app.get(`${prefix}/page`, handler); }",
+    "register(function prefix() { app.get(`${prefix}/page`, handler); });",
+  ])(
+    "does not substitute an outer loop for a shadowed binding: %s",
+    (body: string) => {
+      const result: ReturnType<typeof scanAppGetPaths> = scanAppGetPaths(
+        fixture(`for (const prefix of ["/docs"]) { ${body} }`),
+      );
+
+      expect(result.getPaths).toEqual([]);
+      expect(result.unreadable).toHaveLength(1);
+      expect(result.unreadable[0]?.reason).toMatch(/not statically resolvable/);
+    },
+  );
+
   test("does not pick up router.get", () => {
     expect(
       scanAppGetPaths(fixture('router.get("/x", handler);')).getPaths,

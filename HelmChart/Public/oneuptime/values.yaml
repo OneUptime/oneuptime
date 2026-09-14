@@ -63,7 +63,7 @@ externalSecrets:
       passwordKey:
 
 deployment:
-  # When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.
+  # When set to true, no OneUptime deployments are provisioned. Only databases (Valkey, ClickHouse, Postgres) will be running.
   disableDeployments: false
   # Default replica count for all deployments
   replicaCount: 1
@@ -134,6 +134,11 @@ nginx:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # Kernel networking tuning for the ingress gateway. The ingress proxies a very
   # high volume of short-lived upstream connections (OTLP/telemetry ingest, API,
   # dashboard) out to a single backend Service IP. Without tuning, a pod can
@@ -754,6 +759,11 @@ migrate:
   affinity: {}
   # Optional PriorityClass so the migration run isn't preempted under pressure.
   priorityClassName: ""
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 # =============================================================================
 # PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
@@ -846,26 +856,44 @@ pgbouncer:
   # Optional: override global security contexts just for the pgbouncer pod/container
   podSecurityContext: {}
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
-redis:
+# The in-cluster cache and BullMQ queue backend. The image is Valkey -- the
+# BSD-licensed fork of Redis 7.2 that most of the original Redis contributors
+# moved to after Redis 7.4 left the BSD licence -- and it speaks the Redis wire
+# protocol, so any Redis-protocol server can stand in for it (see
+# `externalValkey` below).
+#
+# This block was called `redis:` until 13.0.0. That key still works: whatever
+# you set under it is layered on top of these defaults, so an unedited
+# values.yaml from an earlier chart keeps behaving exactly as it did. Prefer
+# `valkey:` in new files -- if you set the same setting under both names, the
+# legacy one wins and `helm install` prints a warning.
+valkey:
   enabled: true
   auth:
     # Will be auto-generated if not provided
     password:
-    # Use an existing secret for the Redis password
+    # Use an existing secret for the cache password
     existingSecret:
       name:
       passwordKey:
   image:
-    repository: redis
-    # Use the alpine variant. The debian-based redis:latest image carries unfixable CVEs; alpine is a drop-in replacement.
-    tag: alpine
+    repository: valkey/valkey
+    # Use the alpine variant -- the debian-based images carry unfixable CVEs.
+    # Pinned to a minor line (patch releases still flow in) and kept aligned
+    # with docker-compose.base.yml so compose and Helm run the same engine.
+    tag: 9.1-alpine
     pullPolicy: IfNotPresent
   master:
     service:
       type: ClusterIP
       ports:
-        redis: "6379"
+        valkey: "6379"
     persistence:
       enabled: false
       size: 8Gi
@@ -873,16 +901,17 @@ redis:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-    # Optional: override global security contexts just for the Redis pod/container
+    # Optional: override global security contexts just for the Valkey pod/container
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
-  # Liveness/readiness probes for the Redis container. Both run "redis-cli ping"
-  # inside the pod. Under transient disk fsync or CPU contention (common on
-  # slower disks such as GCP pd-standard) a single PING can take longer than a
-  # second, so the defaults below are deliberately tolerant: a few slow PINGs
-  # must not flap readiness or trigger a liveness kill and restart loop. Raise
-  # the timeouts/thresholds further if you run Redis on constrained nodes.
+  # Liveness/readiness probes for the Valkey container. Both run
+  # "valkey-cli ping" inside the pod. Under transient disk fsync or CPU
+  # contention (common on slower disks such as GCP pd-standard) a single PING
+  # can take longer than a second, so the defaults below are deliberately
+  # tolerant: a few slow PINGs must not flap readiness or trigger a liveness
+  # kill and restart loop. Raise the timeouts/thresholds further if you run it
+  # on constrained nodes.
   livenessProbe:
     enabled: true
     initialDelaySeconds: 30
@@ -899,7 +928,22 @@ redis:
     appendonly no
     save ""
     maxmemory-policy noeviction
+  # Also publish the Service under its pre-13.0.0 name,
+  # `<release>-redis-master`, pointing at the same pods.
+  #
+  # app/worker/probe/runner pods carry the old hostname in their env until they
+  # roll, and without this they resolve nothing in the meantime. It does not make
+  # the upgrade zero-downtime -- the cache pod is recreated either way, and both
+  # Services have no endpoints for the seconds that takes -- but it stops the
+  # gap lasting for the whole rollout. Safe to set to false once every workload
+  # has rolled.
+  legacyServiceAlias: true
 
+# Deprecated alias for `valkey:` above, kept so a values.yaml written against an
+# earlier chart still applies. MUST stay empty: the merge in
+# `oneuptime.valkey` layers whatever is here ON TOP of the real defaults, so a
+# value shipped here would be impossible for anyone to override.
+redis: {}
 
 
 # Global HorizontalPodAutoscaler defaults applied to every stateless service
@@ -934,7 +978,7 @@ autoscaling:
 # Set EITHER minAvailable OR maxUnavailable (the Kubernetes PDB spec allows only
 # one). If both resolve to a value, minAvailable wins. Both accept an integer or
 # a percentage string like "50%". The single-replica databases (postgresql,
-# redis, clickhouse) are intentionally excluded — a PDB there would imply HA
+# valkey, clickhouse) are intentionally excluded — a PDB there would imply HA
 # they don't provide; the multi-replica clickhouse-keeper ships its own PDB.
 podDisruptionBudget:
   enabled: false
@@ -998,6 +1042,23 @@ captcha:
   siteKey:
   secretKey:
 
+# Outbound webhook egress policy.
+#
+# OneUptime refuses to send workflow requests, project webhooks, on-call user
+# webhooks and sandboxed HTTP calls to targets that resolve into private,
+# loopback or link-local ranges. Both settings below relax that for self-hosted
+# installs and both are off by default. Neither grants anything on its own:
+# each project must ALSO enable "Allow Private Network Webhooks" in
+# Settings -> Project. Status page subscriber webhooks are never covered.
+webhooks:
+  # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
+  # link-local (169.254.169.254) and multicast stay blocked.
+  allowPrivateNetwork: false
+  # Comma-separated hosts and CIDRs allowed regardless of range, e.g.
+  # "mattermost.internal,*.svc.cluster.local,10.20.0.0/16". Never list
+  # 169.254.169.254 or a range containing it.
+  privateNetworkAllowlist: ""
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:
@@ -1027,6 +1088,42 @@ alerts:
 # clients do not retry, but no data is queued or persisted.
 telemetry:
   disableIngestion: false
+
+# Browser source maps, uploaded from CI so exception stack traces can be shown
+# with original file names and line numbers instead of minified ones.
+#
+# These were fixed constants sized for "a few dozen chunks per build". Route
+# level code splitting broke that assumption -- a Nuxt / Vite / Next app with a
+# hundred routes emits hundreds of chunk .map files per release -- so they are
+# operator settings now. The defaults are safe for every deployment; raise
+# maxMapsPerRelease if your build emits more maps than fit.
+sourceMaps:
+  # Distinct bundles one release (service + service.version) may hold. An
+  # upload past this is rejected with a clear 400 rather than being accepted
+  # and then silently failing to resolve. Cannot exceed 10000.
+  maxMapsPerRelease: 1000
+
+  # Source map files accepted in ONE upload request. CI splits a large release
+  # across several requests. This can only be LOWERED: the request is parsed
+  # before authentication, and the shared 50-file ceiling is the limit an
+  # unauthenticated caller is held to on every route that parses multipart
+  # bodies, so raising it here would not be safe and has no effect.
+  maxFilesPerRequest: 50
+
+  # Largest single .map file accepted, in bytes (50 MiB). Also cannot be
+  # raised: the multipart parser aborts larger bodies first, so a higher value
+  # would only turn a clear 400 into a confusing 413.
+  maxFileSizeBytes: 52428800
+
+  # Total map bytes ONE stack trace resolution may load into memory (512 MiB).
+  # This -- not the map count -- is what bounds the resolver, which is why
+  # maxMapsPerRelease can be raised safely. Maps that do not fit are skipped
+  # worst-match-first and reported on the response, never dropped silently.
+  maxBytesPerResolve: 536870912
+
+  # How long uploaded maps are kept. A map is only useful while exceptions
+  # from its release are still within telemetry retention.
+  retentionDays: 90
 
 # Once a day this installation asks the GitHub API which OneUptime version is
 # the latest release, so admins are told in the dashboard when an upgrade is
@@ -1059,6 +1156,27 @@ updateCheck:
 #
 # 0 ignores X-Forwarded-For entirely and uses the connecting address.
 trustedProxyHops: 1
+
+# On-call calendar feeds: people subscribe Google Calendar / Outlook / Apple
+# Calendar to their on-call shifts through a secret .ics URL
+# (https://<host>/api/on-call-calendar/user/<token>/shifts.ics).
+#
+# disabled: true switches every feed URL off. Clients get a 503 with
+# Retry-After: 3600, keep the copy they already have and try again in an hour;
+# nothing is deleted.
+#
+# rateLimit bounds those public routes. perTokenPerWindow is the budget one
+# subscribed calendar gets (keyed on token + client address); perIpPerWindow is
+# the ceiling that survives a caller rotating tokens. Calendar clients poll
+# about hourly (Apple every five minutes at most), so the defaults leave plenty
+# of room for a whole team's clients behind one office address. The limiter
+# fails open when the cache is unreachable.
+onCallCalendarFeed:
+  disabled: false
+  rateLimit:
+    windowSeconds: 60
+    perTokenPerWindow: 60
+    perIpPerWindow: 3000
 
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
@@ -1133,11 +1251,36 @@ probes:
     # NETWORK_DEVICE_POLL_FETCH_LIMIT for fleets of many hundreds of devices
     # — between them the two set how fast a fleet can be polled.
     networkDevicePollConcurrency:
+    # How many SNMP OIDs this probe asks for in one GET. Unset uses the probe's
+    # own default (20). Every configured OID used to go into a single UDP
+    # datagram, so a long health-OID list answered tooBig and the DEVICE was
+    # reported offline; lower this only for an agent with an unusually small
+    # maximum message size.
+    snmpGetChunkSize:
     key:
+    # Reference a Secret you manage for this probe's PROBE_KEY, instead of the
+    # value the chart generates into `<release>-secrets`. PROBE_KEY is the probe's
+    # identity: the server registers a brand-new probe whenever it sees a key it
+    # does not recognise. `helm template` (Argo CD, Flux) always takes the chart's
+    # install-mode randAlphaNum branch, so the rendered key changes on every
+    # reconcile and orphans the previous probe — and because a monitor's probe list
+    # is fixed when the monitor is created and never back-filled, the monitor keeps
+    # pointing at the dead probe and monitoring silently stops. Ignored when `key`
+    # is set. Serving the key this way also stops the chart writing a copy of it
+    # into `<release>-secrets`, so `helm diff` no longer reports it as rotating.
+    existingSecret:
+      name:
+      passwordKey:
     replicaCount: 1
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
+    # Private-network opt-in for API, Website, External Status Page and Custom
+    # JavaScript Code monitors on a private probe. Chart-managed probes
+    # auto-register as global probes, so they ignore this value and always
+    # enforce public-only egress. Turning this on for a separately deployed
+    # private probe still does NOT open loopback, link-local or cloud metadata.
+    allowPrivateNetworkMonitors: false
     syntheticMonitorScriptTimeoutInMs: 60000
     # Maximum number of isolated browser worker processes started concurrently
     # by this Probe. Additional executions wait in a bounded FIFO queue.
@@ -1152,6 +1295,13 @@ probes:
     # watchdog is the primary limit; this emptyDir ceiling contains failures
     # across all concurrent executions and other temporary Probe data.
     syntheticMonitorTempStorageSizeLimit: 2Gi
+    # Size of /dev/shm, which Chromium uses for shared memory between its
+    # browser, renderer and network processes. A container gets 64Mi by
+    # default -- not enough for syntheticMonitorMaxConcurrency browsers at a
+    # 1920x1080 viewport, and running out does not produce a clean error: the
+    # browser starts, then its first navigation never completes. This is
+    # memory-backed, so it counts against the pod's memory limit.
+    syntheticMonitorSharedMemorySizeLimit: 512Mi
     # RuntimeDefault is available on every conforming cluster but commonly
     # blocks the user-namespace creation Chromium's OS sandbox needs. Leave the
     # Chromium sandbox disabled with RuntimeDefault. Set this to true together
@@ -1228,6 +1378,11 @@ probes:
     podSecurityContext: {}
     hostAliases: []
     containerSecurityContext: {}
+    # Extra env / volumes for this service only. A non-empty list REPLACES the
+    # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
 #   additionalContainers:
 # two:
 #   name: "Probe 2"
@@ -1244,6 +1399,7 @@ probes:
 #   syntheticMonitorMaxProcessTreeRssBytes: 1610612736
 #   syntheticMonitorMaxDiskBytes: 268435456
 #   syntheticMonitorTempStorageSizeLimit: 2Gi
+#   syntheticMonitorSharedMemorySizeLimit: 512Mi
 #   syntheticMonitorChromiumSandboxEnabled: false
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   # DNS override for this probe (otherwise inherits the chart-wide dnsConfig default).
@@ -1310,11 +1466,25 @@ testServer:
   nodeSelector: {}
   podSecurityContext: {}
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 openTelemetryExporter:
+  # Server-side exporter settings. headers can contain credentials and are
+  # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
   headers:
+
+# Browser RUM uses a separate, deliberately public credential. Only use a
+# OneUptime Browser ingestion key with an origin allowlist; never put a Server
+# key or arbitrary collector Authorization header here.
+browserOpenTelemetryExporter:
+  endpoint:
+  browserIngestionKey:
 
 containerSecurityContext:
 podSecurityContext:
@@ -1322,6 +1492,33 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+
+# Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
+# app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
+# the migrate Job, test-server, the e2e cron, and vLLM. Empty by default, so an
+# install that leaves them alone renders exactly the manifests it always did.
+#
+# A service that sets its own extraEnv / extraVolumes / extraVolumeMounts
+# REPLACES the chart-wide list for that service — the two are NOT merged. That
+# is the same precedence the chart already uses for hostAliases, nodeSelector
+# and the security contexts above.
+#
+# The usual reason to reach for these: make every service trust an internal CA.
+#
+# extraVolumes:
+#   - name: internal-ca
+#     configMap:
+#       name: internal-ca-bundle   # kubectl create configmap internal-ca-bundle --from-file=ca.crt
+# extraVolumeMounts:
+#   - name: internal-ca
+#     mountPath: /etc/ssl/internal
+#     readOnly: true
+# extraEnv:
+#   - name: NODE_EXTRA_CA_CERTS
+#     value: /etc/ssl/internal/ca.crt
+extraEnv: []
+extraVolumes: []
+extraVolumeMounts: []
 
 # Chart-wide fallback DNS settings. Services that support DNS overrides (currently
 # the probes) use their per-service dnsConfig/dnsPolicy if set, otherwise these.
@@ -1380,6 +1577,11 @@ cronJobs:
     # This is the URL of the status page you want to test. This is used to check if the status page is up and running.
     statusPageUrl:
     failedWebhookUrl:
+    # Extra env / volumes for this service only. A non-empty list REPLACES the
+    # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
 
 # Please add this information if you want to generate SSL certificates for your status page custom domains.
 # This is only required if you're using custom domains for status pages.
@@ -1428,10 +1630,15 @@ externalPostgres:
     cert:
     key:
 
-## External Redis Configuration
-# You need to set redis.enabled to false if you're using an external redis database.
+## External cache configuration.
+# Set valkey.enabled to false to use this instead of the in-cluster Valkey.
+# Any Redis-protocol server works here -- Valkey, real Redis, or a managed
+# service such as ElastiCache or Memorystore.
+#
+# This block was called `externalRedis:` until 13.0.0; that key still works and
+# is layered on top of whatever is set here.
 
-externalRedis:
+externalValkey:
   host:
   port:
   username:
@@ -1450,6 +1657,10 @@ externalRedis:
     # (optional)
     cert:
     key:
+
+# Deprecated alias for `externalValkey:`. Must stay empty, for the same reason
+# `redis: {}` above must.
+externalRedis: {}
 
 ## External Clickhouse Configuration
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.
@@ -1538,6 +1749,11 @@ home:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 app:
   enabled: true
@@ -1608,6 +1824,11 @@ app:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
@@ -1698,6 +1919,11 @@ worker:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
@@ -1795,7 +2021,7 @@ telemetryWriter:
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 0
   # OPT-IN KEDA scaling on the fleet-wide shed rate — 429s rejected across
-  # all writer pods in roughly the last two minutes (Redis-backed counter,
+  # all writer pods in roughly the last two minutes (Valkey-backed counter,
   # served at /metrics/telemetry-writer-shed-rate). Sustained shedding while
   # ClickHouse is healthy is the honest "tier too small" signal; this NEVER
   # scales on queue depth (that is the worker fleet's signal). Optional
@@ -1830,6 +2056,11 @@ telemetryWriter:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
@@ -1860,6 +2091,16 @@ runner:
   # Runner Key (optional — auto-generated and stored in the release
   # secrets when not provided)
   key:
+  # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
+  # the chart generates into `<release>-secrets`. The key is the Runner's identity
+  # — the server registers a brand-new Runner whenever it sees a key it does not
+  # recognise — and `helm template` (Argo CD, Flux) regenerates it on every render.
+  # Ignored when `key` is set. Serving the key this way also stops the chart
+  # writing a copy of it into `<release>-secrets`. The per-probe equivalent is
+  # `probes.<name>.existingSecret`.
+  existingSecret:
+    name:
+    passwordKey:
   ports:
     http: 3875
   resources:
@@ -1867,6 +2108,11 @@ runner:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -1943,6 +2189,10 @@ vllm:
   extraArgs: []
   # Extra environment variables, e.g. [{name: VLLM_LOGGING_LEVEL, value: DEBUG}]
   extraEnv: []
+  # Extra volumes / mounts for the vLLM pod only. A non-empty list REPLACES the
+  # chart-wide extraVolumes/extraVolumeMounts (they are not merged).
+  extraVolumes: []
+  extraVolumeMounts: []
   ports:
     http: 8000
   service:
@@ -2076,6 +2326,13 @@ microsoftTeamsApp:
   #   tenantIdKey: tenantId
 
 # GitHub Example Configuration
+#
+# `name` must match the app's real name on GitHub: its mention handle is derived
+# from it (lowercased, spaces to hyphens), so an app named "Acme AI" is
+# addressed as "@acme-ai". Answering mentions also needs the "Issues:
+# Read & write" permission and a subscription to the Issue comment, Issues,
+# Pull request, Pull request review and Pull request review comment events —
+# see https://oneuptime.com/docs/self-hosted/github-integration
 # gitHubApp:
 #   id: "123456"
 #   name: "my-github-app"

@@ -3,9 +3,15 @@ import Service from "../../Models/DatabaseModels/Service";
 import ServiceLabelRule from "../../Models/DatabaseModels/ServiceLabelRule";
 import ServiceLabelRuleService from "./ServiceLabelRuleService";
 import ServiceService from "./ServiceService";
+import ServiceFeedService from "./ServiceFeedService";
+import { ServiceFeedEventType } from "../../Models/DatabaseModels/ServiceFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ServiceLabelRuleEngineServiceClass {
   /**
@@ -30,14 +36,21 @@ class ServiceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             serviceLabels: { _id: true },
             serviceNamePattern: true,
             serviceDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ServiceLabelRule",
+        projectId: service.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -59,6 +72,7 @@ class ServiceLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesServiceMatchRule(
@@ -67,6 +81,11 @@ class ServiceLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -122,6 +141,26 @@ class ServiceLabelRuleEngineServiceClass {
         `ServiceLabelRuleEngine attached ${newLabelIds.length} labels to service ${service.id}`,
         { projectId: service.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await ServiceFeedService.createServiceFeedItem({
+        serviceId: service.id,
+        projectId: service.projectId,
+        serviceFeedEventType: ServiceFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await ServiceService.getServiceMarkdownLink(
+          service.projectId,
+          service.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying service label rules: ${error}`, {
         projectId: service.projectId?.toString(),
@@ -131,6 +170,24 @@ class ServiceLabelRuleEngineServiceClass {
   }
 
   private doesServiceMatchRule(
+    service: Service,
+    rule: ServiceLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "serviceLabels",
+        "serviceNamePattern",
+        "serviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (serviceRule: ServiceLabelRule): boolean => {
+        return this.doesServiceMatchRuleLegacy(service, serviceRule);
+      },
+    });
+  }
+
+  private doesServiceMatchRuleLegacy(
     service: Service,
     rule: ServiceLabelRule,
   ): boolean {

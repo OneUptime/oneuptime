@@ -907,8 +907,11 @@ describe("page and card wiring", () => {
   });
 
   test("companion tables never restore URL filters over the pin", () => {
-    // The trace and exception companions, like the primary embeds.
-    expect(COMPANION_TABS.split("disableUrlState={true}").length - 1).toBe(2);
+    /*
+     * The trace and exception companions, like the primary embeds — now the
+     * span / exception explorers, so the opt-out is spelled their way.
+     */
+    expect(COMPANION_TABS.split("disableUrlSync={true}").length - 1).toBe(2);
   });
 
   test("the logs companion feeds the viewer's pinned-window mechanism", () => {

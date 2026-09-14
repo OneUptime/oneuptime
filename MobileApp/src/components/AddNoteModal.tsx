@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import GradientButton from "./GradientButton";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -26,17 +28,44 @@ export default function AddNoteModal({
   isSubmitting,
 }: AddNoteModalProps): React.JSX.Element {
   const { theme } = useTheme();
+  const paddingBottom: number = useScreenPadding({ tabBar: false });
   const [noteText, setNoteText] = useState("");
+
+  /*
+   * The draft outlives the submit, and is dropped only once the note is
+   * actually filed.
+   *
+   * `onSubmit` starts a POST and returns immediately, so clearing the box next
+   * to the call threw the note away while the request was still in the air.
+   * When the POST then failed the responder was left with a "Failed to add
+   * note" alert and an empty box - and the note they had just typed, often the
+   * only written record of what they had done to the incident, was gone with
+   * nothing to retry from.
+   *
+   * Every screen that hosts this modal closes it (`visible` goes false) on
+   * success and leaves it open on failure, so the parent hiding us IS the
+   * signal that the note landed - and it is the only one available here, since
+   * those screens swallow the error themselves to show their own alert. So the
+   * draft is cleared on the way out instead: it survives a failed submit, ready
+   * for another attempt, and the next Add Note still opens on an empty box.
+   */
+  useEffect((): void => {
+    if (!visible) {
+      setNoteText("");
+    }
+  }, [visible]);
 
   const handleSubmit: () => void = (): void => {
     const trimmed: string = noteText.trim();
-    if (trimmed) {
+    if (trimmed && !isSubmitting) {
       onSubmit(trimmed);
-      setNoteText("");
     }
   };
 
   const handleClose: () => void = (): void => {
+    if (isSubmitting) {
+      return;
+    }
     setNoteText("");
     onClose();
   };
@@ -56,12 +85,20 @@ export default function AddNoteModal({
         }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
           style={{
+            maxHeight: "90%",
+            flexGrow: 0,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            backgroundColor: theme.colors.backgroundElevated,
+          }}
+          contentContainerStyle={{
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 20,
-            paddingBottom: 36,
+            paddingBottom,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderBottomWidth: 0,
@@ -117,7 +154,18 @@ export default function AddNoteModal({
             </Text>
           </View>
 
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 22,
+              color: theme.colors.textSecondary,
+              marginBottom: 16,
+            }}
+          >
+            Share an update with your team. Markdown is supported.
+          </Text>
           <TextInput
+            accessibilityLabel="Note"
             style={{
               minHeight: 120,
               borderRadius: 12,
@@ -146,10 +194,15 @@ export default function AddNoteModal({
             }}
           >
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              accessibilityState={{ disabled: isSubmitting }}
               style={({ pressed }: { pressed: boolean }) => {
                 return {
                   flex: 1,
-                  height: 50,
+                  minHeight: 52,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
                   borderRadius: 12,
                   alignItems: "center" as const,
                   justifyContent: "center" as const,
@@ -180,7 +233,7 @@ export default function AddNoteModal({
               style={{ flex: 1 }}
             />
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );

@@ -6,9 +6,29 @@ OneUptime 的**传入邮件监控器**允许您根据发送到唯一监控器特
 
 ## 前提条件
 
-- SendGrid 账号（免费套餐可用）
+- 具有 Inbound Parse 访问权限的 SendGrid 账号
 - 您控制的域名，可以访问 DNS 设置
-- 您的 OneUptime 实例必须可公开访问（供 SendGrid 发送 Webhook）
+- 可将 SendGrid Webhook 转发到 OneUptime 的公共 HTTPS 端点
+
+## 网络访问
+
+Inbound Parse 要求 SendGrid 主动连接 OneUptime。仅允许 OneUptime 出站访问互联网无法满足要求。
+
+| 方向 | 目标 | 协议 / 端口 | 用途 |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | 通过 multipart POST 投递解析后的邮件。 |
+| 发件邮件服务器 → SendGrid | 由接收域名公共 MX 记录指定的 `mx.sendgrid.net` | SMTP / TCP 25 | 在 SendGrid 接收邮件，不连接 OneUptime 服务器。 |
+| OneUptime → SendGrid，仅在单独配置邮件发送时 | `api.sendgrid.com` | HTTPS / TCP 443 | 通过 Mail Send API 发送通知邮件。 |
+
+为 Webhook 主机名发布公共 DNS，并使用公共信任的证书。私有部署可通过能够在内部访问 OneUptime 的公共反向代理或网关，仅开放 Webhook 路径。保留路径、密钥、内容类型和 multipart 请求体；允许 POST 通过，不能要求交互式登录或浏览器验证。OneUptime 无需监听入站 SMTP 连接。参阅 [SendGrid 设置指南](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)。
+
+将 `INBOUND_EMAIL_WEBHOOK_SECRET` 设置为高强度随机值，并用它替换 `YOUR_SECRET`。路由要求最后一个路径段存在。OneUptime 会将它与配置的密钥比较；将变量留空会禁用此检查。完整 URL 和监控器邮件地址应保密，包括代理日志。OneUptime 目前不验证 SendGrid 的 Inbound Parse 签名标头或 OAuth 令牌。如需这些机制，请按照 [SendGrid 安全文档](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)，在网关验证后再转发到 OneUptime。
+
+SendGrid 不提供可靠的 Inbound Parse 来源静态 IP 列表。其邮件发送 IP 和 `mx.sendgrid.net` 的 DNS 解析地址不能作为 Webhook 来源允许列表。请遵循 [SendGrid 防火墙指南](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)。
+
+Inbound Parse 与出站邮件发送相互独立。接收监控邮件不要求 OneUptime 调用 SendGrid API。若还使用 SendGrid 发送通知，请允许 DNS 解析及到 `api.sendgrid.com` 的出站 HTTPS；[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) 提交邮件不需要入站回调。若使用 SMTP，请允许 OneUptime 中配置的邮件服务器及端口。
+
+验证公共 MX 记录，向测试监控器发送邮件，确认 Webhook 到达 OneUptime，并创建或解除匹配的告警。空 POST 请求或出站邮件测试成功，均不能验证 Inbound Parse 的完整流程。
 
 ## 工作原理
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **注意：** DNS 更改最长可能需要 48 小时才能生效，但通常在几个小时内完成。
 
-### 第三步：在 SendGrid 中验证域名（可选但推荐）
+### 第三步：在 SendGrid 中认证域名
 
-为提高传送率并避免邮件被标记为垃圾邮件：
+接收域名必须属于您的某个 [SendGrid 已认证域名](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse)：
 
 1. 登录您的 [SendGrid 控制台](https://app.sendgrid.com)
 2. 前往 **设置** > **发件人认证**
@@ -81,7 +101,7 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 # 入站邮件配置
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # 可选：用于额外安全
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### Kubernetes with Helm
@@ -92,10 +112,10 @@ INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # 可选
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**重要提示：** 添加这些环境变量后重启您的 OneUptime 服务器。
+使用与第四步目标 URL 相同的密钥，并在修改配置后重启 OneUptime。
 
 ### 第六步：创建传入邮件监控器
 
@@ -127,7 +147,7 @@ inboundEmail:
 | ------------------------------ | ------------------------------------------------------------------------------------------------------- | -------- | ------ |
 | `INBOUND_EMAIL_PROVIDER`       | 要使用的入站邮件提供商                                                                                  | 是       | -      |
 | `INBOUND_EMAIL_DOMAIN`         | 配置用于入站邮件的子域名                                                                                | 是       | -      |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | 用于验证 Webhook 请求的密钥。设置后，将此密钥附加到 Webhook URL：`/incoming-email/sendgrid/YOUR_SECRET` | 否       | -      |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | 与 `/incoming-email/sendgrid/YOUR_SECRET` 的最后一个路径段比较。公共端点应配置此值；留空会禁用验证。 | 推荐 | - |
 
 ## 支持的邮件标准
 
@@ -184,23 +204,14 @@ inboundEmail:
    - 验证您的域名和 Webhook URL 是否正确
 
 3. **检查 OneUptime 日志：**
-   - 在 ProbeIngest 服务日志中查找 Webhook 请求
+   - 在 OneUptime 应用日志（Telemetry / ProbeIngest）中查找入站邮件 Webhook 请求。
    - 检查是否有任何错误消息
 
 ### Webhook 失败
 
-1. **确保 OneUptime 可公开访问：**
-
-   - Webhook URL 必须可从互联网访问
-   - 测试：`curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **检查防火墙规则：**
-
-   - 允许来自 SendGrid IP 范围的入站 HTTPS 流量
-
-3. **验证 SSL 证书：**
-   - SendGrid 需要有效的 SSL 证书
-   - 自签名证书可能会导致问题
+- 包含密钥的完整 HTTPS URL 必须可从互联网访问。缺少最后一个路径段时，URL 无法匹配路由。
+- 允许 POST 请求通过，不能出现登录重定向或浏览器验证。SendGrid 的邮件发送 IP 不是 Webhook 来源允许列表。
+- 使用公共信任的证书及完整证书链，并按照“网络访问”一节验证投递。
 
 ### 监控器未创建告警
 

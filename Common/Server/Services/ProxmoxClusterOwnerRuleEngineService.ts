@@ -7,9 +7,15 @@ import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ProxmoxClusterOwnerRuleEngineServiceClass {
   /**
@@ -37,6 +43,7 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             proxmoxClusterLabels: { _id: true },
             proxmoxClusterNamePattern: true,
@@ -44,9 +51,15 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ProxmoxClusterOwnerRule",
+        projectId: proxmoxCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -142,6 +155,27 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
         `ProxmoxClusterOwnerRuleEngine added owners to Proxmox cluster ${proxmoxCluster.id}`,
         { projectId: proxmoxCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await ProxmoxClusterFeedService.createProxmoxClusterFeedItem({
+        proxmoxClusterId: proxmoxCluster.id,
+        projectId: proxmoxCluster.projectId,
+        proxmoxClusterFeedEventType:
+          ProxmoxClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
+          proxmoxCluster.projectId,
+          proxmoxCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: ProxmoxClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Proxmox cluster owner rules: ${error}`, {
         projectId: proxmoxCluster.projectId?.toString(),
@@ -151,6 +185,29 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
   }
 
   private doesProxmoxClusterMatchRule(
+    proxmoxCluster: ProxmoxCluster,
+    rule: ProxmoxClusterOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "proxmoxClusterLabels",
+        "proxmoxClusterNamePattern",
+        "proxmoxClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        proxmoxClusterRule: ProxmoxClusterOwnerRule,
+      ): boolean => {
+        return this.doesProxmoxClusterMatchRuleLegacy(
+          proxmoxCluster,
+          proxmoxClusterRule,
+        );
+      },
+    });
+  }
+
+  private doesProxmoxClusterMatchRuleLegacy(
     proxmoxCluster: ProxmoxCluster,
     rule: ProxmoxClusterOwnerRule,
   ): boolean {

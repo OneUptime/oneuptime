@@ -12,13 +12,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-
-export type ExceptionsTabKey =
-  | "overview"
-  | "unresolved"
-  | "resolved"
-  | "archived"
-  | "setup";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { NON_ACTIONABLE_ERROR_CLASSES } from "Common/Types/Telemetry/ErrorClass";
+import { ExceptionsTabKey } from "../../Utils/ExceptionsNavigation";
 
 interface Props {
   active: ExceptionsTabKey;
@@ -45,6 +41,21 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
             projectId: ProjectUtil.getCurrentProjectId()!,
             isResolved: false,
             isArchived: false,
+            /*
+             * The badge is the outstanding actionable backlog signal for the
+             * unified Exceptions tab. It deliberately remains unresolved and
+             * unarchived when the in-page status filter changes.
+             *
+             * Match the default "Issues" class lens, which hides user errors
+             * and expected denials, so this count represents work that needs
+             * attention rather than every captured exception group.
+             *
+             * IncludesNone, matching ExceptionsViewer exactly: it compiles to
+             * `NOT IN ('user-error', 'expected-denial')`, so a class this
+             * build has never seen is still counted. An allow-list of the
+             * classes we consider real would silently undercount instead.
+             */
+            errorClass: new IncludesNone([...NON_ACTIONABLE_ERROR_CLASSES]),
           } as never,
         });
         if (!cancelled) {
@@ -60,22 +71,19 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
     };
   }, []);
 
+  /*
+   * The Exceptions destination is the only top-level tab backed by
+   * ExceptionsViewer. Carry list scope into it from preserved legacy status
+   * URLs; Insights and Setup Guide do not render that scope.
+   *
+   * `status` is not in the carried set because the unified list owns it.
+   */
   const tabs: Array<TelemetryTab> = [
     {
-      key: "overview",
-      label: "Overview",
-      icon: IconProp.Home,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
-      ),
-    },
-    {
-      key: "unresolved",
-      label: "Unresolved",
+      key: "exceptions",
+      label: "Exceptions",
       icon: IconProp.Alert,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
-      ),
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS] as Route),
       ...(unresolvedCount !== null && unresolvedCount > 0
         ? {
             badge: {
@@ -84,21 +92,14 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
             },
           }
         : {}),
+      carriesScope: true,
     },
     {
-      key: "resolved",
-      label: "Resolved",
-      icon: IconProp.Check,
+      key: "overview",
+      label: "Insights",
+      icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route,
-      ),
-    },
-    {
-      key: "archived",
-      label: "Archived",
-      icon: IconProp.Archive,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route,
+        RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
       ),
     },
     {

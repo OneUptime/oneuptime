@@ -1,6 +1,5 @@
 import Help from "./Help";
 import Logo from "./Logo";
-import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
@@ -29,17 +28,24 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
                         />{' '} */}
           </>
         }
-        mobileRightComponents={<ThemeToggle />}
         rightComponents={
           <>
+            {/*
+             * "Exit Admin" is the one entry here wide enough to crowd out the
+             * buttons beside it on a phone, and it is a duplicate: the profile
+             * menu below offers a master admin the same action, and log out
+             * with it. Help and the profile button stay at every width.
+             */}
             <EditionLabel className="mr-3 hidden md:inline-flex" />
-            <Button
-              title={t("header.exitAdmin")}
-              buttonStyle={ButtonStyleType.NORMAL}
-              onClick={() => {
-                Navigation.navigate(DASHBOARD_URL);
-              }}
-            />
+            <div className="hidden items-center lg:flex">
+              <Button
+                title={t("header.exitAdmin")}
+                buttonStyle={ButtonStyleType.NORMAL}
+                onClick={() => {
+                  Navigation.navigate(DASHBOARD_URL);
+                }}
+              />
+            </div>
             <Help />
             <UserProfile />
           </>

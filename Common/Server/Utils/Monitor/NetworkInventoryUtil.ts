@@ -1,9 +1,10 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
-import NetworkInterfaceService from "../../Services/NetworkInterfaceService";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import NetworkDeviceMacLearningUtil from "./NetworkDeviceMacLearningUtil";
+import NetworkInterfaceService, {
+  InterfaceWalkUpsertResult,
+} from "../../Services/NetworkInterfaceService";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
@@ -20,25 +21,39 @@ import SnmpVendorTemplateUtil, {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import logger from "../Logger";
 
 /*
  * Keeps the NetworkDevice / NetworkInterface inventory in sync with each
- * device walk, then prunes the in-flight response down to MONITORED
+ * device poll, then prunes the in-flight response down to MONITORED
  * interfaces so criteria and metrics only consider ports the user cares
  * about. Inventory rows always reflect every walked interface; the
  * isMonitored flag is user-owned and never overwritten here.
  *
  * Called from the device polling pipeline (NetworkDeviceWalkUtil): the
- * device's assigned probe walks it on the device's own schedule, so this
- * runs for every registered device — no Monitor required.
+ * device's assigned probe pings it on the device's own schedule - and walks
+ * it over SNMP as well when it has credentials - so this runs for every
+ * registered device, credentials or not, and no Monitor is required.
  */
 export default class NetworkInventoryUtil {
   public static async updateFromWalk(data: {
     projectId: ObjectID;
     deviceId: ObjectID;
+    /*
+     * The SNMP walk, when one ran (success or failure). Undefined on a
+     * ping-only poll - never a synthesized failure.
+     */
     snmpResponse: SnmpMonitorResponse | undefined;
+    // Device reachability: answered ping OR the walk succeeded.
     isOnline: boolean | undefined;
+    /*
+     * How the probe polled. Absent from callers that predate ping-first
+     * polling (the ingest processor stamps "snmp" for an old probe's walk),
+     * and read as "snmp" when absent.
+     */
+    pollMode?: NetworkDevicePollMode | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -60,6 +75,9 @@ export default class NetworkInventoryUtil {
           // For the vendor-template auto-apply below.
           autoApplyVendorHealthTemplate: true,
           snmpOids: true,
+          oidTemplateId: true,
+          // For the monitor-backed guard on the poll columns below.
+          monitoringMethod: true,
         },
         props: {
           isRoot: true,
@@ -70,27 +88,70 @@ export default class NetworkInventoryUtil {
       return;
     }
 
-    const walkedInterfaces: Array<SnmpInterface> =
-      data.snmpResponse?.interfaces || [];
-    const systemInfo: SnmpSystemInfo | undefined =
-      data.snmpResponse?.systemInfo;
-    const entityInfo: SnmpEntityInfo | undefined =
-      data.snmpResponse?.entityInfo;
-    const lldpNeighbors: Array<LldpNeighbor> | undefined =
-      data.snmpResponse?.lldpNeighbors;
-    const cdpNeighbors: Array<CdpNeighbor> | undefined =
-      data.snmpResponse?.cdpNeighbors;
-    const arpEntries: Array<ArpEntry> | undefined =
-      data.snmpResponse?.arpEntries;
-    const fdbEntries: Array<FdbEntry> | undefined =
-      data.snmpResponse?.fdbEntries;
+    /*
+     * A monitor-backed device (monitoringMethod "Monitor") is never meant to
+     * be walked: nothing polls it and its bound Monitor's status owns
+     * isReachable. But claimDevicesForPolling only excludes such rows at
+     * CLAIM time, so a device claimed as SNMP and switched to Monitor before
+     * its walk result arrived still lands here. Writing the poll verdict
+     * then would overwrite the monitor's reachability with the last thing a
+     * probe found before it stopped asking, and the two would fight on the
+     * device list until the next status change. The poll and interface-count
+     * columns are therefore withheld for such a row; everything else the
+     * walk learned (system group, vendor, neighbors, interfaces, endpoints)
+     * is still recorded, because it is inventory rather than health.
+     */
+    const isMonitorBacked: boolean =
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        ownedDevice.monitoringMethod,
+      );
+
+    if (isMonitorBacked) {
+      logger.warn(
+        `Network device ${deviceId.toString()} is monitor-backed (monitoringMethod "Monitor") but a poll result arrived for it - most likely it was switched off probe polling while a poll was in flight. Its bound monitor owns reachability, so lastPolledAt, isReachable, lastSeenAt, isSnmpReachable, lastSnmpSeenAt and the interface counts from this poll are not written.`,
+      );
+    }
+
+    const pollMode: NetworkDevicePollMode = data.pollMode ?? "snmp";
+
+    /*
+     * Did a walk run, and did it succeed? Two separate questions, because a
+     * ping-only poll runs no walk at all and must not read as a failed one:
+     * the walk columns below go NULL for it, not false.
+     *
+     * A walk where the probe could not open the SNMP session reports
+     * isOnline === false; treat anything else (success, or a walk that
+     * reports no verdict at all) as succeeded - the same convention
+     * isDeviceReachable uses further down.
+     */
+    const walkRan: boolean = data.snmpResponse !== undefined;
+    const walkSucceeded: boolean =
+      data.snmpResponse !== undefined && data.snmpResponse.isOnline !== false;
+
+    /*
+     * Inventory comes ONLY from a successful walk. A failed walk carries no
+     * system group, no neighbours and no interfaces, and reading whatever a
+     * malformed failure did carry would let it clear the LLDP snapshot or
+     * rewrite sysName off a session that never really opened.
+     */
+    const walk: SnmpMonitorResponse | undefined = walkSucceeded
+      ? data.snmpResponse
+      : undefined;
+
+    const walkedInterfaces: Array<SnmpInterface> = walk?.interfaces || [];
+    const systemInfo: SnmpSystemInfo | undefined = walk?.systemInfo;
+    const entityInfo: SnmpEntityInfo | undefined = walk?.entityInfo;
+    const lldpNeighbors: Array<LldpNeighbor> | undefined = walk?.lldpNeighbors;
+    const cdpNeighbors: Array<CdpNeighbor> | undefined = walk?.cdpNeighbors;
+    const arpEntries: Array<ArpEntry> | undefined = walk?.arpEntries;
+    const fdbEntries: Array<FdbEntry> | undefined = walk?.fdbEntries;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
-     * A poll where the probe could not reach the device reports
-     * isOnline === false; treat anything else (reachable, or a walk that
-     * reports no reachability at all) as answered.
+     * A poll where the probe could not reach the device (no ping answer AND
+     * no walk) reports isOnline === false; treat anything else (reachable,
+     * or a poll that reports no reachability at all) as answered.
      */
     const isDeviceReachable: boolean = data.isOnline !== false;
 
@@ -114,12 +175,39 @@ export default class NetworkInventoryUtil {
        *   lastSeenAt   - when the device last ANSWERED. Only moves on a
        *                  successful walk, so it stays honest as "last
        *                  contact" and never paints a dead device green.
+       *
+       * Under ping-first polling the three answer for the DEVICE - "did it
+       * answer ping or SNMP" - which is what the status pill shows. The
+       * walk gets its own pair:
+       *
+       *   isSnmpReachable - the verdict of the last WALK: true/false when
+       *                     one ran, NULL when none did (a ping-only poll)
+       *                     or the device was never polled. NULL is the
+       *                     whole point: a credential-less device is not
+       *                     "SNMP down", it is "not walked".
+       *   lastSnmpSeenAt  - when the walk last SUCCEEDED. Only moves on a
+       *                     good walk, like lastSeenAt for the device.
+       *
+       * An old probe (no pollMode) only ever walked, and the processor
+       * stamps its walk verdict as the device verdict, so both columns
+       * carry the same value for it - never NULL for a credentialed device.
+       *
+       * None of the five is written for a monitor-backed device - see the
+       * guard above the try.
        */
-      deviceUpdate["lastPolledAt"] = now;
-      deviceUpdate["isReachable"] = isDeviceReachable;
+      if (!isMonitorBacked) {
+        deviceUpdate["lastPolledAt"] = now;
+        deviceUpdate["isReachable"] = isDeviceReachable;
 
-      if (isDeviceReachable) {
-        deviceUpdate["lastSeenAt"] = now;
+        if (isDeviceReachable) {
+          deviceUpdate["lastSeenAt"] = now;
+        }
+
+        deviceUpdate["isSnmpReachable"] = walkRan ? walkSucceeded : null;
+
+        if (walkSucceeded) {
+          deviceUpdate["lastSnmpSeenAt"] = now;
+        }
       }
 
       if (systemInfo?.sysDescr) {
@@ -169,9 +257,18 @@ export default class NetworkInventoryUtil {
        * leaves it alone (including after the operator empties it on purpose
        * AND turns the toggle off; with the toggle still on, an emptied list
        * re-seeds next poll, which is what "auto-apply" says on the tin).
+       *
+       * A device linked to an OID Collection Template is exempt outright.
+       * Its effective list already comes from the template, and its own
+       * snmpOids column is by design the small set of device-specific
+       * ADDITIONS — usually empty, which is exactly the condition below.
+       * Without this guard the first poll would write a vendor copy on top
+       * of the template and the device would silently collect the union of
+       * two sources, only one of which the operator can see or edit.
        */
       if (
         ownedDevice.autoApplyVendorHealthTemplate &&
+        !ownedDevice.oidTemplateId &&
         (ownedDevice.snmpOids || []).length === 0 &&
         systemInfo?.sysObjectId
       ) {
@@ -222,24 +319,45 @@ export default class NetworkInventoryUtil {
         deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
       }
 
-      if (walkedInterfaces.length > 0) {
-        deviceUpdate["interfacesTotal"] = walkedInterfaces.length;
-        deviceUpdate["interfacesUp"] = walkedInterfaces.filter(
-          (walked: SnmpInterface) => {
-            return walked.isAdministrativelyUp && walked.isOperationallyUp;
-          },
-        ).length;
-        deviceUpdate["interfacesDown"] = walkedInterfaces.filter(
-          (walked: SnmpInterface) => {
-            return walked.isAdministrativelyUp && !walked.isOperationallyUp;
-          },
-        ).length;
+      /*
+       * The cached interface counts are health columns too (the device list
+       * and the site overview read interfacesDown), so a monitor-backed
+       * device keeps them out for the same reason as the poll columns.
+       *
+       * On a ping-only poll they go NULL rather than staying put: a device
+       * whose credentials were removed would otherwise keep showing the
+       * interface counts of its last walk indefinitely, and the list would
+       * read "3 interfaces down" on a device nothing is walking any more.
+       * A failed walk in snmp mode, by contrast, leaves them alone - the
+       * last good counts are the best estimate until the next good walk,
+       * exactly as the lastWalkLog baseline is kept across failed polls.
+       */
+      if (!isMonitorBacked) {
+        if (pollMode === "ping") {
+          deviceUpdate["interfacesTotal"] = null;
+          deviceUpdate["interfacesUp"] = null;
+          deviceUpdate["interfacesDown"] = null;
+        } else if (walkedInterfaces.length > 0) {
+          deviceUpdate["interfacesTotal"] = walkedInterfaces.length;
+          deviceUpdate["interfacesUp"] = walkedInterfaces.filter(
+            (walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && walked.isOperationallyUp;
+            },
+          ).length;
+          deviceUpdate["interfacesDown"] = walkedInterfaces.filter(
+            (walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && !walked.isOperationallyUp;
+            },
+          ).length;
+        }
       }
 
       /*
-       * Always non-empty now: even a walk that reached nothing has to
-       * record that we tried, or the staleness backstop cannot tell a
-       * failing device from an unpolled one.
+       * Always non-empty for a probe-polled device: even a poll that
+       * reached nothing has to record that we tried, or the staleness
+       * backstop cannot tell a failing device from an unpolled one. Only
+       * the monitor-backed case above can leave it empty, and then there
+       * is genuinely nothing to write.
        */
       if (Object.keys(deviceUpdate).length > 0) {
         await NetworkDeviceService.updateOneById({
@@ -252,107 +370,28 @@ export default class NetworkInventoryUtil {
       }
 
       if (walkedInterfaces.length > 0) {
-        // --- Interface upsert ---
-        const existingInterfaces: Array<NetworkInterface> =
-          await NetworkInterfaceService.findBy({
-            query: {
-              networkDeviceId: deviceId,
-            },
-            select: {
-              _id: true,
-              interfaceIndex: true,
-              isMonitored: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
+        /*
+         * --- Interface upsert ---
+         * One SELECT plus one batched INSERT/UPDATE per 500 rows, inside the
+         * service. This was a per-interface create()/updateOneById() loop —
+         * 101 statements for a 50-port switch, because _updateBy SELECTs
+         * before every UPDATE — which is a hard wall once an operator raises
+         * DEVICE_POLL_FETCH_LIMIT and the fleet actually polls on its
+         * configured interval. Interfaces that exist in inventory but were
+         * NOT in this walk are still left exactly as they were: nothing here
+         * deletes or ages them out.
+         */
+        const upsertResult: InterfaceWalkUpsertResult =
+          await NetworkInterfaceService.upsertWalkedInterfaces({
+            projectId: data.projectId,
+            deviceId: deviceId,
+            walkedInterfaces: walkedInterfaces,
+            now: now,
           });
 
-        const existingByIndex: Map<number, NetworkInterface> = new Map();
-        for (const existing of existingInterfaces) {
-          if (existing.interfaceIndex !== undefined) {
-            existingByIndex.set(existing.interfaceIndex, existing);
-          }
-        }
-
-        const unmonitoredIndexes: Set<number> = new Set();
-
-        for (const walked of walkedInterfaces) {
-          const existing: NetworkInterface | undefined = existingByIndex.get(
-            walked.interfaceIndex,
-          );
-
-          if (existing && existing.isMonitored === false) {
-            unmonitoredIndexes.add(walked.interfaceIndex);
-          }
-
-          const interfaceData: Record<string, unknown> = {
-            name: (walked.name || "").substring(0, 100),
-            alias: walked.alias ? walked.alias.substring(0, 100) : null,
-            macAddress: walked.macAddress
-              ? walked.macAddress.substring(0, 100)
-              : null,
-            interfaceType: walked.interfaceType ?? null,
-            isOperationallyUp: walked.isOperationallyUp,
-            isAdministrativelyUp: walked.isAdministrativelyUp,
-            speedInMbps:
-              walked.speedInBitsPerSecond !== undefined
-                ? walked.speedInBitsPerSecond / 1000000
-                : null,
-            inRateMbps:
-              walked.inBitsPerSecond !== undefined
-                ? Math.round((walked.inBitsPerSecond / 1000000) * 1000) / 1000
-                : null,
-            outRateMbps:
-              walked.outBitsPerSecond !== undefined
-                ? Math.round((walked.outBitsPerSecond / 1000000) * 1000) / 1000
-                : null,
-            utilizationPercent: walked.utilizationPercent ?? null,
-            errorsPerSecond: walked.errorsPerSecond ?? null,
-            lastSeenAt: now,
-          };
-
-          if (existing && existing.id) {
-            await NetworkInterfaceService.updateOneById({
-              id: existing.id,
-              data: interfaceData as any,
-              props: {
-                isRoot: true,
-              },
-            });
-          } else {
-            const newInterface: NetworkInterface = new NetworkInterface();
-            newInterface.projectId = data.projectId;
-            newInterface.networkDeviceId = deviceId;
-            newInterface.interfaceIndex = walked.interfaceIndex;
-            newInterface.name = (walked.name || "").substring(0, 100);
-            if (walked.alias) {
-              newInterface.alias = walked.alias.substring(0, 100);
-            }
-            if (walked.macAddress) {
-              newInterface.macAddress = walked.macAddress.substring(0, 100);
-            }
-            if (walked.interfaceType !== undefined) {
-              newInterface.interfaceType = walked.interfaceType;
-            }
-            newInterface.isMonitored = true;
-            newInterface.isOperationallyUp = walked.isOperationallyUp;
-            newInterface.isAdministrativelyUp = walked.isAdministrativelyUp;
-            if (walked.speedInBitsPerSecond !== undefined) {
-              newInterface.speedInMbps = walked.speedInBitsPerSecond / 1000000;
-            }
-            newInterface.lastSeenAt = now;
-
-            await NetworkInterfaceService.create({
-              data: newInterface,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+        const unmonitoredIndexes: Set<number> = new Set(
+          upsertResult.unmonitoredInterfaceIndexes,
+        );
 
         /*
          * Prune the in-flight response to monitored interfaces only, so
@@ -406,6 +445,32 @@ export default class NetworkInventoryUtil {
             ipBindings: endpointResult.ipBindings,
             now: now,
           });
+        }
+
+        /*
+         * --- Device MAC learning (ARP) ---
+         * The ARP table also names the MACs of managed devices registered
+         * at the addresses it binds - the ping-only registers and handsets
+         * that the switches' forwarding tables can put on a port, but only
+         * once something has said which MAC is theirs. Stamped on the
+         * device, once, while its MAC column is empty. Its own try/catch:
+         * the endpoint inventory above is already written, and a failure
+         * here must not read as one there.
+         */
+        if (endpointResult.ipBindings.length > 0) {
+          try {
+            await NetworkDeviceMacLearningUtil.learnFromArpBindings({
+              projectId: data.projectId,
+              observingDeviceId: deviceId,
+              observingSiteId: ownedDevice.siteId,
+              ipBindings: endpointResult.ipBindings,
+            });
+          } catch (err) {
+            logger.error(
+              `Failed to learn device MAC addresses from the ARP table of network device ${deviceId.toString()}:`,
+            );
+            logger.error(err);
+          }
         }
       }
     } catch (err) {

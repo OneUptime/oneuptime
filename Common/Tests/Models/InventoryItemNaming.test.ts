@@ -127,6 +127,12 @@ describe("the old name is gone from the source tree", () => {
    *                                     schedule in Redis, because the
    *                                     dedup pass only removes repeatables
    *                                     matching the same name.
+   *
+   * The exact UI identifiers allowed below describe resolving the polymorphic
+   * primary entity attached to a telemetry row. They are display values, not
+   * the renamed Inventory database models or routes. Keeping an exact set
+   * means a future TelemetryEntityService (or a mixed line containing the old
+   * bare TelemetryEntity name) still fails this sweep.
    */
   interface AllowedReference {
     substring: string;
@@ -149,6 +155,24 @@ describe("the old name is gone from the source tree", () => {
     { substring: "Jobs/TelemetryEntity/" },
     { substring: '"TelemetryEntity:' },
   ];
+
+  const ALLOWED_DISPLAY_IDENTIFIERS: ReadonlySet<string> = new Set<string>([
+    "TelemetryEntityNameMap",
+    "TelemetryEntityNameResolver",
+    "TelemetryEntityNames",
+    "TelemetryEntityTypeConfig",
+    "UseTelemetryEntityNames",
+    "UseTelemetryEntityNamesFunction",
+    "UseTelemetryEntityNamesOptions",
+    "useTelemetryEntityNames",
+    "ResolvedTelemetryEntity",
+    "getTelemetryEntityDisplay",
+    "getTelemetryEntityTypeForChipKey",
+    "getTelemetryEntityTypeLabel",
+  ]);
+
+  const IDENTIFIER_PATTERN: RegExp = /[$A-Za-z_][$A-Za-z0-9_]*/g;
+  const IDENTIFIER_END_PATTERN: RegExp = /[$A-Za-z0-9_]$/;
 
   /*
    * The two files whose job is to name the old name: this sweep itself, and
@@ -191,6 +215,54 @@ describe("the old name is gone from the source tree", () => {
 
   type OffendingLinesFunction = (file: string) => Array<string>;
 
+  const escapeRegExp: (value: string) => string = (value: string): string => {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  };
+
+  const hasStaleTelemetryEntityReference: (
+    file: string,
+    line: string,
+  ) => boolean = (file: string, line: string): boolean => {
+    let lineWithoutAllowedReferences: string = line;
+
+    for (const allowed of ALLOWED_REFERENCES) {
+      if (allowed.onlyUnder && !file.includes(allowed.onlyUnder)) {
+        continue;
+      }
+
+      const needsIdentifierBoundary: boolean = IDENTIFIER_END_PATTERN.test(
+        allowed.substring,
+      );
+      const exactReferencePattern: RegExp = new RegExp(
+        `${escapeRegExp(allowed.substring)}${
+          needsIdentifierBoundary ? "(?![$A-Za-z0-9_])" : ""
+        }`,
+        "g",
+      );
+
+      lineWithoutAllowedReferences = lineWithoutAllowedReferences.replace(
+        exactReferencePattern,
+        "",
+      );
+    }
+
+    const identifiers: Array<string> = (
+      lineWithoutAllowedReferences.match(IDENTIFIER_PATTERN) || []
+    ).filter((identifier: string): boolean => {
+      return identifier.includes("TelemetryEntity");
+    });
+    const hasDisallowedIdentifier: boolean = identifiers.some(
+      (identifier: string): boolean => {
+        return !ALLOWED_DISPLAY_IDENTIFIERS.has(identifier);
+      },
+    );
+
+    return (
+      lineWithoutAllowedReferences.includes("telemetry-entity") ||
+      hasDisallowedIdentifier
+    );
+  };
+
   const getOffendingLines: OffendingLinesFunction = (
     file: string,
   ): Array<string> => {
@@ -198,22 +270,7 @@ describe("the old name is gone from the source tree", () => {
       .readFileSync(file, "utf8")
       .split("\n")
       .filter((line: string): boolean => {
-        if (
-          !line.includes("TelemetryEntity") &&
-          !line.includes("telemetry-entity")
-        ) {
-          return false;
-        }
-
-        return !ALLOWED_REFERENCES.some(
-          (allowed: AllowedReference): boolean => {
-            if (!line.includes(allowed.substring)) {
-              return false;
-            }
-
-            return !allowed.onlyUnder || file.includes(allowed.onlyUnder);
-          },
-        );
+        return hasStaleTelemetryEntityReference(file, line);
       })
       .map((line: string): string => {
         return line.trim();
@@ -225,6 +282,65 @@ describe("the old name is gone from the source tree", () => {
     expect(
       collectSourceFiles(path.join(REPO_ROOT, "Common", "Models")).length,
     ).toBeGreaterThan(50);
+  });
+
+  test("the display vocabulary does not hide a stale model identifier", () => {
+    const uiFile: string = path.join(REPO_ROOT, "Common", "UI", "Example.ts");
+
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const value: ResolvedTelemetryEntity = resolved;",
+      ),
+    ).toBe(false);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const value: TelemetryEntity = legacy;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const value: ResolvedTelemetryEntity = legacy as TelemetryEntity;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const value: TelemetryEntityV2 = legacy;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const value: V2TelemetryEntity = legacy;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        'import { ExtractedEntity } from "Common/Server/Utils/Telemetry/TelemetryEntity";',
+      ),
+    ).toBe(false);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        'import TelemetryEntityService from "Common/Server/Utils/Telemetry/TelemetryEntity";',
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        'import { value } from "Common/Server/Utils/Telemetry/TelemetryEntityV2";',
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        'const route = "/telemetry-entity";',
+      ),
+    ).toBe(true);
   });
 
   test.each(["Common", "App"])(

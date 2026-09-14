@@ -3,9 +3,15 @@ import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import CephClusterLabelRule from "../../Models/DatabaseModels/CephClusterLabelRule";
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterService from "./CephClusterService";
+import CephClusterFeedService from "./CephClusterFeedService";
+import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class CephClusterLabelRuleEngineServiceClass {
   /**
@@ -32,14 +38,21 @@ class CephClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             cephClusterLabels: { _id: true },
             cephClusterNamePattern: true,
             cephClusterDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "CephClusterLabelRule",
+        projectId: cephCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -61,6 +74,7 @@ class CephClusterLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesCephClusterMatchRule(
@@ -69,6 +83,11 @@ class CephClusterLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -124,6 +143,26 @@ class CephClusterLabelRuleEngineServiceClass {
         `CephClusterLabelRuleEngine attached ${newLabelIds.length} labels to Ceph cluster ${cephCluster.id}`,
         { projectId: cephCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await CephClusterFeedService.createCephClusterFeedItem({
+        cephClusterId: cephCluster.id,
+        projectId: cephCluster.projectId,
+        cephClusterFeedEventType: CephClusterFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CephClusterService.getCephClusterMarkdownLink(
+          cephCluster.projectId,
+          cephCluster.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Ceph cluster label rules: ${error}`, {
         projectId: cephCluster.projectId?.toString(),
@@ -133,6 +172,24 @@ class CephClusterLabelRuleEngineServiceClass {
   }
 
   private doesCephClusterMatchRule(
+    cephCluster: CephCluster,
+    rule: CephClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "cephClusterLabels",
+        "cephClusterNamePattern",
+        "cephClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: CephClusterLabelRule): boolean => {
+        return this.doesCephClusterMatchLegacyRule(cephCluster, legacyRule);
+      },
+    });
+  }
+
+  private doesCephClusterMatchLegacyRule(
     cephCluster: CephCluster,
     rule: CephClusterLabelRule,
   ): boolean {

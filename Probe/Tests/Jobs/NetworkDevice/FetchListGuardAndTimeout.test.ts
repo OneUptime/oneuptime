@@ -37,6 +37,7 @@ jest.mock("Common/Server/Utils/BasicCron", () => {
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import PingMonitor from "../../../Utils/Monitors/MonitorTypes/PingMonitor";
 import SnmpMonitor from "../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import InitJob, {
   resetDevicePollRunInProgress,
@@ -68,6 +69,17 @@ beforeEach(() => {
     .mockResolvedValue({ data: { devices: [] } } as never);
   jest.spyOn(logger, "error").mockImplementation(() => {
     // Keep test output clean.
+  });
+  /*
+   * Every poll now pings its device before anything else. Never let that
+   * reach the OS ping binary from a test: it would fork a real process
+   * against 10.0.0.5 and outlive the test.
+   */
+  jest.spyOn(PingMonitor, "checkReachability").mockResolvedValue({
+    isOnline: true,
+    avgRttMs: 1,
+    packetLossPercent: 0,
+    failureCause: "",
   });
 });
 
@@ -113,6 +125,22 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
      * stacked a new one every minute.
      */
     expect((arg["options"] as JSONObject)["timeout"]).toBe(45000);
+  });
+
+  /*
+   * The capability gate. The server hands credential-less (ping-only)
+   * devices only to probes that declare they can ping them; a probe that
+   * stops sending this silently loses every ping-only device in its fleet
+   * (they stay Pending server-side) with no error anywhere.
+   */
+  test("the device list fetch declares the networkDevicePing capability", async () => {
+    const runFunction: PromiseVoidFunction = capturedRunFunction();
+
+    await runFunction();
+
+    const arg: JSONObject = fetchSpy.mock.calls[0]![0] as unknown as JSONObject;
+    const body: JSONObject = arg["data"] as JSONObject;
+    expect(body["probeCapabilities"]).toEqual(["networkDevicePing"]);
   });
 
   test("a tick that arrives while the list fetch is still in flight is skipped", async () => {
@@ -188,6 +216,49 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
     expect(querySpy).toHaveBeenCalled();
 
     // Never settle by design; module state dies with this test file.
+    void firstTick;
+    void secondTick;
+  });
+
+  /*
+   * Same liveness property for a ping-only device: the ping runs inside the
+   * poll, not the fetch, so a slow ping must not hold the guard either.
+   */
+  test("an in-flight ping does not block the next tick's fetch", async () => {
+    const runFunction: PromiseVoidFunction = capturedRunFunction();
+
+    fetchSpy.mockResolvedValue({
+      data: {
+        devices: [
+          {
+            networkDeviceId: "device-1",
+            projectId: "project-1",
+            hostname: "10.0.0.5",
+            pollMode: "ping",
+            collectEndpoints: false,
+          },
+        ],
+      },
+    } as never);
+
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const pingSpy = jest
+      .spyOn(PingMonitor, "checkReachability")
+      .mockReturnValue(
+        new Promise<never>(() => {
+          // Never settles — a ping mid-flight.
+        }),
+      );
+
+    const firstTick: Promise<void> = runFunction();
+    await flushMicrotasks();
+
+    const secondTick: Promise<void> = runFunction();
+    await flushMicrotasks();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(pingSpy).toHaveBeenCalled();
+
     void firstTick;
     void secondTick;
   });

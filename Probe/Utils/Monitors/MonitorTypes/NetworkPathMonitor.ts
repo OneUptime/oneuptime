@@ -429,27 +429,33 @@ export default class NetworkPathMonitor {
       ? parseFloat(rttMatch[1] || "0")
       : undefined;
 
-    // Extract IP address or hostname at the end
-    const addressMatch: RegExpMatchArray | null =
-      trimmedLine.match(/\s+([^\s]+)\s*$/);
-    const address: string | undefined = addressMatch
-      ? addressMatch[1]
-      : undefined;
+    /*
+     * Extract the destination of the hop. When tracert resolved a name it
+     * prints "host.example.com [1.2.3.4]" - TWO whitespace-separated tokens,
+     * so the trailing token on its own is just "[1.2.3.4]". Match the pair
+     * first; falling through to the last token would store the brackets as
+     * the address and lose the hostname entirely.
+     */
+    const hostAndAddressMatch: RegExpMatchArray | null = trimmedLine.match(
+      /\s([^\s[\]]+)\s+\[([^\]\s]+)\]\s*$/,
+    );
 
-    if (!address) {
-      return undefined;
+    let hostName: string | undefined;
+    let finalAddress: string | undefined;
+
+    if (hostAndAddressMatch) {
+      hostName = hostAndAddressMatch[1];
+      finalAddress = hostAndAddressMatch[2];
+    } else {
+      // tracert -d, or a hop that did not resolve: a bare address.
+      const addressMatch: RegExpMatchArray | null =
+        trimmedLine.match(/\s+([^\s]+)\s*$/);
+
+      finalAddress = addressMatch ? addressMatch[1] : undefined;
     }
 
-    // Check if it's a hostname with IP in brackets
-    const hostIPMatch: RegExpMatchArray | null = address.match(
-      /^([^[]+)\s*\[([^\]]+)\]$/,
-    );
-    let hostName: string | undefined;
-    let finalAddress: string | undefined = address;
-
-    if (hostIPMatch) {
-      hostName = hostIPMatch[1];
-      finalAddress = hostIPMatch[2];
+    if (!finalAddress) {
+      return undefined;
     }
 
     return {

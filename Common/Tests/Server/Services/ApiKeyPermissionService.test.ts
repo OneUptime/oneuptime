@@ -5,15 +5,16 @@
  * lookup, so it now consults a per-process 60s TTL cache before running the
  * findBy (with its labels join). The contract pinned here is load-bearing in
  * three ways:
- * - the underlying query is unchanged: keyed by exactly the given apiKeyId,
- *   as root, selecting permission / labels._id / isBlockPermission — and the
- *   row -> DTO mapping preserves the old edge cases (undefined labels -> [],
+ * - the underlying query is tenant-bound by both apiKeyId and projectId, as
+ *   root, selecting permission / labels._id / isBlockPermission — and the row
+ *   -> DTO mapping preserves the old edge cases (undefined labels -> [],
  *   isBlockPermission passed through unchanged, never defaulted)
  * - hits and misses both return freshly built objects, so a caller mutating
  *   its result cannot poison the permissions of every later request
- * - the service's own lifecycle hooks (create/update/delete) clear the cache,
- *   so a permission edit takes effect immediately in the process that made it;
- *   the TTL only bounds staleness for OTHER processes.
+ * - the service's own lifecycle hooks clear before a write and again after a
+ *   successful commit; a generation check prevents a pre-commit read from
+ *   repopulating stale authority after that second clear. The TTL only bounds
+ *   staleness for OTHER processes.
  *
  * ApiKeyPermissionService.findBy is spied on, so no database is touched.
  */
@@ -21,6 +22,7 @@
 import ApiKeyPermissionService, {
   ApiKeyPermissionRow,
 } from "../../../Server/Services/ApiKeyPermissionService";
+import ApiKeyService from "../../../Server/Services/ApiKeyService";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Label from "../../../Models/DatabaseModels/Label";
 import ObjectID from "../../../Types/ObjectID";
@@ -59,6 +61,21 @@ type HookCallable = {
   onBeforeCreate: (createBy: unknown) => Promise<unknown>;
   onBeforeUpdate: (updateBy: unknown) => Promise<unknown>;
   onBeforeDelete: (deleteBy: unknown) => Promise<unknown>;
+  onCreateSuccess: (
+    onCreate: unknown,
+    createdItem: ApiKeyPermission,
+  ) => Promise<ApiKeyPermission>;
+  onUpdateSuccess: (
+    onUpdate: unknown,
+    updatedItemIds: Array<ObjectID>,
+  ) => Promise<unknown>;
+  onDeleteSuccess: (
+    onDelete: unknown,
+    deletedItemIds: Array<ObjectID>,
+  ) => Promise<unknown>;
+  onCreateError: (error: unknown) => Promise<unknown>;
+  onUpdateError: (error: unknown) => Promise<unknown>;
+  onDeleteError: (error: unknown) => Promise<unknown>;
 };
 
 function asHooks(service: unknown): HookCallable {
@@ -91,6 +108,7 @@ function spyOnFindBy(): jest.SpyInstance {
 
 describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
   const apiKeyId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
 
   beforeEach(() => {
     /*
@@ -104,7 +122,7 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     jest.restoreAllMocks();
   });
 
-  test("runs the exact legacy query and maps rows onto DTOs", async () => {
+  test("runs the tenant-bound query and maps rows onto DTOs", async () => {
     const labelId: ObjectID = ObjectID.generate();
     const findBy: jest.SpyInstance = spyOnFindBy().mockResolvedValue([
       makeModelRow({
@@ -119,7 +137,10 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     ] as never);
 
     const rows: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
 
     expect(findBy).toHaveBeenCalledTimes(1);
     const arg: Record<string, any> = findBy.mock.calls[0]![0] as Record<
@@ -127,6 +148,7 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
       any
     >;
     expect(arg["query"]["apiKeyId"].toString()).toBe(apiKeyId.toString());
+    expect(arg["query"]["projectId"].toString()).toBe(projectId.toString());
     expect(arg["props"]["isRoot"]).toBe(true);
     expect(arg["select"]).toEqual({
       permission: true,
@@ -161,9 +183,15 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     ] as never);
 
     const first: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
     const second: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
 
     expect(findBy).toHaveBeenCalledTimes(1);
     expect(second).toHaveLength(1);
@@ -183,14 +211,20 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     ] as never);
 
     const first: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
 
     // Mutate everything a caller could reach on the first result.
     first[0]!.labelIds.pop();
     first.pop();
 
     const second: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
 
     expect(second).toHaveLength(1);
     expect(
@@ -221,17 +255,73 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     }) as never);
 
     const first: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
     const other: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(otherApiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        otherApiKeyId,
+        projectId,
+      );
 
     expect(findBy).toHaveBeenCalledTimes(2);
     expect(first[0]!.permission).toBe(Permission.ProjectMember);
     expect(other[0]!.permission).toBe(Permission.ReadProjectMonitor);
 
     // Both keys are now cached: repeat calls issue no further queries.
-    await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
-    await ApiKeyPermissionService.findPermissionsByApiKeyId(otherApiKeyId);
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      projectId,
+    );
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      otherApiKeyId,
+      projectId,
+    );
+    expect(findBy).toHaveBeenCalledTimes(2);
+  });
+
+  test("never reuses one project's permission rows in another project", async () => {
+    const otherProjectId: ObjectID = ObjectID.generate();
+    const findBy: jest.SpyInstance = spyOnFindBy().mockImplementation(
+      (options: Record<string, any>): Promise<Array<ApiKeyPermission>> => {
+        const queriedProjectId: string =
+          options["query"]["projectId"].toString();
+        return Promise.resolve([
+          makeModelRow({
+            permission:
+              queriedProjectId === projectId.toString()
+                ? Permission.ProjectMember
+                : Permission.ProjectOwner,
+            isBlockPermission: false,
+          }),
+        ]);
+      },
+    );
+
+    const currentProjectRows: Array<ApiKeyPermissionRow> =
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+    const otherProjectRows: Array<ApiKeyPermissionRow> =
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        otherProjectId,
+      );
+
+    expect(findBy).toHaveBeenCalledTimes(2);
+    expect(currentProjectRows[0]!.permission).toBe(Permission.ProjectMember);
+    expect(otherProjectRows[0]!.permission).toBe(Permission.ProjectOwner);
+
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      projectId,
+    );
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      otherProjectId,
+    );
     expect(findBy).toHaveBeenCalledTimes(2);
   });
 
@@ -241,10 +331,10 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
     );
 
     await expect(
-      ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId),
+      ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId, projectId),
     ).resolves.toEqual([]);
     await expect(
-      ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId),
+      ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId, projectId),
     ).resolves.toEqual([]);
 
     expect(findBy).toHaveBeenCalledTimes(1);
@@ -261,17 +351,26 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
       [] as never,
     );
 
-    await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      projectId,
+    );
     expect(findBy).toHaveBeenCalledTimes(1);
 
     // Just inside the TTL: still served from cache.
     nowMs = base + TTL_MS - 1;
-    await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      projectId,
+    );
     expect(findBy).toHaveBeenCalledTimes(1);
 
     // Past the TTL: the entry has expired and the key is re-queried.
     nowMs = base + TTL_MS + 1;
-    await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+    await ApiKeyPermissionService.findPermissionsByApiKeyId(
+      apiKeyId,
+      projectId,
+    );
     expect(findBy).toHaveBeenCalledTimes(2);
   });
 
@@ -283,7 +382,10 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         const findBy: jest.SpyInstance = spyOnFindBy().mockResolvedValue(
           [] as never,
         );
-        await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+        await ApiKeyPermissionService.findPermissionsByApiKeyId(
+          apiKeyId,
+          projectId,
+        );
         expect(findBy).toHaveBeenCalledTimes(1);
         return findBy;
       };
@@ -293,7 +395,10 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
 
       ApiKeyPermissionService.clearCache();
 
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
       expect(findBy).toHaveBeenCalledTimes(2);
     });
 
@@ -304,10 +409,13 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
       getJestSpyOn(ApiKeyPermissionService, "findOneBy").mockResolvedValue(
         null,
       );
+      getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
+        _id: apiKeyId.toString(),
+      } as never);
 
       const data: ApiKeyPermission = new ApiKeyPermission();
       data.apiKeyId = apiKeyId;
-      data.projectId = ObjectID.generate();
+      data.projectId = projectId;
       data.permission = Permission.ProjectMember;
 
       await asHooks(ApiKeyPermissionService).onBeforeCreate({
@@ -315,7 +423,10 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         props: { isRoot: true },
       });
 
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
       expect(findBy).toHaveBeenCalledTimes(2);
     });
 
@@ -328,8 +439,16 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         props: { isRoot: true },
       });
 
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
-      expect(findBy).toHaveBeenCalledTimes(2);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      /*
+       * One query is the update hook's security snapshot of the affected
+       * permission rows; the third call proves the cached auth result was
+       * evicted and had to be loaded again afterwards.
+       */
+      expect(findBy).toHaveBeenCalledTimes(3);
     });
 
     test("deleting a permission clears the cache", async () => {
@@ -340,7 +459,136 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         props: { isRoot: true },
       });
 
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      expect(findBy).toHaveBeenCalledTimes(2);
+
+      /*
+       * If the delete rolls back, no success hook runs. The unchanged rows
+       * fetched after the pre-clear remain safe to cache and serve.
+       */
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      expect(findBy).toHaveBeenCalledTimes(2);
+    });
+
+    test("a successful create clears entries populated while the write was in flight", async () => {
+      const findBy: jest.SpyInstance = await primeCache();
+
+      await asHooks(ApiKeyPermissionService).onCreateSuccess(
+        { createBy: {}, carryForward: null },
+        new ApiKeyPermission(),
+      );
+
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      expect(findBy).toHaveBeenCalledTimes(2);
+    });
+
+    test("a successful update clears entries populated while the write was in flight", async () => {
+      const findBy: jest.SpyInstance = await primeCache();
+
+      await asHooks(ApiKeyPermissionService).onUpdateSuccess(
+        { updateBy: {}, carryForward: null },
+        [],
+      );
+
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      expect(findBy).toHaveBeenCalledTimes(2);
+    });
+
+    test("a successful delete clears entries populated while the write was in flight", async () => {
+      const findBy: jest.SpyInstance = await primeCache();
+
+      await asHooks(ApiKeyPermissionService).onDeleteSuccess(
+        { deleteBy: {}, carryForward: null },
+        [],
+      );
+
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
+      expect(findBy).toHaveBeenCalledTimes(2);
+    });
+
+    test.each(["onCreateError", "onUpdateError", "onDeleteError"] as const)(
+      "%s also clears after a write-path failure that may follow a partial commit",
+      async (hookName: "onCreateError" | "onUpdateError" | "onDeleteError") => {
+        const findBy: jest.SpyInstance = await primeCache();
+        const error: Error = new Error("write failed");
+
+        await expect(
+          asHooks(ApiKeyPermissionService)[hookName](error),
+        ).resolves.toBe(error);
+
+        await ApiKeyPermissionService.findPermissionsByApiKeyId(
+          apiKeyId,
+          projectId,
+        );
+        expect(findBy).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    test("an in-flight pre-commit read cannot repopulate stale authority after success", async () => {
+      let releaseStaleRead: () => void = () => {};
+      const staleReadGate: Promise<void> = new Promise<void>(
+        (resolve: (value: void | PromiseLike<void>) => void) => {
+          releaseStaleRead = resolve;
+        },
+      );
+      const staleRow: ApiKeyPermission = makeModelRow({
+        permission: Permission.ProjectOwner,
+      });
+      const committedRow: ApiKeyPermission = makeModelRow({
+        permission: Permission.ProjectMember,
+      });
+      const findBy: jest.SpyInstance = spyOnFindBy()
+        .mockImplementationOnce(async (): Promise<Array<ApiKeyPermission>> => {
+          await staleReadGate;
+          return [staleRow];
+        })
+        .mockResolvedValue([committedRow] as never);
+
+      await asHooks(ApiKeyPermissionService).onBeforeDelete({
+        query: {},
+        props: { isRoot: true },
+      });
+
+      const overlappingAuthRead: Promise<Array<ApiKeyPermissionRow>> =
+        ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId, projectId);
+      expect(findBy).toHaveBeenCalledTimes(1);
+
+      await asHooks(ApiKeyPermissionService).onDeleteSuccess(
+        { deleteBy: {}, carryForward: null },
+        [],
+      );
+      releaseStaleRead();
+
+      const overlappingRows: Array<ApiKeyPermissionRow> =
+        await overlappingAuthRead;
+      expect(overlappingRows[0]!.permission).toBe(Permission.ProjectOwner);
+
+      const committedRows: Array<ApiKeyPermissionRow> =
+        await ApiKeyPermissionService.findPermissionsByApiKeyId(
+          apiKeyId,
+          projectId,
+        );
+      expect(committedRows[0]!.permission).toBe(Permission.ProjectMember);
+
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
       expect(findBy).toHaveBeenCalledTimes(2);
     });
   });

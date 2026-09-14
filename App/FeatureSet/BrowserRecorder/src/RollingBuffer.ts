@@ -24,6 +24,16 @@ import {
  * The byte ceiling matters more than the duration: a heavily dynamic page
  * can blow past 2 MB in well under 60 s, and a recorder that OOMs the host
  * page is strictly worse than no recorder.
+ *
+ * When only ONE segment is left and it alone is over the cap there is no
+ * segment-shaped choice, and the naive answer - drop from the front - is the
+ * worst possible one: the front of a segment is its Meta and FullSnapshot,
+ * so the first things evicted were the only two events that make the rest
+ * replayable. The header is pinned instead and the OLDEST INCREMENTAL events
+ * after it go first. What survives still opens on a snapshot; some early
+ * mutations are missing, which the recorder discloses as a buffer-overflow
+ * fidelity notice, and needsFreshCheckout() asks it for a new snapshot so
+ * the next segment can be evicted whole again.
  */
 
 export interface BufferedEvent {
@@ -74,6 +84,14 @@ export default class RollingBuffer {
   private droppedEvents: number = 0;
   private overflowed: boolean = false;
 
+  /*
+   * Set when the sole segment lost incremental events to the byte cap. The
+   * segment can no longer be trimmed without losing more of its history, so
+   * the recorder should take a fresh checkout: that opens a new segment,
+   * and the damaged one becomes evictable as a whole.
+   */
+  private freshCheckoutNeeded: boolean = false;
+
   private readonly maxAgeMs: number;
   private readonly maxBytes: number;
 
@@ -96,6 +114,9 @@ export default class RollingBuffer {
      */
     if (!current || (event.isCheckout && current.sawContentEvent)) {
       this.segments.push({ events: [], bytes: 0, sawContentEvent: false });
+
+      /* The fresh checkout that needsFreshCheckout() asked for has arrived. */
+      this.freshCheckoutNeeded = false;
     }
 
     const segment: BufferSegment | undefined =
@@ -123,10 +144,11 @@ export default class RollingBuffer {
    * Drop whole segments from the front while either cap is exceeded, but
    * never the newest segment - that one is the only replayable material we
    * have. If the newest segment alone is over the byte cap there is no
-   * segment-shaped choice left, so events are dropped from its front and the
-   * buffer reports an overflow, which the recorder turns into a
-   * buffer-overflow fidelity notice on the chunk. The viewer is told the
-   * recording is incomplete rather than silently shown a partial DOM.
+   * segment-shaped choice left, so its oldest INCREMENTAL events are dropped
+   * - never its Meta and FullSnapshot, which are what make the remainder
+   * playable - and the buffer reports an overflow, which the recorder turns
+   * into a buffer-overflow fidelity notice on the chunk. The viewer is told
+   * the recording is incomplete rather than silently shown a partial DOM.
    */
   private evict(nowMs: number): void {
     while (
@@ -141,6 +163,12 @@ export default class RollingBuffer {
 
       this.totalBytes -= dropped.bytes;
       this.droppedEvents += dropped.events.length;
+
+      /*
+       * A segment that had lost events to the cap is gone whole; whatever
+       * is left opens on its own intact checkout, so no fresh one is owed.
+       */
+      this.freshCheckoutNeeded = false;
     }
 
     if (this.totalBytes <= this.maxBytes) {
@@ -153,18 +181,60 @@ export default class RollingBuffer {
       return;
     }
 
-    while (only.events.length > 1 && this.totalBytes > this.maxBytes) {
-      const dropped: BufferedEvent | undefined = only.events.shift();
+    /*
+     * The pinned header: every leading Meta / FullSnapshot event. Eviction
+     * starts at the first event after it and always leaves at least one
+     * event after it too, so the segment never collapses to a bare snapshot
+     * with nothing to play.
+     */
+    const headerLength: number = RollingBuffer.checkoutHeaderLength(only);
 
-      if (!dropped) {
+    while (
+      only.events.length > headerLength + 1 &&
+      this.totalBytes > this.maxBytes
+    ) {
+      const dropped: Array<BufferedEvent> = only.events.splice(headerLength, 1);
+
+      const event: BufferedEvent | undefined = dropped[0];
+
+      if (!event) {
         break;
       }
 
-      only.bytes -= dropped.bytes;
-      this.totalBytes -= dropped.bytes;
+      only.bytes -= event.bytes;
+      this.totalBytes -= event.bytes;
       this.droppedEvents++;
       this.overflowed = true;
+      this.freshCheckoutNeeded = true;
     }
+
+    /*
+     * Still over the cap with nothing evictable left: the snapshot itself
+     * is bigger than the buffer. Nothing can be trimmed, so the only way
+     * back under the cap is a new, smaller checkout.
+     */
+    if (this.totalBytes > this.maxBytes) {
+      this.overflowed = true;
+      this.freshCheckoutNeeded = true;
+    }
+  }
+
+  /* How many leading events of a segment are its Meta / FullSnapshot pair. */
+  private static checkoutHeaderLength(segment: BufferSegment): number {
+    let length: number = 0;
+
+    for (const event of segment.events) {
+      if (
+        event.type !== EVENT_TYPE_META &&
+        event.type !== EVENT_TYPE_FULL_SNAPSHOT
+      ) {
+        break;
+      }
+
+      length++;
+    }
+
+    return length;
   }
 
   private isOldestSegmentExpired(nowMs: number): boolean {
@@ -207,6 +277,7 @@ export default class RollingBuffer {
 
     this.segments = [];
     this.totalBytes = 0;
+    this.freshCheckoutNeeded = false;
 
     return events;
   }
@@ -219,6 +290,20 @@ export default class RollingBuffer {
   public clear(): void {
     this.segments = [];
     this.totalBytes = 0;
+    this.freshCheckoutNeeded = false;
+  }
+
+  /*
+   * Should the recorder take a fresh checkout right now?
+   *
+   * True once the sole segment has lost incremental events to the byte cap
+   * (or its snapshot alone exceeds it). A new checkout opens a new segment;
+   * the damaged one then becomes the oldest and is evicted whole on the next
+   * push, which is the only way the buffer gets back to holding an intact
+   * pre-roll. Cleared by the checkout itself, by drain() and by clear().
+   */
+  public needsFreshCheckout(): boolean {
+    return this.freshCheckoutNeeded;
   }
 
   public getByteSize(): number {

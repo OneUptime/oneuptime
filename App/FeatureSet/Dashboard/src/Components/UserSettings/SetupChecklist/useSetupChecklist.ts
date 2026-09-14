@@ -1,4 +1,5 @@
 import {
+  CalendarFeedProbe,
   CustomFieldProbe,
   DeliverableSettingsProbe,
   IncomingCallProbe,
@@ -7,6 +8,9 @@ import {
   WorkspaceProbe,
   buildSetupChecklist,
 } from "./ChecklistModel";
+import CalendarFeedAPI from "../../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
+import { FeedStatus } from "../../OnCallPolicy/CalendarFeed/CalendarFeedTypes";
+import { PERSONAL_FEED_CURRENT_PATH } from "../../OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 import {
   ReadinessMethodWire,
   ReadinessSummaryWire,
@@ -134,6 +138,34 @@ const UNKNOWN_CUSTOM_FIELDS: CustomFieldProbe = {
   fieldCount: 0,
   filledFieldCount: 0,
 };
+
+const UNKNOWN_CALENDAR_FEED: CalendarFeedProbe = {
+  isKnown: false,
+  hasEnabledLink: false,
+};
+
+type LoadCalendarFeedFunction = () => Promise<CalendarFeedProbe>;
+
+/*
+ * The personal calendar link for the current project. A 404 is an older API
+ * without the feature and reads as unknown, so the row is omitted rather than
+ * rendered as a task the reader cannot complete.
+ */
+const loadCalendarFeedProbe: LoadCalendarFeedFunction =
+  async (): Promise<CalendarFeedProbe> => {
+    const status: FeedStatus | null = await CalendarFeedAPI.getFeedStatus(
+      PERSONAL_FEED_CURRENT_PATH,
+    );
+
+    if (!status) {
+      return UNKNOWN_CALENDAR_FEED;
+    }
+
+    return {
+      isKnown: true,
+      hasEnabledLink: status.exists && status.isEnabled,
+    };
+  };
 
 interface NotificationSettingProbes {
   onCallShiftAlerts: OnCallShiftAlertProbe;
@@ -619,12 +651,14 @@ const useSetupChecklist: (
         slack,
         microsoftTeams,
         customFields,
+        calendarFeed,
       ]: [
         NotificationSettingProbes,
         IncomingCallProbe,
         WorkspaceProbe,
         WorkspaceProbe,
         CustomFieldProbe,
+        CalendarFeedProbe,
       ] = await Promise.all([
         loadNotificationSettingProbes({
           projectId: projectId,
@@ -666,6 +700,9 @@ const useSetupChecklist: (
         }).catch((): CustomFieldProbe => {
           return UNKNOWN_CUSTOM_FIELDS;
         }),
+        loadCalendarFeedProbe().catch((): CalendarFeedProbe => {
+          return UNKNOWN_CALENDAR_FEED;
+        }),
       ]);
 
       setChecklist(
@@ -679,6 +716,7 @@ const useSetupChecklist: (
           slack: slack,
           microsoftTeams: microsoftTeams,
           customFields: customFields,
+          calendarFeed: calendarFeed,
         }),
       );
 

@@ -88,10 +88,21 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
 
     const currentWord: string = extractCurrentWord(props.value);
 
-    const hasAtPrefix: boolean = currentWord.startsWith("@");
-    const normalizedWord: string = hasAtPrefix
+    /*
+     * A leading `-` negates the whole term. It is stripped before the `@`
+     * check so `-@http.method:GET` still reads as an attribute for the
+     * suggestion dropdown, and remembered so Enter can decline to build a
+     * chip out of it — a chip's key would be the literal "-http.method".
+     */
+    const isNegatedWord: boolean = currentWord.startsWith("-");
+    const unnegatedWord: string = isNegatedWord
       ? currentWord.substring(1)
       : currentWord;
+
+    const hasAtPrefix: boolean = unnegatedWord.startsWith("@");
+    const normalizedWord: string = hasAtPrefix
+      ? unnegatedWord.substring(1)
+      : unnegatedWord;
 
     const colonIndex: number = normalizedWord.indexOf(":");
     const isValueMode: boolean = colonIndex > 0;
@@ -183,6 +194,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
 
             if (
               isValueMode &&
+              !isNegatedWord &&
               partialValue.length > 0 &&
               props.onFieldValueSelect
             ) {
@@ -272,6 +284,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
           selectedSuggestionIndex,
           filteredSuggestions,
           isValueMode,
+          isNegatedWord,
           fieldPrefix,
           partialValue,
           props,

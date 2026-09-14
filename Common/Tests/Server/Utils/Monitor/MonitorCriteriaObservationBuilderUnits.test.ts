@@ -16,6 +16,8 @@ import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
+import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -316,7 +318,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 0.06 sec (min 0.06 sec, max 0.06 sec) across 3 data points.",
+      "Metric Value (a) recorded latest 60 ms (min 60 ms, max 60 ms) across 3 data points.",
     );
   });
 
@@ -337,7 +339,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 60.00 ms (min 40.00 ms, max 60.00 ms) across 2 data points.",
+      "Metric Value (a) recorded latest 60 ms (min 40 ms, max 60 ms) across 2 data points.",
     );
   });
 
@@ -362,9 +364,9 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 2.50 sec across 1 data point.",
+      "Metric Value (a) recorded latest 2.5 sec across 1 data point.",
     );
-    expect(observation).toContain("2.50 sec");
+    expect(observation).toContain("2.5 sec");
   });
 
   /*
@@ -387,9 +389,9 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 2.50 GB across 1 data point.",
+      "Metric Value (a) recorded latest 2.5 GB across 1 data point.",
     );
-    expect(observation).toContain("2.50 GB");
+    expect(observation).toContain("2.5 GB");
   });
 
   /*
@@ -411,13 +413,30 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
     const observation: string | null =
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
+    /*
+     * The user mislabelled a millisecond metric as megabytes. The
+     * conversion still no-ops — ms and MB are different families — so the
+     * SAMPLE is untouched at 5000, and the renderer then takes the label
+     * at its word and reads 5000 MB out as "5 GB". Every string this
+     * sentence can produce is wrong, because the configuration is; what
+     * this test pins is that the mislabelling is passed through rather
+     * than silently repaired.
+     */
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 5000.00 MB across 1 data point.",
+      "Metric Value (a) recorded latest 5 GB across 1 data point.",
     );
-    // Unconverted value passed through.
-    expect(observation).toContain("5000.00");
-    // But labelled with the (incompatible) threshold unit.
-    expect(observation).toContain("MB");
+    expect(observation).toContain("5 GB");
+    /*
+     * Still reported in the threshold unit's FAMILY — the label the user
+     * chose won, which is the behaviour this test guards. It reads "GB"
+     * rather than "MB" only because the ladder rescales within that family;
+     * the alternative would be to drop the user's unit when it looks
+     * incompatible, which would hide the misconfiguration entirely.
+     */
+    expect(observation).not.toContain("ms");
+    expect(
+      MonitorCriteriaObservationBuilder.getMetricValueDisplayUnit(inputs),
+    ).toBe("MB");
   });
 
   /*
@@ -484,7 +503,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 60.00 ms (min 40.00 ms, max 60.00 ms) across 2 data points.",
+      "Metric Value (a) recorded latest 60 ms (min 40 ms, max 60 ms) across 2 data points.",
     );
   });
 
@@ -530,7 +549,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (b) recorded latest 3.00 sec (min 1.00 sec, max 3.00 sec) across 3 data points.",
+      "Metric Value (b) recorded latest 3 sec (min 1 sec, max 3 sec) across 3 data points.",
     );
     // The a-series (ms, 40/60) must not leak in.
     expect(observation).not.toContain("(a)");
@@ -560,7 +579,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 6.00 % across 1 data point.",
+      "Metric Value (a) recorded latest 6.00% across 1 data point.",
     );
 
     const unit: string | undefined =
@@ -628,7 +647,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (c) recorded latest 2.50 sec (min 1.50 sec, max 2.50 sec) across 2 data points.",
+      "Metric Value (c) recorded latest 2.5 sec (min 1.5 sec, max 2.5 sec) across 2 data points.",
     );
     // The formula alias, not the base query, is summarized.
     expect(observation).toContain("(c)");
@@ -657,9 +676,9 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 1.50 gbit across 1 data point.",
+      "Metric Value (a) recorded latest 1.5 Gbit across 1 data point.",
     );
-    expect(observation).toContain("1.50 gbit");
+    expect(observation).toContain("1.5 Gbit");
   });
 
   /*
@@ -684,10 +703,10 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — metric
       MonitorCriteriaObservationBuilder.describeFilterObservation(inputs);
 
     expect(observation).toBe(
-      "Metric Value (a) recorded latest 5.00 sec across 1 data point.",
+      "Metric Value (a) recorded latest 5 sec across 1 data point.",
     );
     // Unconverted value, but labelled with the threshold unit.
-    expect(observation).toContain("5.00 sec");
+    expect(observation).toContain("5 sec");
   });
 });
 
@@ -817,5 +836,103 @@ describe("MonitorCriteriaObservationBuilder.getMetricValueDisplayUnit", () => {
 
     expect(call).not.toThrow();
     expect(unit).toBeUndefined();
+  });
+});
+
+/*
+ * Network Device observations under ping-first polling. "Is Online" is the
+ * device's reachability (ping OR walk, the top-level isOnline the walk
+ * pipeline stamps); "Walk Is Succeeding" is the walk itself, and a poll that
+ * ran no walk is a distinct, non-failure state.
+ */
+describe("MonitorCriteriaObservationBuilder.describeFilterObservation — network device polls", () => {
+  function buildProbeInputs(input: {
+    checkOn: CheckOn;
+    isOnline?: boolean | undefined;
+    failureCause?: string | undefined;
+    snmpResponse?: SnmpMonitorResponse | undefined;
+  }): {
+    monitor: Monitor;
+    criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
+    dataToProcess: ProbeMonitorResponse;
+  } {
+    return {
+      monitor: new Monitor(),
+      monitorStep: new MonitorStep(),
+      criteriaFilter: {
+        checkOn: input.checkOn,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+      dataToProcess: {
+        projectId: ObjectID.generate(),
+        monitorId: ObjectID.generate(),
+        monitorStepId: ObjectID.generate(),
+        probeId: ObjectID.generate(),
+        failureCause: input.failureCause ?? "",
+        isOnline: input.isOnline,
+        snmpResponse: input.snmpResponse,
+        monitoredAt: new Date(),
+      },
+    };
+  }
+
+  test("Is Online describes device reachability from the top-level verdict, even with no walk", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({ checkOn: CheckOn.SnmpIsOnline, isOnline: true }),
+      ),
+    ).toBe("Device is reachable (answered ping or SNMP).");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpIsOnline,
+          isOnline: false,
+          failureCause: "Request timed out",
+        }),
+      ),
+    ).toBe("Device is unreachable by ping and SNMP: Request timed out");
+  });
+
+  test("Walk Is Succeeding names the no-walk state rather than calling it a failure", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+        }),
+      ),
+    ).toBe("No SNMP walk ran on this poll (the device is only pinged).");
+  });
+
+  test("Walk Is Succeeding reports the walk's own verdict and failure cause", () => {
+    const failedWalk: SnmpMonitorResponse = {
+      isOnline: false,
+      responseTimeInMs: 0,
+      failureCause: "SNMP timed out after 3 attempts",
+      oidResponses: [],
+    };
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+          snmpResponse: failedWalk,
+        }),
+      ),
+    ).toBe("SNMP walk failed: SNMP timed out after 3 attempts");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+          snmpResponse: { ...failedWalk, isOnline: true, failureCause: "" },
+        }),
+      ),
+    ).toBe("SNMP walk succeeded.");
   });
 });

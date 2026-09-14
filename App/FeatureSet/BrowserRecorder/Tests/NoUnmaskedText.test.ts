@@ -3,7 +3,9 @@ import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTr
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import { record } from "rrweb";
 import { RecorderInitOptions } from "../src/Config";
+import Masking from "../src/Masking";
 import Recorder from "../src/Recorder";
 
 /*
@@ -19,11 +21,16 @@ import Recorder from "../src/Recorder";
  * Known and documented limits of this guarantee, stated here so nobody reads
  * it as broader than it is:
  *
- *  - It covers text nodes and input values, which is what MaskAllText means.
- *  - It does NOT cover arbitrary attribute values (data-email="...", a title
- *    attribute, an href). rrweb serialises attributes verbatim, and walking
- *    a full snapshot to rewrite them would cost more than it protects. The
- *    supported control for those is blockSelectors / .oneuptime-block.
+ *  - It covers text nodes, input values (hidden inputs included, in every
+ *    mode) and, under MaskAllText, the text-like attributes: alt, title,
+ *    aria-label, placeholder, option values, free-text data-*, and mailto: /
+ *    tel: / navigational hrefs on links. Attribute MUTATIONS go through the
+ *    recorder's sanitiser today; a full snapshot's attributes go through
+ *    Masking.sanitiseEventData, exercised below against real rrweb output.
+ *  - It does NOT cover src / srcset / poster (the player needs them to draw
+ *    the page; a signed query string on one is a reference, not text), nor
+ *    short data-* tokens such as data-state="open" that CSS selectors key
+ *    on. The supported control for those is blockSelectors / .oneuptime-block.
  */
 
 const SECRETS: Record<string, string> = {
@@ -39,6 +46,34 @@ const SECRETS: Record<string, string> = {
   consoleMessage: "checkout failed for alice.hartwell@example.com",
   errorMessage: "could not charge card 4111111111111111",
   urlToken: "eyJhbGciOiJIUzI1NiJ9-super-secret-reset-token",
+  hiddenToken: "csrf-7f3a9c1e5b2d-hidden-field-token",
+  mutatedAlt: "Portrait of Alice Hartwell at Marlborough Terrace",
+  mutatedTitle: "alice.hartwell@example.com (account owner)",
+};
+
+/*
+ * Attribute secrets present in the INITIAL document, asserted separately
+ * against a full snapshot rather than the recorder's posted bytes: see the
+ * "snapshot attributes" case below.
+ */
+const SNAPSHOT_ATTRIBUTE_SECRETS: Record<string, string> = {
+  alt: "Alice Hartwell holding invoice 8891",
+  title: "Balance 84,220.19 GBP for Alice",
+  ariaLabel: "Pay Alice Hartwell now",
+  placeholder: "Enter Whitcombe as your maiden name",
+  mailto: "mailto:alice.hartwell@example.com",
+  dataNote: "Delivered to 14 Marlborough Terrace",
+  optionValue: "barclays-4417-alice",
+
+  /*
+   * The two rrweb never masks and nothing else covered: a submit input's
+   * value is skipped by rrweb-snapshot's maskInputValue (it is a button
+   * label, not typed input), and a meta tag has no text node for maskTextFn
+   * to see - while server-rendered apps put the signed-in person straight
+   * into one.
+   */
+  submitValue: "Continue as alice.hartwell@example.com",
+  metaContent: "Invoices for Alice Hartwell, balance 84,220.19",
 };
 
 const INIT_OPTIONS: RecorderInitOptions = {
@@ -84,8 +119,11 @@ function buildPage(): void {
         <select id="account">
           <option value="1">${SECRETS["option"]}</option>
         </select>
+        <input type="hidden" id="csrf" name="csrf" value="${SECRETS["hiddenToken"]}" />
         <button type="button" id="pay-button">${SECRETS["buttonLabel"]}</button>
       </form>
+      <img id="portrait" src="/portrait.png" alt="portrait" />
+      <a id="contact" href="/contact" title="contact">Contact</a>
     </main>
   `;
 
@@ -194,6 +232,18 @@ describe("no unmasked page text reaches the wire", (): void => {
     added.textContent = SECRETS["listItem"] as string;
     document.body.appendChild(added);
 
+    /* Attribute mutations carrying text: alt, title, a mailto: href. */
+    const portrait: HTMLImageElement = document.getElementById(
+      "portrait",
+    ) as HTMLImageElement;
+    portrait.setAttribute("alt", SECRETS["mutatedAlt"] as string);
+
+    const contact: HTMLAnchorElement = document.getElementById(
+      "contact",
+    ) as HTMLAnchorElement;
+    contact.setAttribute("title", SECRETS["mutatedTitle"] as string);
+    contact.setAttribute("href", "mailto:alice.hartwell@example.com");
+
     /* A typed input, then the show-password toggle. */
     const password: HTMLInputElement = document.getElementById(
       "password",
@@ -245,9 +295,212 @@ describe("no unmasked page text reaches the wire", (): void => {
       "Marlborough",
       "Barclays",
       "super-secret-reset-token",
+      "hidden-field-token",
+      "account owner",
+      "alice.hartwell",
     ]) {
       expect(posted).not.toContain(fragment);
     }
+
+    /* Structure survives: the image still has its src, the link its element. */
+    expect(posted).toContain("/portrait.png");
+  });
+
+  /*
+   * rrweb's record() discards the maskInputOptions it is handed whenever
+   * maskAllInputs is true and substitutes its own type-keyed table, which
+   * has no entry for type="hidden". Hidden inputs therefore went out
+   * verbatim in EVERY mode - CSRF tokens, user ids, pre-filled emails - and
+   * a customer who chose MaskAllText, believing nothing textual left the
+   * page, was wrong. Asserted per mode, through the real rrweb.
+   */
+  const assertHiddenInputMaskedIn: (
+    mode: SessionReplayMaskingMode,
+  ) => Promise<void> = async (
+    mode: SessionReplayMaskingMode,
+  ): Promise<void> => {
+    const instance: Recorder = new Recorder({
+      initOptions: INIT_OPTIONS,
+      config: { ...maskAllTextConfig(), maskingMode: mode },
+    });
+
+    instance.start();
+    recorder = instance;
+
+    /* A hidden field that is (re)written after load, as CSRF rotation does. */
+    const csrf: HTMLInputElement = document.getElementById(
+      "csrf",
+    ) as HTMLInputElement;
+    csrf.value = `${SECRETS["hiddenToken"]}-rotated`;
+
+    instance.trigger(SessionReplayTriggerReason.Manual);
+
+    await flushUploads();
+
+    const hide: Event = new Event("pagehide");
+    Object.defineProperty(hide, "persisted", { value: false });
+    window.dispatchEvent(hide);
+
+    await flushUploads();
+
+    const posted: string = allPostedBytes();
+
+    expect(fetchMock).toHaveBeenCalled();
+    /* Positive control: the hidden input itself is in the snapshot. */
+    expect(posted).toContain('"name":"csrf"');
+    expect(posted).not.toContain("hidden-field-token");
+  };
+
+  it.each([
+    SessionReplayMaskingMode.MaskAllText,
+    SessionReplayMaskingMode.MaskInputsOnly,
+    SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+  ])(
+    "never emits a hidden input's value in %s mode",
+    async (mode: SessionReplayMaskingMode): Promise<void> => {
+      await assertHiddenInputMaskedIn(mode);
+    },
+  );
+
+  /*
+   * The attributes of the INITIAL document, through real rrweb
+   * serialisation (the same record() call and option object the recorder
+   * uses) and then Masking.sanitiseEventData, which is what the recorder's
+   * sanitiseEvent hands a FullSnapshot's data to.
+   */
+  it("masks the text-like attributes of a full snapshot under MaskAllText", async (): Promise<void> => {
+    document.body.innerHTML = `
+      <img id="a" src="/portrait.png?sig=structural" alt="${SNAPSHOT_ATTRIBUTE_SECRETS["alt"]}" />
+      <a id="b" href="${SNAPSHOT_ATTRIBUTE_SECRETS["mailto"]}" title="${SNAPSHOT_ATTRIBUTE_SECRETS["title"]}">x</a>
+      <button id="c" aria-label="${SNAPSHOT_ATTRIBUTE_SECRETS["ariaLabel"]}">x</button>
+      <input id="d" type="text" placeholder="${SNAPSHOT_ATTRIBUTE_SECRETS["placeholder"]}" />
+      <div id="e" data-state="open" data-note="${SNAPSHOT_ATTRIBUTE_SECRETS["dataNote"]}">x</div>
+      <select id="f"><option value="${SNAPSHOT_ATTRIBUTE_SECRETS["optionValue"]}">x</option></select>
+      <input id="g" type="submit" value="${SNAPSHOT_ATTRIBUTE_SECRETS["submitValue"]}" />
+      <meta name="description" content="${SNAPSHOT_ATTRIBUTE_SECRETS["metaContent"]}" />
+    `;
+
+    const masking: Masking = new Masking(
+      SessionReplayMaskingMode.MaskAllText,
+      [],
+    );
+    const options: ReturnType<Masking["getRrwebMaskingOptions"]> =
+      masking.getRrwebMaskingOptions();
+
+    const events: Array<{ type: number; data: Record<string, unknown> }> = [];
+
+    const stop: (() => void) | undefined = record({
+      emit: (event: unknown): void => {
+        events.push(event as { type: number; data: Record<string, unknown> });
+      },
+      maskAllInputs: options.maskAllInputs,
+      maskInputOptions: options.maskInputOptions,
+      maskTextClass: options.maskTextClass,
+      maskTextSelector: options.maskTextSelector,
+      maskInputFn: masking.maskInput,
+      maskTextFn: masking.maskText,
+    });
+
+    if (stop) {
+      stop();
+    }
+
+    const snapshot:
+      | { type: number; data: Record<string, unknown> }
+      | undefined = events.find((event: { type: number }): boolean => {
+      return event.type === 2;
+    });
+
+    expect(snapshot).toBeDefined();
+
+    /* Positive control: rrweb really did serialise the attributes verbatim. */
+    const before: string = JSON.stringify(snapshot);
+
+    for (const secret of Object.values(SNAPSHOT_ATTRIBUTE_SECRETS)) {
+      expect(before).toContain(secret);
+    }
+
+    expect(masking.sanitiseEventData(snapshot!.data)).toBeGreaterThanOrEqual(
+      Object.keys(SNAPSHOT_ATTRIBUTE_SECRETS).length,
+    );
+
+    const after: string = JSON.stringify(snapshot);
+
+    for (const [name, secret] of Object.entries(SNAPSHOT_ATTRIBUTE_SECRETS)) {
+      expect(`${name}:${after}`).not.toContain(secret);
+    }
+
+    for (const fragment of ["Hartwell", "Whitcombe", "Marlborough", "4417"]) {
+      expect(after).not.toContain(fragment);
+    }
+
+    /* What playback needs is untouched. */
+    expect(after).toContain("/portrait.png?sig=structural");
+    expect(after).toContain('"data-state":"open"');
+    expect(after).toContain('"id":"e"');
+  });
+
+  /*
+   * REGRESSION (privacy-1), through the REAL recorder in the DEFAULT masking
+   * mode - the one where page text is recorded by policy and a blocked
+   * region is the customer's statement that this part is not.
+   *
+   * rrweb never serialises inside blockSelectors, but the click label was
+   * built from target.textContent with no reference to the block controls at
+   * all, so one click inside a support-chat widget or a medical pane put the
+   * first 40 characters of it on the wire - where the rail renders it
+   * verbatim to every viewer who can read the payload.
+   */
+  it("never posts the text of a blocked region as a click label", async (): Promise<void> => {
+    const blockedSecret: string = "Repeat prescription sertraline 50mg";
+    const cardSecret: string = "4111 1111 1111 1111";
+
+    document.body.innerHTML = `
+      <section class="medical"><button id="rx">${blockedSecret}</button></section>
+      <div id="card">Card ending <span class="oneuptime-mask">${cardSecret}</span></div>
+    `;
+
+    const instance: Recorder = new Recorder({
+      initOptions: INIT_OPTIONS,
+      config: {
+        ...maskAllTextConfig(),
+
+        /* Text is recorded in this mode; only the block/mask rules protect it. */
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        blockSelectors: [".medical"],
+      },
+    });
+
+    instance.start();
+    recorder = instance;
+
+    (document.getElementById("rx") as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+    );
+    (document.getElementById("card") as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 6, clientY: 6 }),
+    );
+
+    instance.trigger(SessionReplayTriggerReason.Manual);
+
+    await flushUploads();
+
+    const hide: Event = new Event("pagehide");
+    Object.defineProperty(hide, "persisted", { value: false });
+    window.dispatchEvent(hide);
+
+    await flushUploads();
+
+    const posted: string = allPostedBytes();
+
+    /* Positive control: the clicks really were recorded. */
+    expect(posted).toContain("oneuptime.click");
+    expect(posted).toContain("Card ending");
+
+    expect(posted).not.toContain(blockedSecret);
+    expect(posted).not.toContain("sertraline");
+    expect(posted).not.toContain(cardSecret);
+    expect(posted).not.toContain("4111");
   });
 
   /*

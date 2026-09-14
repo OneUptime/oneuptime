@@ -12,6 +12,8 @@ import {
   describeOccurrenceCount,
   describeTimeRange,
 } from "../../Utils/LogsInsights";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { labelErrorPatternResources } from "./LogsResourceDisplay";
 
 /*
  * "Top Errors": the distinct error messages in the window, each with how
@@ -27,6 +29,12 @@ export interface ComponentProps {
   isLoading: boolean;
   /** Resolved names for the resource ids a pattern was seen on. */
   serviceNameById: Map<string, Service>;
+  /*
+   * Names the page resolved for resources its Service list cannot name (a
+   * RUM application, host or cluster). Display only: the row's resourceIds
+   * are left as they are.
+   */
+  resourceNames?: TelemetryEntityNameMap | undefined;
   selectedPattern?: string | undefined;
   onSelect: (pattern: TopErrorPatternRow) => void;
 }
@@ -150,14 +158,20 @@ const TopErrorsPanel: FunctionComponent<ComponentProps> = (
                 180,
               );
 
-              const resourceNames: Array<string> = row.resourceIds.map(
-                (resourceId: string): string => {
-                  return (
-                    props.serviceNameById.get(resourceId)?.name?.toString() ||
-                    resourceId
-                  );
+              /*
+               * Same precedence as the drawer this row opens: the loaded
+               * Service, then the resolver, then the id. The Service list
+               * alone printed raw UUIDs for non-Service resources.
+               */
+              const resourceNames: Array<string> = labelErrorPatternResources({
+                resourceIds: row.resourceIds,
+                nameMap: props.resourceNames,
+                getKnownName: (resourceId: string): string | undefined => {
+                  return props.serviceNameById
+                    .get(resourceId)
+                    ?.name?.toString();
                 },
-              );
+              });
 
               return (
                 <li key={row.pattern}>
@@ -220,7 +234,7 @@ const TopErrorsPanel: FunctionComponent<ComponentProps> = (
                             {row.resourceCount}{" "}
                             {row.resourceCount === 1 ? "source" : "sources"}
                             {resourceNames.length > 0
-                              ? ` · ${resourceNames.slice(0, 2).join(", ")}`
+                              ? ` · ${resourceNames.join(", ")}`
                               : ""}
                           </span>
                           {row.traceCount > 0 && (

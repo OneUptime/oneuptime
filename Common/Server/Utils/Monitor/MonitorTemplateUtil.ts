@@ -24,14 +24,31 @@ import DnsMonitorResponse, {
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import DatabaseMonitorResponse, {
+  DatabaseMetricGroupStatus,
+} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Typeof from "../../../Types/Typeof";
+import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
+
+/*
+ * Path segments that resolve to the object prototype when a dotted series
+ * label key is walked as a nested property path. See the fold in
+ * `getStorageMap`, and the matching write-side guard in
+ * `CapturedMetricAttributeUtil`.
+ */
+const PrototypeWalkingKeySegments: ReadonlySet<string> = new Set<string>([
+  "__proto__",
+  "constructor",
+  "prototype",
+]);
 
 /**
  * Utility for building template variable storage map and processing dynamic placeholders
@@ -452,6 +469,46 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
+      if (data.monitorType === MonitorType.Database) {
+        const databaseResponse: DatabaseMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).databaseMonitorResponse;
+
+        const unavailableGroups: Array<DatabaseMetricGroupStatus> =
+          databaseResponse?.unavailableGroups || [];
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: databaseResponse?.responseTimeInMs,
+          failureCause: databaseResponse?.failureCause,
+          connectionError: databaseResponse?.connectionError,
+          engineVersion: databaseResponse?.engineVersion,
+          collectedGroups: databaseResponse?.collectedGroups || [],
+          unavailableGroups: unavailableGroups.map(
+            (status: DatabaseMetricGroupStatus) => {
+              return {
+                group: status.group,
+                reason: status.reason,
+                message: status.message,
+                remediation: status.remediation,
+              };
+            },
+          ),
+          /*
+           * Partial collection is the normal state of this monitor, so the
+           * ready-made sentence matters more here than the array does - an
+           * incident title has room for one line, not a loop.
+           */
+          collectionIssueSummary: unavailableGroups
+            .map((status: DatabaseMetricGroupStatus) => {
+              return `${status.group}: ${status.message}`;
+            })
+            .join("; "),
+          // A metric absent from this map was not collected on this check.
+          metrics: databaseResponse?.metrics || {},
+        } as JSONObject;
+      }
+
       if (
         data.monitorType === MonitorType.Metrics ||
         data.monitorType === MonitorType.Kubernetes ||
@@ -460,6 +517,7 @@ export default class MonitorTemplateUtil {
         data.monitorType === MonitorType.Podman ||
         data.monitorType === MonitorType.DockerSwarm ||
         data.monitorType === MonitorType.Proxmox ||
+        data.monitorType === MonitorType.VMware ||
         data.monitorType === MonitorType.Ceph
       ) {
         const metricResponse: MetricMonitorResponse =
@@ -534,6 +592,26 @@ export default class MonitorTemplateUtil {
           continue;
         }
         const parts: Array<string> = key.split(".");
+        /*
+         * Series label keys are attacker-adjacent: they are whatever
+         * attribute names the emitting telemetry chose, and a monitor
+         * script picks them outright via oneuptime.captureMetric(). Walking
+         * `__proto__` here would hand the loop Object.prototype — it is
+         * truthy, an object, and not an Array, so the reset below would be
+         * skipped and the final assignment would land on the prototype
+         * itself, polluting every object in the shared Workers process that
+         * renders every project's alert templates. `constructor` and
+         * `prototype` are refused with it so no spelling of the same walk
+         * survives. The whole label is skipped rather than partially
+         * folded, and it is still reachable in full under `seriesLabels`.
+         */
+        if (
+          parts.some((part: string) => {
+            return PrototypeWalkingKeySegments.has(part);
+          })
+        ) {
+          continue;
+        }
         let cursor: JSONObject = storageMap;
         for (let i: number = 0; i < parts.length - 1; i++) {
           const part: string = parts[i]!;
@@ -551,6 +629,33 @@ export default class MonitorTemplateUtil {
       }
       storageMap["seriesLabels"] = data.seriesLabels;
     }
+
+    /*
+     * Ready-made renderings of the series identity.
+     *
+     * These are set unconditionally - to "" when the monitor is not
+     * grouped, or when its labels carry no usable value - and that is
+     * the whole point. `VMUtil.replaceValueInPlace` leaves a placeholder
+     * it cannot resolve in the output verbatim, so a title written as
+     * `"Pod CPU high{{seriesResourceSuffix}}"` would otherwise render
+     * with the braces still in it on any monitor without a group-by.
+     * Always defining them makes the variables safe to use in a shipped
+     * template that has to work for grouped and ungrouped monitors
+     * alike.
+     */
+    storageMap["seriesResourceSuffix"] = SeriesLabelDisplay.buildTitleSuffix(
+      data.seriesLabels,
+    );
+    storageMap["seriesResourceSummary"] = SeriesLabelDisplay.buildInlineSummary(
+      data.seriesLabels,
+    );
+    storageMap["seriesResourceBlock"] = SeriesLabelDisplay.buildMarkdownBlock(
+      data.seriesLabels,
+    );
+    storageMap["seriesDebugCommands"] = SeriesDebugHints.buildMarkdownBlock({
+      monitorType: data.monitorType,
+      seriesLabels: data.seriesLabels,
+    });
 
     /*
      * Monitor identity fields. Always exposed (when a monitor is provided),

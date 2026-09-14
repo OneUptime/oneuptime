@@ -7,8 +7,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { fetchSiteDeviceCounts } from "../Network/NetworkSummaryApi";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -54,9 +54,20 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
     try {
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-      const [siteResult, deviceResult]: [
+      /*
+       * The sites themselves are fetched and rendered, so they have to come
+       * back as rows. The device COUNTS do not.
+       *
+       * This used to fetch every device in the project and tally `siteId`
+       * here. Capped at LIMIT_PER_PROJECT with no ORDER BY, that was not
+       * merely slow — on an 80,000-device estate it returned an arbitrary
+       * 10,000 rows, so every store in this tree printed "8 devices" for a
+       * store that had 65, and the estate read as one eighth of its real size.
+       * Nothing said so.
+       */
+      const [siteResult, deviceCountBySiteId]: [
         ListResult<NetworkSite>,
-        ListResult<NetworkDevice>,
+        Record<string, number>,
       ] = await Promise.all([
         ModelAPI.getList<NetworkSite>({
           modelType: NetworkSite,
@@ -78,30 +89,8 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
           },
           sort: {},
         }),
-        ModelAPI.getList<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            siteId: true,
-          },
-          sort: {},
-        }),
+        fetchSiteDeviceCounts(),
       ]);
-
-      const deviceCountBySiteId: Record<string, number> = {};
-      for (const device of deviceResult.data) {
-        const siteId: string | undefined = device.siteId?.toString();
-        if (!siteId) {
-          continue;
-        }
-        deviceCountBySiteId[siteId] = (deviceCountBySiteId[siteId] || 0) + 1;
-      }
 
       const rows: Array<SiteTreeRow> = siteResult.data.map(
         (site: NetworkSite): SiteTreeRow => {

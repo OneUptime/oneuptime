@@ -51,6 +51,36 @@ describe("JSONWebToken", () => {
         return JSONWebToken.decodeJsonPayload(token);
       }).toThrow();
     });
+
+    /*
+     * jwt.sign accepts a bare string as a payload, and such a token verifies
+     * perfectly well - it is simply not a claims object. decodeJsonPayload
+     * used to hand that string back typed as a JSONObject, and every caller
+     * of decode() then read undefined out of userId, email and name and built
+     * a session object out of nothing. Refuse the shape where it is parsed,
+     * so the caller sees a decode failure rather than an empty identity.
+     */
+    test("should refuse a token whose payload is a bare string, not claims", () => {
+      const token: string = jwt.sign(
+        "just-a-string",
+        EncryptionSecret.toString(),
+      );
+
+      expect(() => {
+        return JSONWebToken.decodeJsonPayload(token);
+      }).toThrow("Expected JSONObject");
+    });
+
+    test("should refuse a bare-string payload through decode() too", () => {
+      const token: string = jwt.sign(
+        "just-a-string",
+        EncryptionSecret.toString(),
+      );
+
+      expect(() => {
+        return JSONWebToken.decode(token);
+      }).toThrow(BadDataException);
+    });
   });
 
   describe("signUserLoginToken / decode", () => {

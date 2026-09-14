@@ -70,6 +70,10 @@ spec:
       {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" ($.Values.worker.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
+      {{- with (default $.Values.extraVolumes $.Values.worker.extraVolumes) }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "worker" "ImageName" "app") }}
           name: {{ printf "%s-%s" $.Release.Name "worker"  }}
@@ -159,6 +163,13 @@ spec:
               value: {{ $.Values.worker.clickhouseIngestMaxOpenConnections | default ($.Values.worker.clickhouseMaxOpenConnections | default 100) | squote }}
             {{- include "oneuptime.env.telemetryWriterUrl" . | nindent 12 }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- with (default $.Values.extraEnv $.Values.worker.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with (default $.Values.extraVolumeMounts $.Values.worker.extraVolumeMounts) }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ $.Values.worker.ports.http }}
               protocol: TCP

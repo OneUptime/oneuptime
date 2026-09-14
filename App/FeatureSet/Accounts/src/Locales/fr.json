@@ -31,8 +31,26 @@
     "errorOnSignUp": "Veuillez compléter le captcha avant de vous inscrire."
   },
   "login": {
+    "passkey": {
+      "signIn": "Se connecter avec une clé d’accès",
+      "description": "Utilisez votre empreinte digitale, votre visage ou le code PIN de votre appareil.",
+      "passwordAlternative": "ou se connecter avec un mot de passe",
+      "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
+      "title": "Utiliser une clé d’accès enregistrée",
+      "helpTitle": "Vous découvrez les clés d’accès ?",
+      "help": "Connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Clés d’accès et authentification à deux facteurs pour créer votre première clé d’accès.",
+      "preparing": "Préparation de votre clé d’accès…",
+      "waiting": "Consultez votre appareil",
+      "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
+      "verifying": "Connexion en cours…",
+      "cancelled": "La connexion par clé d’accès a été annulée. Réessayez ou utilisez votre mot de passe.",
+      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré. Réessayez ou connectez-vous avec votre mot de passe.",
+      "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
+      "insecure": "Les clés d’accès nécessitent une connexion sécurisée (HTTPS). Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
+      "tryAgain": "Réessayer avec une clé d’accès"
+    },
     "title": "Connectez-vous à votre compte",
-    "subtitle": "Rejoignez des milliers d'entreprises qui utilisent OneUptime pour rester en ligne en permanence.",
+    "subtitle": "Utilisez une clé d’accès, un mot de passe ou le SSO de votre organisation.",
     "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
     "useSso": "Utiliser plutôt l'authentification unique (SSO)",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Veuillez suivre les instructions sur votre dispositif de clé de sécurité.",
       "codeFieldDescription": "Entrez le code de votre application d'authentification",
       "selectDifferentMethod": "Sélectionnez une autre méthode d'authentification à deux facteurs",
-      "useBackupCode": "Utiliser un code de secours à la place",
       "backupCodeInstruction": "Saisissez l'un des codes de secours que vous avez enregistrés lors de la configuration de l'authentification à deux facteurs. Chaque code ne fonctionne qu'une seule fois.",
       "backupCodeFieldTitle": "Code de secours",
-      "backupCodeFieldDescription": "Les codes de secours ressemblent à ABCDE-12345. La casse et le tiret n'ont pas d'importance."
+      "backupCodeFieldDescription": "Les codes de secours ressemblent à ABCDE-12345. La casse et le tiret n'ont pas d'importance.",
+      "confirmSubtitle": "Confirmez votre identité pour terminer la connexion.",
+      "recoverySubtitle": "Utilisez un code de secours ou découvrez comment vous reconnecter si vous n'en avez pas.",
+      "lostAccess": "Vous avez perdu l'accès à votre application d'authentification ?",
+      "noBackupCodesStrong": "Vous n'avez aucun code de secours.",
+      "noBackupCodes": "Aucun code ne peut être saisi ici, car ce compte n'en a jamais reçu.",
+      "noBackupCodesInstruction": "Demandez à un administrateur de cette instance OneUptime de réinitialiser l'authentification à deux facteurs sur votre compte. Vous pourrez alors vous connecter avec votre mot de passe et configurer une nouvelle application d'authentification, et des codes de secours seront créés pour vous à cette occasion.",
+      "lostAccessSecurityKey": "Vous avez perdu l'accès à votre clé de sécurité ?"
     },
     "twoFactorEnrolment": {
       "title": "Configurer l'authentification à deux facteurs",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Saisissez le code à six chiffres affiché par votre application d'authentification.",
       "submitButton": "Vérifier et se connecter",
       "backToSignIn": "Connectez-vous en tant qu'autre utilisateur"
+    },
+    "backupCodes": {
+      "title": "Enregistrez vos codes de secours",
+      "subtitle": "Utilisez l'un de ces codes pour vous connecter si vous perdez l'accès à votre application d'authentification ou à votre clé de sécurité.",
+      "showOnceStrong": "C'est la seule fois où ces codes seront affichés.",
+      "showOnce": "Enregistrez-les ailleurs que sur l'appareil qui génère vos codes. Chaque code ne fonctionne qu'une seule fois.",
+      "download": "Télécharger sous forme de fichier texte",
+      "savedConfirmation": "J'ai enregistré ces codes en lieu sûr.",
+      "continue": "Continuer vers le tableau de bord",
+      "fileHeading": "Codes de secours de l'authentification à deux facteurs OneUptime",
+      "fileInstruction": "Chaque code ne fonctionne qu'une seule fois. Conservez ce fichier en lieu sûr, séparément de l'appareil sur lequel s'exécute votre application d'authentification.",
+      "setUpTitle": "Configurer les codes de secours",
+      "setUpSubtitle": "Une dernière chose avant de continuer.",
+      "noneStrong": "Vous n'avez aucun code de secours.",
+      "none": "Si vous perdez votre application d'authentification ou votre clé de sécurité, un administrateur devra réinitialiser l'authentification à deux facteurs avant que vous puissiez vous reconnecter.",
+      "generate": "Générer des codes de secours",
+      "skip": "Ignorer pour le moment",
+      "generateFailed": "Aucun code de secours n'a été renvoyé. Veuillez réessayer depuis Profil utilisateur > Authentification à deux facteurs."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Se connecter à OneUptime On-Call",
+    "description": "Utilisez une clé d’accès enregistrée pour ce serveur OneUptime.",
+    "returnDescription": "Après confirmation, vous reviendrez dans l’application mobile.",
+    "invalid": "Lancez la connexion depuis l’application mobile OneUptime. Cette demande est absente ou invalide.",
+    "insecure": "Les clés d’accès nécessitent HTTPS. Revenez dans l’application et vérifiez l’adresse du serveur.",
+    "failed": "La connexion n’a pas pu aboutir. Revenez dans l’application et réessayez.",
+    "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
+    "returnToApp": "Revenir dans l’application",
+    "cancel": "Annuler et revenir dans l’application",
+    "setup": "Créez une clé d’accès dans Profil utilisateur → Clés d’accès et authentification à deux facteurs du tableau de bord web."
+  },
+  "Use at least {{minimum}} characters.": "Utilisez au moins {{minimum}} caractères.",
+  "Try a few unrelated words.": "Essayez quelques mots sans rapport entre eux.",
+  "Password meets requirements": "Le mot de passe respecte les critères",
+  "Password must be at least 15 characters.": "Le mot de passe doit contenir au moins 15 caractères.",
+  "Password cannot be more than 100 characters.": "Le mot de passe ne peut pas dépasser 100 caractères.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choisissez un mot de passe moins prévisible. Essayez quelques mots sans rapport entre eux.",
+  "Password cannot be blank.": "Le mot de passe ne peut pas contenir uniquement des espaces.",
+  "Password is required.": "Le mot de passe est obligatoire.",
+  "Password must be a string.": "Le mot de passe doit être une chaîne de caractères.",
+  "Account details": "Informations du compte",
+  "Secure your account": "Sécurisez votre compte",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} et {{maximum}} caractères",
+  "Avoid common or repeated patterns": "Évitez les motifs courants ou répétés",
+  "Password length": "Longueur du mot de passe",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} caractères minimum",
+  "Complete:": "Respecté :",
+  "Incomplete:": "Non respecté :",
+  "Special character included (optional)": "Caractère spécial inclus (facultatif)",
+  "Special characters are optional. Try !, @, # or $.": "Les caractères spéciaux sont facultatifs. Essayez !, @, # ou $."
 }

@@ -7,6 +7,10 @@ import {
   summarizeRestriction,
   summarizeRotation,
 } from "./LayerSummary";
+import {
+  OverrideUserDisplayInfo,
+  describeShiftOverride,
+} from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import Dictionary from "Common/Types/Dictionary";
@@ -73,6 +77,13 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
    */
   const usersById: Record<string, UserDisplay> = {};
   const orderedUsers: Array<UserDisplay> = [];
+  /*
+   * Name + email for everyone who can appear in a turn row - the layer's own
+   * users plus the substitutes an override brought in. Separate from usersById
+   * because that one carries display chrome (colour, initials) rather than the
+   * raw fields describeShiftOverride needs.
+   */
+  const overrideDisplayInfoById: Dictionary<OverrideUserDisplayInfo> = {};
   for (const layerUser of props.users) {
     const user: User | undefined = layerUser.user;
     const userId: string = user?.id?.toString() || "";
@@ -91,7 +102,23 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
         ),
       };
     }
+    if (!overrideDisplayInfoById[userId]) {
+      overrideDisplayInfoById[userId] = {
+        name: user?.name?.toString() || "",
+        email: user?.email?.toString() || "",
+      };
+    }
     orderedUsers.push(usersById[userId]!);
+  }
+
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (info && !overrideDisplayInfoById[userId]) {
+      overrideDisplayInfoById[userId] = {
+        name: info.name,
+        email: info.email,
+      };
+    }
   }
 
   const getUserDisplay: (userId: string) => UserDisplay = (
@@ -156,10 +183,18 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  // Group raw coverage into rotation turns (absorb within-turn off-hours gaps).
+  /*
+   * Group raw coverage into rotation turns (absorb within-turn off-hours gaps),
+   * but never across an override boundary: a turn that is partly covered is two
+   * different facts about who gets paged, and merging them would leave the row
+   * showing one of the two with no way to say so.
+   */
   const turns: Array<OnCallShift> = ScheduleShiftUtil.groupEventsIntoShifts(
     props.events,
-    { mergeAcrossGaps: true },
+    {
+      mergeAcrossGaps: true,
+      groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
+    },
   );
 
   const { current }: { current: OnCallShift | null } =
@@ -250,9 +285,24 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             <span className="truncate text-sm font-semibold text-gray-900">
               {user.name}
             </span>
-            {user.isSubstitute && (
-              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                Covering
+            {/*
+             * Name the person being covered when the turn carries the override
+             * that produced it. "Covering" on its own tells the reader the one
+             * thing they can already see - that this name is not in the
+             * rotation - while withholding the one thing they cannot.
+             */}
+            {(turn.override || user.isSubstitute) && (
+              <span
+                data-testid="rotation-covering-pill"
+                className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200"
+              >
+                {turn.override
+                  ? describeShiftOverride({
+                      override: turn.override,
+                      userInfoById: overrideDisplayInfoById,
+                      policyNameById: {},
+                    }).coveringLabel
+                  : "Covering"}
               </span>
             )}
             {isCurrent &&

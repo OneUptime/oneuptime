@@ -7,6 +7,7 @@ import { Droppable, DroppableProvided } from "react-beautiful-dnd";
 
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
+  getRowProps?: ((item: T) => React.HTMLAttributes<HTMLElement>) | undefined;
   id: string;
   columns: Columns<T>;
   actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
@@ -110,6 +111,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   enableDragAndDrop={props.enableDragAndDrop}
                   key={i}
                   item={item}
+                  rowProps={props.getRowProps?.(item)}
                   columns={props.columns}
                   actionButtons={props.actionButtons}
                   dragDropIdField={props.dragDropIdField}
@@ -143,6 +145,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 enableDragAndDrop={props.enableDragAndDrop}
                 key={i}
                 item={item}
+                rowProps={props.getRowProps?.(item)}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
                 dragDropIdField={props.dragDropIdField}

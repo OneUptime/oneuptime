@@ -22,12 +22,23 @@ Clickhouse migrations are written manually. Please write the migration code in D
 
 Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
 
+### Tests
+
+Please write extensive tests for your changes. If you are adding a new feature, please write unit tests and integration tests. If you are fixing a bug, please write a regression test.
+
+There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes.
+
 ### Helm chart
 
-The chart lives in `HelmChart/Public/oneuptime`. It has cluster-free unit tests in
-`HelmChart/Public/oneuptime/tests` (helm-unittest); run them with `npm run test-helm-chart`
+Two charts are published: the product itself in `HelmChart/Public/oneuptime`, and the
+Kubernetes agent in `HelmChart/Public/kubernetes-agent`. Both have cluster-free unit tests
+in their own `tests/` directory (helm-unittest); run them with `npm run test-helm-chart`
 (it installs the plugin for you through the runner, or install it yourself with
 `helm plugin install https://github.com/helm-unittest/helm-unittest`).
+
+The agent chart writes the OpenTelemetry collector configuration, which decides what
+resource attributes ingest actually sees — so a mistake there surfaces as wrong data
+rather than as a failed deploy. Prefer a render assertion over a careful reading.
 
 `npm run test-helm-chart-all` runs every chart test — lint, those unit tests, and the
 cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
@@ -37,3 +48,10 @@ see `HelmChart/README.md` for how to add one.
 ### Project docs
 
 Internal roadmaps live in `Internal/Roadmap/` (see its README for the index).
+
+### Mobile app releases
+
+Before building or publishing the Android or iOS app, read
+[MobileApp/RELEASING.md](MobileApp/RELEASING.md). It contains the existing store and
+Expo identifiers, the verified release procedure, privacy checks, and the steps
+needed after uploading a binary to actually submit and publish the update.

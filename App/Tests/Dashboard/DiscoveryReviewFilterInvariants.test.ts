@@ -164,7 +164,9 @@ describe("the Review Discovered Devices dialog imports only what it is showing",
     expect(code).toContain(
       "submitButtonText={`Import Selected (${selectedCount})`}",
     );
-    expect(code).toContain("disableSubmitButton={selectedCount === 0}");
+    expect(code).toContain(
+      "disableSubmitButton={!isReviewReady || selectedCount === 0}",
+    );
   });
 });
 

@@ -6,9 +6,9 @@ import nodePath from "path";
  * The detections → monitors bridge is three pieces of wiring plus one
  * fragile contract, and every piece fails silently:
  *
- *  - the Security Events → Monitors tab takes the same five hand-written
- *    registrations as every other tab (PageMap, RoutePath, RouteMap,
- *    PageRoute, nav tab + layout match + breadcrumb), any of which can be
+ *  - the Security Events → Monitors page takes the same six hand-written
+ *    registrations as every other page (PageMap, RoutePath, RouteMap,
+ *    PageRoute, side-menu item + layout + breadcrumb), any of which can be
  *    dropped without a type error;
  *  - the Detection Rules "Create Monitor" row action deep-links into
  *    monitor create with ?detectionRuleId=, which only works while
@@ -82,10 +82,10 @@ const routesSource: string = readDashboardSource(
   "Routes",
   "SecurityEventsRoutes.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
+const sideMenuSource: string = readDashboardSource(
+  "Pages",
   "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+  "SideMenu.tsx",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -162,7 +162,7 @@ beforeAll(async () => {
   };
 });
 
-describe("Security Events monitors tab wiring", () => {
+describe("Security Events monitors page wiring", () => {
   test("the page key exists and has a route path segment", () => {
     expect(PageMap.SECURITY_EVENTS_MONITORS).toBeTruthy();
     expect(SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS]).toBe(
@@ -189,26 +189,20 @@ describe("Security Events monitors tab wiring", () => {
     expect(routesSource).toContain("<SecurityEventsMonitorsPage");
   });
 
-  test("the nav tab points at the monitors route", () => {
-    expect(navTabsSource).toContain('"monitors"');
-    expect(navTabsSource).toContain('label: "Monitors"');
-    expect(navTabsSource).toContain(
+  test("the monitor link is in the Detection & Alerting side-menu section", () => {
+    expect(sideMenuSource).toContain('title: "Detection & Alerting"');
+    expect(sideMenuSource).toContain('title: "Monitors"');
+    expect(sideMenuSource).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route",
     );
   });
 
-  test("the layout's active-tab match follows the real route", () => {
-    const route: string =
-      RouteMap[PageMap.SECURITY_EVENTS_MONITORS]!.toString();
-
-    expect(layoutSource).toContain('return "monitors"');
-    expect(layoutSource).toContain(
-      'path.includes("/security-events/monitors")',
-    );
-    expect(route.endsWith("/security-events/monitors")).toBe(true);
+  test("the layout renders the Security Events side menu", () => {
+    expect(layoutSource).toContain('import SideMenu from "./SideMenu"');
+    expect(layoutSource).toContain("sideMenu={<SideMenu />}");
   });
 
-  test("the monitors tab has a breadcrumb trail", () => {
+  test("the monitors page has a breadcrumb trail", () => {
     const pattern: string = RouteUtil.getRouteString(
       PageMap.SECURITY_EVENTS_MONITORS,
     );
@@ -255,7 +249,7 @@ describe("Security Events monitors page", () => {
     expect(source).not.toContain("FormType.Create");
   });
 
-  test("keeps the reseller telemetry gate the other tabs have", () => {
+  test("keeps the reseller telemetry gate the other pages have", () => {
     expect(monitorsPageSource).toContain("enableTelemetryFeatures === false");
     expect(monitorsPageSource).toContain("<ErrorMessage");
   });
@@ -310,7 +304,7 @@ describe("Detection rule → monitor deep link", () => {
     expect(source).toContain("buildDetectionRuleMonitorPrefill");
   });
 
-  test("monitor create reads the bare monitorType param the monitors tab sends", () => {
+  test("monitor create reads the bare monitorType param the monitors page sends", () => {
     const source: string = stripComments(monitorCreateSource);
 
     expect(source).toContain('Navigation.getQueryStringByName("monitorType")');

@@ -1,5 +1,6 @@
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import { getDiscoveredHostDisplayName } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -217,5 +218,242 @@ describe("normalizeDiscoveredHosts", () => {
       expect(result[0]!.isAlreadyRegistered).toBe(false);
       expect(result[1]!.isAlreadyRegistered).toBeUndefined();
     });
+  });
+});
+
+/*
+ * OneUptime issue #3529 — the scan's reverse-DNS name.
+ *
+ * `dnsHostname` differs in kind from every other field this function cleans
+ * up. The others are untrusted by ACCIDENT: they are what they are because
+ * nothing validates the probe's payload, and the shapes that broke things
+ * were probe bugs. This one is untrusted by CONSTRUCTION — its value is
+ * published by whoever runs DNS for the subnet being swept, which on a
+ * discovery scan is frequently not this project, and it is stored verbatim in
+ * a jsonb column that then feeds a rendered line, a device name and a slug.
+ *
+ * So the character rules are applied on the way OUT of the column as well as
+ * on the way in. The probe that wrote the row applied them too, but "the
+ * probe already checked" holds only for the probe version that wrote it — not
+ * for an older probe, a modified one, or a row written straight through the
+ * API.
+ */
+describe("normalizeDiscoveredHosts — the reverse-DNS name (issue #3529)", () => {
+  test("a usable PTR name is carried through unchanged", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "core-gw.corp.example.com" }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("a fully qualified name loses its root dot and surrounding space", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  core-gw.corp.example.com.  " }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("an unusable name is DELETED, not blanked", () => {
+    /*
+     * The key is removed rather than set to "" or undefined so that a reader
+     * checking `if (host.dnsHostname)` and one checking `"dnsHostname" in
+     * host` cannot disagree about the same row — the class of split reading
+     * this whole function exists to prevent.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "<script>alert(1)</script>" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a name that merely restates the address is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ ipAddress: "10.18.166.51", dnsHostname: "10.18.166.51" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+    // The address itself is untouched — it is still how the host is reached.
+    expect(normalized?.ipAddress).toBe("10.18.166.51");
+  });
+
+  test("an in-addr.arpa query name echoed back is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "51.166.18.10.in-addr.arpa" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a non-string value in the column does not throw", () => {
+    /*
+     * This runs inside the Review dialog's render. The lesson is the null-row
+     * one, relearned: a throw here takes out the modal body, not one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ dnsHostname: 51 as unknown as string }),
+      host({ dnsHostname: {} as unknown as string }),
+      host({ dnsHostname: ["gw.example.com"] as unknown as string }),
+      host({ dnsHostname: null as unknown as string }),
+    ];
+
+    const normalized: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(rows);
+
+    expect(normalized).toHaveLength(4);
+    for (const row of normalized) {
+      expect(row).not.toHaveProperty("dnsHostname");
+    }
+  });
+
+  test("a host with no PTR name gains no key", () => {
+    // Absence must stay absence — the field is optional in the model.
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("normalising is stable when applied twice", () => {
+    /*
+     * The dashboard normalises on open and again on every re-render of the
+     * list; the rule engine normalises the same rows server-side. All three
+     * must agree, or the name an operator ticks and the name the device gets
+     * could differ.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  GW-01.corp.example.com.  " }),
+      host({ ipAddress: "10.0.0.2", dnsHostname: "core switch" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+  });
+
+  test("cleaning the name leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: "core-switch-01",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+        snmpConfigId: "config-2",
+        dnsHostname: "not a hostname",
+      }),
+    ]);
+
+    expect(normalized?.sysName).toBe("core-switch-01");
+    expect(normalized?.sysDescr).toBe("Cisco IOS");
+    expect(normalized?.snmpReachable).toBe(true);
+    expect(normalized?.snmpConfigId).toBe("config-2");
+  });
+});
+
+/*
+ * `sysName` joined the list of fields this function coerces when reverse DNS
+ * (issue #3529) turned the naming expression into a RENDER path.
+ *
+ * Before that, `(host.sysName || "").trim()` ran only inside the import loop,
+ * where a per-host try/catch turned a bad row into one failed import. The
+ * Review dialog's own name line was `entry.sysName || entry.ipAddress`, which
+ * coerces a number harmlessly. Routing the row through the shared naming
+ * function put `.trim()` on the render path, where a numeric sysName in the
+ * jsonb throws a TypeError inside the modal body and takes out the whole
+ * dialog — the operator can no longer review or import ANY host in that scan.
+ *
+ * That is the same failure the null-row case at the top of this file is about,
+ * and it gets the same answer: coerce once, here, so no reader can be handed a
+ * value its type says is impossible.
+ */
+describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () => {
+  test("a non-string sysName is blanked, never stringified", () => {
+    /*
+     * BLANKED, not `String(value)`. This is the one place the treatment
+     * deliberately differs from the address above, and the reason is that
+     * every stringification of junk is TRUTHY: `String(null)` is "null" and
+     * `String({})` is "[object Object]". A truthy sysName wins the naming
+     * contest outright, so stringifying would not merely fail to name the
+     * host — it would create a device called "null" while a perfectly good
+     * PTR record sat unused on the very same row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: null as unknown as string }),
+      host({ ipAddress: "10.0.0.3", sysName: {} as unknown as string }),
+      host({ ipAddress: "10.0.0.4", sysName: ["gw"] as unknown as string }),
+      host({ ipAddress: "10.0.0.5", sysName: true as unknown as string }),
+    ];
+
+    for (const row of normalizeDiscoveredHosts(rows)) {
+      expect(row.sysName).toBe("");
+    }
+  });
+
+  test("a blanked sysName lets the PTR name name the host", () => {
+    /*
+     * The consequence that matters, stated end to end: the row is not merely
+     * safe, it produces the RIGHT name. This is what would have regressed if
+     * the junk had been stringified.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: null as unknown as string,
+        dnsHostname: "core-gw.corp.example.com",
+      }),
+    ]);
+
+    expect(getDiscoveredHostDisplayName(normalized!)).toBe(
+      "core-gw.corp.example.com",
+    );
+  });
+
+  test("naming a host with a junk sysName never throws", () => {
+    /*
+     * The failure this whole block exists for: `(42).trim()` is a TypeError,
+     * and since the dashboard row started calling the shared naming function
+     * that TypeError is thrown during render — inside the modal body, taking
+     * out the entire Review dialog rather than one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: {} as unknown as string }),
+    ]);
+
+    for (const row of rows) {
+      expect(() => {
+        return getDiscoveredHostDisplayName(row);
+      }).not.toThrow();
+    }
+  });
+
+  test("a string sysName is passed through untouched, including its whitespace", () => {
+    /*
+     * Only NON-strings are rewritten. Trimming here would be a second opinion
+     * on a decision getDiscoveredHostDisplayName already makes, and the two
+     * could drift.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ sysName: "  core-switch-01  " }),
+    ]);
+
+    expect(normalized?.sysName).toBe("  core-switch-01  ");
+  });
+
+  test("a host with no sysName does not gain the key", () => {
+    /*
+     * `sysName` is optional, and `"sysName" in host` is a question other code
+     * is entitled to ask. Coercing an absent field into an empty string would
+     * change that answer for every ping-only host in every scan.
+     */
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("sysName");
+  });
+
+  test("coercion survives a second pass unchanged", () => {
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string, dnsHostname: "gw.example.com" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
   });
 });

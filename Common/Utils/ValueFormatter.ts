@@ -686,17 +686,51 @@ export default class ValueFormatter {
    * [0, 1] ratio. Pair with unit "1" to render values as percentages.
    *
    * Conventions covered:
-   *   - OTel `.utilization` (system.cpu.utilization, k8s.node.cpu.utilization, …)
+   *   - OTel `.utilization` (system.cpu.utilization, …)
    *   - OTel `.ratio` and `.fraction` (db.client.connection.usage_ratio, …)
    *   - Prometheus-style `_utilization` / `_ratio` / `_fraction` suffixes
    *   - Plain `_percent` / `.percent` / `_percentage` / `.percentage` names
    *
    * Adding a new suffix is one regex edit — no per-metric allowlist.
+   *
+   * The two kubeletstats exclusions below are not taste. The receiver
+   * emits `k8s.pod.cpu.utilization` and `k8s.node.cpu.utilization` as CPU
+   * *cores in use* (UsageNanoCores / 1e9) carrying unit "1", despite the
+   * `.utilization` name. Four other places in this repo already say so:
+   * the header comment on Pages/Kubernetes/Utils/KubernetesCpuUtils.ts,
+   * OtelMetricsIngestService.cpuCoresToPercent (which divides by
+   * k8s.node.allocatable_cpu rather than multiplying by 100), the "CPU
+   * widgets show cores, not a percent" note in DashboardTemplates.ts, and
+   * the highCpuTemplate description in KubernetesAlertTemplates.ts
+   * ("the raw k8s.node.cpu.utilization metric is a misnamed cores gauge,
+   * not a percent"). Matching them here multiplies cores by 100 — which is
+   * what rendered 0.1831 cores as "18.31%" on the same evaluation page
+   * that showed the pod at 91.55% of its CPU limit.
+   *
+   * The exclusion is anchored to those two exact names, so the genuine
+   * ratio metrics from the same receiver — k8s.pod.cpu_limit_utilization,
+   * k8s.container.cpu_request_utilization and friends — still match and
+   * still render as percents.
+   *
+   * `container.cpu.utilization` is DELIBERATELY not excluded. That exact
+   * metric name is emitted both by kubeletstats (cores) and by
+   * docker_stats, and this repo does not currently agree with itself on
+   * the docker_stats scale — OtelMetricsIngestService.cpuValueToPercent
+   * multiplies the raw value by 100 while Pages/Docker/View/Containers.tsx
+   * renders the same raw value with a "%" suffix and no scaling.
+   * Excluding it here would silently pick a side of that contradiction.
    */
   public static isFractionMetric(metricName: string | undefined): boolean {
     if (!metricName) {
       return false;
     }
+
+    const kubeletstatsCoresGaugeMisnamedAsUtilization: RegExp =
+      /^k8s\.(node|pod)\.cpu\.utilization$/i;
+    if (kubeletstatsCoresGaugeMisnamedAsUtilization.test(metricName.trim())) {
+      return false;
+    }
+
     const fractionMetricSuffixRegex: RegExp =
       /[._](utilization|ratio|fraction|percent|percentage)$/i;
     return fractionMetricSuffixRegex.test(metricName);

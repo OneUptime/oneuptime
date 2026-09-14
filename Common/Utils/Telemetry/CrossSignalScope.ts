@@ -10,15 +10,23 @@ import MetricExplorerUrl, {
   MetricExplorerUrlParam,
   SerializedMetricQuery,
 } from "../Metrics/MetricExplorerUrl";
+import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
 
 /*
  * Matches any whitespace, double-quote, or colon — the characters that break a
- * bare traces search token. Kept as named consts so the linter doesn't fight
- * over wrapping an inline regex literal used with .test() (wrap-regex vs
- * prettier).
+ * bare traces search token KEY (the grammar escapes values, but a key is read
+ * up to the first colon and cannot be quoted). Kept as a named const so the
+ * linter doesn't fight over wrapping an inline regex literal used with .test()
+ * (wrap-regex vs prettier).
  */
 const TRACE_TOKEN_UNSAFE_CHARS: RegExp = /[\s":]/;
-const WHITESPACE: RegExp = /\s/;
+
+/*
+ * A literal percent cannot ride the traces `search` param: TracesViewer
+ * decodeURIComponent()s it a SECOND time (readInitialUrlState, on the value
+ * URLSearchParams already decoded), so "a%20b" would arrive as "a b".
+ */
+const PERCENT: RegExp = /%/;
 
 /*
  * Cross-signal scope translation: turn one description of "what slice of
@@ -41,12 +49,15 @@ const WHITESPACE: RegExp = /\s/;
  *    `end` (parsed with `new Date(...)`). There is no `search` param.
  *
  *  - Traces explorer (App/FeatureSet/Dashboard/src/Components/Traces/
- *    TracesViewer.tsx, readInitialUrlState + parseSearch): `search` is a
- *    Datadog-style DSL (`trace:<id>`, `span:<id>`, `@<attr>:<value>`, with
- *    double quotes around values containing spaces); `filters` is a JSON
- *    array of [facetKey, value] string pairs where facetKey may be
- *    `primaryEntityId` (service ObjectID) or `attributes.<key>`;
- *    `range`/`start`/`end` follow the same Custom convention as logs.
+ *    TracesViewer.tsx, readInitialUrlState + TracesSearchCompile): `search`
+ *    is the shared telemetry grammar (Types/Telemetry/TelemetrySearchQuery)
+ *    with the trace field names — `trace:<id>`, `span:<id>`,
+ *    `@<attr>:<value>` — so values are escaped by that grammar's own
+ *    buildSearchTokenValue rather than by rules restated here. `filters` is a
+ *    JSON array of [facetKey, value] string pairs where facetKey may be
+ *    `primaryEntityId` (service ObjectID) or `attributes.<key>`; an
+ *    `attributes.` chip value is re-parsed by the grammar, so it is escaped
+ *    too. `range`/`start`/`end` follow the same Custom convention as logs.
  *
  *  - Metric explorer (Common/Utils/Metrics/MetricExplorerUrl.ts): the
  *    JSON-encoded `metricQueries` param plus absolute `startTime`/`endTime`
@@ -391,39 +402,20 @@ function isTraceTokenSafeKey(key: string): boolean {
 /*
  * Whether a value can ride in a traces search token, and how.
  *
- *  - values with whitespace get double-quoted (`@k:"a b"` — the tokenizer's
- *    quoted-token branch);
- *  - values containing a double quote cannot be represented (the grammar
- *    has no escape sequence — `"[^"]*"` stops at the first quote);
- *  - values starting with "~" would flip an exact match into the
- *    contains-match operator (quoting does NOT protect it: parseSearch
- *    strips quotes before the startsWith("~") check);
- *  - values containing "%" risk corruption because TracesViewer
- *    double-decodes the `search` param (decodeURIComponent on the already-
- *    decoded value, TracesViewer.tsx readInitialUrlState) — "a%20b" would
- *    come out as "a b".
- *
- * Unrepresentable values fall back to a `filters` chip, which is plain JSON
- * and can carry anything.
+ * The escaping is the shared search grammar's own
+ * ({@link buildSearchTokenValue}), which is what the traces explorer now
+ * parses with: quotes, wildcards, a leading `~` and a leading `-` all have
+ * escapes, so the quote / tilde values that used to need a chip fallback ride
+ * a token intact. Only a literal percent still cannot — that is a URL
+ * round-trip problem, not a grammar one — and falls back to a `filters` chip,
+ * which is plain JSON and can carry anything.
  */
 function buildTraceSearchTokenValue(value: string): string | null {
-  if (value.includes('"')) {
+  if (PERCENT.test(value)) {
     return null;
   }
 
-  if (value.includes("%")) {
-    return null;
-  }
-
-  if (value.startsWith("~")) {
-    return null;
-  }
-
-  if (WHITESPACE.test(value)) {
-    return `"${value}"`;
-  }
-
-  return value;
+  return buildSearchTokenValue(value);
 }
 
 /**
@@ -475,7 +467,13 @@ export function toTracesExplorerQueryParams(
     if (tokenValue !== null) {
       searchTokens.push(`@${key}:${tokenValue}`);
     } else {
-      filterTuples.push([`attributes.${key}`, value]);
+      /*
+       * An `attributes.<key>` chip is re-parsed by the same grammar when the
+       * explorer builds its query, so the fallback carries an escaped token
+       * too — a raw `99%` is inert, but a raw `/api/*` would come back as a
+       * wildcard matching far more than the scope asked for.
+       */
+      filterTuples.push([`attributes.${key}`, buildSearchTokenValue(value)]);
     }
   }
 

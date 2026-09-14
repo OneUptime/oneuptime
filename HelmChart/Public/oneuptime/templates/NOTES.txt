@@ -9,6 +9,37 @@ One all the pods are running. You can check the service status to see if the IP 
 kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
 
 You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+{{- $legacyCacheKeys := list }}
+{{- if .Values.redis }}{{- $legacyCacheKeys = append $legacyCacheKeys "redis" }}{{- end }}
+{{- if .Values.externalRedis }}{{- $legacyCacheKeys = append $legacyCacheKeys "externalRedis" }}{{- end }}
+{{- if $legacyCacheKeys }}
+
+DEPRECATED VALUES: {{ join ", " $legacyCacheKeys }}
+
+The cache and queue tier runs Valkey, and its values moved from `redis:` /
+`externalRedis:` to `valkey:` / `externalValkey:`. Your values file still uses
+the old keys. They still work -- anything you set under them is layered on top
+of the new defaults, and the legacy name WINS where you have set the same
+setting under both. Rename them when convenient; nothing breaks until you do.
+{{- end }}
+{{- $legacyCacheEnv := list }}
+{{- range (.Values.extraEnv | default list) }}
+{{- if hasPrefix "REDIS_" .name }}{{- $legacyCacheEnv = append $legacyCacheEnv .name }}{{- end }}
+{{- end }}
+{{- if $legacyCacheEnv }}
+
+ACTION REQUIRED -- extraEnv overrides no longer reach the cache: {{ join ", " $legacyCacheEnv }}
+
+extraEnv is appended last, so these still win the REDIS_* slots -- but the app
+now reads VALKEY_* first, and this chart sets those to its own cache. Your
+override is present in the pod spec and ignored.
+
+Rename them to VALKEY_* (VALKEY_HOST, VALKEY_PORT, VALKEY_PASSWORD, VALKEY_DB,
+VALKEY_USERNAME, VALKEY_IP_FAMILY, VALKEY_TLS_CA/CERT/KEY), or move the settings
+to the `externalValkey:` block, which is the supported way to point at a cache
+this chart does not run. The same applies to any per-service `<service>.extraEnv`
+and to a docker-compose.override.yml that sets REDIS_* by hand.
+{{- end }}
 {{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
 
 The bundled KEDA operator is installed, but this release renders no ScaledObject

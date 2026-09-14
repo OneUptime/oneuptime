@@ -81,6 +81,10 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- end }}
+      {{- with (default $.Values.extraVolumes $.Values.migrate.extraVolumes) }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         # Wait for Postgres to accept TCP connections before migrating. As a
         # post-install hook this Job can start before the bundled Postgres /
@@ -123,6 +127,13 @@ spec:
             - name: CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS
               value: {{ .Values.migrate.clickhouseDistributedDdlTaskTimeoutSeconds | squote }}
             {{- end }}
+            {{- with (default $.Values.extraEnv $.Values.migrate.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with (default $.Values.extraVolumeMounts $.Values.migrate.extraVolumeMounts) }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.migrate.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

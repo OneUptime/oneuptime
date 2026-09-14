@@ -6,7 +6,22 @@ import RumApplicationService from "../../../Server/Services/RumApplicationServic
 import RumSessionReplayViewService from "../../../Server/Services/RumSessionReplayViewService";
 import RumSessionService from "../../../Server/Services/RumSessionService";
 import RumSessionChunkService from "../../../Server/Services/RumSessionChunkService";
+import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import SessionReplayIdentity from "../../../Server/Utils/SessionReplay/SessionReplayIdentity";
+import SessionReplayReadService, {
+  DEFAULT_SESSION_REPLAY_USERS_LIMIT,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
+  SessionReplayUsersRequest,
+} from "../../../Server/Utils/SessionReplay/SessionReplayReadService";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_READ,
+  SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+  SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS,
+  SESSION_REPLAY_MAX_SESSION_MS,
+} from "../../../Types/Rum/SessionReplay";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import RumSessionReplayView from "../../../Models/DatabaseModels/RumSessionReplayView";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -29,7 +44,8 @@ import Permission, {
 } from "../../../Types/Permission";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import UserType from "../../../Types/UserType";
-import { MAX_SESSION_REPLAY_CHUNKS_PER_READ } from "../../../Types/Rum/SessionReplay";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
+import zlib from "zlib";
 import {
   afterEach,
   beforeAll,
@@ -116,6 +132,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
+const SUMMARIES_ROUTE: string = "/telemetry/rum/session-replay/summaries";
 const MANIFEST_ROUTE: string = "/telemetry/rum/session-replay/manifest";
 const CHUNKS_ROUTE: string = "/telemetry/rum/session-replay/chunks";
 const HEARTBEAT_ROUTE: string = "/telemetry/rum/session-replay/heartbeat";
@@ -123,6 +140,11 @@ const FOR_EXCEPTION_ROUTE: string =
   "/telemetry/rum/session-replay/for-exception";
 const INGEST_STATUS_ROUTE: string =
   "/telemetry/rum/session-replay/ingest-status";
+const VIEWS_ROUTE: string = "/telemetry/rum/session-replay/views";
+const USERS_ROUTE: string = "/telemetry/rum/session-replay/users";
+
+/* A visitor id as the recorder mints it: 32 lowercase hex characters. */
+const VISITOR_ID: string = "0123456789abcdef0123456789abcdef";
 
 function findRoute(uri: string): RecordedRoute {
   const route: RecordedRoute | undefined = recordedRoutes.find(
@@ -165,6 +187,12 @@ async function callRoute(data: {
   uri: string;
   request: JSONObject;
   body: JSONObject;
+  /*
+   * Extra request headers (e.g. accept-encoding). Absent by default so
+   * every test that does not name one runs the identity path exactly as
+   * before the chunk route learned to gzip.
+   */
+  headers?: Dictionary<string>;
 }): Promise<CallResult> {
   const route: RecordedRoute = findRoute(data.uri);
 
@@ -176,7 +204,7 @@ async function callRoute(data: {
     body: data.body,
     params: {},
     query: {},
-    headers: { "user-agent": "jest-agent" },
+    headers: { "user-agent": "jest-agent", ...(data.headers ?? {}) },
   } as unknown as ExpressRequest;
 
   const res: ExpressResponse = {
@@ -413,6 +441,7 @@ describe("Session replay playback API", () => {
 
   let headerQuerySpy: jest.SpyInstance;
   let chunkQuerySpy: jest.SpyInstance;
+  let exceptionQuerySpy: jest.SpyInstance;
   let findOneBySpy: jest.SpyInstance;
   let findBySpy: jest.SpyInstance;
   let recordViewSpy: jest.SpyInstance;
@@ -448,6 +477,18 @@ describe("Session replay playback API", () => {
     chunkQuerySpy = jest
       .spyOn(RumSessionChunkService, "executeQuery")
       .mockResolvedValue(fakeResultSet([]) as never);
+
+    /*
+     * The exception -> replay lookup consults the exception instance
+     * table for live sessions before it reads headers. Empty by default;
+     * the for-exception suite overrides it where the side index matters.
+     */
+    exceptionQuerySpy = jest
+      .spyOn(ExceptionInstanceService, "executeQuery")
+      .mockResolvedValue(fakeResultSet([]) as never);
+
+    SessionReplayReadService.clearActivitySummaryCache();
+    SessionReplayReadService.setPublishedRecorderVersionProvider(null);
 
     findOneBySpy = jest.spyOn(RumApplicationService, "findOneBy");
     findBySpy = jest.spyOn(RumApplicationService, "findBy");
@@ -526,12 +567,15 @@ describe("Session replay playback API", () => {
   }
 
   describe("guard shape", () => {
-    test("all six routes are registered and every one carries the three-middleware guard", () => {
+    test("all nine routes are registered and every one carries the three-middleware guard", () => {
       for (const uri of [
         LIST_ROUTE,
+        SUMMARIES_ROUTE,
+        USERS_ROUTE,
         MANIFEST_ROUTE,
         CHUNKS_ROUTE,
         HEARTBEAT_ROUTE,
+        VIEWS_ROUTE,
         FOR_EXCEPTION_ROUTE,
         INGEST_STATUS_ROUTE,
       ]) {
@@ -562,11 +606,28 @@ describe("Session replay playback API", () => {
       expect(listGuard).toBeDefined();
       expect(payloadGuard).not.toBe(listGuard);
 
-      for (const uri of [MANIFEST_ROUTE, CHUNKS_ROUTE, HEARTBEAT_ROUTE]) {
+      for (const uri of [
+        MANIFEST_ROUTE,
+        CHUNKS_ROUTE,
+        HEARTBEAT_ROUTE,
+        VIEWS_ROUTE,
+      ]) {
         expect(findRoute(uri).handlers[2]).toBe(payloadGuard);
       }
 
       expect(findRoute(FOR_EXCEPTION_ROUTE).handlers[2]).toBe(listGuard);
+      /* The rollup projects nothing the list does not: same guard instance. */
+      expect(findRoute(USERS_ROUTE).handlers[2]).toBe(listGuard);
+      /*
+       * Audit summaries admit audit-only roles so optional enrichment cannot
+       * redirect them, but the handler exposes metadata only after a separate
+       * application-scoped list-permission check.
+       */
+      const summaryGuard: RouterFunction | undefined =
+        findRoute(SUMMARIES_ROUTE).handlers[2];
+      expect(summaryGuard).toBeDefined();
+      expect(summaryGuard).not.toBe(listGuard);
+      expect(summaryGuard).not.toBe(payloadGuard);
     });
   });
 
@@ -607,7 +668,7 @@ describe("Session replay playback API", () => {
       );
     });
 
-    test("both chunk queries filter on the application resolved from the header", async () => {
+    test("the chunk query filters on the application resolved from the header", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
@@ -621,13 +682,11 @@ describe("Session replay playback API", () => {
       mockSessionHeader(applicationAId);
       mockApplication({ id: applicationAId, labelIds: [] });
 
-      chunkQuerySpy
-        .mockResolvedValueOnce(
-          fakeResultSet([{ chunkIndex: 0, chunkStoredBytes: 3 }]) as never,
-        )
-        .mockResolvedValueOnce(
-          fakeResultSet([{ chunkIndex: 0, payload: "[1]" }]) as never,
-        );
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
 
       await callRoute({
         uri: CHUNKS_ROUTE,
@@ -636,23 +695,85 @@ describe("Session replay playback API", () => {
           sessionId: "session-1",
           tabId: "tab-1",
           chunkIndexes: [0],
-          /* A caller-supplied application id must change nothing. */
+        },
+      });
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
+
+      const statement: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
+      expect(statement.query).toContain("rumApplicationId = ");
+      expect(Object.values(statement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+      expect(Object.values(statement.query_params)).not.toContain(
+        applicationBId.toString(),
+      );
+    });
+
+    /*
+     * A caller-supplied rumApplicationId is a DISAMBIGUATOR: it narrows
+     * which header row is read, and the application THAT row names is
+     * what gets authorized. Naming an application the session was never
+     * recorded under finds no header, so it cannot widen access.
+     */
+    test("a caller-supplied rumApplicationId only narrows the header read and is authorized on its own merits", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      /* No header exists under application B, whatever the body says. */
+      headerQuerySpy.mockResolvedValue(fakeResultSet([]) as never);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
           rumApplicationId: applicationBId.toString(),
         },
       });
 
-      expect(chunkQuerySpy).toHaveBeenCalledTimes(2);
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain("rumApplicationId = ");
+      expect(Object.values(headerStatement.query_params)).toContain(
+        applicationBId.toString(),
+      );
 
-      for (const call of chunkQuerySpy.mock.calls) {
-        const statement: Statement = call[0] as Statement;
-        expect(statement.query).toContain("rumApplicationId = ");
-        expect(Object.values(statement.query_params)).toContain(
-          applicationAId.toString(),
-        );
-        expect(Object.values(statement.query_params)).not.toContain(
-          applicationBId.toString(),
-        );
-      }
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a malformed disambiguator is a bad request", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1", rumApplicationId: "nope" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+      expect(recordViewSpy).not.toHaveBeenCalled();
     });
 
     test("a sessionId that exists under two applications is refused rather than resolved to the newest", async () => {
@@ -1086,6 +1207,468 @@ describe("Session replay playback API", () => {
       expect(query).toContain("timeout_overflow_mode = 'throw'");
     });
 
+    /*
+     * Watching implies listing.
+     *
+     * RumSession's table read ACL contains ReadRumSessionReplayPayload for a
+     * reason it states outright: a role granted only the watch permission
+     * could fetch payloads - the payload routes authorize on it alone - while
+     * being 401'd on the manifest and the list, which is an incoherent grant
+     * rather than a safer one. The list guard did not mirror it, so the
+     * natural support-engineer role ("Watch Session Replays" + "Read RUM
+     * Application") got a permission error on the session list and a silently
+     * missing "Watch what the user saw" card on every exception page.
+     */
+    test("a caller with only the watch permission can still list sessions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a Viewer still cannot list sessions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.Viewer],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The identity filter takes the end-user REFERENCE a person can see in
+     * the list, and the server derives the digest with the same per-project
+     * HMAC the ingest used. It used to take the digest itself - a value
+     * displayed nowhere in the product and computed by no endpoint - so
+     * every input a human could plausibly type returned nothing.
+     */
+    test("an end-user reference is hashed server side before it reaches the query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        /* Holds the narrower identity permission - see the gate test below. */
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const expectedKey: string = SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: "jane@example.com",
+      });
+
+      const bound: string = JSON.stringify(statement.query_params);
+
+      /* The raw reference must never reach the query. */
+      expect(bound).not.toContain("jane@example.com");
+      expect(bound).toContain(expectedKey);
+    });
+
+    /*
+     * The identity FILTER is gated by the same ACL as the identity COLUMN.
+     *
+     * Without this, a caller deliberately denied the label could still ask
+     * "does jane@example.com have sessions here" and read every other field
+     * of the answer - a dictionary attack that de-anonymises the list one
+     * candidate at a time, and hands back identifiedUserKey as a stable
+     * pseudonym to join against the route filter. It only became reachable
+     * once the ingest started populating the column; before that the
+     * predicate matched nothing whoever asked.
+     */
+    test("a caller without the identity permission cannot filter by end user", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        /* Can list, deliberately excluded from SESSION_REPLAY_IDENTITY_PERMISSIONS. */
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const expectedKey: string = SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: "jane@example.com",
+      });
+
+      /* Neither the reference nor its digest may reach the query. */
+      const bound: string = JSON.stringify(statement.query_params);
+
+      expect(bound).not.toContain("jane@example.com");
+      expect(bound).not.toContain(expectedKey);
+
+      /*
+       * aggIdentifiedUserKey is always a SELECT alias; what must be absent
+       * is the HAVING predicate over it.
+       */
+      expect(statement.query).not.toContain("aggIdentifiedUserKey =");
+    });
+
+    /*
+     * Dropping the filter silently is the dangerous half of that gate. The
+     * request "show me jane@example.com's sessions" then answers 200 with
+     * every session in the application and the caller has no way to tell -
+     * least of all when the application has no sessions at all, where even
+     * inspecting the rows cannot reveal it. A support engineer opens the
+     * wrong recording, and each opening writes an audit row against a real
+     * end user. The Dashboard already reads this field and shows a notice.
+     */
+    /*
+     * The visitor id is the recorder's own random per-browser token, and
+     * the list already hands it to every caller on every row - so filtering
+     * by it discloses nothing the caller does not have, and it is NOT gated
+     * like identifiedUserRef. A TelemetryAdmin denied the label can still
+     * ask for "every session from this browser", and the filter is applied,
+     * not dropped and named in ignoredFilters.
+     */
+    test("filters.visitorId is bound into the query for a caller without the identity permission, never dropped", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { visitorId: VISITOR_ID },
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const having: string = statement.query.substring(
+        statement.query.indexOf("HAVING 1 = 1"),
+      );
+
+      expect(having).toMatch(/AND aggVisitorId = \{p\d+:String\}/);
+      expect(statement.query).not.toContain(`'${VISITOR_ID}'`);
+      expect(Object.values(statement.query_params)).toContain(VISITOR_ID);
+      /* Nothing identity-gated was named for it. */
+      expect(statement.query).not.toContain("identifiedUserLabel");
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+    });
+
+    /*
+     * A visitor id that is not one can match nothing, and an unfiltered
+     * list with a 200 is the wrong answer to "every session from this
+     * browser" - the same reasoning as an unusable identifiedUserRef.
+     */
+    test.each([
+      "0123456789ABCDEF0123456789ABCDEF",
+      "0123456789abcdef",
+      "",
+      42,
+      true,
+      { visitorId: VISITOR_ID },
+      [VISITOR_ID],
+    ])(
+      "filters.visitorId %p is a bad request, never an unfiltered list",
+      async (value: unknown) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = ownerPrincipal();
+
+        const result: CallResult = await callRoute({
+          uri: LIST_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            filters: { visitorId: value as string },
+          },
+        });
+
+        expect(result.deniedWith).toBeInstanceOf(BadDataException);
+        expect(result.deniedWith?.message).toContain("visitorId");
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a null visitorId filter is 'no filter', like an absent one", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { visitorId: null },
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).not.toContain("aggVisitorId =");
+    });
+
+    test("the list projects each session's digest and visitor id for every caller", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "a",
+            applicationId: applicationAId.toString(),
+            aggIdentifiedUserKey: "hmac-1",
+            aggVisitorId: VISITOR_ID,
+          },
+          { sessionId: "b", applicationId: applicationAId.toString() },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const sessions: Array<JSONObject> = (result.jsonBody as JSONObject)[
+        "sessions"
+      ] as unknown as Array<JSONObject>;
+
+      expect(sessions[0]!["identifiedUserKey"]).toBe("hmac-1");
+      expect(sessions[0]!["visitorId"]).toBe(VISITOR_ID);
+      /* An older recorder's session: "", never undefined. */
+      expect(sessions[1]!["visitorId"]).toBe("");
+    });
+
+    test("a dropped identity filter is NAMED in the response, not silently ignored", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
+        "identifiedUserRef",
+      ]);
+    });
+
+    test("a list that honoured every filter says so with an empty ignoredFilters", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      /*
+       * Always present, so a client never has to tell "nothing was ignored"
+       * apart from "an older server that never said".
+       */
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+    });
+
+    /*
+     * Every array filter becomes an `IN (...)` inside a HAVING that
+     * ClickHouse evaluates per group over the whole window, so an uncapped
+     * array is the caller's length times the sessions in range - a cheap
+     * denial of service for anyone holding the list permission.
+     */
+    test("filter arrays and free-text filters are capped before they reach the query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const manyBrowsers: Array<string> = [];
+
+      for (let index: number = 0; index < 5000; index++) {
+        manyBrowsers.push(`browser-${index}`);
+      }
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: {
+            browserNames: manyBrowsers,
+            route: "r".repeat(10_000),
+          },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const bound: Array<unknown> = Object.values(statement.query_params);
+
+      const browserArray: Array<string> | undefined = bound.find(
+        (value: unknown): boolean => {
+          return Array.isArray(value) && (value as Array<string>).length > 1;
+        },
+      ) as Array<string> | undefined;
+
+      expect(browserArray).toBeDefined();
+      expect(browserArray!.length).toBeLessThanOrEqual(50);
+
+      const routeValue: string | undefined = bound.find(
+        (value: unknown): boolean => {
+          return typeof value === "string" && value.startsWith("rrr");
+        },
+      ) as string | undefined;
+
+      expect(routeValue).toBeDefined();
+      expect(routeValue!.length).toBeLessThanOrEqual(256);
+    });
+
+    /*
+     * A filter the server cannot honour must be refused, not dropped. The
+     * silent-drop shape returns the WHOLE project's sessions with a 200 and
+     * gives the caller no way to tell that the person they asked about was
+     * not the one being answered about.
+     */
+    test("an unusable end-user reference is refused, not silently ignored", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "z".repeat(4096) },
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
     test("omits identifiedUserLabel for a caller without the narrower identity permission", async () => {
       const principal: {
         request: JSONObject;
@@ -1263,6 +1846,1435 @@ describe("Session replay playback API", () => {
         "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
       );
     });
+
+    /*
+     * `false` means "sessions with NO frustration signals" and must be
+     * honoured, not dropped. The route admits any boolean and hasError /
+     * isFinalized beside it both honour false, so accepting the value and
+     * ignoring it returned the whole unfiltered list with a 200 and no
+     * indication why. The Dashboard never sends it, so this branch has no
+     * producer and this is its only cover.
+     */
+    test("hasFrustration false selects the clean sessions rather than being dropped", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { hasFrustration: false },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(statement.query).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) = 0",
+      );
+      expect(statement.query).not.toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+      );
+    });
+
+    function ownerPrincipal(): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      return principal;
+    }
+
+    test("the new quick filters, url prefix and tags reach the query as HAVING predicates", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: {
+            hasIdentifiedUser: true,
+            isPlayable: true,
+            hasTraces: true,
+            urlPrefix: "/checkout",
+            tags: { build: "1.2.3", ignored: 4 },
+          },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const having: string = statement.query.substring(
+        statement.query.indexOf("HAVING 1 = 1"),
+      );
+
+      expect(having).toContain("aggIdentifiedUserKey != ''");
+      expect(having).toContain("aggIsFinalized = 0 OR aggChunkCount > 0");
+      expect(having).toContain("aggTraceCount > 0");
+      expect(having).toContain("arrayExists(r -> startsWith(r, ");
+      expect(having).toContain("mapContains(aggTags, ");
+
+      const bound: Array<unknown> = Object.values(statement.query_params);
+      expect(bound).toContain("/checkout");
+      expect(bound).toContain("build");
+      expect(bound).toContain("1.2.3");
+      /* A non-string tag value is not a filter. */
+      expect(bound).not.toContain("ignored");
+    });
+
+    test("search is bound into the query, and names the label only for an identity-permitted caller", async () => {
+      const owner: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: owner.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "2026-08-01T00:00:00.000Z",
+          endTime: "2026-08-08T00:00:00.000Z",
+          filters: { search: "jane" },
+        },
+      });
+
+      const permitted: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(permitted.query).toContain(
+        "positionCaseInsensitiveUTF8(aggIdentifiedUserLabel, ",
+      );
+      expect(permitted.query).not.toContain("'jane'");
+      expect(Object.values(permitted.query_params)).toContain("jane");
+
+      jest.clearAllMocks();
+
+      const telemetryAdmin: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(telemetryAdmin.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: telemetryAdmin.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "2026-08-01T00:00:00.000Z",
+          endTime: "2026-08-08T00:00:00.000Z",
+          filters: { search: "jane" },
+        },
+      });
+
+      const gated: Statement = headerQuerySpy.mock.calls[0]![0] as Statement;
+      expect(gated.query).toContain("startsWith(sessionId, ");
+      expect(gated.query).not.toContain("identifiedUserLabel");
+    });
+
+    test("a search longer than the cap is refused before any query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: {
+            search: "x".repeat(SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH + 1),
+          },
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(BadDataException);
+      expect(result.deniedWith?.message).toContain(
+        `${SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH}`,
+      );
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a search over a window wider than the cap says to narrow the range, distinctly", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const endTime: Date = new Date("2026-08-08T00:00:00.000Z");
+      const startTime: Date = new Date(
+        endTime.getTime() -
+          (SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS + 1) *
+            24 *
+            60 *
+            60 *
+            1000,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          filters: { search: "acme" },
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(BadDataException);
+      expect(result.deniedWith?.message).toMatch(/narrow the range/i);
+      expect(result.deniedWith?.message).toContain(
+        `${SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS} days`,
+      );
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+
+      /* The same window WITHOUT a search is fine. */
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const unsearched: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        },
+      });
+
+      expect(unsearched.deniedWith).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("an unknown sortBy is a bad request", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sortBy: "payloadBytes",
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("sortBy orders the query and the next cursor carries the sort key", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { sessionId: "a", aggErrorCount: 9, aggStartTime: 3 },
+          { sessionId: "b", aggErrorCount: 4, aggStartTime: 2 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sortBy: "errorCount",
+          limit: 1,
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain(
+        "ORDER BY aggErrorCount DESC, sessionId DESC",
+      );
+
+      expect((result.jsonBody as JSONObject)["nextCursor"]).toEqual({
+        sortBy: "errorCount",
+        sortValue: 9,
+        sessionId: "a",
+      });
+    });
+
+    test("the newest-first list still emits and accepts the legacy cursor shape", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { sessionId: "a", aggStartTime: 1700000002000 },
+          { sessionId: "b", aggStartTime: 1700000001000 },
+        ]) as never,
+      );
+
+      const firstPage: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString(), limit: 1 },
+      });
+
+      expect((firstPage.jsonBody as JSONObject)["nextCursor"]).toEqual({
+        startTimeUnixMs: 1700000002000,
+        sessionId: "a",
+      });
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          limit: 1,
+          cursor: { startTimeUnixMs: 1700000002000, sessionId: "a" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toMatch(
+        /AND \(aggStartTime < \{p\d+:Double\} OR \(aggStartTime = \{p\d+:Double\} AND sessionId < \{p\d+:String\}\)\)/,
+      );
+      expect(Object.values(statement.query_params)).toContain("a");
+    });
+
+    test("a cursor from another ordering, or a malformed one, is refused", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const mismatched: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sortBy: "durationMs",
+          cursor: { sortBy: "errorCount", sortValue: 3, sessionId: "a" },
+        },
+      });
+
+      expect(mismatched.thrownToNext).toBeInstanceOf(BadDataException);
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const malformed: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          cursor: { nonsense: true },
+        },
+      });
+
+      expect(malformed.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * parseSessionReplayListCursor only checks Number.isFinite, so 1e300
+     * passes it - and for the startTime ordering it becomes
+     * `new Date(1e300)`, an Invalid Date that renders as NaN text and is
+     * rejected by the ClickHouse driver. A crafted or corrupted cursor
+     * answered 500 instead of the 400 the handler promises.
+     */
+    test("a cursor sortValue that cannot be bound is a 400, never a driver error", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const absurd: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          cursor: { startTimeUnixMs: 1e300, sessionId: "a" },
+        },
+      });
+
+      expect(absurd.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      /* A count cannot be negative, so no page begins there either. */
+      const negative: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sortBy: "errorCount",
+          cursor: { sortBy: "errorCount", sortValue: -1, sessionId: "a" },
+        },
+      });
+
+      expect(negative.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test.each([2.5, 0, -1, "20"])(
+      "limit %p is a bad request rather than a ClickHouse error",
+      async (limit: unknown) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = ownerPrincipal();
+
+        const result: CallResult = await callRoute({
+          uri: LIST_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            limit: limit as number,
+          },
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect((result.thrownToNext as Exception).message).toContain("limit");
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("an unparseable startTime, or a window that ends before it starts, is a bad request", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const garbage: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "yesterday-ish",
+        },
+      });
+
+      expect(garbage.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const inverted: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "2026-08-08T00:00:00.000Z",
+          endTime: "2026-08-01T00:00:00.000Z",
+        },
+      });
+
+      expect(inverted.deniedWith).toBeInstanceOf(BadDataException);
+      expect(inverted.deniedWith?.message).toContain("startTime");
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("projects the new list columns, with traits only for an identity-permitted caller", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "a",
+            applicationId: applicationAId.toString(),
+            aggStartTime: 1700000000000,
+            aggEndTime: 1700000090000,
+            aggRoutes: ["/a", "/b"],
+            aggTraceCount: 2,
+            aggExceptionGroupCount: 1,
+            aggClickCount: 12,
+            aggActiveMs: 50000,
+            aggFirstErrorOffsetMs: 3000,
+            aggExpiresAt: 1700604800000,
+            aggTags: { env: "prod" },
+            aggIdentifiedUserLabel: "jane@example.com",
+            aggIdentifiedUserTraits: { plan: "pro" },
+          },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const sessions: Array<JSONObject> = (result.jsonBody as JSONObject)[
+        "sessions"
+      ] as unknown as Array<JSONObject>;
+      const row: JSONObject = sessions[0]!;
+
+      expect(row["routes"]).toEqual(["/a", "/b"]);
+      expect(row["traceCount"]).toBe(2);
+      expect(row["exceptionGroupCount"]).toBe(1);
+      expect(row["clickCount"]).toBe(12);
+      expect(row["activeMs"]).toBe(50000);
+      expect(row["firstErrorOffsetMs"]).toBe(3000);
+      expect(row["expiresAtUnixMs"]).toBe(1700604800000);
+      expect(row["tags"]).toEqual({ env: "prod" });
+      expect(row["startTimeUnixMs"]).toBe(1700000000000);
+      expect(row["endTimeUnixMs"]).toBe(1700000090000);
+      expect(row["identifiedUserLabel"]).toBe("jane@example.com");
+      expect(row["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    });
+  });
+
+  describe("session summary batch", () => {
+    function principalWith(
+      permissions: Array<Permission>,
+      labelIds: Array<ObjectID> = [],
+    ): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+        labelIds: labelIds,
+      });
+
+      mockProps(principal.databaseProps);
+      return principal;
+    }
+
+    function summaryRow(data: {
+      sessionId: string;
+      startTimeUnixMs: number;
+      entryUrl: string;
+    }): JSONObject {
+      return {
+        sessionId: data.sessionId,
+        aggStartTime: data.startTimeUnixMs,
+        aggDurationMs: 62000,
+        aggEntryUrl: data.entryUrl,
+        aggBrowserName: "Chrome",
+        aggBrowserVersion: "128",
+        aggOsName: "macOS",
+        aggDeviceType: "desktop",
+        /* Even a surprising driver row cannot add identity to the reply. */
+        aggIdentifiedUserLabel: "jane@example.com",
+        aggVisitorId: VISITOR_ID,
+      };
+    }
+
+    test("returns compact summaries in request order from one application-pinned query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay]);
+
+      mockApplication({ id: applicationAId, labelIds: [] });
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          summaryRow({
+            sessionId: "session-b",
+            startTimeUnixMs: 1700000200000,
+            entryUrl: "https://example.com/checkout",
+          }),
+          summaryRow({
+            sessionId: "session-a",
+            startTimeUnixMs: 1700000100000,
+            entryUrl: "https://example.com/",
+          }),
+        ]) as never,
+      );
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a", "session-b", "session-a"],
+          /* Caller-supplied tenancy is ignored. */
+          projectId: otherProjectId.toString(),
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.reachedHandler).toBe(true);
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const values: Array<unknown> = Object.values(statement.query_params);
+
+      expect(statement.query).toContain("sessionId IN (");
+      expect(statement.query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(statement.query).toContain("argMax(startTime, version)");
+      expect(statement.query).toContain("retentionDate >= now()");
+      expect(statement.query).not.toContain("identifiedUserLabel");
+      expect(statement.query).not.toContain("identifiedUserTraits");
+      expect(statement.query).not.toContain("visitorId");
+      expect(values).toContain(projectId.toString());
+      expect(values).toContain(applicationAId.toString());
+      expect(values).not.toContain(otherProjectId.toString());
+      expect(values).toContainEqual(["session-a", "session-b"]);
+
+      expect((result.jsonBody as JSONObject)["sessions"]).toEqual([
+        {
+          sessionId: "session-a",
+          startTime: new Date(1700000100000),
+          startTimeUnixMs: 1700000100000,
+          durationMs: 62000,
+          entryUrl: "https://example.com/",
+          browserName: "Chrome",
+          browserVersion: "128",
+          osName: "macOS",
+          deviceType: "desktop",
+        },
+        {
+          sessionId: "session-b",
+          startTime: new Date(1700000200000),
+          startTimeUnixMs: 1700000200000,
+          durationMs: 62000,
+          entryUrl: "https://example.com/checkout",
+          browserName: "Chrome",
+          browserVersion: "128",
+          osName: "macOS",
+          deviceType: "desktop",
+        },
+      ]);
+    });
+
+    test("the list and watch permissions can resolve summaries, while Viewer cannot", async () => {
+      for (const permission of [
+        Permission.ReadRumSessionReplay,
+        Permission.ReadRumSessionReplayPayload,
+      ]) {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([permission]);
+        mockApplication({ id: applicationAId, labelIds: [] });
+
+        const result: CallResult = await callRoute({
+          uri: SUMMARIES_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            sessionIds: ["session-a"],
+          },
+        });
+
+        expect(result.deniedWith).toBeUndefined();
+        expect(result.thrownToNext).toBeUndefined();
+
+        jest.clearAllMocks();
+      }
+
+      const viewer: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.Viewer]);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const denied: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: viewer.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(denied.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(denied.reachedHandler).toBe(false);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an audit-only caller gets an empty success without reading session metadata", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayAudit]);
+
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.reachedHandler).toBe(true);
+      expect(result.jsonBody).toEqual({ sessions: [] });
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an audit grant for this application cannot borrow a list grant from another label", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayAudit], [labelAId]);
+      const tenantPermission: UserTenantAccessPermission | undefined =
+        principal.databaseProps.userTenantAccessPermission?.[
+          projectId.toString()
+        ];
+
+      if (!tenantPermission) {
+        throw new Error("Principal has no tenant permission to extend.");
+      }
+
+      tenantPermission.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.ReadRumSessionReplay,
+        labelIds: [labelBId],
+        isBlockPermission: false,
+      });
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody).toEqual({ sessions: [] });
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a label-scoped caller cannot probe another application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay], [labelAId]);
+
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationBId.toString(),
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      { name: "a missing array", sessionIds: undefined },
+      { name: "a scalar", sessionIds: "session-a" },
+      { name: "an empty array", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      { name: "a numeric id", sessionIds: [123] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+    ])(
+      "rejects $name before authorization or querying",
+      async ({ sessionIds }: { sessionIds: unknown }) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ProjectOwner]);
+
+        const body: JSONObject = {
+          rumApplicationId: applicationAId.toString(),
+        };
+
+        if (sessionIds !== undefined) {
+          body["sessionIds"] = sessionIds as never;
+        }
+
+        const result: CallResult = await callRoute({
+          uri: SUMMARIES_ROUTE,
+          request: principal.request,
+          body: body,
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(findOneBySpy).not.toHaveBeenCalled();
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects an oversized raw batch even when every id is the same", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sessionIds: Array<string>(
+            MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1,
+          ).fill("session-a"),
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects a malformed application id before any database read", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: SUMMARIES_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: "not-a-uuid",
+          sessionIds: ["session-a"],
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * The per-user rollup: /list grouped by person. It shares the list's
+   * guard, prologue and identity decision, and pins its own cursor shape.
+   * Everything about the statement itself is pinned in
+   * SessionReplayReadServiceQueries.test.ts; here it is the handler's
+   * contract - what reaches the service and what leaves the route.
+   */
+  describe("users", () => {
+    function rollupRow(overrides: JSONObject = {}): JSONObject {
+      return {
+        rollupKey: "u:hmac-1",
+        rollupIdentifiedUserKey: "hmac-1",
+        rollupVisitorId: VISITOR_ID,
+        rollupSessionCount: 3,
+        rollupLiveSessionCount: 1,
+        rollupFirstSeenUnixMs: 1700000000000,
+        rollupLastSeenUnixMs: 1700000900000,
+        rollupTotalDurationMs: 180000,
+        rollupErrorCount: 2,
+        rollupFrustrationCount: 4,
+        rollupErrorSessionCount: 1,
+        rollupPageCount: 9,
+        rollupLastSessionId: "session-3",
+        rollupLastEntryUrl: "https://example.com/checkout",
+        rollupBrowserName: "Chrome",
+        rollupBrowserVersion: "128",
+        rollupOsName: "macOS",
+        rollupDeviceType: "desktop",
+        rollupCountryCode: "GB",
+        rollupIdentifiedUserLabel: "jane@example.com",
+        rollupIdentifiedUserTraits: { plan: "pro" },
+        ...overrides,
+      };
+    }
+
+    function principalWith(permissions: Array<Permission>): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      return principal;
+    }
+
+    test("a caller with the list permission reaches the handler and gets the rollup", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay]);
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet([rollupRow()]) as never);
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.reachedHandler).toBe(true);
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain("GROUP BY rollupKey");
+      expect(statement.query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(statement.query).toContain("retentionDate >= now()");
+      expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
+      expect(statement.query).not.toContain(" FINAL");
+      expect(Object.values(statement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+      const users: Array<JSONObject> = body[
+        "users"
+      ] as unknown as Array<JSONObject>;
+
+      expect(users).toHaveLength(1);
+      expect(users[0]!["groupKey"]).toBe("u:hmac-1");
+      expect(users[0]!["kind"]).toBe("identified");
+      expect(users[0]!["identifiedUserKey"]).toBe("hmac-1");
+      expect(users[0]!["visitorId"]).toBe(VISITOR_ID);
+      expect(users[0]!["sessionCount"]).toBe(3);
+      expect(users[0]!["liveSessionCount"]).toBe(1);
+      expect(users[0]!["lastSessionId"]).toBe("session-3");
+      expect(users[0]!["lastEntryUrl"]).toBe("https://example.com/checkout");
+      expect(users[0]!["lastSeenUnixMs"]).toBe(1700000900000);
+      expect(body["nextCursor"]).toBeNull();
+    });
+
+    test("a caller with only the watch permission can read the rollup, a Viewer cannot", async () => {
+      const watcher: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayPayload]);
+
+      const allowed: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: watcher.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(allowed.deniedWith).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+
+      jest.clearAllMocks();
+
+      const viewer: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.Viewer]);
+
+      const denied: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: viewer.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(denied.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(denied.reachedHandler).toBe(false);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a caller scoped to another application is refused before any query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationBId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("a malformed rumApplicationId is a bad request, not a database error", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: "not-a-uuid" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A cursor that is present but not {lastSeenUnixMs: finite >= 0,
+     * groupKey: bounded string} is a 400 before any query - a non-finite
+     * or negative clock cannot be bound, and an unbounded key would reach
+     * ClickHouse as a parameter on a per-group predicate.
+     */
+    test.each([
+      { nonsense: true },
+      { lastSeenUnixMs: "1700000000000", groupKey: "u:hmac-1" },
+      { lastSeenUnixMs: -1, groupKey: "u:hmac-1" },
+      { lastSeenUnixMs: Number.NaN, groupKey: "u:hmac-1" },
+      { lastSeenUnixMs: Number.POSITIVE_INFINITY, groupKey: "u:hmac-1" },
+      { lastSeenUnixMs: 1700000000000 },
+      { lastSeenUnixMs: 1700000000000, groupKey: 7 },
+      { lastSeenUnixMs: 1700000000000, groupKey: "k".repeat(129) },
+      "u:hmac-1",
+      [1700000000000, "u:hmac-1"],
+    ])(
+      "cursor %p is a bad request without a query",
+      async (cursor: unknown) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ProjectOwner]);
+
+        const result: CallResult = await callRoute({
+          uri: USERS_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            cursor: cursor as JSONObject,
+          },
+        });
+
+        expect(result.deniedWith).toBeInstanceOf(BadDataException);
+        expect(result.deniedWith?.message).toContain("cursor");
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * The anonymous bucket's key is "" and it can be the last row of a
+     * page, so the empty key is a VALID tiebreak - accepted and bound as
+     * itself, not read as "no cursor".
+     */
+    test("the anonymous bucket's empty group key is an accepted cursor", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          cursor: { lastSeenUnixMs: 1700000700000, groupKey: "" },
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toMatch(
+        /AND \(rollupLastSeenUnixMs < \{p\d+:Double\} OR \(rollupLastSeenUnixMs = \{p\d+:Double\} AND rollupKey < \{p\d+:String\}\)\)/,
+      );
+      expect(Object.values(statement.query_params)).toContain("");
+    });
+
+    test("an inverted window, or an unparseable bound, is a bad request without a query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const inverted: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "2026-08-08T00:00:00.000Z",
+          endTime: "2026-08-01T00:00:00.000Z",
+        },
+      });
+
+      expect(inverted.deniedWith).toBeInstanceOf(BadDataException);
+      expect(inverted.deniedWith?.message).toContain("startTime");
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const garbage: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          endTime: "last tuesday",
+        },
+      });
+
+      expect(garbage.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test.each([2.5, 0, -1, "20"])(
+      "limit %p is a bad request rather than a ClickHouse error",
+      async (limit: unknown) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ProjectOwner]);
+
+        const result: CallResult = await callRoute({
+          uri: USERS_ROUTE,
+          request: principal.request,
+          body: {
+            rumApplicationId: applicationAId.toString(),
+            limit: limit as number,
+          },
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect((result.thrownToNext as Exception).message).toContain("limit");
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * The identity decision is made per principal against the application
+     * the access check loaded - exactly as on /list - and handed to the
+     * service, which enforces it by not naming the columns.
+     */
+    test("hands the service includeIdentifiedUserLabel true for an owner and false for a TelemetryAdmin, with the defaults", async () => {
+      const listUsersSpy: jest.SpyInstance = jest
+        .spyOn(SessionReplayReadService, "listUsers")
+        .mockResolvedValue({ users: [], nextCursor: null });
+
+      const owner: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const before: number = Date.now();
+
+      await callRoute({
+        uri: USERS_ROUTE,
+        request: owner.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(listUsersSpy).toHaveBeenCalledTimes(1);
+
+      const ownerRequest: SessionReplayUsersRequest = listUsersSpy.mock
+        .calls[0]![0] as SessionReplayUsersRequest;
+
+      expect(ownerRequest.includeIdentifiedUserLabel).toBe(true);
+      expect(ownerRequest.projectId.toString()).toBe(projectId.toString());
+      expect(ownerRequest.rumApplicationId.toString()).toBe(
+        applicationAId.toString(),
+      );
+      expect(ownerRequest.limit).toBe(DEFAULT_SESSION_REPLAY_USERS_LIMIT);
+      expect(ownerRequest.cursor).toBeUndefined();
+      /* The 7-day default window, like /list (a DST edge may shift it an hour). */
+      const windowMs: number =
+        ownerRequest.endTime.getTime() - ownerRequest.startTime.getTime();
+      expect(windowMs).toBeGreaterThan(6.9 * 24 * 60 * 60 * 1000);
+      expect(windowMs).toBeLessThan(7.1 * 24 * 60 * 60 * 1000);
+      expect(ownerRequest.endTime.getTime()).toBeGreaterThanOrEqual(before);
+
+      jest.clearAllMocks();
+      listUsersSpy.mockResolvedValue({ users: [], nextCursor: null });
+
+      const telemetryAdmin: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.TelemetryAdmin]);
+
+      await callRoute({
+        uri: USERS_ROUTE,
+        request: telemetryAdmin.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const adminRequest: SessionReplayUsersRequest = listUsersSpy.mock
+        .calls[0]![0] as SessionReplayUsersRequest;
+
+      expect(adminRequest.includeIdentifiedUserLabel).toBe(false);
+    });
+
+    test("includeIdentifiedUserLabel follows the identity grant's label scope", async () => {
+      const listUsersSpy: jest.SpyInstance = jest
+        .spyOn(SessionReplayReadService, "listUsers")
+        .mockResolvedValue({ users: [], nextCursor: null });
+
+      /* Identity grant scoped to label B; the application carries label A. */
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelBId],
+      });
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const request: SessionReplayUsersRequest = listUsersSpy.mock
+        .calls[0]![0] as SessionReplayUsersRequest;
+
+      expect(request.includeIdentifiedUserLabel).toBe(false);
+    });
+
+    test("the window, limit and cursor reach the service as given", async () => {
+      const listUsersSpy: jest.SpyInstance = jest
+        .spyOn(SessionReplayReadService, "listUsers")
+        .mockResolvedValue({ users: [], nextCursor: null });
+
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          startTime: "2026-08-01T00:00:00.000Z",
+          endTime: "2026-08-08T00:00:00.000Z",
+          limit: 7,
+          cursor: { lastSeenUnixMs: 1700000900000, groupKey: "u:hmac-1" },
+        },
+      });
+
+      const request: SessionReplayUsersRequest = listUsersSpy.mock
+        .calls[0]![0] as SessionReplayUsersRequest;
+
+      expect(request.startTime.toISOString()).toBe("2026-08-01T00:00:00.000Z");
+      expect(request.endTime.toISOString()).toBe("2026-08-08T00:00:00.000Z");
+      expect(request.limit).toBe(7);
+      expect(request.cursor).toEqual({
+        lastSeenUnixMs: 1700000900000,
+        groupKey: "u:hmac-1",
+      });
+    });
+
+    test("omits the label and traits, and never names them, for a caller without the identity permission", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.TelemetryAdmin]);
+
+      /* The row carries them; the handler must not have asked for them. */
+      headerQuerySpy.mockResolvedValue(fakeResultSet([rollupRow()]) as never);
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).not.toContain("identifiedUserLabel");
+      expect(statement.query).not.toContain("identifiedUserTraits");
+
+      const users: Array<JSONObject> = (result.jsonBody as JSONObject)[
+        "users"
+      ] as unknown as Array<JSONObject>;
+
+      expect(users[0]!["identifiedUserLabel"]).toBeUndefined();
+      expect(users[0]!["identifiedUserTraits"]).toBeUndefined();
+      /* The ungated keys are still there. */
+      expect(users[0]!["identifiedUserKey"]).toBe("hmac-1");
+      expect(users[0]!["visitorId"]).toBe(VISITOR_ID);
+    });
+
+    test("includes the label and traits, named at both levels, for a ProjectOwner", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet([rollupRow()]) as never);
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain(
+        "argMax(identifiedUserLabel, version) AS aggIdentifiedUserLabel",
+      );
+      expect(statement.query).toContain(
+        "argMax(aggIdentifiedUserLabel, aggStartTime) AS rollupIdentifiedUserLabel",
+      );
+
+      const users: Array<JSONObject> = (result.jsonBody as JSONObject)[
+        "users"
+      ] as unknown as Array<JSONObject>;
+
+      expect(users[0]!["identifiedUserLabel"]).toBe("jane@example.com");
+      expect(users[0]!["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    });
+
+    test("pages by the last row's clock and key, keeping the anonymous bucket as a row", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          rollupRow(),
+          rollupRow({
+            rollupKey: "",
+            rollupIdentifiedUserKey: "",
+            rollupVisitorId: "",
+            rollupLastSeenUnixMs: 1700000700000,
+            rollupSessionCount: 12,
+          }),
+          rollupRow({
+            rollupKey: `v:${VISITOR_ID}`,
+            rollupIdentifiedUserKey: "",
+            rollupLastSeenUnixMs: 1700000600000,
+          }),
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString(), limit: 2 },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+      const users: Array<JSONObject> = body[
+        "users"
+      ] as unknown as Array<JSONObject>;
+
+      expect(users).toHaveLength(2);
+      expect(users[1]!["kind"]).toBe("anonymous");
+      expect(users[1]!["groupKey"]).toBe("");
+      expect(users[1]!["identifiedUserKey"]).toBe("");
+      expect(users[1]!["sessionCount"]).toBe(12);
+      expect(body["nextCursor"]).toEqual({
+        lastSeenUnixMs: 1700000700000,
+        groupKey: "",
+      });
+    });
+
+    test("the tenant comes from databaseProps, not from the body", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+
+      await callRoute({
+        uri: USERS_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          projectId: otherProjectId.toString(),
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const bound: Array<unknown> = Object.values(statement.query_params);
+
+      expect(bound).toContain(projectId.toString());
+      expect(bound).not.toContain(otherProjectId.toString());
+    });
   });
 
   describe("manifest", () => {
@@ -1417,8 +3429,615 @@ describe("Session replay playback API", () => {
         body: { sessionId: "does-not-exist" },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+      expect((result.thrownToNext as Exception).message).toMatch(/^not-found:/);
       expect(recordViewSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A link from an incident a week later must say "expired on <date>",
+     * not "not found": the two need different actions from the reader.
+     * The retention-filtered header read finds nothing, so a second read
+     * without the filter answers when the row aged out - and only dates
+     * and the application id, never a row's content.
+     */
+    test("an expired session is a distinguishable 404 that names the expiry", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy
+        .mockResolvedValueOnce(fakeResultSet([]) as never)
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              applicationId: applicationAId.toString(),
+              expiresAtUnixMs: Date.UTC(2026, 7, 8),
+              startTimeUnixMs: Date.UTC(2026, 7, 1),
+            },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-old" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+      const message: string = (result.thrownToNext as Exception).message;
+      expect(message).toMatch(/^expired:/);
+      expect(message).toContain("2026-08-08");
+      expect(message).toContain("7-day retention");
+
+      const expiryStatement: Statement = headerQuerySpy.mock
+        .calls[1]![0] as Statement;
+      expect(expiryStatement.query).not.toContain("retentionDate >= now()");
+      expect(recordViewSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The expiry answer discloses that a recording existed, when it
+     * started, and what retention the owning application runs - and it is
+     * produced on the path where there is no header left to authorize
+     * against, so it used to be answered BEFORE any access check. A
+     * label-scoped reviewer could therefore probe session ids and learn all
+     * three for applications outside their scope: exactly the existence
+     * probing assertSessionReplayApplicationAccess refuses "the same way"
+     * for a session that does exist.
+     */
+    test("the expiry answer is withheld from a caller outside the owning application's scope", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        /* Scoped to application B's label; the expired recording is A's. */
+        labelIds: [labelBId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      headerQuerySpy
+        .mockResolvedValueOnce(fakeResultSet([]) as never)
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              applicationId: applicationAId.toString(),
+              expiresAtUnixMs: Date.UTC(2026, 7, 8),
+              startTimeUnixMs: Date.UTC(2026, 7, 1),
+            },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-old" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+
+      const message: string = (result.thrownToNext as Exception).message;
+
+      /* The generic answer: no date, no retention, no admission it existed. */
+      expect(message).toMatch(/^not-found:/);
+      expect(message).not.toContain("2026-08-08");
+      expect(message).not.toContain("retention");
+    });
+
+    test("projects the clock, expiry, tags and engagement counters on the header, and the per-tab first offset", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            ...buildHeaderRow({
+              sessionId: "session-1",
+              projectId: projectId,
+              rumApplicationId: applicationAId,
+            }),
+            aggClientReportedStart: 1699999999500,
+            aggTags: { build: "1.2.3" },
+            aggExpiresAt: 1700604800000,
+            aggClickCount: 41,
+            aggCustomEventCount: 3,
+            aggActiveMs: 36000,
+            aggFirstErrorOffsetMs: 12000,
+            aggAttributes: { "recorder.capabilities": "click-events,tags" },
+          },
+        ]) as never,
+      );
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            tabId: "tab-2",
+            chunkIndex: 0,
+            chunkStartOffsetMs: 134000,
+            chunkEndOffsetMs: 150000,
+            eventCount: 10,
+            hasFullSnapshot: 1,
+            chunkPayloadBytes: 10,
+            clickCount: 2,
+            url: "https://example.com/help",
+          },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+      const header: JSONObject = body["header"] as JSONObject;
+
+      expect(header["startTimeUnixMs"]).toBe(1700000000000);
+      expect(header["endTimeUnixMs"]).toBe(1700000060000);
+      expect(header["clientReportedStartUnixMs"]).toBe(1699999999500);
+      expect(header["tags"]).toEqual({ build: "1.2.3" });
+      expect(header["expiresAtUnixMs"]).toBe(1700604800000);
+      expect(header["clickCount"]).toBe(41);
+      expect(header["customEventCount"]).toBe(3);
+      expect(header["activeMs"]).toBe(36000);
+      expect(header["firstErrorOffsetMs"]).toBe(12000);
+      expect(header["recorderCapabilities"]).toEqual(["click-events", "tags"]);
+
+      const tabs: Array<JSONObject> = body[
+        "tabs"
+      ] as unknown as Array<JSONObject>;
+      expect(tabs[0]!["firstChunkStartOffsetMs"]).toBe(134000);
+      const chunks: Array<JSONObject> = tabs[0]![
+        "chunks"
+      ] as unknown as Array<JSONObject>;
+      expect(chunks[0]!["clickCount"]).toBe(2);
+      expect(chunks[0]!["url"]).toBe("https://example.com/help");
+    });
+
+    /*
+     * The pseudonymous digest and the visitor id are what the player hands
+     * back to /list for "this person's other sessions". Neither names
+     * anyone and the list already returns both to every list-capable
+     * caller, so they ride on the header read itself for a caller WITHOUT
+     * the identity permission - not on the separate, gated identity read.
+     */
+    test("the header carries identifiedUserKey and visitorId for a caller without the identity permission", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            ...buildHeaderRow({
+              sessionId: "session-1",
+              projectId: projectId,
+              rumApplicationId: applicationAId,
+            }),
+            aggVisitorId: VISITOR_ID,
+          },
+        ]) as never,
+      );
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      /* One header read, and it is the one that projected both keys. */
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain(
+        "argMax(identifiedUserKey, version) AS aggIdentifiedUserKey",
+      );
+      expect(statement.query).toContain(
+        "argMax(visitorId, version) AS aggVisitorId",
+      );
+      expect(statement.query).not.toContain("identifiedUserLabel");
+
+      const header: JSONObject = (result.jsonBody as JSONObject)[
+        "header"
+      ] as JSONObject;
+      expect(header["identifiedUserKey"]).toBe("hmac-key");
+      expect(header["visitorId"]).toBe(VISITOR_ID);
+      expect(header["identifiedUserLabel"]).toBeUndefined();
+      expect(header["identifiedUserTraits"]).toBeUndefined();
+    });
+
+    test("the header keeps identifiedUserKey and visitorId beside the label for an identity-permitted caller", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy.mockImplementation(async (statement: Statement) => {
+        if (statement.query.includes("identifiedUserTraits")) {
+          return fakeResultSet([
+            {
+              aggIdentifiedUserLabel: "jane@example.com",
+              aggIdentifiedUserTraits: { plan: "pro" },
+            },
+          ]);
+        }
+
+        return fakeResultSet([
+          {
+            ...buildHeaderRow({
+              sessionId: "session-1",
+              projectId: projectId,
+              rumApplicationId: applicationAId,
+            }),
+            aggVisitorId: VISITOR_ID,
+          },
+        ]);
+      });
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const header: JSONObject = (result.jsonBody as JSONObject)[
+        "header"
+      ] as JSONObject;
+      expect(header["identifiedUserKey"]).toBe("hmac-key");
+      expect(header["visitorId"]).toBe(VISITOR_ID);
+      expect(header["identifiedUserLabel"]).toBe("jane@example.com");
+      expect(header["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    });
+
+    /*
+     * The identity columns carry the narrowest ACL in the schema. A
+     * TelemetryAdmin can watch a recording but is deliberately excluded
+     * from SESSION_REPLAY_IDENTITY_PERMISSIONS, so no statement issued on
+     * their behalf may even NAME identifiedUserLabel or the traits map.
+     */
+    test("omits identifiedUserLabel and traits, and never names them, without the identity permission", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      for (const call of headerQuerySpy.mock.calls) {
+        const statement: Statement = call[0] as Statement;
+        expect(statement.query).not.toContain("identifiedUserLabel");
+        expect(statement.query).not.toContain("identifiedUserTraits");
+      }
+
+      const header: JSONObject = (result.jsonBody as JSONObject)[
+        "header"
+      ] as JSONObject;
+      expect(header["identifiedUserLabel"]).toBeUndefined();
+      expect(header["identifiedUserTraits"]).toBeUndefined();
+    });
+
+    test("includes identifiedUserLabel and traits, read by a separate application-pinned statement, with the identity permission", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy.mockImplementation(async (statement: Statement) => {
+        if (statement.query.includes("identifiedUserTraits")) {
+          return fakeResultSet([
+            {
+              aggIdentifiedUserLabel: "jane@example.com",
+              aggIdentifiedUserTraits: { plan: "pro" },
+            },
+          ]);
+        }
+
+        return fakeResultSet([
+          buildHeaderRow({
+            sessionId: "session-1",
+            projectId: projectId,
+            rumApplicationId: applicationAId,
+          }),
+        ]);
+      });
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const identityStatements: Array<Statement> = headerQuerySpy.mock.calls
+        .map((call: Array<unknown>): Statement => {
+          return call[0] as Statement;
+        })
+        .filter((statement: Statement): boolean => {
+          return statement.query.includes("identifiedUserLabel");
+        });
+
+      expect(identityStatements).toHaveLength(1);
+      expect(identityStatements[0]!.query).toContain(
+        "argMax(identifiedUserTraits, version) AS aggIdentifiedUserTraits",
+      );
+      expect(identityStatements[0]!.query).toContain("rumApplicationId = ");
+      expect(Object.values(identityStatements[0]!.query_params)).toContain(
+        applicationAId.toString(),
+      );
+
+      /* The header read itself still never names them. */
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).not.toContain("identifiedUserLabel");
+
+      const header: JSONObject = (result.jsonBody as JSONObject)[
+        "header"
+      ] as JSONObject;
+      expect(header["identifiedUserLabel"]).toBe("jane@example.com");
+      expect(header["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    });
+
+    test("omits the identity columns when the identity grant is scoped to a different application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationBId);
+      /* B carries label A too so the payload read is allowed... */
+      mockApplication({ id: applicationBId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const allowed: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+      expect(allowed.thrownToNext).toBeUndefined();
+
+      /* ...whereas with only a foreign label the whole read is refused. */
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationBId);
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const refused: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(refused.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      for (const call of headerQuerySpy.mock.calls) {
+        expect((call[0] as Statement).query).not.toContain(
+          "identifiedUserLabel",
+        );
+      }
+    });
+
+    /*
+     * Live polling. The player re-fetches the manifest every 30s while a
+     * session is recording; each poll is the same viewing, and one audit
+     * row per VIEW is the contract the E2E pins.
+     */
+    test("isRefresh with the caller's own viewId for this session skips the audit write and echoes the id", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const viewId: ObjectID = ObjectID.generate();
+      mockOwnView({ viewId: viewId, rumApplicationId: applicationAId });
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          isRefresh: true,
+          viewId: viewId.toString(),
+        },
+      });
+
+      expect(recordViewSpy).not.toHaveBeenCalled();
+      expect((result.jsonBody as JSONObject)["viewId"]).toBe(viewId.toString());
+
+      /* Ownership AND the session are in the lookup's own predicate. */
+      const lookupArgs: JSONObject = viewFindOneBySpy.mock
+        .calls[0]![0] as JSONObject;
+      const query: JSONObject = lookupArgs["query"] as JSONObject;
+      expect((query["viewedByUserId"] as ObjectID).toString()).toBe(
+        userId.toString(),
+      );
+      expect(query["sessionId"]).toBe("session-1");
+      expect(query["_id"]).toBe(viewId.toString());
+    });
+
+    test("isRefresh with a viewId that is not the caller's own for this session records a fresh view", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      const freshViewId: ObjectID = mockRecordedView();
+
+      /* The row is somebody else's, or for another session: no match. */
+      viewFindOneBySpy.mockResolvedValue(null);
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          isRefresh: true,
+          viewId: ObjectID.generate().toString(),
+        },
+      });
+
+      expect(recordViewSpy).toHaveBeenCalledTimes(1);
+      expect((result.jsonBody as JSONObject)["viewId"]).toBe(
+        freshViewId.toString(),
+      );
+    });
+
+    test("isRefresh with a view row for a different application than the one authorized records a fresh view", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      const viewId: ObjectID = ObjectID.generate();
+      mockOwnView({ viewId: viewId, rumApplicationId: applicationBId });
+
+      await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          isRefresh: true,
+          viewId: viewId.toString(),
+        },
+      });
+
+      expect(recordViewSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a malformed linkedIncidentId is dropped from the audit row rather than failing the read", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      const incidentId: ObjectID = ObjectID.generate();
+
+      await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          linkedIncidentId: "not-a-uuid",
+          linkedExceptionFingerprint: "fp-1",
+        },
+      });
+
+      const dropped: JSONObject = recordViewSpy.mock.calls[0]![0] as JSONObject;
+      expect(dropped["linkedIncidentId"]).toBeUndefined();
+      expect(dropped["linkedExceptionFingerprint"]).toBe("fp-1");
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          linkedIncidentId: incidentId.toString(),
+        },
+      });
+
+      const kept: JSONObject = recordViewSpy.mock.calls[0]![0] as JSONObject;
+      expect((kept["linkedIncidentId"] as ObjectID).toString()).toBe(
+        incidentId.toString(),
+      );
     });
   });
 
@@ -1470,7 +4089,17 @@ describe("Session replay playback API", () => {
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
-    test("rejects a total payload larger than the read byte cap before returning any bytes", async () => {
+    /*
+     * The cap has to bound the bytes this endpoint actually returns.
+     * `payloadBytes` is the POST-GZIP wire size the recorder uploaded,
+     * while the `payload` column holds the DECOMPRESSED JSON that is
+     * served. Measuring the former let 8 chunks that pass a 8 MiB check
+     * decompress into tens of megabytes of response. It is measured in
+     * the SAME statement that ships the bytes, so the column is
+     * decompressed once per page rather than once for a pre-check and
+     * again for the read.
+     */
+    test("measures the stored (decompressed) size in the one statement that ships the bytes", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
@@ -1482,50 +4111,9 @@ describe("Session replay playback API", () => {
 
       chunkQuerySpy.mockResolvedValue(
         fakeResultSet([
-          { chunkIndex: 0, chunkStoredBytes: 5 * 1024 * 1024 },
-          { chunkIndex: 1, chunkStoredBytes: 5 * 1024 * 1024 },
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
         ]) as never,
       );
-
-      const result: CallResult = await callRoute({
-        uri: CHUNKS_ROUTE,
-        request: principal.request,
-        body: {
-          sessionId: "session-1",
-          tabId: "tab-1",
-          chunkIndexes: [0, 1],
-        },
-      });
-
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      /* Refused on the pre-check: the payload read never ran. */
-      expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
-    });
-
-    /*
-     * The cap has to bound the bytes this endpoint actually returns.
-     * `payloadBytes` is the POST-GZIP wire size the recorder uploaded,
-     * while the `payload` column holds the DECOMPRESSED JSON that is
-     * served. Measuring the former let 8 chunks that pass a 8 MiB check
-     * decompress into tens of megabytes of response.
-     */
-    test("the pre-check measures the stored (decompressed) size, not the compressed wire size", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = payloadPrincipal();
-
-      mockProps(principal.databaseProps);
-      mockSessionHeader(applicationAId);
-      mockApplication({ id: applicationAId, labelIds: [] });
-
-      chunkQuerySpy
-        .mockResolvedValueOnce(
-          fakeResultSet([{ chunkIndex: 0, chunkStoredBytes: 4 }]) as never,
-        )
-        .mockResolvedValueOnce(
-          fakeResultSet([{ chunkIndex: 0, payload: "[1]" }]) as never,
-        );
 
       await callRoute({
         uri: CHUNKS_ROUTE,
@@ -1537,13 +4125,22 @@ describe("Session replay playback API", () => {
         },
       });
 
-      const precheck: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
 
-      expect(precheck.query).toContain("length(payload)");
-      expect(precheck.query).not.toContain("toFloat64(payloadBytes)");
+      const statement: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
+
+      expect(statement.query).toContain("length(payload)");
+      expect(statement.query).not.toContain("toFloat64(payloadBytes)");
     });
 
-    test("refuses to serve more bytes than the cap even when the pre-check said the chunks were small", async () => {
+    /*
+     * A page that does not fit is answered with the prefix that does -
+     * never with a refusal. The old 400 ("Request fewer chunks") was
+     * reachable by the player's own page plan, because it plans against
+     * the wire size the manifest exposes while the cap is on decompressed
+     * bytes, and the player had no recovery for it.
+     */
+    test("serves the prefix of whole chunks that fits, names the rest, and never refuses", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
@@ -1553,22 +4150,15 @@ describe("Session replay playback API", () => {
       mockSessionHeader(applicationAId);
       mockApplication({ id: applicationAId, labelIds: [] });
 
-      /* 10 MiB of real payload behind a pre-check that reported 8 bytes. */
       const fatPayload: string = "a".repeat(5 * 1024 * 1024);
 
-      chunkQuerySpy
-        .mockResolvedValueOnce(
-          fakeResultSet([
-            { chunkIndex: 0, chunkStoredBytes: 4 },
-            { chunkIndex: 1, chunkStoredBytes: 4 },
-          ]) as never,
-        )
-        .mockResolvedValueOnce(
-          fakeResultSet([
-            { chunkIndex: 0, payload: fatPayload },
-            { chunkIndex: 1, payload: fatPayload },
-          ]) as never,
-        );
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 1, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 2, servedPayload: "", isServed: 0 },
+        ]) as never,
+      );
 
       const result: CallResult = await callRoute({
         uri: CHUNKS_ROUTE,
@@ -1576,13 +4166,129 @@ describe("Session replay playback API", () => {
         body: {
           sessionId: "session-1",
           tabId: "tab-1",
-          chunkIndexes: [0, 1],
+          chunkIndexes: [0, 1, 2],
         },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      /* Nothing was served. */
-      expect(result.sentBuffer).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+
+      const buffer: Buffer = result.sentBuffer as unknown as Buffer;
+      expect(buffer.readUInt32LE(0)).toBe(0);
+      expect(buffer.readUInt32LE(4)).toBe(fatPayload.length);
+      expect(buffer.length).toBe(8 + fatPayload.length);
+      expect(result.headers["X-OneUptime-Replay-Omitted-Chunks"]).toBe("1,2");
+    });
+
+    /*
+     * A full snapshot between (cap - 8 bytes) and the cap - or one that
+     * re-serialised slightly larger than the ingest inflate cap - used
+     * to fail EVERY fetch, so playback of that tab dead-ended at it. A
+     * lone chunk is bounded by the ingest cap already.
+     */
+    test("a single chunk at or over the read cap is still served", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const edgePayload: string = "a".repeat(8 * 1024 * 1024);
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: edgePayload, isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      const buffer: Buffer = result.sentBuffer as unknown as Buffer;
+      expect(buffer.length).toBe(8 + edgePayload.length);
+      expect(
+        result.headers["X-OneUptime-Replay-Omitted-Chunks"],
+      ).toBeUndefined();
+    });
+
+    /*
+     * A 480-chunk session is 60 chunk pages. Each used to re-run the
+     * header GROUP BY and re-load the application's labels; now the
+     * chunk route serves both from a 30s cache the manifest refreshes.
+     * The label DECISION is still made per request against the caller's
+     * permissions.
+     */
+    test("consecutive chunk pages reuse the resolved header and application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
+
+      for (const chunkIndex of [0, 1, 2]) {
+        await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [chunkIndex],
+          },
+        });
+      }
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(3);
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(findOneBySpy).toHaveBeenCalledTimes(1);
+
+      /*
+       * A revoked grant takes effect on the very next page: the cached
+       * data is re-checked against the caller's current permissions.
+       */
+      const viewer: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelBId],
+      });
+
+      mockProps(viewer.databaseProps);
+
+      const refused: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: viewer.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [3],
+        },
+      });
+
+      expect(refused.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(3);
     });
 
     test("returns length-prefixed binary frames and de-duplicates by version", async () => {
@@ -1595,19 +4301,12 @@ describe("Session replay playback API", () => {
       mockSessionHeader(applicationAId);
       mockApplication({ id: applicationAId, labelIds: [] });
 
-      chunkQuerySpy
-        .mockResolvedValueOnce(
-          fakeResultSet([
-            { chunkIndex: 0, chunkStoredBytes: 3 },
-            { chunkIndex: 1, chunkStoredBytes: 4 },
-          ]) as never,
-        )
-        .mockResolvedValueOnce(
-          fakeResultSet([
-            { chunkIndex: 0, payload: "[1]" },
-            { chunkIndex: 1, payload: "[22]" },
-          ]) as never,
-        );
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+          { chunkIndex: 1, servedPayload: "[22]", isServed: 1 },
+        ]) as never,
+      );
 
       const result: CallResult = await callRoute({
         uri: CHUNKS_ROUTE,
@@ -1634,10 +4333,326 @@ describe("Session replay playback API", () => {
       expect(result.headers["Cache-Control"]).toBe("no-store");
 
       const payloadStatement: Statement = chunkQuerySpy.mock
-        .calls[1]![0] as Statement;
+        .calls[0]![0] as Statement;
       expect(payloadStatement.query).toContain(
         "ORDER BY chunkIndex ASC, version DESC LIMIT 1 BY chunkIndex",
       );
+    });
+
+    /*
+     * The payload column is stored decompressed and the body is
+     * application/octet-stream, which nginx's gzip_types does not cover,
+     * so the route must compress on the wire itself or a page ships as
+     * 1-8 MB of raw JSON. The browser's fetch() inflates transparently,
+     * so the decoded bytes must be the very same frames.
+     */
+    test("gzips the frames when the caller accepts gzip", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          { chunkIndex: 1, servedPayload: "[22]", isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0, 1],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+      expect(sent).toBeDefined();
+
+      expect(result.headers["Content-Encoding"]).toBe("gzip");
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Type"]).toBe("application/octet-stream");
+      expect(result.headers["Cache-Control"]).toBe("no-store");
+      // Content-Length describes the bytes actually sent, not the frames.
+      expect(result.headers["Content-Length"]).toBe(String(sent.length));
+      expect(sent.length).toBeLessThan(8 + payload.length);
+
+      const decoded: Buffer = zlib.gunzipSync(sent);
+      expect(decoded.length).toBe(8 + payload.length + 8 + 4);
+      expect(decoded.readUInt32LE(0)).toBe(0);
+      expect(decoded.readUInt32LE(4)).toBe(payload.length);
+      expect(decoded.subarray(8, 8 + payload.length).toString("utf8")).toBe(
+        payload,
+      );
+      expect(decoded.readUInt32LE(8 + payload.length)).toBe(1);
+      expect(decoded.readUInt32LE(12 + payload.length)).toBe(4);
+      expect(decoded.subarray(16 + payload.length).toString("utf8")).toBe(
+        "[22]",
+      );
+    });
+
+    test("honours a positive q-value and the x-gzip alias", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      for (const acceptEncoding of [
+        "deflate;q=1.0, gzip;q=0.5",
+        "X-GZIP",
+        " br , gzip ; q=0.1 ",
+      ]) {
+        chunkQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [0],
+          },
+          headers: { "accept-encoding": acceptEncoding },
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(result.headers["Content-Encoding"]).toBe("gzip");
+
+        const decoded: Buffer = zlib.gunzipSync(
+          result.sentBuffer as unknown as Buffer,
+        );
+        expect(decoded.readUInt32LE(4)).toBe(payload.length);
+      }
+    });
+
+    test("sends identity frames when Accept-Encoding is absent", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      // The answer still depends on the request header, so Vary is set.
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Length"]).toBe(String(8 + payload.length));
+      expect(sent.length).toBe(8 + payload.length);
+      expect(sent.readUInt32LE(0)).toBe(0);
+      expect(sent.readUInt32LE(4)).toBe(payload.length);
+    });
+
+    test("sends identity frames when only br and deflate are accepted", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+        headers: { "accept-encoding": "br, deflate" },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(sent.length).toBe(8 + payload.length);
+      expect(sent.readUInt32LE(4)).toBe(payload.length);
+    });
+
+    test("gzip;q=0 is an explicit refusal of gzip", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      for (const acceptEncoding of ["gzip;q=0", "gzip;q=0.0, identity"]) {
+        chunkQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [0],
+          },
+          headers: { "accept-encoding": acceptEncoding },
+        });
+
+        const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+        expect(result.headers["Content-Encoding"]).toBeUndefined();
+        expect(sent.length).toBe(8 + payload.length);
+        expect(sent.readUInt32LE(4)).toBe(payload.length);
+      }
+    });
+
+    /* Mirrors nginx's gzip_min_length: a tiny page gains nothing. */
+    test("does not gzip a page below the minimum size even when gzip is accepted", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Length"]).toBe("11");
+      expect(sent.length).toBe(11);
+      expect(sent.readUInt32LE(0)).toBe(0);
+      expect(sent.readUInt32LE(4)).toBe(3);
+      expect(sent.subarray(8, 11).toString("utf8")).toBe("[1]");
+    });
+
+    /*
+     * The read cap bounds what the player must hold decoded in memory,
+     * so it and the omitted list are judged on the uncompressed frames:
+     * two 5 MiB chunks of one repeated byte gzip to a few KB, yet only
+     * the first may be served.
+     */
+    test("judges the read cap and the omitted-chunks header on the uncompressed frames when compressing", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const fatPayload: string = "a".repeat(5 * 1024 * 1024);
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 1, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 2, servedPayload: "", isServed: 0 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0, 1, 2],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBe("gzip");
+      expect(result.headers["Content-Length"]).toBe(String(sent.length));
+      expect(sent.length).toBeLessThan(fatPayload.length);
+      expect(result.headers["X-OneUptime-Replay-Omitted-Chunks"]).toBe("1,2");
+      expect(result.headers["Cache-Control"]).toBe("no-store");
+
+      const decoded: Buffer = zlib.gunzipSync(sent);
+      expect(decoded.readUInt32LE(0)).toBe(0);
+      expect(decoded.readUInt32LE(4)).toBe(fatPayload.length);
+      expect(decoded.length).toBe(8 + fatPayload.length);
     });
 
     test("rejects a non-integer chunk index", async () => {
@@ -1819,6 +4834,125 @@ describe("Session replay playback API", () => {
       expect(viewFindOneBySpy).not.toHaveBeenCalled();
       expect(recordSecondsWatchedSpy).not.toHaveBeenCalled();
     });
+
+    /*
+     * secondsWatched is time WATCHED, cumulative and monotonic. The one
+     * ownership lookup also carries the row's current figure, so the
+     * service is told what it already holds and a heartbeat that does not
+     * advance costs no write; the response echoes the figure on record.
+     */
+    test("hands the service the row's current figure and never reports a lower one", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const viewId: ObjectID = ObjectID.generate();
+      const view: RumSessionReplayView = new RumSessionReplayView();
+      view.id = viewId;
+      view.projectId = projectId;
+      view.rumApplicationId = applicationAId;
+      view.viewedByUserId = userId;
+      view.secondsWatched = 90;
+      viewFindOneBySpy.mockResolvedValue(view);
+
+      const result: CallResult = await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        request: principal.request,
+        body: { viewId: viewId.toString(), secondsWatched: 44 },
+      });
+
+      const args: JSONObject = recordSecondsWatchedSpy.mock
+        .calls[0]![0] as JSONObject;
+      expect(args["secondsWatched"]).toBe(30);
+      expect(args["currentSecondsWatched"]).toBe(90);
+      expect((result.jsonBody as JSONObject)["secondsWatched"]).toBe(90);
+
+      /* The lookup selects the figure so no second read is needed. */
+      const lookupArgs: JSONObject = viewFindOneBySpy.mock
+        .calls[0]![0] as JSONObject;
+      expect((lookupArgs["select"] as JSONObject)["secondsWatched"]).toBe(true);
+    });
+  });
+
+  describe("views", () => {
+    test("lists who watched, pinned to the authorized application, for a payload-permitted caller", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const view: RumSessionReplayView = new RumSessionReplayView();
+      view.id = ObjectID.generate();
+      view.viewedAt = new Date("2026-08-01T10:00:00.000Z");
+      view.secondsWatched = 45;
+      view.accessReason = "incident triage";
+      view.viewedByUserId = userId;
+
+      const getViewsSpy: jest.SpyInstance = jest
+        .spyOn(RumSessionReplayViewService, "getViewsForSession")
+        .mockResolvedValue([view]);
+
+      const result: CallResult = await callRoute({
+        uri: VIEWS_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const args: JSONObject = getViewsSpy.mock.calls[0]![0] as JSONObject;
+      expect((args["rumApplicationId"] as ObjectID).toString()).toBe(
+        applicationAId.toString(),
+      );
+      expect(args["sessionId"]).toBe("session-1");
+
+      const views: Array<JSONObject> = (result.jsonBody as JSONObject)[
+        "views"
+      ] as unknown as Array<JSONObject>;
+      expect(views).toHaveLength(1);
+      expect(views[0]!["secondsWatched"]).toBe(45);
+      expect(views[0]!["accessReason"]).toBe("incident triage");
+      expect(views[0]!["viewedAt"]).toBe("2026-08-01T10:00:00.000Z");
+      expect(views[0]!["viewedByUserId"]).toBe(userId.toString());
+      /* Listing who watched is not itself a view. */
+      expect(recordViewSpy).not.toHaveBeenCalled();
+    });
+
+    test("a caller with only the list permission cannot see who watched", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: VIEWS_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("for-exception", () => {
@@ -1901,6 +5035,183 @@ describe("Session replay playback API", () => {
       expect(findBySpy).not.toHaveBeenCalled();
     });
 
+    test("validates entity scope and refuses a type without an id", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const bad: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: "not-an-id",
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+      });
+
+      expect(bad.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+
+      for (const body of [
+        {
+          fingerprint: "fp-1",
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+        {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+          primaryEntityType: "not-a-service-type",
+        },
+      ]) {
+        jest.clearAllMocks();
+        mockProps(principal.databaseProps);
+
+        const result: CallResult = await callRoute({
+          uri: FOR_EXCEPTION_ROUTE,
+          request: principal.request,
+          body: body,
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+        expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      }
+    });
+
+    test("accepts a legacy id-only scope in conservative scoped-unknown mode", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "legacy-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "legacy-session",
+            applicationId: applicationAId.toString(),
+            matchedApplicationCount: 2,
+          },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("AND primaryEntityId = ");
+      expect(instanceStatement.query).not.toContain("AND primaryEntityType = ");
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(headerStatement.query).toContain(
+        "QUALIFY matchedApplicationCount = 1",
+      );
+      expect(headerStatement.query).not.toContain(
+        "hasAny(exceptionFingerprints",
+      );
+      expect(result.jsonBody?.["sessions"]).toEqual([]);
+    });
+
+    test("an id-only scope with no instance proof performs no header lookup", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["sessions"]).toEqual([]);
+      expect(exceptionQuerySpy).toHaveBeenCalledTimes(1);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("applies both parts of a RUM exception's primary-entity scope", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+          primaryEntityType: ServiceType.RealUserMonitor,
+        },
+      });
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("AND primaryEntityId = ");
+      expect(instanceStatement.query).toContain("AND primaryEntityType = ");
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        ServiceType.RealUserMonitor,
+      );
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain("rumApplicationId = ");
+      expect(Object.values(headerStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+    });
+
     test("projects the frustration counters and masking mode the replay card renders", async () => {
       const principal: {
         request: JSONObject;
@@ -1974,6 +5285,174 @@ describe("Session replay playback API", () => {
       expect(sessions[0]!["errorClickCount"]).toBe(6);
       expect(sessions[0]!["refreshRageCount"]).toBe(5);
       expect(sessions[0]!["maskingMode"]).toBe("MaskAllText");
+    });
+
+    /*
+     * RumSession is partitioned by day. Without a window the lookup
+     * scanned every partition the project ever wrote, on every exception
+     * page load; a 30-day default covers every retention tier a recording
+     * can still be played under.
+     */
+    test("applies a default window when the caller gives none", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1" },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain("startTime >= ");
+      expect(statement.query).toContain("startTime <= ");
+    });
+
+    test("derives the window from the error's own time when the caller sends it", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const errorTimeUnixMs: number = Date.UTC(2026, 7, 5, 12, 0, 0);
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1", errorTimeUnixMs: errorTimeUnixMs },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const bound: Array<unknown> = Object.values(statement.query_params);
+
+      /*
+       * The bound DateTime64 strings carry the window: the start sits one
+       * maximum session length (plus padding) before the error.
+       */
+      const earliestStart: Date = new Date(
+        errorTimeUnixMs - SESSION_REPLAY_MAX_SESSION_MS - 5 * 60 * 1000,
+      );
+      const boundStrings: Array<string> = bound.filter(
+        (value: unknown): value is string => {
+          return typeof value === "string";
+        },
+      );
+      expect(
+        boundStrings.some((value: string): boolean => {
+          return value.startsWith(
+            earliestStart.toISOString().substring(0, 19).replace("T", " "),
+          );
+        }),
+      ).toBe(true);
+    });
+
+    /*
+     * The header's fingerprint list is written by the finalizer, 10+
+     * minutes after the session goes quiet - which is the whole incident
+     * from the reporter's point of view. The exception instance table
+     * knows the session id from the moment the error is ingested, so a
+     * live session is found through it.
+     */
+    test("finds a live session through the exception instances before the finalizer has run", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "live-session" }]) as never,
+      );
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1" },
+      });
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("fingerprint = ");
+      expect(instanceStatement.query).toContain("sessionId != ''");
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain("OR sessionId IN (");
+      expect(Object.values(headerStatement.query_params)).toContainEqual([
+        "live-session",
+      ]);
+    });
+
+    test("a pinned sessionId and a non-integer limit are handled before the query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "s-9" }]) as never,
+      );
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1", sessionId: "s-9" },
+      });
+
+      /*
+       * The pin NARROWS the instance lookup rather than replacing it.
+       * Returning the pinned id unchecked reduced the header statement to
+       * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,
+       * whose second arm is trivially true - so the card would claim any
+       * accessible session had observed this exception.
+       */
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("fingerprint = ");
+      expect(instanceStatement.query).toContain("AND sessionId = ");
+      expect(Object.values(instanceStatement.query_params)).toContain("s-9");
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(statement.query).toContain("AND sessionId = ");
+      expect(Object.values(statement.query_params)).toContain("s-9");
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+
+      const bad: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1", limit: 2.5 },
+      });
+
+      expect(bad.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
     });
   });
 
@@ -2088,6 +5567,168 @@ describe("Session replay playback API", () => {
       expect(body["projectBytesUsedToday"]).toBeNull();
       expect(body["applicationBytesUsedThisMonth"]).toBeNull();
       expect(body["dailyByteLimit"]).toBeGreaterThan(0);
+    });
+
+    /*
+     * The full RecordingHealthStatus. Every counter that could not be
+     * read is null - the diagnosis renders "unknown" - and every
+     * timestamp is ISO or null. Jest runs without Redis, so the refusal
+     * and drop counters are the null case here; the activity summary is
+     * ClickHouse and is mocked.
+     */
+    test("carries the policy, liveness stamps and activity summary, with unreadable counters as null", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const application: RumApplication = new RumApplication();
+      application.id = applicationAId;
+      application.projectId = projectId;
+      application.labels = [];
+      application.appIdentifier = "checkout-web";
+      application.isSessionReplayEnabled = true;
+      application.sessionReplayAllowedOrigins = [];
+      application.sessionReplaySamplePercentage = 100;
+      application.sessionReplayRetentionInDays = 14;
+      application.lastSeenAt = new Date("2026-08-05T09:14:00.000Z");
+      (application as unknown as JSONObject)["sessionReplayConsentMode"] =
+        "NotRequired";
+      (application as unknown as JSONObject)["sessionReplayMaskingMode"] =
+        "MaskAllText";
+      findOneBySpy.mockResolvedValue(application);
+      mockProject(true);
+
+      headerQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ sessionCount: 143, unplayableCount: 3 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            { lastStartUnixMs: Date.UTC(2026, 7, 5, 9, 0) },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+
+      expect(body["consentMode"]).toBe("NotRequired");
+      expect(body["maskingMode"]).toBe("MaskAllText");
+      expect(body["retentionInDays"]).toBe(14);
+      expect(body["lastConfigFetchAt"]).toBe("2026-08-05T09:14:00.000Z");
+      expect(body["lastSessionStartedAt"]).toBe("2026-08-05T09:00:00.000Z");
+      expect(body["sessionsLast24h"]).toBe(143);
+      expect(body["playableSessionsLast24h"]).toBe(140);
+      /* No recorder manifest reader registered, no Redis: unknown, not 0. */
+      expect(body["publishedRecorderVersion"]).toBeNull();
+      expect(body["refusalsLast24h"]).toBeNull();
+      expect(body["dropsLast24h"]).toBeNull();
+      /* The pre-existing fields are untouched. */
+      expect(body["isProjectAllowed"]).toBe(true);
+      expect(body["appIdentifier"]).toBe("checkout-web");
+    });
+
+    test("reports the published recorder version from the registered reader, and never-seen stamps as null", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockConfiguredApplication();
+      mockProject(true);
+
+      SessionReplayReadService.setPublishedRecorderVersionProvider(
+        (): string | null => {
+          return "3.1.0";
+        },
+      );
+
+      /* The activity summary read fails: unknown, never zero. */
+      headerQuerySpy.mockRejectedValue(
+        new Error("clickhouse timeout") as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+
+      expect(body["publishedRecorderVersion"]).toBe("3.1.0");
+      expect(body["lastConfigFetchAt"]).toBeNull();
+      expect(body["lastSessionStartedAt"]).toBeNull();
+      expect(body["sessionsLast24h"]).toBeNull();
+      expect(body["playableSessionsLast24h"]).toBeNull();
+      expect(body["retentionInDays"]).toBeNull();
+      expect(body["recorderCapabilities"]).toBeNull();
+    });
+
+    /*
+     * The health card and the installation test both point an operator at
+     * "the capabilities of the newest recorder that reported" - the one
+     * way to spot a stale cached artifact ("click labels: no") without
+     * opening a recording, which writes an audit row. The route never sent
+     * the field, so both surfaces said "not reported yet" for every
+     * application forever, which reads as a bug rather than as
+     * information.
+     */
+    test("reports the newest session's recorder capabilities, filtered to the known vocabulary", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockConfiguredApplication();
+      mockProject(true);
+
+      headerQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ sessionCount: 2, unplayableCount: 0 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              lastStartUnixMs: Date.UTC(2026, 7, 5, 9, 0),
+              aggAttributes: {
+                "recorder.capabilities": "click-events,tags,made-up",
+              },
+            },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect((result.jsonBody as JSONObject)["recorderCapabilities"]).toEqual([
+        "click-events",
+        "tags",
+      ]);
     });
   });
 });

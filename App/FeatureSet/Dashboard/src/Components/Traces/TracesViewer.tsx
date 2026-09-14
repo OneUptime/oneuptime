@@ -83,6 +83,13 @@ import TraceRecordingRuleDefinition, {
   TraceRecordingRuleAttributeFilter,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  SpanQueryScope,
+  SpanScopeChip,
+  buildSpanQueryScope,
+} from "../../Utils/SpanQueryScope";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
@@ -97,7 +104,45 @@ import {
   buildTracesPivotScope,
   describeDroppedScopeFields,
 } from "../../Utils/TraceCorrelatedSignals";
+import {
+  SearchValueOperator,
+  SearchValuePredicate,
+  buildSearchTokenValue,
+  describeSearchValue,
+  parseSearchValue,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import {
+  ATTRIBUTE_CHIP_PREFIX,
+  ATTRIBUTE_SEARCH_CHIP_PREFIX,
+  ParsedTraceSearch,
+  TRACE_FIELD_ALIAS_MAP,
+  TRACE_KNOWN_FIELD_KEYS,
+  TraceAttributeFilters,
+  TraceDurationFilter,
+  TraceSearchChip,
+  compileTraceAttributeFilters,
+  parseTraceSearch,
+  resolveTraceSearchChip,
+  toNumericQueryValue,
+  toSpanKind,
+  toSpanStatusCode,
+  toTraceDurationFilter,
+} from "./TracesSearchCompile";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  ResolvedTelemetryEntity,
+  TelemetryEntityNameMap,
+} from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  buildFacetDisplayNames,
+  buildLockedAttributeChip,
+  buildTraceEntityTypeHints,
+  collectTraceEntityIdsToResolve,
+  getSpanEntity,
+  resolveTraceChipDisplay,
+} from "./TracesEntityDisplay";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -160,10 +205,27 @@ const SPAN_KIND_LABEL: Record<string, string> = {
   SPAN_KIND_INTERNAL: "Internal",
 };
 
+/*
+ * The syntax table. Every row is honoured by the shared search grammar in
+ * Common/Types/Telemetry/TelemetrySearchQuery, so a row only appears here once
+ * its behaviour is pinned by a test — the previous table advertised an
+ * attribute "exact match" that silently read `a*` as the literal two
+ * characters, and no way at all to exclude, compare or list values.
+ */
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
+    syntax: "free text",
+    description: "Search span names",
+    example: "checkout",
+  },
+  {
+    syntax: '"quoted phrase"',
+    description: "Keep spaces together",
+    example: '"SELECT wp_options"',
+  },
+  {
     syntax: "service:<name>",
-    description: "Filter by service name",
+    description: "Filter by service",
     example: "service:api",
   },
   {
@@ -173,19 +235,8 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "name:<span name>",
-    description:
-      'Filter by span name (substring match). Quote values with spaces: name:"SELECT wp_options".',
+    description: "Filter by span name (contains)",
     example: 'name:"SELECT wp_options"',
-  },
-  {
-    syntax: "trace:<trace id>",
-    description: "Filter by trace id",
-    example: "trace:abc123",
-  },
-  {
-    syntax: "span:<span id>",
-    description: "Filter by span id",
-    example: "span:def456",
   },
   {
     syntax: "kind:<span kind>",
@@ -193,29 +244,64 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
     example: "kind:server",
   },
   {
+    syntax: "duration:>N",
+    description: "Duration in milliseconds (also <)",
+    example: "duration:>500",
+  },
+  {
     syntax: "hasException:true|false",
-    description: "Filter spans with/without exceptions",
+    description: "Spans with / without exceptions",
     example: "hasException:true",
   },
   {
     syntax: "statusMessage:<text>",
-    description: "Filter by status message (substring match)",
+    description: "Filter by status message (contains)",
     example: "statusMessage:timeout",
   },
   {
-    syntax: "duration:>N or duration:<N",
-    description: "Filter by duration in milliseconds",
-    example: "duration:>500",
+    syntax: "trace:<id>",
+    description: "Filter by trace id",
+    example: "trace:abc123",
   },
   {
-    syntax: "@<attribute>:<value>",
-    description: "Filter by span attribute (exact match)",
+    syntax: "span:<id>",
+    description: "Filter by span id",
+    example: "span:def456",
+  },
+  {
+    syntax: "@<attr>:<value>",
+    description: "Filter by span attribute",
     example: "@http.method:GET",
   },
   {
-    syntax: "@<attribute>:~<value>",
-    description: "Filter by span attribute (contains match)",
+    syntax: "@<attr>:<value>*",
+    description: "Wildcard — * is any text, ? is one character",
+    example: "@http.route:/api/*",
+  },
+  {
+    syntax: "@<attr>:*",
+    description: "Attribute is present",
+    example: "@user.id:*",
+  },
+  {
+    syntax: "@<attr>:~<text>",
+    description: "Attribute contains",
     example: "@url.host:~starship.online",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude — works with every filter above",
+    example: "-@http.method:GET",
+  },
+  {
+    syntax: "@<attr>:(a OR b)",
+    description: "Any of these values",
+    example: "@http.method:(GET OR POST)",
+  },
+  {
+    syntax: "@<attr>:>N",
+    description: "Numeric comparison (also >=, <, <=)",
+    example: "@http.status_code:>499",
   },
 ];
 
@@ -239,39 +325,6 @@ const CHART_METRIC_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "p95Duration", label: "P95" },
 ];
 
-const FIELD_ALIAS_MAP: Record<string, string> = {
-  service: "primaryEntityId",
-  status: "statusCode",
-  name: "name",
-  trace: "traceId",
-  span: "spanId",
-  kind: "kind",
-  hasexception: "hasException",
-  statusmessage: "statusMessage",
-  duration: "durationUnixNano",
-};
-
-/** Map user-friendly kind values to the backend enum strings */
-const SPAN_KIND_VALUE_MAP: Record<string, string> = {
-  server: "SPAN_KIND_SERVER",
-  client: "SPAN_KIND_CLIENT",
-  producer: "SPAN_KIND_PRODUCER",
-  consumer: "SPAN_KIND_CONSUMER",
-  internal: "SPAN_KIND_INTERNAL",
-};
-
-const KNOWN_FIELD_KEYS: Set<string> = new Set([
-  "service",
-  "status",
-  "name",
-  "trace",
-  "span",
-  "kind",
-  "hasexception",
-  "statusmessage",
-  "duration",
-]);
-
 interface InitialUrlState {
   search: string;
   filters: Array<ActiveFilter>;
@@ -280,6 +333,21 @@ interface InitialUrlState {
   pageSize: number;
   viewMode: "spans" | "analytics";
   rootOnly: boolean;
+  /*
+   * The saved view the link named. Written by this explorer when one is
+   * selected, and carried onto the Insights tab and back so a round trip
+   * through Insights returns to the same named view rather than to its
+   * filters with the view deselected.
+   */
+  savedViewId: string | null;
+  /*
+   * Whether the link actually named a window. `timeRange` above has already
+   * fallen back to this explorer's default when it did not, so it cannot be
+   * used to tell the two apart — and a saved view named in the same link
+   * should keep its own window rather than be moved to a default nobody
+   * asked for.
+   */
+  hasRange: boolean;
 }
 
 /*
@@ -376,11 +444,37 @@ function readInitialUrlState(): InitialUrlState {
    */
   const rootOnly: boolean = params.get("rootOnly") === "true";
 
-  return { search, filters, timeRange, page, pageSize, viewMode, rootOnly };
+  const hasRange: boolean = Boolean(params.get("range"));
+
+  const savedViewIdRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewIdRaw && savedViewIdRaw.trim().length > 0
+      ? savedViewIdRaw.trim()
+      : null;
+
+  return {
+    search,
+    filters,
+    timeRange,
+    page,
+    pageSize,
+    viewMode,
+    rootOnly,
+    savedViewId,
+    hasRange,
+  };
 }
 
 interface Props {
   primaryEntityId?: ObjectID | undefined;
+  /*
+   * The ServiceType of `primaryEntityId` — which table the id lives in. A
+   * span's primaryEntityId is polymorphic (a RUM application's spans carry
+   * the RumApplication id), so without this the scope chip can only guess
+   * "Service". When set, the chip reads e.g. "RUM Application" immediately
+   * and the name lookup goes straight to that table.
+   */
+  scopeEntityType?: ServiceType | undefined;
   /*
    * Scope traces to a resource by OTel resource attribute (e.g.
    * { "resource.k8s.cluster.name": "<clusterIdentifier>" }). Used by the
@@ -389,6 +483,13 @@ interface Props {
    */
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Display-only override of the locked attribute chip's value, keyed like
+   * `attributeFilters`. Resource pages scope by a machine identifier while
+   * already holding the resource's friendly name; the filter keeps the
+   * identifier, the chip shows the name.
+   */
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   /*
    * Scope to a OneUptime entity by its stable entityKeys (membership).
    * Compiles to `hasAny(entityKeys, [...])` server-side — the entity
@@ -432,9 +533,62 @@ interface Props {
    * for incident embeds. Standalone explorer pages leave this unset.
    */
   disableUrlSync?: boolean | undefined;
+  /*
+   * A STORED span query to host — the slice a trace monitor evaluated, kept
+   * on the incident / alert row. This is the traces counterpart of the logs
+   * viewer's `logQuery`: the query's filters become a read-only scope on the
+   * list, the histogram and the facets alike (one reading, in
+   * buildSpanQueryScope, so the chart cannot count rows the list excludes),
+   * and its `startTime` window is adopted as a pinned CUSTOM range so the
+   * view describes the moment the monitor fired rather than the past hour.
+   *
+   * A query with a window makes the host the owner of the view: the URL is
+   * not read, and the project's default saved view does not auto-apply over
+   * the pin.
+   */
+  spanQuery?: Query<Span> | undefined;
+  /*
+   * Initial page size. Embedded snapshot cards pass a small number (the logs
+   * embed uses 10) so the block does not run the length of the page; the
+   * user can still change it in the pagination footer.
+   */
+  limit?: number | undefined;
+  /** Empty-state copy, so an embed can name the window it searched. */
+  emptyMessage?: string | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
+  /*
+   * The host's stored span query, read once into every vocabulary the viewer
+   * speaks. See Utils/SpanQueryScope — the single reading is what keeps the
+   * list, the histogram and the facet counts describing the same rows.
+   */
+  const spanScope: SpanQueryScope = useMemo(() => {
+    return buildSpanQueryScope(props.spanQuery);
+  }, [props.spanQuery]);
+
+  /*
+   * The window the monitor evaluated over, as a picker value. Always CUSTOM
+   * (see TelemetryQueryTimeRange): the window is an absolute instant in the
+   * past and must never re-anchor to "now" the way a relative range does —
+   * the failure that renders the last hour of unrelated spans under an
+   * incident's heading.
+   */
+  const pinnedTimeRange: RangeStartAndEndDateTime | null = useMemo(() => {
+    return TelemetryQueryTimeRange.toRangeStartAndEndDateTime(spanScope.window);
+  }, [spanScope.window]);
+
+  /*
+   * Whether the HOST, not the URL, owns what this view shows. A pinned
+   * window, a controlled window or an explicit opt-out all mean the same
+   * thing: do not seed from the query string, and do not let a default saved
+   * view apply itself over the host's scope a tick after mount. The logs
+   * viewer makes the identical guarantee for its incident embeds.
+   */
+  const hostOwnsView: boolean = Boolean(
+    props.disableUrlSync || props.spanQuery || props.timeRangeOverride,
+  );
+
   /*
    * Parse all filter state from the URL once on first mount. SpanViewer's
    * "filter by" action lands here with `?search=...` so users arrive with
@@ -446,21 +600,60 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * host page's query params are not this viewer's state.
    */
   const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
-    if (props.disableUrlSync) {
+    if (hostOwnsView) {
       return {
         search: "",
         filters: [],
-        timeRange: props.timeRangeOverride || {
-          range: TimeRange.PAST_ONE_HOUR,
-        },
+        timeRange: pinnedTimeRange ||
+          props.timeRangeOverride || {
+            range: TimeRange.PAST_ONE_HOUR,
+          },
         page: 1,
-        pageSize: DEFAULT_PAGE_SIZE,
+        pageSize: props.limit || DEFAULT_PAGE_SIZE,
         viewMode: "spans",
-        rootOnly: false,
+        // Host scope may pin it; a snapshot otherwise shows every span it matched.
+        rootOnly: spanScope.rootOnly,
+        savedViewId: null,
+        hasRange: Boolean(pinnedTimeRange || props.timeRangeOverride),
       };
     }
     return readInitialUrlState();
   });
+
+  /*
+   * The saved view currently selected in the control below, mirrored up here
+   * so it can travel in the URL alongside the filters it produced.
+   */
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
+    initialUrlState.savedViewId,
+  );
+
+  /*
+   * The scope this link carried, for layering over a saved view it also
+   * named — the trip back from the Insights tab, which says "this view, but
+   * with the window and filters I ended up on". Undefined when the link
+   * named no scope, so a project default applies exactly as saved.
+   */
+  const initialStateOverrides: Partial<TelemetrySavedViewState> | undefined =
+    useMemo(() => {
+      return buildUrlScopeOverrides({
+        search: initialUrlState.search,
+        filters: initialUrlState.filters.map(
+          (filter: ActiveFilter): [string, string] => {
+            return [filter.facetKey, filter.value];
+          },
+        ),
+        /*
+         * Only when the link actually named a range. `initialUrlState
+         * .timeRange` has already fallen back to the explorer default by
+         * this point, and overriding a named view's own window with that
+         * default would be the opposite of carrying the user's window.
+         */
+        timeRange: initialUrlState.hasRange
+          ? serializeSavedViewTimeRange(initialUrlState.timeRange)
+          : undefined,
+      });
+    }, [initialUrlState]);
 
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -476,9 +669,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
+  /*
+   * Whether the Service list above has landed (or failed). Span rows only
+   * ask the entity-name lookup about ids that list does not name, and before
+   * it lands every id looks unnamed.
+   */
+  const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
 
+  /*
+   * A pinned snapshot window outranks a controlled one and the URL: it
+   * describes the moment being investigated, not a window the user or a
+   * sibling view is steering.
+   */
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
-    props.timeRangeOverride || initialUrlState.timeRange,
+    pinnedTimeRange || props.timeRangeOverride || initialUrlState.timeRange,
   );
 
   /*
@@ -497,6 +701,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * equal and is skipped, which is what breaks the feedback loop.
    */
   useEffect(() => {
+    /*
+     * A pin describes the moment being investigated; a controlled window is a
+     * sibling view steering. The pin wins, or a host that passes both would
+     * have the snapshot yanked off the event on mount while its window badge
+     * kept claiming the original.
+     */
+    if (pinnedTimeRange) {
+      return;
+    }
+
     if (
       !shouldAdoptTimeRangeOverride(
         props.timeRangeOverride,
@@ -507,7 +721,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     setTimeRange(props.timeRangeOverride!);
     setPage(1);
-  }, [props.timeRangeOverride]);
+  }, [props.timeRangeOverride, pinnedTimeRange]);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -604,121 +818,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return map;
   }, [services]);
 
-  /*
-   * Parse search string — log syntax: field:value (no @) for known fields,
-   * @attribute:value (with @) for span attributes
-   */
-  const parseSearch: (raw: string) => {
-    freeText: string;
-    fieldFilters: Record<string, Array<string>>;
-    attributes: Record<string, string>;
-    attributeSearches: Record<string, string>;
-  } = useCallback((raw: string) => {
-    const fieldFilters: Record<string, Array<string>> = {};
-    const attributes: Record<string, string> = {};
-    const attributeSearches: Record<string, string> = {};
-    const freeTextParts: Array<string> = [];
-    /*
-     * Tokenizer:
-     *  1. `@?\S+:"[^"]*"` — `field:"value"` or `@attr:"value"` with spaces
-     *     inside double quotes (e.g. `name:"SELECT wp_options"`).
-     *  2. `@\S+:[^\s]+`   — `@attr:value` (no spaces, no quotes).
-     *  3. `\S+`           — bare token (field prefix on its own, free text,
-     *                       or unquoted `field:value` that fits in one word).
-     */
-    const rawTokens: Array<string> =
-      raw.match(/@?\S+:~?"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
-    /*
-     * Two merges in this loop:
-     *  - `name: POST` → `["name:", "POST"]` → `name:POST` (space after colon).
-     *  - `name: "SELECT wp_options"` → `["name:", "\"SELECT", "wp_options\""]`
-     *    → `name:"SELECT wp_options"` (keep absorbing until closing quote).
-     */
-    const tokens: Array<string> = [];
-    for (let i: number = 0; i < rawTokens.length; i++) {
-      const token: string = rawTokens[i]!;
-      if (token.endsWith(":") && i + 1 < rawTokens.length) {
-        const prefix: string = token.slice(0, -1);
-        const isAttr: boolean = prefix.startsWith("@");
-        const fieldName: string = isAttr
-          ? prefix.slice(1).toLowerCase()
-          : prefix.toLowerCase();
-        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
-          let merged: string = token + rawTokens[i + 1]!;
-          i++;
-          if (
-            (merged.includes(':"') || merged.includes(':~"')) &&
-            !merged.endsWith('"')
-          ) {
-            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-              i++;
-              merged = merged + " " + rawTokens[i]!;
-            }
-          }
-          tokens.push(merged);
-          continue;
-        }
-      }
-      // Standalone token with an unclosed quote — absorb until close.
-      if (
-        (token.includes(':"') || token.includes(':~"')) &&
-        !token.endsWith('"')
-      ) {
-        let merged: string = token;
-        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-          i++;
-          merged = merged + " " + rawTokens[i]!;
-        }
-        tokens.push(merged);
-        continue;
-      }
-      tokens.push(token);
-    }
-    const stripQuotes: (s: string) => string = (s: string): string => {
-      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
-        return s.slice(1, -1);
-      }
-      return s;
-    };
-    for (const token of tokens) {
-      // @attribute:value (exact) or @attribute:~value (contains)
-      const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (attrMatch) {
-        const attrValue: string = stripQuotes(attrMatch[2]!);
-        if (attrValue.startsWith("~")) {
-          const searchValue: string = stripQuotes(attrValue.substring(1));
-          if (searchValue.length > 0) {
-            attributeSearches[attrMatch[1]!] = searchValue;
-          }
-        } else if (attrValue.length > 0) {
-          attributes[attrMatch[1]!] = attrValue;
-        }
-        continue;
-      }
-      // field:value (no @) → known field filter
-      const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
-      if (fieldMatch) {
-        const fieldName: string = fieldMatch[1]!.toLowerCase();
-        const fieldValue: string = stripQuotes(fieldMatch[2]!);
-        if (KNOWN_FIELD_KEYS.has(fieldName) && fieldValue.length > 0) {
-          const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
-          if (!fieldFilters[backendField]) {
-            fieldFilters[backendField] = [];
-          }
-          fieldFilters[backendField]!.push(fieldValue);
-          continue;
-        }
-      }
-      freeTextParts.push(token);
-    }
-    return {
-      freeText: freeTextParts.join(" ").trim(),
-      fieldFilters,
-      attributes,
-      attributeSearches,
-    };
-  }, []);
-
   const baseQuery: Query<Span> = useMemo(() => {
     const query: Query<Span> = {};
 
@@ -735,6 +834,84 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       query.primaryEntityId = props.primaryEntityId;
     }
 
+    /*
+     * The host's stored span scope, written BEFORE the user's filters so a
+     * facet click or a typed token on the same column narrows within it
+     * rather than being overwritten by it — the same precedence
+     * `props.primaryEntityId` has always had. `attributes` is the documented
+     * exception: it rides compileTraceAttributeFilters' `scope`, which owns
+     * its keys outright. `entityKeys` is merged after the facets, with the
+     * entityKeysFilter prop.
+     */
+    for (const [key, value] of Object.entries(spanScope.passthrough)) {
+      (query as Record<string, unknown>)[key] = value;
+    }
+
+    if (spanScope.serviceIds.length > 0) {
+      (query as Record<string, unknown>)["primaryEntityId"] =
+        spanScope.serviceIds.length === 1
+          ? spanScope.serviceIds[0]!
+          : new Includes(spanScope.serviceIds);
+    }
+
+    if (spanScope.statusCodes.length > 0) {
+      (query as Record<string, unknown>)["statusCode"] =
+        spanScope.statusCodes.length === 1
+          ? spanScope.statusCodes[0]!
+          : new Includes(spanScope.statusCodes);
+    }
+
+    if (spanScope.spanKinds.length > 0) {
+      (query as Record<string, unknown>)["kind"] =
+        spanScope.spanKinds.length === 1
+          ? spanScope.spanKinds[0]!
+          : new Includes(spanScope.spanKinds);
+    }
+
+    if (spanScope.traceIds.length > 0) {
+      (query as Record<string, unknown>)["traceId"] =
+        spanScope.traceIds.length === 1
+          ? spanScope.traceIds[0]!
+          : new Includes(spanScope.traceIds);
+    }
+
+    if (spanScope.spanIds.length > 0) {
+      (query as Record<string, unknown>)["spanId"] =
+        spanScope.spanIds.length === 1
+          ? spanScope.spanIds[0]!
+          : new Includes(spanScope.spanIds);
+    }
+
+    if (spanScope.hasException !== null) {
+      (query as Record<string, unknown>)["hasException"] =
+        spanScope.hasException;
+    }
+
+    /*
+     * A single stored name is a SUBSTRING match, exactly as a single chip
+     * value is (TEXT_CHIP_FIELDS below) — a monitor stores `new Search(...)`,
+     * and exact-matching a fragment against a full span name returns nothing.
+     */
+    if (spanScope.spanNameSearch) {
+      (query as Record<string, unknown>)["name"] = new Search(
+        spanScope.spanNameSearch,
+      );
+    } else if (spanScope.spanNames.length > 0) {
+      (query as Record<string, unknown>)["name"] = new Includes(
+        spanScope.spanNames,
+      );
+    }
+
+    if (spanScope.statusMessageSearch) {
+      (query as Record<string, unknown>)["statusMessage"] = new Search(
+        spanScope.statusMessageSearch,
+      );
+    } else if (spanScope.statusMessages.length > 0) {
+      (query as Record<string, unknown>)["statusMessage"] = new Includes(
+        spanScope.statusMessages,
+      );
+    }
+
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
     (query as Record<string, unknown>)["startTime"] = new InBetween<Date>(
@@ -744,26 +921,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     // Apply active facet filters
     const facetGroups: Record<string, Array<string>> = {};
-    const attributeChips: Record<string, string> = {};
+    const attributeChipValues: Record<string, Array<string>> = {};
     const attributeSearchChips: Record<string, string> = {};
     for (const filter of activeFilters) {
       /*
        * Chips with the `attributes.` prefix are telemetry attribute filters
-       * (added when a user types `@key:value` in the search bar). Route them
-       * into `query.attributes` rather than as top-level columns.
-       * `attributeSearches.` chips are the contains-match variant
-       * (`@key:~value`).
+       * (a facet click, a span-panel "filter by", or a typed `@key:value`).
+       * Their values are search-grammar tokens, so they are grouped per key
+       * and compiled by the grammar — two chips on one key used to overwrite
+       * each other, silently dropping a filter the user could see applied.
+       * `attributeSearches.` chips are the pre-grammar contains variant that
+       * only a saved view still produces.
        */
-      if (filter.facetKey.startsWith("attributeSearches.")) {
+      if (filter.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
         const attrKey: string = filter.facetKey.substring(
-          "attributeSearches.".length,
+          ATTRIBUTE_SEARCH_CHIP_PREFIX.length,
         );
         attributeSearchChips[attrKey] = filter.value;
         continue;
       }
-      if (filter.facetKey.startsWith("attributes.")) {
-        const attrKey: string = filter.facetKey.substring("attributes.".length);
-        attributeChips[attrKey] = filter.value;
+      if (filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+        const attrKey: string = filter.facetKey.substring(
+          ATTRIBUTE_CHIP_PREFIX.length,
+        );
+        if (!attributeChipValues[attrKey]) {
+          attributeChipValues[attrKey] = [];
+        }
+        attributeChipValues[attrKey]!.push(filter.value);
         continue;
       }
       if (!facetGroups[filter.facetKey]) {
@@ -800,8 +984,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["resourceFilters"] = resourceFilters;
     }
 
-    const { fieldFilters, freeText, attributes, attributeSearches } =
-      parseSearch(submittedSearch);
+    const parsed: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+    const fieldFilters: Record<string, Array<string>> = parsed.fieldFilters;
+    const freeText: string = parsed.freeText;
 
     /*
      * Text columns need substring matching, not exact equality. The search
@@ -822,10 +1007,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * one path. Deduped so a chip plus an identical token stays single-valued
      * (preserving substring / boolean semantics) instead of flipping to a
      * multi-value exact match. hasException is included so its chip and any
-     * `hasException:` token resolve together (both buckets → no filter),
-     * matching the aggregation side below.
+     * `hasException:` token resolve together (both buckets → no filter), and
+     * statusCode / kind so a sidebar click goes through the SAME value mapping
+     * a typed `status:error` does — the facet's values arrive as the numeric
+     * strings ClickHouse returns, and used to land on the column unmapped.
      */
-    for (const mergeKey of [...TEXT_CHIP_FIELDS, "hasException"]) {
+    const MERGED_CHIP_FIELDS: Set<string> = new Set([
+      ...TEXT_CHIP_FIELDS,
+      "hasException",
+      "statusCode",
+      "kind",
+    ]);
+    for (const mergeKey of MERGED_CHIP_FIELDS) {
       const tokenValues: Array<string> | undefined = fieldFilters[mergeKey];
       if (tokenValues && tokenValues.length > 0) {
         facetGroups[mergeKey] = Array.from(
@@ -857,6 +1050,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
         continue;
       }
+      if (key === "statusCode") {
+        const statusCode: number | Includes | undefined = toNumericQueryValue(
+          values.map((value: string): number => {
+            return toSpanStatusCode(value);
+          }),
+        );
+        if (statusCode !== undefined) {
+          (query as Record<string, unknown>)[key] = statusCode;
+        }
+        continue;
+      }
+      if (key === "kind") {
+        const kinds: Array<string> = Array.from(
+          new Set(
+            values.map((value: string): string => {
+              return toSpanKind(value);
+            }),
+          ),
+        );
+        (query as Record<string, unknown>)[key] =
+          kinds.length === 1 ? kinds[0]! : new Includes(kinds);
+        continue;
+      }
       if (TEXT_CHIP_FIELDS.has(key) && values.length === 1) {
         (query as Record<string, unknown>)[key] = new Search(values[0]!);
         continue;
@@ -870,64 +1086,40 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     // Apply remaining search field filters
     for (const key of Object.keys(fieldFilters)) {
+      // Already compiled above, through the chip groups.
+      if (MERGED_CHIP_FIELDS.has(key)) {
+        continue;
+      }
+
       const values: Array<string> = fieldFilters[key]!;
 
-      if (key === "statusCode") {
-        // Map friendly status names to numeric codes
-        const mapped: Array<number> = values.map((v: string): number => {
-          if (v.toLowerCase() === "error") {
-            return SpanStatus.Error;
-          }
-          if (v.toLowerCase() === "ok") {
-            return SpanStatus.Ok;
-          }
-          return SpanStatus.Unset;
-        });
-        (query as Record<string, unknown>)[key] =
-          mapped.length === 1 ? mapped[0] : new Includes(mapped);
-      } else if (key === "name" || key === "statusMessage") {
-        // Already merged into the chip groups above.
-        continue;
-      } else if (key === "kind") {
-        // Map friendly kind names (server, client, etc.) to backend enum
-        const mapped: Array<string> = values.map((v: string): string => {
-          return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
-        });
-        (query as Record<string, unknown>)[key] =
-          mapped.length === 1 ? mapped[0] : new Includes(mapped);
-      } else if (key === "hasException") {
-        // Already merged into the chip groups above (boolean, both → no filter).
-        continue;
-      } else if (key === "durationUnixNano") {
-        // Duration filter: duration:>500 or duration:<200 (in milliseconds)
-        const raw: string = values[0]!;
-        const msToNano: number = 1_000_000;
-        if (raw.startsWith(">")) {
-          const ms: number = Number(raw.substring(1));
-          if (!isNaN(ms)) {
-            (query as Record<string, unknown>)[key] = new GreaterThan(
-              ms * msToNano,
-            );
-          }
-        } else if (raw.startsWith("<")) {
-          const ms: number = Number(raw.substring(1));
-          if (!isNaN(ms)) {
-            (query as Record<string, unknown>)[key] = new LessThan(
-              ms * msToNano,
-            );
-          }
-        } else {
-          // Exact match in ms
-          const ms: number = Number(raw);
-          if (!isNaN(ms)) {
-            (query as Record<string, unknown>)[key] = ms * msToNano;
-          }
+      if (key === "durationUnixNano") {
+        /*
+         * The bounds are read by the shared parser the aggregation payload
+         * uses, so `duration:>500` cannot mean one thing in the list and
+         * another in the chart above it.
+         */
+        const duration: TraceDurationFilter = toTraceDurationFilter(values[0]!);
+        if (duration.minDurationNano !== undefined) {
+          (query as Record<string, unknown>)[key] = new GreaterThan(
+            duration.minDurationNano,
+          );
+        } else if (duration.maxDurationNano !== undefined) {
+          (query as Record<string, unknown>)[key] = new LessThan(
+            duration.maxDurationNano,
+          );
+        } else if (duration.exactDurationNano !== undefined) {
+          (query as Record<string, unknown>)[key] = duration.exactDurationNano;
         }
-      } else if (values.length === 1) {
-        (query as Record<string, unknown>)[key] = values[0]!;
-      } else {
-        (query as Record<string, unknown>)[key] = new Includes(values);
+        continue;
       }
+
+      if (values.length === 1) {
+        (query as Record<string, unknown>)[key] = values[0]!;
+        continue;
+      }
+
+      (query as Record<string, unknown>)[key] = new Includes(values);
     }
 
     /*
@@ -946,32 +1138,43 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * Apply attribute filters — merge chip + search sources with the
-     * prop-level resource scope (Host / Docker / Kubernetes views).
-     * Contains-match filters become Search instances, which the analytics
-     * query layer compiles to a case-insensitive value ILIKE.
+     * Attribute filters from every source — chips, the submitted search
+     * string, the pre-grammar contains chips and the host page's read-only
+     * resource scope — compiled ONCE for both transports. The histogram and
+     * facet payload below reads the other half of the same result, which is
+     * what stops the chart and the list disagreeing about a filter the user
+     * can see applied.
      */
-    const mergedAttributes: Record<string, unknown> = {
-      ...attributeChips,
-      ...attributes,
+    const attributeFilters: TraceAttributeFilters =
+      compileTraceAttributeFilters({
+        chipValues: attributeChipValues,
+        parsed: parsed.attributeFilters,
+        legacyContainsChips: attributeSearchChips,
+        scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
+      });
+    /*
+     * Attribute filters the scope reader could not model ride the LIST only:
+     * the analytics compiler understands more value shapes than the
+     * aggregation payload does, and a narrower list with a hint beats a list
+     * that quietly shows spans the monitor never matched. The widening of the
+     * chart is reported through spanScope.notCarried.
+     */
+    const queryAttributes: Record<string, unknown> = {
+      ...spanScope.attributesPassthrough,
+      ...attributeFilters.queryAttributes,
     };
-    const mergedAttributeSearches: Record<string, string> = {
-      ...attributeSearchChips,
-      ...attributeSearches,
-    };
-    for (const [key, value] of Object.entries(mergedAttributeSearches)) {
-      // A contains filter on a key supersedes an exact filter on the same key…
-      mergedAttributes[key] = new Search(value);
-    }
-    // …but the read-only resource scope (Host / Docker / K8s pages) always wins.
-    Object.assign(mergedAttributes, props.attributeFilters || {});
-    if (Object.keys(mergedAttributes).length > 0) {
-      (query as Record<string, unknown>)["attributes"] = mergedAttributes;
+    if (Object.keys(queryAttributes).length > 0) {
+      (query as Record<string, unknown>)["attributes"] = queryAttributes;
     }
 
-    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+    const scopedEntityKeys: Array<string> = [
+      ...(props.entityKeysFilter || []),
+      ...spanScope.entityKeys,
+    ];
+
+    if (scopedEntityKeys.length > 0) {
       (query as Record<string, unknown>)["entityKeys"] = new Includes(
-        props.entityKeysFilter,
+        Array.from(new Set(scopedEntityKeys)),
       );
     }
 
@@ -986,10 +1189,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.attributeFilters,
     props.entityKeysFilter,
     props.entityScope,
+    spanScope,
     timeRange,
     activeFilters,
     submittedSearch,
-    parseSearch,
     rootOnly,
   ]);
 
@@ -1018,7 +1221,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * link from before this change.
    */
   useEffect(() => {
-    if (props.disableUrlSync) {
+    /*
+     * hostOwnsView, not disableUrlSync alone: a host that pins a query or a
+     * window owns the address bar just as much as one that opted out by name,
+     * and an embed writing `?search=…&range=…` onto an incident page is the
+     * URL the user comes back to from Back.
+     */
+    if (hostOwnsView) {
       return;
     }
     const params: URLSearchParams = new URLSearchParams();
@@ -1033,9 +1242,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the Viewer and
+     * Insights tabs now hand their scope to each other through these params,
+     * and a window that is not written down cannot be carried — "absent
+     * means my default" quietly changes the window whenever the two tabs
+     * start from different ones.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
@@ -1052,10 +1266,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (rootOnly) {
       params.set("rootOnly", "true");
     }
+    if (selectedSavedViewId) {
+      params.set("savedView", selectedSavedViewId);
+    }
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
-    props.disableUrlSync,
+    hostOwnsView,
     submittedSearch,
     activeFilters,
     timeRange,
@@ -1063,6 +1280,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     pageSize,
     viewMode,
     rootOnly,
+    selectedSavedViewId,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -1134,6 +1352,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
+      } finally {
+        setResourcesLoaded(true);
       }
     };
     void loadResources();
@@ -1180,7 +1400,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     if (
       !attrKey ||
-      KNOWN_FIELD_KEYS.has(attrKey) ||
+      TRACE_KNOWN_FIELD_KEYS.has(attrKey) ||
       attrKey === lastValueSuggestionKeyRef.current
     ) {
       return;
@@ -1273,20 +1493,25 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     // Collect filter values from both active facet filters and parsed search
     const groups: Record<string, Array<string>> = {};
-    const attributeChips: Record<string, string> = {};
+    const attributeChipValues: Record<string, Array<string>> = {};
     const attributeSearchChips: Record<string, string> = {};
     for (const filter of activeFilters) {
       // `attributes.<key>` chips route into `payload.attributes`, not `groups`.
-      if (filter.facetKey.startsWith("attributeSearches.")) {
+      if (filter.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
         const attrKey: string = filter.facetKey.substring(
-          "attributeSearches.".length,
+          ATTRIBUTE_SEARCH_CHIP_PREFIX.length,
         );
         attributeSearchChips[attrKey] = filter.value;
         continue;
       }
-      if (filter.facetKey.startsWith("attributes.")) {
-        const attrKey: string = filter.facetKey.substring("attributes.".length);
-        attributeChips[attrKey] = filter.value;
+      if (filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+        const attrKey: string = filter.facetKey.substring(
+          ATTRIBUTE_CHIP_PREFIX.length,
+        );
+        if (!attributeChipValues[attrKey]) {
+          attributeChipValues[attrKey] = [];
+        }
+        attributeChipValues[attrKey]!.push(filter.value);
         continue;
       }
       if (!groups[filter.facetKey]) {
@@ -1295,8 +1520,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[filter.facetKey]!.push(filter.value);
     }
 
-    const { fieldFilters, freeText, attributes, attributeSearches } =
-      parseSearch(submittedSearch);
+    const parsed: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+    const fieldFilters: Record<string, Array<string>> = parsed.fieldFilters;
+    const freeText: string = parsed.freeText;
     for (const key of Object.keys(fieldFilters)) {
       if (!groups[key]) {
         groups[key] = [];
@@ -1305,51 +1531,97 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * Pass attribute filters (chip + parsed + prop scope) to aggregation,
-     * with the same precedence the list applies: a contains filter
-     * supersedes an exact filter on the same key, and the read-only
-     * resource scope supersedes both — otherwise the server would AND
-     * exact + contains and the chart would disagree with the list.
+     * The attribute half of the very same compilation the span list runs on
+     * (see baseQuery): every operator the grammar can express reaches the
+     * server in its `{_type, value}` wire shape, so the chart cannot read
+     * `@k:a*` as an exact match on two characters while the list reads it as
+     * a prefix. `attributeSearches` now carries only the pre-grammar chips a
+     * saved view can still hold.
      */
-    const mergedAttributes: Record<string, string> = {
-      ...attributeChips,
-      ...attributes,
-    };
-    const mergedAttributeSearches: Record<string, string> = {
-      ...attributeSearchChips,
-      ...attributeSearches,
-    };
-    const scopeAttributes: Record<string, string> =
-      props.attributeFilters || {};
-    for (const key of Object.keys(mergedAttributeSearches)) {
-      if (scopeAttributes[key] !== undefined) {
-        delete mergedAttributeSearches[key];
-        continue;
-      }
-      delete mergedAttributes[key];
+    const attributeFilters: TraceAttributeFilters =
+      compileTraceAttributeFilters({
+        chipValues: attributeChipValues,
+        parsed: parsed.attributeFilters,
+        legacyContainsChips: attributeSearchChips,
+        scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
+      });
+    if (Object.keys(attributeFilters.payloadAttributes).length > 0) {
+      payload["attributes"] = attributeFilters.payloadAttributes;
     }
-    Object.assign(mergedAttributes, scopeAttributes);
-    if (Object.keys(mergedAttributes).length > 0) {
-      payload["attributes"] = mergedAttributes;
-    }
-    if (Object.keys(mergedAttributeSearches).length > 0) {
-      payload["attributeSearches"] = mergedAttributeSearches;
+    if (Object.keys(attributeFilters.payloadAttributeSearches).length > 0) {
+      payload["attributeSearches"] = attributeFilters.payloadAttributeSearches;
     }
 
     /*
      * Entity scope must constrain the histogram/facets too, not just the
      * span list — otherwise the counts above the list are project-wide.
      */
-    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
-      payload["entityKeys"] = [...props.entityKeysFilter];
+    const scopedEntityKeys: Array<string> = Array.from(
+      new Set([...(props.entityKeysFilter || []), ...spanScope.entityKeys]),
+    );
+
+    if (scopedEntityKeys.length > 0) {
+      payload["entityKeys"] = scopedEntityKeys;
     }
 
-    // Scope by primaryEntityId prop if present
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
+    /*
+     * The host's stored span scope, seeded into the SAME groups the chips and
+     * search tokens feed — and only where the user has not filtered that
+     * column. That reproduces the list's precedence exactly: there the scope
+     * is written first and an explicit selection overwrites it. Reading the
+     * scope once, in buildSpanQueryScope, and rendering it into both
+     * transports from that one reading is what stops the chart above the list
+     * counting rows the list excludes.
+     *
+     * The `primaryEntityId` PROP goes through the same gate, last, so the
+     * three-way precedence — user selection, then stored scope, then the host
+     * page's own resource — is the one the list applies rather than a union
+     * of all three.
+     */
+    const applyScopeGroup: (key: string, values: Array<string>) => void = (
+      key: string,
+      values: Array<string>,
+    ): void => {
+      if (values.length === 0) {
+        return;
       }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
+
+      if (groups[key] && groups[key]!.length > 0) {
+        return;
+      }
+
+      groups[key] = [...values];
+    };
+
+    applyScopeGroup("primaryEntityId", spanScope.serviceIds);
+    applyScopeGroup(
+      "statusCode",
+      spanScope.statusCodes.map((statusCode: number): string => {
+        return String(statusCode);
+      }),
+    );
+    applyScopeGroup("kind", spanScope.spanKinds);
+    applyScopeGroup("traceId", spanScope.traceIds);
+    applyScopeGroup("spanId", spanScope.spanIds);
+    applyScopeGroup(
+      "name",
+      spanScope.spanNameSearch
+        ? [spanScope.spanNameSearch]
+        : spanScope.spanNames,
+    );
+    applyScopeGroup(
+      "statusMessage",
+      spanScope.statusMessageSearch
+        ? [spanScope.statusMessageSearch]
+        : spanScope.statusMessages,
+    );
+
+    if (spanScope.hasException !== null) {
+      applyScopeGroup("hasException", [String(spanScope.hasException)]);
+    }
+
+    if (props.primaryEntityId) {
+      applyScopeGroup("primaryEntityId", [props.primaryEntityId.toString()]);
     }
 
     /*
@@ -1372,22 +1644,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["statusCode"] && groups["statusCode"].length > 0) {
-      payload["statusCodes"] = groups["statusCode"].map((v: string): number => {
-        const lower: string = v.toLowerCase();
-        if (lower === "error" || v === String(SpanStatus.Error)) {
-          return SpanStatus.Error;
-        }
-        if (lower === "ok" || v === String(SpanStatus.Ok)) {
-          return SpanStatus.Ok;
-        }
-        return SpanStatus.Unset;
-      });
+      payload["statusCodes"] = groups["statusCode"].map(
+        (value: string): number => {
+          return toSpanStatusCode(value);
+        },
+      );
     }
 
     if (groups["kind"] && groups["kind"].length > 0) {
       // Map friendly kind names to backend enum values
-      payload["spanKinds"] = groups["kind"].map((v: string): string => {
-        return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
+      payload["spanKinds"] = groups["kind"].map((value: string): string => {
+        return toSpanKind(value);
       });
     }
 
@@ -1453,28 +1720,34 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
-      const raw: string = groups["durationUnixNano"][0]!;
-      const msToNano: number = 1_000_000;
-      if (raw.startsWith(">")) {
-        const ms: number = Number(raw.substring(1));
-        if (!isNaN(ms)) {
-          payload["minDurationNano"] = ms * msToNano;
-        }
-      } else if (raw.startsWith("<")) {
-        const ms: number = Number(raw.substring(1));
-        if (!isNaN(ms)) {
-          payload["maxDurationNano"] = ms * msToNano;
-        }
-      } else {
-        // duration:N (no operator) filters the list as exact equality.
-        const ms: number = Number(raw);
-        if (!isNaN(ms)) {
-          payload["exactDurationNano"] = ms * msToNano;
-        }
+      // Read by the same parser baseQuery uses — one reading, two renderings.
+      const duration: TraceDurationFilter = toTraceDurationFilter(
+        groups["durationUnixNano"][0]!,
+      );
+      if (duration.minDurationNano !== undefined) {
+        payload["minDurationNano"] = duration.minDurationNano;
+      }
+      if (duration.maxDurationNano !== undefined) {
+        payload["maxDurationNano"] = duration.maxDurationNano;
+      }
+      if (duration.exactDurationNano !== undefined) {
+        payload["exactDurationNano"] = duration.exactDurationNano;
       }
     }
 
-    if (freeText && freeText.length > 0) {
+    /*
+     * Bare free text matches span names as a substring — but ONLY when
+     * nothing else has claimed the name column, which is exactly the rule the
+     * list applies (`Query<Span>` holds one predicate per column, so an
+     * explicit name filter wins there). Sending it unconditionally used to
+     * make the chart narrower than the list; with a stored scope pinning
+     * `name` that stopped being an edge case, so the two now agree.
+     */
+    if (
+      freeText &&
+      freeText.length > 0 &&
+      !(groups["name"] && groups["name"].length > 0)
+    ) {
       payload["nameSearchText"] = freeText;
     }
 
@@ -1483,10 +1756,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     timeRange,
     activeFilters,
     submittedSearch,
-    parseSearch,
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    spanScope,
     rootOnly,
   ]);
 
@@ -1915,13 +2188,26 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             return c.key === facetKey;
           },
         );
-        const chipKey: string = ATTRIBUTE_FACET_KEYS.has(facetKey)
-          ? `attributes.${facetKey}`
+        const isAttributeFacet: boolean = ATTRIBUTE_FACET_KEYS.has(facetKey);
+        const chipKey: string = isAttributeFacet
+          ? `${ATTRIBUTE_CHIP_PREFIX}${facetKey}`
           : facetKey;
+        /*
+         * A sidebar value comes from the DATA and may legitimately contain
+         * `*`, `?` or a space — a URL route like `/api/*`, a container arg.
+         * An attribute chip is re-parsed by the search grammar when the query
+         * is built, so it has to be written back as a token that means exactly
+         * this value; unescaped, clicking `/api/*` filtered for far more than
+         * the row it came from. Callers that already hold a grammar token
+         * (the span panel, the search bar) escape at their own call site.
+         */
+        const chipValue: string = isAttributeFacet
+          ? buildSearchTokenValue(value)
+          : value;
         setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
           if (
             prev.some((f: ActiveFilter): boolean => {
-              return f.facetKey === chipKey && f.value === value;
+              return f.facetKey === chipKey && f.value === chipValue;
             })
           ) {
             return prev;
@@ -1929,19 +2215,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           // Attribute chips (`attributes.<key>`) display as just `<key>`.
           const displayKey: string =
             config?.title ||
-            (chipKey.startsWith("attributes.")
-              ? chipKey.substring("attributes.".length)
+            (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
+              ? chipKey.substring(ATTRIBUTE_CHIP_PREFIX.length)
               : chipKey);
+          /*
+           * The server's resolved facet name is the fallback seed: the
+           * sidebar showed it, and the facet list can drop the value once
+           * this very filter narrows the window.
+           */
           const displayValue: string =
-            config?.valueDisplayMap?.[value] || value;
+            config?.valueDisplayMap?.[value] ||
+            (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
+              ? describeSearchValue(chipValue)
+              : facetData[facetKey]?.find((facet: FacetValue): boolean => {
+                  return facet.value === value;
+                })?.displayName || value);
           return [
             ...prev,
-            { facetKey: chipKey, value, displayKey, displayValue },
+            { facetKey: chipKey, value: chipValue, displayKey, displayValue },
           ];
         });
         setPage(1);
       },
-      [facetConfigs],
+      [facetConfigs, facetData],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -1974,30 +2270,81 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   }, []);
 
   /*
+   * Server-resolved facet display names (Services, for the primaryEntityId
+   * facet), so a chip the user added from the sidebar keeps the name the
+   * sidebar showed even when the explorer's own Service list does not have
+   * that row.
+   */
+  const facetDisplayNames: Record<
+    string,
+    Record<string, string>
+  > = useMemo(() => {
+    return buildFacetDisplayNames(facetData);
+  }, [facetData]);
+
+  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+
+  /*
+   * One entity-name lookup for everything on screen that names an entity by
+   * id: every primaryEntityId / legacy serviceId chip (the locked scope, the
+   * stored-query scope, facet / URL / saved-view chips) and every span row
+   * whose entity is not a loaded Service. A span's primaryEntityId is
+   * polymorphic — a RUM application's spans carry the RumApplication id — and
+   * this explorer only loads Services, which is how a RUM traces tab came to
+   * read "Service: 84858d6c-…" and "unknown service" on every row.
+   */
+  const entityIdsToResolve: Array<string> = useMemo(() => {
+    return collectTraceEntityIdsToResolve({
+      chips: [
+        ...(scopeEntityId
+          ? [{ facetKey: "primaryEntityId", value: scopeEntityId }]
+          : []),
+        ...(spanScope.chips as Array<SpanScopeChip>),
+        ...activeFilters,
+      ],
+      spanEntityIds: spans.map((span: Span): string | undefined => {
+        return span.primaryEntityId?.toString();
+      }),
+      knownNames: [serviceNameMap, facetDisplayNames["primaryEntityId"]],
+      includeSpanEntityIds: resourcesLoaded,
+    });
+  }, [
+    scopeEntityId,
+    spanScope,
+    activeFilters,
+    spans,
+    serviceNameMap,
+    facetDisplayNames,
+    resourcesLoaded,
+  ]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType);
+  }, [scopeEntityId, props.scopeEntityType]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityIdsToResolve,
+    { typeHints: entityTypeHints },
+  );
+
+  /*
    * Read-only chips for prop-level scoping (e.g. service view page), merged
-   * with the user-added chips. Display labels are re-derived from
-   * facetConfigs here so URL-restored chips (which only carry facetKey/value)
-   * still show the human-readable label once services/hosts/etc. load.
+   * with the user-added chips. Display labels are re-derived here (see
+   * resolveTraceChipDisplay) so URL-restored chips (which only carry
+   * facetKey/value) still show the human-readable label once services, facets
+   * and entity names load.
    */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
       chip: ActiveFilter,
     ) => {
-      const config: FacetConfig | undefined = facetConfigs.find(
-        (c: FacetConfig): boolean => {
-          return c.key === chip.facetKey;
-        },
-      );
-      let displayKey: string = config?.title || chip.facetKey;
-      let displayValue: string =
-        config?.valueDisplayMap?.[chip.value] || chip.value;
-      if (chip.facetKey.startsWith("attributeSearches.")) {
-        displayKey = chip.facetKey.substring("attributeSearches.".length);
-        displayValue = `~${chip.value}`;
-      } else if (chip.facetKey.startsWith("attributes.")) {
-        displayKey = chip.facetKey.substring("attributes.".length);
-      }
-      return { ...chip, displayKey, displayValue };
+      return resolveTraceChipDisplay(chip, {
+        facetConfigs,
+        facetDisplayNames,
+        entityNames,
+        scopeEntityId,
+        scopeEntityType: props.scopeEntityType,
+      });
     };
 
     const base: Array<ActiveFilter> = [];
@@ -2012,20 +2359,73 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
       );
     }
+    /*
+     * The host's stored scope, as chips the user can see but not remove. A
+     * snapshot that filters silently is the thing that makes a short list
+     * look like the whole truth.
+     *
+     * A column the user has since filtered themselves is skipped: on that
+     * column their selection REPLACES the scope (drill-down, the precedence
+     * `primaryEntityId` has always had), so leaving the scope's chip up would
+     * show a filter the query no longer applies. The exceptions viewer needs
+     * no such rule — there the two AND together.
+     */
+    const userFilteredFacetKeys: Set<string> = new Set<string>(
+      activeFilters.map((filter: ActiveFilter): string => {
+        return filter.facetKey;
+      }),
+    );
+
+    /*
+     * Chips are not the only way a user claims a column. `status:`, `kind:`
+     * and `duration:` — and any value carrying grammar (a wildcard, a
+     * negation, a range) — deliberately do NOT become chips
+     * (resolveTraceSearchChip returns null, and the search bar leaves the
+     * token in the input); they live in the submitted search string and are
+     * folded into the same overwrite path by MERGED_CHIP_FIELDS. Reading
+     * only `activeFilters` would leave the scope's chip on screen while a
+     * typed `status:ok` had already replaced it in the query.
+     */
+    const typedSearch: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+
+    for (const fieldKey of Object.keys(typedSearch.fieldFilters)) {
+      userFilteredFacetKeys.add(fieldKey);
+    }
+
+    for (const attributeFilter of typedSearch.attributeFilters) {
+      userFilteredFacetKeys.add(
+        `${ATTRIBUTE_CHIP_PREFIX}${attributeFilter.key}`,
+      );
+    }
+
+    for (const chip of spanScope.chips as Array<SpanScopeChip>) {
+      if (userFilteredFacetKeys.has(chip.facetKey)) {
+        continue;
+      }
+
+      base.push(
+        resolveDisplay({
+          facetKey: chip.facetKey,
+          value: chip.value,
+          displayKey: chip.displayKey,
+          displayValue: chip.displayValue,
+          readOnly: true,
+        }),
+      );
+    }
     if (props.attributeFilters) {
       for (const [key, value] of Object.entries(props.attributeFilters)) {
         if (!value) {
           continue;
         }
-        const displayKey: string =
-          props.attributeFilterDisplayKeys?.[key] || key;
-        base.push({
-          facetKey: `attributes.${key}`,
-          value,
-          displayKey,
-          displayValue: value,
-          readOnly: true,
-        });
+        base.push(
+          buildLockedAttributeChip({
+            key,
+            value,
+            displayKeys: props.attributeFilterDisplayKeys,
+            displayValues: props.attributeFilterDisplayValues,
+          }),
+        );
       }
     }
     /*
@@ -2049,10 +2449,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
   }, [
     props.primaryEntityId,
+    props.scopeEntityType,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    scopeEntityId,
+    spanScope,
     activeFilters,
+    submittedSearch,
     facetConfigs,
+    facetDisplayNames,
+    entityNames,
     rootOnly,
   ]);
 
@@ -2099,20 +2506,27 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
 
       /*
-       * Exact attribute filters carry over; contains-filters have no
-       * rule-side equivalent and are dropped from the prefill.
+       * Exact attribute filters carry over. A rule filter is a key/value
+       * pair, so an operator-shaped attribute filter (a glob, a range, an
+       * any-of list, a contains) has no rule-side equivalent and is dropped
+       * from the prefill rather than stringified into a value that would
+       * record nothing.
        */
       const filterAttributes: Array<TraceRecordingRuleAttributeFilter> =
         Object.entries(
-          (aggregationRequest["attributes"] as Record<string, string>) || {},
-        ).map(
-          ([key, value]: [
-            string,
-            string,
-          ]): TraceRecordingRuleAttributeFilter => {
-            return { key, value };
-          },
-        );
+          (aggregationRequest["attributes"] as Record<string, unknown>) || {},
+        )
+          .filter(([, value]: [string, unknown]): boolean => {
+            return typeof value === "string" && value.length > 0;
+          })
+          .map(
+            ([key, value]: [
+              string,
+              unknown,
+            ]): TraceRecordingRuleAttributeFilter => {
+              return { key, value: value as string };
+            },
+          );
 
       /*
        * Rules group by attribute keys only — top-level dimensions (span
@@ -2199,20 +2613,59 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     useCallback((): TracesPivotScopeResult => {
       const dateRange: InBetween<Date> =
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-      const parsed: ReturnType<typeof parseSearch> =
-        parseSearch(submittedSearch);
+      const parsed: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+
+      /*
+       * A cross-signal scope carries exact attribute values and nothing else,
+       * so an attribute filter with any other operator is routed to the bucket
+       * the pivot already reports as "not carried" rather than being flattened
+       * into an equality on the glob text — `@k:a*` would otherwise arrive on
+       * the logs explorer as a filter for the two characters "a*".
+       */
+      const searchAttributes: Dictionary<string> = {};
+      const searchAttributeSearches: Dictionary<string> = {};
+      for (const filter of parsed.attributeFilters) {
+        if (filter.predicate.operator === SearchValueOperator.Equals) {
+          searchAttributes[filter.key] = filter.predicate.value;
+          continue;
+        }
+        searchAttributeSearches[filter.key] = filter.predicate.value;
+      }
 
       return buildTracesPivotScope({
         primaryEntityId: props.primaryEntityId?.toString(),
         scopeAttributeFilters: props.attributeFilters,
         activeFilters: activeFilters.map(
           (filter: ActiveFilter): { facetKey: string; value: string } => {
-            return { facetKey: filter.facetKey, value: filter.value };
+            if (!filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+              return { facetKey: filter.facetKey, value: filter.value };
+            }
+
+            /*
+             * An attribute chip stores a grammar token, not a literal: hand
+             * the scope the value it means, and let a non-equality chip fall
+             * into the same not-carried bucket a typed one does.
+             */
+            const predicate: SearchValuePredicate = parseSearchValue(
+              filter.value,
+            );
+            const key: string = filter.facetKey.substring(
+              ATTRIBUTE_CHIP_PREFIX.length,
+            );
+
+            if (predicate.operator === SearchValueOperator.Equals) {
+              return { facetKey: filter.facetKey, value: predicate.value };
+            }
+
+            return {
+              facetKey: `${ATTRIBUTE_SEARCH_CHIP_PREFIX}${key}`,
+              value: predicate.value,
+            };
           },
         ),
         fieldFilters: parsed.fieldFilters,
-        searchAttributes: parsed.attributes,
-        searchAttributeSearches: parsed.attributeSearches,
+        searchAttributes,
+        searchAttributeSearches,
         freeText: parsed.freeText,
         rootOnly,
         hasEntityScope: Boolean(
@@ -2224,7 +2677,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       });
     }, [
       timeRange,
-      parseSearch,
       submittedSearch,
       activeFilters,
       rootOnly,
@@ -2312,6 +2764,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const enableSavedViews: boolean =
     !props.primaryEntityId &&
     !props.entityScope &&
+    // A hosted view (a pinned incident snapshot, a controlled window) is not the user's to save over.
+    !hostOwnsView &&
+    !spanScope.hasScope &&
     (!props.attributeFilters ||
       Object.keys(props.attributeFilters).length === 0);
 
@@ -2323,12 +2778,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const hasInitialUrlState: boolean = useMemo((): boolean => {
     return (
+      /*
+       * A host-owned view counts as scope of its own. Without this, an embed
+       * pinned to an incident's window would have the project's DEFAULT saved
+       * view auto-applied over the pin a tick after mount — the same defect
+       * the logs viewer guards against for its incident embeds. Belt and
+       * braces: `enableSavedViews` already hides the control for such hosts,
+       * so nothing would resolve a view at all.
+       */
+      hostOwnsView ||
       Boolean(props.timeRangeOverride) ||
       initialUrlState.search.length > 0 ||
       initialUrlState.filters.length > 0 ||
       initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
     );
-  }, [initialUrlState, props.timeRangeOverride]);
+  }, [initialUrlState, props.timeRangeOverride, hostOwnsView]);
 
   // Capture the current explorer state for Save / Update of a saved view.
   const captureCurrentState: () => TelemetrySavedViewState =
@@ -2376,7 +2840,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  return (
+  /*
+   * The half of the host's scope the aggregation payload cannot express. The
+   * list applies it, the chart and the facet counts above the list do not, so
+   * it is named on screen — the module computes it precisely so this never
+   * has to be silent.
+   */
+  const scopeHint: string = spanScope.notCarried.join(", ");
+
+  const viewer: ReactElement = (
     <TelemetryViewer<Span>
       items={spans}
       isLoading={isLoading}
@@ -2395,6 +2867,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             savedViewNoun="Trace"
             explorerLabel="traces"
             hasInitialUrlState={hasInitialUrlState}
+            initialSavedViewId={initialUrlState.savedViewId}
+            initialStateOverrides={initialStateOverrides}
+            onSelectionChange={setSelectedSavedViewId}
             captureCurrentState={captureCurrentState}
             applyState={applySavedViewState}
             onError={setError}
@@ -2409,8 +2884,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            * tooltip lists any filters the target grammar cannot express so
            * the narrowing is never silent.
            */}
+          {/*
+           * Hidden for a hosted snapshot: the pivots carry the chips and the
+           * window, not the host's stored scope, so from an incident card
+           * they would open the logs / metrics explorer project-wide under a
+           * button that promises "scoped like this view". The snapshot card
+           * already offers correctly-scoped Logs and Metrics tabs of its own.
+           */}
           <div
-            className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+            className={`items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm ${
+              props.spanQuery ? "hidden" : "inline-flex"
+            }`}
             aria-label="Related telemetry signals"
           >
             <Tooltip
@@ -2482,12 +2966,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            */}
         </>
       }
-      emptyMessage="No traces found"
+      emptyMessage={props.emptyMessage || "No traces found"}
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {
-        const service: Service | undefined = span.primaryEntityId
-          ? serviceById[span.primaryEntityId.toString()]
-          : undefined;
+        /*
+         * A loaded Service renders exactly as before; any other entity (a RUM
+         * application, a host) shows the name the entity lookup resolved
+         * rather than "unknown service".
+         */
+        const spanEntity: {
+          service?: Service | undefined;
+          entity?: ResolvedTelemetryEntity | undefined;
+        } = getSpanEntity({
+          spanEntityId: span.primaryEntityId,
+          serviceById,
+          entityNames,
+        });
+        const service: Service | undefined = spanEntity.service;
         const spanKey: string = span.spanId?.toString() || "";
         const isExpanded: boolean =
           spanKey !== "" && expandedSpanId === spanKey;
@@ -2496,6 +2991,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             <TraceRow
               span={span}
               service={service}
+              entity={spanEntity.entity}
               maxDurationNano={maxDurationNano}
               isExpanded={isExpanded}
               onToggle={() => {
@@ -2506,9 +3002,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               <SpanDetailsPanel
                 span={span}
                 service={service}
+                entity={spanEntity.entity}
                 traceRoute={getTraceRoute(span)}
                 onFilterByAttribute={(key: string, value: string) => {
-                  handleFacetInclude(`attributes.${key}`, value);
+                  /*
+                   * The value is copied straight off the span, so it is
+                   * escaped into a grammar token here — the chip is re-parsed
+                   * when the query is built.
+                   */
+                  handleFacetInclude(
+                    `${ATTRIBUTE_CHIP_PREFIX}${key}`,
+                    buildSearchTokenValue(value),
+                  );
                   setExpandedSpanId(null);
                 }}
               />
@@ -2544,51 +3049,37 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       searchValuesLoading={attributeValuesLoading}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
-         * Add the typed pair as a chip via the same path as facet clicks so
-         * it lives in `activeFilters` and feels consistent with the rest of
-         * the UI. Known fields use their alias (e.g. "service" →
-         * "primaryEntityId"); unknown keys are telemetry attributes and get an
-         * `attributes.` prefix so they're routed into `query.attributes`
-         * during query construction. Known-field detection is
-         * case-insensitive so users can type `Service:api`; attribute keys
-         * keep their original case because the data is case-sensitive (the
-         * backend matches them case-insensitively at query time).
-         *
-         * Surrounding double quotes are stripped: typing `name:"SELECT"`
-         * should store the chip as `SELECT`, otherwise the backend SQL
-         * becomes `name ILIKE '%"SELECT"%'` and matches nothing.
+         * Turn a typed `key:value` into a chip via the same path as a facet
+         * click, so both live in `activeFilters` — but only when a chip can
+         * carry the filter losslessly. Returning `false` tells the search bar
+         * to leave the token in the input and submit the search string
+         * instead, which routes it through the shared grammar; that is the
+         * branch that makes `status:error`, `kind:server`, `duration:>500`
+         * and every wildcard / negation / range mean the same thing whether
+         * they are typed and submitted or typed and Enter-ed. They used to
+         * chip their raw text: "error" landed on the numeric statusCode
+         * column, "server" never became SPAN_KIND_SERVER, and ">500" was
+         * compared as a string against an Int128.
          */
-        const lowerFieldKey: string = fieldKey.toLowerCase();
-        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(lowerFieldKey);
-        let cleanValue: string =
-          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
-            ? value.slice(1, -1)
-            : value;
-        // `@key:~value` → contains-match chip (attributeSearches.<key>).
-        let facetKey: string;
-        if (isKnownField) {
-          facetKey = FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey;
-        } else if (cleanValue.startsWith("~")) {
-          facetKey = `attributeSearches.${fieldKey}`;
-          cleanValue = cleanValue.substring(1);
-          if (
-            cleanValue.length >= 2 &&
-            cleanValue.startsWith('"') &&
-            cleanValue.endsWith('"')
-          ) {
-            cleanValue = cleanValue.slice(1, -1);
-          }
-        } else {
-          facetKey = `attributes.${fieldKey}`;
+        const chip: TraceSearchChip | null = resolveTraceSearchChip(
+          fieldKey,
+          value,
+        );
+
+        if (!chip) {
+          return false;
         }
-        if (cleanValue.length === 0) {
+
+        if (chip.value.length === 0) {
           return;
         }
-        handleFacetInclude(facetKey, cleanValue);
+
+        handleFacetInclude(chip.facetKey, chip.value);
+        return;
       }}
-      searchFieldAliasMap={FIELD_ALIAS_MAP}
+      searchFieldAliasMap={TRACE_FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="service:api status:error @http.method:GET checkout"
+      searchHelpCombinedExample="status:error @http.status_code:>499 -@http.method:GET"
       // Time
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
@@ -2679,6 +3170,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setPage(1);
       }}
     />
+  );
+
+  if (!scopeHint) {
+    return viewer;
+  }
+
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
+      <div className="text-xs text-gray-500">
+        {`The chart and facet counts above are not narrowed by: ${scopeHint}. The list is.`}
+      </div>
+      {viewer}
+    </div>
   );
 };
 

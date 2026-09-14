@@ -157,6 +157,71 @@ describe("ColumnPermissions on WorkflowVariable", () => {
         checkUpdate({ content: "rotated-token" }, [Permission.ProjectOwner]),
       ).not.toThrow();
     });
+
+    /*
+     * isSecret used to be create-only (update: []), which had two consequences
+     * and neither of them was safety. On the server a request that flipped the
+     * toggle was refused outright; in the dashboard the edit form silently
+     * dropped the field, because ModelForm builds the update form from each
+     * column's UPDATE list (getFieldPermissions) - so a variable saved without
+     * the toggle kept leaking its value into every workflow run log, and the
+     * only fix was to delete it and create it again.
+     *
+     * isSecret is not an encryption switch. RunWorkflow reads it once, to pick
+     * which values to substring-replace with [REDACTED] before the log is
+     * persisted (getSecretWorkflowVariableValues), so flipping it changes what
+     * future runs write and nothing else.
+     */
+    it("lets a key with EditWorkflowVariable flip the secret toggle", () => {
+      expect(
+        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+          Permission.EditWorkflowVariable,
+        ]),
+      ).not.toThrow();
+    });
+
+    it("lets a project admin and a project owner flip the secret toggle", () => {
+      expect(
+        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+          Permission.ProjectAdmin,
+        ]),
+      ).not.toThrow();
+
+      expect(
+        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+          Permission.ProjectOwner,
+        ]),
+      ).not.toThrow();
+    });
+
+    it("still refuses a read-only key that tries to flip the secret toggle", () => {
+      expect(
+        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+          Permission.ReadWorkflowVariable,
+        ]),
+      ).toThrow(BadDataException);
+    });
+
+    /*
+     * Widening isSecret must not widen the columns that decide which project
+     * and which workflow a variable belongs to. Moving a variable between
+     * workflows through an update would change which runs can read it.
+     */
+    it("keeps the scope columns unwritable", () => {
+      expect(
+        checkUpdate({ projectId: ObjectID.generate() }, [
+          Permission.ProjectOwner,
+          Permission.EditWorkflowVariable,
+        ]),
+      ).toThrow(BadDataException);
+
+      expect(
+        checkUpdate({ workflowId: ObjectID.generate() }, [
+          Permission.ProjectOwner,
+          Permission.EditWorkflowVariable,
+        ]),
+      ).toThrow(BadDataException);
+    });
   });
 
   describe("create", () => {
@@ -199,6 +264,36 @@ describe("ColumnPermissions on WorkflowVariable", () => {
 
       expect(columns.columns).not.toContain("content");
       expect(columns.columns).toContain("name");
+    });
+
+    /*
+     * The point of the isSecret widening is that the edit form can show the
+     * toggle in its current position. That needs read AND update on the same
+     * key - and it must not have dragged content's read list along with it.
+     */
+    it("reports isSecret as both readable and updatable, while content stays write-only", () => {
+      const userPermissions: Array<UserPermission> = makeUserPermissions([
+        Permission.EditWorkflowVariable,
+        Permission.ReadWorkflowVariable,
+      ]);
+
+      const updatableColumns: Columns =
+        ColumnPermissions.getModelColumnsByPermissions(
+          WorkflowVariable,
+          userPermissions,
+          DatabaseRequestType.Update,
+        );
+
+      const readableColumns: Columns =
+        ColumnPermissions.getModelColumnsByPermissions(
+          WorkflowVariable,
+          userPermissions,
+          DatabaseRequestType.Read,
+        );
+
+      expect(updatableColumns.columns).toContain("isSecret");
+      expect(readableColumns.columns).toContain("isSecret");
+      expect(readableColumns.columns).not.toContain("content");
     });
 
     it("reports content as updatable but not readable for the same key", () => {

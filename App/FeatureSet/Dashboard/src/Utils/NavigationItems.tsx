@@ -130,20 +130,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
-      title: t("navbar.items.securityEventsTitle", "Security Events"),
-      description: t(
-        "navbar.items.securityEventsDescription",
-        "SIEM signals correlated with your observability data.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SECURITY_EVENTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
-      icon: IconProp.ShieldExclamation,
-      iconColor: "rose",
-      category: observabilityCategory,
-    },
-    {
       title: t("navbar.items.metricsTitle"),
       description: t("navbar.items.metricsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
@@ -176,7 +162,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),
-      activeRoute: RouteMap[PageMap.EXCEPTIONS],
+      activeRoute: RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT],
       icon: IconProp.Bug,
       iconColor: "orange",
       category: observabilityCategory,
@@ -191,6 +177,20 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.LLM],
       icon: IconProp.Sparkles,
       iconColor: "violet",
+      category: observabilityCategory,
+    },
+    {
+      title: t("navbar.items.securityEventsTitle", "Security Events"),
+      description: t(
+        "navbar.items.securityEventsDescription",
+        "SIEM signals correlated with your observability data.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
+      icon: IconProp.ShieldExclamation,
+      iconColor: "rose",
       category: observabilityCategory,
     },
     // AI
@@ -347,6 +347,20 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       ),
       activeRoute: RouteMap[PageMap.PROXMOX_CLUSTERS],
       icon: IconProp.Proxmox,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.vmwareTitle", "VMware"),
+      description: t(
+        "navbar.items.vmwareDescription",
+        "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.VMWARE_VCENTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.VMWARE_VCENTERS],
+      icon: IconProp.VMware,
       iconColor: "blue",
       category: resourcesCategory,
     },

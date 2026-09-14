@@ -1,0 +1,9 @@
+{
+  "MobileApp": [
+    {
+      "advisory": "GHSA-vcc3-ghjq-m6fr",
+      "expires": "2026-10-11",
+      "reason": "The latest stable React Navigation depends on query-string 7 and has no compatible fixed release. query-string 9.5.1 was tested and breaks React Navigation's namespace parse/stringify API; upgrade when React Navigation publishes a compatible fix."
+    }
+  ]
+}

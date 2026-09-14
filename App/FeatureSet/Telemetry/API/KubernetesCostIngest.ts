@@ -2,6 +2,7 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -31,7 +32,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/kubernetes-cost/ingest",
   TelemetryIngestionDisabled.middleware,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.KubernetesCost),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

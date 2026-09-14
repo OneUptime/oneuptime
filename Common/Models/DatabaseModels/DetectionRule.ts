@@ -22,26 +22,35 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Part of the SIEM, so it reads and is administered through the Security
+ * tiers rather than the Telemetry ones it used to share a list with. A
+ * detection rule and a threat-intel subscription describe what a project is
+ * watching for and what it believes it is up against, which is security
+ * posture rather than observability configuration.
+ */
 const createPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
   Permission.CreateProjectDetectionRule,
 ];
 
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
   Permission.ReadProjectDetectionRule,
 ];
 
 const updatePermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
   Permission.EditProjectDetectionRule,
 ];
 
@@ -84,6 +93,8 @@ const updatePermissions: Array<Permission> = [
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
     Permission.DeleteProjectDetectionRule,
   ],
   update: updatePermissions,
@@ -523,15 +534,21 @@ export default class DetectionRule extends BaseModel {
   @TableColumn({
     title: "Last Error",
     required: false,
-    type: TableColumnType.LongText,
+    /*
+     * Unbounded text, not LongText's varchar(500): a ClickHouse error
+     * echoes the whole compiled query back, which overflows 500 and made
+     * the evaluator's own error-recording write throw — leaving this
+     * column, and lastEvaluatedAt with it, null forever. The evaluator
+     * still clamps what it stores.
+     */
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:
       "The most recent evaluation error, if any. Cleared on the next successful evaluation.",
   })
   @Column({
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    length: ColumnLength.LongText,
   })
   public lastError?: string = undefined;
 

@@ -1,6 +1,7 @@
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Project from "../../../Models/DatabaseModels/Project";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import EmailVerificationTokenService from "../../../Server/Services/EmailVerificationTokenService";
@@ -8,6 +9,8 @@ import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
@@ -123,12 +126,21 @@ function persistedToken(): EmailVerificationToken {
 }
 
 beforeEach(() => {
+  const team: Team = new Team(TEAM_ID);
+  jest.spyOn(TeamService, "findOneBy").mockResolvedValue(team);
+  jest
+    .spyOn(TeamPermissionService, "assertCanGrantTeamPermissions")
+    .mockResolvedValue(undefined);
+
   jest
     .spyOn(ProjectSCIMService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
 
   // No existing membership - the duplicate-invite guard at the end of the hook.
   jest.spyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
+  jest
+    .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
+    .mockResolvedValue(0);
 
   jest
     .spyOn(ProjectService, "findOneById")

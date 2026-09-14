@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import User from "../../../Models/DatabaseModels/User";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Image from "../Image/Image";
-import Route from "../../../Types/API/Route";
 import BlankProfilePic from "../../Images/users/blank-profile.svg";
 import UserUtil from "../../Utils/User";
 import ObjectID from "../../../Types/ObjectID";
@@ -64,15 +63,15 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   };
 
   const getUserIcon: GetReactElementFunction = (): ReactElement => {
-    const userImageRoute: Route = props.user?.id
-      ? UserUtil.getProfilePictureRoute(props.user.id as ObjectID)
-      : Route.fromString(`${BlankProfilePic}`);
+    const userImageUrl: string = props.user?.id
+      ? UserUtil.getProfilePictureRoute(props.user.id as ObjectID).toString()
+      : BlankProfilePic;
 
     return (
       <div>
         <Image
           className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
-          imageUrl={userImageRoute}
+          imageUrl={userImageUrl}
         />
 
         {props.icon && (

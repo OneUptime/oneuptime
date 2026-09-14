@@ -16,6 +16,8 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
+import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -573,6 +575,9 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           monitors: {
             _id: true,
           },
+          networkSites: {
+            _id: true,
+          },
           nextSubscriberNotificationBeforeTheEventAt: true,
         },
         props: {
@@ -620,6 +625,23 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     if (isResolvedState || isEndedState) {
       // resolve all the monitors.
       await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
+    }
+
+    /*
+     * Network sites are suppressed by the LIVE state of the event, not by a
+     * flag written onto them, so both edges of the window have to re-roll the
+     * chains above the attached sites: entering ongoing takes the planned
+     * outage out of every ancestor's rollup, and leaving it puts whatever is
+     * genuinely wrong back in. Without this the change would still land, but
+     * only whenever the five-minute stale sweep next reached those sites.
+     *
+     * Awaited rather than fired and forgotten: the state transition is
+     * already inside a hook, and a rollup that ran after the response would
+     * race the very sweep it is trying to pre-empt. The call swallows
+     * per-site failures itself.
+     */
+    if (isOngoingState || isResolvedState || isEndedState) {
+      await this.recomputeNetworkSiteRollups(scheduledMaintenanceEvent);
     }
 
     const isLastScheduledMaintenanceState: boolean =
@@ -821,6 +843,45 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           scheduledMaintenanceId: scheduledMaintenanceId.toString(),
         } as LogAttributes);
       });
+    }
+  }
+
+  /*
+   * Re-rolls the health of every network site chain this event covers.
+   * A no-op for the overwhelming majority of events, which have no sites
+   * attached at all.
+   */
+  @CaptureSpan()
+  private async recomputeNetworkSiteRollups(
+    scheduledMaintenanceEvent: ScheduledMaintenance | null,
+  ): Promise<void> {
+    if (
+      !scheduledMaintenanceEvent ||
+      !scheduledMaintenanceEvent.projectId ||
+      !scheduledMaintenanceEvent.networkSites ||
+      scheduledMaintenanceEvent.networkSites.length === 0
+    ) {
+      return;
+    }
+
+    const siteIds: Array<ObjectID> = scheduledMaintenanceEvent.networkSites
+      .filter((site: NetworkSite) => {
+        return Boolean(site._id);
+      })
+      .map((site: NetworkSite) => {
+        return new ObjectID(String(site._id));
+      });
+
+    try {
+      await NetworkSiteService.recomputeRollupsAfterMaintenanceChange({
+        projectId: scheduledMaintenanceEvent.projectId,
+        siteIds: siteIds,
+      });
+    } catch (error) {
+      logger.error(
+        "Error while recomputing network site rollups after a scheduled maintenance state change:",
+      );
+      logger.error(error);
     }
   }
 

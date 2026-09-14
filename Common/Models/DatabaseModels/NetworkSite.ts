@@ -1,6 +1,11 @@
 import AlertSeverity from "./AlertSeverity";
 import MonitorStatus from "./MonitorStatus";
 import NetworkSiteType from "./NetworkSiteType";
+import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
+import Probe from "./Probe";
+import SiteHealthRollupPolicy, {
+  DefaultSiteOfflineThresholdPercent,
+} from "../../Types/NetworkSite/SiteHealthRollupPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -94,6 +99,21 @@ const decimalTransformer: ValueTransformer = {
 @CrudApiEndpoint(new Route("/network-site"))
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "parentSiteId"])
+/*
+ * "This project's sites that are rolling up one of these statuses" — the
+ * Overview's unhealthy-sites list, and the Sites page's status chip.
+ *
+ * The standalone `currentMonitorStatusId` index cannot serve them: it has no
+ * project to narrow by first, and a status id is shared across every tenant's
+ * sites.
+ *
+ * Measured note, so nobody widens the claim: this does NOT speed up the
+ * grouped status COUNT behind the summary strip. That query has to visit the
+ * heap for `deletedAt` either way, so it cannot go index-only, and the
+ * planner reasonably prefers the smaller single-column `projectId` index for
+ * it.
+ */
+@Index(["projectId", "currentMonitorStatusId"])
 @TableMetadata({
   tableName: "NetworkSite",
   singularName: "Network Site",
@@ -396,7 +416,13 @@ export default class NetworkSite extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      /*
+       * NO ACTION still protects a type while any referencing site survives,
+       * but performs the check at the end of the statement. That distinction
+       * lets deleting a Project cascade through its Network Sites and Network
+       * Site Types together without the sibling cascades blocking each other.
+       */
+      onDelete: "NO ACTION",
       orphanedRowAction: "nullify",
     },
   )
@@ -475,6 +501,193 @@ export default class NetworkSite extends BaseModel {
     ],
   })
   @TableColumn({
+    manyToOneRelationColumn: "probeId",
+    type: TableColumnType.Entity,
+    modelType: Probe,
+    title: "Default Probe",
+    description:
+      "The probe that polls devices in this site unless a device names its own. A device created into this site with no probe inherits it, and so does a device moved into the site while it has none — which is what lets an operator register a device by name and address alone. It has to be able to reach the site's network, so it is usually a custom probe deployed there.",
+  })
+  @ManyToOne(
+    () => {
+      return Probe;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "probeId" })
+  public probe?: Probe = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Default Probe ID",
+    description: "ID of the probe that polls devices in this site by default",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public probeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "snmpCredentialProfileId",
+    type: TableColumnType.Entity,
+    modelType: NetworkSnmpCredentialProfile,
+    title: "Default SNMP Credential Profile",
+    description:
+      "The SNMP credential set devices in this site are walked with when neither the device nor its own profile carries credentials. Set it once per site and every device registered there is walked over SNMP from its first poll; with no profile anywhere the device is pinged only.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkSnmpCredentialProfile;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "snmpCredentialProfileId" })
+  public snmpCredentialProfile?: NetworkSnmpCredentialProfile = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Default SNMP Credential Profile ID",
+    description:
+      "ID of the SNMP Credential Profile devices in this site inherit",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public snmpCredentialProfileId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "parentSiteId",
     type: TableColumnType.Entity,
     modelType: NetworkSite,
@@ -489,7 +702,11 @@ export default class NetworkSite extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      /*
+       * Checked at statement end so a single bulk delete may remove a whole
+       * subtree; surviving children are rejected by NetworkSiteService.
+       */
+      onDelete: "NO ACTION",
       orphanedRowAction: "nullify",
     },
   )
@@ -845,6 +1062,108 @@ export default class NetworkSite extends BaseModel {
     type: ColumnType.Date,
   })
   public lastRollupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  /*
+   * Which rule turns the health of every device under this site into ONE
+   * status for the site. See Types/NetworkSite/SiteHealthRollupPolicy for why
+   * a Unit and a Region want different answers, and why the default is the
+   * worst-of rule every site used before this column existed.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Health Rollup Policy",
+    description:
+      "How this site's status is derived from the devices beneath it: WorstStatus (any device offline makes the site offline) or PercentThreshold (the share of devices that are down decides).",
+    example: SiteHealthRollupPolicy.WorstStatus,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: SiteHealthRollupPolicy.WorstStatus,
+  })
+  public healthRollupPolicy?: SiteHealthRollupPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  /*
+   * Only read when healthRollupPolicy is PercentThreshold. Stored on every
+   * site regardless so switching policy does not also require picking a
+   * number in the same edit.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Offline Threshold (%)",
+    description:
+      "With the PercentThreshold rollup policy: the share of reporting devices beneath this site that must be non-operational before the site itself is marked offline. Below it (but above zero) the site is degraded.",
+    example: "50",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DefaultSiteOfflineThresholdPercent,
+  })
+  public offlineThresholdPercent?: number = undefined;
 
   @ColumnAccessControl({
     create: [

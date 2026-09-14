@@ -3,11 +3,14 @@ import EnterpriseLicenseInstance from "../../Models/DatabaseModels/EnterpriseLic
 import BadDataException from "../../Types/Exception/BadDataException";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseLicenseUsageSnapshot from "../../Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
+import EnterpriseLicenseUserCountSource from "../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import VersionUtil from "../../Utils/VersionUtil";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { JSONObject } from "../../Types/JSON";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import EnterpriseLicenseService, {
   Service as EnterpriseLicenseServiceType,
@@ -23,6 +26,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
+import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 // import { Host } from "../EnvironmentConfig";
 
 /*
@@ -52,6 +56,19 @@ export interface LicenseInstanceUpsert {
   lastReportedAt?: Date | undefined;
 }
 
+interface LicenseUsageReportResult {
+  reportedAt: Date;
+  instances: Array<EnterpriseLicenseInstance>;
+  currentUserCount: number;
+}
+
+interface LicenseValidationResult {
+  instances: Array<EnterpriseLicenseInstance>;
+  currentUserCount: number | null;
+  userCountUpdatedAt: Date | null;
+  calculatedAt: Date;
+}
+
 /*
  * Bounds how many instance rows one license key can register. Real customers
  * run a handful of instances; this stops a leaked key from being used to
@@ -65,6 +82,224 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 > {
   public constructor() {
     super(EnterpriseLicense, EnterpriseLicenseService);
+
+    /*
+     * The dashboard needs a count and instance statuses from one cutoff
+     * instant. Calculate both on the server so the per-user hashes used for
+     * cross-instance deduplication never have to be sent to the browser.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:enterpriseLicenseId/active-usage`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const licenseId: ObjectID = new ObjectID(
+            req.params["enterpriseLicenseId"] as string,
+          );
+          const snapshot: EnterpriseLicenseUsageSnapshot =
+            await EnterpriseLicenseService.runWithUsageAggregationLock({
+              licenseId,
+              fn: async (): Promise<EnterpriseLicenseUsageSnapshot> => {
+                /*
+                 * A report updates its instance row and then the license-wide
+                 * timestamp. Read both under the same lock so the dashboard
+                 * can never combine the new instance state with the previous
+                 * license state (or vice versa).
+                 */
+                const license: EnterpriseLicense | null =
+                  await EnterpriseLicenseService.findOneById({
+                    id: licenseId,
+                    select: {
+                      _id: true,
+                      currentUserCount: true,
+                      userCountUpdatedAt: true,
+                      userCountSource: true,
+                      legacyUserCount: true,
+                      legacyUserCountUpdatedAt: true,
+                    },
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+
+                if (!license) {
+                  throw new BadDataException("Enterprise license not found");
+                }
+
+                const instances: Array<EnterpriseLicenseInstance> =
+                  await this.findLicenseInstances(licenseId);
+                const calculatedAt: Date = OneUptimeDate.getCurrentDate();
+                const activeInstances: Array<EnterpriseLicenseInstance> =
+                  instances.filter(
+                    (instance: EnterpriseLicenseInstance): boolean => {
+                      return EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
+                        instance,
+                        calculatedAt,
+                      );
+                    },
+                  );
+                const currentUserCount: number | null =
+                  EnterpriseLicenseUsageUtil.getEffectiveUserCount({
+                    instances,
+                    storedUserCount: license.currentUserCount,
+                    storedUserCountUpdatedAt: license.userCountUpdatedAt,
+                    storedUserCountSource: license.userCountSource,
+                    legacyUserCount: license.legacyUserCount,
+                    legacyUserCountUpdatedAt: license.legacyUserCountUpdatedAt,
+                    now: calculatedAt,
+                  });
+                const masterAdminEmailSet: Set<string> = new Set<string>();
+
+                for (const instance of instances) {
+                  for (const email of instance.masterAdminEmails || []) {
+                    const normalizedEmail: string = email.trim().toLowerCase();
+
+                    if (normalizedEmail) {
+                      masterAdminEmailSet.add(normalizedEmail);
+                    }
+                  }
+                }
+
+                const masterAdminEmails: Array<string> =
+                  Array.from(masterAdminEmailSet).sort();
+                const nextInstanceStatusChangeAt: Date | null =
+                  activeInstances.reduce(
+                    (
+                      earliestChange: Date | null,
+                      instance: EnterpriseLicenseInstance,
+                    ): Date | null => {
+                      const lastCommunicatedAt: Date | undefined =
+                        EnterpriseLicenseUsageUtil.getInstanceLastCommunicatedAt(
+                          instance,
+                        );
+
+                      if (!lastCommunicatedAt) {
+                        return earliestChange;
+                      }
+
+                      const inactiveAt: Date = new Date(
+                        lastCommunicatedAt.getTime() +
+                          EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays *
+                            24 *
+                            60 *
+                            60 *
+                            1000,
+                      );
+
+                      return !earliestChange || inactiveAt < earliestChange
+                        ? inactiveAt
+                        : earliestChange;
+                    },
+                    null,
+                  );
+                const usesActiveModernUsage: boolean =
+                  EnterpriseLicenseUsageUtil.hasActiveReportedInstanceUsage(
+                    instances,
+                    calculatedAt,
+                  );
+                let activeLegacyUsageUpdatedAt: Date | undefined;
+
+                if (!usesActiveModernUsage) {
+                  if (
+                    EnterpriseLicenseUsageUtil.isTimestampWithinUsageWindow(
+                      license.legacyUserCountUpdatedAt,
+                      calculatedAt,
+                    )
+                  ) {
+                    activeLegacyUsageUpdatedAt =
+                      license.legacyUserCountUpdatedAt;
+                  } else if (
+                    !license.legacyUserCountUpdatedAt &&
+                    license.userCountSource !==
+                      EnterpriseLicenseUserCountSource.Instance &&
+                    (license.userCountSource ===
+                      EnterpriseLicenseUserCountSource.Legacy ||
+                      !EnterpriseLicenseUsageUtil.hasReportedInstanceUsage(
+                        instances,
+                      )) &&
+                    EnterpriseLicenseUsageUtil.isTimestampWithinUsageWindow(
+                      license.userCountUpdatedAt,
+                      calculatedAt,
+                    )
+                  ) {
+                    /*
+                     * Compatibility for rows written before the dedicated
+                     * legacy heartbeat columns were introduced.
+                     */
+                    activeLegacyUsageUpdatedAt = license.userCountUpdatedAt;
+                  }
+                }
+
+                const legacyUsageChangeAt: Date | null =
+                  activeLegacyUsageUpdatedAt
+                    ? new Date(
+                        activeLegacyUsageUpdatedAt.getTime() +
+                          EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays *
+                            24 *
+                            60 *
+                            60 *
+                            1000,
+                      )
+                    : null;
+                let nextUsageChangeAt: Date | null = nextInstanceStatusChangeAt;
+
+                if (
+                  legacyUsageChangeAt &&
+                  (!nextUsageChangeAt ||
+                    legacyUsageChangeAt < nextUsageChangeAt)
+                ) {
+                  nextUsageChangeAt = legacyUsageChangeAt;
+                }
+                const usageReportTimestamps: Array<Date> = (
+                  [
+                    license.userCountUpdatedAt,
+                    license.legacyUserCountUpdatedAt,
+                    ...instances.map(
+                      (
+                        instance: EnterpriseLicenseInstance,
+                      ): Date | undefined => {
+                        return instance.lastReportedAt;
+                      },
+                    ),
+                  ] as Array<Date | undefined>
+                ).filter((timestamp: Date | undefined): timestamp is Date => {
+                  return Boolean(timestamp);
+                });
+                const lastUsageReportedAt: Date | null =
+                  usageReportTimestamps.reduce(
+                    (latest: Date | null, timestamp: Date): Date => {
+                      return !latest || timestamp > latest ? timestamp : latest;
+                    },
+                    null,
+                  );
+
+                return {
+                  currentUserCount,
+                  activeInstanceIds: activeInstances.map(
+                    (instance: EnterpriseLicenseInstance): string => {
+                      return instance.id!.toString();
+                    },
+                  ),
+                  masterAdminEmails,
+                  calculatedAt: calculatedAt.toISOString(),
+                  lastUsageReportedAt:
+                    lastUsageReportedAt?.toISOString() || null,
+                  nextInstanceStatusChangeAt:
+                    nextUsageChangeAt?.toISOString() || null,
+                };
+              },
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            snapshot as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/validate`,
@@ -138,17 +373,67 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             req.body["version"],
           );
 
-          if (instanceId) {
-            await this.upsertLicenseInstance({
+          const validationResult: LicenseValidationResult =
+            await EnterpriseLicenseService.runWithUsageAggregationLock({
               licenseId: license.id!,
-              instanceId: instanceId,
-              host: instanceHost || undefined,
-              oneuptimeVersion: instanceVersion,
-            });
-          }
+              fn: async (): Promise<LicenseValidationResult> => {
+                /*
+                 * Registration is the instance's first communication and can
+                 * keep an upgrade-era count in its grace window. Serialize it
+                 * with reporting and reconciliation so a sweep cannot read the
+                 * old rows, then overwrite the count after this row appears.
+                 */
+                if (instanceId) {
+                  await this.upsertLicenseInstance({
+                    licenseId: license.id!,
+                    instanceId: instanceId,
+                    host: instanceHost || undefined,
+                    oneuptimeVersion: instanceVersion,
+                  });
+                }
 
-          const instances: Array<EnterpriseLicenseInstance> =
-            await this.findLicenseInstances(license.id!);
+                const instances: Array<EnterpriseLicenseInstance> =
+                  await this.findLicenseInstances(license.id!);
+                const currentLicense: EnterpriseLicense | null =
+                  await EnterpriseLicenseService.findOneById({
+                    id: license.id!,
+                    select: {
+                      currentUserCount: true,
+                      userCountUpdatedAt: true,
+                      userCountSource: true,
+                      legacyUserCount: true,
+                      legacyUserCountUpdatedAt: true,
+                    },
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+
+                if (!currentLicense) {
+                  throw new BadDataException("License key is invalid");
+                }
+
+                const calculatedAt: Date = OneUptimeDate.getCurrentDate();
+                const currentUserCount: number | null =
+                  EnterpriseLicenseUsageUtil.getEffectiveUserCount({
+                    instances,
+                    storedUserCount: currentLicense.currentUserCount,
+                    storedUserCountUpdatedAt: currentLicense.userCountUpdatedAt,
+                    storedUserCountSource: currentLicense.userCountSource,
+                    legacyUserCount: currentLicense.legacyUserCount,
+                    legacyUserCountUpdatedAt:
+                      currentLicense.legacyUserCountUpdatedAt,
+                    now: calculatedAt,
+                  });
+
+                return {
+                  instances,
+                  currentUserCount,
+                  userCountUpdatedAt: currentLicense.userCountUpdatedAt || null,
+                  calculatedAt,
+                };
+              },
+            });
 
           const terms: LicenseTerms = this.getLicenseTerms(license);
 
@@ -159,15 +444,15 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             expiresAt: terms.expiresAt,
             licenseKey: terms.licenseKey,
             userLimit: terms.userLimit,
-            currentUserCount:
-              typeof license.currentUserCount === "number"
-                ? license.currentUserCount
-                : null,
-            userCountUpdatedAt: license.userCountUpdatedAt
-              ? license.userCountUpdatedAt.toISOString()
+            currentUserCount: validationResult.currentUserCount,
+            userCountUpdatedAt: validationResult.userCountUpdatedAt
+              ? validationResult.userCountUpdatedAt.toISOString()
               : null,
             isEvaluationLicense: Boolean(license.isEvaluationLicense),
-            instances: this.getInstanceSummaries(instances),
+            instances: this.getInstanceSummaries(
+              validationResult.instances,
+              validationResult.calculatedAt,
+            ),
             token,
           });
         } catch (err) {
@@ -231,8 +516,6 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             throw new BadDataException("License key is invalid");
           }
 
-          const reportedAt: Date = OneUptimeDate.getCurrentDate();
-
           const instanceId: string = this.parseShortText(
             req.body["instanceId"],
           );
@@ -248,54 +531,90 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails(
               req.body["masterAdminEmails"],
             );
-
-          if (instanceId) {
-            /*
-             * Multi-instance report: track usage per instance and count
-             * users uniquely across all instances of this license.
-             */
-            await this.upsertLicenseInstance({
+          const usageReport: LicenseUsageReportResult =
+            await EnterpriseLicenseService.runWithUsageAggregationLock({
               licenseId: license.id!,
-              instanceId: instanceId,
-              host: instanceHost || undefined,
-              oneuptimeVersion: instanceVersion,
-              userCount: userCount,
-              userEmailHashes: userEmailHashes,
-              masterAdminEmails: masterAdminEmails,
-              lastReportedAt: reportedAt,
-            });
-          }
+              fn: async (): Promise<LicenseUsageReportResult> => {
+                /*
+                 * Capture this after acquiring the lock. Waiting reports can
+                 * never complete later with an earlier timestamp, and the
+                 * upsert/read/aggregate/write sequence is one serialized
+                 * critical section across every API replica.
+                 */
+                const reportedAt: Date = OneUptimeDate.getCurrentDate();
 
-          const instances: Array<EnterpriseLicenseInstance> =
-            await this.findLicenseInstances(license.id!);
+                if (instanceId) {
+                  /*
+                   * Multi-instance report: track usage per instance and count
+                   * users uniquely across all instances of this license.
+                   */
+                  await this.upsertLicenseInstance({
+                    licenseId: license.id!,
+                    instanceId: instanceId,
+                    host: instanceHost || undefined,
+                    oneuptimeVersion: instanceVersion,
+                    userCount: userCount,
+                    userEmailHashes: userEmailHashes,
+                    masterAdminEmails: masterAdminEmails,
+                    lastReportedAt: reportedAt,
+                  });
+                }
 
-          let currentUserCount: number = userCount;
+                const instances: Array<EnterpriseLicenseInstance> =
+                  await this.findLicenseInstances(license.id!);
+                const hasActiveReportedInstanceUsage: boolean =
+                  EnterpriseLicenseUsageUtil.hasActiveReportedInstanceUsage(
+                    instances,
+                    reportedAt,
+                  );
+                const currentUserCount: number = hasActiveReportedInstanceUsage
+                  ? EnterpriseLicenseUsageUtil.getUniqueUserCount(
+                      instances,
+                      reportedAt,
+                    )
+                  : userCount;
+                const usageUpdate: PartialEntity<EnterpriseLicense> = {};
 
-          if (instances.length > 0) {
-            currentUserCount = EnterpriseLicenseUsageUtil.getUniqueUserCount(
-              instances,
-              reportedAt,
-            );
-          }
+                /*
+                 * Legacy reports (no instanceId) drive the license-wide count
+                 * only while no modern instance is active. Their separate
+                 * heartbeat is always retained, though, so a legacy reporter
+                 * can take over immediately when the last modern report ages
+                 * out instead of disappearing until its next daily call.
+                 */
+                if (!instanceId) {
+                  usageUpdate.legacyUserCount = userCount;
+                  usageUpdate.legacyUserCountUpdatedAt = reportedAt;
+                }
 
-          /*
-           * Legacy reports (no instanceId) only drive the license-wide count
-           * while no instance has registered — otherwise they would stomp
-           * the deduplicated multi-instance count.
-           */
-          if (instanceId || instances.length === 0) {
-            await EnterpriseLicenseService.updateOneById({
-              id: license.id!,
-              data: {
-                currentUserCount: currentUserCount,
-                userCountUpdatedAt: reportedAt,
+                if (instanceId || !hasActiveReportedInstanceUsage) {
+                  usageUpdate.currentUserCount = currentUserCount;
+                  usageUpdate.userCountUpdatedAt = reportedAt;
+                  usageUpdate.userCountSource = instanceId
+                    ? EnterpriseLicenseUserCountSource.Instance
+                    : EnterpriseLicenseUserCountSource.Legacy;
+                }
+
+                if (Object.keys(usageUpdate).length > 0) {
+                  await EnterpriseLicenseService.updateOneById({
+                    id: license.id!,
+                    data: usageUpdate,
+                    props: {
+                      isRoot: true,
+                      ignoreHooks: true,
+                    },
+                  });
+                }
+
+                return {
+                  reportedAt,
+                  instances,
+                  currentUserCount,
+                };
               },
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
-              },
             });
-          }
+
+          const { reportedAt, instances, currentUserCount } = usageReport;
 
           const terms: LicenseTerms = this.getLicenseTerms(license);
 
@@ -307,7 +626,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             currentUserCount: currentUserCount,
             userCountUpdatedAt: reportedAt.toISOString(),
             isEvaluationLicense: Boolean(license.isEvaluationLicense),
-            instances: this.getInstanceSummaries(instances),
+            instances: this.getInstanceSummaries(instances, reportedAt),
             /*
              * Null once the license has expired. Unlike /validate this route
              * does not reject an expired license - the instance is still
@@ -414,10 +733,12 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
       },
       select: {
         _id: true,
+        createdAt: true,
         instanceId: true,
         host: true,
         userCount: true,
         userEmailHashes: true,
+        masterAdminEmails: true,
         lastReportedAt: true,
         oneuptimeVersion: true,
       },
@@ -434,6 +755,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
   private getInstanceSummaries(
     instances: Array<EnterpriseLicenseInstance>,
+    calculatedAt: Date,
   ): Array<EnterpriseLicenseInstanceSummary> {
     return instances.map(
       (
@@ -444,6 +766,11 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
           host: instance.host || null,
           userCount:
             typeof instance.userCount === "number" ? instance.userCount : null,
+          isCountedTowardsUsage:
+            EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
+              instance,
+              calculatedAt,
+            ),
           lastReportedAt: instance.lastReportedAt
             ? instance.lastReportedAt.toISOString()
             : null,

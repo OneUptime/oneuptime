@@ -31,6 +31,13 @@ import Profiling from "Common/Server/Utils/Profiling";
 import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
+/*
+ * Registers the on-call shift-reminder change pass with
+ * OnCallShiftChangeListeners. The on-call configuration hooks that publish
+ * those events run in whichever process serves the CRUD request, so the
+ * listener must be present in the api role too, not only in the worker.
+ */
+import "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
 
 const APP_NAME: string = "api";
 

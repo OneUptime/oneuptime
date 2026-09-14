@@ -37,7 +37,13 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
 
   const [hoveredSpanId, setHoveredSpanId] = React.useState<string | null>(null);
   const [focusedSpanId, setFocusedSpanId] = React.useState<string | null>(null);
-  const containerRef: React.RefObject<HTMLDivElement | null> =
+  /*
+   * The element type goes in T on its own: RefObject<T> already declares
+   * `current` as `T | null`, and RefObject<HTMLDivElement | null> is a
+   * structurally identical but non-assignable type, rejected on the `ref`
+   * prop below because RefObject is covariant in T.
+   */
+  const containerRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
 
   // Build span data for critical path utility

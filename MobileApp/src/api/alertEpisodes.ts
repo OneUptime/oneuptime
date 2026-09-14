@@ -84,7 +84,7 @@ export async function fetchAllAlertEpisodes(
 export async function fetchAlertEpisodeById(
   projectId: string,
   episodeId: string,
-): Promise<AlertEpisodeItem> {
+): Promise<AlertEpisodeItem | null> {
   const response: AxiosResponse = await apiClient.post(
     "/api/alert-episode/get-list?skip=0&limit=1",
     {
@@ -107,7 +107,19 @@ export async function fetchAlertEpisodeById(
       headers: { tenantid: projectId },
     },
   );
-  return response.data.data[0];
+
+  /*
+   * `null` for a row that is not there, and never `undefined`.
+   *
+   * A stale push opens an episode that has since been deleted, and the server
+   * answers that with an empty list rather than a 404 - so `data[0]` is
+   * `undefined` from a request that SUCCEEDED. React Query v5 refuses to cache
+   * `undefined`, rejecting the query with a synthetic `<queryHash> data is
+   * undefined` error, which is how a missing episode used to arrive at the
+   * screen looking like a broken connection. `null` is cacheable, so the miss
+   * settles as data. `undefined` here is a trap, not a style choice.
+   */
+  return response.data.data[0] ?? null;
 }
 
 export async function fetchAlertEpisodeStates(

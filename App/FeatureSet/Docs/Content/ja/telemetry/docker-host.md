@@ -69,6 +69,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | はい   | お使いの OneUptime インスタンスの URL（例: `https://oneuptime.com` またはセルフホストのホスト）                                 |
 | `ONEUPTIME_SERVICE_TOKEN` | はい   | _プロジェクト設定 → テレメトリと APM → 取り込みキー_ から取得したテレメトリ取り込みトークン                                            |
 | `DOCKER_HOST_NAME`        | いいえ | このホストのわかりやすい名前。デフォルトは `docker-host` です。ホストごとに安定した値（例: `prod-docker-01`）を設定してください |
+| `DOCKER_API_VERSION`      | いいえ | エージェントが使用する Docker Engine API のバージョン。デフォルトは `1.44` です。デーモンが古いホストでは値を下げるか、空に設定して自動ネゴシエーションさせてください（トラブルシューティングを参照） |
 
 ## インストールの確認
 
@@ -141,6 +142,28 @@ OneUptime をセルフホストしている場合は、`ONEUPTIME_URL` をご自
 ### Docker ソケットのアクセス許可が拒否される
 
 エージェントコンテナは、`/var/run/docker.sock` にアクセスするために root（`--user 0:0`）として実行する必要があります。`--user 0:0` フラグ（または Compose では `user: "0:0"`）が存在することを確認してください。
+
+### エージェントが「client version is too new」で再起動を繰り返す
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+デーモンは自身の最大バージョンより新しいクライアントを拒否するため、レシーバーが起動せず、Collector もそれとともに終了します。デーモンの最大バージョンを確認し、その値をエージェントに渡してください。
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+次に、`docker run` に `-e DOCKER_API_VERSION=1.41`（または取得した値）を追加するか、Compose で `DOCKER_API_VERSION` を設定します。新しいデーモンでも古い API バージョンは引き続き提供されるため、アップグレード後もこの設定は有効なままです。
+
+バージョン番号を調べたくない場合は、`DOCKER_API_VERSION` に**空文字列**を設定してください。するとエージェントは、Docker SDK にデーモンとのバージョンネゴシエーション（`HEAD /_ping` を 1 回実行し、デーモン自身の最大バージョンを使用）を依頼します。これは古いデーモンでも新しいデーモンでも動作します。
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### エージェントが切断状態として表示される
 

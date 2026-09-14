@@ -71,9 +71,9 @@ export default abstract class Redis {
       // Listen to 'error' events to the Redis connection
       this.client.on("error", (error: Error) => {
         if ((error as any).code === "ECONNRESET") {
-          logger.error("Connection to Redis Session Store timed out.");
+          logger.error("Connection to Valkey Session Store timed out.");
         } else if ((error as any).code === "ECONNREFUSED") {
-          logger.error("Connection to Redis Session Store refused!");
+          logger.error("Connection to Valkey Session Store refused!");
         } else {
           logger.error(error);
         }
@@ -82,16 +82,16 @@ export default abstract class Redis {
       // Listen to 'reconnecting' event to Redis
       this.client.on("reconnecting", () => {
         if (this.client?.status === "reconnecting") {
-          logger.error("Reconnecting to Redis Session Store...");
+          logger.error("Reconnecting to Valkey Session Store...");
         } else {
-          logger.error("Error reconnecting to Redis Session Store.");
+          logger.error("Error reconnecting to Valkey Session Store.");
         }
       });
 
       // Listen to the 'connect' event to Redis
       this.client.on("connect", (err: Error) => {
         if (!err) {
-          logger.debug("Connected to Redis Session Store!");
+          logger.debug("Connected to Valkey Session Store!");
         }
       });
 
@@ -137,7 +137,7 @@ export default abstract class Redis {
           );
         }
 
-        logger.debug("Cannot connect to Redis. Retrying again in 5 seconds");
+        logger.debug("Cannot connect to Valkey. Retrying again in 5 seconds");
         // sleep for 5 seconds.
 
         await Sleep.sleep(5000);
@@ -163,7 +163,7 @@ export default abstract class Redis {
 
       return this.client;
     } catch (err) {
-      logger.error("Redis Connection Failed");
+      logger.error("Valkey Connection Failed");
       logger.error(err);
       throw err;
     }
@@ -191,7 +191,7 @@ export default abstract class Redis {
 
       return true;
     } catch (err) {
-      logger.error("Redis Connection Lost");
+      logger.error("Valkey Connection Lost");
       logger.error(err);
       return false;
     }

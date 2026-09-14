@@ -37,6 +37,26 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const getValueElement: GetReactElementFunction = (): ReactElement => {
+    const checkOn: NotificationRuleConditionCheckOn | undefined =
+      props.notificationRuleCondition?.checkOn;
+
+    /*
+     * Every dropdown-backed check-on stores its value as an array of ids, but
+     * a row saved before the check-on became a dropdown - or one saved with
+     * no value at all - can still hold a bare string or nothing. Normalise
+     * once: a bad row then renders as "nothing selected" instead of throwing
+     * and taking the whole rule view down with it.
+     */
+    const selectedIds: Array<string> = Array.isArray(
+      props.notificationRuleCondition?.value,
+    )
+      ? props.notificationRuleCondition.value.map((value: string) => {
+          return value?.toString();
+        })
+      : props.notificationRuleCondition?.value
+        ? [props.notificationRuleCondition.value.toString()]
+        : [];
+
     let valueElement: ReactElement | undefined = Array.isArray(
       props.notificationRuleCondition?.value,
     ) ? (
@@ -46,17 +66,12 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     );
 
     if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.AlertSeverity
+      checkOn === NotificationRuleConditionCheckOn.AlertSeverity ||
+      checkOn === NotificationRuleConditionCheckOn.AlertEpisodeSeverity
     ) {
       const selectedAlertSeverities: Array<AlertSeverity> =
         props.alertSeverities.filter((alertSeverity: AlertSeverity) => {
-          const selectedAlertSeveritiies: Array<string> = props
-            .notificationRuleCondition?.value as Array<string>;
-
-          return selectedAlertSeveritiies.includes(
-            alertSeverity.id!.toString(),
-          );
+          return selectedIds.includes(alertSeverity.id!.toString());
         });
 
       valueElement = (
@@ -76,15 +91,12 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.AlertState
+      checkOn === NotificationRuleConditionCheckOn.AlertState ||
+      checkOn === NotificationRuleConditionCheckOn.AlertEpisodeState
     ) {
       const selectedAlertStates: Array<AlertState> = props.alertStates.filter(
         (alertState: AlertState) => {
-          const selectedAlertStates: Array<string> = props
-            .notificationRuleCondition?.value as Array<string>;
-
-          return selectedAlertStates.includes(alertState.id!.toString());
+          return selectedIds.includes(alertState.id!.toString());
         },
       );
 
@@ -98,18 +110,13 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.IncidentSeverity
+      checkOn === NotificationRuleConditionCheckOn.IncidentSeverity ||
+      checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeSeverity
     ) {
       const selectedIncidentSeverities: Array<IncidentSeverity> =
         props.incidentSeverities.filter(
           (incidentSeverity: IncidentSeverity) => {
-            const selectedIncidentSeverities: Array<string> = props
-              .notificationRuleCondition?.value as Array<string>;
-
-            return selectedIncidentSeverities.includes(
-              incidentSeverity.id!.toString(),
-            );
+            return selectedIds.includes(incidentSeverity.id!.toString());
           },
         );
 
@@ -130,15 +137,12 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.IncidentState
+      checkOn === NotificationRuleConditionCheckOn.IncidentState ||
+      checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeState
     ) {
       const selectedIncidentStates: Array<IncidentState> =
         props.incidentStates.filter((incidentState: IncidentState) => {
-          const selectedIncidentStates: Array<string> = props
-            .notificationRuleCondition?.value as Array<string>;
-
-          return selectedIncidentStates.includes(incidentState.id!.toString());
+          return selectedIds.includes(incidentState.id!.toString());
         });
 
       valueElement = (
@@ -158,16 +162,12 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.ScheduledMaintenanceState
+      checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceState
     ) {
       const selectedScheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
         props.scheduledMaintenanceStates.filter(
           (scheduledMaintenanceState: ScheduledMaintenanceState) => {
-            const selectedScheduledMaintenanceStates: Array<string> = props
-              .notificationRuleCondition?.value as Array<string>;
-
-            return selectedScheduledMaintenanceStates.includes(
+            return selectedIds.includes(
               scheduledMaintenanceState.id!.toString(),
             );
           },
@@ -192,77 +192,69 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.MonitorStatus
-    ) {
+    if (checkOn === NotificationRuleConditionCheckOn.MonitorStatus) {
       const selectedMonitorStatuses: Array<MonitorStatus> =
         props.monitorStatus.filter((monitorStatus: MonitorStatus) => {
-          const selectedMonitorStatuses: Array<string> = props
-            .notificationRuleCondition?.value as Array<string>;
-
-          return selectedMonitorStatuses.includes(monitorStatus.id!.toString());
+          return selectedIds.includes(monitorStatus.id!.toString());
         });
 
       valueElement = (
         <div className="flex space-x-2 py-1">
-          {selectedMonitorStatuses.map((monitorStatus: MonitorStatus) => {
-            return (
-              <MonitorStatusElement
-                shouldAnimate={false}
-                monitorStatus={monitorStatus}
-              />
-            );
-          })}
+          {selectedMonitorStatuses.map(
+            (monitorStatus: MonitorStatus, index: number) => {
+              return (
+                <MonitorStatusElement
+                  shouldAnimate={false}
+                  monitorStatus={monitorStatus}
+                  key={index}
+                />
+              );
+            },
+          )}
         </div>
       );
     }
 
+    /*
+     * Every label-backed check-on renders the same way. They are listed one
+     * by one rather than matched on a "Labels" suffix so a new check-on has
+     * to be added here deliberately.
+     */
     if (
-      props.notificationRuleCondition?.checkOn ===
-        NotificationRuleConditionCheckOn.AlertLabels ||
-      props.notificationRuleCondition?.checkOn ===
-        NotificationRuleConditionCheckOn.IncidentLabels ||
-      props.notificationRuleCondition?.checkOn ===
-        NotificationRuleConditionCheckOn.MonitorLabels ||
-      props.notificationRuleCondition?.checkOn ===
-        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+      checkOn === NotificationRuleConditionCheckOn.AlertLabels ||
+      checkOn === NotificationRuleConditionCheckOn.AlertEpisodeLabels ||
+      checkOn === NotificationRuleConditionCheckOn.IncidentLabels ||
+      checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeLabels ||
+      checkOn === NotificationRuleConditionCheckOn.MonitorLabels ||
+      checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
+      checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels
     ) {
       const selectedLabels: Array<Label> = props.labels.filter(
         (label: Label) => {
-          const selectedLabels: Array<string> = props.notificationRuleCondition
-            ?.value as Array<string>;
-
-          return selectedLabels.includes(label.id!.toString());
+          return selectedIds.includes(label.id!.toString());
         },
       );
 
       valueElement = (
         <div className="flex space-x-2 py-1">
-          {selectedLabels.map((label: Label) => {
-            return <LabelElement label={label} />;
+          {selectedLabels.map((label: Label, index: number) => {
+            return <LabelElement label={label} key={index} />;
           })}
         </div>
       );
     }
 
-    if (
-      props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.Monitors
-    ) {
+    if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
       const selectedMonitors: Array<Monitor> = props.monitors.filter(
         (monitor: Monitor) => {
-          const selectedMonitors: Array<string> = props
-            .notificationRuleCondition?.value as Array<string>;
-
-          return selectedMonitors.includes(monitor.id!.toString());
+          return selectedIds.includes(monitor.id!.toString());
         },
       );
 
       valueElement = (
         <div className="flex space-x-2 py-1">
-          {selectedMonitors.map((monitor: Monitor) => {
-            return <MonitorElement monitor={monitor} />;
+          {selectedMonitors.map((monitor: Monitor, index: number) => {
+            return <MonitorElement monitor={monitor} key={index} />;
           })}
         </div>
       );

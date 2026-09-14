@@ -29,8 +29,8 @@ import AnalyticsModelAPI, {
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import DashboardLogsViewer from "../Logs/LogsViewer";
-import TraceTable from "../Traces/TraceTable";
-import ExceptionInstanceTable from "../Exceptions/ExceptionInstanceTable";
+import TracesViewer from "../Traces/TracesViewer";
+import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
 import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
 import useServiceNames from "./useServiceNames";
 import {
@@ -144,6 +144,7 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
 interface CompanionTracesTabProps {
   spec: CompanionTracesSpec;
   snapshotWindowAlert?: ReactElement | undefined;
+  eventNoun: string;
 }
 
 const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
@@ -152,13 +153,19 @@ const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
   return (
     <div>
       <CompanionScopeHint notes={props.spec.notCarried} />
-      <TraceTable
-        spanQuery={props.spec.spanQuery}
+      <Card
+        title={"Spans"}
+        description={`Spans in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
         rightElement={props.snapshotWindowAlert}
-        // Pinned to the snapshot; a URL-restored filter must not replace it.
-        disableUrlState={true}
-        noItemsMessage="No spans found in the snapshot window."
-      />
+      >
+        <TracesViewer
+          spanQuery={props.spec.spanQuery}
+          limit={10}
+          // Pinned to the snapshot; the host page owns the URL.
+          disableUrlSync={true}
+          emptyMessage="No spans found in the snapshot window."
+        />
+      </Card>
     </div>
   );
 };
@@ -175,14 +182,25 @@ const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
   return (
     <div>
       <CompanionScopeHint notes={props.spec.notCarried} />
-      <ExceptionInstanceTable
-        title="Exceptions"
+      <Card
+        title={"Exceptions"}
         description={`Exceptions in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
-        query={props.spec.exceptionQuery}
         rightElement={props.snapshotWindowAlert}
-        // Pinned to the snapshot; a URL-restored filter must not replace it.
-        disableUrlState={true}
-      />
+      >
+        <ExceptionsViewer
+          exceptionInstanceQuery={props.spec.exceptionQuery}
+          /*
+           * An event shows the exceptions it fired on, whoever has since
+           * resolved them and whatever the classifier made of them.
+           */
+          defaultStatus="all"
+          defaultClassScope="all"
+          limit={10}
+          // Pinned to the snapshot; the host page owns the URL.
+          disableUrlSync={true}
+          emptyMessage="No exceptions found in the snapshot window."
+        />
+      </Card>
     </div>
   );
 };
@@ -460,6 +478,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
             <CompanionTracesTab
               spec={companions.traces}
               snapshotWindowAlert={props.snapshotWindowAlert}
+              eventNoun={props.eventNoun}
             />
           ),
         });

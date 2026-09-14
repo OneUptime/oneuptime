@@ -91,6 +91,7 @@
     "FAQ & Troubleshooting": "FAQ & Troubleshooting",
     "IP Addresses": "IP Addresses",
     "SMTP": "SMTP",
+    "Notification Rollup": "Notification Rollup",
     "SSO": "SSO",
     "SCIM": "SCIM",
     "Users, Teams & Permissions": "Users, Teams & Permissions",
@@ -138,6 +139,7 @@
     "JavaScript Expressions": "JavaScript Expressions",
     "Incident & Alert Templating": "Incident & Alert Templating",
     "Monitor Secrets": "Monitor Secrets",
+    "Calendar Feeds": "Calendar Feeds",
     "Incoming Call Policy": "Incoming Call Policy",
     "Phone Number Whitelist": "Phone Number Whitelist",
     "Runbooks Overview": "Runbooks Overview",
@@ -168,6 +170,7 @@
     "PagerDuty": "PagerDuty",
     "Opsgenie": "Opsgenie",
     "ServiceNow": "ServiceNow",
+    "Microsoft Dynamics 365": "Microsoft Dynamics 365",
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
@@ -188,6 +191,7 @@
     "IoT Devices": "IoT Devices",
     "AI SRE": "AI SRE",
     "Fix Tasks": "Fix Tasks",
+    "GitHub App": "GitHub App",
     "LLM Providers": "LLM Providers",
     "MCP Server": "MCP Server",
     "OneUptime API Reference": "OneUptime API Reference",
@@ -196,6 +200,7 @@
     "GitHub Integration": "GitHub Integration",
     "Push Notifications": "Push Notifications",
     "SendGrid Inbound Email": "SendGrid Inbound Email",
+    "Private Network Access": "Private Network Access",
     "Architecture": "Architecture",
     "Custom Fields": "Custom Fields",
     "Exporting to a CMDB": "Exporting to a CMDB",
@@ -207,6 +212,7 @@
     "Status Pages Overview": "Status Pages Overview",
     "Status Page Resources & Groups": "Status Page Resources & Groups",
     "Status Page Branding & Domains": "Status Page Branding & Domains",
-    "Subscribers & Announcements": "Subscribers & Announcements"
+    "Subscribers & Announcements": "Subscribers & Announcements",
+    "Twilio Integration": "Twilio Integration"
   }
 }

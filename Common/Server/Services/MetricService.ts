@@ -30,6 +30,8 @@ import {
 import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
 import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
+import Includes from "../../Types/BaseDatabase/Includes";
+import EqualTo from "../../Types/BaseDatabase/EqualTo";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
 import EntityType from "../../Types/Telemetry/EntityType";
@@ -1030,6 +1032,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }
       }
 
+      /*
+       * No rollup can serve this aggregation, so it reads the raw table.
+       * Narrow that scan to the queried entity before it is compiled.
+       */
+      this.applyRawEntityKeyPrune(aggregateBy);
+
       if (
         aggregateBy.aggregateColumnName.toString() === "value" &&
         aggregateBy.aggregationTimestampColumnName.toString() === "time"
@@ -1042,6 +1050,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
       return super.toAggregateStatement(aggregateBy);
     }
+
+    /*
+     * Percentiles never route to a rollup (the MVs store sum/count/min/max
+     * states, not quantile states), so every percentile aggregation reads
+     * the raw table and wants the same entity prune.
+     */
+    this.applyRawEntityKeyPrune(aggregateBy);
 
     const percentileLevel: number | null = getPercentileLevel(
       aggregateBy.aggregationType,
@@ -2567,6 +2582,185 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     return { route, keys: [expectedKey] };
+  }
+
+  /**
+   * Entity keys derivable from ONE attribute filter on a recognized
+   * entity attribute, or null when this filter shape yields no provable
+   * key set.
+   *
+   * Accepts the shapes an entity filter actually arrives in — a bare
+   * string, `EqualTo(string)`, and `Includes([...strings])` ("is any
+   * of") — because for each of those the set of matching rows is exactly
+   * the union of the listed values' entities. Everything else (negations
+   * like NotEqual / IncludesNone, substring operators, numbers, arrays of
+   * AND-ed operators) is refused: their matching set is not a finite
+   * enumerable key set, so no key predicate could be proven lossless.
+   */
+  private getEntityKeysForAttributeFilter(data: {
+    route: EntityMVRoute;
+    projectId: string;
+    attributeValue: unknown;
+  }): Array<string> | null {
+    const keyForValue: ((projectId: string, value: string) => string) | null =
+      data.route.keyForValue;
+
+    /*
+     * Service is excluded for the same reason it is excluded from the
+     * single-attribute MV route: ingest folds `service.namespace` into
+     * the key, so a bare name does not derive the stamped key and the
+     * predicate could drop the namespaced variants' rows.
+     */
+    if (!keyForValue) {
+      return null;
+    }
+
+    const rawValues: Array<unknown> =
+      data.attributeValue instanceof Includes
+        ? (data.attributeValue.values as Array<unknown>) || []
+        : [
+            data.attributeValue instanceof EqualTo
+              ? (data.attributeValue.value as unknown)
+              : data.attributeValue,
+          ];
+
+    const keys: Array<string> = [];
+    for (const rawValue of rawValues) {
+      /*
+       * One non-string (or empty) member makes the whole union
+       * underivable — refuse rather than prune to a partial set, which
+       * would silently drop rows.
+       */
+      if (typeof rawValue !== "string" || !rawValue) {
+        return null;
+      }
+      const key: string = keyForValue(data.projectId, rawValue);
+      if (!keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys.length > 0 ? keys : null;
+  }
+
+  /**
+   * Narrow a raw-table aggregation to the entity it filters on, by
+   * ANDing a predicate on the bloom-indexed scalar entity-key column
+   * onto the query.
+   *
+   * WHY: `attributes` is a Map column with no index and no place in the
+   * sort key, so `attributes['resource.host.name'] = 'web-1'` cannot
+   * prune a single granule — ClickHouse reads EVERY row for the
+   * project+metric in the window and evaluates the map lookup per row.
+   * The per-entity rollups (tryBuildEntityAggregateMVStatement) hide
+   * that for the common single-filter case, but they decline as soon as
+   * the query carries anything they cannot express: a second attribute
+   * filter (`state is any of system, user`), a group-by, a percentile, a
+   * distribution metric, a `Total` interval. Those queries then fall to
+   * the raw table UNPRUNED, and the scan cost grows with the window —
+   * measured on a production project, one host's `system.cpu.utilization`
+   * with a second attribute filter took ~1.5s over 1 hour but blew
+   * through the 45s `max_execution_time` over 1 week, returning either a
+   * 500 or (under `timeout_overflow_mode = 'break'`) a silently partial
+   * chart. With this prune the same 1-week query returns complete
+   * results in ~2.4s.
+   *
+   * WHY IT IS LOSSLESS: the added predicate can only ever remove rows the
+   * attribute predicate already removed. A row matching
+   * `attributes[<entity attr>] = v` either
+   *   - was ingested with the scalar key columns stamped, in which case
+   *     its `<keyColumn>` IS `keyFor<type>(projectId, v)` — the ingest
+   *     stamp and `keyForValue` are the same canonicalizing function
+   *     (see Common/Utils/Telemetry/EntityKey); or
+   *   - predates those columns, in which case it reads the non-Nullable
+   *     default `''`.
+   * Both are in the emitted `IN` set, so the predicate is a pure
+   * restriction on the scan, not on the result. (This is strictly safer
+   * than the rollup path it backstops, which drops the `''` rows.)
+   *
+   * Applied only after MV routing has declined — adding a key column to
+   * the query beforehand would fail the MVs' `mvQueryableColumns` gate
+   * and disable the fast path this backstops.
+   */
+  private applyRawEntityKeyPrune(aggregateBy: AggregateBy<Metric>): void {
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+
+    /*
+     * Entity keys fold the tenant into the hash, so they are only
+     * derivable for a project-scoped query. Dashboard reads always are.
+     */
+    const projectIdValue: unknown = queryRecord["projectId"];
+    let projectId: string = "";
+    if (projectIdValue instanceof ObjectID) {
+      projectId = projectIdValue.toString();
+    } else if (typeof projectIdValue === "string") {
+      projectId = projectIdValue;
+    }
+    if (!projectId) {
+      return;
+    }
+
+    const attrs: unknown = queryRecord["attributes"];
+    if (!attrs || typeof attrs !== "object" || Array.isArray(attrs)) {
+      return;
+    }
+
+    const prunePredicates: Record<string, Includes> = {};
+
+    for (const [attrKey, attrValue] of Object.entries(
+      attrs as Record<string, unknown>,
+    )) {
+      const route: EntityMVRoute | undefined = ENTITY_MV_ROUTES.find(
+        (candidate: EntityMVRoute) => {
+          return candidate.attributeKey === attrKey;
+        },
+      );
+      if (!route) {
+        continue;
+      }
+
+      /*
+       * Never touch a key column the caller already constrained — theirs
+       * is the authoritative predicate, and a second one could only
+       * narrow it further.
+       */
+      if (queryRecord[route.keyColumn] !== undefined) {
+        continue;
+      }
+
+      // Models without the column (older schema) simply get no prune.
+      if (!this.model.getTableColumn(route.keyColumn)) {
+        continue;
+      }
+
+      const keys: Array<string> | null = this.getEntityKeysForAttributeFilter({
+        route,
+        projectId,
+        attributeValue: attrValue,
+      });
+      if (!keys) {
+        continue;
+      }
+
+      // '' keeps rows ingested before the key columns existed. See above.
+      prunePredicates[route.keyColumn] = new Includes([...keys, ""]);
+    }
+
+    if (Object.keys(prunePredicates).length === 0) {
+      return;
+    }
+
+    /*
+     * Replace `query` rather than mutating it in place: callers (the API
+     * aggregate cache, the metric-monitor worker) may still hold the
+     * object they passed in. `aggregateBy` itself keeps its identity, so
+     * the point-type / service-key hints keyed on it in WeakMaps survive.
+     */
+    aggregateBy.query = {
+      ...(aggregateBy.query as unknown as Record<string, unknown>),
+      ...prunePredicates,
+    } as unknown as typeof aggregateBy.query;
   }
 
   private stripEntityFilterAndTimeFromQuery(query: unknown): typeof query {

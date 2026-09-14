@@ -7,7 +7,10 @@ import CalendarEvent from "../../Types/Calendar/CalendarEvent";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
-import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
+import LayerUtil, {
+  LayerEventsResult,
+  LayerProps,
+} from "../../Types/OnCallDutyPolicy/Layer";
 import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
@@ -44,11 +47,115 @@ import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OnCallDutyPolicyScheduleLabelRuleEngineService from "./OnCallDutyPolicyScheduleLabelRuleEngineService";
 import OnCallDutyPolicyScheduleOwnerRuleEngineService from "./OnCallDutyPolicyScheduleOwnerRuleEngineService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import { MaterializedShiftPolicy } from "../../Types/OnCallDutyPolicy/MaterializedShift";
+import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
+import OnCallShiftChangeListeners, {
+  OnCallShiftChangeEvent,
+  OnCallShiftChangeReason,
+} from "../Utils/OnCall/OnCallShiftChangeListeners";
+
+/*
+ * ---------------------------------------------------------------------------
+ * Resolver contracts (on-call calendar feeds / reminders / my-shifts)
+ * ---------------------------------------------------------------------------
+ */
+
+// The schedule columns a resolved window carries along for its consumers.
+export interface ResolvedScheduleInfo {
+  id: string;
+  name: string;
+  // IANA zone; absent for legacy schedules (engine ran in the server's zone).
+  timezone?: string;
+  projectId: string;
+  shiftConfigVersion: number;
+}
+
+/*
+ * Resolution of the same base events in ONE escalation policy's context.
+ * Only produced when the schedule is attached to two or more distinct policies
+ * and a policy-scoped override for a schedule member overlaps the window — the
+ * situation in which paging (which always resolves with the escalating policy)
+ * and the policy-agnostic roster can name different people.
+ */
+export interface ResolvedPolicyVariant {
+  policyId: string;
+  policyName: string;
+  segments: Array<CalendarEvent>;
+}
+
+export interface ResolvedShiftSegments {
+  schedule: ResolvedScheduleInfo;
+  /*
+   * Resolved coverage segments (CalendarEvent.title = user id) that OVERLAP
+   * [windowStart, windowEnd). Deliberately unclipped: a segment that started
+   * before the window keeps its true start, because that start is the
+   * calendar event's identity.
+   */
+  segments: Array<CalendarEvent>;
+  policyVariants: Array<ResolvedPolicyVariant>;
+  // Distinct (policy, rule) attachments, ordered by policy then rule order.
+  attachedPolicies: Array<MaterializedShiftPolicy>;
+  // The layers as fed to the engine (for the coverage envelope).
+  layerProps: Array<LayerProps>;
+  // Distinct user ids across all layers, in layer order.
+  scheduleUserIds: Array<string>;
+  /*
+   * Every override that took part in the resolution (global ones plus, in a
+   * policy context, that policy's), so a consumer can map a segment's
+   * override meta back to its policy scope.
+   */
+  overrides: Array<UserOverrideRecord>;
+  /*
+   * max(updatedAt) over layers, layer users, participating overrides and
+   * policy attachments. The schedule row is EXCLUDED on purpose: its
+   * updatedAt moves on every roster refresh, which would make every feed
+   * fetch look like a change.
+   */
+  lastModifiedAt: Date;
+  // True when the engine hit its iteration cap; segments may be incomplete.
+  truncated: boolean;
+}
+
+export interface ResolveShiftSegmentsOptions {
+  scheduleId: ObjectID;
+  windowStart: Date;
+  windowEnd: Date;
+  maxSimulationIterations?: number | undefined;
+}
+
+export interface ResolveShiftSegmentsForSchedulesOptions {
+  scheduleIds: Array<ObjectID>;
+  windowStart: Date;
+  windowEnd: Date;
+  maxSimulationIterations?: number | undefined;
+}
+
+/*
+ * What a CRUD hook reports when an edit may have changed who is on call and
+ * when. See propagateShiftConfigChange.
+ */
+export interface ShiftConfigChange {
+  scheduleIds: Array<ObjectID>;
+  projectId?: ObjectID | null | undefined;
+  // Users named directly by the change (added/removed/overridden/substitute).
+  userIds?: Array<ObjectID> | undefined;
+  reason: OnCallShiftChangeReason;
+  // The schedule rows are gone (delete) — nothing to bump.
+  skipVersionBump?: boolean | undefined;
+}
+
+// Rows loaded once for a batch of schedules, grouped per schedule.
+interface ScheduleResolutionInputs {
+  schedule: OnCallDutyPolicySchedule;
+  layers: Array<OnCallDutyPolicyScheduleLayer>;
+  layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
+  attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+}
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -114,10 +221,183 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       });
     }
 
+    /*
+     * Capture the members of each schedule being deleted. Their layer-user
+     * rows cascade away at the database level (no hooks run), so this is the
+     * last moment the ids are available; onDeleteSuccess uses them to purge
+     * those users' calendar-feed bodies and to tell the shift-change
+     * listeners whose shift lists just changed. Best-effort.
+     */
+    const deletedSchedules: Array<{
+      scheduleId: ObjectID;
+      projectId: ObjectID | null;
+      userIds: Array<ObjectID>;
+    }> = [];
+
+    try {
+      const scheduleIds: Array<ObjectID> = callSchedules
+        .map((schedule: OnCallDutyPolicySchedule) => {
+          return schedule.id;
+        })
+        .filter((id: ObjectID | null | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+        scheduleIds.length > 0
+          ? await OnCallDutyPolicyScheduleLayerUserService.findBy({
+              query: {
+                onCallDutyPolicyScheduleId: QueryHelper.any(scheduleIds),
+              },
+              select: {
+                userId: true,
+                onCallDutyPolicyScheduleId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            })
+          : [];
+
+      for (const schedule of callSchedules) {
+        if (!schedule.id) {
+          continue;
+        }
+
+        const scheduleIdString: string = schedule.id.toString();
+
+        deletedSchedules.push({
+          scheduleId: schedule.id,
+          projectId: schedule.projectId || null,
+          userIds: OnCallShiftChangeListeners.dedupe(
+            layerUsers
+              .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                return (
+                  layerUser.onCallDutyPolicyScheduleId?.toString() ===
+                  scheduleIdString
+                );
+              })
+              .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                return layerUser.userId;
+              })
+              .filter((id: ObjectID | undefined): id is ObjectID => {
+                return Boolean(id);
+              }),
+          ),
+        });
+      }
+    } catch (err) {
+      logger.error(
+        "Error capturing schedule members before delete (best-effort).",
+      );
+      logger.error(err);
+    }
+
     return {
       deleteBy: deleteBy,
-      carryForward: {},
+      carryForward: { deletedSchedules },
     };
+  }
+
+  /*
+   * A deleted schedule takes its shared feed with it (FK cascade) and drops
+   * out of its members' personal feeds; purge what was rendered from it and
+   * let the shift-change listeners (reminders) re-plan for those users. No
+   * version bump — the row is gone.
+   */
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<OnCallDutyPolicySchedule>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<OnCallDutyPolicySchedule>> {
+    const deletedSchedules: Array<{
+      scheduleId: ObjectID;
+      projectId: ObjectID | null;
+      userIds: Array<ObjectID>;
+    }> = onDelete.carryForward?.deletedSchedules || [];
+
+    for (const deleted of deletedSchedules) {
+      await this.propagateShiftConfigChange({
+        scheduleIds: [deleted.scheduleId],
+        projectId: deleted.projectId,
+        userIds: deleted.userIds,
+        reason: OnCallShiftChangeReason.ScheduleDeleted,
+        skipVersionBump: true,
+      });
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * A rename or a timezone change alters every calendar event of the
+   * schedule (its title, and for a timezone change the instants themselves),
+   * so it must bump the schedule's shiftConfigVersion like any other
+   * configuration edit. The roster refresh writes through updateOneById with
+   * ignoreHooks, and the version bump itself is a raw statement, so neither
+   * re-enters this hook.
+   */
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<OnCallDutyPolicySchedule>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<OnCallDutyPolicySchedule>> {
+    const data: Record<string, unknown> = (onUpdate.updateBy?.data ||
+      {}) as unknown as Record<string, unknown>;
+
+    const touchesShiftConfiguration: boolean =
+      data["name"] !== undefined || data["timezone"] !== undefined;
+
+    if (!touchesShiftConfiguration || updatedItemIds.length === 0) {
+      return onUpdate;
+    }
+
+    try {
+      const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const byProject: Map<string, Array<ObjectID>> = new Map<
+        string,
+        Array<ObjectID>
+      >();
+
+      for (const schedule of schedules) {
+        if (!schedule.id) {
+          continue;
+        }
+        const projectKey: string = schedule.projectId?.toString() || "";
+        const list: Array<ObjectID> = byProject.get(projectKey) || [];
+        list.push(schedule.id);
+        byProject.set(projectKey, list);
+      }
+
+      for (const [projectKey, scheduleIds] of byProject) {
+        await this.propagateShiftConfigChange({
+          scheduleIds,
+          projectId: projectKey ? new ObjectID(projectKey) : null,
+          reason: OnCallShiftChangeReason.ScheduleChanged,
+        });
+      }
+    } catch (err) {
+      logger.error(
+        "Error propagating a schedule rename / timezone change to the calendar feeds (best-effort).",
+      );
+      logger.error(err);
+    }
+
+    return onUpdate;
   }
 
   public async getOnCallSchedulesWhereUserIsOnCallDuty(data: {
@@ -1321,12 +1601,38 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     const scheduleTimezone: string | undefined =
       schedule?.timezone?.toString() || undefined;
 
+    const { layerProps, scheduleUserIds } = this.buildLayerPropsFromRows({
+      layers,
+      layerUsers,
+      scheduleTimezone,
+    });
+
+    const projectId: ObjectID | null = layers[0]?.projectId || null;
+
+    return { layerProps, projectId, scheduleUserIds };
+  }
+
+  /*
+   * Compose LayerProps from persisted layer + layer-user rows. Shared by the
+   * single-schedule loader the paging/roster path uses and the batched loader
+   * the calendar feeds use, so both feed the engine byte-identical input.
+   * Layers must already be sorted by order; layer users by order.
+   *
+   * Each LayerProps is stamped with the layer's id and name (informational;
+   * the engine copies them onto its events) so consumers can tell which
+   * layer a merged segment came from.
+   */
+  private buildLayerPropsFromRows(data: {
+    layers: Array<OnCallDutyPolicyScheduleLayer>;
+    layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
+    scheduleTimezone: string | undefined;
+  }): { layerProps: Array<LayerProps>; scheduleUserIds: Array<ObjectID> } {
     const layerProps: Array<LayerProps> = [];
     const scheduleUserIds: Array<ObjectID> = [];
     const seenUserIds: Set<string> = new Set<string>();
 
-    for (const layer of layers) {
-      const usersForLayer: Array<User> = layerUsers
+    for (const layer of data.layers) {
+      const usersForLayer: Array<User> = data.layerUsers
         .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
           return (
             layerUser.onCallDutyPolicyScheduleLayerId?.toString() ===
@@ -1348,19 +1654,1002 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         }
       }
 
-      layerProps.push({
+      const props: LayerProps = {
         users: usersForLayer,
         startDateTimeOfLayer: layer.startsAt!,
         restrictionTimes: layer.restrictionTimes!,
         rotation: layer.rotation!,
         handOffTime: layer.handOffTime!,
-        timezone: scheduleTimezone,
+        timezone: data.scheduleTimezone,
+      };
+
+      const layerId: string | undefined = layer.id?.toString();
+      if (layerId) {
+        props.layerId = layerId;
+      }
+
+      if (typeof layer.name === "string" && layer.name) {
+        props.layerName = layer.name;
+      }
+
+      layerProps.push(props);
+    }
+
+    return { layerProps, scheduleUserIds };
+  }
+
+  /*
+   * ---------------------------------------------------------------------------
+   * Shift resolver — the source of truth for the calendar feeds, /my-shifts
+   * and the shift reminders.
+   * ---------------------------------------------------------------------------
+   */
+
+  /**
+   * Resolve every on-call segment of ONE schedule that overlaps
+   * [windowStart, windowEnd), in the exact order the paging and roster paths
+   * use: layers -> engine -> overrides. Returns null when the schedule does
+   * not exist. See getResolvedShiftSegmentsForSchedules for the rules.
+   */
+  @CaptureSpan()
+  public async getResolvedShiftSegments(
+    options: ResolveShiftSegmentsOptions,
+  ): Promise<ResolvedShiftSegments | null> {
+    const resolved: Array<ResolvedShiftSegments> =
+      await this.getResolvedShiftSegmentsForSchedules({
+        scheduleIds: [options.scheduleId],
+        windowStart: options.windowStart,
+        windowEnd: options.windowEnd,
+        maxSimulationIterations: options.maxSimulationIterations,
+      });
+
+    return resolved[0] || null;
+  }
+
+  /**
+   * Batched resolver: loads the layers, layer users, policy attachments and
+   * overrides of every schedule with a handful of IN queries, then resolves
+   * each schedule in memory.
+   *
+   * Per schedule:
+   *   1. LayerProps exactly as the roster path builds them (plus layer ids).
+   *   2. Expansion window = 2 rotation periods before windowStart .. 2 after
+   *      windowEnd, so the segments overlapping the window carry their TRUE
+   *      start and end rather than the engine's clamp to the window edge.
+   *   3. ONE multi-layer engine expansion, bounded by maxSimulationIterations
+   *      (default: the engine's own caps); `truncated` reports a cap hit.
+   *   4. Overrides in the roster's policy context: the single attached
+   *      policy's scoped overrides plus globals when exactly one policy is
+   *      attached, globals only otherwise — the same rule as
+   *      refreshCurrentUserIdAndHandoffTimeInSchedule (getSingleAttachedPolicyId).
+   *   5. With two or more distinct attached policies AND a policy-scoped
+   *      override for a member overlapping the window, the same base events
+   *      are re-resolved once per such policy -> policyVariants. The
+   *      expensive expansion runs once; the override pass is cheap.
+   *   6. lastModifiedAt = max(updatedAt) over layers, layer users,
+   *      participating overrides and attachments — never the schedule row.
+   *
+   * Schedules that no longer exist are skipped; the result is in the order
+   * of the input ids.
+   */
+  @CaptureSpan()
+  public async getResolvedShiftSegmentsForSchedules(
+    options: ResolveShiftSegmentsForSchedulesOptions,
+  ): Promise<Array<ResolvedShiftSegments>> {
+    const scheduleIds: Array<ObjectID> = OnCallShiftChangeListeners.dedupe(
+      options.scheduleIds,
+    );
+
+    if (scheduleIds.length === 0) {
+      return [];
+    }
+
+    if (
+      !OneUptimeDate.isBefore(options.windowStart, options.windowEnd) &&
+      options.windowStart.getTime() !== options.windowEnd.getTime()
+    ) {
+      throw new BadDataException("windowStart must be before windowEnd");
+    }
+
+    const inputsById: Map<string, ScheduleResolutionInputs> =
+      await this.loadResolutionInputsForSchedules(scheduleIds);
+
+    /*
+     * Build the layer props and the per-schedule expansion window first so
+     * the override query below can cover every schedule in one statement
+     * (overrides are project-scoped, not schedule-scoped).
+     */
+    interface PreparedSchedule {
+      inputs: ScheduleResolutionInputs;
+      layerProps: Array<LayerProps>;
+      scheduleUserIds: Array<ObjectID>;
+      expansionStart: Date;
+      expansionEnd: Date;
+    }
+
+    const prepared: Array<PreparedSchedule> = [];
+    const projectIds: Set<string> = new Set<string>();
+    let earliestStart: Date | null = null;
+    let latestEnd: Date | null = null;
+
+    for (const scheduleId of scheduleIds) {
+      const inputs: ScheduleResolutionInputs | undefined = inputsById.get(
+        scheduleId.toString(),
+      );
+
+      if (!inputs) {
+        continue;
+      }
+
+      const { layerProps, scheduleUserIds } = this.buildLayerPropsFromRows({
+        layers: inputs.layers,
+        layerUsers: inputs.layerUsers,
+        scheduleTimezone: inputs.schedule.timezone?.toString() || undefined,
+      });
+
+      const expansionStart: Date =
+        layerProps.length > 0
+          ? this.computeResolutionWindowStart(
+              layerProps,
+              options.windowStart,
+              2,
+            )
+          : options.windowStart;
+
+      const expansionEnd: Date =
+        layerProps.length > 0
+          ? this.computeResolutionWindowEndByPeriods(
+              layerProps,
+              options.windowEnd,
+              2,
+            )
+          : options.windowEnd;
+
+      if (inputs.schedule.projectId) {
+        projectIds.add(inputs.schedule.projectId.toString());
+      }
+
+      if (
+        !earliestStart ||
+        OneUptimeDate.isBefore(expansionStart, earliestStart)
+      ) {
+        earliestStart = expansionStart;
+      }
+
+      if (!latestEnd || OneUptimeDate.isAfter(expansionEnd, latestEnd)) {
+        latestEnd = expansionEnd;
+      }
+
+      prepared.push({
+        inputs,
+        layerProps,
+        scheduleUserIds,
+        expansionStart,
+        expansionEnd,
       });
     }
 
-    const projectId: ObjectID | null = layers[0]?.projectId || null;
+    if (prepared.length === 0) {
+      return [];
+    }
 
-    return { layerProps, projectId, scheduleUserIds };
+    const allOverrides: Array<OnCallDutyPolicyUserOverride> =
+      projectIds.size > 0 && earliestStart && latestEnd
+        ? await this.loadOverridesForProjects({
+            projectIds: Array.from(projectIds).map((id: string) => {
+              return new ObjectID(id);
+            }),
+            windowStart: earliestStart,
+            windowEnd: latestEnd,
+          })
+        : [];
+
+    const results: Array<ResolvedShiftSegments> = [];
+
+    for (const item of prepared) {
+      results.push(
+        this.resolveScheduleInMemory({
+          schedule: item.inputs.schedule,
+          layers: item.inputs.layers,
+          layerUsers: item.inputs.layerUsers,
+          attachments: item.inputs.attachments,
+          layerProps: item.layerProps,
+          scheduleUserIds: item.scheduleUserIds,
+          overrides: allOverrides,
+          expansionStart: item.expansionStart,
+          expansionEnd: item.expansionEnd,
+          windowStart: options.windowStart,
+          windowEnd: options.windowEnd,
+          maxSimulationIterations: options.maxSimulationIterations,
+        }),
+      );
+    }
+
+    return results;
+  }
+
+  /*
+   * Everything the resolver needs for a batch of schedules, in four queries.
+   * Schedules that do not exist simply have no entry.
+   */
+  private async loadResolutionInputsForSchedules(
+    scheduleIds: Array<ObjectID>,
+  ): Promise<Map<string, ScheduleResolutionInputs>> {
+    const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(scheduleIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        timezone: true,
+        projectId: true,
+        shiftConfigVersion: true,
+        createdAt: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const byId: Map<string, ScheduleResolutionInputs> = new Map<
+      string,
+      ScheduleResolutionInputs
+    >();
+
+    for (const schedule of schedules) {
+      if (!schedule.id) {
+        continue;
+      }
+      byId.set(schedule.id.toString(), {
+        schedule,
+        layers: [],
+        layerUsers: [],
+        attachments: [],
+      });
+    }
+
+    if (byId.size === 0) {
+      return byId;
+    }
+
+    const existingIds: Array<ObjectID> = Array.from(byId.keys()).map(
+      (id: string) => {
+        return new ObjectID(id);
+      },
+    );
+
+    const [layers, layerUsers, attachments]: [
+      Array<OnCallDutyPolicyScheduleLayer>,
+      Array<OnCallDutyPolicyScheduleLayerUser>,
+      Array<OnCallDutyPolicyEscalationRuleSchedule>,
+    ] = await Promise.all([
+      OnCallDutyPolicyScheduleLayerService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
+        },
+        select: {
+          _id: true,
+          order: true,
+          name: true,
+          description: true,
+          startsAt: true,
+          restrictionTimes: true,
+          rotation: true,
+          onCallDutyPolicyScheduleId: true,
+          projectId: true,
+          handOffTime: true,
+          updatedAt: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+      OnCallDutyPolicyScheduleLayerUserService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+          },
+          userId: true,
+          order: true,
+          onCallDutyPolicyScheduleLayerId: true,
+          onCallDutyPolicyScheduleId: true,
+          updatedAt: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+      OnCallDutyPolicyEscalationRuleScheduleService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
+        },
+        select: {
+          _id: true,
+          onCallDutyPolicyScheduleId: true,
+          onCallDutyPolicyId: true,
+          onCallDutyPolicyEscalationRuleId: true,
+          updatedAt: true,
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+            order: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    for (const layer of layers) {
+      const entry: ScheduleResolutionInputs | undefined = byId.get(
+        layer.onCallDutyPolicyScheduleId?.toString() || "",
+      );
+      if (entry) {
+        entry.layers.push(layer);
+      }
+    }
+
+    for (const layerUser of layerUsers) {
+      const entry: ScheduleResolutionInputs | undefined = byId.get(
+        layerUser.onCallDutyPolicyScheduleId?.toString() || "",
+      );
+      if (entry) {
+        entry.layerUsers.push(layerUser);
+      }
+    }
+
+    for (const attachment of attachments) {
+      const entry: ScheduleResolutionInputs | undefined = byId.get(
+        attachment.onCallDutyPolicyScheduleId?.toString() || "",
+      );
+      if (entry) {
+        entry.attachments.push(attachment);
+      }
+    }
+
+    return byId;
+  }
+
+  /*
+   * Every override (global AND policy-scoped) of the given projects that
+   * overlaps [windowStart, windowEnd]. The per-schedule policy scoping and
+   * member filtering happen in memory (see selectOverridesForSchedule), which
+   * mirrors fetchOverridesForSchedule's query exactly but for many schedules
+   * at once.
+   */
+  private async loadOverridesForProjects(data: {
+    projectIds: Array<ObjectID>;
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<Array<OnCallDutyPolicyUserOverride>> {
+    if (data.projectIds.length === 0) {
+      return [];
+    }
+
+    return await OnCallDutyPolicyUserOverrideService.findBy({
+      query: {
+        projectId: QueryHelper.any(data.projectIds),
+        startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
+        endsAt: QueryHelper.greaterThanEqualTo(data.windowStart),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        startsAt: true,
+        endsAt: true,
+        overrideUserId: true,
+        routeAlertsToUserId: true,
+        onCallDutyPolicyId: true,
+        updatedAt: true,
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * The in-memory twin of fetchOverridesForSchedule: the overrides of this
+   * schedule's project that overlap the window, whose overridden user is a
+   * schedule member, scoped to `policyId` (that policy's plus globals) or to
+   * globals only when no policy context is given.
+   */
+  private selectOverridesForSchedule(data: {
+    overrides: Array<OnCallDutyPolicyUserOverride>;
+    projectId: string;
+    scheduleUserIds: Set<string>;
+    windowStart: Date;
+    windowEnd: Date;
+    policyId: string | undefined;
+  }): Array<OnCallDutyPolicyUserOverride> {
+    return data.overrides.filter((override: OnCallDutyPolicyUserOverride) => {
+      if (override.projectId?.toString() !== data.projectId) {
+        return false;
+      }
+
+      if (!override.startsAt || !override.endsAt) {
+        return false;
+      }
+
+      if (
+        OneUptimeDate.isAfter(override.startsAt, data.windowEnd) ||
+        OneUptimeDate.isBefore(override.endsAt, data.windowStart)
+      ) {
+        return false;
+      }
+
+      if (
+        !data.scheduleUserIds.has(override.overrideUserId?.toString() || "")
+      ) {
+        return false;
+      }
+
+      const overridePolicyId: string | undefined =
+        override.onCallDutyPolicyId?.toString() || undefined;
+
+      if (!overridePolicyId) {
+        return true; // global
+      }
+
+      return Boolean(data.policyId) && overridePolicyId === data.policyId;
+    });
+  }
+
+  private toUserOverrideRecord(
+    override: OnCallDutyPolicyUserOverride,
+  ): UserOverrideRecord {
+    return {
+      overrideUserId: override.overrideUserId?.toString() || "",
+      routeAlertsToUserId: override.routeAlertsToUserId?.toString() || "",
+      startsAt: override.startsAt!,
+      endsAt: override.endsAt!,
+      onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
+    };
+  }
+
+  /*
+   * The pure part of the resolver: given everything already loaded, expand
+   * once and resolve the base context plus any policy variants.
+   */
+  private resolveScheduleInMemory(data: {
+    schedule: OnCallDutyPolicySchedule;
+    layers: Array<OnCallDutyPolicyScheduleLayer>;
+    layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
+    attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+    layerProps: Array<LayerProps>;
+    scheduleUserIds: Array<ObjectID>;
+    overrides: Array<OnCallDutyPolicyUserOverride>;
+    expansionStart: Date;
+    expansionEnd: Date;
+    windowStart: Date;
+    windowEnd: Date;
+    maxSimulationIterations?: number | undefined;
+  }): ResolvedShiftSegments {
+    const scheduleId: string = data.schedule.id!.toString();
+    const projectId: string = data.schedule.projectId?.toString() || "";
+
+    // Distinct (policy, rule) attachments, stable order.
+    const attachedPolicies: Array<MaterializedShiftPolicy> =
+      this.toAttachedPolicies(data.attachments);
+
+    const distinctPolicyIds: Array<string> = [];
+    for (const policy of attachedPolicies) {
+      if (!distinctPolicyIds.includes(policy.policyId)) {
+        distinctPolicyIds.push(policy.policyId);
+      }
+    }
+
+    // The roster rule: exactly one attached policy => resolve in its context.
+    const baseContextPolicyId: string | undefined =
+      distinctPolicyIds.length === 1 ? distinctPolicyIds[0] : undefined;
+
+    // 1 + 2 + 3: one engine expansion over the widened window.
+    let baseEvents: Array<CalendarEvent> = [];
+    let truncated: boolean = false;
+
+    if (data.layerProps.length > 0) {
+      const expansion: LayerEventsResult =
+        this.layerUtil.getMultiLayerEventsWithMeta(
+          {
+            layers: data.layerProps,
+            calendarStartDate: data.expansionStart,
+            calendarEndDate: data.expansionEnd,
+          },
+          data.maxSimulationIterations !== undefined
+            ? { maxSimulationIterations: data.maxSimulationIterations }
+            : undefined,
+        );
+
+      baseEvents = expansion.events;
+      truncated = expansion.truncated;
+    }
+
+    const scheduleUserIdSet: Set<string> = new Set<string>(
+      data.scheduleUserIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    // 4: overrides in the base (roster) context.
+    const baseOverrideRows: Array<OnCallDutyPolicyUserOverride> =
+      this.selectOverridesForSchedule({
+        overrides: data.overrides,
+        projectId,
+        scheduleUserIds: scheduleUserIdSet,
+        windowStart: data.expansionStart,
+        windowEnd: data.expansionEnd,
+        policyId: baseContextPolicyId,
+      });
+
+    const baseOverrides: Array<UserOverrideRecord> = baseOverrideRows.map(
+      (override: OnCallDutyPolicyUserOverride) => {
+        return this.toUserOverrideRecord(override);
+      },
+    );
+
+    const participatingOverrideRows: Array<OnCallDutyPolicyUserOverride> = [
+      ...baseOverrideRows,
+    ];
+    const participatingOverrides: Array<UserOverrideRecord> = [
+      ...baseOverrides,
+    ];
+
+    let segments: Array<CalendarEvent> = baseEvents;
+
+    if (baseOverrides.length > 0 && baseEvents.length > 0) {
+      segments = UserOverrideUtil.applyOverridesToEvents({
+        events: baseEvents,
+        overrides: baseOverrides,
+        currentOnCallDutyPolicyId: baseContextPolicyId,
+      });
+    }
+
+    segments = this.filterEventsOverlappingWindow(
+      segments,
+      data.windowStart,
+      data.windowEnd,
+    );
+
+    // 5: policy variants.
+    const policyVariants: Array<ResolvedPolicyVariant> = [];
+
+    if (distinctPolicyIds.length >= 2 && baseEvents.length > 0) {
+      for (const policyId of distinctPolicyIds) {
+        const scopedRows: Array<OnCallDutyPolicyUserOverride> =
+          this.selectOverridesForSchedule({
+            overrides: data.overrides,
+            projectId,
+            scheduleUserIds: scheduleUserIdSet,
+            windowStart: data.expansionStart,
+            windowEnd: data.expansionEnd,
+            policyId,
+          }).filter((override: OnCallDutyPolicyUserOverride) => {
+            // Only the policy-scoped ones make this context differ.
+            return Boolean(override.onCallDutyPolicyId);
+          });
+
+        if (scopedRows.length === 0) {
+          continue;
+        }
+
+        const variantOverrideRows: Array<OnCallDutyPolicyUserOverride> = [
+          ...scopedRows,
+          ...baseOverrideRows,
+        ];
+
+        const variantOverrides: Array<UserOverrideRecord> =
+          variantOverrideRows.map((override: OnCallDutyPolicyUserOverride) => {
+            return this.toUserOverrideRecord(override);
+          });
+
+        for (const row of scopedRows) {
+          participatingOverrideRows.push(row);
+        }
+        for (const record of variantOverrides.slice(0, scopedRows.length)) {
+          participatingOverrides.push(record);
+        }
+
+        const variantSegments: Array<CalendarEvent> =
+          this.filterEventsOverlappingWindow(
+            UserOverrideUtil.applyOverridesToEvents({
+              events: baseEvents,
+              overrides: variantOverrides,
+              currentOnCallDutyPolicyId: policyId,
+            }),
+            data.windowStart,
+            data.windowEnd,
+          );
+
+        const policyName: string =
+          attachedPolicies.find((policy: MaterializedShiftPolicy) => {
+            return policy.policyId === policyId;
+          })?.policyName || "";
+
+        policyVariants.push({
+          policyId,
+          policyName,
+          segments: variantSegments,
+        });
+      }
+    }
+
+    // 6: lastModifiedAt — schedule row excluded.
+    const lastModifiedAt: Date = this.computeLastModifiedAt({
+      schedule: data.schedule,
+      layers: data.layers,
+      layerUsers: data.layerUsers,
+      attachments: data.attachments,
+      overrides: participatingOverrideRows,
+    });
+
+    const scheduleInfo: ResolvedScheduleInfo = {
+      id: scheduleId,
+      name: data.schedule.name || "",
+      projectId,
+      shiftConfigVersion: Service.toVersionNumber(
+        data.schedule.shiftConfigVersion,
+      ),
+    };
+
+    const timezone: string | undefined =
+      data.schedule.timezone?.toString() || undefined;
+    if (timezone) {
+      scheduleInfo.timezone = timezone;
+    }
+
+    return {
+      schedule: scheduleInfo,
+      segments,
+      policyVariants,
+      attachedPolicies,
+      layerProps: data.layerProps,
+      scheduleUserIds: Array.from(scheduleUserIdSet),
+      overrides: participatingOverrides,
+      lastModifiedAt,
+      truncated,
+    };
+  }
+
+  private toAttachedPolicies(
+    attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>,
+  ): Array<MaterializedShiftPolicy> {
+    const seen: Set<string> = new Set<string>();
+    const policies: Array<MaterializedShiftPolicy> = [];
+
+    for (const attachment of attachments) {
+      const policyId: string =
+        attachment.onCallDutyPolicyId?.toString() ||
+        attachment.onCallDutyPolicy?.id?.toString() ||
+        "";
+      const ruleId: string =
+        attachment.onCallDutyPolicyEscalationRuleId?.toString() ||
+        attachment.onCallDutyPolicyEscalationRule?.id?.toString() ||
+        "";
+
+      if (!policyId) {
+        continue;
+      }
+
+      const key: string = `${policyId}:${ruleId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      policies.push({
+        policyId,
+        policyName: attachment.onCallDutyPolicy?.name || "",
+        ruleId,
+        ruleName: attachment.onCallDutyPolicyEscalationRule?.name || "",
+        ruleOrder: Service.toVersionNumber(
+          attachment.onCallDutyPolicyEscalationRule?.order,
+        ),
+      });
+    }
+
+    policies.sort((a: MaterializedShiftPolicy, b: MaterializedShiftPolicy) => {
+      if (a.policyName !== b.policyName) {
+        return a.policyName < b.policyName ? -1 : 1;
+      }
+      if (a.policyId !== b.policyId) {
+        return a.policyId < b.policyId ? -1 : 1;
+      }
+      if (a.ruleOrder !== b.ruleOrder) {
+        return a.ruleOrder - b.ruleOrder;
+      }
+      return a.ruleId < b.ruleId ? -1 : a.ruleId > b.ruleId ? 1 : 0;
+    });
+
+    return policies;
+  }
+
+  private computeLastModifiedAt(data: {
+    schedule: OnCallDutyPolicySchedule;
+    layers: Array<{ updatedAt?: Date | undefined }>;
+    layerUsers: Array<{ updatedAt?: Date | undefined }>;
+    attachments: Array<{ updatedAt?: Date | undefined }>;
+    overrides: Array<{ updatedAt?: Date | undefined }>;
+  }): Date {
+    let latest: Date | null = null;
+
+    const consider: (value: Date | undefined) => void = (
+      value: Date | undefined,
+    ): void => {
+      if (!value) {
+        return;
+      }
+      const asDate: Date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(asDate.getTime())) {
+        return;
+      }
+      if (!latest || asDate.getTime() > latest.getTime()) {
+        latest = asDate;
+      }
+    };
+
+    for (const rows of [
+      data.layers,
+      data.layerUsers,
+      data.attachments,
+      data.overrides,
+    ]) {
+      for (const row of rows) {
+        consider(row.updatedAt);
+      }
+    }
+
+    if (latest) {
+      return latest;
+    }
+
+    /*
+     * Nothing configured yet (no layers, no attachments): fall back to when
+     * the schedule was CREATED — stable, unlike its updatedAt — and finally
+     * to the epoch so the value is always a valid instant.
+     */
+    if (data.schedule.createdAt) {
+      const created: Date = new Date(data.schedule.createdAt);
+      if (!Number.isNaN(created.getTime())) {
+        return created;
+      }
+    }
+
+    return new Date(0);
+  }
+
+  private filterEventsOverlappingWindow(
+    events: Array<CalendarEvent>,
+    windowStart: Date,
+    windowEnd: Date,
+  ): Array<CalendarEvent> {
+    return events.filter((event: CalendarEvent) => {
+      if (!event || !event.start || !event.end) {
+        return false;
+      }
+      return (
+        event.start.getTime() < windowEnd.getTime() &&
+        event.end.getTime() > windowStart.getTime()
+      );
+    });
+  }
+
+  private static toVersionNumber(value: unknown): number {
+    const parsed: number =
+      typeof value === "number" ? value : parseInt(String(value ?? ""), 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  }
+
+  /*
+   * ---------------------------------------------------------------------------
+   * Change propagation — shiftConfigVersion, feed caches, listeners.
+   * ---------------------------------------------------------------------------
+   */
+
+  /**
+   * Atomically add one to shiftConfigVersion of each schedule, in a single
+   * UPDATE per schedule (`SET col = COALESCE(col, 0) + 1`, no hooks, no
+   * optimistic-lock bump — see atomicAddToColumnsByIdWithoutHooks). Best
+   * effort: a failure is logged and never thrown, because this runs inside
+   * the CRUD hooks of the user's edit and must not fail it.
+   *
+   * NEVER call this from refreshCurrentUserIdAndHandoffTimeInSchedule: the
+   * roster refresh runs every handoff and touches no configuration, and the
+   * version is what calendar clients see as SEQUENCE — bumping it there would
+   * make every feed look edited every rotation period.
+   */
+  @CaptureSpan()
+  public async bumpShiftConfigVersion(
+    scheduleIds: Array<ObjectID>,
+  ): Promise<void> {
+    for (const scheduleId of OnCallShiftChangeListeners.dedupe(scheduleIds)) {
+      try {
+        await this.atomicAddToColumnsByIdWithoutHooks({
+          id: scheduleId,
+          add: { shiftConfigVersion: 1 },
+        });
+      } catch (err) {
+        logger.error(
+          `Error bumping shiftConfigVersion for schedule ${scheduleId.toString()} (best-effort).`,
+        );
+        logger.error(err);
+      }
+    }
+  }
+
+  /**
+   * The schedules in `projectId` whose layers include any of `userIds` —
+   * the query refreshRostersForUserInProject uses, batched. Root read.
+   */
+  @CaptureSpan()
+  public async getScheduleIdsForUsersInProject(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID>;
+  }): Promise<Array<ObjectID>> {
+    const userIds: Array<ObjectID> = OnCallShiftChangeListeners.dedupe(
+      data.userIds,
+    );
+
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+      await OnCallDutyPolicyScheduleLayerUserService.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: QueryHelper.any(userIds),
+        },
+        select: {
+          onCallDutyPolicyScheduleId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return OnCallShiftChangeListeners.dedupe(
+      layerUsers
+        .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+          return layerUser.onCallDutyPolicyScheduleId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    );
+  }
+
+  /**
+   * What every configuration hook calls after the roster refresh:
+   *   1. bump shiftConfigVersion of the affected schedules (SEQUENCE / cache key),
+   *   2. purge the calendar-feed caches of those schedules and of the users
+   *      the change names directly,
+   *   3. tell the shift-change listeners (the reminder change pass) which
+   *      schedules and users to look at again — delivered in the background,
+   *      never awaited, never allowed to fail the edit.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public async propagateShiftConfigChange(
+    change: ShiftConfigChange,
+  ): Promise<void> {
+    try {
+      const scheduleIds: Array<ObjectID> = OnCallShiftChangeListeners.dedupe(
+        change.scheduleIds,
+      );
+      const explicitUserIds: Array<ObjectID> =
+        OnCallShiftChangeListeners.dedupe(change.userIds || []);
+
+      if (scheduleIds.length > 0 && !change.skipVersionBump) {
+        await this.bumpShiftConfigVersion(scheduleIds);
+      }
+
+      for (const scheduleId of scheduleIds) {
+        try {
+          await OnCallCalendarFeedCache.purgeForSchedule(scheduleId.toString());
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+
+      if (change.projectId) {
+        for (const userId of explicitUserIds) {
+          try {
+            await OnCallCalendarFeedCache.purgeForUser(
+              change.projectId.toString(),
+              userId.toString(),
+            );
+          } catch (err) {
+            logger.error(err);
+          }
+        }
+      }
+
+      let userIds: Array<ObjectID> = explicitUserIds;
+
+      if (scheduleIds.length > 0) {
+        try {
+          const members: Array<OnCallDutyPolicyScheduleLayerUser> =
+            await OnCallDutyPolicyScheduleLayerUserService.findBy({
+              query: {
+                onCallDutyPolicyScheduleId: QueryHelper.any(scheduleIds),
+              },
+              select: {
+                userId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          userIds = OnCallShiftChangeListeners.dedupe([
+            ...explicitUserIds,
+            ...members
+              .map((member: OnCallDutyPolicyScheduleLayerUser) => {
+                return member.userId;
+              })
+              .filter((id: ObjectID | undefined): id is ObjectID => {
+                return Boolean(id);
+              }),
+          ]);
+        } catch (err) {
+          logger.error(
+            "Error loading schedule members for the shift-change event (best-effort).",
+          );
+          logger.error(err);
+        }
+      }
+
+      const event: OnCallShiftChangeEvent =
+        OnCallShiftChangeListeners.buildEvent({
+          projectId: change.projectId,
+          scheduleIds,
+          userIds,
+          reason: change.reason,
+        });
+
+      // Background delivery; notify never rejects, the catch is belt-and-braces.
+      OnCallShiftChangeListeners.notify(event).catch((err: Error) => {
+        logger.error(err);
+      });
+    } catch (err) {
+      logger.error(
+        "Error propagating an on-call configuration change (best-effort).",
+      );
+      logger.error(err);
+    }
   }
 
   private async fetchOverridesForSchedule(data: {
@@ -1560,6 +2849,48 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     }
 
     return windowStart;
+  }
+
+  /*
+   * Mirror of computeResolutionWindowStart, stepping FORWARDS: the latest of
+   * `from` plus `periodsForward` rotation periods across the layers (at least
+   * a day). The calendar-feed resolver widens its expansion this far past the
+   * requested window so the last overlapping segment carries its true end
+   * instead of the engine's clamp to the window edge.
+   */
+  private computeResolutionWindowEndByPeriods(
+    layerProps: Array<LayerProps>,
+    from: Date,
+    periodsForward: number,
+  ): Date {
+    let windowEnd: Date = OneUptimeDate.addRemoveDays(from, 1);
+
+    for (const layer of layerProps) {
+      if (!layer.rotation) {
+        continue;
+      }
+
+      let recurring: Recurring;
+      try {
+        recurring =
+          layer.rotation instanceof Recurring
+            ? layer.rotation
+            : Recurring.fromJSON(layer.rotation as any);
+      } catch {
+        continue;
+      }
+
+      let candidate: Date = from;
+      for (let i: number = 0; i < periodsForward; i++) {
+        candidate = Recurring.getNextDateInterval(candidate, recurring);
+      }
+
+      if (OneUptimeDate.isAfter(candidate, windowEnd)) {
+        windowEnd = candidate;
+      }
+    }
+
+    return windowEnd;
   }
 
   /*

@@ -11,6 +11,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -62,7 +64,17 @@ afterEach(() => {
 });
 
 function reportedResult(): JSONObject {
-  const call: Array<unknown> = fetchSpy.mock.calls[0] as Array<unknown>;
+  const call: Array<unknown> | undefined = fetchSpy.mock.calls.find(
+    (candidate: Array<unknown>): boolean => {
+      const data: JSONObject = (candidate[0] as JSONObject)[
+        "data"
+      ] as JSONObject;
+      return data["isPartial"] !== true;
+    },
+  );
+  if (!call) {
+    throw new Error("The sweep did not upload a terminal discovery result.");
+  }
   return (call[0] as JSONObject)["data"] as JSONObject;
 }
 
@@ -93,11 +105,25 @@ function networkWhereIcmpIsFilteredAndSnmpWorks(
     });
 }
 
+/*
+ * Reverse DNS (issue #3529) is the sweep's third network seam, alongside ICMP
+ * and SNMP, and is stubbed out for this whole file for the same reason those
+ * are: nothing here is about naming, and a unit test must not ask the
+ * machine's real resolver about 10.0.0.0/8. Hosts therefore come back with no
+ * dnsHostname, exactly as they did before the feature existed.
+ */
+stubReverseDnsAsResolvingNothing();
+
 describe("discovery on a subnet where ICMP is filtered", () => {
   test("the devices are found and reported, not silently dropped", async () => {
     networkWhereIcmpIsFilteredAndSnmpWorks(["10.244.102.2", "10.244.102.5"]);
 
     await runScan(makeScan());
+
+    const firstUpload: JSONObject = fetchSpy.mock.calls[0]![0]
+      .data as JSONObject;
+    expect(firstUpload["isPartial"]).toBe(true);
+    expect(reportedResult()["isPartial"]).not.toBe(true);
 
     const devices: Array<JSONObject> = reportedDevices();
     expect(
@@ -269,7 +295,11 @@ describe("a sweep that cannot run at all", () => {
 
     expect(reportedResult()["success"]).toBe(false);
     expect(String(reportedResult()["statusMessage"])).toContain("aes-256-gcm");
-    expect(reportedResult()["discoveredDevices"]).toEqual([]);
+    /*
+     * A failure report carries no host list at all, so it cannot erase hosts
+     * a running sweep had already uploaded (OneUptime issue #3598).
+     */
+    expect(reportedResult()).not.toHaveProperty("discoveredDevices");
   });
 
   test("a target that is too large fails rather than sweeping a subset", async () => {

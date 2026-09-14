@@ -28,6 +28,10 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Green500 } from "../../Types/BrandColors";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -73,6 +77,7 @@ class IncidentGroupingEngineServiceClass {
             _id: true,
             name: true,
             priority: true,
+            criteria: true,
             // Match criteria fields
             monitors: {
               _id: true,
@@ -127,9 +132,15 @@ class IncidentGroupingEngineServiceClass {
             },
             episodeMemberRoleAssignments: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncidentGroupingRule",
+        projectId: incident.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         logger.debug(
@@ -182,6 +193,64 @@ class IncidentGroupingEngineServiceClass {
   private async doesIncidentMatchRule(
     incident: Incident,
     rule: IncidentGroupingRule,
+  ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "incidentLabels",
+        "monitorLabels",
+        "incidentTitlePattern",
+        "incidentDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: IncidentGroupingRule,
+      ): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: [
+          "monitorLabels",
+          "monitorNamePattern",
+          "monitorDescriptionPattern",
+        ],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: IncidentGroupingRule,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     logger.debug(
       `Checking if incident ${incident.id} matches rule ${rule.name || rule.id}`,
@@ -272,19 +341,9 @@ class IncidentGroupingEngineServiceClass {
         }
 
         // Load monitor with all needed fields
-        const monitor: Monitor | null = await MonitorService.findOneById({
-          id: incidentMonitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: {
-              _id: true,
-            },
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        const monitor: Monitor | null = await monitorCache.getMonitor(
+          incidentMonitor.id,
+        );
 
         if (!monitor) {
           continue;

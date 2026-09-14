@@ -2,8 +2,11 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
+import {
+  buildHealthyCriteriaInstance,
+  buildUnhealthyCriteriaInstance,
+} from "./Recommendation/RecommendationCriteriaBuilder";
+import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepHostMonitor from "./MonitorStepHostMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -29,6 +32,25 @@ export interface HostAlertTemplate {
   severity: HostAlertTemplateSeverity;
   getMonitorStep: (args: HostAlertTemplateArgs) => MonitorStep;
 }
+
+/*
+ * Filter contract: a host monitor is already scoped to ONE host — the
+ * worker adds `resource.host.name` from the step's hostIdentifier — so
+ * host-scalar metrics (CPU utilization, memory utilization, load average,
+ * process count) stay UNGROUPED: there is exactly one series per host and
+ * grouping would buy nothing.
+ *
+ * Metrics that are per-entity WITHIN the host are grouped, because the
+ * hostmetrics receiver partitions them by unprefixed DATAPOINT labels
+ * (never `resource.`-prefixed):
+ *
+ *   - `system.filesystem.*` -> `mountpoint` (also `device`, `state`)
+ *   - `system.disk.*` / `system.network.*` -> `device` (also `direction`)
+ *
+ * Without a group-by, one full mount raises a single incident for the
+ * whole host and every other mount that fills up afterwards is silenced
+ * for as long as that incident stays open.
+ */
 
 export function buildHostMonitorStep(args: {
   hostMonitor: MonitorStepHostMonitor;
@@ -87,59 +109,12 @@ export function buildHostOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const incidentTitle: string =
-    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
-  const incidentDescription: string =
-    args.incidentDescription ||
-    `${args.monitorName} has triggered an alert condition. See root cause for detailed host information.`;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        incidentSeverityId: args.incidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        alertSeverityId: args.alertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
-    description:
-      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
-  };
-
-  return instance;
+  return buildUnhealthyCriteriaInstance({
+    ...args,
+    resourceNoun: "host",
+  });
 }
 
 export function buildHostOnlineCriteriaInstance(args: {
@@ -147,34 +122,12 @@ export function buildHostOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  recoveryValue?: number | undefined;
+  marginFraction?: number | undefined;
+  isBinaryMetric?: boolean | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: "Criteria for healthy state.",
-  };
-
-  return instance;
+  return buildHealthyCriteriaInstance(args);
 }
 
 export function buildHostMonitorConfig(args: {
@@ -184,6 +137,17 @@ export function buildHostMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  /**
+   * Attributes to split the metric by, one alert per group.
+   *
+   * More than one key is not just finer grouping — the group-by set is
+   * exactly what the resulting alert can name. `mountpoint` alone says
+   * WHICH mount filled up; adding `device` also says which physical
+   * disk, which is the difference between "/var is full" and "/var is
+   * full and it is on the same device as /". See SeriesLabelDisplay,
+   * which renders these onto the alert's title and description.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
 }): MonitorStepHostMonitor {
   return {
     hostIdentifier: args.hostIdentifier,
@@ -204,10 +168,136 @@ export function buildHostMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKeys &&
+            args.groupByAttributeKeys.length > 0
+              ? { groupByAttributeKeys: args.groupByAttributeKeys }
+              : {}),
           },
         },
       ],
       formulaConfigs: [],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
+/*
+ * The identity an incident title should carry, as a suffix.
+ *
+ * NOT `monitorName`: the recommendation flow builds that as
+ * `${resourceDisplayName} - ${template.name}`
+ * (MonitorRecommendationUtil.getMonitorName) and feeds the whole string
+ * back in here, so interpolating it produced titles that said the
+ * template name twice — "[Host] High CPU Utilization (>80%) - web-01 -
+ * High CPU Utilization". `hostIdentifier` is the agent-reported
+ * `host.name` the metrics are actually tagged with, which is the one
+ * identifier the reader needs, and it says it once.
+ */
+export function hostTitleSuffix(args: HostAlertTemplateArgs): string {
+  const host: string = (args.hostIdentifier || "").trim();
+
+  return host ? ` - ${host}` : "";
+}
+
+/**
+ * A host metric that has to be DERIVED — from more than one series, or
+ * from a raw ratio that has to be rescaled before anyone can read it.
+ *
+ * `system.cpu.utilization` is the case this exists for: the hostmetrics
+ * cpu scraper partitions it by (cpu, state), and every cpu's states sum
+ * to 1. Averaging the raw metric therefore lands at 1/(state count) —
+ * ~0.125 on Linux — no matter how busy the host is, so a "> 0.8"
+ * criteria is structurally unreachable. Pulling `state=user` and
+ * `state=system` as separate queries and summing them yields the
+ * "fraction of CPU time spent doing work" that `top` reports, and is the
+ * same derivation the host Overview page charts (see
+ * App/FeatureSet/Dashboard/src/Pages/Host/View/Overview.tsx).
+ * `system.memory.utilization` is partitioned the same way, by `state`.
+ *
+ * UNITS: `legendUnit` is applied to the FORMULA alias only, never to the
+ * operand queries. MetricResultUnitConverter converts query results from
+ * their native OTel unit into the query alias's `legendUnit`, and
+ * MetricUnitUtil treats the dimensionless "1" and "%" as one family — so
+ * a `legendUnit: "%"` on an operand would scale it by 100 BEFORE the
+ * formula's own `* 100` ran. Formula configs are never converted, so the
+ * unit there is display metadata and the formula owns the scaling. That
+ * is also why the `* 100` is written into the formula rather than
+ * delegated to a query-level `legendUnit`: the converter is a silent
+ * no-op whenever the metric's native unit was not recorded at ingest,
+ * and the failure mode would be a [0, 1] sample compared against 80 —
+ * a monitor that never fires and never says why.
+ *
+ * Name the operand aliases after the state they carry (`host_cpu_user`,
+ * `host_memory_used`). A criteria bound to a formula alias reports the
+ * FORMULA STRING as its metric name and an empty attribute map, so the
+ * alias names are the only place the alert body can tell the reader
+ * which slice of the metric was measured.
+ *
+ * This mirrors buildKubernetesRatioMonitorConfig.
+ */
+export function buildHostFormulaMonitorConfig(args: {
+  hostIdentifier: string;
+  queries: Array<{
+    metricAlias: string;
+    metricName: string;
+    aggregationType: MetricsAggregationType;
+    attributes?: Record<string, string> | undefined;
+  }>;
+  resultAlias: string;
+  resultLegend: string;
+  formula: string;
+  legendUnit?: string | undefined;
+  rollingTime: RollingTime;
+  groupByAttributeKeys?: Array<string> | undefined;
+}): MonitorStepHostMonitor {
+  return {
+    hostIdentifier: args.hostIdentifier,
+    metricViewConfig: {
+      queryConfigs: args.queries.map(
+        (query: {
+          metricAlias: string;
+          metricName: string;
+          aggregationType: MetricsAggregationType;
+          attributes?: Record<string, string> | undefined;
+        }) => {
+          return {
+            metricAliasData: {
+              metricVariable: query.metricAlias,
+              title: query.metricAlias,
+              description: query.metricAlias,
+              legend: query.metricAlias,
+              // Never set here — see the UNITS note above.
+              legendUnit: undefined,
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: query.metricName,
+                attributes: query.attributes || {},
+                aggegationType: query.aggregationType,
+                aggregateBy: {},
+              },
+              ...(args.groupByAttributeKeys &&
+              args.groupByAttributeKeys.length > 0
+                ? { groupByAttributeKeys: args.groupByAttributeKeys }
+                : {}),
+            },
+          };
+        },
+      ),
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            legendUnit: args.legendUnit,
+          },
+          metricFormulaData: {
+            metricFormula: args.formula,
+          },
+        },
+      ],
     },
     rollingTime: args.rollingTime,
   };
@@ -218,19 +308,46 @@ export function buildHostMonitorConfig(args: {
 const highCpuTemplate: HostAlertTemplate = {
   id: "host-high-cpu",
   name: "High CPU Utilization",
-  description: "Alert when host CPU utilization exceeds 80% sustained.",
+  description:
+    "Alert when host CPU busy time (user + system) exceeds 80% for the whole evaluation window.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "host_cpu";
 
     return buildHostMonitorStep({
-      hostMonitor: buildHostMonitorConfig({
+      /*
+       * Busy CPU = user + system, each pulled as its own `state` series.
+       * See buildHostFormulaMonitorConfig: averaging the raw metric
+       * across all states lands at ~1/(state count) and never reaches any
+       * threshold worth alerting on, so this template could not fire.
+       *
+       * `1 - idle` is the other way to derive this and is deliberately
+       * NOT used: it breaks the moment a platform stops emitting the
+       * `idle` state. user + system is what the host Overview page
+       * charts, so the alert and the chart now agree.
+       */
+      hostMonitor: buildHostFormulaMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "system.cpu.utilization",
-        metricAlias,
+        queries: [
+          {
+            metricAlias: "host_cpu_user",
+            metricName: "system.cpu.utilization",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "user" },
+          },
+          {
+            metricAlias: "host_cpu_system",
+            metricName: "system.cpu.utilization",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "system" },
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "CPU Busy (%)",
+        formula: "(host_cpu_user + host_cpu_system) * 100",
+        legendUnit: "%",
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -239,19 +356,19 @@ const highCpuTemplate: HostAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        // system.cpu.utilization is a [0, 1] ratio, so 0.8 == 80%.
-        value: 0.8,
-        incidentTitle: `[Host] High CPU Utilization (>80%) - ${args.monitorName}`,
-        incidentDescription: `A monitored host's CPU utilization has exceeded 80%. Sustained high CPU usage can cause performance degradation. Check the root cause for the specific host details.`,
+        // The formula already scales the [0, 1] ratio to percent, so 80 == 80%.
+        value: 80,
+        incidentTitle: `[Host] High CPU Utilization (>80%)${hostTitleSuffix(args)}`,
+        incidentDescription: `CPU busy time (user + system) stayed above 80% for the whole evaluation window on this host. Sustained saturation here shows up as latency in everything the host runs. Iowait and steal are excluded, so this is work the host itself is doing. See the root cause below for the measured values.`,
         criteriaName: "High CPU - Utilization > 80%",
         criteriaDescription:
-          "Triggers when host CPU utilization exceeds 80% over the monitoring window.",
+          "Triggers when host CPU busy time (user + system) exceeds 80% for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 0.8,
+        value: 80,
       }),
     });
   },
@@ -260,19 +377,38 @@ const highCpuTemplate: HostAlertTemplate = {
 const highMemoryTemplate: HostAlertTemplate = {
   id: "host-high-memory",
   name: "High Memory Utilization",
-  description: "Alert when host memory utilization exceeds 85%.",
+  description:
+    "Alert when memory in use — excluding buffers and page cache — exceeds 85% of physical memory.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "host_memory";
 
     return buildHostMonitorStep({
-      hostMonitor: buildHostMonitorConfig({
+      /*
+       * `state=used` only. The hostmetrics receiver emits this metric once
+       * per memory state (used / free / buffered / cached / slab_* on
+       * Linux, used / free / inactive on macOS) and a state set sums to 1,
+       * so an unfiltered Avg sits at ~1/(state count) forever and could
+       * never reach 0.85 — this template never fired. `used` is the same
+       * state the host Overview memory tile reads, so the alert and the
+       * page now agree.
+       */
+      hostMonitor: buildHostFormulaMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "system.memory.utilization",
-        metricAlias,
+        queries: [
+          {
+            metricAlias: "host_memory_used",
+            metricName: "system.memory.utilization",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "used" },
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Memory Used (%)",
+        formula: "host_memory_used * 100",
+        legendUnit: "%",
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -281,19 +417,19 @@ const highMemoryTemplate: HostAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        // system.memory.utilization is a [0, 1] ratio, so 0.85 == 85%.
-        value: 0.85,
-        incidentTitle: `[Host] High Memory Utilization (>85%) - ${args.monitorName}`,
-        incidentDescription: `A monitored host's memory utilization has exceeded 85%. High memory usage can lead to swapping and OOM kills. Check the root cause for the specific host details.`,
+        // The formula already scales the [0, 1] ratio to percent, so 85 == 85%.
+        value: 85,
+        incidentTitle: `[Host] High Memory Utilization (>85%)${hostTitleSuffix(args)}`,
+        incidentDescription: `Memory in use — excluding buffers and page cache — stayed above 85% of physical memory for the whole evaluation window on this host. Sustained pressure here leads to swapping and OOM kills. A host that is mostly page cache will NOT trip this. See the root cause below for the measured values.`,
         criteriaName: "High Memory - Utilization > 85%",
         criteriaDescription:
-          "Triggers when host memory utilization exceeds 85% over the monitoring window.",
+          "Triggers when memory in use exceeds 85% of physical memory for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 0.85,
+        value: 85,
       }),
     });
   },
@@ -302,23 +438,60 @@ const highMemoryTemplate: HostAlertTemplate = {
 const highFilesystemUsageTemplate: HostAlertTemplate = {
   id: "host-high-filesystem",
   name: "High Filesystem Usage",
-  description: "Alert when host filesystem utilization exceeds 90%.",
+  description:
+    "Alert when host filesystem utilization exceeds 90%. One alert per mountpoint.",
   category: "Resource",
   severity: "Critical",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "host_filesystem";
 
     return buildHostMonitorStep({
-      hostMonitor: buildHostMonitorConfig({
+      hostMonitor: buildHostFormulaMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "system.filesystem.utilization",
-        metricAlias,
+        queries: [
+          {
+            metricAlias: "host_filesystem_ratio",
+            metricName: "system.filesystem.utilization",
+            /*
+             * Max WITHIN each mountpoint's series: the peak utilization
+             * that mount reached during the window. Grouping by
+             * `mountpoint` already keeps mounts from being averaged
+             * together, and gives one incident per mount so a second
+             * mount filling up is not silenced by the first one's open
+             * incident.
+             */
+            aggregationType: MetricsAggregationType.Max,
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Filesystem Used (%)",
+        /*
+         * The raw metric is a [0, 1] ratio with no unit recorded, so
+         * without this the body of a Critical alert read a bare "0.93"
+         * under a title that says 90%. See buildHostFormulaMonitorConfig
+         * for why the scaling lives in the formula.
+         */
+        formula: "host_filesystem_ratio * 100",
+        legendUnit: "%",
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single full filesystem trips the threshold instead of
-         * being diluted by averaging across multiple mounted filesystems.
+         * `mountpoint` is the identity — one incident per mount.
+         * `device` rides along because the hostmetrics receiver puts it
+         * on the same datapoint, it is constant for a given mount (so it
+         * adds no series), and it is the first thing anyone asks after
+         * "which mount?": /var at 95% on the same device as / is a
+         * different problem from /var on its own disk.
+         *
+         * NOTE this template still pages on read-only pseudo-filesystems
+         * that are 100% full by design (snap `squashfs` loop mounts,
+         * macOS `devfs`). The Kubernetes agent's collector already
+         * excludes those with an `include_fs_types` allowlist; the
+         * standalone host collector config does not, and excluding them
+         * here would need a NOT-IN comparison that `filterData.attributes`
+         * (exact match only) cannot express. The mount and device are on
+         * the alert, so the description below names the pattern instead.
          */
-        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: ["mountpoint", "device"],
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -327,19 +500,19 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        // system.filesystem.utilization is a [0, 1] ratio, so 0.9 == 90%.
-        value: 0.9,
-        incidentTitle: `[Host] High Filesystem Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `A monitored host's filesystem utilization has exceeded 90%. A full disk can cause application failures and data loss. Check the root cause for the specific host and free up disk space.`,
+        // The formula already scales the [0, 1] ratio to percent, so 90 == 90%.
+        value: 90,
+        incidentTitle: `[Host] High Filesystem Usage (>90%)${hostTitleSuffix(args)}`,
+        incidentDescription: `This mount stayed above 90% utilization for the whole evaluation window. A full disk causes application failures and data loss. The mount and device are named above. NOTE that read-only pseudo-filesystems — snap squashfs loop mounts under /snap, macOS devfs — sit at 100% by design and can never recover; if this names one of those, it is not actionable and the mount should be excluded from the collector's filesystem scraper.`,
         criteriaName: "High Filesystem - Usage > 90%",
         criteriaDescription:
-          "Triggers when any host filesystem exceeds 90% utilization over the monitoring window.",
+          "Triggers when a host filesystem exceeds 90% utilization for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 0.9,
+        value: 90,
       }),
     });
   },
@@ -349,7 +522,7 @@ const highLoadAverageTemplate: HostAlertTemplate = {
   id: "host-high-load-average",
   name: "High Load Average (1m)",
   description:
-    "Alert when the host's 1-minute load average exceeds 4, indicating sustained CPU contention.",
+    "Alert when the host's 1-minute load average stays above 4. The threshold is an absolute run-queue length and is NOT normalized by core count.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
@@ -369,13 +542,19 @@ const highLoadAverageTemplate: HostAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
+        /*
+         * A raw run-queue length, NOT a ratio and NOT normalized by core
+         * count. Normalizing would need `system.cpu.logical.count`, which
+         * only the standalone collector config enables today, so the
+         * threshold stays absolute and the copy below says so.
+         */
         filterType: FilterType.GreaterThan,
         value: 4,
-        incidentTitle: `[Host] High Load Average (1m > 4) - ${args.monitorName}`,
-        incidentDescription: `A monitored host's 1-minute load average has exceeded 4. A sustained high load average indicates CPU contention or runaway processes. Compare against the host's core count and check the root cause.`,
+        incidentTitle: `[Host] High Load Average (1m > 4)${hostTitleSuffix(args)}`,
+        incidentDescription: `This host's 1-minute load average stayed above 4 for the whole evaluation window, which indicates CPU contention or runaway processes. NOTE the threshold is an absolute run-queue length and is NOT normalized by core count: 4 is deep saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.`,
         criteriaName: "High Load - 1m Average > 4",
         criteriaDescription:
-          "Triggers when the host's 1-minute load average exceeds 4 over the monitoring window.",
+          "Triggers when the host's 1-minute load average exceeds 4 for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -391,7 +570,7 @@ const highProcessCountTemplate: HostAlertTemplate = {
   id: "host-high-processes",
   name: "High Process Count",
   description:
-    "Alert when the host has an unusually high number of processes, which may indicate a fork bomb or resource leak.",
+    "Alert when the host's largest process-state bucket (running, sleeping, idle, ...) exceeds 2000 processes, which may indicate a fork bomb or resource leak. Linux only.",
   category: "Host",
   severity: "Warning",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
@@ -403,6 +582,26 @@ const highProcessCountTemplate: HostAlertTemplate = {
         metricName: "system.processes.count",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
+        /*
+         * `system.processes.count` is partitioned by process status
+         * (running / sleeping / blocked / idle / ...) — one datapoint per
+         * status, which is why ingest SUMS every datapoint to derive
+         * `host.processCount` and why the host Overview tile has to filter
+         * down to a single status. This query is ungrouped and unfiltered,
+         * so `Max` compares the LARGEST SINGLE STATUS BUCKET, not the
+         * host's total process count.
+         *
+         * `Max` is kept deliberately. `Sum` is not the fix: the query
+         * aggregates within a time bucket, so it would add every status
+         * AND every scrape inside that bucket together. Grouping by status
+         * would need a per-status threshold nobody has evidence for, and
+         * would break the `groupByAttributeKeys: []` contract pinned in
+         * TemplateGroupByKeys.test.ts. On Linux the largest bucket tracks
+         * the total closely enough to stay a usable "far too many
+         * processes" signal — so the QUERY stays as it is and the COPY
+         * below stops claiming a total nobody could reconcile with a
+         * process listing.
+         */
         aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
@@ -413,10 +612,11 @@ const highProcessCountTemplate: HostAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 2000,
-        incidentTitle: `[Host] High Process Count (>2000) - ${args.monitorName}`,
-        incidentDescription: `A monitored host has an unusually high number of processes (>2000). This may indicate a fork bomb, resource leak, or misconfigured application. Check the host for runaway processes.`,
+        incidentTitle: `[Host] High Process Count (>2000)${hostTitleSuffix(args)}`,
+        incidentDescription: `The largest single process-state bucket on this host (running, sleeping, idle, ...) held more than 2000 processes for every sample in the evaluation window. This is NOT the host's total process count, so it will not match the total a process listing reports. Check the host for runaway or unreaped processes. The metric comes from the hostmetrics processes scraper, which reports on Linux only.`,
         criteriaName: "High Processes - Count > 2000",
-        criteriaDescription: "Triggers when host process count exceeds 2000.",
+        criteriaDescription:
+          "Triggers when the largest single process-state bucket exceeds 2000 processes for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,

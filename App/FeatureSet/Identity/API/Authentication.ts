@@ -12,14 +12,17 @@ import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import { getSignupPasswordValidationError } from "Common/Types/Password";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   AppVersion,
   EncryptionSecret,
+  Host,
+  HttpProtocol,
   IsBillingEnabled,
 } from "Common/Server/EnvironmentConfig";
 import API from "Common/Utils/API";
@@ -29,6 +32,8 @@ import MailService from "Common/Server/Services/MailService";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
+import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
+import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
@@ -57,12 +62,16 @@ import UserSession from "Common/Models/DatabaseModels/UserSession";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
+import MobilePasskeyLoginService, {
+  MobilePasskeyContext,
+} from "Common/Server/Services/MobilePasskeyLoginService";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -107,6 +116,31 @@ const twoFactorRateLimit: (
   IdentityRateLimitBucket.TwoFactor,
 );
 
+/*
+ * /verify-backup-code gets a counter of its own rather than sharing the one
+ * above, and the reason is who arrives at it.
+ *
+ * Every single caller of this route has already failed at the factor the other
+ * three routes serve -- that is what the route is FOR. On a shared counter the
+ * user whose authenticator app is showing codes from a drifted clock would
+ * spend the whole budget proving that, and then be told "too many attempts" by
+ * the one route that could still have let them in. The recovery path must not
+ * be spendable by failures on the path it recovers from.
+ *
+ * It is still bounded, because it re-verifies the email and password ahead of
+ * the code exactly as its siblings do and is therefore a password oracle in
+ * its own right. What it is NOT bounded for is the codes: ten characters over
+ * a 32 symbol alphabet is 2^50, so the limiter is a backstop there rather than
+ * the control.
+ */
+const backupCodeRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.BackupCode,
+);
+
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 interface FinalizeUserLoginResult {
@@ -119,6 +153,7 @@ type FinalizeUserLoginInput = {
   res: ExpressResponse;
   user: User;
   isGlobalLogin: boolean;
+  setCookie?: boolean;
 };
 
 const finalizeUserLogin: (
@@ -137,15 +172,17 @@ const finalizeUserLogin: (
       ...extractDeviceInfo(req),
     });
 
-  CookieUtil.setUserCookie({
-    expressResponse: res,
-    user,
-    isGlobalLogin,
-    sessionId: sessionMetadata.session.id!,
-    refreshToken: sessionMetadata.refreshToken,
-    refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-    accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
-  });
+  if (data.setCookie !== false) {
+    CookieUtil.setUserCookie({
+      expressResponse: res,
+      user,
+      isGlobalLogin,
+      sessionId: sessionMetadata.session.id!,
+      refreshToken: sessionMetadata.refreshToken,
+      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+    });
+  }
 
   // Generate access token for response body (used by mobile clients)
   const accessToken: string = JSONWebToken.signUserLoginToken({
@@ -164,6 +201,261 @@ const finalizeUserLogin: (
   return { sessionMetadata, accessToken };
 };
 
+const PASSKEY_LOGIN_COOKIE: string = "oneuptime-passkey-login";
+const passkeyRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.Passkey,
+);
+const PASSKEY_LOGIN_ERROR: string =
+  "Unable to sign in with this passkey. Please try again or use your password.";
+
+/*
+ * Bind the anonymous challenge to the browser that started this sign-in.
+ * A challenge ID supplied in the request body must never replace this cookie.
+ */
+const assertPasskeyOrigin: (req: ExpressRequest) => void = (
+  req: ExpressRequest,
+): void => {
+  if (
+    req.headers.origin !==
+    new NodeURL(`${HttpProtocol}${Host.toString()}`).origin
+  ) {
+    throw new BadDataException(PASSKEY_LOGIN_ERROR);
+  }
+};
+
+router.post(
+  "/passkey-login-options",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const mobileContext: MobilePasskeyContext | null =
+        req.body?.mobileAuth === undefined
+          ? null
+          : MobilePasskeyLoginService.validateRequest(req.body.mobileAuth);
+      const result: Awaited<
+        ReturnType<
+          typeof UserWebAuthnService.generatePasskeyAuthenticationOptions
+        >
+      > = await UserWebAuthnService.generatePasskeyAuthenticationOptions();
+
+      if (mobileContext) {
+        await MobilePasskeyLoginService.storeChallengeContext(
+          result.challengeId,
+          mobileContext,
+        );
+      }
+
+      res.cookie(
+        PASSKEY_LOGIN_COOKIE,
+        mobileContext ? `mobile.${result.challengeId}` : result.challengeId,
+        {
+          httpOnly: true,
+          secure: HttpProtocol.toString() === "https://",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 5 * 60 * 1000,
+        },
+      );
+
+      /*
+       * Discoverable credentials let the authenticator select the account.
+       * Options do not disclose whether any particular email has an account.
+       */
+      return Response.sendJsonObjectResponse(req, res, {
+        options: result.options as unknown as JSONObject,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/passkey-login",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const challengeCookie: unknown = req.cookies?.[PASSKEY_LOGIN_COOKIE];
+      const isMobileLogin: boolean =
+        typeof challengeCookie === "string" &&
+        challengeCookie.startsWith("mobile.");
+      const challengeId: unknown = isMobileLogin
+        ? (challengeCookie as string).slice("mobile.".length)
+        : challengeCookie;
+      res.clearCookie(PASSKEY_LOGIN_COOKIE, {
+        httpOnly: true,
+        secure: HttpProtocol.toString() === "https://",
+        sameSite: "strict",
+        path: "/",
+      });
+
+      if (
+        typeof challengeId !== "string" ||
+        !challengeId.match(/^[A-Za-z0-9_-]{32,128}$/)
+      ) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      let verifiedUser: User;
+      try {
+        verifiedUser = await UserWebAuthnService.verifyPasskeyAuthentication({
+          challengeId,
+          credential: req.body?.credential,
+        });
+      } catch {
+        // Do not expose credential ownership or verification internals.
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      if (!verifiedUser.id) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      const mobileContext: MobilePasskeyContext | null =
+        await MobilePasskeyLoginService.consumeChallengeContext(challengeId);
+      if (isMobileLogin !== Boolean(mobileContext)) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      const user: User | null = await UserService.findOneById({
+        id: verifiedUser.id,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          isMasterAdmin: true,
+          isEmailVerified: true,
+          isBlocked: true,
+          profilePictureId: true,
+          timezone: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!user?.id || !user.email || !user.isEmailVerified || user.isBlocked) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      if (mobileContext) {
+        const callbackUrl: string =
+          await MobilePasskeyLoginService.createAuthorizationCode({
+            userId: user.id,
+            context: mobileContext,
+          });
+        Response.setNoCacheHeaders(res);
+        return Response.sendJsonObjectResponse(req, res, {
+          mobileAuth: { callbackUrl },
+        });
+      }
+
+      /*
+       * Verified passkeys prove possession and device PIN/biometrics together.
+       * Project and global SSO requirements still apply to this ordinary login
+       * through UserAuthorization, just as they do after a password login.
+       */
+      await AccessTokenService.refreshUserAllPermissions(user.id);
+      const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
+        req,
+        res,
+        user,
+        isGlobalLogin: true,
+      });
+
+      logger.info(
+        "User logged in with a passkey: " + user.email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+
+      return Response.sendEntityResponse(req, res, user, User, {
+        miscData: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.sessionMetadata.refreshToken,
+          refreshTokenExpiresAt:
+            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/mobile-passkey-exchange",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    Response.setNoCacheHeaders(res);
+    try {
+      // Native clients have no Origin header. A browser must remain same-origin.
+      if (req.headers.origin !== undefined) {
+        assertPasskeyOrigin(req);
+      }
+      const userId: ObjectID =
+        await MobilePasskeyLoginService.exchangeAuthorizationCode(req.body);
+      const user: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          isMasterAdmin: true,
+          isEmailVerified: true,
+          isBlocked: true,
+          profilePictureId: true,
+          timezone: true,
+        },
+        props: { isRoot: true },
+      });
+
+      // The account may have been removed or disabled after the browser step.
+      if (!user?.id || !user.email || !user.isEmailVerified || user.isBlocked) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+      await AccessTokenService.refreshUserAllPermissions(user.id);
+      const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
+        req,
+        res,
+        user,
+        isGlobalLogin: true,
+        setCookie: false,
+      });
+      logger.info(
+        "User logged in to the mobile app with a passkey: " +
+          user.email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+      return Response.sendEntityResponse(req, res, user, User, {
+        miscData: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.sessionMetadata.refreshToken,
+          refreshTokenExpiresAt:
+            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post(
   "/signup",
   async (
@@ -177,7 +469,7 @@ router.post(
          * Check if this user has been invited to a project.
          * If so, allow them to sign up even if signup is disabled.
          */
-        const data: JSONObject = req.body["data"] as JSONObject;
+        const data: JSONObject = req.body?.["data"] as JSONObject;
         const emailForInviteCheck: string | undefined = data?.["email"] as
           | string
           | undefined;
@@ -220,22 +512,42 @@ router.post(
       }
 
       const miscDataProps: JSONObject =
-        (req.body["miscDataProps"] as JSONObject) || {};
+        (req.body?.["miscDataProps"] as JSONObject) || {};
 
       await CaptchaUtil.verifyCaptcha({
         token:
           (miscDataProps["captchaToken"] as string | undefined) ||
-          (req.body["captchaToken"] as string | undefined),
+          (req.body?.["captchaToken"] as string | undefined),
         remoteIp: getClientIp(req) || null,
       });
 
-      const data: JSONObject = req.body["data"];
+      const data: JSONObject = req.body?.["data"];
+      const suppliedPassword: unknown = data?.["password"];
+
+      /*
+       * Model forms send a HashedString envelope; direct clients may send text.
+       * Validate the raw value before deserialization or spending an invitation.
+       */
+      const password: unknown =
+        suppliedPassword &&
+        typeof suppliedPassword === "object" &&
+        !Array.isArray(suppliedPassword) &&
+        (suppliedPassword as JSONObject)["_type"] === ObjectType.HashedString
+          ? (suppliedPassword as JSONObject)["value"]
+          : suppliedPassword;
+      const passwordValidationError: string | null =
+        getSignupPasswordValidationError(password);
+
+      if (passwordValidationError) {
+        throw new BadDataException(passwordValidationError);
+      }
 
       /* Creating a type that is a partial of the TBaseModel type. */
       const partialUser: User = BaseModel.fromJSON(
         data as JSONObject,
         User,
       ) as User;
+      partialUser.password = new HashedString(password as string);
 
       /*
        * A missing email would drop the predicate below and resolve `alreadySavedUser` to the
@@ -1052,7 +1364,7 @@ router.post(
  */
 router.post(
   "/verify-backup-code",
-  twoFactorRateLimit,
+  backupCodeRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1301,6 +1613,25 @@ const login: LoginFunction = async (options: {
   const isSecondStep: boolean =
     verifyTotpAuth || verifyWebAuthn || verifyTotpEnrolment || verifyBackupCode;
 
+  /*
+   * Recovery codes minted during a forced enrolment, carried out to the
+   * response so the sign-in page can show them once before it redirects.
+   *
+   * Declared out here rather than inside the enrolment branch because the
+   * successful-login response is built in one place at the bottom for every
+   * path through this handler. Empty for every other path, and the response
+   * omits the key entirely when it is empty -- a login that minted nothing
+   * must not look to the page like a login that did.
+   */
+  let enrolmentBackupCodes: Array<string> = [];
+
+  /*
+   * True when an enrolment found recovery codes already on the account and so
+   * minted none. Distinguishes "nothing to show you" from "nothing to show you
+   * because you have nothing", which the sign-in page acts on differently.
+   */
+  let enrolmentAccountAlreadyHadCodes: boolean = false;
+
   try {
     const miscDataProps: JSONObject =
       (req.body["miscDataProps"] as JSONObject) || {};
@@ -1493,10 +1824,27 @@ const login: LoginFunction = async (options: {
          * tells an attacker only that a recovery route exists, which they can
          * infer from the button either way.
          */
-        const backupCodeCount: number =
-          await UserTwoFactorBackupCodeService.countUnusedForUser({
-            userId: alreadySavedUser.id!,
-          });
+        /*
+         * A count that cannot be read must not take the sign-in down with it.
+         * Unguarded, a failure on the backup code table -- one bad index, one
+         * exhausted connection pool -- turned every two factor login on the
+         * instance into a 500, because this await sits between the accepted
+         * password and the response that lists the user's factors. The
+         * recovery route is the LEAST important thing on that response;
+         * degrading it to "no codes reported" costs a locked-out user one
+         * sentence of guidance, and throwing costs every user the ability to
+         * sign in at all.
+         */
+        let backupCodeCount: number | null = null;
+
+        try {
+          backupCodeCount =
+            await UserTwoFactorBackupCodeService.countUnusedForUser({
+              userId: alreadySavedUser.id!,
+            });
+        } catch (backupCodeCountError) {
+          logger.error(backupCodeCountError);
+        }
 
         // See the note on the successful-login response below.
         delete (alreadySavedUser as any).password;
@@ -1506,7 +1854,20 @@ const login: LoginFunction = async (options: {
           miscData: {
             totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
             webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
-            backupCodeCount: backupCodeCount,
+
+            /*
+             * OMITTED, not zeroed, when the count could not be read. Zero is a
+             * claim -- the sign-in page now says "you have no backup codes,
+             * ask an administrator to reset two factor auth" on the strength
+             * of it -- and that claim is false for a user who has ten codes in
+             * their hand and is hitting a database that briefly cannot count
+             * them. Sending nothing means "unknown", which the page renders as
+             * the code form: a user with codes can still use them, and a user
+             * without gets the same refusal they would have got anyway.
+             */
+            ...(backupCodeCount === null
+              ? {}
+              : { backupCodeCount: backupCodeCount }),
           },
         });
       }
@@ -1828,6 +2189,70 @@ const login: LoginFunction = async (options: {
               isRoot: true,
             },
           });
+
+          /*
+           * This is the single most important place in the product to mint
+           * recovery codes, and the one where it was most obviously missing.
+           *
+           * An account arrives here in exactly two situations: an admin has
+           * just mandated two factor auth on somebody who had none, or an
+           * admin has just RESET two factor auth for somebody who was locked
+           * out -- and `UserService.resetTwoFactorAuth` deletes the backup
+           * codes along with the factors, by design. Both of those used to end
+           * with the user signed in, a fresh authenticator app, and no
+           * recovery route whatsoever: the same lockout, one device away, with
+           * nothing learned. The user who had just been rescued was the user
+           * most certain to need rescuing again.
+           *
+           * The codes go out in the login response and the sign-in page shows
+           * them before it redirects, which is what keeps the show-once
+           * guarantee: nothing is written on a path that has no screen to
+           * display it.
+           *
+           * Never fatal. The enrolment itself is complete and the password was
+           * correct, so refusing the login over a failed mint would lock out
+           * the user this whole feature exists to let in.
+           */
+          try {
+            const mintedCodes: Array<string> | null =
+              await UserTwoFactorBackupCodeService.generateForUserIfNone({
+                userId: alreadySavedUser.id!,
+              });
+
+            enrolmentBackupCodes = mintedCodes || [];
+
+            /*
+             * A null return means the account ALREADY had codes, and the
+             * sign-in page has to be told so.
+             *
+             * That account is rarer than it sounds but it is reachable: the
+             * profile card deliberately lets a user generate codes before
+             * turning two factor auth on, so somebody can be holding a printed
+             * set and still have no verified factor when an admin mandates
+             * one. Without this flag the page would fall through to its "you
+             * have no backup codes" offer -- telling that user something false
+             * and, if they took it up, replacing the very set they had
+             * printed. Nothing else on this response can distinguish the two
+             * cases: no codes are minted in either.
+             */
+            enrolmentAccountAlreadyHadCodes = mintedCodes === null;
+
+            /*
+             * Same out-of-band notice the profile routes send. Forced
+             * enrolment is reached with a correct password and no session, so
+             * a stolen password alone can put a second factor -- and its ten
+             * recovery codes -- onto somebody else's mandated account. The
+             * mail is how the real owner learns that happened.
+             */
+            if (mintedCodes && mintedCodes.length > 0) {
+              TwoFactorBackupCodeNotification.notifyCodesCreated({
+                userId: alreadySavedUser.id!,
+                codeCount: mintedCodes.length,
+              });
+            }
+          } catch (backupCodeError) {
+            logger.error(backupCodeError);
+          }
         }
       } // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
@@ -1859,6 +2284,29 @@ const login: LoginFunction = async (options: {
             refreshToken: loginResult.sessionMetadata.refreshToken,
             refreshTokenExpiresAt:
               loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+
+            /*
+             * Present only on a login that just enrolled a first factor and
+             * minted a set behind it. Hyphenated for the page to render as-is,
+             * exactly as the regenerate route does; the verify route
+             * normalizes whatever the user types back.
+             */
+            ...(enrolmentBackupCodes.length > 0
+              ? {
+                  backupCodes: enrolmentBackupCodes.map((code: string) => {
+                    return TwoFactorBackupCode.formatForDisplay(code);
+                  }),
+                }
+              : {}),
+
+            /*
+             * Sent only when it is true, and only by the enrolment path, so
+             * that the sign-in page does not offer to generate a set for
+             * somebody who is already holding one. See the note at the mint.
+             */
+            ...(enrolmentAccountAlreadyHadCodes
+              ? { hasBackupCodes: true }
+              : {}),
           },
         });
       }

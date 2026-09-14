@@ -10,6 +10,9 @@ import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class IncomingCallPolicyOwnerRuleEngineServiceClass {
   @CaptureSpan()
@@ -31,6 +34,7 @@ class IncomingCallPolicyOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             incomingCallPolicyLabels: { _id: true },
             incomingCallPolicyNamePattern: true,
@@ -38,9 +42,15 @@ class IncomingCallPolicyOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncomingCallPolicyOwnerRule",
+        projectId: policy.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -150,6 +160,24 @@ class IncomingCallPolicyOwnerRuleEngineServiceClass {
   }
 
   private doesPolicyMatchRule(
+    policy: IncomingCallPolicy,
+    rule: IncomingCallPolicyOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "incomingCallPolicyLabels",
+        "incomingCallPolicyNamePattern",
+        "incomingCallPolicyDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IncomingCallPolicyOwnerRule): boolean => {
+        return this.doesPolicyMatchLegacyRule(policy, legacyRule);
+      },
+    });
+  }
+
+  private doesPolicyMatchLegacyRule(
     policy: IncomingCallPolicy,
     rule: IncomingCallPolicyOwnerRule,
   ): boolean {

@@ -12,6 +12,10 @@ import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import {
+  BillingFailureNoticeKind,
+  shouldSendBillingFailureNotice,
+} from "../Utils/Billing/BillingFailureNoticeThrottle";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 
@@ -24,7 +28,27 @@ export class NotificationService extends BaseService {
   public async rechargeBalance(
     projectId: ObjectID,
     amountInUSD: number,
+    options?: {
+      /*
+       * Whether a successful recharge is worth telling the owners about.
+       *
+       * True for the manual "Recharge" button in Project Settings, where the
+       * email is the only confirmation a person gets that their card was
+       * charged: Project.sendInvoicesByEmail defaults to false, so the Stripe
+       * invoice is filed rather than sent, and the Slack notification is an
+       * operator webhook that most installs never configure.
+       *
+       * False for rechargeIfBalanceIsLow, which runs inline on every SMS,
+       * call, WhatsApp and Telegram attempt - there, "we topped your balance
+       * up" is not news, and during a paging storm it is one email to every
+       * owner per recharge.
+       */
+      sendOwnerConfirmationEmail?: boolean | undefined;
+    },
   ): Promise<number> {
+    const sendOwnerConfirmationEmail: boolean =
+      options?.sendOwnerConfirmationEmail !== false;
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
@@ -48,13 +72,36 @@ export class NotificationService extends BaseService {
       return 0;
     }
 
+    /*
+     * The no-payment-method branch below throws, and that throw lands in this
+     * method's own catch. Without this the FIRST no-payment-method failure
+     * sends two "ACTION REQUIRED" emails about the same fact, one from each
+     * place. This is a local flag rather than a mutation of `project` so it is
+     * obvious it exists only to coordinate those two blocks.
+     */
+    let ownersAlreadyToldAboutThisFailure: boolean = false;
+
     try {
       if (
         !(await BillingService.hasPaymentMethods(
           project.paymentProviderCustomerId!,
         ))
       ) {
-        if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
+        /*
+         * The same 24h window as the catch below, for the same reason: the
+         * project boolean this branch used to latch on is cleared only by a
+         * SUCCESSFUL recharge, so a project that never manages one was told
+         * once and then never again. A window says it once a day until
+         * somebody fixes it, which is what an ACTION REQUIRED message is for.
+         */
+        ownersAlreadyToldAboutThisFailure = true;
+
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
+        });
+
+        if (shouldTellOwners) {
           await ProjectService.updateOneById({
             data: {
               failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
@@ -110,16 +157,27 @@ export class NotificationService extends BaseService {
         },
       });
 
-      await ProjectService.sendEmailToProjectOwners(
-        project.id!,
-        "SMS and Call Recharge Successful for project - " +
-          (project.name || ""),
-        `We have successfully recharged your SMS and Call balance for project - ${
-          project.name || ""
-        } by ${amountInUSD} USD. Your current balance is ${
-          updatedAmount / 100
-        } USD.`,
-      );
+      /*
+       * The confirmation is suppressed for AUTO-recharge only. This used to
+       * fire unconditionally, and because rechargeIfBalanceIsLow runs inline
+       * on every SMS, call, WhatsApp and Telegram attempt, a project that
+       * auto-recharges during a paging storm mailed every owner once per
+       * recharge. Somebody who deliberately clicked "Recharge" still gets
+       * told: nothing else reliably tells them, because
+       * Project.sendInvoicesByEmail defaults to false.
+       */
+      if (sendOwnerConfirmationEmail) {
+        await ProjectService.sendEmailToProjectOwners(
+          project.id!,
+          "SMS and Call Recharge Successful for project - " +
+            (project.name || ""),
+          `We have successfully recharged your SMS and Call balance for project - ${
+            project.name || ""
+          } by ${amountInUSD} USD. Your current balance is ${
+            updatedAmount / 100
+          } USD.`,
+        );
+      }
 
       // Send Slack notification for balance refill
       this.sendBalanceRefillSlackNotification({
@@ -137,23 +195,46 @@ export class NotificationService extends BaseService {
 
       return updatedAmount;
     } catch (err) {
-      await ProjectService.updateOneById({
-        data: {
-          failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-        },
-        id: project.id!,
-        props: {
-          isRoot: true,
-        },
-      });
-      await ProjectService.sendEmailToProjectOwners(
-        project.id!,
-        "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-          (project.name || ""),
-        `We have tried recharged your SMS and Call balance for project - ${
-          project.name || ""
-        } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
-      );
+      /*
+       * This block used to write failedCallAndSMSBalanceChargeNotificationSent
+       * ToOwners and then send WITHOUT ever reading it, so a project with a
+       * declined card mailed every owner once per paging attempt - inline on
+       * every SMS and call, during the outage the pages were about.
+       *
+       * The guard is a 24h window rather than that boolean deliberately. The
+       * boolean is only cleared by a successful recharge, so latching on it
+       * would mean: no card -> mail once and latch -> owner adds a card -> the
+       * card is declined -> the recharge can never succeed -> the latch never
+       * clears -> nobody is ever told the new card failed, and paging quietly
+       * stops. A window collapses the storm to one email a day and still
+       * reports a new failure within a day. See BillingFailureNoticeThrottle.
+       */
+      if (!ownersAlreadyToldAboutThisFailure) {
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
+        });
+
+        if (shouldTellOwners) {
+          await ProjectService.updateOneById({
+            data: {
+              failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
+            },
+            id: project.id!,
+            props: {
+              isRoot: true,
+            },
+          });
+          await ProjectService.sendEmailToProjectOwners(
+            project.id!,
+            "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+              (project.name || ""),
+            `We have tried recharged your SMS and Call balance for project - ${
+              project.name || ""
+            } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
+          );
+        }
+      }
       logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       throw err;
     }
@@ -214,6 +295,15 @@ export class NotificationService extends BaseService {
           const updatedAmount: number = await this.rechargeBalance(
             projectId,
             autoRechargeSmsOrCallByBalanceInUSD,
+            {
+              /*
+               * This method is called inline from SmsService, CallService,
+               * WhatsAppService and TelegramService on EVERY notification
+               * attempt, so a success email here is one message to every owner
+               * per recharge, in the middle of the storm that caused it.
+               */
+              sendOwnerConfirmationEmail: false,
+            },
           );
           project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
         }

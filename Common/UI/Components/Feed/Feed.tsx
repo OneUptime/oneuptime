@@ -1,10 +1,14 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FeedItem, { FeedItemProps } from "./FeedItem";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 
 export interface ComponentProps {
   items: Array<FeedItemProps>;
   noItemsMessage: string;
+  hasMore?: boolean | undefined;
+  onMore?: (() => void) | undefined;
+  isLoadingMore?: boolean | undefined;
 }
 
 const Feed: FunctionComponent<ComponentProps> = (
@@ -24,6 +28,17 @@ const Feed: FunctionComponent<ComponentProps> = (
           );
         })}
       </ul>
+      {props.hasMore === true && (
+        <div className="mt-2 flex justify-center">
+          <Button
+            title="More"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            onClick={props.onMore}
+            isLoading={props.isLoadingMore === true}
+          />
+        </div>
+      )}
     </div>
   );
 };

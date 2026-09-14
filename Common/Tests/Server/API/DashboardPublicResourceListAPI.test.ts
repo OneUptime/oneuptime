@@ -17,6 +17,7 @@ import PodmanResourceService from "../../../Server/Services/PodmanResourceServic
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
+import VMwareResourceService from "../../../Server/Services/VMwareResourceService";
 import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
   PublicDashboardResourceListPolicyResult,
@@ -28,6 +29,7 @@ import {
 } from "../../../Server/Utils/Express";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
@@ -266,6 +268,18 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     kind: "Guest",
   },
   {
+    resourceType: "vmware-resource",
+    componentType: DashboardComponentType.VMwareHostList,
+    service: VMwareResourceService,
+    kind: "Host",
+  },
+  {
+    resourceType: "vmware-resource",
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    service: VMwareResourceService,
+    kind: "VirtualMachine",
+  },
+  {
     resourceType: "ceph-resource",
     componentType: DashboardComponentType.CephOsdList,
     service: CephResourceService,
@@ -322,6 +336,7 @@ const ALL_SERVICES: Array<ListService> = [
   PodmanHostService,
   PodmanResourceService,
   ProxmoxResourceService,
+  VMwareResourceService,
   CephResourceService,
   DockerSwarmResourceService,
   SpanService,
@@ -519,7 +534,7 @@ describe("DashboardAPI public resource-list", () => {
       }
     });
 
-    it("does not return sibling-only Proxmox or Swarm fields", async () => {
+    it("does not return sibling-only Proxmox, VMware or Swarm fields", async () => {
       const cases: Array<{
         resourceType: string;
         componentType: DashboardComponentType;
@@ -540,6 +555,20 @@ describe("DashboardAPI public resource-list", () => {
           service: ProxmoxResourceService,
           included: "latestCpuPercent",
           excluded: "vmid",
+        },
+        {
+          resourceType: "vmware-resource",
+          componentType: DashboardComponentType.VMwareVirtualMachineList,
+          service: VMwareResourceService,
+          included: "isPoweredOn",
+          excluded: "cpuCapacityMhz",
+        },
+        {
+          resourceType: "vmware-resource",
+          componentType: DashboardComponentType.VMwareHostList,
+          service: VMwareResourceService,
+          included: "cpuCapacityMhz",
+          excluded: "isPoweredOn",
         },
         {
           resourceType: "docker-swarm-resource",
@@ -878,6 +907,134 @@ describe("DashboardAPI public resource-list", () => {
         "query"
       ] as JSONObject;
       expect(query["kind"]).toBe("Pod");
+    });
+
+    describe("published monitor label variable selections", () => {
+      const firstLabelId: string = ObjectID.generate().toString();
+      const secondLabelId: string = ObjectID.generate().toString();
+      const fixedLabelId: string = ObjectID.generate().toString();
+      const labelVariable: JSONObject = {
+        id: "unit",
+        name: "UNIT",
+        type: DashboardVariableType.ProjectLabel,
+        labelOptions: [
+          { label: "Payments", value: firstLabelId },
+          { label: "Support", value: secondLabelId },
+        ],
+        defaultValue: firstLabelId,
+      };
+
+      it("applies the chosen label while preserving stored monitor policy and project", async () => {
+        const monitor: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: {
+            labelVariableId: "unit",
+            labelIds: [fixedLabelId],
+            statusFilter: "operational",
+            monitorTypes: ["Ping"],
+            maxRows: 6,
+          },
+        });
+        setDashboardWidgets([monitor.widget], [labelVariable]);
+
+        await callRoute({
+          resourceType: "monitor",
+          body: {
+            componentId: monitor.componentId.toString(),
+            variables: [{ id: "unit", selectedValue: secondLabelId }],
+          },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        const findBy: JSONObject = getFindByArgs(MonitorService);
+        expect(findBy["query"]).toEqual({
+          projectId,
+          currentMonitorStatus: { isOperationalState: true },
+          monitorType: new Includes(["Ping"]),
+          labels: new IncludesAnyOfGroups([[fixedLabelId], [secondLabelId]]),
+        });
+        expect(findBy["limit"]).toBe(6);
+        expect(findBy["sort"]).toEqual({ name: SortOrder.Ascending });
+        expect(findBy["select"]).toEqual({
+          _id: true,
+          name: true,
+          monitorType: true,
+          currentMonitorStatus: { name: true, color: true },
+        });
+      });
+
+      it("retains fixed labels when the public viewer chooses All", async () => {
+        const monitor: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: {
+            labelVariableId: "unit",
+            labelIds: [fixedLabelId],
+          },
+        });
+        setDashboardWidgets([monitor.widget], [labelVariable]);
+
+        await callRoute({
+          resourceType: "monitor",
+          body: {
+            componentId: monitor.componentId.toString(),
+            variables: [{ id: "unit", selectedValue: "" }],
+          },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getFindByArgs(MonitorService)["query"]).toEqual({
+          projectId,
+          labels: new Includes([fixedLabelId]),
+        });
+      });
+
+      it("accepts several published label IDs for a saved multi-select", async () => {
+        const monitor: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: { labelVariableId: "unit" },
+        });
+        setDashboardWidgets(
+          [monitor.widget],
+          [{ ...labelVariable, isMultiSelect: true }],
+        );
+
+        await callRoute({
+          resourceType: "monitor",
+          body: {
+            componentId: monitor.componentId.toString(),
+            variables: [
+              { id: "unit", selectedValues: [firstLabelId, secondLabelId] },
+            ],
+          },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getFindByArgs(MonitorService)["query"]).toEqual({
+          projectId,
+          labels: new Includes([firstLabelId, secondLabelId]),
+        });
+      });
+
+      it("reports an invalid selection before reading monitors when a choice was removed", async () => {
+        const monitor: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: { labelVariableId: "unit" },
+        });
+        setDashboardWidgets([monitor.widget], [labelVariable]);
+
+        await callRoute({
+          resourceType: "monitor",
+          body: {
+            componentId: monitor.componentId.toString(),
+            variables: [
+              { id: "unit", selectedValue: ObjectID.generate().toString() },
+            ],
+          },
+        });
+
+        expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingListed();
+      });
     });
 
     it("passes only dynamic time and bounded variable selections into policy", async () => {

@@ -91,6 +91,12 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * already fixed.
    */
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  /*
+   * Toggled on every background poll so the details card re-reads the SLO
+   * too: monitors a label rule attaches after the page opened only show up
+   * in its Monitors row that way.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
   const fetchSlo: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -139,6 +145,9 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
       fetchSlo().catch(() => {
         // A failed background refresh keeps the last good numbers on screen.
+      });
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
       });
     }, HERO_AUTO_REFRESH_MS);
 
@@ -348,6 +357,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Target, compliance window, and the monitors this SLO measures.",
         }}
         documentationLink={new Route("/docs/slo/error-budget")}
+        refresher={detailsRefresher}
         isEditable={true}
         onSaveSuccess={() => {
           fetchSlo().catch((err: Error) => {

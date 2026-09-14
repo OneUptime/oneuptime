@@ -12,7 +12,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
+import SourceMapResolver, {
+  MAX_FRAMES_PER_RESOLVE_REQUEST,
+} from "../Utils/Telemetry/SourceMapResolver";
+import {
+  MinifiedStackFrame,
+  ResolveStackTraceResult,
+} from "../../Types/Telemetry/SourceMap";
 import LogAggregationService, {
   HistogramBucket,
   HistogramRequest,
@@ -36,7 +45,6 @@ import TraceAggregationService, {
   FacetValue as TraceFacetValue,
   MultiFacetRequest as TraceMultiFacetRequest,
   TraceFilters,
-  TraceAttributeFilters,
   TraceAnalyticsChartType,
   TraceAnalyticsRequest,
   TraceAnalyticsTimeseriesRow,
@@ -52,6 +60,7 @@ import ExceptionAggregationService, {
 import MetricAggregationService, {
   FacetValue as MetricFacetValue,
   FacetRequest as MetricFacetRequest,
+  MetricAttributeFilters,
   MetricForTraceItem,
 } from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
@@ -109,26 +118,62 @@ import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
+import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
+import SessionIdentity from "../../Utils/Rum/SessionIdentity";
 import SessionReplayTargeting from "../Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayUsage from "../Utils/SessionReplay/SessionReplayUsage";
 import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
-import RumSessionReplayViewService from "../Services/RumSessionReplayViewService";
+import RumSessionReplayViewService, {
+  normalizeSecondsWatched,
+} from "../Services/RumSessionReplayViewService";
 import SessionReplayReadService, {
   DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+  DEFAULT_SESSION_REPLAY_USERS_LIMIT,
   MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
-  SessionReplayChunkPayload,
+  MAX_SESSION_REPLAY_LIST_LIMIT,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
+  MAX_SESSION_REPLAY_USERS_LIMIT,
+  SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
+  SessionReplayApplicationActivitySummary,
+  SessionReplayChunkReadResult,
   SessionReplayExceptionSession,
+  SessionReplayExpiredSessionInfo,
   SessionReplayListCursor,
   SessionReplayListFilters,
   SessionReplayListResult,
   SessionReplayManifest,
   SessionReplaySessionHeader,
+  SessionReplaySessionIdentity,
+  SessionReplaySummary,
+  SessionReplayUsersCursor,
+  SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
+import SessionReplayHealthCounters, {
+  SessionReplayDropCount,
+} from "../Utils/SessionReplay/SessionReplayHealthCounters";
+import { isSessionErased } from "../Utils/SessionReplay/SessionReplayErasureTombstone";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
   DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
   MAX_SESSION_REPLAY_READ_BYTES,
+  SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+  SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS,
+  SESSION_REPLAY_MAX_SESSION_MS,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
 } from "../../Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_SORT_BY_VALUES,
+  SessionReplaySortBy,
+  parseSessionReplayListCursor,
+} from "../../Types/Rum/SessionReplayApi";
+import { SessionReplayRefusalCount } from "../../Types/Rum/SessionReplayHealth";
+import zlib from "zlib";
+import { promisify } from "util";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -206,10 +251,28 @@ const requireProfileReadAccess: Array<RequestHandler> =
 
 /*
  * Mirrors the read access control declared on the SecurityEvent analytics
- * model.
+ * model - which, unlike every other signal above, is NOT the telemetry list.
+ * Security events read through the Security tiers only, so this route cannot
+ * be built from createTelemetryReadAccessGuard: doing so would leave the
+ * attribute endpoints open to ProjectMember and the Telemetry tiers while the
+ * model-backed CRUD API refused them, and the attribute keys and values of a
+ * SIEM table are themselves the sensitive part - usernames, hostnames, source
+ * IPs, and every value seen for them.
  */
-const requireSecurityEventReadAccess: Array<RequestHandler> =
-  createTelemetryReadAccessGuard(Permission.ReadSecurityEvent);
+const requireSecurityEventReadAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadSecurityEvent,
+    ],
+  }),
+];
 
 router.post(
   "/telemetry/metrics/get-attributes",
@@ -272,6 +335,109 @@ router.post(
   ...requireExceptionReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Exception);
+  },
+);
+
+/*
+ * Lazily resolves an exception's parsed stack frames against the source
+ * maps uploaded for its (service, release) pair — see the TelemetrySourceMap
+ * model. Guarded by exception read access, not source-map read access, on
+ * purpose: anyone who may see the exception may see the few original source
+ * lines around its crash site (the snippets in the response). Bulk access to
+ * whole maps stays restricted by the model's own column ACL on `content`.
+ * That is a deliberate trade-off, not an oversight: a caller with exception
+ * read access could reconstruct larger stretches of sourcesContent by
+ * probing many line/column pairs across requests, exactly as they could in
+ * Sentry or Elastic. The content column ACL exists to prevent trivial bulk
+ * export, not to be an information-flow boundary against a team member who
+ * is already trusted to read the project's exceptions.
+ *
+ * Tenant safety: source maps are queried by (tenantId from the authorized
+ * request, serviceId from the body). A serviceId belonging to a different
+ * project simply matches no maps — nothing cross-tenant can be read.
+ */
+router.post(
+  "/telemetry/exceptions/resolve-stack-trace",
+  ...requireExceptionReadAccess,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      if (!body["serviceId"] || typeof body["serviceId"] !== "string") {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("serviceId is required"),
+        );
+      }
+
+      if (
+        !body["serviceVersion"] ||
+        typeof body["serviceVersion"] !== "string"
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("serviceVersion is required"),
+        );
+      }
+
+      if (!Array.isArray(body["frames"])) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("frames must be an array of stack frames"),
+        );
+      }
+
+      /*
+       * Bound the array before sanitizing it. sanitizeMinifiedStackFrames
+       * never throws and never truncates, so without this the only limit on
+       * the work a caller can ask for is the body-size cap.
+       */
+      if (
+        (body["frames"] as Array<unknown>).length >
+        MAX_FRAMES_PER_RESOLVE_REQUEST
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `frames must contain at most ${MAX_FRAMES_PER_RESOLVE_REQUEST} stack frames.`,
+          ),
+        );
+      }
+
+      const frames: Array<MinifiedStackFrame> =
+        SourceMapResolver.sanitizeMinifiedStackFrames(body["frames"]);
+
+      const result: ResolveStackTraceResult =
+        await TelemetrySourceMapService.resolveFramesForService({
+          projectId: databaseProps.tenantId,
+          serviceId: new ObjectID(body["serviceId"] as string),
+          serviceVersion: body["serviceVersion"] as string,
+          frames: frames,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
@@ -737,6 +903,75 @@ async function resolveResourceScopesFromBody(
 }
 
 /*
+ * The wire shape of an attribute filter map — the same for logs, traces and
+ * metrics, so it is structurally assignable to each service's own filter
+ * type.
+ */
+type ParsedAttributeFilters = Record<
+  string,
+  string | Array<string> | { _type: string; value?: unknown }
+>;
+
+/*
+ * Parse the `attributes` body field.
+ *
+ * Three shapes are legal: a single value (`= v`), a list of values
+ * (`IN (...)`, what a multi-select dashboard variable resolves to), and a
+ * serialized QueryOperator (`{_type: "Wildcard", value: ["api-*"]}`) for
+ * every other operator the search grammar can produce. Everything else is
+ * dropped, and an array left empty by the string filtering is dropped too so
+ * it cannot narrow to nothing.
+ *
+ * The operator shape used to be dropped here, which is worse than rejecting
+ * it: a wildcard filter arrived as "no filter", so the chart showed the whole
+ * project beside a list narrowed to a handful of spans. `_type` is only
+ * checked for being a string — the compiler in AttributeFilterStatement
+ * answers an unknown operator with a 400.
+ */
+function parseAttributeFilterRecord(
+  raw: unknown,
+): ParsedAttributeFilters | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const filters: ParsedAttributeFilters = {};
+
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") {
+      filters[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const values: Array<string> = (value as Array<unknown>).filter(
+        (v: unknown): v is string => {
+          return typeof v === "string";
+        },
+      );
+      if (values.length > 0) {
+        filters[key] = values;
+      }
+      continue;
+    }
+
+    if (
+      value &&
+      typeof value === "object" &&
+      typeof (value as Record<string, unknown>)["_type"] === "string"
+    ) {
+      filters[key] = value as { _type: string; value?: unknown };
+    }
+  }
+
+  if (Object.keys(filters).length === 0) {
+    return undefined;
+  }
+
+  return filters;
+}
+
+/*
  * Shared body parsing for every trace aggregation endpoint (histogram,
  * facets, analytics). Defensive about shapes: arrays are validated and
  * filtered to strings, booleans/numbers use strict typeof checks (JSON null
@@ -801,42 +1036,6 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
     return Object.fromEntries(entries);
   };
 
-  /*
-   * Exact attribute predicates accept a single value or a list of values
-   * (`IN (...)`) — a multi-select dashboard variable resolves to the latter.
-   * Non-string array entries are dropped, and an array left empty by that
-   * filtering is dropped entirely so it cannot narrow to nothing.
-   */
-  const attributeFilterRecord: () => TraceAttributeFilters | undefined = ():
-    | TraceAttributeFilters
-    | undefined => {
-    const raw: unknown = body["attributes"];
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      return undefined;
-    }
-    const filters: TraceAttributeFilters = {};
-    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-      if (typeof value === "string") {
-        filters[key] = value;
-        continue;
-      }
-      if (Array.isArray(value)) {
-        const values: Array<string> = (value as Array<unknown>).filter(
-          (v: unknown): v is string => {
-            return typeof v === "string";
-          },
-        );
-        if (values.length > 0) {
-          filters[key] = values;
-        }
-      }
-    }
-    if (Object.keys(filters).length === 0) {
-      return undefined;
-    }
-    return filters;
-  };
-
   return {
     serviceIds,
     entityKeys: stringArray("entityKeys"),
@@ -883,7 +1082,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
         : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
-    attributes: attributeFilterRecord(),
+    attributes: parseAttributeFilterRecord(body["attributes"]),
     attributeSearches: stringRecord("attributeSearches"),
   };
 }
@@ -1651,6 +1850,9 @@ router.post(
         ? (body["metricNames"] as Array<string>)
         : undefined;
 
+      const attributes: MetricAttributeFilters | undefined =
+        parseAttributeFilterRecord(body["attributes"]);
+
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
       ]
@@ -1678,6 +1880,7 @@ router.post(
                   limit,
                   serviceIds,
                   metricNames,
+                  attributes,
                 };
                 const values: Array<MetricFacetValue> =
                   await MetricAggregationService.getFacetValues(request);
@@ -2004,10 +2207,7 @@ function parseErrorPatternFilterBody(
     traceIds: stringArray(body["traceIds"]),
     spanIds: stringArray(body["spanIds"]),
     sessionIds: stringArray(body["sessionIds"]),
-    attributes:
-      body["attributes"] && typeof body["attributes"] === "object"
-        ? (body["attributes"] as Record<string, string | Array<string>>)
-        : undefined,
+    attributes: parseAttributeFilterRecord(body["attributes"]),
   };
 }
 
@@ -3348,7 +3548,7 @@ router.post(
  * Session replay playback
  * ---------------------------------------------------------------------
  *
- * These five routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
+ * These routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
  * both analytics models deliberately omit `crudApiPath`, so there is no
  * generic CRUD surface for them and ModelPermission is NEVER invoked on
  * this path.
@@ -3370,6 +3570,14 @@ router.post(
 /*
  * Listing sessions. Mirrors RumSession's table-level read ACL exactly:
  * knowing WHICH sessions errored is triage.
+ *
+ * Including the PAYLOAD permission, which that ACL also carries and this
+ * guard used to omit. Watching implies listing: the payload routes authorize
+ * on ReadRumSessionReplayPayload alone, so a role granted only "Watch
+ * Session Replays" could play back any session whose id it was handed while
+ * being 401'd on the list, the manifest and the exception page's replay card
+ * - an incoherent grant rather than a safer one, and exactly what
+ * RumSession's own comment says the ACL exists to prevent.
  */
 const requireSessionReplayListAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
@@ -3380,6 +3588,7 @@ const requireSessionReplayListAccess: Array<RequestHandler> = [
       Permission.ProjectAdmin,
       Permission.TelemetryAdmin,
       Permission.ReadRumSessionReplay,
+      Permission.ReadRumSessionReplayPayload,
     ],
   }),
 ];
@@ -3409,6 +3618,40 @@ const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.TelemetryAdmin,
   Permission.ReadRumSessionReplay,
+  /*
+   * Watching implies listing.
+   *
+   * RumSession's own table read ACL contains this permission for a reason it
+   * states outright: a role granted only the watch permission could fetch
+   * payloads (the payload routes authorize on it alone) while being 401'd on
+   * the manifest and the list - an incoherent grant rather than a safer one.
+   * Leaving it out here meant a support-engineer role built from "Watch
+   * Session Replays" + "Read RUM Application" - the natural pairing, and the
+   * one the permission's own description suggests - got a permission error
+   * on the session list and a silently missing "Watch what the user saw"
+   * card on every exception page.
+   */
+  Permission.ReadRumSessionReplayPayload,
+];
+
+/*
+ * The optional audit-table enrichment must admit an audit-only reviewer so a
+ * 403 from the shared browser API does not navigate them away from the audit
+ * page. The handler still returns metadata only after a separate LIST-scope
+ * check for the resolved application; audit access alone receives an empty,
+ * successful response.
+ */
+const SESSION_REPLAY_SUMMARY_PERMISSIONS: Array<Permission> = [
+  ...SESSION_REPLAY_LIST_PERMISSIONS,
+  Permission.ReadRumSessionReplayAudit,
+];
+
+const requireSessionReplaySummaryAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+  }),
 ];
 
 const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
@@ -3646,24 +3889,92 @@ const isApplicationInSessionReplayScope: IsApplicationInSessionReplayScopeFuncti
  * Returns the application so callers that need its labels for a second,
  * narrower decision (the identity column) do not have to load it twice.
  */
-type AssertSessionReplayApplicationAccessFunction = (data: {
+/*
+ * Process-local memory of what the two playback hot paths re-derive on
+ * every call: which application a session belongs to (a ClickHouse GROUP
+ * BY over the header table) and which labels that application carries (a
+ * Postgres lookup). A 480-chunk session is 60 chunk pages, and a live
+ * player heartbeats every 15s; without this every one of those paid both
+ * lookups again for an answer that had not changed.
+ *
+ * What is cached is the DATA, never the decision: the label intersection
+ * is recomputed against the caller's current permissions on every
+ * request, so a revoked grant takes effect immediately. A label edit on
+ * the application, or a header re-resolution, lags by at most the TTL -
+ * the same lag the ingest gate's policy cache already accepts. The
+ * manifest route always resolves fresh (a live session's header changes)
+ * and refills the entries the chunk and heartbeat routes then read.
+ */
+const SESSION_REPLAY_AUTHORIZATION_CACHE_TTL_MS: number = 30 * 1000;
+const MAX_SESSION_REPLAY_AUTHORIZATION_CACHE_ENTRIES: number = 2000;
+
+interface CachedRumApplication {
+  application: RumApplication;
+  expiresAt: number;
+}
+
+interface CachedSessionHeader {
+  header: SessionReplaySessionHeader;
+  expiresAt: number;
+}
+
+const rumApplicationCache: Map<string, CachedRumApplication> = new Map<
+  string,
+  CachedRumApplication
+>();
+const sessionHeaderCache: Map<string, CachedSessionHeader> = new Map<
+  string,
+  CachedSessionHeader
+>();
+
+type BoundedCacheSetFunction = <TValue>(
+  map: Map<string, TValue>,
+  key: string,
+  value: TValue,
+) => void;
+
+const boundedCacheSet: BoundedCacheSetFunction = <TValue>(
+  map: Map<string, TValue>,
+  key: string,
+  value: TValue,
+): void => {
+  if (
+    map.size >= MAX_SESSION_REPLAY_AUTHORIZATION_CACHE_ENTRIES &&
+    !map.has(key)
+  ) {
+    const oldest: string | undefined = map.keys().next().value;
+
+    if (oldest !== undefined) {
+      map.delete(oldest);
+    }
+  }
+
+  map.delete(key);
+  map.set(key, value);
+};
+
+type LoadRumApplicationForAccessFunction = (data: {
   projectId: ObjectID;
   rumApplicationId: ObjectID;
-  databaseProps: DatabaseCommonInteractionProps;
-  permissions: Array<Permission>;
-}) => Promise<RumApplication>;
+  allowCached: boolean;
+}) => Promise<RumApplication | null>;
 
-const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccessFunction =
+const loadRumApplicationForAccess: LoadRumApplicationForAccessFunction =
   async (data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
-    databaseProps: DatabaseCommonInteractionProps;
-    permissions: Array<Permission>;
-  }): Promise<RumApplication> => {
-    const scope: SessionReplayScope = getSessionReplayLabelScope(
-      data.databaseProps,
-      data.permissions,
-    );
+    allowCached: boolean;
+  }): Promise<RumApplication | null> => {
+    const cacheKey: string = `${data.projectId.toString()}:${data.rumApplicationId.toString()}`;
+
+    if (data.allowCached) {
+      const cached: CachedRumApplication | undefined =
+        rumApplicationCache.get(cacheKey);
+
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.application;
+      }
+    }
 
     const application: RumApplication | null =
       await RumApplicationService.findOneBy({
@@ -3680,6 +3991,45 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
         props: {
           isRoot: true,
         },
+      });
+
+    if (application) {
+      boundedCacheSet(rumApplicationCache, cacheKey, {
+        application: application,
+        expiresAt: Date.now() + SESSION_REPLAY_AUTHORIZATION_CACHE_TTL_MS,
+      });
+    }
+
+    return application;
+  };
+
+type AssertSessionReplayApplicationAccessFunction = (data: {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  databaseProps: DatabaseCommonInteractionProps;
+  permissions: Array<Permission>;
+  /* Serve the application's labels from the short-lived cache. */
+  allowCached?: boolean | undefined;
+}) => Promise<RumApplication>;
+
+const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccessFunction =
+  async (data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
+    permissions: Array<Permission>;
+    allowCached?: boolean | undefined;
+  }): Promise<RumApplication> => {
+    const scope: SessionReplayScope = getSessionReplayLabelScope(
+      data.databaseProps,
+      data.permissions,
+    );
+
+    const application: RumApplication | null =
+      await loadRumApplicationForAccess({
+        projectId: data.projectId,
+        rumApplicationId: data.rumApplicationId,
+        allowCached: data.allowCached === true,
       });
 
     /*
@@ -3748,6 +4098,40 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = (data: {
     application: data.application,
   });
 };
+
+type CanReadSessionReplayListMetadataFunction = (data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  application: RumApplication;
+}) => boolean;
+
+/*
+ * Audit-only roles may load the summaries route so the optional request can
+ * fail closed without a browser-wide forbidden redirect. They still must not
+ * gain the session-list metadata this endpoint projects. Re-evaluate the
+ * list scope against the already-resolved application and turn unsupported
+ * scope shapes into "no metadata" rather than an authorization error.
+ */
+const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction =
+  (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    application: RumApplication;
+  }): boolean => {
+    let scope: SessionReplayScope;
+
+    try {
+      scope = getSessionReplayLabelScope(
+        data.databaseProps,
+        SESSION_REPLAY_LIST_PERMISSIONS,
+      );
+    } catch {
+      return false;
+    }
+
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: data.application,
+    });
+  };
 
 /*
  * The set of applications a label-scoped caller may reach, for the
@@ -3844,6 +4228,179 @@ const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunc
     return { applicationIds: accessibleIds, isTruncated: isTruncated };
   };
 
+interface AuthorizedSession {
+  header: SessionReplaySessionHeader;
+  /*
+   * The RumApplication the header was authorized against, with its
+   * labels, so a caller that needs a second, narrower decision (the
+   * identity columns) does not load it again.
+   */
+  application: RumApplication;
+}
+
+/*
+ * Why a sessionId has no playable header. Each answer carries a
+ * different code word in its message so a client can tell them apart
+ * without parsing prose, and each is a 404: the id was well-formed, there
+ * is simply nothing at it.
+ */
+const GENERIC_MISSING_SESSION_MESSAGE: string =
+  "not-found: No session replay exists with this id in this project.";
+
+/*
+ * May this caller be told anything specific about a recording belonging to
+ * the named application?
+ *
+ * Deliberately NOT assertSessionReplayApplicationAccess: this runs on the
+ * path where the header row is already gone, so the application row may
+ * legitimately be gone with it, and an unrestricted caller (a project
+ * owner, or anyone holding an unscoped payload grant) must not lose the
+ * "expired on <date>" answer because of a deleted application. Only a
+ * label-scoped caller needs the row, and for them a row that cannot be
+ * loaded is refused.
+ */
+type IsApplicationInSessionReplayScopeByIdFunction = (data: {
+  projectId: ObjectID;
+  rumApplicationId: string;
+  databaseProps: DatabaseCommonInteractionProps;
+}) => Promise<boolean>;
+
+const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeByIdFunction =
+  async (data: {
+    projectId: ObjectID;
+    rumApplicationId: string;
+    databaseProps: DatabaseCommonInteractionProps;
+  }): Promise<boolean> => {
+    let scope: SessionReplayScope;
+
+    try {
+      scope = getSessionReplayLabelScope(
+        data.databaseProps,
+        SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+      );
+    } catch {
+      /* A scope this path cannot enforce is refused, never widened. */
+      return false;
+    }
+
+    if (scope.isUnrestricted) {
+      return true;
+    }
+
+    if (!ObjectID.isValidUUID(data.rumApplicationId)) {
+      return false;
+    }
+
+    const application: RumApplication | null =
+      await loadRumApplicationForAccess({
+        projectId: data.projectId,
+        rumApplicationId: new ObjectID(data.rumApplicationId),
+        allowCached: true,
+      });
+
+    if (!application) {
+      return false;
+    }
+
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: application,
+    });
+  };
+
+type ExplainMissingSessionFunction = (data: {
+  projectId: ObjectID;
+  sessionId: string;
+  rumApplicationId: ObjectID | undefined;
+  databaseProps: DatabaseCommonInteractionProps;
+}) => Promise<NotFoundException>;
+
+const explainMissingSession: ExplainMissingSessionFunction = async (data: {
+  projectId: ObjectID;
+  sessionId: string;
+  rumApplicationId: ObjectID | undefined;
+  databaseProps: DatabaseCommonInteractionProps;
+}): Promise<NotFoundException> => {
+  /*
+   * The expired header is resolved FIRST, and not because it is the more
+   * likely answer: it is the only lookup that names an application, and
+   * nothing specific may be disclosed until that application has been
+   * authorized.
+   *
+   * The expiry answer carries the recording's existence, when it started
+   * and what retention the owning application runs. Answered before the
+   * access check - which is where it used to sit, since this runs on the
+   * path where getSessionHeader found nothing to authorize AGAINST - it let
+   * a label-scoped reviewer probe session ids and learn all three for
+   * applications outside their scope. That is precisely the existence
+   * probing assertSessionReplayApplicationAccess refuses "the same way" for
+   * a session that DOES exist.
+   *
+   * This read is deliberately retention-free (an expired row is the whole
+   * point), so it is the one place a scope check has to be written out by
+   * hand rather than inherited from resolveAuthorizedSession.
+   */
+  const expired: SessionReplayExpiredSessionInfo | null =
+    await SessionReplayReadService.getExpiredSessionInfo({
+      projectId: data.projectId,
+      sessionId: data.sessionId,
+      rumApplicationId: data.rumApplicationId,
+    });
+
+  if (expired && expired.rumApplicationId) {
+    if (
+      !(await isApplicationInSessionReplayScopeById({
+        projectId: data.projectId,
+        rumApplicationId: expired.rumApplicationId,
+        databaseProps: data.databaseProps,
+      }))
+    ) {
+      return new NotFoundException(GENERIC_MISSING_SESSION_MESSAGE);
+    }
+  }
+
+  /*
+   * Erasure is checked only once the caller is entitled to a specific
+   * answer. An erased session may still have a header row until the
+   * ClickHouse mutation lands, and "expired" would be the wrong story for
+   * a recording that was deliberately destroyed - so it is reported ahead
+   * of expiry. The tombstone throws when Redis cannot answer; that is a
+   * "cannot tell", which falls through to the header-based answers.
+   */
+  let isErased: boolean = false;
+
+  try {
+    isErased = await isSessionErased({
+      projectId: data.projectId.toString(),
+      sessionId: data.sessionId,
+    });
+  } catch {
+    isErased = false;
+  }
+
+  if (isErased) {
+    return new NotFoundException(
+      "erased: This recording was erased by a data subject request and cannot be played back.",
+    );
+  }
+
+  if (expired) {
+    const retentionDays: number = Math.max(
+      1,
+      Math.round(
+        (expired.expiresAt.getTime() - expired.startTime.getTime()) /
+          (24 * 60 * 60 * 1000),
+      ),
+    );
+
+    return new NotFoundException(
+      `expired: This recording expired on ${expired.expiresAt.toISOString()} under the application's ${retentionDays}-day retention. Its session signals may still be available from logs, traces and exceptions.`,
+    );
+  }
+
+  return new NotFoundException(GENERIC_MISSING_SESSION_MESSAGE);
+};
+
 /*
  * Resolve a caller-supplied sessionId to its header, scoped strictly to
  * the tenant, and authorize the owning application. Every payload-bearing
@@ -3854,33 +4411,171 @@ type ResolveAuthorizedSessionFunction = (data: {
   projectId: ObjectID;
   sessionId: string;
   databaseProps: DatabaseCommonInteractionProps;
-}) => Promise<SessionReplaySessionHeader>;
+  /*
+   * Disambiguator only (see getSessionHeader): which application's
+   * recording to read when the same sessionId exists under several. The
+   * application the resolved header names is what gets authorized, so a
+   * caller cannot widen access by naming one.
+   */
+  rumApplicationId?: ObjectID | undefined;
+  /*
+   * Serve the header and the application's labels from the short-lived
+   * caches. For the chunk and heartbeat hot paths; the manifest resolves
+   * fresh so a live session's header is never stale for a poll.
+   */
+  allowCached?: boolean | undefined;
+}) => Promise<AuthorizedSession>;
 
 const resolveAuthorizedSession: ResolveAuthorizedSessionFunction =
   async (data: {
     projectId: ObjectID;
     sessionId: string;
     databaseProps: DatabaseCommonInteractionProps;
-  }): Promise<SessionReplaySessionHeader> => {
-    const header: SessionReplaySessionHeader | null =
-      await SessionReplayReadService.getSessionHeader({
-        projectId: data.projectId,
-        sessionId: data.sessionId,
-      });
+    rumApplicationId?: ObjectID | undefined;
+    allowCached?: boolean | undefined;
+  }): Promise<AuthorizedSession> => {
+    const headerCacheKey: string = `${data.projectId.toString()}:${data.sessionId}:${
+      data.rumApplicationId ? data.rumApplicationId.toString() : ""
+    }`;
 
-    if (!header) {
-      throw new BadDataException("Session replay not found.");
+    let header: SessionReplaySessionHeader | null = null;
+
+    if (data.allowCached) {
+      const cached: CachedSessionHeader | undefined =
+        sessionHeaderCache.get(headerCacheKey);
+
+      if (cached && cached.expiresAt > Date.now()) {
+        header = cached.header;
+      }
     }
 
-    await assertSessionReplayApplicationAccess({
-      projectId: data.projectId,
-      rumApplicationId: new ObjectID(header.rumApplicationId),
-      databaseProps: data.databaseProps,
-      permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
-    });
+    if (!header) {
+      header = await SessionReplayReadService.getSessionHeader({
+        projectId: data.projectId,
+        sessionId: data.sessionId,
+        rumApplicationId: data.rumApplicationId,
+      });
 
-    return header;
+      if (header) {
+        boundedCacheSet(sessionHeaderCache, headerCacheKey, {
+          header: header,
+          expiresAt: Date.now() + SESSION_REPLAY_AUTHORIZATION_CACHE_TTL_MS,
+        });
+      }
+    }
+
+    if (!header) {
+      throw await explainMissingSession({
+        projectId: data.projectId,
+        sessionId: data.sessionId,
+        rumApplicationId: data.rumApplicationId,
+        databaseProps: data.databaseProps,
+      });
+    }
+
+    const application: RumApplication =
+      await assertSessionReplayApplicationAccess({
+        projectId: data.projectId,
+        rumApplicationId: new ObjectID(header.rumApplicationId),
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+        allowCached: data.allowCached,
+      });
+
+    return { header: header, application: application };
   };
+
+/*
+ * An optional application id off the body: absent or empty means "not
+ * given", anything else must be a well-formed id.
+ */
+type ReadOptionalObjectIdFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => ObjectID | undefined;
+
+const readOptionalObjectIdFromBody: ReadOptionalObjectIdFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): ObjectID | undefined => {
+  const value: unknown = body[key];
+
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
+    throw new BadDataException(`${key} is not a valid id`);
+  }
+
+  return new ObjectID(value);
+};
+
+/*
+ * Optional ISO timestamps off the body. A value that is present but does
+ * not parse is a bad request, not an Invalid Date bound into ClickHouse
+ * (which surfaces as a driver error and a 500).
+ */
+type ReadOptionalDateFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => Date | undefined;
+
+const readOptionalDateFromBody: ReadOptionalDateFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): Date | undefined => {
+  const value: unknown = body[key];
+
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value !== "string" && typeof value !== "number") {
+    throw new BadDataException(`${key} must be an ISO-8601 timestamp`);
+  }
+
+  const parsed: Date =
+    typeof value === "number"
+      ? new Date(value)
+      : OneUptimeDate.fromString(value);
+
+  if (!Number.isFinite(parsed.getTime())) {
+    throw new BadDataException(`${key} must be an ISO-8601 timestamp`);
+  }
+
+  return parsed;
+};
+
+/*
+ * A page size off the body: absent means the default; present means a
+ * positive integer, because `LIMIT 2.5` is a driver error and a 500.
+ */
+type ReadLimitFromBodyFunction = (
+  body: JSONObject,
+  defaultLimit: number,
+  maxLimit: number,
+) => number;
+
+const readLimitFromBody: ReadLimitFromBodyFunction = (
+  body: JSONObject,
+  defaultLimit: number,
+  maxLimit: number,
+): number => {
+  const value: unknown = body["limit"];
+
+  if (value === undefined || value === null) {
+    return defaultLimit;
+  }
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw new BadDataException(
+      `limit must be a whole number between 1 and ${maxLimit}`,
+    );
+  }
+
+  return Math.min(value, maxLimit);
+};
 
 /*
  * Object ids arrive as untrusted strings. They are always bound as query
@@ -3916,6 +4611,12 @@ const readObjectIdFromBody: ReadObjectIdFromBodyFunction = (
 
 type ReadSessionIdFromBodyFunction = (body: JSONObject) => string;
 
+/*
+ * A session id is 32 hex characters minted in the browser. The cap is
+ * generous rather than exact - older recorders and hand-written API
+ * callers exist - but it is a cap: an unbounded caller-supplied string
+ * reaches ClickHouse as a bound parameter on a hot path.
+ */
 const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   body: JSONObject,
 ): string => {
@@ -3925,8 +4626,78 @@ const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
     throw new BadDataException("sessionId is required");
   }
 
+  if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+    throw new BadDataException(
+      `sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+    );
+  }
+
   return sessionId;
 };
+
+type ReadSessionIdsFromBodyFunction = (body: JSONObject) => Array<string>;
+
+/*
+ * The summaries route accepts one audit-table page at a time. Validate the
+ * raw array before de-duplicating it so repeated values cannot be used to
+ * bypass the request-size ceiling, then preserve first-occurrence order.
+ */
+const readSessionIdsFromBody: ReadSessionIdsFromBodyFunction = (
+  body: JSONObject,
+): Array<string> => {
+  const value: unknown = body["sessionIds"];
+
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new BadDataException("sessionIds must be a non-empty array");
+  }
+
+  if (value.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+    throw new BadDataException(
+      `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+    );
+  }
+
+  const sessionIds: Array<string> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const sessionId of value) {
+    if (typeof sessionId !== "string" || sessionId.length === 0) {
+      throw new BadDataException("Every sessionId must be a non-empty string");
+    }
+
+    if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+      throw new BadDataException(
+        `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+      );
+    }
+
+    if (!seen.has(sessionId)) {
+      seen.add(sessionId);
+      sessionIds.push(sessionId);
+    }
+  }
+
+  return sessionIds;
+};
+
+/*
+ * Caps on the list's filter inputs.
+ *
+ * Every array filter becomes an `IN (...)` inside a HAVING, which
+ * ClickHouse evaluates per GROUP over the whole window - so the cost of a
+ * request is the caller's array length times the number of sessions in
+ * range. Uncapped, one request carrying tens of thousands of browser names
+ * is a cheap denial of service against the list for any holder of the list
+ * permission. The limits are far above any real UI: the filter panel
+ * offers a couple of dozen browsers, and no session has more than a
+ * handful of routes.
+ *
+ * Values are TRUNCATED and the array is SLICED rather than refused: an
+ * over-long value simply cannot match anything a bounded column holds, so
+ * a 400 would add nothing but a confusing error.
+ */
+const MAX_SESSION_REPLAY_FILTER_ARRAY_LENGTH: number = 50;
+const MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH: number = 256;
 
 type ReadStringArrayFromBodyFunction = (
   body: JSONObject,
@@ -3943,13 +4714,113 @@ const readStringArrayFromBody: ReadStringArrayFromBodyFunction = (
     return undefined;
   }
 
-  const strings: Array<string> = value.filter(
-    (item: unknown): item is string => {
-      return typeof item === "string" && item.length > 0;
-    },
-  );
+  const strings: Array<string> = [];
+
+  for (const item of value) {
+    if (typeof item !== "string" || item.length === 0) {
+      continue;
+    }
+
+    strings.push(item.substring(0, MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH));
+
+    if (strings.length >= MAX_SESSION_REPLAY_FILTER_ARRAY_LENGTH) {
+      break;
+    }
+  }
 
   return strings.length > 0 ? strings : undefined;
+};
+
+/*
+ * A single bounded string filter off the body. Same reasoning as the array
+ * cap above: the value is compared per group, and nothing a column holds
+ * is longer than this.
+ */
+type ReadBoundedStringFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => string | undefined;
+
+const readBoundedStringFromBody: ReadBoundedStringFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): string | undefined => {
+  const value: unknown = body[key];
+
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+
+  return value.substring(0, MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH);
+};
+
+/*
+ * The tag filter: a plain object of string pairs, each side bounded by the
+ * same caps the ingest applied when it stored the map, so a filter can
+ * never be longer than a value that could match it. Anything else reads
+ * as "no tag filter".
+ */
+type ReadTagFilterFromBodyFunction = (
+  filters: JSONObject,
+) => Record<string, string> | undefined;
+
+const readTagFilterFromBody: ReadTagFilterFromBodyFunction = (
+  filters: JSONObject,
+): Record<string, string> | undefined => {
+  const value: unknown = filters["tags"];
+
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const tags: Record<string, string> = {};
+  let count: number = 0;
+
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    const entry: unknown = (value as Record<string, unknown>)[key];
+
+    if (typeof entry !== "string" || key.length === 0) {
+      continue;
+    }
+
+    if (count >= SESSION_REPLAY_MAX_TAG_KEYS) {
+      break;
+    }
+
+    tags[key.substring(0, SESSION_REPLAY_MAX_TAG_KEY_LENGTH)] = entry.substring(
+      0,
+      SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+    );
+    count++;
+  }
+
+  return count > 0 ? tags : undefined;
+};
+
+/*
+ * Can this cursor's sortValue actually be bound into a query?
+ *
+ * parseSessionReplayListCursor only checks Number.isFinite, which admits
+ * 1e300. For the startTime ordering that value becomes `new Date(1e300)` -
+ * an Invalid Date, which renders as NaN text and is rejected by the
+ * ClickHouse driver, so a crafted or corrupted cursor answered 500 instead
+ * of the 400 the handler promises. For the aggregate orderings the value is
+ * a count or a duration, and a negative one belongs to no page.
+ */
+type IsBindableCursorSortValueFunction = (
+  cursor: SessionReplayListCursor,
+  sortBy: SessionReplaySortBy,
+) => boolean;
+
+const isBindableCursorSortValue: IsBindableCursorSortValueFunction = (
+  cursor: SessionReplayListCursor,
+  sortBy: SessionReplaySortBy,
+): boolean => {
+  if (sortBy === "startTime") {
+    return Number.isFinite(new Date(cursor.sortValue).getTime());
+  }
+
+  return cursor.sortValue >= 0;
 };
 
 // --- Session Replay List Endpoint ---
@@ -3998,15 +4869,153 @@ router.post(
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
 
-      const startTime: Date = body["startTime"]
-        ? OneUptimeDate.fromString(body["startTime"] as string)
-        : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+      const startTime: Date =
+        readOptionalDateFromBody(body, "startTime") ||
+        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
 
-      const endTime: Date = body["endTime"]
-        ? OneUptimeDate.fromString(body["endTime"] as string)
-        : OneUptimeDate.getCurrentDate();
+      const endTime: Date =
+        readOptionalDateFromBody(body, "endTime") ||
+        OneUptimeDate.getCurrentDate();
+
+      /*
+       * An inverted window matches nothing, and an empty list with a 200
+       * is exactly the answer a client cannot distinguish from "no
+       * sessions" - so it is a 400 with the reason instead.
+       */
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must not be after endTime"),
+        );
+      }
+
+      const limit: number = readLimitFromBody(
+        body,
+        DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+        MAX_SESSION_REPLAY_LIST_LIMIT,
+      );
+
+      const rawSortBy: unknown = body["sortBy"];
+
+      if (
+        rawSortBy !== undefined &&
+        rawSortBy !== null &&
+        (typeof rawSortBy !== "string" ||
+          !(SESSION_REPLAY_SORT_BY_VALUES as ReadonlyArray<string>).includes(
+            rawSortBy,
+          ))
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `sortBy must be one of ${SESSION_REPLAY_SORT_BY_VALUES.join(", ")}.`,
+          ),
+        );
+      }
+
+      const sortBy: SessionReplaySortBy =
+        typeof rawSortBy === "string"
+          ? (rawSortBy as SessionReplaySortBy)
+          : "startTime";
+
+      /*
+       * The narrower identity ACL, resolved BEFORE the filters are built.
+       *
+       * It is enforced by simply not naming the column in the SELECT - there
+       * is no ModelPermission on this path to strip it after the fact - and
+       * it is decided against the application already loaded by the access
+       * check, so a caller whose identity grant is label-scoped elsewhere
+       * does not get named end users here.
+       *
+       * It gates the identity FILTER as well as the column. Without that,
+       * a caller deliberately denied the label could still ask "does
+       * jane@example.com have sessions here" and read every other field of
+       * the answer - a dictionary attack that de-anonymises the list one
+       * candidate at a time, and hands back identifiedUserKey as a stable
+       * pseudonym to join against the route filter. The permission sets are
+       * genuinely different: SESSION_REPLAY_IDENTITY_PERMISSIONS excludes
+       * TelemetryAdmin and ReadRumSessionReplay, both of which can list.
+       */
+      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
+        databaseProps: databaseProps,
+        application: application,
+      });
 
       const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
+
+      /*
+       * A reference the server cannot hash must be a 400, never a filter
+       * that quietly disappears. Dropping it would return the WHOLE
+       * unfiltered list with a 200 - the caller sees every session in the
+       * project and has no way to tell that the person they asked about was
+       * not the one being answered about.
+       */
+      if (
+        rawFilters["identifiedUserRef"] !== undefined &&
+        !SessionReplayIdentity.isUsableUserRef(rawFilters["identifiedUserRef"])
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `identifiedUserRef must be a non-empty string of at most ${SESSION_REPLAY_MAX_USER_REF_LENGTH} characters.`,
+          ),
+        );
+      }
+
+      /*
+       * "Every session from this browser". The visitor id is the
+       * recorder's own random per-browser token, and the list already
+       * hands it to every caller on every row, so - like the digest filter
+       * below - it needs no identity gate: filtering by it discloses
+       * nothing the caller does not have. But a value that is not one
+       * (the shape is strict; there is no legitimate "almost" visitor id)
+       * can match nothing, and a silently unfiltered list is the wrong
+       * answer to that question too.
+       */
+      const rawVisitorId: unknown = rawFilters["visitorId"];
+
+      if (
+        rawVisitorId !== undefined &&
+        rawVisitorId !== null &&
+        !SessionIdentity.isVisitorId(rawVisitorId)
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "visitorId must be a 32-character lowercase hex visitor id.",
+          ),
+        );
+      }
+
+      /*
+       * A filter the server understood but did not apply, named in the
+       * response.
+       *
+       * The identity filter is gated on the narrower identity permission.
+       * Dropping it silently is the dangerous half of that gate: the
+       * request "show me jane@example.com's sessions" then answers 200 with
+       * EVERY session in the application, and the caller has no way to tell
+       * - least of all when the application has no sessions at all, where
+       * even inspecting the rows cannot reveal it. A support engineer opens
+       * the wrong recording, and each opening writes an audit row against a
+       * real end user.
+       *
+       * Answered as data rather than as a 403 because the rest of the list
+       * IS something the caller may read: the page renders the sessions and
+       * says the filter was ignored, instead of failing outright.
+       */
+      const ignoredFilters: Array<string> = [];
+
+      if (
+        !includeIdentifiedUserLabel &&
+        SessionReplayIdentity.isUsableUserRef(rawFilters["identifiedUserRef"])
+      ) {
+        ignoredFilters.push("identifiedUserRef");
+      }
 
       const filters: SessionReplayListFilters = {
         ...(typeof rawFilters["hasError"] === "boolean" && {
@@ -4033,42 +5042,150 @@ router.post(
         ...(readStringArrayFromBody(rawFilters, "countryCodes") && {
           countryCodes: readStringArrayFromBody(rawFilters, "countryCodes"),
         }),
-        ...(typeof rawFilters["identifiedUserKey"] === "string" && {
-          identifiedUserKey: rawFilters["identifiedUserKey"],
+        /*
+         * The caller sends the end-user reference their own page supplied -
+         * the value the session list displays - and the server derives the
+         * digest with the same per-project HMAC the ingest used. Hashing
+         * here rather than in the browser is what keeps the derivation (and
+         * the EncryptionSecret it is keyed on) server-side, and it is the
+         * only reason this filter can match anything: the raw key is
+         * displayed nowhere in the product, so a user had no way to obtain
+         * the value the field used to demand.
+         *
+         * Gated on the identity permission, and validated above so an
+         * unusable reference is a 400 rather than a silently unfiltered
+         * list.
+         */
+        ...(includeIdentifiedUserLabel &&
+          SessionReplayIdentity.isUsableUserRef(
+            rawFilters["identifiedUserRef"],
+          ) && {
+            identifiedUserKey: SessionReplayIdentity.buildUserKey({
+              projectId: projectId,
+              userRef: rawFilters["identifiedUserRef"] as string,
+            }),
+          }),
+        /*
+         * Still accepted, for API callers that already hold a digest (an
+         * erasure workflow, a saved view). Ignored when a reference was also
+         * sent, since the reference is the one a human typed. The digest is
+         * not guessable and is already returned to every list-capable
+         * caller, so it needs no identity gate of its own.
+         */
+        ...(readBoundedStringFromBody(rawFilters, "identifiedUserKey") &&
+          !SessionReplayIdentity.isUsableUserRef(
+            rawFilters["identifiedUserRef"],
+          ) && {
+            identifiedUserKey: readBoundedStringFromBody(
+              rawFilters,
+              "identifiedUserKey",
+            ),
+          }),
+        /* Validated above; not identity-gated, for the reason given there. */
+        ...(SessionIdentity.isVisitorId(rawVisitorId) && {
+          visitorId: rawVisitorId,
         }),
-        ...(typeof rawFilters["route"] === "string" && {
-          route: rawFilters["route"],
+        ...(readBoundedStringFromBody(rawFilters, "route") && {
+          route: readBoundedStringFromBody(rawFilters, "route"),
         }),
-        ...(typeof rawFilters["minDurationMs"] === "number" && {
-          minDurationMs: rawFilters["minDurationMs"],
+        ...(typeof rawFilters["minDurationMs"] === "number" &&
+          Number.isFinite(rawFilters["minDurationMs"]) && {
+            minDurationMs: rawFilters["minDurationMs"],
+          }),
+        ...(typeof rawFilters["hasIdentifiedUser"] === "boolean" && {
+          hasIdentifiedUser: rawFilters["hasIdentifiedUser"],
+        }),
+        ...(typeof rawFilters["isPlayable"] === "boolean" && {
+          isPlayable: rawFilters["isPlayable"],
+        }),
+        ...(typeof rawFilters["hasTraces"] === "boolean" && {
+          hasTraces: rawFilters["hasTraces"],
+        }),
+        ...(typeof rawFilters["urlPrefix"] === "string" &&
+          rawFilters["urlPrefix"].length > 0 && {
+            urlPrefix: rawFilters["urlPrefix"].substring(
+              0,
+              SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+            ),
+          }),
+        ...(readTagFilterFromBody(rawFilters) && {
+          tags: readTagFilterFromBody(rawFilters),
         }),
       };
 
-      const rawCursor: JSONObject | undefined = body["cursor"]
-        ? (body["cursor"] as JSONObject)
-        : undefined;
+      /*
+       * Free text is the one predicate that cannot use an index: it is a
+       * substring scan of every header in the window. The string cap
+       * keeps each comparison cheap; the window cap keeps the number of
+       * comparisons bounded, and is answered with its own message so the
+       * list can say "narrow the range" rather than "no sessions".
+       */
+      const rawSearch: unknown = rawFilters["search"];
 
-      const cursor: SessionReplayListCursor | undefined =
-        rawCursor &&
-        typeof rawCursor["startTimeUnixMs"] === "number" &&
-        typeof rawCursor["sessionId"] === "string"
-          ? {
-              startTimeUnixMs: rawCursor["startTimeUnixMs"],
-              sessionId: rawCursor["sessionId"],
-            }
-          : undefined;
+      if (rawSearch !== undefined && rawSearch !== null && rawSearch !== "") {
+        if (typeof rawSearch !== "string") {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("search must be a string"),
+          );
+        }
+
+        if (rawSearch.length > SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+              `search must be at most ${SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH} characters.`,
+            ),
+          );
+        }
+
+        const windowMs: number = endTime.getTime() - startTime.getTime();
+
+        if (
+          windowMs >
+          SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000
+        ) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+              `Search covers at most ${SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS} days at a time. Narrow the range to search it.`,
+            ),
+          );
+        }
+
+        if (rawSearch.trim().length > 0) {
+          filters.search = rawSearch.trim();
+        }
+      }
 
       /*
-       * The narrower identity ACL is enforced by simply not naming the
-       * column in the SELECT. There is no ModelPermission on this path to
-       * strip it after the fact. Decided against the application already
-       * loaded by the access check, so a caller whose identity grant is
-       * label-scoped elsewhere does not get named end users here.
+       * Both cursor shapes are accepted: the legacy {startTimeUnixMs,
+       * sessionId} one an older Dashboard or a bookmark still sends (it
+       * means "newest first"), and the sorted one. A cursor for a
+       * different ordering than the one requested is refused by the
+       * service rather than silently mis-paged.
        */
-      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
+      const cursor: SessionReplayListCursor | null =
+        body["cursor"] !== undefined && body["cursor"] !== null
+          ? parseSessionReplayListCursor(body["cursor"])
+          : null;
+
+      if (
+        body["cursor"] !== undefined &&
+        body["cursor"] !== null &&
+        (cursor === null || !isBindableCursorSortValue(cursor, sortBy))
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "cursor must be the nextCursor of a previous page.",
+          ),
+        );
+      }
 
       const result: SessionReplayListResult =
         await SessionReplayReadService.listSessions({
@@ -4077,17 +5194,288 @@ router.post(
           startTime: startTime,
           endTime: endTime,
           filters: filters,
-          limit:
-            typeof body["limit"] === "number"
-              ? (body["limit"] as number)
-              : DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+          limit: limit,
+          sortBy: sortBy,
+          ...(cursor !== null && { cursor }),
+          includeIdentifiedUserLabel: includeIdentifiedUserLabel,
+        });
+
+      /*
+       * The legacy cursor shape is still EMITTED for the newest-first sort
+       * so an older Dashboard keeps paging; every other sort emits the
+       * generalised shape, which such a client never asks for.
+       */
+      const nextCursor: JSONObject | null = result.nextCursor
+        ? sortBy === "startTime"
+          ? {
+              startTimeUnixMs: result.nextCursor.sortValue,
+              sessionId: result.nextCursor.sessionId,
+            }
+          : {
+              sortBy: result.nextCursor.sortBy,
+              sortValue: result.nextCursor.sortValue,
+              sessionId: result.nextCursor.sessionId,
+            }
+        : null;
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: result.sessions as unknown as JSONObject,
+        nextCursor: nextCursor,
+        /*
+         * Always present, empty when everything asked for was applied, so a
+         * client can read it without having to distinguish "no ignored
+         * filters" from "an older server that never said".
+         */
+        ignoredFilters: ignoredFilters as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Summary Batch Endpoint ---
+
+/*
+ * Audit rows store only the session id. Resolve one page of those ids into
+ * compact, non-identity session context. Audit-only callers receive an empty
+ * success; session-list metadata is returned only after the resolved
+ * application passes the list scope. The service performs one
+ * application-pinned argMax query, so this route never turns an audit page
+ * into an N+1 ClickHouse workload.
+ */
+router.post(
+  "/telemetry/rum/session-replay/summaries",
+  ...requireSessionReplaySummaryAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+      const sessionIds: Array<string> = readSessionIdsFromBody(body);
+
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+        });
+
+      if (
+        !canReadSessionReplayListMetadata({
+          databaseProps: databaseProps,
+          application: application,
+        })
+      ) {
+        return Response.sendJsonObjectResponse(req, res, { sessions: [] });
+      }
+
+      const sessions: Array<SessionReplaySummary> =
+        await SessionReplayReadService.getSessionSummaries({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionIds: sessionIds,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: sessions as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Users Endpoint ---
+
+/*
+ * The cursor /users emits and accepts: the last row's "last seen" clock
+ * and its group key as the tiebreak. A cursor that is present but not
+ * this shape is a bad request rather than a driver error - a non-finite
+ * or negative clock cannot be bound, and an unbounded key would reach
+ * ClickHouse as a parameter on a per-group predicate. The EMPTY key is
+ * valid: it is the anonymous bucket's own key, and that bucket can be the
+ * last row of a page like any other.
+ */
+const MAX_SESSION_REPLAY_USERS_GROUP_KEY_LENGTH: number = 128;
+
+type ParseSessionReplayUsersCursorFunction = (
+  value: unknown,
+) => SessionReplayUsersCursor | null;
+
+const parseSessionReplayUsersCursor: ParseSessionReplayUsersCursorFunction = (
+  value: unknown,
+): SessionReplayUsersCursor | null => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const row: JSONObject = value as JSONObject;
+  const lastSeenUnixMs: unknown = row["lastSeenUnixMs"];
+  const groupKey: unknown = row["groupKey"];
+
+  if (
+    typeof lastSeenUnixMs !== "number" ||
+    !Number.isFinite(lastSeenUnixMs) ||
+    lastSeenUnixMs < 0
+  ) {
+    return null;
+  }
+
+  if (
+    typeof groupKey !== "string" ||
+    groupKey.length > MAX_SESSION_REPLAY_USERS_GROUP_KEY_LENGTH
+  ) {
+    return null;
+  }
+
+  return { lastSeenUnixMs: lastSeenUnixMs, groupKey: groupKey };
+};
+
+/*
+ * The session list rolled up by person - "who had trouble" where /list
+ * answers "what happened". One row per identified user, one per linked
+ * browser, and at most one anonymous bucket; see
+ * SessionReplayReadService.listUsers for why it is its own read rather
+ * than a client-side fold of a list page.
+ *
+ * Same guard, same prologue and same identity decision as /list: it
+ * projects nothing the list does not, only grouped. The identity pair is
+ * named at neither level of the statement unless canReadIdentifiedUserLabel
+ * passes for the application the caller was just authorized against.
+ */
+router.post(
+  "/telemetry/rum/session-replay/users",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      /*
+       * Caller-supplied, and safe for the reason it is on /list: it is
+       * the thing being authorized, and the query is tenant-pinned
+       * regardless.
+       */
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
+
+      const startTime: Date =
+        readOptionalDateFromBody(body, "startTime") ||
+        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+
+      const endTime: Date =
+        readOptionalDateFromBody(body, "endTime") ||
+        OneUptimeDate.getCurrentDate();
+
+      /* An inverted window matches nothing; say so rather than answer []. */
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must not be after endTime"),
+        );
+      }
+
+      const limit: number = readLimitFromBody(
+        body,
+        DEFAULT_SESSION_REPLAY_USERS_LIMIT,
+        MAX_SESSION_REPLAY_USERS_LIMIT,
+      );
+
+      /*
+       * Decided against the application the access check loaded, exactly
+       * as on /list, and enforced by not naming the columns.
+       */
+      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
+        databaseProps: databaseProps,
+        application: application,
+      });
+
+      const cursor: SessionReplayUsersCursor | null | undefined =
+        body["cursor"] !== undefined && body["cursor"] !== null
+          ? parseSessionReplayUsersCursor(body["cursor"])
+          : undefined;
+
+      if (cursor === null) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "cursor must be the nextCursor of a previous page.",
+          ),
+        );
+      }
+
+      const result: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          startTime: startTime,
+          endTime: endTime,
+          limit: limit,
           ...(cursor !== undefined && { cursor }),
           includeIdentifiedUserLabel: includeIdentifiedUserLabel,
         });
 
+      const nextCursor: JSONObject | null = result.nextCursor
+        ? {
+            lastSeenUnixMs: result.nextCursor.lastSeenUnixMs,
+            groupKey: result.nextCursor.groupKey,
+          }
+        : null;
+
       return Response.sendJsonObjectResponse(req, res, {
-        sessions: result.sessions as unknown as JSONObject,
-        nextCursor: result.nextCursor as unknown as JSONObject,
+        users: result.users as unknown as JSONObject,
+        nextCursor: nextCursor,
       });
     } catch (err: unknown) {
       next(err);
@@ -4123,13 +5511,21 @@ router.post(
       const body: JSONObject = req.body as JSONObject;
       const sessionId: string = readSessionIdFromBody(body);
 
-      const header: SessionReplaySessionHeader = await resolveAuthorizedSession(
-        {
-          projectId: projectId,
-          sessionId: sessionId,
-          databaseProps: databaseProps,
-        },
-      );
+      /*
+       * Optional disambiguator, validated but NOT trusted: the header it
+       * selects still names the application that gets authorized.
+       */
+      const requestedApplicationId: ObjectID | undefined =
+        readOptionalObjectIdFromBody(body, "rumApplicationId");
+
+      const authorized: AuthorizedSession = await resolveAuthorizedSession({
+        projectId: projectId,
+        sessionId: sessionId,
+        databaseProps: databaseProps,
+        rumApplicationId: requestedApplicationId,
+      });
+
+      const header: SessionReplaySessionHeader = authorized.header;
 
       /*
        * The authorized application, resolved server-side from the header.
@@ -4143,36 +5539,88 @@ router.post(
       );
 
       /*
-       * The audit row is written BEFORE the manifest is built, not after.
-       * A read that fails halfway through still happened, and an audit
-       * that only records successful reads is an audit an attacker can
-       * evade by aborting the request.
+       * A live-session poll reuses the view row the first read created.
+       *
+       * The player re-fetches the manifest every 30s while a session is
+       * still recording, and each of those is the same person continuing
+       * the same viewing, not a new disclosure. Writing a row per poll
+       * would turn one viewing into dozens of audit entries and bury the
+       * signal the audit exists for. The row is reused ONLY when the
+       * caller proves it is theirs (looked up by viewedByUserId) AND it
+       * is for this session; anything else - somebody else's viewId, a
+       * different session, an id that no longer exists - is a fresh
+       * recordView, exactly as if isRefresh had not been sent.
        */
-      const view: RumSessionReplayView =
-        await RumSessionReplayViewService.recordView({
-          projectId: projectId,
-          rumApplicationId: authorizedApplicationId,
-          sessionId: sessionId,
-          viewedByUserId: databaseProps.userId,
-          ipAddress: getClientIp(req),
-          userAgent:
-            typeof req.headers["user-agent"] === "string"
-              ? req.headers["user-agent"]
-              : undefined,
-          accessReason:
-            typeof body["accessReason"] === "string"
-              ? (body["accessReason"] as string)
-              : undefined,
-          linkedIncidentId:
-            typeof body["linkedIncidentId"] === "string" &&
-            body["linkedIncidentId"].length > 0
-              ? new ObjectID(body["linkedIncidentId"])
-              : undefined,
-          linkedExceptionFingerprint:
-            typeof body["linkedExceptionFingerprint"] === "string"
-              ? (body["linkedExceptionFingerprint"] as string)
-              : undefined,
-        });
+      let viewId: string | null = null;
+
+      const isRefresh: boolean = body["isRefresh"] === true;
+      const refreshViewId: ObjectID | undefined = isRefresh
+        ? readOptionalObjectIdFromBody(body, "viewId")
+        : undefined;
+
+      if (refreshViewId && databaseProps.userId) {
+        const ownView: RumSessionReplayView | null =
+          await RumSessionReplayViewService.findOwnView({
+            viewId: refreshViewId,
+            projectId: projectId,
+            viewedByUserId: databaseProps.userId,
+            sessionId: sessionId,
+          });
+
+        if (
+          ownView &&
+          ownView.id &&
+          ownView.rumApplicationId &&
+          ownView.rumApplicationId.toString() ===
+            authorizedApplicationId.toString()
+        ) {
+          viewId = ownView.id.toString();
+        }
+      }
+
+      if (viewId === null) {
+        /*
+         * The audit row is written BEFORE the manifest is built, not
+         * after. A read that fails halfway through still happened, and
+         * an audit that only records successful reads is an audit an
+         * attacker can evade by aborting the request.
+         *
+         * linkedIncidentId is validated rather than constructed blindly:
+         * ObjectID's constructor checks nothing, and a malformed id would
+         * fail the audit insert - and with it the playback it audits. A
+         * bad link is dropped; the view is still recorded.
+         */
+        const rawLinkedIncidentId: unknown = body["linkedIncidentId"];
+
+        const view: RumSessionReplayView =
+          await RumSessionReplayViewService.recordView({
+            projectId: projectId,
+            rumApplicationId: authorizedApplicationId,
+            sessionId: sessionId,
+            viewedByUserId: databaseProps.userId,
+            ipAddress: getClientIp(req),
+            userAgent:
+              typeof req.headers["user-agent"] === "string"
+                ? req.headers["user-agent"]
+                : undefined,
+            accessReason:
+              typeof body["accessReason"] === "string"
+                ? (body["accessReason"] as string)
+                : undefined,
+            linkedIncidentId:
+              typeof rawLinkedIncidentId === "string" &&
+              ObjectID.isValidUUID(rawLinkedIncidentId)
+                ? new ObjectID(rawLinkedIncidentId)
+                : undefined,
+            linkedExceptionFingerprint:
+              typeof body["linkedExceptionFingerprint"] === "string" &&
+              body["linkedExceptionFingerprint"].length > 0
+                ? (body["linkedExceptionFingerprint"] as string)
+                : undefined,
+          });
+
+        viewId = view.id ? view.id.toString() : null;
+      }
 
       const manifest: SessionReplayManifest =
         await SessionReplayReadService.getManifest({
@@ -4182,13 +5630,44 @@ router.post(
           sessionId: sessionId,
         });
 
+      /*
+       * The identity columns are read by a SEPARATE statement that runs
+       * only after the narrower identity check passes for the application
+       * the caller was just authorized against. Nothing above named them,
+       * so a caller without the permission never causes a statement that
+       * touches identifiedUserLabel or identifiedUserTraits to exist.
+       */
+      let identity: SessionReplaySessionIdentity | null = null;
+
+      if (
+        canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: authorized.application,
+        })
+      ) {
+        identity = await SessionReplayReadService.getSessionIdentity({
+          projectId: projectId,
+          rumApplicationId: authorizedApplicationId,
+          sessionId: sessionId,
+        });
+      }
+
+      const responseHeader: SessionReplaySessionHeader = identity
+        ? {
+            ...manifest.header,
+            identifiedUserLabel: identity.identifiedUserLabel,
+            identifiedUserTraits: identity.identifiedUserTraits,
+          }
+        : manifest.header;
+
       return Response.sendJsonObjectResponse(req, res, {
         /*
          * viewId is echoed back so the player's heartbeat can advance the
-         * very row this read created, instead of guessing at one.
+         * very row this read created (or reused), instead of guessing at
+         * one.
          */
-        viewId: view.id ? view.id.toString() : null,
-        header: manifest.header as unknown as JSONObject,
+        viewId: viewId,
+        header: responseHeader as unknown as JSONObject,
         tabs: manifest.tabs as unknown as JSONObject,
         isChunkIndexTruncated: manifest.isChunkIndexTruncated,
       });
@@ -4199,6 +5678,84 @@ router.post(
 );
 
 // --- Session Replay Chunk Endpoint ---
+
+/*
+ * Chunk pages are gzipped here, in the route, rather than by nginx or a
+ * middleware. The `payload` column holds DECOMPRESSED rrweb JSON (the
+ * recorder's gzip is undone at ingest so the read cap can be judged on
+ * real bytes), so a page is 1-8 MB of highly repetitive text on the wire
+ * unless something compresses it again. Nginx cannot: the body is
+ * application/octet-stream, which is deliberately outside its gzip_types
+ * (Nginx/default.conf.template), and adding it there would also
+ * re-compress pprof downloads that are already gzip. Nothing else in the
+ * API adds response compression.
+ *
+ * Async zlib runs on the libuv threadpool, so the API event loop is never
+ * blocked by a page. Measured on a development machine: level 4 shrinks a
+ * realistic 8.4 MB page 8.7x in ~130 ms of threadpool time, which is why
+ * level 4 rather than the default 6 - the extra levels cost CPU for a few
+ * percent of size on JSON that already compresses this well.
+ */
+const gzipAsync: (input: Buffer, options: zlib.ZlibOptions) => Promise<Buffer> =
+  promisify(zlib.gzip);
+
+/* Mirrors nginx's gzip_min_length: a page this small gains nothing. */
+const SESSION_REPLAY_GZIP_MIN_BYTES: number = 1024;
+const SESSION_REPLAY_GZIP_LEVEL: number = 4;
+
+type AcceptsGzipEncodingFunction = (req: ExpressRequest) => boolean;
+
+/*
+ * Reads Accept-Encoding by hand instead of via req.acceptsEncodings so
+ * the route depends only on the headers object (which is all a plain
+ * request object is guaranteed to carry). Tolerates a repeated header
+ * (array), q-values, and the x-gzip alias; "gzip;q=0" is an explicit
+ * refusal and wins over any other gzip token.
+ */
+const acceptsGzipEncoding: AcceptsGzipEncodingFunction = (
+  req: ExpressRequest,
+): boolean => {
+  const raw: unknown = req.headers?.["accept-encoding"];
+
+  let headerValue: string;
+
+  if (Array.isArray(raw)) {
+    headerValue = raw.join(",");
+  } else if (typeof raw === "string") {
+    headerValue = raw;
+  } else {
+    return false;
+  }
+
+  let gzipAccepted: boolean = false;
+
+  for (const token of headerValue.toLowerCase().split(",")) {
+    const parts: Array<string> = token.split(";");
+    const coding: string = (parts[0] ?? "").trim();
+
+    if (coding !== "gzip" && coding !== "x-gzip") {
+      continue;
+    }
+
+    let quality: number = 1;
+
+    for (const parameter of parts.slice(1)) {
+      const [name, value] = parameter.split("=");
+
+      if ((name ?? "").trim() === "q") {
+        quality = Number.parseFloat((value ?? "").trim());
+      }
+    }
+
+    if (Number.isNaN(quality) || quality <= 0) {
+      return false;
+    }
+
+    gzipAccepted = true;
+  }
+
+  return gzipAccepted;
+};
 
 router.post(
   "/telemetry/rum/session-replay/chunks",
@@ -4280,15 +5837,27 @@ router.post(
         );
       }
 
-      const header: SessionReplaySessionHeader = await resolveAuthorizedSession(
-        {
-          projectId: projectId,
-          sessionId: sessionId,
-          databaseProps: databaseProps,
-        },
-      );
+      /*
+       * Served from the 30s authorization cache: a session is 60 chunk
+       * pages at most, and re-aggregating its header plus re-loading the
+       * application's labels for every one of them is what made seeks
+       * stutter. The label decision itself is still made against the
+       * caller's current permissions on every request.
+       */
+      const authorized: AuthorizedSession = await resolveAuthorizedSession({
+        projectId: projectId,
+        sessionId: sessionId,
+        databaseProps: databaseProps,
+        rumApplicationId: readOptionalObjectIdFromBody(
+          body,
+          "rumApplicationId",
+        ),
+        allowCached: true,
+      });
 
-      const chunks: Array<SessionReplayChunkPayload> =
+      const header: SessionReplaySessionHeader = authorized.header;
+
+      const read: SessionReplayChunkReadResult =
         await SessionReplayReadService.getChunks({
           projectId: projectId,
           /* Always the application the caller was authorized against. */
@@ -4311,27 +5880,32 @@ router.post(
 
       /*
        * The byte cap is re-checked here against the bytes actually being
-       * framed, not only against what the pre-check in the read service
-       * believed. This is the last place the size of the response is
-       * knowable, so it is the one place a cap on the response can be
-       * absolute regardless of how stored size was estimated upstream.
+       * framed, not only against what the read service believed. This is
+       * the last place the size of the response is knowable, so it is the
+       * one place a cap on the response can be absolute regardless of how
+       * stored size was estimated upstream. Like the service, it answers
+       * with the prefix that fits rather than refusing - and never with
+       * nothing: a single chunk is bounded by the ingest cap, and a chunk
+       * that could never be served would dead-end playback at it forever.
        */
       let responseBytes: number = 0;
+      const omittedChunkIndexes: Array<number> = [...read.omittedChunkIndexes];
 
-      for (const chunk of chunks) {
+      for (const chunk of read.chunks) {
         const payloadBuffer: Buffer = Buffer.from(chunk.payload, "utf8");
 
-        responseBytes += payloadBuffer.length + 8;
+        const framedBytes: number = payloadBuffer.length + 8;
 
-        if (responseBytes > MAX_SESSION_REPLAY_READ_BYTES) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              `The requested chunks exceed the ${MAX_SESSION_REPLAY_READ_BYTES} byte limit for a single read. Request fewer chunks.`,
-            ),
-          );
+        if (
+          frames.length > 0 &&
+          (responseBytes + framedBytes > MAX_SESSION_REPLAY_READ_BYTES ||
+            omittedChunkIndexes.length > 0)
+        ) {
+          omittedChunkIndexes.push(chunk.chunkIndex);
+          continue;
         }
+
+        responseBytes += framedBytes;
 
         const headerBuffer: Buffer = Buffer.alloc(8);
         headerBuffer.writeUInt32LE(chunk.chunkIndex, 0);
@@ -4341,14 +5915,60 @@ router.post(
 
       const responseBody: Buffer = Buffer.concat(frames);
 
+      /*
+       * The read cap and the omitted list above are judged on the
+       * uncompressed frames: they bound what the player must hold in
+       * memory, not what crosses the wire. Only the bytes sent change.
+       */
+      let bodyToSend: Buffer = responseBody;
+      let contentEncoding: string | undefined = undefined;
+
+      if (
+        responseBody.length >= SESSION_REPLAY_GZIP_MIN_BYTES &&
+        acceptsGzipEncoding(req)
+      ) {
+        bodyToSend = await gzipAsync(responseBody, {
+          level: SESSION_REPLAY_GZIP_LEVEL,
+        });
+        contentEncoding = "gzip";
+      }
+
       res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader("Content-Length", responseBody.length.toString());
+
+      /*
+       * Set on both branches: the representation depends on the request
+       * header even when the answer is identity, and it is identical to
+       * what nginx's gzip_vary would emit for a body it compressed itself.
+       */
+      res.setHeader("Vary", "Accept-Encoding");
+
+      if (contentEncoding) {
+        res.setHeader("Content-Encoding", contentEncoding);
+      }
+
+      res.setHeader("Content-Length", bodyToSend.length.toString());
+
+      /*
+       * Which requested chunks exist but were left out for size, so a
+       * client that cares can ask for them in a smaller page instead of
+       * reading their absence as a gap in the recording.
+       */
+      if (omittedChunkIndexes.length > 0) {
+        res.setHeader(
+          "X-OneUptime-Replay-Omitted-Chunks",
+          omittedChunkIndexes
+            .sort((a: number, b: number): number => {
+              return a - b;
+            })
+            .join(","),
+        );
+      }
       /*
        * A recording is personal data. Nothing about it may sit in a
        * shared cache, and the browser should not keep it on disk either.
        */
       res.setHeader("Cache-Control", "no-store");
-      res.send(responseBody);
+      res.send(bodyToSend);
     } catch (err: unknown) {
       next(err);
     }
@@ -4398,14 +6018,16 @@ router.post(
       }
 
       /*
-       * Floored to the 15s heartbeat cadence. recordSecondsWatched is
-       * monotonic and returns without writing when the value does not
-       * advance, so flooring here turns a chatty client into at most one
-       * UPDATE per 15 seconds watched without any server-side timer or
-       * cross-pod throttle state.
+       * SEMANTICS: secondsWatched is the cumulative seconds of footage the
+       * player has PLAYED for this view (accumulated client-side while
+       * playback runs, scaled by speed), not the furthest offset reached.
+       * Floored to the 15s heartbeat cadence and clamped by the service,
+       * which is monotonic and writes nothing when the value does not
+       * advance, so a chatty client costs at most one UPDATE per 15
+       * seconds watched without any server-side timer or cross-pod
+       * throttle state.
        */
-      const throttledSeconds: number =
-        Math.floor(Math.max(0, secondsWatched) / 15) * 15;
+      const throttledSeconds: number = normalizeSecondsWatched(secondsWatched);
 
       /*
        * secondsWatched is a privacy control, not telemetry: it is shown on
@@ -4419,7 +6041,8 @@ router.post(
        * viewId belonging to anyone else matches nothing and is refused
        * indistinguishably from one that does not exist - and the
        * application it points at is authorized exactly as a payload read
-       * would be.
+       * would be. That ONE lookup also carries the row's current figure,
+       * so a heartbeat that does not advance it ends here with no write.
        */
       if (!databaseProps.userId) {
         return Response.sendErrorResponse(
@@ -4432,19 +6055,10 @@ router.post(
       }
 
       const view: RumSessionReplayView | null =
-        await RumSessionReplayViewService.findOneBy({
-          query: {
-            _id: viewId.toString(),
-            projectId: projectId,
-            viewedByUserId: databaseProps.userId,
-          },
-          select: {
-            _id: true,
-            rumApplicationId: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        await RumSessionReplayViewService.findOwnView({
+          viewId: viewId,
+          projectId: projectId,
+          viewedByUserId: databaseProps.userId,
         });
 
       if (!view || !view.rumApplicationId) {
@@ -4462,16 +6076,116 @@ router.post(
         rumApplicationId: view.rumApplicationId,
         databaseProps: databaseProps,
         permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+        allowCached: true,
       });
+
+      const currentSecondsWatched: number = view.secondsWatched || 0;
 
       await RumSessionReplayViewService.recordSecondsWatched({
         viewId: viewId,
         projectId: projectId,
         secondsWatched: throttledSeconds,
+        currentSecondsWatched: currentSecondsWatched,
       });
 
       return Response.sendJsonObjectResponse(req, res, {
-        secondsWatched: throttledSeconds,
+        secondsWatched: Math.max(currentSecondsWatched, throttledSeconds),
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Views Endpoint ---
+
+/*
+ * Who has watched this recording. The audit table has been written on
+ * every manifest read since the feature shipped and nothing surfaced it;
+ * the player header now can. Payload permission, because the list of
+ * viewers is a fact about a recording of a real person and belongs to
+ * the people who may watch it. Pinned to the application the session was
+ * authorized under: sessionId is only unique within an application.
+ */
+const MAX_SESSION_REPLAY_VIEWS_LIMIT: number = 50;
+
+router.post(
+  "/telemetry/rum/session-replay/views",
+  ...requireSessionReplayPayloadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const sessionId: string = readSessionIdFromBody(body);
+
+      const authorized: AuthorizedSession = await resolveAuthorizedSession({
+        projectId: projectId,
+        sessionId: sessionId,
+        databaseProps: databaseProps,
+        rumApplicationId: readOptionalObjectIdFromBody(
+          body,
+          "rumApplicationId",
+        ),
+        allowCached: true,
+      });
+
+      const views: Array<RumSessionReplayView> =
+        await RumSessionReplayViewService.getViewsForSession({
+          projectId: projectId,
+          rumApplicationId: new ObjectID(authorized.header.rumApplicationId),
+          sessionId: sessionId,
+          limit: readLimitFromBody(
+            body,
+            MAX_SESSION_REPLAY_VIEWS_LIMIT,
+            MAX_SESSION_REPLAY_VIEWS_LIMIT,
+          ),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        views: views.map((view: RumSessionReplayView): JSONObject => {
+          return {
+            id: view.id ? view.id.toString() : null,
+            viewedAt: view.viewedAt ? view.viewedAt.toISOString() : null,
+            secondsWatched: view.secondsWatched ?? 0,
+            accessReason: view.accessReason || "",
+            viewedByUserId: view.viewedByUserId
+              ? view.viewedByUserId.toString()
+              : null,
+            viewedByUser: view.viewedByUser
+              ? {
+                  id: view.viewedByUser.id
+                    ? view.viewedByUser.id.toString()
+                    : null,
+                  name: view.viewedByUser.name
+                    ? view.viewedByUser.name.toString()
+                    : "",
+                  email: view.viewedByUser.email
+                    ? view.viewedByUser.email.toString()
+                    : "",
+                  profilePictureId: view.viewedByUser.profilePictureId
+                    ? view.viewedByUser.profilePictureId.toString()
+                    : null,
+                }
+              : null,
+          };
+        }) as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);
@@ -4516,6 +6230,32 @@ router.post(
         );
       }
 
+      const primaryEntityId: ObjectID | undefined =
+        readOptionalObjectIdFromBody(body, "primaryEntityId");
+      const rawPrimaryEntityType: unknown = body["primaryEntityType"];
+      let primaryEntityType: ServiceType | undefined = undefined;
+
+      if (
+        rawPrimaryEntityType !== undefined &&
+        rawPrimaryEntityType !== null &&
+        rawPrimaryEntityType !== ""
+      ) {
+        if (
+          typeof rawPrimaryEntityType !== "string" ||
+          !Object.values(ServiceType).includes(
+            rawPrimaryEntityType as ServiceType,
+          )
+        ) {
+          throw new BadDataException("primaryEntityType is not valid");
+        }
+
+        primaryEntityType = rawPrimaryEntityType as ServiceType;
+      }
+
+      if (primaryEntityId === undefined && primaryEntityType !== undefined) {
+        throw new BadDataException("primaryEntityId is required with its type");
+      }
+
       /*
        * An exception is not scoped to a RUM application, so there is no
        * single application to authorize against. Restrict the query to
@@ -4528,25 +6268,66 @@ router.post(
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
 
-      const startTime: Date | undefined = body["startTime"]
-        ? OneUptimeDate.fromString(body["startTime"] as string)
-        : undefined;
+      let startTime: Date | undefined = readOptionalDateFromBody(
+        body,
+        "startTime",
+      );
+      let endTime: Date | undefined = readOptionalDateFromBody(body, "endTime");
 
-      const endTime: Date | undefined = body["endTime"]
-        ? OneUptimeDate.fromString(body["endTime"] as string)
-        : undefined;
+      /*
+       * The exception page knows WHEN the error happened. A session that
+       * contains that moment started at most one maximum session length
+       * before it (plus skew padding), so the window is derived from the
+       * moment rather than left to the 30-day default - a fraction of
+       * the partitions, and the card finds the session of THIS instance
+       * rather than the newest session that ever hit the fingerprint.
+       */
+      const rawErrorTime: unknown = body["errorTimeUnixMs"];
+
+      if (
+        startTime === undefined &&
+        endTime === undefined &&
+        typeof rawErrorTime === "number" &&
+        Number.isFinite(rawErrorTime) &&
+        rawErrorTime > 0
+      ) {
+        startTime = new Date(
+          rawErrorTime -
+            SESSION_REPLAY_MAX_SESSION_MS -
+            SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
+        );
+        endTime = new Date(
+          rawErrorTime + SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
+        );
+      }
+
+      if (startTime && endTime && startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must not be after endTime"),
+        );
+      }
+
+      /* Pin to the session the caller already knows threw, when it does. */
+      const pinnedSessionId: unknown = body["sessionId"];
 
       const sessions: Array<SessionReplayExceptionSession> =
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
+          ...(primaryEntityId !== undefined && { primaryEntityId }),
+          ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),
-          limit:
-            typeof body["limit"] === "number"
-              ? (body["limit"] as number)
-              : MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
+          ...(typeof pinnedSessionId === "string" &&
+            pinnedSessionId.length > 0 && { sessionId: pinnedSessionId }),
+          limit: readLimitFromBody(
+            body,
+            MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
+            MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
+          ),
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -4638,9 +6419,20 @@ router.post(
             sessionReplayAllowedOrigins: true,
             sessionReplaySamplePercentage: true,
             sessionReplayCaptureTrigger: true,
+            sessionReplayConsentMode: true,
+            sessionReplayMaskingMode: true,
+            sessionReplayRetentionInDays: true,
             sessionReplayMonthlyBudgetInGB: true,
             sessionReplayLastChunkReceivedAt: true,
             sessionReplayBudgetExceededAt: true,
+            /*
+             * Stamped by the /config route on every recorder load (through
+             * the throttled updateLastSeen path), so this is "when did the
+             * recorder last run on the customer's site" - the fact that
+             * separates "never installed" from "installed but uploading
+             * nothing".
+             */
+            lastSeenAt: true,
           },
           props: {
             isRoot: true,
@@ -4667,12 +6459,48 @@ router.post(
         },
       });
 
-      const [projectBytesUsedToday, applicationBytesUsedThisMonth]: [
+      const appIdentifier: string = String(
+        (application as unknown as JSONObject)["appIdentifier"] || "",
+      );
+
+      /*
+       * Every counter below is independent and every one answers null on
+       * its own failure: the Redis-backed ones when Redis is down, the
+       * ClickHouse-backed summary when the query fails. null is rendered
+       * as "unknown", never as 0 - "nothing was refused" and "we could
+       * not count" are different diagnoses.
+       */
+      const [
+        projectBytesUsedToday,
+        applicationBytesUsedThisMonth,
+        refusalsLast24h,
+        dropsLast24h,
+        activity,
+      ]: [
         number | null,
         number | null,
+        Array<SessionReplayRefusalCount> | null,
+        Array<SessionReplayDropCount> | null,
+        SessionReplayApplicationActivitySummary,
       ] = await Promise.all([
         SessionReplayUsage.getProjectBytesUsedToday(projectId),
         SessionReplayUsage.getApplicationBytesUsedThisMonth({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+        }),
+        appIdentifier
+          ? SessionReplayHealthCounters.readRefusalsLast24h({
+              projectId: projectId,
+              appIdentifier: appIdentifier,
+            })
+          : Promise.resolve(null),
+        appIdentifier
+          ? SessionReplayHealthCounters.readDropsLast24h({
+              projectId: projectId,
+              appIdentifier: appIdentifier,
+            })
+          : Promise.resolve(null),
+        SessionReplayReadService.getApplicationActivitySummary({
           projectId: projectId,
           rumApplicationId: rumApplicationId,
         }),
@@ -4695,6 +6523,27 @@ router.post(
 
       const applicationView: JSONObject = application as unknown as JSONObject;
 
+      const toIsoOrNull: (value: unknown) => string | null = (
+        value: unknown,
+      ): string | null => {
+        if (value instanceof Date) {
+          return Number.isFinite(value.getTime()) ? value.toISOString() : null;
+        }
+
+        if (typeof value === "string" && value.length > 0) {
+          const parsed: number = Date.parse(value);
+
+          return Number.isFinite(parsed)
+            ? new Date(parsed).toISOString()
+            : null;
+        }
+
+        return null;
+      };
+
+      const retentionInDays: unknown =
+        applicationView["sessionReplayRetentionInDays"];
+
       return Response.sendJsonObjectResponse(req, res, {
         isProjectAllowed: Boolean(
           (project as unknown as JSONObject | null)?.["isSessionReplayAllowed"],
@@ -4702,7 +6551,7 @@ router.post(
         isApplicationEnabled: Boolean(
           applicationView["isSessionReplayEnabled"],
         ),
-        appIdentifier: String(applicationView["appIdentifier"] || ""),
+        appIdentifier: appIdentifier,
         allowedOrigins: (applicationView["sessionReplayAllowedOrigins"] ||
           []) as JSONArray,
         samplePercentage: Number(
@@ -4722,6 +6571,52 @@ router.post(
         applicationBytesUsedThisMonth: applicationBytesUsedThisMonth,
         monthlyBudgetInGB:
           (applicationView["sessionReplayMonthlyBudgetInGB"] as number) ?? null,
+
+        /*
+         * ---- Additive: the rest of RecordingHealthStatus. ----
+         * Every timestamp is ISO-8601 or null; every counter is a number
+         * or null (unknown). The Dashboard parses this with
+         * parseRecordingHealthStatus and diagnoses it with
+         * diagnoseRecordingHealth.
+         */
+        consentMode: String(applicationView["sessionReplayConsentMode"] || ""),
+        maskingMode: String(applicationView["sessionReplayMaskingMode"] || ""),
+        retentionInDays:
+          typeof retentionInDays === "number" &&
+          Number.isFinite(retentionInDays)
+            ? retentionInDays
+            : null,
+        publishedRecorderVersion:
+          SessionReplayReadService.getPublishedRecorderVersion(),
+        lastConfigFetchAt: toIsoOrNull(applicationView["lastSeenAt"]),
+        lastSessionStartedAt: activity.lastSessionStartedAt
+          ? activity.lastSessionStartedAt.toISOString()
+          : null,
+        sessionsLast24h: activity.sessionsLast24h,
+        playableSessionsLast24h: activity.playableSessionsLast24h,
+        /*
+         * What the newest session's recorder said it could capture.
+         *
+         * This is the row the docs point operators at for spotting a stale
+         * cached recorder artifact ("click labels: no"); without it the
+         * health card and the installation test both said "not reported
+         * yet" for every application forever, which reads as a bug rather
+         * than as information. null (not []) when there is no session, when
+         * the newest one predates the attribute, or when the query failed -
+         * all three are "we cannot say", never "this recorder can do
+         * nothing". It rides on the last-session query the summary already
+         * runs, so the row costs no extra ClickHouse round trip.
+         */
+        recorderCapabilities:
+          activity.recorderCapabilities as unknown as JSONArray | null,
+        refusalsLast24h: refusalsLast24h as unknown as JSONArray | null,
+        /*
+         * Kept apart from refusals: a refusal was answered to the
+         * recorder, a drop happened after a 202 inside the worker. "12
+         * chunks dropped after acceptance: scrub-incomplete" is a
+         * different sentence from "212 uploads refused".
+         */
+        dropsLast24h: dropsLast24h as unknown as JSONArray | null,
       });
     } catch (err: unknown) {
       next(err);

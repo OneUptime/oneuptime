@@ -10,6 +10,11 @@ services:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - PODMAN_HOST_NAME=${PODMAN_HOST_NAME:-podman-host}
+      # Lower this if the socket serves an older Docker API version (see README, Troubleshooting)
+      # Set it to an empty value to negotiate the version with the socket instead.
+      # Hence "${VAR-default}" and not "${VAR:-default}": the colon form would
+      # replace an explicitly empty value with the default.
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
     restart: unless-stopped
     logging:
       driver: json-file

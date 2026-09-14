@@ -1,23 +1,43 @@
 {{> Start this}}
 
-
+{{!--
+  PREHEADER - the inbox preview line. A flap sends a create and a resolve
+  every few minutes and every one of them previewed as "Alert state has
+  changed", so the list gave the reader nothing to triage on.
+--}}
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
 
 {{> InfoBlock info="Alert state has changed"}}
 
-{{> InfoBlock info="Here are the details: "}}
-
 {{> DetailBoxStart this }}
 {{> StateTransition this}}
+{{> DetailBoxField title="Affected Resource:" plainText=resourcesAffected }}
+{{!--
+  WHY it changed. Populated from AlertStateTimeline.rootCause, which
+  MonitorAlert.resolveOpenAlert and AlertService.changeAlertState both write.
+  Without it a resolution email said only that the state changed, and a reader
+  could not tell a real recovery from a monitor oscillating around its
+  threshold.
+
+  `text=`, NOT `plainText=`, even though the fields around it are plainText:
+  this value is Markdown.convertToHTML output (which escapes the raw-HTML
+  tokens a user typed) and must render as HTML. Do not "align" it with its
+  neighbours.
+
+  `{{#if}}` rather than `{{#ifNotCond ... ""}}` because ifNotCond is a strict
+  !==, so an ABSENT var would pass it and render an empty bordered row.
+--}}
+{{#if stateChangeRootCause}}
+{{> DetailBoxField title="Root Cause:" blockText=stateChangeRootCause }}
+{{/if}}
 {{#ifNotCond previousStateDurationText ""}}
-{{> DetailBoxField title="Duration in Previous State:" text=previousStateDurationText }}
+{{> DetailBoxField title="Duration in Previous State:" plainText=previousStateDurationText }}
 {{/ifNotCond}}
-{{> DetailBoxField title="Alert Title:" text=alertTitle }}
 {{> DetailBoxField title="State changed at:" text=stateChangedAt }}
-{{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}
-{{> DetailBoxField title="Severity:" text=alertSeverity }}
-{{> DetailBoxField title="Description:" text=alertDescription }}
+{{> DetailBoxField title="Severity:" plainText=alertSeverity }}
+{{> DetailBoxField title="Alert Title:" plainText=alertTitle }}
+{{> DetailBoxField title="Description:" blockText=alertDescription }}
 {{> DetailBoxEnd this }}
 
 
@@ -25,10 +45,7 @@
 
 {{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=alertViewLink}}
-
-{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}

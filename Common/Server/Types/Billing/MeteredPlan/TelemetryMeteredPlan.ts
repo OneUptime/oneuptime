@@ -8,6 +8,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "../../../Services/PayAsYouGoBillingService";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
   private _productType!: ProductType;
@@ -54,11 +57,37 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
       meteredPlanSubscriptionId?: string | undefined;
     },
   ): Promise<void> {
-    // get all unreported logs
+    /*
+     * One live read of the payment setup for the whole report. Staging and the
+     * usage write each used to repeat it seconds later, for every product type
+     * of every project in the billing pass; they are handed this one instead,
+     * and still check live when it is not for this project or has aged out.
+     */
+    const liveAuthorization: LiveUsageAuthorization | null =
+      await PayAsYouGoBillingService.authorizeUsageNow(projectId);
+
+    if (!liveAuthorization) {
+      await TelemetryUsageBillingService.waiveUnreportedUsageBilling({
+        projectId: projectId,
+        productType: this.productType,
+      });
+      return;
+    }
+
+    const billingStartsAt: Date | undefined =
+      await PayAsYouGoBillingService.getTelemetryBillingStartDate(projectId);
+    if (billingStartsAt) {
+      await TelemetryUsageBillingService.waiveUnreportedUsageBilling({
+        projectId: projectId,
+        productType: this.productType,
+        before: billingStartsAt,
+      });
+    }
 
     await TelemetryUsageBillingService.stageTelemetryUsageForProject({
       projectId: projectId,
       productType: this.productType,
+      liveAuthorization: liveAuthorization,
     });
 
     const usageBillings: Array<TelemetryUsageBilling> =
@@ -119,6 +148,7 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
           (project.paymentProviderMeteredSubscriptionId as string),
         this,
         totalCostInCents,
+        { liveAuthorization: liveAuthorization },
       );
 
       for (const usageBilling of usageBillings) {

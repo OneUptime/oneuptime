@@ -1,4 +1,5 @@
 import React from "react";
+import ProjectSwitcher from "../components/ProjectSwitcher";
 import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
@@ -16,16 +17,25 @@ export default function MonitorsStackNavigator(): React.JSX.Element {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
+        headerTitle: () => {
+          return <ProjectSwitcher />;
         },
-        headerTintColor: theme.colors.textPrimary,
+        headerStyle: {
+          backgroundColor: theme.colors.backgroundSecondary,
+        },
+        headerTintColor: theme.colors.actionPrimary,
+        headerTitleStyle: {
+          fontSize: 17,
+          fontWeight: "600",
+          color: theme.colors.textPrimary,
+        },
         headerShadowVisible: false,
+        headerBackButtonDisplayMode: "minimal",
         ...(Platform.OS === "ios"
           ? {
-              headerLargeTitle: true,
+              headerLargeTitle: false,
               headerLargeStyle: {
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
               },
             }
           : {}),

@@ -5,6 +5,7 @@ import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Project from "../../../Models/DatabaseModels/Project";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import RumSessionErasureRequest from "../../../Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionPin from "../../../Models/DatabaseModels/RumSessionPin";
@@ -61,6 +62,86 @@ describe("RumApplication session replay configuration", () => {
     return model.getTableColumnMetadata(columnName);
   };
 
+  /*
+   * The identity column has to be CREATABLE and NEVER UPDATABLE.
+   *
+   * It shipped as `create: []` on a required column with no default, which
+   * made the documented "create an application by hand" flow impossible:
+   * ModelForm drops any field the caller has no create permission on, so the
+   * Dashboard's required "App Identifier" input never rendered, and the POST
+   * that followed was rejected by the server with "appIdentifier is
+   * required". The Create button was a dead end for every user.
+   */
+  it("lets a user supply the app identifier at creation time", () => {
+    const accessControl: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("appIdentifier");
+
+    expect(accessControl).toBeDefined();
+    expect(accessControl!.create.length).toBeGreaterThan(0);
+    expect(accessControl!.create).toContain(Permission.ProjectOwner);
+    expect(accessControl!.create).toContain(Permission.CreateRumApplication);
+  });
+
+  it("never lets the app identifier be edited afterwards", () => {
+    /*
+     * Deliberately immutable. Telemetry, sessions, traces and recordings are
+     * all filed under this value and the (projectId, appIdentifier) index is
+     * unique, so re-pointing it after the fact would orphan every row that
+     * already references it. If this list is ever populated, the orphaning
+     * has to be solved first - do not "tidy it up" to match `create`.
+     */
+    const accessControl: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("appIdentifier");
+
+    expect(accessControl!.update).toEqual([]);
+  });
+
+  /*
+   * The create form declares an "App Identifier" field. That field can only
+   * render if the column is creatable, and the POST can only succeed if the
+   * required column is supplied - so a required column with an empty create
+   * list is always a dead form, whatever the page source says.
+   *
+   * CloudResource.resourceIdentifier is checked alongside because it had the
+   * identical defect on the identical page shape: an auto-discovered
+   * identity column whose dashboard page also offers a Create button.
+   */
+  it.each([
+    ["RumApplication", new RumApplication() as BaseModel],
+    ["CloudResource", new CloudResource() as BaseModel],
+  ])(
+    "%s has no required column that the user is forbidden to create",
+    (_name: string, subject: BaseModel) => {
+      const uncreatable: Array<string> = [];
+
+      for (const columnName of subject.getTableColumns().columns) {
+        const metadata: TableColumnMetadata =
+          subject.getTableColumnMetadata(columnName);
+        const accessControl: ColumnAccessControl | null =
+          subject.getColumnAccessControlFor(columnName);
+
+        if (!metadata.required || metadata.defaultValue !== undefined) {
+          continue;
+        }
+
+        /* System columns nobody submits through a form. */
+        if (
+          ["_id", "createdAt", "updatedAt", "version", "slug"].includes(
+            columnName,
+          )
+        ) {
+          continue;
+        }
+
+        if (accessControl && accessControl.create.length === 0) {
+          uncreatable.push(columnName);
+        }
+      }
+
+      expect(uncreatable).toEqual([]);
+    },
+  );
+
   it("declares every session replay configuration column", () => {
     const expectedColumns: Array<string> = [
       "isSessionReplayEnabled",
@@ -85,14 +166,21 @@ describe("RumApplication session replay configuration", () => {
     }
   });
 
-  it("is enabled by default, and still captures nothing until something happens", () => {
+  it("is enabled by default and records every session out of the box", () => {
     /*
-     * Recording is on out of the box. The thing that keeps that from meaning
-     * "record everyone continuously" is the capture trigger below: sampling
-     * stays at 0, so a session is only uploaded when it actually goes wrong.
+     * Recording is on out of the box AND sampling is 100%. The previous
+     * defaults (sample 0%, upload only on error or frustration) were the
+     * exact configuration behind issues #3527 / #3601: a customer installed
+     * the recorder, watched it buffer forever, and concluded the product was
+     * broken because a quiet day looks identical to a dead one. A customer
+     * who configures NOTHING must see a recording of their very first
+     * session; sampling down is a deliberate, visible choice made later.
+     *
+     * This test is a tripwire: a regression back to record-nothing defaults
+     * has to change this expectation and say why in the same commit.
      */
     expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(true);
-    expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(0);
+    expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(100);
   });
 
   it("pins the shipped privacy defaults", () => {
@@ -123,8 +211,15 @@ describe("RumApplication session replay configuration", () => {
     expect(getColumn("sessionReplayConsentMode").defaultValue).toBe(
       SessionReplayConsentMode.NotRequired,
     );
+    /*
+     * Always, not OnErrorOrFrustration: with sampling at 100% (asserted
+     * above) the trigger is what decides whether a healthy session is ever
+     * uploaded, and "only broken sessions" made a working install look
+     * dead. The error/frustration trigger remains available per
+     * application for customers who want to trade coverage for bytes.
+     */
     expect(getColumn("sessionReplayCaptureTrigger").defaultValue).toBe(
-      SessionReplayCaptureTrigger.OnErrorOrFrustration,
+      SessionReplayCaptureTrigger.Always,
     );
     /*
      * Identity and country capture are ON, so a support engineer can find

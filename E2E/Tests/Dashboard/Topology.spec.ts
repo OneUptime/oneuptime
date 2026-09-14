@@ -41,7 +41,7 @@ test.describe("Topology page", () => {
       ready: page.getByRole("tab", { name: "Service Map" }),
     });
 
-    // All three tabs of the maps hub are present.
+    // All three purpose-specific topology views are present.
     await expect(page.getByRole("tab", { name: "Service Map" })).toBeVisible();
     await expect(
       page.getByRole("tab", { name: "Infrastructure" }),
@@ -53,17 +53,11 @@ test.describe("Topology page", () => {
       timeout: 30000,
     });
 
-    /*
-     * Telemetry tabs describe what the map covers, alongside the time range
-     * picker. Asserted on the "Connections reflect ..." clause rather than the
-     * whole sentence: the leading half names whatever the product currently
-     * calls the things on the map, and has already been reworded once.
-     */
+    await page.getByText("Current inventory · About this data").click();
     await expect(
-      page.getByText(
-        "Connections reflect OpenTelemetry data from the selected time range",
-        { exact: false },
-      ),
+      page.getByText("All current inventory resources are included.", {
+        exact: false,
+      }),
     ).toBeVisible();
 
     // Infrastructure tab: its own empty state.
@@ -98,6 +92,9 @@ test.describe("Topology page", () => {
      * The drag, viewport and layout behaviour is covered by the unit
      * suites in App/Tests/Dashboard, which can exercise it exactly.
      */
+    await page
+      .getByRole("button", { name: "Map options", exact: false })
+      .click();
     await expect(
       page.getByTestId("network-topology-layout-mode-force"),
     ).toBeVisible();

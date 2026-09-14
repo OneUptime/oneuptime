@@ -11,6 +11,9 @@ import { Outlet } from "react-router-dom";
 const getActiveLlmTab: (path: string) => LlmTabKey = (
   path: string,
 ): LlmTabKey => {
+  if (path.includes("/llm/usage")) {
+    return "usage";
+  }
   if (path.includes("/llm/calls")) {
     return "calls";
   }

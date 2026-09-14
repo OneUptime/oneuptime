@@ -747,6 +747,7 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "acknowledgedByUserId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "Acknowledged by User",
     description:
       "Relation to User who acknowledged this policy execution (if this policy was acknowledged by a User)",

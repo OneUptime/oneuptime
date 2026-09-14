@@ -147,9 +147,17 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    /*
+     * The way back out is only worth naming while there is something to
+     * reset — the host supplies onTimeRangeReset exactly then.
+     */
+    const canReset: boolean = Boolean(
+      (chart.props as LineChartProps | AreaChartProps).onTimeRangeReset,
+    );
+
     return (
       <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400">
-        Drag to zoom
+        {canReset ? "Drag to zoom · double-click to reset" : "Drag to zoom"}
       </span>
     );
   };

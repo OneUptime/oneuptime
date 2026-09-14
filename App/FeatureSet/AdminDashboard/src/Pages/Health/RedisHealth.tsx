@@ -75,27 +75,27 @@ type MetricInfoKey =
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
     title: "Overall status",
-    body: "Redis backs OneUptime's caching and queues. This card tracks reachability: Connected means this instance can reach Redis; Unreachable means it can't, which stalls cache reads and queued jobs. There is no partial state here — it's a binary reachability check, not a degraded/healthy scale.",
+    body: "Valkey backs OneUptime's caching and queues. This card tracks reachability: Connected means this instance can reach Valkey; Unreachable means it can't, which stalls cache reads and queued jobs. There is no partial state here — it's a binary reachability check, not a degraded/healthy scale.",
   },
   memoryUtilization: {
-    title: "Redis memory utilization",
-    body: "Used memory as a share of Redis' configured maxmemory. As this approaches 100%, Redis begins evicting keys per its eviction policy (or rejecting writes if no policy is set). If maxmemory is unset, no percentage can be shown.",
+    title: "Valkey memory utilization",
+    body: "Used memory as a share of Valkey's configured maxmemory. As this approaches 100%, Valkey begins evicting keys per its eviction policy (or rejecting writes if no policy is set). If maxmemory is unset, no percentage can be shown.",
   },
   memoryUsed: {
     title: "Memory used",
-    body: "Total memory Redis currently holds — cached data plus its own bookkeeping overhead (used_memory from INFO).",
+    body: "Total memory Valkey currently holds — cached data plus its own bookkeeping overhead (used_memory from INFO).",
   },
   memoryLimit: {
     title: "Memory limit",
-    body: "The maxmemory ceiling Redis will use before it starts evicting keys or rejecting writes. 'Not configured' means Redis can grow until the host itself runs out of memory.",
+    body: "The maxmemory ceiling Valkey will use before it starts evicting keys or rejecting writes. 'Not configured' means Valkey can grow until the host itself runs out of memory.",
   },
   evictionPolicy: {
     title: "Eviction policy",
-    body: "What Redis does at the memory limit. Any allkeys-* or volatile-* policy discards keys to make room, silently losing cached data and queued job state. 'noeviction' instead rejects writes outright, so background jobs start failing.",
+    body: "What Valkey does at the memory limit. Any allkeys-* or volatile-* policy discards keys to make room, silently losing cached data and queued job state. 'noeviction' instead rejects writes outright, so background jobs start failing.",
   },
   connections: {
     title: "Client connections",
-    body: "Clients connected right now against the maxclients limit. Redis refuses new connections once maxclients is reached, which stalls every OneUptime process that needs the cache or a job queue.",
+    body: "Clients connected right now against the maxclients limit. Valkey refuses new connections once maxclients is reached, which stalls every OneUptime process that needs the cache or a job queue.",
   },
   blockedClients: {
     title: "Blocked clients",
@@ -103,15 +103,15 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   },
   evictedKeys: {
     title: "Keys evicted",
-    body: "Keys Redis has discarded since it last restarted because it hit its memory limit. Any non-zero value means cached data or queued job state was lost. This counter only resets when Redis restarts.",
+    body: "Keys Valkey has discarded since it last restarted because it hit its memory limit. Any non-zero value means cached data or queued job state was lost. This counter only resets when Valkey restarts.",
   },
   rejectedConnections: {
     title: "Rejected connections",
-    body: "Connection attempts Redis turned away since it last restarted, because maxclients was already reached. Any non-zero value means some part of OneUptime could not reach Redis.",
+    body: "Connection attempts Valkey turned away since it last restarted, because maxclients was already reached. Any non-zero value means some part of OneUptime could not reach Valkey.",
   },
   persistence: {
     title: "Persistence",
-    body: "Whether Redis' last write to disk succeeded. When this is failing, Redis still serves from memory but everything since the last good write is lost on restart — usually a full disk or a permissions problem on the data directory.",
+    body: "Whether Valkey's last write to disk succeeded. When this is failing, Valkey still serves from memory but everything since the last good write is lost on restart — usually a full disk or a permissions problem on the data directory.",
   },
 };
 
@@ -224,8 +224,8 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
 
   return (
     <Card
-      title="Redis capacity"
-      description="Connectivity, memory and connection utilization, key eviction and persistence status for the Redis backing this instance."
+      title="Valkey capacity"
+      description="Connectivity, memory and connection utilization, key eviction and persistence status for the Valkey backing this instance."
       buttons={[
         {
           title: "Refresh",
@@ -254,7 +254,7 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Redis is {connected ? "reachable" : "not reachable"} from this
+                Valkey is {connected ? "reachable" : "not reachable"} from this
                 instance.
               </div>
               <MetricInfoWrap info={METRIC_INFO.overallStatus}>
@@ -274,7 +274,7 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                   <MetricInfoWrap info={METRIC_INFO.memoryUtilization}>
                     <div className="cursor-help">
                       <ResourceUsageBar
-                        label="Redis memory"
+                        label="Valkey memory"
                         value={memoryPercent}
                         valueLabel={`${memoryPercent.toFixed(0)}%`}
                         secondaryLabel={`${bytesToReadable(
@@ -286,7 +286,7 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                 ) : (
                   <Alert
                     type={AlertType.INFO}
-                    title="Redis maxmemory is not configured, so a memory utilization percentage is unavailable."
+                    title="Valkey maxmemory is not configured, so a memory utilization percentage is unavailable."
                   />
                 )}
 
@@ -294,7 +294,7 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                   <MetricInfoWrap info={METRIC_INFO.connections}>
                     <div className="cursor-help">
                       <ResourceUsageBar
-                        label="Redis connections"
+                        label="Valkey connections"
                         value={connectionPercent}
                         valueLabel={`${connectionPercent.toFixed(0)}%`}
                         secondaryLabel={`${connectedClients} / ${maxClients} clients`}

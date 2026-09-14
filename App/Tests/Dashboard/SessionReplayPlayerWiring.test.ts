@@ -1,0 +1,944 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * The session replay player's page-level wiring, from
+ * github.com/OneUptime/oneuptime/issues/3601 and the overhaul design.
+ *
+ * SessionReplayPlayer is the composition root and the one file in the
+ * Dashboard allowed to touch rrweb, behind a dynamic import(); rendering it
+ * in a unit test would need a manifest endpoint, an authenticated binary
+ * transport and a Replayer. Its siblings (ReplayHeader, ReplayStageOverlays)
+ * ARE rendered, in Common/Tests/UI/Rum. What is pinned here is the wiring
+ * only this file owns, each item reversing a reported fault:
+ *
+ *   - rrweb is reachable through exactly one dynamic import, here, and no
+ *     other Dashboard file names the package (bundle-size invariant);
+ *   - the rrweb download starts BEFORE the manifest resolves, and the first
+ *     chunks go on the wire BEFORE the Replayer factory exists (instant feel);
+ *   - the engine is read through useSyncExternalStore and disposed with
+ *     the component;
+ *   - playback starts on its own, exactly once, and rrweb's own skipInactive
+ *     is never turned on;
+ *   - the live poll carries isRefresh + viewId (one audit row per view) and
+ *     no bare manifest request is ever repeated;
+ *   - the heartbeat counts time PLAYED and flushes on the way out;
+ *   - the rail sits beside the stage and is fed the playhead and selection;
+ *   - the header is handed the identity the manifest served;
+ *   - the page keys the player on the session, so browser back/forward
+ *     between two recordings never reuses one session's state for the next.
+ *
+ * Deliberately structural, not cosmetic: nothing here asserts a colour, a
+ * spacing class or a label, so ordinary design work does not break it.
+ */
+
+const DASHBOARD_SRC: string = path.join(
+  __dirname,
+  "../../FeatureSet/Dashboard/src",
+);
+
+const PLAYER_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components/SessionReplay/SessionReplayPlayer.tsx",
+);
+
+const VIEW_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Pages/Rum/View/SessionReplayView.tsx",
+);
+const STAGE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components/SessionReplay/ReplayStage.tsx",
+);
+
+/*
+ * Comments are stripped before searching: the player's header explains why
+ * a static `from "rrweb"` would be a disaster, and a naive text search
+ * would match the warning and fail on correct code.
+ */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+const SOURCE: string = stripComments(fs.readFileSync(PLAYER_PATH, "utf8"));
+const VIEW_SOURCE: string = stripComments(fs.readFileSync(VIEW_PATH, "utf8"));
+const STAGE_SOURCE: string = stripComments(fs.readFileSync(STAGE_PATH, "utf8"));
+
+function listSourceFiles(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...listSourceFiles(fullPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+/* The text between two markers, so an assertion can be scoped to one region. */
+function slice(source: string, fromMarker: string, toMarker: string): string {
+  const start: number = source.indexOf(fromMarker);
+
+  expect(start).toBeGreaterThan(-1);
+
+  const end: number = source.indexOf(toMarker, start);
+
+  expect(end).toBeGreaterThan(start);
+
+  return source.slice(start, end);
+}
+
+describe("rrweb boundary", () => {
+  test("the player has exactly one dynamic import of rrweb and no static one", () => {
+    const dynamicImports: number = (
+      SOURCE.match(/import\(\s*["']rrweb["']\s*\)/g) ?? []
+    ).length;
+
+    expect(dynamicImports).toBe(1);
+    expect(SOURCE).not.toMatch(/from\s+["']rrweb["']/);
+    expect(SOURCE).not.toMatch(/require\(\s*["']rrweb["']\s*\)/);
+  });
+
+  test("no other Dashboard source names the rrweb package in any form", () => {
+    const offenders: Array<string> = [];
+    const anyRrwebReference: RegExp = /["']rrweb["']/;
+
+    for (const file of listSourceFiles(DASHBOARD_SRC)) {
+      if (file === PLAYER_PATH) {
+        continue;
+      }
+
+      const source: string = stripComments(fs.readFileSync(file, "utf8"));
+
+      if (anyRrwebReference.test(source)) {
+        offenders.push(path.relative(DASHBOARD_SRC, file));
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("instant feel", () => {
+  test("the rrweb download starts before the manifest is awaited", () => {
+    const importIndex: number = SOURCE.indexOf('import("rrweb")');
+    const manifestAwaitIndex: number = SOURCE.indexOf("await manifestPromise");
+
+    expect(importIndex).toBeGreaterThan(-1);
+    expect(manifestAwaitIndex).toBeGreaterThan(importIndex);
+  });
+
+  test("the first chunks are requested from the manifest handler, before the Replayer factory exists", () => {
+    const manifestHandler: string = slice(
+      SOURCE,
+      "await manifestPromise",
+      "await rrwebModulePromise",
+    );
+
+    expect(manifestHandler).toContain("loader.loadFirst(");
+    expect(manifestHandler).toContain("pendingLoaderRef.current = loader");
+    expect(manifestHandler).not.toContain("setReplayerFactory");
+  });
+
+  test("the pending loader is reused by the engine rather than fetched twice", () => {
+    expect(SOURCE).toMatch(
+      /pending && pending\.getTabId\(\) === tab\.tabId \? pending : createLoader\(tab\)/,
+    );
+  });
+});
+
+describe("engine ownership", () => {
+  test("the engine is built from the browser deps and read through useSyncExternalStore", () => {
+    expect(SOURCE).toContain(
+      "createReplayEngine(\n      createBrowserReplayEngineDeps(loader, replayerFactory),",
+    );
+    expect(SOURCE).toMatch(
+      /useSyncExternalStore\(\s*subscribeToEngine,\s*getEngineSnapshot,\s*getEngineSnapshot,\s*\)/,
+    );
+  });
+
+  test("mobile synthetic events use the same rrweb-compatible engine", () => {
+    expect(SOURCE).toContain(
+      "createReplayEngine(\n      createBrowserReplayEngineDeps(loader, replayerFactory),",
+    );
+    expect(SOURCE).not.toMatch(
+      /recorderKind[^\n]*(createReplayEngine|createBrowserReplayEngineDeps)/,
+    );
+  });
+
+  test("the engine is disposed when it is replaced or the player unmounts", () => {
+    const disposeEffect: string = slice(
+      SOURCE,
+      "useEffect(() => {\n    if (!engine) {\n      return;\n    }\n\n    return () => {\n      engine.dispose();",
+      "}, [engine]);",
+    );
+
+    expect(disposeEffect).toContain("engine.dispose()");
+  });
+
+  test("the stage is rendered inside the overlays with the engine, never with the old loader props", () => {
+    const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stageProps).toContain("engine={engine}");
+    expect(stageProps).not.toContain("loader=");
+    expect(stageProps).not.toContain("replayerFactory=");
+    expect(stageProps).not.toContain("seekRequest=");
+
+    expect(SOURCE.indexOf("<ReplayStageOverlays")).toBeLessThan(
+      SOURCE.indexOf("<ReplayStage\n"),
+    );
+  });
+});
+
+describe("playback intent", () => {
+  test("auto-plays exactly once, right after the initial LOAD", () => {
+    const autoPlays: number = (
+      SOURCE.match(/created\.dispatch\(\{ type: "PLAY" \}\)/g) ?? []
+    ).length;
+
+    expect(autoPlays).toBe(1);
+    expect(SOURCE.indexOf('type: "LOAD"')).toBeLessThan(
+      SOURCE.indexOf('created.dispatch({ type: "PLAY" })'),
+    );
+  });
+
+  test("never passes skipInactive: true to the engine or a Replayer", () => {
+    expect(SOURCE).not.toMatch(/skipInactive:\s*true/);
+    expect(SOURCE).not.toMatch(/initialSkipInactive:\s*true/);
+    expect(SOURCE).toContain("initialSkipInactive: prefs.skipIdle");
+  });
+
+  test("play/pause and every seek go through the engine, not local state", () => {
+    expect(SOURCE).not.toContain("setIsPlaying(");
+    expect(SOURCE).not.toContain("setCurrentTimeMs(");
+    expect(SOURCE).toMatch(
+      /current\.getSnapshot\(\)\.intent === "playing" \? "PAUSE" : "PLAY"/,
+    );
+    expect(SOURCE).toMatch(
+      /type: "SEEK",\s*offsetMs: Math\.max\(0, offsetMs\),/,
+    );
+  });
+
+  test("a tab switch dispatches TAB_SWITCH with a fresh loader so the playhead is preserved", () => {
+    expect(SOURCE).toMatch(
+      /type: "TAB_SWITCH",\s*tabId: tabId,\s*loader: loader,/,
+    );
+  });
+});
+
+describe("read-only text selection", () => {
+  test("enabling selection pauses before exposing the replay document", () => {
+    const handler: string = slice(
+      SOURCE,
+      "const changeTextSelection:",
+      "const retry:",
+    );
+    const pauseIndex: number = handler.indexOf(
+      'engineRef.current?.dispatch({ type: "PAUSE" })',
+    );
+    const enableIndex: number = handler.indexOf(
+      "setIsTextSelectionEnabled(isEnabled)",
+    );
+
+    expect(pauseIndex).toBeGreaterThan(-1);
+    expect(enableIndex).toBeGreaterThan(pauseIndex);
+  });
+
+  test("playback and seeks wait for the replay document to leave selection mode", () => {
+    const exitCoordinator: string = slice(
+      SOURCE,
+      "const runAfterTextSelectionExit:",
+      "const dispatchSeek:",
+    );
+    const seekHandler: string = slice(
+      SOURCE,
+      "const seekTo:",
+      "const playPause:",
+    );
+    const playPauseHandler: string = slice(
+      SOURCE,
+      "const playPause:",
+      "const watchAgain:",
+    );
+    const watchAgainHandler: string = slice(
+      SOURCE,
+      "const watchAgain:",
+      "const changeTextSelection:",
+    );
+
+    expect(exitCoordinator).toContain(
+      "pendingTextSelectionActionRef.current = action",
+    );
+    expect(exitCoordinator).toContain("setIsTextSelectionEnabled(false)");
+    expect(seekHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(seekHandler).toContain("dispatchSeek(offsetMs)");
+    expect(playPauseHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(watchAgainHandler).toContain(
+      "runAfterTextSelectionExit((): void =>",
+    );
+    expect(STAGE_SOURCE).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*for \(const replayer of replayersRef\.current\)/,
+    );
+  });
+
+  test("the same selection state is wired to the toolbar and replay stage", () => {
+    expect(SOURCE).toContain("isTextSelectionEnabled: isTextSelectionEnabled");
+    expect(SOURCE).toContain("onTextSelectionChange: changeTextSelection");
+    expect(SOURCE).toContain(
+      "isPlayable && engine !== null && isReplayDocumentReady",
+    );
+
+    const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
+    expect(stageProps).toContain(
+      "isTextSelectionEnabled={isTextSelectionEnabled}",
+    );
+  });
+
+  test("a session or engine reload cannot carry selection into autoplay", () => {
+    const manifestReset: string = slice(
+      SOURCE,
+      "setManifest(null);",
+      "const rrwebModulePromise:",
+    );
+
+    expect(manifestReset).toContain("setEngine(null)");
+    expect(manifestReset).toContain("setIsTextSelectionEnabled(false)");
+    expect(manifestReset).toContain("setIsReplayDocumentReady(false)");
+  });
+
+  test("the toggle becomes available only while a real replay document exists", () => {
+    const replayerLifecycle: string = slice(
+      SOURCE,
+      "return engine.onReplayer((event: ReplayEngineReplayerEvent): void =>",
+      "const store: ReplayBackendSignalsStore",
+    );
+
+    expect(SOURCE).toContain(
+      "const [isReplayDocumentReady, setIsReplayDocumentReady]",
+    );
+    expect(replayerLifecycle).toContain('event.type === "created"');
+    expect(replayerLifecycle).toContain(
+      'event.type === "fullsnapshot-rebuilded"',
+    );
+    expect(replayerLifecycle).toContain(
+      "event.replayer.iframe.contentDocument",
+    );
+    expect(replayerLifecycle).toContain("setIsReplayDocumentReady(false)");
+    expect(replayerLifecycle).toContain("setIsTextSelectionEnabled(false)");
+  });
+});
+
+describe("live sessions", () => {
+  test("the poll re-fetches the manifest with isRefresh and the existing viewId", () => {
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+
+    expect(pollEffect).toContain("refresh: { viewId: viewId }");
+    expect(pollEffect).toContain('type: "APPEND_ENTRIES"');
+    expect(pollEffect).toContain("setInterval(");
+    expect(pollEffect).toContain("LIVE_MANIFEST_POLL_MS");
+  });
+
+  test("a refresh request always carries isRefresh: true alongside the viewId", () => {
+    const transport: string = slice(
+      SOURCE,
+      "async function fetchManifest",
+      "return parseManifest",
+    );
+
+    expect(transport).toMatch(
+      /body\["isRefresh"\] = true;\s*body\["viewId"\] = args\.refresh\.viewId;/,
+    );
+  });
+
+  test("only the initial load makes an audit-writing manifest request", () => {
+    /*
+     * Exactly one call omits `refresh`. That call carries the access
+     * reason (ux-12); every other one names the existing view so the
+     * server reuses its audit row.
+     */
+    const calls: Array<string> =
+      SOURCE.match(/fetchManifest\(\{[\s\S]*?\n {4}\}\)/g) ?? [];
+    const auditWriting: Array<string> = calls.filter(
+      (call: string): boolean => {
+        return !call.includes("refresh:");
+      },
+    );
+
+    expect(calls.length).toBeGreaterThan(1);
+    expect(auditWriting).toHaveLength(1);
+    expect(auditWriting[0]).toContain("accessReason:");
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642 split one flag in two. The
+   * poll keeps running until the finalized header lands - an ended
+   * session's counts only arrive through it - while "live" (the pill, the
+   * caught-up overlay) goes out as soon as every tab has closed.
+   */
+  test("polling is gated on the session not being finalized, not on it being live", () => {
+    expect(SOURCE).toMatch(
+      /const isAwaitingFinalization: boolean =\s*manifest !== null && isManifestAwaitingFinalization\(manifest\);/,
+    );
+    expect(SOURCE).toMatch(/if \(!isAwaitingFinalization\) \{\s*return;\s*\}/);
+    expect(SOURCE).not.toMatch(/if \(!isLive\) \{\s*return;\s*\}/);
+  });
+
+  test("live means not finalized AND not every tab has ended", () => {
+    expect(SOURCE).toMatch(
+      /const isLive: boolean =\s*manifest !== null && isManifestRecordingLive\(manifest\);/,
+    );
+    /* The old definition read every unfinalized session as live. */
+    expect(SOURCE).not.toContain(
+      "const isLive: boolean = manifest !== null && !manifest.isFinalized;",
+    );
+  });
+
+  test("each refresh replaces the manifest, so hasRecordingEnded follows the server", () => {
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+
+    expect(pollEffect).toMatch(/\.\.\.refreshed,/);
+  });
+
+  test("the stage overlays, the root attribute and the header all read the live flag", () => {
+    expect(SOURCE).toContain('data-replay-live={isLive ? "true" : "false"}');
+    expect(SOURCE).toMatch(/sealedReason: sealedReason,\s*isLive: isLive,/);
+  });
+
+  test("the details panel is told when every tab has ended", () => {
+    const panel: string = slice(SOURCE, "<ReplayCorrelationPanel\n", "/>");
+
+    expect(panel).toContain("hasRecordingEnded={manifest.hasRecordingEnded}");
+  });
+
+  test("the sealed reason is quoted once the recording has ended, not while it is live", () => {
+    expect(SOURCE).toContain(
+      "manifest && (manifest.isFinalized || manifest.hasRecordingEnded)",
+    );
+  });
+});
+
+describe("watch-time heartbeat", () => {
+  const heartbeat: string = slice(
+    SOURCE,
+    "let watchedMs: number = 0;",
+    "}, [engine, viewId]);",
+  );
+
+  test("accumulates only while the engine phase is playing, scaled by speed", () => {
+    expect(heartbeat).toMatch(
+      /if \(current\.phase === "playing"\) \{\s*watchedMs \+= Math\.max\(0, now - lastSampleAt\) \* current\.speed;/,
+    );
+    expect(SOURCE).not.toContain("Math.max(watchedMsRef.current, offsetMs)");
+  });
+
+  test("flushes on pagehide, on hide and on unmount with keepalive", () => {
+    expect(heartbeat).toContain(
+      'window.addEventListener("pagehide", onPageHide)',
+    );
+    expect(heartbeat).toContain(
+      'document.addEventListener("visibilitychange", onVisibilityChange)',
+    );
+    expect(heartbeat).toMatch(/return \(\) => \{[\s\S]*send\(true\);\s*\};/);
+    expect(SOURCE).toContain("keepalive: keepalive");
+  });
+
+  test("never sends the same figure twice", () => {
+    expect(heartbeat).toContain("seconds === lastSentSeconds");
+  });
+});
+
+describe("the events rail", () => {
+  test("is rendered beside the stage column inside the same flex row", () => {
+    const rowStart: number = SOURCE.lastIndexOf("xl:flex-row");
+    const stageIndex: number = SOURCE.indexOf("<ReplayStageOverlays", rowStart);
+    const railColumnIndex: number = SOURCE.indexOf(
+      'data-testid="replay-rail-column"',
+      rowStart,
+    );
+
+    expect(stageIndex).toBeGreaterThan(-1);
+    expect(railColumnIndex).toBeGreaterThan(stageIndex);
+    expect(SOURCE.indexOf("<ReplayRail\n")).toBeGreaterThan(-1);
+  });
+
+  test("is handed the playhead, the transport state, the selection and the seek", () => {
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRailClocked\n      clock={engine}",
+      "/>",
+    );
+
+    /*
+     * The playhead no longer rides in on a prop from this component. The
+     * rail subscribes to the engine's clock channel through the wrapper,
+     * at a quantum this component chooses, so the ~30Hz publish stops
+     * re-rendering an 1800-line list for a readout that shows seconds.
+     */
+    expect(railProps).not.toContain("currentTimeMs:");
+    expect(railProps).toContain("quantumMs={");
+    expect(railProps).toContain("REPLAY_RAIL_CLOCK_MS");
+    expect(railProps).toContain("railRef={railRef}");
+    expect(railProps).toContain('isPlaying: snapshot.phase === "playing"');
+    expect(railProps).toContain("selectedSignalId: selectedSignalId");
+    expect(railProps).toContain("onSeek: seekTo");
+    expect(railProps).toContain("backendStore: backendStore");
+    expect(railProps).toContain("isExpiredFootage: !isPlayable");
+    expect(railProps).toContain("onTelemetrySignalsChange:");
+  });
+
+  test("the rail is given the exact playhead while paused and a coarse one while playing", () => {
+    /*
+     * The rail's "now" divider shows tenths of a second when the picture
+     * is still, and there is no frame budget to protect then; while
+     * playing it is quantised so the list re-renders four times a second
+     * instead of thirty.
+     */
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRailClocked\n      clock={engine}",
+      "/>",
+    );
+
+    expect(railProps).toMatch(
+      /quantumMs=\{\s*snapshot\.phase === "playing"\s*\?\s*REPLAY_RAIL_CLOCK_MS\s*:\s*REPLAY_CLOCK_EXACT_MS\s*\}/,
+    );
+  });
+
+  test("stays mounted in the no-footage mode so telemetry still loads", () => {
+    /* The rail element is built once and rendered regardless of isPlayable. */
+    expect(SOURCE).toContain("const railElement: ReactElement = (");
+    expect(SOURCE).toMatch(/\{railElement\}/);
+  });
+
+  /*
+   * ux-02: outside theater nothing bounded the rail's height, so its list
+   * never overflowed - follow, the now-divider anchoring, "Jump to now"
+   * and the >500-row windowing were all inert and a long session made the
+   * page tens of thousands of pixels tall. The bound is a layout fact, so
+   * it is pinned as one: jsdom computes no layout, and an E2E run at a
+   * real viewport is the only other way to see it.
+   */
+  test("the rail column has a bounded height so the rail's list can scroll", () => {
+    const column: string = slice(
+      SOURCE,
+      'data-testid="replay-rail-column"',
+      "replay-rail-resize-handle",
+    );
+
+    /* Stacked below xl (the design's sheet) and beside the stage above it. */
+    expect(column).toMatch(/max-h-\[\d+rem\]/);
+    expect(column).toMatch(/xl:max-h-\[calc\(100vh-[^\]]+\)\]/);
+  });
+
+  test("nothing between the rail column and the rail re-introduces content height", () => {
+    /*
+     * The chain has to be able to shrink the whole way down, and the rail
+     * itself must take the remaining height rather than its own content
+     * height (`h-full` resolved to the latter, which was the bug).
+     */
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRailClocked\n      clock={engine}",
+      "/>",
+    );
+
+    expect(railProps).toContain('className: "min-h-0 flex-1"');
+    expect(railProps).not.toContain('className: "h-full"');
+    expect(SOURCE).toContain(
+      "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+    );
+  });
+
+  test("the keyboard map's rail keys reach the rail's handle", () => {
+    for (const method of [
+      "stepSignal(1)",
+      "stepSignal(-1)",
+      "focusSearch()",
+      "moveSelection(1)",
+      "moveSelection(-1)",
+      "seekSelected()",
+      "clearSelection()",
+      "revealSignal(",
+    ]) {
+      expect(SOURCE).toContain(`railRef.current?.${method}`);
+    }
+  });
+});
+
+describe("the header", () => {
+  test("receives the identity the manifest served (null when not permitted)", () => {
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
+
+    expect(headerProps).toContain(
+      "label: manifest.details.identifiedUserLabel",
+    );
+    expect(headerProps).toContain(
+      "traits: manifest.details.identifiedUserTraits",
+    );
+    expect(headerProps).toContain("isLive: isLive");
+    expect(headerProps).toContain("startTimeUnixMs: startTimeUnixMs");
+    /*
+     * The clock reaches the header through the wrapper's subscription,
+     * not as a prop from here: its readouts show whole seconds, so it
+     * renders four times a second rather than thirty.
+     */
+    expect(headerProps).not.toContain("currentTimeMs:");
+    expect(headerProps).toContain("quantumMs={REPLAY_HEADER_CLOCK_MS}");
+    expect(headerProps).toContain("onSwitchTab: switchTab");
+  });
+
+  test("drops blank facts rather than rendering an empty row for each", () => {
+    expect(SOURCE).toMatch(/return Boolean\(fact\.value\);/);
+  });
+
+  test("labels the mobile app and recording source without changing web facts", () => {
+    expect(SOURCE).toContain(
+      "label: getReplayClientLabel(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "value: isMobileSessionReplay(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "getReplayRecorderKindLabel(details.recorderKind)",
+    );
+  });
+
+  test("copy link builds the moment route with a zero pre-roll", () => {
+    const builder: string = slice(
+      SOURCE,
+      "const buildMomentUrl",
+      "const copyLink",
+    );
+
+    expect(builder).toContain("buildReplayMomentRoute({");
+    expect(builder).toContain("preRollMs: 0");
+    expect(builder).toContain("signal: selectedSignalId");
+  });
+
+  test("the Sessions link restores the stamped list URL", () => {
+    expect(SOURCE).toContain("readReplayListUrl()");
+    expect(SOURCE).toContain("Navigation.isSafeInternalRoute(backHref)");
+  });
+
+  /*
+   * ux-10: the rail row's "Copy link to this moment" wrote straight to
+   * navigator.clipboard, so it confirmed nothing on success and swallowed
+   * the failure on a plain-http install. It goes through the header's
+   * announced-and-fallback path now, like the Link button beside it.
+   */
+  test("the rail row's copy link goes through the header's announced copy path", () => {
+    const copier: string = slice(
+      SOURCE,
+      "const copySignalLink",
+      "const selectSignal",
+    );
+
+    expect(copier).toContain("headerRef.current?.copyUrl(");
+    expect(copier).not.toContain("navigator.clipboard");
+    /* Nothing anywhere in the shell may write to the clipboard directly. */
+    expect(SOURCE).not.toContain("navigator.clipboard");
+  });
+});
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3705: "this user's other
+ * sessions" in the header. What only the shell can get wrong is pinned:
+ * the lookup is keyed on the identity keys and the session clock (so the
+ * 30s live poll, which replaces the manifest object every tick, never
+ * re-fetches it), a cancelled or superseded lookup never sets state, the
+ * header is handed the state and the navigation, and moving to another
+ * session is a route change through the shared moment builder so the
+ * page remounts the player exactly as the list would.
+ */
+describe("this user's other sessions", () => {
+  const lookup: string = slice(
+    SOURCE,
+    "const kind: ReplayUserSessionsKind = resolveReplayUserSessionsKind({",
+    "const isAwaitingFinalization: boolean",
+  );
+
+  test("the lookup effect is keyed on the session, the identity keys and the clock, not the manifest object", () => {
+    const dependencies: string = slice(
+      lookup,
+      "}, [\n    rumApplicationIdString,",
+      "manifest?.startTimeUnixMs,",
+    );
+
+    expect(dependencies).toContain("sessionId,");
+    expect(dependencies).toContain("manifest?.details.identifiedUserKey,");
+    expect(dependencies).toContain("manifest?.details.visitorId,");
+    /* Listing the object would re-run the lookup on every live poll. */
+    expect(dependencies).not.toMatch(/\n\s+manifest,\n/);
+    expect(dependencies).not.toContain("viewId");
+    expect(dependencies).not.toContain("reloadToken");
+  });
+
+  test("the lookup goes through the shared fetch and merge, once per generation", () => {
+    expect(lookup).toContain("fetchReplayUserSessions({");
+    expect(lookup).toContain("mergeReplayUserSessions(lists, self)");
+    expect(lookup).toContain("buildReplayUserSessionsWindow(");
+    expect(lookup).toContain("userSessionsGenerationRef.current += 1;");
+    expect(lookup).toMatch(
+      /if \(isCancelled \|\| generation !== userSessionsGenerationRef\.current\) \{\s*return;\s*\}/,
+    );
+    expect(lookup).toMatch(/return \(\) => \{\s*isCancelled = true;\s*\};/);
+    /* A session with neither key never makes a request. */
+    expect(lookup).toMatch(
+      /if \(kind === "none"\) \{[\s\S]*?kind: "none",[\s\S]*?return;\s*\}/,
+    );
+  });
+
+  test("the header is handed the visitor id with the identity and the lookup state after the pin control", () => {
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
+
+    /* Inside the pinned identity block, next to the two existing keys. */
+    expect(headerProps).toContain("visitorId: manifest.details.visitorId");
+
+    const headerElement: string = slice(
+      SOURCE,
+      "<ReplayHeaderClocked\n",
+      "{recordingNotes.length > 0 && (",
+    );
+    const pinIndex: number = headerElement.indexOf("pinControl: (");
+    const stateIndex: number = headerElement.indexOf(
+      "userSessions: displayedUserSessions",
+    );
+    const openIndex: number = headerElement.indexOf(
+      "onOpenUserSession: openUserSession",
+    );
+
+    expect(pinIndex).toBeGreaterThan(-1);
+    expect(stateIndex).toBeGreaterThan(pinIndex);
+    expect(openIndex).toBeGreaterThan(pinIndex);
+  });
+
+  test("opening another session is a route change through the moment builder, with the rail tab and no pre-roll", () => {
+    const opener: string = slice(
+      SOURCE,
+      "const openUserSession",
+      "const adjacentUserSessions",
+    );
+
+    expect(opener).toContain("buildReplayMomentRoute({");
+    expect(opener).toContain("sessionId: targetSessionId,");
+    expect(opener).toContain("rail: railTab,");
+    expect(opener).toContain("preRollMs: 0,");
+    expect(opener).toContain("Navigation.navigate(route)");
+    /* Never a state change: the page keys the player on the session. */
+    expect(opener).not.toContain("setManifest(");
+    expect(opener).not.toContain("setReloadToken(");
+    expect(opener).toMatch(
+      /if \(!targetSessionId \|\| targetSessionId === sessionId\) \{\s*return;\s*\}/,
+    );
+  });
+
+  test("the { and } keys reach the older/newer steps through the scrubber's shell-level handlers", () => {
+    const scrubberProps: string = slice(SOURCE, "<ReplayScrubber\n", "/>");
+
+    expect(scrubberProps).toContain(
+      "onOlderUserSession={openOlderUserSession}",
+    );
+    expect(scrubberProps).toContain(
+      "onNewerUserSession={openNewerUserSession}",
+    );
+    expect(SOURCE).toContain(
+      "findAdjacentUserSessions(displayedUserSessions.sessions, sessionId)",
+    );
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: the lookup runs once, so
+   * its row for the watched session kept pulsing "Recording now" after the
+   * poll turned the Live pill off. The header and the older/newer steps get
+   * the lookup state with that one entry overlaid from the latest manifest,
+   * and the overlay is keyed on the flags, never on the manifest object
+   * (which would be a new state for the header on every poll) - and never
+   * re-runs the lookup.
+   */
+  test("the watched session's menu entry follows the manifest poll, without re-running the lookup", () => {
+    const overlay: string = slice(
+      SOURCE,
+      "const displayedUserSessions: ReplayUserSessionsState =",
+      "const adjacentUserSessions",
+    );
+
+    expect(overlay).toContain("overlayCurrentReplayUserSession(");
+    expect(overlay).toContain("userSessions,");
+    expect(overlay).toContain("isFinalized: isManifestFinalized,");
+    expect(overlay).toContain("hasRecordingEnded: hasManifestRecordingEnded,");
+
+    const dependencies: string = slice(overlay, "}, [", "]);");
+
+    expect(dependencies).toContain("isManifestFinalized");
+    expect(dependencies).toContain("hasManifestRecordingEnded");
+    expect(dependencies).not.toMatch(/\bmanifest\b\s*,/);
+
+    expect(SOURCE).toMatch(
+      /const isManifestFinalized: boolean = manifest\?\.isFinalized \?\? false;/,
+    );
+    expect(SOURCE).toMatch(
+      /const hasManifestRecordingEnded: boolean =\s*manifest\?\.hasRecordingEnded \?\? false;/,
+    );
+
+    /* Nothing hands the header the raw, point-in-time lookup state. */
+    expect(SOURCE).not.toContain("userSessions: userSessions");
+    /* The lookup's dependencies do not grow the two flags. */
+    expect(lookup).not.toContain("manifest?.hasRecordingEnded");
+    expect(lookup).not.toContain("manifest?.isFinalized");
+  });
+
+  test("still never writes to the clipboard directly", () => {
+    expect(SOURCE).not.toContain("navigator.clipboard");
+  });
+});
+
+/*
+ * A customer's screenshot showed the amber "1 note about this recording"
+ * banner three lines tall: the browser's disclosure triangle, the icon
+ * and the text each on its own line, because <summary> defaults to
+ * display: list-item. Both note banners are one flex row now, with the
+ * native marker hidden and an explicit caret.
+ */
+describe("the notes banners", () => {
+  test("both summaries are one flex row with the native marker hidden", () => {
+    for (const testId of [
+      "replay-recording-notes-summary",
+      "replay-capture-notes-summary",
+    ]) {
+      const summaryIndex: number = SOURCE.indexOf(`data-testid="${testId}"`);
+
+      expect(summaryIndex).toBeGreaterThan(-1);
+
+      const openingTag: string = SOURCE.slice(
+        SOURCE.lastIndexOf("<summary", summaryIndex),
+        summaryIndex,
+      );
+
+      expect(openingTag).toContain("list-none");
+      expect(openingTag).toContain("[&::-webkit-details-marker]:hidden");
+      expect(openingTag).toMatch(/flex cursor-pointer items-center gap-1\.5/);
+    }
+  });
+
+  test("the caret rotates with the details element's open state", () => {
+    const banners: string = slice(
+      SOURCE,
+      'data-testid="replay-recording-notes"',
+      "</details>",
+    );
+
+    expect(banners).toContain("group-open:rotate-90");
+    expect(SOURCE).toMatch(
+      /className="group mb-3 rounded-lg border border-amber-200/,
+    );
+    expect(SOURCE).toMatch(
+      /className="group mt-3 rounded-lg border border-gray-200/,
+    );
+  });
+});
+
+describe("URL state", () => {
+  test("the page parses the whole player URL model and keys the player on the session", () => {
+    expect(VIEW_SOURCE).toContain("parseReplayPlayerUrlState(");
+    expect(VIEW_SOURCE).toContain("initialUrlState={initialUrlState}");
+    expect(VIEW_SOURCE).toMatch(
+      /key=\{`\$\{modelId\.toString\(\)\}:\$\{sessionId\}`\}/,
+    );
+    expect(VIEW_SOURCE).not.toContain("initialOffsetSeconds=");
+  });
+
+  test("rail, q, tab and signal are mirrored with replaceState (never pushState)", () => {
+    const sync: string = slice(SOURCE, "Navigation.setQueryString({", "});");
+
+    expect(sync).toContain("[REPLAY_URL_PARAM_TAB]");
+    expect(sync).toContain("[REPLAY_URL_PARAM_RAIL]");
+    expect(sync).toContain("[REPLAY_URL_PARAM_RAIL_SEARCH]");
+    expect(sync).toContain("[REPLAY_URL_PARAM_SIGNAL]");
+    expect(SOURCE).not.toContain("pushState");
+  });
+
+  test("the initial moment is resolved by the shared resolver (at wins over t)", () => {
+    expect(SOURCE).toContain("resolveReplayInitialMoment({");
+    expect(SOURCE).toContain("targetMs: moment.offsetMs");
+  });
+
+  /*
+   * ux-08: the arrival notice used to hard-code "the linked log line" for
+   * every ?at=, including links built from a span or an exception.
+   */
+  test("the arrival notice is derived from the signal the link carried", () => {
+    expect(SOURCE).toContain("describeReplayMomentNotice({");
+    expect(SOURCE).toContain("signal: urlState.signalId");
+    expect(SOURCE).not.toContain("Opened at the moment of the linked log line");
+  });
+
+  /*
+   * ux-11: a copied link must land the recipient on a tab that shows the
+   * row, instead of on whichever rail tab they last used.
+   */
+  test("copied links always name a rail tab, including the default", () => {
+    const momentUrl: string = slice(
+      SOURCE,
+      "const buildMomentUrl",
+      "const copyLink",
+    );
+    const signalUrl: string = slice(
+      SOURCE,
+      "const copySignalLink",
+      "const selectSignal",
+    );
+
+    expect(momentUrl).toContain("rail: railTab,");
+    expect(momentUrl).not.toContain('railTab === "all" ? null : railTab');
+    expect(signalUrl).toContain("homeRailTabForSignal(signal)");
+  });
+
+  test("a ?signal= with an explicit moment selects on the row's own tab without seeking", () => {
+    const reveal: string = slice(
+      SOURCE,
+      "hasRevealedSignalRef.current ||",
+      "const seekTo:",
+    );
+
+    expect(reveal).toContain("homeRailTabForSignal(target)");
+    expect(reveal).toContain("isSignalInTab(target, current)");
+    /* The seeking path stays the bare-?signal= one. */
+    expect(reveal).toContain("railRef.current.revealSignal(urlState.signalId)");
+  });
+
+  /*
+   * ux-12 / integration-004: the audit page's Reason column read "None
+   * given" for every view because the player never sent one.
+   */
+  test("the first manifest request carries an access reason derived from the URL", () => {
+    expect(SOURCE).toContain("accessReason: describeReplayAccessReason(");
+
+    const transport: string = slice(
+      SOURCE,
+      "async function fetchManifest",
+      "const response: HTTPResponse<JSONObject>",
+    );
+
+    expect(transport).toContain('body["accessReason"] = args.accessReason;');
+    /* A refresh reuses the existing audit row, so it must not resend one. */
+    expect(transport).toMatch(
+      /if \(args\.refresh\) \{[\s\S]*?\} else if \(args\.accessReason\)/,
+    );
+  });
+});

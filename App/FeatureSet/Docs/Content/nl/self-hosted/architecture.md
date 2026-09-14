@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(config, state, metadata)")]
       CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Redis\n(cache, queues, sessions)")]
+      REDIS[("Valkey\n(cache, queues, sessions)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## Wat dit toont
 
 - Eindgebruikers krijgen toegang tot OneUptime via de Ingress (NGINX) van uw cluster, die routeert naar de UI en API.
-- Kerndiensten lezen/schrijven status naar PostgreSQL, Redis en ClickHouse.
+- Kerndiensten lezen/schrijven status naar PostgreSQL, Valkey (de BSD-gelicentieerde fork van Redis 7.2) en ClickHouse.
 - Probes kunnen draaien binnen uw cluster (aanbevolen) en/of elders op uw netwerk. Ze kunnen het volgende bewaken:
   - Interne/privédiensten achter uw firewall.
   - Externe/openbare resources op het internet.
-- Probe-resultaten worden verzonden naar Probe Ingest binnen uw cluster, in de wachtrij geplaatst via Redis en verwerkt door de Achtergrondwerker in uw dataopslag.
+- Probe-resultaten worden verzonden naar Probe Ingest binnen uw cluster, in de wachtrij geplaatst via Valkey en verwerkt door de Achtergrondwerker in uw dataopslag.
 - Telemetrie (metrics/traces/logs) en server-/agentgegevens kunnen worden verwerkt via speciale ingest-diensten en opgeslagen in ClickHouse.
 
 > Opmerking: Als u externe PostgreSQL, Redis of ClickHouse gebruikt in plaats van de ingebouwde, wijzen de verbindingen van API/Worker/Ingest naar uw externe eindpunten. De logische stroom blijft hetzelfde.

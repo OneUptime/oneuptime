@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -32,7 +32,7 @@ const WorkflowLabelRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <ModelTable<WorkflowLabelRule>
+    <LabelRuleTable<WorkflowLabelRule>
       modelType={WorkflowLabelRule}
       id="workflow-label-rules-table"
       name="Settings > Workflow Label Rules"

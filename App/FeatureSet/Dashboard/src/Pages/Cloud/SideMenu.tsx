@@ -14,7 +14,7 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "All Resources",
+            title: "All Environments",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.CLOUD_RESOURCES] as Route,
             ),

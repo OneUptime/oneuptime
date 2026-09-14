@@ -1,27 +1,13 @@
 /*
- * AI triage verdict for a telemetry exception group. Decides how the
- * automatic fix lane treats the group:
+ * The AI triage verdict and the fault domain declared by the throwing code are
+ * the SAME vocabulary, so they are the same enum. It lives in
+ * Common/Types/Telemetry/ErrorClass.ts, which is importable from the emit path
+ * (Types-only, no server dependencies) as well as from the AI lane.
  *
- * - CodeFault: a defect in the monitored code — the only class the
- *   automatic lane opens fix pull requests for.
- * - UserError: expected consequence of invalid end-user input (bad
- *   parameters, malformed values). The right change, if any, is earlier
- *   validation and clearer error UX — routed to a human, never auto-fixed.
- * - ExpectedDenial: an intentional check doing its job (auth failure,
- *   plan/paywall denial, scanner/fuzzer probe tripping validation).
- *   Never auto-fixed; optionally auto-archived.
- * - Infrastructure: environmental conditions (timeouts, connection
- *   resets, resource exhaustion) where a code "fix" is usually tuning —
- *   routed to a human.
- * - Unknown: triage could not decide — treated conservatively (no
- *   automatic fix).
+ * This path is kept so the triage runner, the insight scanner and their tests
+ * keep compiling — and because "the AI's verdict" is a genuinely useful name
+ * at those call sites. It is one SOURCE of the field, not a separate concept:
+ * a class declared by the throwing code outranks it, and a human's click
+ * outranks both.
  */
-enum ExceptionAIClassification {
-  CodeFault = "code-fault",
-  UserError = "user-error",
-  ExpectedDenial = "expected-denial",
-  Infrastructure = "infrastructure",
-  Unknown = "unknown",
-}
-
-export default ExceptionAIClassification;
+export { default } from "../Telemetry/ErrorClass";

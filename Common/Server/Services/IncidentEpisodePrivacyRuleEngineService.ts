@@ -9,6 +9,9 @@ import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/Incide
 import { Red500 } from "../../Types/BrandColors";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class IncidentEpisodePrivacyRuleEngineServiceClass {
   /**
@@ -38,14 +41,21 @@ class IncidentEpisodePrivacyRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             incidentSeverities: { _id: true },
             episodeLabels: { _id: true },
             episodeTitlePattern: true,
             episodeDescriptionPattern: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncidentEpisodePrivacyRule",
+        projectId: episode.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return false;
@@ -141,6 +151,25 @@ class IncidentEpisodePrivacyRuleEngineServiceClass {
   }
 
   private doesEpisodeMatchRule(
+    episode: IncidentEpisode,
+    rule: IncidentEpisodePrivacyRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "incidentSeverities",
+        "episodeLabels",
+        "episodeTitlePattern",
+        "episodeDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IncidentEpisodePrivacyRule): boolean => {
+        return this.doesEpisodeMatchLegacyRule(episode, legacyRule);
+      },
+    });
+  }
+
+  private doesEpisodeMatchLegacyRule(
     episode: IncidentEpisode,
     rule: IncidentEpisodePrivacyRule,
   ): boolean {

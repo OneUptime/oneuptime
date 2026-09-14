@@ -2,7 +2,21 @@ import NetworkDeviceAlertPackUtil, {
   NetworkDeviceAlertPackItem,
 } from "../../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
+
+function packItem(name: string): NetworkDeviceAlertPackItem {
+  const item: NetworkDeviceAlertPackItem | undefined =
+    NetworkDeviceAlertPackUtil.getPackItems().find(
+      (candidate: NetworkDeviceAlertPackItem) => {
+        return candidate.name === name;
+      },
+    );
+
+  expect(item).toBeDefined();
+
+  return item!;
+}
 
 describe("NetworkDeviceAlertPackUtil.getPackItems", () => {
   test("every pack item has a name, a description and at least one filter", () => {
@@ -16,6 +30,52 @@ describe("NetworkDeviceAlertPackUtil.getPackItems", () => {
       expect(item.description).toBeTruthy();
       expect(item.filters.length).toBeGreaterThan(0);
     }
+  });
+
+  /*
+   * Ping-first polling. "Device unreachable" is about the DEVICE (ping or
+   * SNMP, the top-level isOnline); the walk failing on a device that still
+   * answers ping is a separate, lesser condition with its own item.
+   */
+  describe("ping-first polling", () => {
+    test("the unreachable item is about ping AND SNMP, raises an incident, and reads device reachability", () => {
+      const item: NetworkDeviceAlertPackItem = packItem("Device unreachable");
+
+      expect(item.description).toContain("ping and SNMP");
+      expect(item.filters).toEqual([
+        {
+          checkOn: CheckOn.SnmpIsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      ]);
+      expect(item.createIncidents).toBe(true);
+      expect(item.createAlerts).toBe(false);
+    });
+
+    test("an 'SNMP walk failing' item alerts (never incidents) on the walk CheckOn", () => {
+      const item: NetworkDeviceAlertPackItem = packItem("SNMP walk failing");
+
+      expect(item.filters).toEqual([
+        {
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      ]);
+      expect(item.createAlerts).toBe(true);
+      expect(item.createIncidents).toBe(false);
+    });
+
+    test("no other item reads the walk verdict as if it were reachability", () => {
+      for (const item of NetworkDeviceAlertPackUtil.getPackItems()) {
+        for (const filter of item.filters) {
+          if (filter.checkOn === CheckOn.SnmpWalkIsSucceeding) {
+            expect(item.name).toBe("SNMP walk failing");
+          }
+        }
+      }
+    });
   });
 });
 

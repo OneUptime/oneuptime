@@ -7,6 +7,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -15,6 +16,12 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import {
+  getCloudResourceAttributeDisplayKeys,
+  getCloudResourceAttributeFilters,
+  isCloudResourceScoped,
+} from "../Utils/CloudResourceTelemetryScope";
 
 const CloudResourceMetrics: FunctionComponent<
   PageComponentProps
@@ -44,7 +51,7 @@ const CloudResourceMetrics: FunctionComponent<
       });
 
       if (!item?.resourceIdentifier) {
-        setError("Cloud resource not found.");
+        setError("Cloud environment not found.");
         setIsLoading(false);
         return;
       }
@@ -62,6 +69,26 @@ const CloudResourceMetrics: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The viewer keys its query memo on the identity of these objects, so
+   * they are built once per environment rather than once per render.
+   */
+  const attributeFilters: Record<string, string> = useMemo(() => {
+    return getCloudResourceAttributeFilters(cloudResource);
+  }, [
+    cloudResource?.cloudPlatform,
+    cloudResource?.cloudAccountId,
+    cloudResource?.cloudRegion,
+  ]);
+
+  const attributeFilterDisplayKeys: Record<string, string> = useMemo(() => {
+    return getCloudResourceAttributeDisplayKeys(cloudResource);
+  }, [
+    cloudResource?.cloudPlatform,
+    cloudResource?.cloudAccountId,
+    cloudResource?.cloudRegion,
+  ]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -71,34 +98,27 @@ const CloudResourceMetrics: FunctionComponent<
   }
 
   if (!cloudResource?.resourceIdentifier) {
-    return <ErrorMessage message="Cloud resource not found." />;
+    return <ErrorMessage message="Cloud environment not found." />;
+  }
+
+  /*
+   * No platform means no attribute filter, and the viewer would fall back
+   * to every metric in the project. Show what is actually true instead.
+   */
+  if (!isCloudResourceScoped(cloudResource)) {
+    return (
+      <CloudResourceConnectBanner
+        modelId={modelId}
+        environmentKey={cloudResource.resourceIdentifier}
+      />
+    );
   }
 
   return (
     <Fragment>
       <MetricsViewer
-        attributeFilters={{
-          ...(cloudResource.cloudPlatform
-            ? { "resource.cloud.platform": cloudResource.cloudPlatform }
-            : {}),
-          ...(cloudResource.cloudAccountId
-            ? { "resource.cloud.account.id": cloudResource.cloudAccountId }
-            : {}),
-          ...(cloudResource.cloudRegion
-            ? { "resource.cloud.region": cloudResource.cloudRegion }
-            : {}),
-        }}
-        attributeFilterDisplayKeys={{
-          ...(cloudResource.cloudPlatform
-            ? { "resource.cloud.platform": "Platform" }
-            : {}),
-          ...(cloudResource.cloudAccountId
-            ? { "resource.cloud.account.id": "Account" }
-            : {}),
-          ...(cloudResource.cloudRegion
-            ? { "resource.cloud.region": "Region" }
-            : {}),
-        }}
+        attributeFilters={attributeFilters}
+        attributeFilterDisplayKeys={attributeFilterDisplayKeys}
       />
     </Fragment>
   );

@@ -85,6 +85,127 @@ const YIELD_EVERY_NODES: number = 2000;
  */
 const MAX_SCANNED_STRING_LENGTH: number = 64 * 1024;
 
+/*
+ * ---- What is NOT user text, and is therefore never scanned. ----
+ *
+ * Audit finding ingest-14. The walker used to run every value rule over
+ * every string in the tree, and an rrweb tree is mostly NOT text: it is
+ * node ids, tag names, class lists, inline styles, SVG path data and
+ * base64 image sources. A credit-card or phone rule that happens to match
+ * a run of digits in an SVG path or a data: URI rewrote it to "[REDACTED]"
+ * and broke the layout on playback, with nothing anywhere explaining why.
+ * A SensitiveKeys rule matching "name" or "type" could redact the
+ * attribute values the DOM needs to be a DOM at all.
+ *
+ * So scanning is restricted to text-bearing fields. Two lists:
+ *
+ *   - NODE_STRUCTURAL_KEYS are keys of rrweb event / node objects whose
+ *     values describe the tree (types, ids, positions), never content.
+ *   - PLUMBING_ATTRIBUTE_NAMES are DOM attributes inside an `attributes`
+ *     map whose values are addresses, styling or geometry. Everything
+ *     else in an attributes map IS scanned: value, placeholder, title,
+ *     alt, aria-*, data-*, href, content - the places user text sits.
+ *
+ * Plus one shape rule: a string that is a data: URI is skipped wherever it
+ * appears, because its body is encoded bytes and a match inside it is
+ * noise that corrupts an image.
+ *
+ * Every skip is counted (skippedStructuralStrings) rather than silent, for
+ * the same reason the oversize skip is.
+ */
+const NODE_STRUCTURAL_KEYS: ReadonlySet<string> = new Set<string>([
+  "type",
+  "tagName",
+  "id",
+  "rootId",
+  "parentId",
+  "nextId",
+  "previousId",
+  "timestamp",
+  "source",
+  "isSVG",
+  "isStyle",
+  "isShadowHost",
+  "isShadow",
+  "needBlock",
+  "publicId",
+  "systemId",
+  "style",
+  "tag",
+  "pointerType",
+  "positions",
+  "x",
+  "y",
+  "width",
+  "height",
+]);
+
+const PLUMBING_ATTRIBUTE_NAMES: ReadonlySet<string> = new Set<string>([
+  "src",
+  "srcset",
+  "style",
+  "class",
+  "classname",
+  "id",
+  "name",
+  "for",
+  "type",
+  "rel",
+  "width",
+  "height",
+  "poster",
+  "xlink:href",
+  "d",
+  "points",
+  "viewbox",
+  "transform",
+  "fill",
+  "stroke",
+  "stroke-width",
+  "cx",
+  "cy",
+  "r",
+  "rx",
+  "ry",
+  "x",
+  "y",
+  "x1",
+  "x2",
+  "y1",
+  "y2",
+  "dx",
+  "dy",
+  "integrity",
+  "crossorigin",
+  "loading",
+  "decoding",
+  "sizes",
+  "media",
+  "charset",
+  "lang",
+  "dir",
+  "tabindex",
+  "role",
+  "rr_width",
+  "rr_height",
+  "rr_mediastate",
+  "rr_scrollleft",
+  "rr_scrolltop",
+  "rr_dataurl",
+  "rr_open_mode",
+]);
+
+const DATA_URI_PREFIX: RegExp = /^data:/i;
+
+interface WalkContext {
+  /*
+   * True while walking the `attributes` map of a serialized node or an
+   * attribute mutation, where keys are DOM attribute names and the
+   * plumbing list applies instead of the structural one.
+   */
+  isAttributeMap: boolean;
+}
+
 export interface SessionReplayScrubResult {
   /*
    * True when the whole tree was walked within the caps. False means the
@@ -97,6 +218,11 @@ export interface SessionReplayScrubResult {
   nodesVisited: number;
   stringsScrubbed: number;
   skippedOversizedStrings: number;
+  /*
+   * Strings deliberately left unscanned because they are tree plumbing
+   * (ids, class lists, SVG geometry, data: URIs), not user text.
+   */
+  skippedStructuralStrings: number;
   truncatedAtDepth: boolean;
 }
 
@@ -132,6 +258,7 @@ export default class SessionReplayScrubService {
       nodesVisited: 0,
       stringsScrubbed: 0,
       skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
       truncatedAtDepth: false,
     };
 
@@ -145,7 +272,9 @@ export default class SessionReplayScrubService {
       return state;
     }
 
-    await this.walkArray(events, compiledRules, 0, state);
+    await this.walkArray(events, compiledRules, 0, state, {
+      isAttributeMap: false,
+    });
 
     return state;
   }
@@ -155,6 +284,7 @@ export default class SessionReplayScrubService {
     compiledRules: Array<CompiledScrubRule>,
     depth: number,
     state: SessionReplayScrubResult,
+    context: WalkContext,
   ): Promise<void> {
     if (depth > MAX_DEPTH) {
       state.truncatedAtDepth = true;
@@ -170,6 +300,11 @@ export default class SessionReplayScrubService {
       const value: JSONValue | undefined = values[index];
 
       if (typeof value === "string") {
+        if (this.isDataUri(value)) {
+          state.skippedStructuralStrings++;
+          continue;
+        }
+
         /*
          * Array elements can be user text too: rrweb carries CSS rule text
          * and console arguments as bare string arrays.
@@ -184,6 +319,7 @@ export default class SessionReplayScrubService {
           compiledRules,
           depth + 1,
           state,
+          context,
         );
         continue;
       }
@@ -194,6 +330,12 @@ export default class SessionReplayScrubService {
           compiledRules,
           depth + 1,
           state,
+          /*
+           * An array of objects under `attributes` (an attribute mutation
+           * list) holds mutation records, not attribute maps; the map is
+           * the `attributes` key INSIDE each record.
+           */
+          { isAttributeMap: false },
         );
       }
     }
@@ -204,6 +346,7 @@ export default class SessionReplayScrubService {
     compiledRules: Array<CompiledScrubRule>,
     depth: number,
     state: SessionReplayScrubResult,
+    context: WalkContext,
   ): Promise<void> {
     if (depth > MAX_DEPTH) {
       state.truncatedAtDepth = true;
@@ -218,7 +361,25 @@ export default class SessionReplayScrubService {
 
       const value: JSONValue | undefined = node[key];
 
+      if (this.isStructuralKey(key, context)) {
+        /*
+         * Skipped WHOLE, subtree included: a `style` attribute mutation
+         * arrives as an object of CSS properties, and none of it is text
+         * a person typed.
+         */
+        if (typeof value === "string") {
+          state.skippedStructuralStrings++;
+        }
+
+        continue;
+      }
+
       if (typeof value === "string") {
+        if (this.isDataUri(value)) {
+          state.skippedStructuralStrings++;
+          continue;
+        }
+
         node[key] = this.scrubValueForKey(key, value, compiledRules, state);
         continue;
       }
@@ -229,6 +390,7 @@ export default class SessionReplayScrubService {
           compiledRules,
           depth + 1,
           state,
+          { isAttributeMap: false },
         );
         continue;
       }
@@ -239,9 +401,22 @@ export default class SessionReplayScrubService {
           compiledRules,
           depth + 1,
           state,
+          { isAttributeMap: key === "attributes" },
         );
       }
     }
+  }
+
+  private static isStructuralKey(key: string, context: WalkContext): boolean {
+    if (context.isAttributeMap) {
+      return PLUMBING_ATTRIBUTE_NAMES.has(key.toLowerCase());
+    }
+
+    return NODE_STRUCTURAL_KEYS.has(key);
+  }
+
+  private static isDataUri(value: string): boolean {
+    return value.length > 5 && DATA_URI_PREFIX.test(value.substring(0, 5));
   }
 
   /*

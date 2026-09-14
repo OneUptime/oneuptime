@@ -5,8 +5,15 @@
  * engine's decisions are unit-testable.
  */
 
+import {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import RuleCriteriaMatcher from "../Rules/RuleCriteriaMatcher";
+
 // The shape NetworkSiteAssignmentRule rows are matched with.
 export interface AssignmentRuleCandidate {
+  criteria?: unknown;
   subnetCidr?: string | null | undefined;
   hostnamePattern?: string | null | undefined;
   priority?: number | null | undefined;
@@ -192,6 +199,23 @@ export class CidrMatchUtil {
     rule: AssignmentRuleCandidate,
     target: RuleMatchTarget,
   ): boolean {
+    if (rule.criteria !== undefined && rule.criteria !== null) {
+      return RuleCriteriaMatcher.matchesSync({
+        criteria: rule.criteria,
+        emptyResult: false,
+        matchesFilter: (filter: RuleCriteriaFilter): boolean => {
+          return CidrMatchUtil.matchesConfiguredFilter(filter, target);
+        },
+      });
+    }
+
+    return CidrMatchUtil.ruleMatchesLegacy(rule, target);
+  }
+
+  private static ruleMatchesLegacy(
+    rule: AssignmentRuleCandidate,
+    target: RuleMatchTarget,
+  ): boolean {
     const hasCidr: boolean = Boolean(
       rule.subnetCidr && rule.subnetCidr.trim().length > 0,
     );
@@ -234,6 +258,84 @@ export class CidrMatchUtil {
     }
 
     return true;
+  }
+
+  private static matchesConfiguredFilter(
+    filter: RuleCriteriaFilter,
+    target: RuleMatchTarget,
+  ): boolean {
+    const expected: string = String(filter.value);
+
+    if (filter.field === "subnetCidr") {
+      const matchesCidr: boolean = Boolean(
+        target.ip && CidrMatchUtil.ipInCidr(target.ip, expected),
+      );
+
+      if (filter.operator === RuleCriteriaOperator.MatchesPattern) {
+        return matchesCidr;
+      }
+
+      if (filter.operator === RuleCriteriaOperator.DoesNotMatchPattern) {
+        return !matchesCidr;
+      }
+
+      return false;
+    }
+
+    if (filter.field !== "hostnamePattern") {
+      return false;
+    }
+
+    const candidates: Array<string> = [
+      target.hostname,
+      target.sysName,
+      target.name,
+    ].filter((candidate: string | null | undefined): candidate is string => {
+      return typeof candidate === "string";
+    });
+    const expectedLower: string = expected.toLocaleLowerCase();
+    const anyCandidateMatches: (
+      matches: (value: string) => boolean,
+    ) => boolean = (matches: (value: string) => boolean): boolean => {
+      return candidates.some(matches);
+    };
+
+    switch (filter.operator) {
+      case RuleCriteriaOperator.Equals:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase() === expectedLower;
+        });
+      case RuleCriteriaOperator.NotEquals:
+        return !anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase() === expectedLower;
+        });
+      case RuleCriteriaOperator.Contains:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().includes(expectedLower);
+        });
+      case RuleCriteriaOperator.DoesNotContain:
+        return !anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().includes(expectedLower);
+        });
+      case RuleCriteriaOperator.StartsWith:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().startsWith(expectedLower);
+        });
+      case RuleCriteriaOperator.EndsWith:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().endsWith(expectedLower);
+        });
+      case RuleCriteriaOperator.MatchesPattern:
+        return anyCandidateMatches((value: string): boolean => {
+          return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
+        });
+      case RuleCriteriaOperator.DoesNotMatchPattern:
+        return !anyCandidateMatches((value: string): boolean => {
+          return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
+        });
+      default:
+        return false;
+    }
   }
 
   /*

@@ -5,6 +5,7 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
@@ -538,13 +539,28 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
+      {/*
+       * Gated on either connection, not just the per-user one. The manifest is a
+       * property of the deployment, not of whoever happens to be signed in, and
+       * gating it on isUserAccountConnected alone hid the one required install
+       * step from projects that were otherwise fully working — the Channels and
+       * Chats cards above need only isProjectAccountConnected, so a deployment
+       * could browse and create channels while never being shown the package it
+       * has to upload before any of it can post.
+       *
+       * As the state is wired today isAdminConsentCompleted already implies
+       * isProjectAccountConnected (both are set from the same project-auth
+       * fetch), so the isUserAccountConnected arm is currently unreachable. It
+       * stays as a guard: the point of this gate is that the card must never be
+       * narrower than the cards it sits beside.
+       */}
       {isAdminConsentCompleted &&
-        isUserAccountConnected &&
+        (isProjectAccountConnected || isUserAccountConnected) &&
         !BILLING_ENABLED && (
           <div className="mt-6">
             <Card
-              title="Action Required: Install App on Microsoft Teams"
-              description="If you prefer to install the OneUptime app manually in Microsoft Teams, download the app manifest zip file and follow the instructions below."
+              title="Action Required: Install This Deployment's App on Microsoft Teams"
+              description="Microsoft Teams will only accept notifications from the app package built for this deployment. Download the manifest zip below and upload it to Teams."
               buttons={[
                 {
                   title: "Download App Manifest Zip",
@@ -563,9 +579,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 text={`
 ##### Installation Steps:
 
-Pre-requisite: 
-- If you or anyone else in your organization has already installed the OneUptime app in Microsoft Teams, you can skip the installation steps. In this case, you do not need to do anything here.
-
+> **Do not skip this because a "OneUptime" app is already in your tenant.**
+> Only the package downloaded from this page carries this deployment's bot id (\`${MicrosoftTeamsAppClientId}\`). The OneUptime app in the Microsoft Teams store points at OneUptime Cloud's bot, so Teams will accept it, show it in **Manage team → Apps**, and then refuse every message this deployment sends with *"The bot is not part of the conversation roster."* If a OneUptime app is already installed and you did not upload it from this page, remove it first.
 
 1. **Download the zip file** using the button above
 2. **Upload to Microsoft Teams:**
@@ -651,6 +666,26 @@ If you prefer to manually sideload the app:
               `}
             />
           </Card>
+        </div>
+      )}
+
+      {/*
+       * The full setup guide used to render only when MICROSOFT_TEAMS_APP_CLIENT_ID
+       * was unset — so the moment a deployment was configured, the Azure Bot steps
+       * and the "upload this deployment's manifest" step became unreachable from
+       * the product. That is exactly when an admin goes looking for them, because
+       * that is when things start failing. Keep it here, collapsed, for self-hosted.
+       */}
+      {!BILLING_ENABLED && (
+        <div className="mt-6">
+          <CollapsibleSection
+            title="Full Microsoft Teams setup guide"
+            description="Azure app registration, Azure Bot resource, permissions and app manifest upload — every step, including the ones that are easy to miss."
+            variant="card"
+            defaultCollapsed={true}
+          >
+            <MicrosoftTeamsIntegrationDocumentation />
+          </CollapsibleSection>
         </div>
       )}
 

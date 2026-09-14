@@ -28,6 +28,7 @@ import IoTFleetService from "../../../Server/Services/IoTFleetService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
+import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
 import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
@@ -45,12 +46,13 @@ import {
 /*
  * Every resource type's liveness heartbeat, pinned together.
  *
- * Eleven services write the same two liveness columns (lastSeenAt +
+ * Twelve services write the same two liveness columns (lastSeenAt +
  * otelCollectorStatus) alongside optional columns harvested from
  * OpenTelemetry resource attributes, and each has its own markDisconnected*
  * job that flips the resource to "disconnected" 15 minutes after lastSeenAt
  * stops advancing. They now share one implementation — ResourceHeartbeat —
- * because eleven hand-copied versions meant eleven copies of the same defect.
+ * because eleven hand-copied versions meant eleven copies of the same defect
+ * (VMware was written against the shared helper from the start).
  *
  * WHAT THE DEFECT WAS. The throttle keyed on the row id but STORED a
  * fingerprint of the incoming payload, skipping only on a match. That gives
@@ -62,8 +64,8 @@ import {
  *     capacityUsedPercent. A float utilisation percentage changes on
  *     literally every scrape, so the fingerprint never repeated and the
  *     window never engaged.
- *   - Four of these paths (Proxmox, Ceph, IoTFleet and DockerSwarm snapshot
- *     writebacks) have NO upstream shouldRunMaintenance fence either, so that
+ *   - Five of these paths (Proxmox, VMware, Ceph, IoTFleet and DockerSwarm
+ *     snapshot writebacks) have NO upstream shouldRunMaintenance fence either, so that
  *     broken throttle was the only thing standing between the ingest firehose
  *     and a row shared by every node in the cluster.
  *
@@ -148,6 +150,30 @@ const SERVICE_CASES: Array<ServiceCase> = [
     churningExtras: [
       { pveVersion: "8.1.4", onlineNodeCount: 11, guestCount: 240 },
       { pveVersion: "8.1.4", onlineNodeCount: 12, guestCount: 241 },
+    ],
+  },
+  {
+    name: "VMwareVCenterService",
+    service: VMwareVCenterService as any,
+    namespace: "vmware-vcenter-last-seen",
+    extra: { agentVersion: "0.118.0" },
+    otherExtra: { agentVersion: "0.119.0" },
+    oversizedExtra: { agentVersion: OVERSIZED },
+    /*
+     * The vcenter receiver re-reports datastore usage every collection, so
+     * datastoreUsedBytes moves on every scrape alongside the VM power tally.
+     */
+    churningExtras: [
+      {
+        agentVersion: "0.118.0",
+        poweredOnVmCount: 118,
+        datastoreUsedBytes: 5_000_000_000_000,
+      },
+      {
+        agentVersion: "0.118.0",
+        poweredOnVmCount: 119,
+        datastoreUsedBytes: 5_000_100_000_000,
+      },
     ],
   },
   {
@@ -642,11 +668,11 @@ describe.each(SERVICE_CASES)(
 describe("liveness fallback coverage", () => {
   test("covers every service that writes liveness on the hook-free path", () => {
     /*
-     * If a twelfth resource type grows an updateLastSeen, it belongs in
+     * If a thirteenth resource type grows an updateLastSeen, it belongs in
      * SERVICE_CASES — that is the whole point of this suite. Bumping this
      * number without adding the case defeats it.
      */
-    expect(SERVICE_CASES).toHaveLength(11);
+    expect(SERVICE_CASES).toHaveLength(12);
   });
 
   test("no service is listed twice", () => {

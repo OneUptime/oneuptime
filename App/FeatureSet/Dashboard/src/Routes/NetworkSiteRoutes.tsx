@@ -1,5 +1,4 @@
 import ComponentProps from "../Pages/PageComponentProps";
-import NetworkSiteLayout from "../Pages/NetworkSite/Layout";
 import NetworkSiteViewLayout from "../Pages/NetworkSite/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, NetworkSiteRoutePath } from "../Utils/RouteMap";
@@ -18,6 +17,7 @@ import NetworkSiteViewDevices from "../Pages/NetworkSite/View/Devices";
 import NetworkSiteViewChildSites from "../Pages/NetworkSite/View/ChildSites";
 import NetworkSiteViewEndpoints from "../Pages/NetworkSite/View/Endpoints";
 import NetworkSiteViewStatusTimeline from "../Pages/NetworkSite/View/StatusTimeline";
+import NetworkSiteViewScheduledMaintenance from "../Pages/NetworkSite/View/ScheduledMaintenance";
 import NetworkSiteViewSettings from "../Pages/NetworkSite/View/Settings";
 import NetworkSiteViewDelete from "../Pages/NetworkSite/View/Delete";
 
@@ -26,7 +26,7 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute path="/" element={<NetworkSiteLayout {...props} />}>
+      <PageRoute path="/">
         <PageRoute
           path=""
           element={
@@ -141,6 +141,22 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <NetworkSiteViewScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
               }
             />
           }

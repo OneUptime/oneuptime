@@ -18,7 +18,8 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
-import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PipelineCache from "../Utils/PipelineCache";
+import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
 export interface LoadedTracePipeline {
   pipeline: TracePipeline;
@@ -38,22 +39,24 @@ interface CompiledCategoryConfig extends CategoryProcessorConfig {
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const MAX_CACHED_PROJECTS: number = 10_000;
 
-const pipelineCache: InMemoryTTLCache<Array<LoadedTracePipeline>> =
-  new InMemoryTTLCache<Array<LoadedTracePipeline>>(MAX_CACHED_PROJECTS);
+const pipelineCache: PipelineCache<Array<LoadedTracePipeline>> =
+  new PipelineCache<Array<LoadedTracePipeline>>(
+    MAX_CACHED_PROJECTS,
+    CACHE_TTL_MS,
+  );
 
 export class TracePipelineService {
   public static async loadPipelines(
     projectId: ObjectID,
   ): Promise<Array<LoadedTracePipeline>> {
-    const cacheKey: string = projectId.toString();
-    const cached: Array<LoadedTracePipeline> | undefined =
-      pipelineCache.get(cacheKey);
+    return pipelineCache.getOrLoad(projectId.toString(), () => {
+      return TracePipelineService.loadPipelinesFromDatabase(projectId);
+    });
+  }
 
-    // Empty arrays are truthy — zero-pipeline projects stay negatively cached.
-    if (cached) {
-      return cached;
-    }
-
+  private static async loadPipelinesFromDatabase(
+    projectId: ObjectID,
+  ): Promise<Array<LoadedTracePipeline>> {
     const pipelineService: DatabaseService<TracePipeline> =
       new DatabaseService<TracePipeline>(TracePipeline);
 
@@ -114,7 +117,6 @@ export class TracePipelineService {
       });
     }
 
-    pipelineCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 
@@ -143,35 +145,11 @@ export class TracePipelineService {
     return result;
   }
 
-  /**
-   * Processor configuration is stored in a jsonb column but the UI's JSON
-   * form field persists it as a JSON string literal, so TypeORM hands us
-   * back a string that still needs parsing. Accept either shape.
-   */
-  private static normalizeProcessorConfig(raw: unknown): JSONObject {
-    if (raw && typeof raw === "object") {
-      return raw as JSONObject;
-    }
-    if (typeof raw === "string") {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          return parsed as JSONObject;
-        }
-      } catch {
-        // fall through
-      }
-    }
-    return {};
-  }
-
   private static applyProcessor(
     spanRow: JSONObject,
     processor: TracePipelineProcessor,
   ): JSONObject {
-    const config: JSONObject = TracePipelineService.normalizeProcessorConfig(
-      processor.configuration,
-    );
+    const config: JSONObject = getPipelineProcessorConfig(processor);
 
     switch (processor.processorType) {
       case TracePipelineProcessorType.AttributeRemapper:

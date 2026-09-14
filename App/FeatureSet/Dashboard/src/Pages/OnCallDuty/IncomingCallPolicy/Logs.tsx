@@ -100,6 +100,13 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
           },
           {
             field: {
+              routingPhoneNumber: true,
+            },
+            title: "Number Called",
+            type: FieldType.Phone,
+          },
+          {
+            field: {
               startedAt: true,
             },
             title: "Started At",
@@ -112,6 +119,13 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
               callerPhoneNumber: true,
             },
             title: "Caller",
+            type: FieldType.Phone,
+          },
+          {
+            field: {
+              routingPhoneNumber: true,
+            },
+            title: "Number Called",
             type: FieldType.Phone,
           },
           {

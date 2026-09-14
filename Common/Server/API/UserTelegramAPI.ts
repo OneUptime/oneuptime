@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import VerificationCodeRateLimit, {
+  VerificationCodeRateLimitBucket,
+} from "../Middleware/VerificationCodeRateLimit";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import UserTelegramService, {
   Service as UserTelegramServiceType,
@@ -26,6 +29,7 @@ export default class UserTelegramAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/verification-info`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
@@ -46,7 +50,6 @@ export default class UserTelegramAPI extends BaseAPI<
             select: {
               userId: true,
               projectId: true,
-              verificationCode: true,
               isVerified: true,
             },
           });
@@ -67,6 +70,21 @@ export default class UserTelegramAPI extends BaseAPI<
               req,
               res,
               new BadDataException("Invalid user ID"),
+            );
+          }
+
+          if (
+            !item.projectId ||
+            !item.userId ||
+            !(await this.service.hasActiveProjectMembership({
+              projectId: item.projectId,
+              userId: item.userId,
+            }))
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item not found"),
             );
           }
 
@@ -96,12 +114,18 @@ export default class UserTelegramAPI extends BaseAPI<
             );
           }
 
+          const verificationCode: string = item.isVerified
+            ? ""
+            : await this.service.getVerificationCode(item.id!);
+
           return Response.sendJsonObjectResponse(req, res, {
-            verificationCode: item.verificationCode as string,
+            verificationCode,
             telegramBotUsername: botUsername,
             isVerified: Boolean(item.isVerified),
-            deepLinkUrl: `https://t.me/${botUsername}?start=${item.verificationCode}`,
-            startCommand: `/start ${item.verificationCode}`,
+            deepLinkUrl: verificationCode
+              ? `https://t.me/${botUsername}?start=${verificationCode}`
+              : "",
+            startCommand: verificationCode ? `/start ${verificationCode}` : "",
           });
         } catch (err) {
           return next(err);
@@ -114,6 +138,10 @@ export default class UserTelegramAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      VerificationCodeRateLimit.getMiddleware(
+        VerificationCodeRateLimitBucket.Resend,
+      ),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
@@ -133,6 +161,7 @@ export default class UserTelegramAPI extends BaseAPI<
             },
             select: {
               userId: true,
+              projectId: true,
             },
           });
 
@@ -152,6 +181,21 @@ export default class UserTelegramAPI extends BaseAPI<
               req,
               res,
               new BadDataException("Invalid user ID"),
+            );
+          }
+
+          if (
+            !item.projectId ||
+            !item.userId ||
+            !(await this.service.hasActiveProjectMembership({
+              projectId: item.projectId,
+              userId: item.userId,
+            }))
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item not found"),
             );
           }
 

@@ -3,9 +3,15 @@ import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import ProxmoxClusterLabelRule from "../../Models/DatabaseModels/ProxmoxClusterLabelRule";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ProxmoxClusterLabelRuleEngineServiceClass {
   /**
@@ -32,14 +38,21 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             proxmoxClusterLabels: { _id: true },
             proxmoxClusterNamePattern: true,
             proxmoxClusterDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ProxmoxClusterLabelRule",
+        projectId: proxmoxCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -61,6 +74,7 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesProxmoxClusterMatchRule(
@@ -69,6 +83,11 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -124,6 +143,27 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
         `ProxmoxClusterLabelRuleEngine attached ${newLabelIds.length} labels to Proxmox cluster ${proxmoxCluster.id}`,
         { projectId: proxmoxCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await ProxmoxClusterFeedService.createProxmoxClusterFeedItem({
+        proxmoxClusterId: proxmoxCluster.id,
+        projectId: proxmoxCluster.projectId,
+        proxmoxClusterFeedEventType:
+          ProxmoxClusterFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
+          proxmoxCluster.projectId,
+          proxmoxCluster.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Proxmox cluster label rules: ${error}`, {
         projectId: proxmoxCluster.projectId?.toString(),
@@ -133,6 +173,29 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
   }
 
   private doesProxmoxClusterMatchRule(
+    proxmoxCluster: ProxmoxCluster,
+    rule: ProxmoxClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "proxmoxClusterLabels",
+        "proxmoxClusterNamePattern",
+        "proxmoxClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        proxmoxClusterRule: ProxmoxClusterLabelRule,
+      ): boolean => {
+        return this.doesProxmoxClusterMatchRuleLegacy(
+          proxmoxCluster,
+          proxmoxClusterRule,
+        );
+      },
+    });
+  }
+
+  private doesProxmoxClusterMatchRuleLegacy(
     proxmoxCluster: ProxmoxCluster,
     rule: ProxmoxClusterLabelRule,
   ): boolean {

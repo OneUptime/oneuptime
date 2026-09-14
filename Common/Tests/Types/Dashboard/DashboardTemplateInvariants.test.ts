@@ -1,6 +1,10 @@
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import {
+  SloWidgetDisplayType,
+  SloWidgetMetric,
+} from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
@@ -73,6 +77,7 @@ function describeComponent(component: DashboardBaseComponent): string {
     args["chartTitle"] ??
     args["gaugeTitle"] ??
     args["tableTitle"] ??
+    args["widgetTitle"] ??
     args["text"];
 
   return `${component.componentType} "${String(label ?? "<untitled>")}"`;
@@ -696,6 +701,98 @@ describe("DashboardTemplates invariants (all templates)", () => {
           `${label} ${minValue} <= ${warning} < ${critical} <= ${maxValue} : ${orderedCorrectly}`,
         ).toBe(
           `${label} ${minValue} <= ${warning} < ${critical} <= ${maxValue} : true`,
+        );
+      }
+    });
+  });
+
+  /*
+   * The Slo widget names exactly ONE ServiceLevelObjective, by id, and
+   * that id is a per-project Postgres row. A template that shipped one
+   * would point at nothing in every project except the one it was
+   * authored in — and on a PUBLIC dashboard the stored id IS the
+   * authorization decision (PublicDashboardSloWidget), so a baked-in id
+   * is the wrong kind of mistake to make twice. The widget's own setup
+   * state ("Click to select an SLO") is the intended first render.
+   */
+  describe("slo widgets", () => {
+    test("no template hardcodes a service level objective id", (): void => {
+      const offenders: Array<string> = [];
+
+      for (const entry of collectComponentsByType([
+        DashboardComponentType.Slo,
+      ])) {
+        const id: unknown = getArguments(entry.component)[
+          "serviceLevelObjectiveId"
+        ];
+
+        if (id !== undefined) {
+          offenders.push(
+            `${describeTemplateComponent(entry)} -> ${String(id)}`,
+          );
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    });
+
+    /*
+     * An unconfigured widget renders its `widgetTitle` above the setup
+     * prompt, and nothing else. Left unset, every Slo widget on a freshly
+     * created dashboard reads "SLO Widget" and the reader cannot tell the
+     * burn rate apart from the SLI.
+     */
+    test("every Slo widget carries a non-empty widgetTitle", (): void => {
+      const sloWidgets: Array<TemplateComponent> = collectComponentsByType([
+        DashboardComponentType.Slo,
+      ]);
+
+      expect(sloWidgets.length).toBeGreaterThan(0);
+
+      for (const entry of sloWidgets) {
+        const title: unknown = getArguments(entry.component)["widgetTitle"];
+
+        expect(`${entry.type} widgetTitle is a ${typeof title}`).toBe(
+          `${entry.type} widgetTitle is a string`,
+        );
+        expect(`${entry.type} widgetTitle=${String(title).trim()}`).not.toBe(
+          `${entry.type} widgetTitle=`,
+        );
+      }
+    });
+
+    /*
+     * Both values are persisted verbatim into the dashboard's JSON config
+     * and read back by the renderer and by the public endpoints. An
+     * unrecognised string is type-legal on a Record<string, unknown> and
+     * silently falls back to Sli / Tile at render time.
+     */
+    test("every Slo widget stores a real metric and display type", (): void => {
+      const validMetrics: Array<string> = Object.values(SloWidgetMetric);
+      const validDisplays: Array<string> = Object.values(SloWidgetDisplayType);
+      const sloWidgets: Array<TemplateComponent> = collectComponentsByType([
+        DashboardComponentType.Slo,
+      ]);
+
+      expect(sloWidgets.length).toBeGreaterThan(0);
+
+      for (const entry of sloWidgets) {
+        const args: Record<string, unknown> = getArguments(entry.component);
+        const label: string = describeTemplateComponent(entry);
+        const metric: string = String(args["sloMetric"]);
+        const display: string = String(args["displayType"]);
+
+        expect(`${label} sloMetric=${metric}`).toBe(
+          `${label} sloMetric=${
+            validMetrics.includes(metric) ? metric : "<not a SloWidgetMetric>"
+          }`,
+        );
+        expect(`${label} displayType=${display}`).toBe(
+          `${label} displayType=${
+            validDisplays.includes(display)
+              ? display
+              : "<not a SloWidgetDisplayType>"
+          }`,
         );
       }
     });

@@ -1,10 +1,15 @@
 import PageComponentProps from "../../PageComponentProps";
 import DeviceStatusHero from "../../../Components/NetworkDevice/DeviceStatusHero";
+import { HOSTNAME_FIELD_DESCRIPTION } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInterfacesPreview";
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
-import DeviceMonitorLookupUtil from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
+import DeviceMonitorLookupUtil, {
+  DeviceMonitorContext,
+} from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
+import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
+import { getMacAddressFormField } from "../MacAddressFormField";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -37,15 +42,17 @@ const NetworkDeviceView: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
+  const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isMonitorsLoading, setIsMonitorsLoading] = useState<boolean>(true);
   const [monitorsError, setMonitorsError] = useState<string>("");
 
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
       try {
-        setMonitors(
-          await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(modelId),
-        );
+        const context: DeviceMonitorContext =
+          await DeviceMonitorLookupUtil.getDeviceMonitorContext(modelId);
+        setMonitors(context.monitors);
+        setIsMonitorBacked(context.isMonitorBacked);
       } catch (err) {
         setMonitorsError(API.getFriendlyMessage(err));
       }
@@ -98,8 +105,9 @@ const NetworkDeviceView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: "IP address or hostname the probe will poll via SNMP.",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          getMacAddressFormField(),
           {
             field: {
               site: true,
@@ -150,6 +158,16 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "Hostname",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                macAddress: true,
+              },
+              title: "MAC Address",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.macAddress);
+              },
             },
             {
               field: {
@@ -222,12 +240,14 @@ const NetworkDeviceView: FunctionComponent<
         }}
       />
       <DeviceInterfacesPreview modelId={modelId} />
+      <DeviceAttachmentCard modelId={modelId} />
       <DeviceInventoryCard modelId={modelId} />
       <DeviceMonitorsCard
         monitors={monitors}
         isLoading={isMonitorsLoading}
         error={monitorsError}
         networkDeviceId={modelId.toString()}
+        isMonitorBacked={isMonitorBacked}
       />
     </Fragment>
   );

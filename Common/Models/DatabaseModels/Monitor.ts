@@ -1,6 +1,8 @@
 import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
 import MonitorTemplate from "./MonitorTemplate";
+import NetworkDevice from "./NetworkDevice";
+import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -91,6 +93,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 @EnableAuditLog()
 @CrudApiEndpoint(new Route("/monitor"))
 @SlugifyColumn("name", "slug")
+@Index(
+  "IDX_monitor_auto_provisioned_device_template_unique",
+  ["autoProvisionedNetworkDeviceId", "monitorTemplateId"],
+  {
+    unique: true,
+    where:
+      '"deletedAt" IS NULL AND "autoProvisionedNetworkDeviceId" IS NOT NULL AND "monitorTemplateId" IS NOT NULL',
+  },
+)
 @Entity({
   name: "Monitor",
 })
@@ -676,6 +687,158 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorTemplateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "autoProvisionedNetworkDeviceId",
+    type: TableColumnType.Entity,
+    // Lazy: Monitor and NetworkDevice import each other (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return NetworkDevice;
+    },
+    title: "Auto-Provisioned Network Device",
+    description:
+      "Network Device that caused this monitor to be provisioned automatically",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDevice;
+    },
+    {
+      eager: false,
+      nullable: true,
+      /*
+       * Service deletion removes automatic monitors through MonitorService.
+       * RESTRICT is the final race backstop: a monitor inserted after that
+       * preflight makes the device delete fail instead of being silently
+       * cascade-deleted without authorization or lifecycle hooks.
+       */
+      onDelete: "RESTRICT",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "autoProvisionedNetworkDeviceId",
+    foreignKeyConstraintName: "FK_monitor_auto_provisioned_network_device",
+  })
+  public autoProvisionedNetworkDevice?: NetworkDevice = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Auto-Provisioned Network Device ID",
+    description:
+      "ID of the Network Device that caused this monitor to be provisioned automatically",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public autoProvisionedNetworkDeviceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "networkAlertPolicyId",
+    type: TableColumnType.Entity,
+    // Lazy: NetworkAlertPolicy reaches Monitor through MonitorTemplate.
+    modelTypeThunk: () => {
+      return NetworkAlertPolicy;
+    },
+    title: "Network Alert Policy",
+    description:
+      "The Network Alert Policy that provisioned this monitor, when one did. A policy owns the monitors it creates: it removes them when a device leaves the policy's scope or the policy is deleted, and it never touches monitors it did not create. System-managed.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkAlertPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      /*
+       * Deleting a policy deletes its monitors through the engine, with
+       * lifecycle hooks. SET NULL is only the backstop for a monitor the
+       * engine could not reach: it becomes an ordinary auto-provisioned
+       * monitor rather than a dangling reference.
+       */
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "networkAlertPolicyId" })
+  public networkAlertPolicy?: NetworkAlertPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Network Alert Policy ID",
+    description:
+      "ID of the Network Alert Policy that provisioned this monitor, when one did",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkAlertPolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

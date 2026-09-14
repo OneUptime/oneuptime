@@ -21,6 +21,7 @@ import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
+import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
 
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
@@ -137,6 +138,29 @@ const PROXMOX_NODE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "pve.id": "name",
 };
 
+/*
+ * The vcenter receiver stamps identity on RESOURCE attributes, so a
+ * dashboard variable may be keyed either as the bare attribute or as the
+ * `resource.`-prefixed form the metrics explorer exposes.
+ */
+const VMWARE_HOST_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "vcenter.host.name": "name",
+  "resource.vcenter.host.name": "name",
+  "vcenter.cluster.name": "clusterName",
+  "resource.vcenter.cluster.name": "clusterName",
+  "vcenter.datacenter.name": "datacenterName",
+  "resource.vcenter.datacenter.name": "datacenterName",
+};
+
+const VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "vcenter.vm.name": "name",
+  "resource.vcenter.vm.name": "name",
+  "vcenter.host.name": "hostName",
+  "resource.vcenter.host.name": "hostName",
+  "vcenter.cluster.name": "clusterName",
+  "resource.vcenter.cluster.name": "clusterName",
+};
+
 const CEPH_OSD_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   ceph_daemon: "externalId",
 };
@@ -180,6 +204,7 @@ export default class PublicDashboardResourceListPolicy {
       componentType: componentType as DashboardComponentType,
       argumentsObject,
       requestedQuery: data.requestedQuery,
+      variables,
     });
 
     let query: Record<string, unknown> = draft.query;
@@ -412,6 +437,41 @@ export default class PublicDashboardResourceListPolicy {
           proxmoxClusterId: true,
           proxmoxCluster: { name: true },
         };
+      case DashboardComponentType.VMwareHostList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          datacenterName: true,
+          clusterName: true,
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          cpuCapacityMhz: true,
+          maxMemoryBytes: true,
+          metricsUpdatedAt: true,
+          vmwareVCenterId: true,
+          vmwareVCenter: { name: true },
+        };
+      case DashboardComponentType.VMwareVirtualMachineList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          datacenterName: true,
+          clusterName: true,
+          hostName: true,
+          resourcePoolName: true,
+          isPoweredOn: true,
+          isTemplate: true,
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          latestDiskPercent: true,
+          metricsUpdatedAt: true,
+          vmwareVCenterId: true,
+          vmwareVCenter: { name: true },
+        };
       case DashboardComponentType.CephOsdList:
         return {
           _id: true,
@@ -505,8 +565,9 @@ export default class PublicDashboardResourceListPolicy {
     componentType: DashboardComponentType;
     argumentsObject: Record<string, unknown>;
     requestedQuery: unknown;
+    variables: Array<DashboardVariable>;
   }): PolicyDraft {
-    const { componentType, argumentsObject, requestedQuery } = data;
+    const { componentType, argumentsObject, requestedQuery, variables } = data;
 
     switch (componentType) {
       case DashboardComponentType.IncidentList:
@@ -520,6 +581,7 @@ export default class PublicDashboardResourceListPolicy {
       case DashboardComponentType.MonitorList:
         return PublicDashboardResourceListPolicy.buildMonitorPolicy(
           argumentsObject,
+          variables,
         );
       case DashboardComponentType.NetworkMap:
         return PublicDashboardResourceListPolicy.buildNetworkMapPolicy(
@@ -671,6 +733,14 @@ export default class PublicDashboardResourceListPolicy {
         return PublicDashboardResourceListPolicy.buildProxmoxGuestPolicy(
           argumentsObject,
         );
+      case DashboardComponentType.VMwareHostList:
+        return PublicDashboardResourceListPolicy.buildVMwareHostPolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.VMwareVirtualMachineList:
+        return PublicDashboardResourceListPolicy.buildVMwareVirtualMachinePolicy(
+          argumentsObject,
+        );
       case DashboardComponentType.CephOsdList:
         return PublicDashboardResourceListPolicy.buildCephOsdPolicy(
           argumentsObject,
@@ -814,6 +884,7 @@ export default class PublicDashboardResourceListPolicy {
 
   private static buildMonitorPolicy(
     argumentsObject: Record<string, unknown>,
+    variables: Array<DashboardVariable>,
   ): PolicyDraft {
     const query: Record<string, unknown> = {};
     const statusFilter: string | undefined =
@@ -841,12 +912,22 @@ export default class PublicDashboardResourceListPolicy {
       argumentsObject,
       argumentKey: "monitorTypes",
     });
-    PublicDashboardResourceListPolicy.addIncludesFromArgument({
-      query,
-      queryKey: "labels",
-      argumentsObject,
-      argumentKey: "labelIds",
-    });
+    const labels: ReturnType<typeof DashboardLabelVariable.getFilter> =
+      DashboardLabelVariable.getFilter({
+        labelIds: PublicDashboardResourceListPolicy.optionalStringArray(
+          argumentsObject,
+          "labelIds",
+        ),
+        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+          argumentsObject,
+          "labelVariableId",
+          false,
+        ),
+        variables,
+      });
+    if (labels) {
+      query["labels"] = labels;
+    }
 
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "monitor",
@@ -1188,6 +1269,83 @@ export default class PublicDashboardResourceListPolicy {
       sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
+  }
+
+  /*
+   * ESXi hosts. The vcenter receiver reports no per-host power or
+   * connection state, so the host widget takes only the shared arguments
+   * (vCenter scope, row cap): no status filter is accepted.
+   */
+  private static buildVMwareHostPolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = { kind: "Host" };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "vmwareVCenterId",
+      argumentsObject,
+      argumentKey: "vmwareVCenterIds",
+    });
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "vmware-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: VMWARE_HOST_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
+  /*
+   * Virtual machines (kind VirtualMachine covers VMs and VM templates;
+   * templates carry isTemplate = true and a null power state).
+   */
+  private static buildVMwareVirtualMachinePolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = { kind: "VirtualMachine" };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "vmwareVCenterId",
+      argumentsObject,
+      argumentKey: "vmwareVCenterIds",
+    });
+
+    const powerStateFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "powerStateFilter",
+        ["on", "off"],
+      );
+    if (powerStateFilter === "on") {
+      query["isPoweredOn"] = true;
+    } else if (powerStateFilter === "off") {
+      query["isPoweredOn"] = false;
+    }
+
+    const templateFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "templateFilter",
+        ["exclude", "only"],
+      );
+    if (templateFilter === "exclude") {
+      query["isTemplate"] = false;
+    } else if (templateFilter === "only") {
+      query["isTemplate"] = true;
+    }
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "vmware-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN,
+    };
   }
 
   private static buildCephOsdPolicy(
@@ -1653,19 +1811,19 @@ export default class PublicDashboardResourceListPolicy {
           storedValue,
           "Stored dashboard variable",
         );
-      if (stored["type"] !== DashboardVariableType.TelemetryAttribute) {
+      const type: unknown = stored["type"];
+      if (
+        type !== DashboardVariableType.TelemetryAttribute &&
+        type !== DashboardVariableType.ProjectLabel
+      ) {
         continue;
       }
 
       const id: unknown = stored["id"];
-      const attributeKey: unknown = stored["attributeKey"];
       if (
         typeof id !== "string" ||
         id.length === 0 ||
-        id.length > MAX_VARIABLE_ID_LENGTH ||
-        typeof attributeKey !== "string" ||
-        attributeKey.trim().length === 0 ||
-        attributeKey.length > MAX_VARIABLE_VALUE_LENGTH
+        id.length > MAX_VARIABLE_ID_LENGTH
       ) {
         throw new BadDataException("Stored dashboard variable is malformed.");
       }
@@ -1700,11 +1858,10 @@ export default class PublicDashboardResourceListPolicy {
       const name: unknown = stored["name"];
       const storedIsMultiSelect: boolean = isMultiSelect === true;
 
-      variables.push({
+      const variable: DashboardVariable = {
         id,
         name: typeof name === "string" ? name : "",
-        type: DashboardVariableType.TelemetryAttribute,
-        attributeKey: attributeKey.trim(),
+        type,
         isMultiSelect: storedIsMultiSelect,
         defaultValue:
           typeof defaultValue === "string" ? defaultValue : undefined,
@@ -1716,10 +1873,61 @@ export default class PublicDashboardResourceListPolicy {
           storedIsMultiSelect && Array.isArray(selectedValues)
             ? (selectedValues as Array<string>)
             : undefined,
-      });
+      };
+
+      if (type === DashboardVariableType.ProjectLabel) {
+        variable.labelOptions =
+          PublicDashboardResourceListPolicy.readLabelOptions(stored);
+      } else {
+        const attributeKey: unknown = stored["attributeKey"];
+        if (
+          typeof attributeKey !== "string" ||
+          attributeKey.trim().length === 0 ||
+          attributeKey.length > MAX_VARIABLE_VALUE_LENGTH
+        ) {
+          throw new BadDataException("Stored dashboard variable is malformed.");
+        }
+        variable.attributeKey = attributeKey.trim();
+      }
+
+      variables.push(variable);
     }
 
     return variables;
+  }
+
+  private static readLabelOptions(
+    stored: Record<string, unknown>,
+  ): NonNullable<DashboardVariable["labelOptions"]> {
+    const value: unknown = stored["labelOptions"];
+    if (!Array.isArray(value)) {
+      throw new BadDataException(
+        "Stored dashboard label options are malformed.",
+      );
+    }
+
+    return value.map((entry: unknown): { label: string; value: string } => {
+      const option: Record<string, unknown> =
+        PublicDashboardResourceListPolicy.requireObject(
+          entry,
+          "Stored dashboard label option",
+        );
+      const label: unknown = option["label"];
+      const labelId: unknown = option["value"];
+      if (
+        typeof label !== "string" ||
+        label.length === 0 ||
+        label.length > MAX_VARIABLE_VALUE_LENGTH ||
+        typeof labelId !== "string" ||
+        labelId.length === 0 ||
+        labelId.length > MAX_VARIABLE_VALUE_LENGTH
+      ) {
+        throw new BadDataException(
+          "Stored dashboard label options are malformed.",
+        );
+      }
+      return { label, value: labelId };
+    });
   }
 
   private static validateRequestedVariableSelections(

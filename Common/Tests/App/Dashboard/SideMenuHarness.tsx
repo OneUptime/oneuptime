@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, render, RenderResult } from "@testing-library/react";
 import { ReactElement } from "react";
 import { Location } from "react-router-dom";
 import Route from "../../../Types/API/Route";
@@ -180,8 +180,16 @@ export function mobileSummaryText(): string {
  * sets state when its (stubbed) count resolves, and an unawaited render
  * leaves that update outside the test.
  */
-export async function renderMenu(menu: ReactElement): Promise<void> {
+export async function renderMenu(menu: ReactElement): Promise<RenderResult> {
+  let rendered: RenderResult | undefined;
+
   await act(async () => {
-    render(menu);
+    rendered = render(menu);
   });
+
+  if (!rendered) {
+    throw new Error("The side menu did not render.");
+  }
+
+  return rendered;
 }

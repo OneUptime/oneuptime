@@ -1,6 +1,10 @@
 import LayerConfigForm from "./LayerConfigForm";
 import LayerRotationSummary from "./LayerRotationSummary";
 import { getLayerPreviewEvents, LayerPreviewResult } from "./LayerShiftPreview";
+import {
+  OverrideUserDisplayInfo,
+  describeShiftOverride,
+} from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
 import { getColorForUserId, getUserInitials } from "./LayerUserColors";
@@ -139,7 +143,16 @@ const LayerCard: FunctionComponent<ComponentProps> = (
    * merging) so the header line is honest for restricted layers.
    */
   const coverageShifts: Array<OnCallShift> =
-    ScheduleShiftUtil.groupEventsIntoShifts(preview.events);
+    ScheduleShiftUtil.groupEventsIntoShifts(preview.events, {
+      /*
+       * Override-aware so the "on call now" line can name the person being
+       * covered. The default key folds a substitute's own rotation turn into
+       * the window they are covering, and a merged shift keeps only the first
+       * segment's override - which is how this line used to be able to say
+       * "covering" with nothing to say who for.
+       */
+      groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
+    });
   const currentAndNext: CurrentAndNextShift =
     ScheduleShiftUtil.getCurrentAndNextShift(coverageShifts, preview.now);
 
@@ -168,6 +181,31 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   }
 
   /*
+   * Name + email for everyone who can appear on this card: the layer's own
+   * users and the substitutes an override brought in. describeShiftOverride
+   * needs both fields, so this cannot be derived from nameById above.
+   */
+  const overrideDisplayInfoById: Dictionary<OverrideUserDisplayInfo> = {};
+  for (const layerUser of props.users) {
+    const id: string = layerUser.user?.id?.toString() || "";
+    if (id && !overrideDisplayInfoById[id]) {
+      overrideDisplayInfoById[id] = {
+        name: layerUser.user?.name?.toString() || "",
+        email: layerUser.user?.email?.toString() || "",
+      };
+    }
+  }
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (info && !overrideDisplayInfoById[userId]) {
+      overrideDisplayInfoById[userId] = {
+        name: info.name,
+        email: info.email,
+      };
+    }
+  }
+
+  /*
    * True when the person on call right now got there through an override rather
    * than through this layer's rotation. Drives the "covering" tag: seeing a name
    * that is not in the layer's user list, with no explanation, reads as a bug.
@@ -183,6 +221,26 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   const isCurrentUserSubstitute: boolean = Boolean(
     currentAndNext.current && !layerUserIds.has(currentAndNext.current.userId),
   );
+
+  /*
+   * "Covering for Alice Nakamura" when the shift carries the override that put
+   * this person on it.
+   *
+   * Falls back to the old, unnamed wording only when the substitution is
+   * visible (the name on the line is not one of this layer's users) but the
+   * shift did not carry its provenance - a shape the grouping above should
+   * prevent, though saying "covering" with no name still beats saying nothing
+   * and letting a stranger's name read as a bug.
+   */
+  const coveringLabel: string | null = currentAndNext.current?.override
+    ? describeShiftOverride({
+        override: currentAndNext.current.override,
+        userInfoById: overrideDisplayInfoById,
+        policyNameById: {},
+      }).coveringLabel
+    : isCurrentUserSubstitute
+      ? "Covering via override"
+      : null;
 
   const userCount: number = props.users.length;
   const shownUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
@@ -349,9 +407,12 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                   {nameById[currentAndNext.current.userId] || "Unknown user"}
                 </span>{" "}
                 on call now
-                {isCurrentUserSubstitute && (
-                  <span className="ml-1 font-medium text-indigo-600">
-                    (covering via override)
+                {coveringLabel && (
+                  <span
+                    data-testid="layer-card-covering"
+                    className="ml-1 font-medium text-indigo-600"
+                  >
+                    ({coveringLabel.toLowerCase()})
                   </span>
                 )}
               </span>

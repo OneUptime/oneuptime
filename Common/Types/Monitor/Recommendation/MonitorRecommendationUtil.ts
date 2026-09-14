@@ -27,6 +27,7 @@ import {
  */
 interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
+  vcenterIdentifier?: string | undefined;
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
   telemetryServiceIds?: Array<ObjectID | string> | undefined;
@@ -108,8 +109,9 @@ export default class MonitorRecommendationUtil {
   /*
    * Deterministic monitor name for a recommendation applied to a resource.
    *
-   * Used both as the created monitor's name and as the `monitorName` arg the
-   * template modules interpolate into their incident/alert titles.
+   * This is the created monitor's OWN name, and nothing else. The string the
+   * templates interpolate into their titles is `getTemplateMonitorName` —
+   * see there for why the two must differ.
    */
   public static getMonitorName(data: {
     recommendation: MonitorRecommendation;
@@ -122,6 +124,39 @@ export default class MonitorRecommendationUtil {
     }
 
     return `${resourceName} - ${data.recommendation.name}`;
+  }
+
+  /*
+   * The `monitorName` arg the template modules interpolate into their incident
+   * and alert titles. NOT the monitor's own name.
+   *
+   * Every template title already restates the template's own name —
+   * `[K8s] Pod CPU Saturating Container Limit (>90%) - ${args.monitorName}` —
+   * and `getMonitorName` ends with that same template name, so passing the
+   * composed name back in produced the stuttering production title
+   *
+   *   [K8s] Pod CPU Saturating Container Limit (>90%)
+   *     - oneuptime-test - Pod CPU Saturating Container Limit
+   *
+   * which also pushed the pod identity `SeriesContextEnricher.enrichTitle`
+   * appends past the part of a subject line a mail client shows. The template
+   * supplies the "what", this supplies the "where", the enricher supplies
+   * "which one".
+   *
+   * Falls back to the composed name when the resource has no display name at
+   * all, so a title can never end in a bare " - ".
+   */
+  public static getTemplateMonitorName(data: {
+    recommendation: MonitorRecommendation;
+    resourceDisplayName: string;
+  }): string {
+    return (
+      data.resourceDisplayName.trim() ||
+      this.getMonitorName({
+        recommendation: data.recommendation,
+        resourceDisplayName: data.resourceDisplayName,
+      })
+    );
   }
 
   /*
@@ -348,6 +383,7 @@ export default class MonitorRecommendationUtil {
 
     const resourceIdentifier: string =
       config.clusterIdentifier ||
+      config.vcenterIdentifier ||
       config.hostIdentifier ||
       config.fleetIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
@@ -425,6 +461,7 @@ export default class MonitorRecommendationUtil {
       "dockerSwarmMonitor",
       "podmanMonitor",
       "proxmoxMonitor",
+      "vmwareMonitor",
       "cephMonitor",
       "iotMonitor",
       "metricMonitor",
@@ -753,10 +790,13 @@ export default class MonitorRecommendationUtil {
    * Build a recommendation's step exactly as the create flow would, and reduce
    * it to its serialized fingerprint.
    *
-   * The `monitorName` recomputation matters: templates interpolate the monitor
-   * name into incident titles, and while the name is not part of the
-   * fingerprint, building the step with a different name than the create flow
-   * uses would be an easy way for the two paths to drift apart later.
+   * The `monitorName` recomputation matters: templates interpolate that name
+   * into incident titles, and while the name is not part of the fingerprint,
+   * building the step with a different name than the create flow uses would be
+   * an easy way for the two paths to drift apart later. It therefore calls the
+   * same `getTemplateMonitorName` that `MonitorRecommendationCreateUtil
+   * .buildMonitor` does — callers pass the bare resource display name as
+   * `args.monitorName`, exactly as the create flow's `resourceDisplayName`.
    */
   private static getSerializedFingerprintForRecommendation(data: {
     recommendation: MonitorRecommendation;
@@ -766,7 +806,7 @@ export default class MonitorRecommendationUtil {
       this.getFingerprintFromMonitorStep(
         data.recommendation.getMonitorStep({
           ...data.args,
-          monitorName: this.getMonitorName({
+          monitorName: this.getTemplateMonitorName({
             recommendation: data.recommendation,
             resourceDisplayName: data.args.monitorName,
           }),

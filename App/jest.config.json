@@ -1,6 +1,11 @@
 {
   "preset": "ts-jest",
-  "testPathIgnorePatterns": ["node_modules", "dist", "FeatureSet/BrowserRecorder"],
+  "testPathIgnorePatterns": [
+    "node_modules",
+    "dist",
+    "FeatureSet/BrowserRecorder",
+    "FeatureSet/MobileRecorder"
+  ],
   "verbose": true,
   "globals": {
     "ts-jest": {

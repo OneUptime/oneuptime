@@ -57,6 +57,36 @@
     "today": "Today",
     "notAvailable": "Not available"
   },
+  "uptimeHistory": {
+    "graphLabel": "Uptime history for the last {{total}} days",
+    "dayLabel": "{{date}}: {{uptime}}% uptime",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% uptime, {{total}} incidents",
+    "dayLabelNoData": "{{date}}: no data",
+    "dayLabelNoDataWithIncidents": "{{date}}: no data, {{total}} incidents",
+    "uptime": "Uptime",
+    "noMonitoringData": "No monitoring data for this day",
+    "incidents": "Incidents",
+    "noIncidents": "No incidents",
+    "noIncidentsDescription": "No incidents were reported on this day.",
+    "declared": "Declared",
+    "oneIncidentOnThisDay": "1 incident reported on this day",
+    "incidentsOnThisDay": "{{total}} incidents reported on this day"
+  },
+  "liveStatus": {
+    "updated": "Updated {{time}}",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing",
+    "refreshFailed": "Could not refresh. Showing the last known status."
+  },
+  "search": {
+    "label": "Search resources",
+    "placeholder": "Search resources",
+    "clear": "Clear search",
+    "resultCount": "{{matched}} of {{total}} resources",
+    "noMatchesInGroup": "No resources here match your search.",
+    "noResultsTitle": "No matching resources",
+    "noResultsDescription": "Nothing on this page matches \"{{query}}\". Try a shorter search."
+  },
   "incidents": {
     "title": "Incidents",
     "singular": "Incident",

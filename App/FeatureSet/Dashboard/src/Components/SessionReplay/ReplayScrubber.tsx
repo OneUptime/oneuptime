@@ -1,618 +1,696 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  memo,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import Icon from "Common/UI/Components/Icon/Icon";
-import IconProp from "Common/Types/Icon/IconProp";
+import { ReplayEngineSnapshot } from "./Engine/ReplayEngineTypes";
+import useReplayClock, { ReplayClockLike } from "./useReplayClock";
+import { ReplaySignal } from "./Rail/ReplaySignalTypes";
+import ReplayControls, {
+  REPLAY_SPEEDS,
+  ReplayControlsProps,
+  formatReplaySpeed,
+  getReplaySpeedIndex,
+  stepReplaySpeed,
+} from "./ReplayControls";
+import ReplayTimeline, {
+  REPLAY_TIMELINE_DEFAULT_WIDTH_PX,
+  ReplayTimelineProps,
+} from "./ReplayTimeline";
+import ReplayShortcutsModal from "./ReplayShortcutsModal";
+import {
+  ReplayKeyboardAction,
+  ReplayKeyboardScope,
+  getReplayKeyTargetKind,
+  isCoalescingReplayAction,
+  resolveReplayKeyboardAction,
+} from "./ReplayKeyboardMap";
+import {
+  ReplayActivityBucket,
+  ReplayTimelineMarker,
+  ReplayTrackBand,
+  findNextMarker,
+  findPrevMarker,
+  getErrorMarkers,
+  getFrustrationMarkers,
+  markerSeekTarget,
+  nudgeOffset,
+  percentToOffset,
+} from "./ReplayTimelineMath";
 
 /*
- * Hand-built five-lane replay timeline.
+ * The composition of ReplayControls and ReplayTimeline over one engine
+ * snapshot, plus the keyboard listener and the "?" sheet.
  *
- * There is no slider, timeline or player component anywhere in
- * Common/UI/Components, and rrweb-player is a Svelte component that does not
- * belong in this build pipeline. The drag/hover math is modelled on
- * Common/UI/Components/TelemetryViewer/components/TelemetryHistogram.tsx and
- * the structural approach (pure divs plus a keyboard handler) on
- * Components/Profiles/FlamegraphView.tsx.
+ * This file keeps its name so existing imports survive the split: the
+ * five-lane scrubber that lived here became ReplayControls (the row of
+ * buttons) and ReplayTimeline (the track and lanes), both re-exported
+ * below. What stays here is the glue that needs both: prev/next error
+ * stepping (the button's enabled state and the key's behaviour are
+ * computed by the same rule, so the button can never be lit for a jump
+ * that would not move), the speed step for "<" and ">", and the single
+ * window keydown listener.
+ */
+
+export {
+  ReplayControls,
+  ReplayTimeline,
+  ReplayShortcutsModal,
+  REPLAY_SPEEDS,
+  REPLAY_TIMELINE_DEFAULT_WIDTH_PX,
+  formatReplaySpeed,
+  getReplaySpeedIndex,
+  stepReplaySpeed,
+};
+export type { ReplayControlsProps, ReplayTimelineProps };
+
+/* ---- Keyboard listener. ---- */
+
+export interface ReplayKeyboardShortcutOptions {
+  isEnabled: boolean;
+  /* "rail" when the rail list has focus; j/k/Enter/Esc change meaning. */
+  getScope?: (() => ReplayKeyboardScope) | undefined;
+  onAction: (action: ReplayKeyboardAction) => void;
+}
+
+interface HeldSeekKey {
+  key: string;
+  pendingDeltaMs: number;
+}
+
+/*
+ * ONE window listener for the component's lifetime, reading the latest
+ * options through a ref. The old scrubber re-registered its handler on
+ * every 200ms time tick because currentTimeMs was in the effect's
+ * dependency list (finding 20); nothing here depends on render-time
+ * values.
  *
- * The lanes exist so a viewer can answer "where did it go wrong" without
- * scrubbing blind, and - critically - so a hole in the recording is drawn as
- * a labelled band rather than silently skipped.
+ * Held keys: the first keydown seeks immediately, auto-repeats accumulate
+ * into one pending delta, and keyup (or the window losing focus) commits
+ * that delta as a single seek - mirroring the drag design, where every
+ * seek can cost a Replayer rebuild and a chunk fetch (finding 10).
  */
+export function useReplayKeyboardShortcuts(
+  options: ReplayKeyboardShortcutOptions,
+): void {
+  const optionsRef: React.MutableRefObject<ReplayKeyboardShortcutOptions> =
+    useRef<ReplayKeyboardShortcutOptions>(options);
+  const heldRef: React.MutableRefObject<HeldSeekKey | null> =
+    useRef<HeldSeekKey | null>(null);
 
-export enum ReplayBandState {
-  /* Decoded and resident. Seeking here is instant. */
-  Loaded = "loaded",
-  /* Present on the server, not yet fetched. */
-  Available = "available",
-  /* Never arrived. Playback cannot cross it. */
-  Missing = "missing",
+  optionsRef.current = options;
+
+  useEffect(() => {
+    const flushHeld: () => void = (): void => {
+      const held: HeldSeekKey | null = heldRef.current;
+      heldRef.current = null;
+
+      if (held && held.pendingDeltaMs !== 0) {
+        optionsRef.current.onAction({
+          type: "seek-relative",
+          deltaMs: held.pendingDeltaMs,
+        });
+      }
+    };
+
+    const handleKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      const current: ReplayKeyboardShortcutOptions = optionsRef.current;
+
+      if (!current.isEnabled) {
+        return;
+      }
+
+      const action: ReplayKeyboardAction | null = resolveReplayKeyboardAction({
+        key: event.key,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        repeat: event.repeat,
+        targetKind: getReplayKeyTargetKind(event.target),
+        scope: current.getScope ? current.getScope() : "player",
+      });
+
+      if (!action) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (isCoalescingReplayAction(action) && action.type === "seek-relative") {
+        const held: HeldSeekKey | null = heldRef.current;
+
+        if (event.repeat && held && held.key === event.key) {
+          held.pendingDeltaMs += action.deltaMs;
+          return;
+        }
+
+        /* A different key while one is held: commit the held one first. */
+        if (held && held.key !== event.key) {
+          flushHeld();
+        }
+
+        heldRef.current = { key: event.key, pendingDeltaMs: 0 };
+        current.onAction(action);
+        return;
+      }
+
+      current.onAction(action);
+    };
+
+    const handleKeyUp: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      const held: HeldSeekKey | null = heldRef.current;
+
+      if (held && held.key === event.key) {
+        flushHeld();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", flushHeld);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", flushHeld);
+      heldRef.current = null;
+    };
+  }, []);
 }
 
-export interface ReplayBand {
-  startMs: number;
-  endMs: number;
-  state: ReplayBandState;
-  /* Only meaningful for Missing bands. */
-  missingMs?: number | undefined;
-}
+/* ---- Composition. ---- */
 
-export interface ReplayMarker {
-  atMs: number;
-  label: string;
+/*
+ * The transport's readout shows tenths while seeking, so 100ms is as
+ * coarse as it may go; the track's needle has to move with the picture,
+ * so it gets every frame the engine publishes.
+ */
+export const REPLAY_CONTROLS_CLOCK_MS: number = 100;
+export const REPLAY_TRACK_CLOCK_MS: number = 16;
+
+interface ReplayTimelineClockedProps {
+  clock: ReplayClockLike;
+  timelineProps: Omit<ReplayTimelineProps, "currentTimeMs">;
 }
 
 /*
- * Sub-1x speeds exist for the moments engineers actually scrub for: a
- * flash of wrong UI, a race visible for three frames. 0.5x/0.25x is how
- * you see it; 8x is how you find it.
+ * The one part of the player that re-renders on every publish, and the
+ * only one that should: a needle that moves four times a second reads as
+ * a stutter even when the picture behind it is perfect. Everything
+ * expensive inside ReplayTimeline (bands, lanes, clusters, the activity
+ * strip) is memoised on its own inputs, so this re-render reaches the
+ * playhead and stops.
  */
-export const REPLAY_SPEEDS: Array<number> = [0.25, 0.5, 1, 2, 4, 8];
+const ReplayTimelineClockedComponent: FunctionComponent<
+  ReplayTimelineClockedProps
+> = (props: ReplayTimelineClockedProps): ReactElement => {
+  const currentTimeMs: number = useReplayClock(
+    props.clock,
+    REPLAY_TRACK_CLOCK_MS,
+  );
 
-export interface ReplayScrubberProps {
-  durationMs: number;
-  currentTimeMs: number;
-  isPlaying: boolean;
-  speed: number;
-  skipInactive: boolean;
-
-  /* Lane 1: chunk / buffer state, including the missing bands. */
-  bands: Array<ReplayBand>;
-  /* Lane 2 */
-  frustrationMarkers: Array<ReplayMarker>;
-  /* Lane 3 */
-  errorMarkers: Array<ReplayMarker>;
-  /* Lane 4: 4xx / 5xx responses only. 2xx noise would make the lane useless. */
-  networkMarkers: Array<ReplayMarker>;
-  /* Lane 5 */
-  routeMarkers: Array<ReplayMarker>;
-
-  onSeek: (offsetMs: number) => void;
-  onPlayPauseToggle: () => void;
-  onSpeedChange: (speed: number) => void;
-  onSkipInactiveChange: (skipInactive: boolean) => void;
-  /* Disabled when there is no error after the playhead. */
-  onJumpToNextError: () => void;
-
-  /* Keyboard shortcuts are suppressed while the player is not the focus. */
-  areShortcutsEnabled?: boolean | undefined;
-}
-
-function formatOffset(offsetMs: number): string {
-  const clamped: number = Math.max(0, Math.round(offsetMs / 1000));
-  const minutes: number = Math.floor(clamped / 60);
-  const seconds: number = clamped % 60;
-
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function formatMissing(missingMs: number): string {
-  const seconds: number = Math.round(missingMs / 1000);
-
-  if (seconds < 60) {
-    return `${seconds}s missing`;
-  }
-
-  return `${Math.round(seconds / 60)}m missing`;
-}
-
-/*
- * Percentage helpers. Every band and marker is positioned in percent rather
- * than pixels so the lanes stay aligned across container resizes without a
- * ResizeObserver.
- */
-function toPercent(valueMs: number, durationMs: number): number {
-  if (durationMs <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, Math.max(0, (valueMs / durationMs) * 100));
-}
-
-/*
- * gray-500 rather than gray-400: gray-400 on white is about 2.9:1, which
- * fails WCAG AA for text. These labels are the only thing naming each lane,
- * so they have to be readable rather than decorative.
- */
-const LANE_LABEL_CLASS: string =
-  "w-24 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-500";
-
-interface MarkerLaneProps {
-  label: string;
-  markers: Array<ReplayMarker>;
-  durationMs: number;
-  colorClassName: string;
-  onSeek: (offsetMs: number) => void;
-}
-
-const MarkerLane: FunctionComponent<MarkerLaneProps> = (
-  props: MarkerLaneProps,
-): ReactElement => {
   return (
-    <div className="flex items-center gap-2">
-      <div className={LANE_LABEL_CLASS}>{props.label}</div>
-      <div className="relative h-5 flex-1 rounded bg-gray-50 ring-1 ring-inset ring-gray-100">
-        {props.markers.map(
-          (marker: ReplayMarker, index: number): ReactElement => {
-            /*
-             * The button is the HIT AREA and is deliberately wider than the
-             * mark it draws. A 4px-wide target is close to unclickable, and
-             * these are the primary way anyone navigates to the interesting
-             * moment in a recording. The visible bar stays thin so a cluster
-             * of markers is still legible as separate events.
-             */
-            return (
-              <button
-                key={`${marker.atMs}-${index}`}
-                type="button"
-                title={`${formatOffset(marker.atMs)} — ${marker.label}`}
-                aria-label={`${props.label} at ${formatOffset(marker.atMs)}: ${
-                  marker.label
-                }`}
-                className="group absolute inset-y-0 flex w-3.5 -translate-x-1/2 items-center justify-center rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                style={{
-                  left: `${toPercent(marker.atMs, props.durationMs)}%`,
-                }}
-                onClick={(): void => {
-                  props.onSeek(marker.atMs);
-                }}
-              >
-                <span
-                  className={`h-3 w-1 rounded-sm transition-all group-hover:h-4 group-hover:w-1.5 ${props.colorClassName}`}
-                />
-              </button>
-            );
-          },
-        )}
-      </div>
-    </div>
+    <ReplayTimeline {...props.timelineProps} currentTimeMs={currentTimeMs} />
   );
 };
+
+const ReplayTimelineClocked: React.NamedExoticComponent<ReplayTimelineClockedProps> =
+  memo(ReplayTimelineClockedComponent);
+
+export interface ReplayScrubberProps {
+  snapshot: ReplayEngineSnapshot;
+  /*
+   * The engine, as a clock. When it is given, the playhead comes from the
+   * clock channel - the track every frame, the transport every 100ms -
+   * and `snapshot` is the structural one, whose currentTimeMs is stale by
+   * design. Without it the component reads the snapshot exactly as it
+   * always did, which is what the component tests do.
+   */
+  clock?: ReplayClockLike | null | undefined;
+  bands: Array<ReplayTrackBand>;
+  activity?: Array<ReplayActivityBucket> | undefined;
+  markers: Array<ReplayTimelineMarker>;
+  /* For the hover preview card. */
+  signals?: Array<ReplaySignal> | undefined;
+  ghostMs?: number | null | undefined;
+  selectedSignalId?: string | null | undefined;
+  startTimeUnixMs?: number | null | undefined;
+  /* Domain copy shown beside the controls when the phase is "error". */
+  errorMessage?: string | null | undefined;
+  /* Suppressed while a modal or drawer owns the keyboard. */
+  areShortcutsEnabled?: boolean | undefined;
+  /* Static or read per key; "rail" when the rail list has focus. */
+  keyboardScope?: ReplayKeyboardScope | (() => ReplayKeyboardScope) | undefined;
+  isFollowEnabled?: boolean | undefined;
+  isMouseTrailEnabled?: boolean | undefined;
+
+  onSeek: (offsetMs: number) => void;
+  onPlayPause: () => void;
+  onSpeedChange: (speed: number) => void;
+  onSkipInactiveChange: (isEnabled: boolean) => void;
+  /* "s": skip past the idle stretch the playhead is in, if any. */
+  onSkipIdleJump?: (() => void) | undefined;
+  onRetry?: (() => void) | undefined;
+  onSelectSignal?: ((signalId: string) => void) | undefined;
+  onHoverTimeline?: ((offsetMs: number | null) => void) | undefined;
+
+  /* Shell-level shortcuts; a missing handler makes its key a no-op. */
+  onNextSignal?: (() => void) | undefined;
+  onPrevSignal?: (() => void) | undefined;
+  onToggleTheater?: (() => void) | undefined;
+  onToggleWide?: (() => void) | undefined;
+  onFollowChange?: ((isEnabled: boolean) => void) | undefined;
+  onMouseTrailChange?: ((isEnabled: boolean) => void) | undefined;
+  onFocusRailSearch?: (() => void) | undefined;
+  onCopyLink?: (() => void) | undefined;
+  onToggleDetails?: (() => void) | undefined;
+  onEscape?: (() => void) | undefined;
+  onRailRowDown?: (() => void) | undefined;
+  onRailRowUp?: (() => void) | undefined;
+  onRailSeekSelected?: (() => void) | undefined;
+  onRailClear?: (() => void) | undefined;
+  /*
+   * "{" / "}": open the previous or next recording of the same person.
+   * The shell owns the list (it comes from the manifest's identity keys)
+   * and the navigation; a missing handler makes the key a no-op like
+   * every other shell-level shortcut here.
+   */
+  onOlderUserSession?: (() => void) | undefined;
+  onNewerUserSession?: (() => void) | undefined;
+}
+
+/* The slice of props the once-registered keyboard dispatcher reads. */
+type ReplayScrubberLatest = Pick<
+  ReplayScrubberProps,
+  | "snapshot"
+  | "clock"
+  | "markers"
+  | "keyboardScope"
+  | "isFollowEnabled"
+  | "onSeek"
+  | "onPlayPause"
+  | "onSpeedChange"
+  | "onSkipInactiveChange"
+  | "onSkipIdleJump"
+  | "onNextSignal"
+  | "onPrevSignal"
+  | "onToggleTheater"
+  | "onToggleWide"
+  | "onFollowChange"
+  | "onFocusRailSearch"
+  | "onCopyLink"
+  | "onToggleDetails"
+  | "onEscape"
+  | "onRailRowDown"
+  | "onRailRowUp"
+  | "onRailSeekSelected"
+  | "onRailClear"
+  | "onOlderUserSession"
+  | "onNewerUserSession"
+>;
 
 const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
   props: ReplayScrubberProps,
 ): ReactElement => {
-  const trackRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-  const isDraggingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-  const [hoverMs, setHoverMs] = useState<number | null>(null);
-  /*
-   * Where the held pointer currently is. Rendered as the playhead while a
-   * drag is in progress, and committed with a single onSeek on release.
-   *
-   * A drag must NOT seek continuously. Every onSeek bumps the player's seek
-   * token, and a target on the far side of a snapshot anchor - a few pixels
-   * on a 30-minute recording - makes ReplayStage destroy the Replayer, drop
-   * the decoded LRU and POST to /chunks. One drag across the timeline would
-   * be dozens of teardowns and dozens of authenticated fetches.
-   */
-  const [dragMs, setDragMs] = useState<number | null>(null);
-  const dragMsRef: React.MutableRefObject<number> = useRef<number>(0);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
 
-  const {
-    durationMs,
-    currentTimeMs,
-    onSeek,
-    onPlayPauseToggle,
-    areShortcutsEnabled,
-  } = props;
+  const { snapshot, markers, onSeek, onSelectSignal } = props;
+  const { durationMs } = snapshot;
 
   /*
-   * Client X -> offset. Reading the rect on every move (rather than caching
-   * it) is what keeps the drag correct when the page scrolls underneath a
-   * held pointer.
+   * The transport's clock. With a clock source it comes from the engine
+   * at REPLAY_CONTROLS_CLOCK_MS, so this component re-renders four times
+   * a second instead of thirty; without one it is the snapshot's own
+   * playhead, exactly as before.
    */
-  const offsetForClientX: (clientX: number) => number = useCallback(
-    (clientX: number): number => {
-      const element: HTMLDivElement | null = trackRef.current;
+  const clockTimeMs: number = useReplayClock(
+    props.clock ?? null,
+    REPLAY_CONTROLS_CLOCK_MS,
+  );
+  const currentTimeMs: number = props.clock
+    ? clockTimeMs
+    : snapshot.currentTimeMs;
 
-      if (!element || durationMs <= 0) {
-        return 0;
-      }
+  /*
+   * The keyboard dispatcher reads props and the snapshot through a ref
+   * because the listener behind it is registered once. Each field is
+   * copied explicitly rather than storing `props` whole, so the list of
+   * what the keys can reach is visible here and to the lint rule.
+   */
+  const latestRef: React.MutableRefObject<ReplayScrubberLatest> =
+    useRef<ReplayScrubberLatest>({} as ReplayScrubberLatest);
+  const isShortcutsOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isShortcutsOpen);
 
-      const rect: DOMRect = element.getBoundingClientRect();
+  latestRef.current = {
+    snapshot: props.snapshot,
+    clock: props.clock,
+    markers: props.markers,
+    keyboardScope: props.keyboardScope,
+    isFollowEnabled: props.isFollowEnabled,
+    onSeek: props.onSeek,
+    onPlayPause: props.onPlayPause,
+    onSpeedChange: props.onSpeedChange,
+    onSkipInactiveChange: props.onSkipInactiveChange,
+    onSkipIdleJump: props.onSkipIdleJump,
+    onNextSignal: props.onNextSignal,
+    onPrevSignal: props.onPrevSignal,
+    onToggleTheater: props.onToggleTheater,
+    onToggleWide: props.onToggleWide,
+    onFollowChange: props.onFollowChange,
+    onFocusRailSearch: props.onFocusRailSearch,
+    onCopyLink: props.onCopyLink,
+    onToggleDetails: props.onToggleDetails,
+    onEscape: props.onEscape,
+    onRailRowDown: props.onRailRowDown,
+    onRailRowUp: props.onRailRowUp,
+    onRailSeekSelected: props.onRailSeekSelected,
+    onRailClear: props.onRailClear,
+    onOlderUserSession: props.onOlderUserSession,
+    onNewerUserSession: props.onNewerUserSession,
+  };
+  isShortcutsOpenRef.current = isShortcutsOpen;
 
-      if (rect.width <= 0) {
-        return 0;
-      }
+  const errorMarkers: Array<ReplayTimelineMarker> = useMemo(() => {
+    return getErrorMarkers(markers);
+  }, [markers]);
 
-      const ratio: number = (clientX - rect.left) / rect.width;
+  const frustrationMarkers: Array<ReplayTimelineMarker> = useMemo(() => {
+    return getFrustrationMarkers(markers);
+  }, [markers]);
 
-      return Math.min(durationMs, Math.max(0, ratio * durationMs));
+  /*
+   * The button's enabled state and the jump use the SAME lookup, so the
+   * button is lit exactly when a press would move the playhead. The old
+   * scrubber enabled "Next error" with `atMs > currentTimeMs` and then
+   * landed 10s before that marker, which is still < atMs: the button
+   * stayed lit and the second press went nowhere (finding 2).
+   */
+  const nextError: ReplayTimelineMarker | null = useMemo(() => {
+    return findNextMarker(errorMarkers, currentTimeMs);
+  }, [errorMarkers, currentTimeMs]);
+
+  const prevError: ReplayTimelineMarker | null = useMemo(() => {
+    return findPrevMarker(errorMarkers, currentTimeMs);
+  }, [errorMarkers, currentTimeMs]);
+
+  const nextFrustration: ReplayTimelineMarker | null = useMemo(() => {
+    return findNextMarker(frustrationMarkers, currentTimeMs);
+  }, [frustrationMarkers, currentTimeMs]);
+
+  const jumpToMarker: (marker: ReplayTimelineMarker | null) => void =
+    useCallback(
+      (marker: ReplayTimelineMarker | null): void => {
+        if (!marker) {
+          return;
+        }
+
+        onSeek(markerSeekTarget(marker));
+
+        if (marker.signalId && onSelectSignal) {
+          onSelectSignal(marker.signalId);
+        }
+      },
+      [onSeek, onSelectSignal],
+    );
+
+  /*
+   * The exact playhead for a keyboard action, not the quantised one the
+   * readout renders and not the structural snapshot's stale copy: a jump
+   * computed from a value up to 100ms behind would land short of the
+   * marker it was aimed at.
+   */
+  const readLiveTimeMs: () => number = useCallback((): number => {
+    const latest: ReplayScrubberLatest = latestRef.current;
+    const live: number | undefined = latest.clock?.getCurrentTimeMs?.();
+
+    return typeof live === "number" ? live : latest.snapshot.currentTimeMs;
+  }, []);
+
+  const handleNextError: () => void = useCallback((): void => {
+    jumpToMarker(
+      findNextMarker(
+        getErrorMarkers(latestRef.current.markers),
+        readLiveTimeMs(),
+      ),
+    );
+  }, [jumpToMarker, readLiveTimeMs]);
+
+  const handlePrevError: () => void = useCallback((): void => {
+    jumpToMarker(
+      findPrevMarker(
+        getErrorMarkers(latestRef.current.markers),
+        readLiveTimeMs(),
+      ),
+    );
+  }, [jumpToMarker, readLiveTimeMs]);
+
+  const handleNextFrustration: () => void = useCallback((): void => {
+    jumpToMarker(
+      findNextMarker(
+        getFrustrationMarkers(latestRef.current.markers),
+        readLiveTimeMs(),
+      ),
+    );
+  }, [jumpToMarker, readLiveTimeMs]);
+
+  const handleSeekRelative: (deltaMs: number) => void = useCallback(
+    (deltaMs: number): void => {
+      const latest: ReplayEngineSnapshot = latestRef.current.snapshot;
+
+      latestRef.current.onSeek(
+        nudgeOffset(readLiveTimeMs(), deltaMs, latest.durationMs),
+      );
     },
-    [durationMs],
+    [readLiveTimeMs],
   );
 
-  const handlePointerDown: (event: React.PointerEvent<HTMLDivElement>) => void =
-    useCallback(
-      (event: React.PointerEvent<HTMLDivElement>): void => {
-        const offsetMs: number = offsetForClientX(event.clientX);
+  const openShortcuts: () => void = useCallback((): void => {
+    setIsShortcutsOpen(true);
+  }, []);
 
-        isDraggingRef.current = true;
-        dragMsRef.current = offsetMs;
-        setDragMs(offsetMs);
-        /*
-         * Capture the pointer so a drag that leaves the track still tracks -
-         * without this, dragging past either end drops the gesture and the
-         * playhead freezes mid-scrub.
-         */
-        event.currentTarget.setPointerCapture(event.pointerId);
-      },
-      [offsetForClientX],
-    );
+  const closeShortcuts: () => void = useCallback((): void => {
+    setIsShortcutsOpen(false);
+  }, []);
 
-  const handlePointerMove: (event: React.PointerEvent<HTMLDivElement>) => void =
-    useCallback(
-      (event: React.PointerEvent<HTMLDivElement>): void => {
-        const offsetMs: number = offsetForClientX(event.clientX);
-        setHoverMs(offsetMs);
+  const handleAction: (action: ReplayKeyboardAction) => void = useCallback(
+    (action: ReplayKeyboardAction): void => {
+      const current: ReplayScrubberLatest = latestRef.current;
+      const latest: ReplayEngineSnapshot = current.snapshot;
 
-        if (isDraggingRef.current) {
-          // Local preview only. The seek is committed on release.
-          dragMsRef.current = offsetMs;
-          setDragMs(offsetMs);
-        }
-      },
-      [offsetForClientX],
-    );
-
-  const handlePointerUp: (event: React.PointerEvent<HTMLDivElement>) => void =
-    useCallback(
-      (event: React.PointerEvent<HTMLDivElement>): void => {
-        const wasDragging: boolean = isDraggingRef.current;
-        isDraggingRef.current = false;
-
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId);
+      /* With the sheet open only "?" and Escape mean anything. */
+      if (isShortcutsOpenRef.current) {
+        if (action.type === "escape" || action.type === "show-shortcuts") {
+          setIsShortcutsOpen(false);
         }
 
-        setDragMs(null);
-
-        /*
-         * A plain click is a pointerdown followed immediately by a pointerup
-         * with no move, so this is also the path that makes clicking the
-         * track seek. Exactly one onSeek per gesture, either way.
-         */
-        if (wasDragging) {
-          onSeek(dragMsRef.current);
-        }
-      },
-      [onSeek],
-    );
-
-  useEffect(() => {
-    if (areShortcutsEnabled === false) {
-      return;
-    }
-
-    const handler: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      const target: EventTarget | null = event.target;
-
-      /*
-       * Never steal keys from a text field. Space in particular is a normal
-       * character, and a global handler that swallows it makes every filter
-       * box on the page feel broken.
-       */
-      if (target instanceof HTMLElement) {
-        const tag: string = target.tagName.toLowerCase();
-
-        if (
-          tag === "input" ||
-          tag === "textarea" ||
-          tag === "select" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-
-        /*
-         * Nor from anything Space is supposed to activate. Without this a
-         * keyboard-only user cannot press "Session details", a speed button,
-         * a tab or a marker: the focused control never gets its Space
-         * because this handler preventDefaults it into a play/pause toggle.
-         */
-        if (target.closest("button, a, [role='button'], [role='checkbox']")) {
-          return;
-        }
+        return;
       }
 
-      switch (event.key) {
-        case " ":
-          event.preventDefault();
-          onPlayPauseToggle();
-          break;
-        case "ArrowLeft":
-          event.preventDefault();
-          onSeek(Math.max(0, currentTimeMs - 10000));
-          break;
-        case "ArrowRight":
-          event.preventDefault();
-          onSeek(Math.min(durationMs, currentTimeMs + 10000));
-          break;
-        case ",":
-          event.preventDefault();
-          onSeek(Math.max(0, currentTimeMs - 1000));
-          break;
-        case ".":
-          event.preventDefault();
-          onSeek(Math.min(durationMs, currentTimeMs + 1000));
-          break;
-        default:
-          break;
+      switch (action.type) {
+        case "play-pause":
+          current.onPlayPause();
+          return;
+        case "seek-relative":
+          handleSeekRelative(action.deltaMs);
+          return;
+        case "seek-percent":
+          current.onSeek(percentToOffset(action.percent, latest.durationMs));
+          return;
+        case "seek-start":
+          current.onSeek(0);
+          return;
+        case "seek-end":
+          current.onSeek(Math.max(0, latest.durationMs));
+          return;
+        case "speed-step":
+          current.onSpeedChange(
+            stepReplaySpeed(latest.speed, action.direction),
+          );
+          return;
+        case "skip-idle-jump":
+          current.onSkipIdleJump?.();
+          return;
+        case "toggle-skip-idle":
+          current.onSkipInactiveChange(!latest.skipInactive);
+          return;
+        case "next-error":
+          handleNextError();
+          return;
+        case "prev-error":
+          handlePrevError();
+          return;
+        case "next-frustration":
+          handleNextFrustration();
+          return;
+        case "next-signal":
+          current.onNextSignal?.();
+          return;
+        case "prev-signal":
+          current.onPrevSignal?.();
+          return;
+        case "toggle-theater":
+          current.onToggleTheater?.();
+          return;
+        case "toggle-wide":
+          current.onToggleWide?.();
+          return;
+        case "toggle-follow":
+          current.onFollowChange?.(!current.isFollowEnabled);
+          return;
+        case "focus-rail-search":
+          current.onFocusRailSearch?.();
+          return;
+        case "copy-link":
+          current.onCopyLink?.();
+          return;
+        case "toggle-details":
+          current.onToggleDetails?.();
+          return;
+        case "show-shortcuts":
+          setIsShortcutsOpen(true);
+          return;
+        case "escape":
+          current.onEscape?.();
+          return;
+        case "rail-row-down":
+          current.onRailRowDown?.();
+          return;
+        case "rail-row-up":
+          current.onRailRowUp?.();
+          return;
+        case "rail-seek-selected":
+          current.onRailSeekSelected?.();
+          return;
+        case "rail-clear":
+          current.onRailClear?.();
+          return;
+        case "older-user-session":
+          current.onOlderUserSession?.();
+          return;
+        case "newer-user-session":
+          current.onNewerUserSession?.();
+          return;
+        default: {
+          const unreachable: never = action;
+          return unreachable;
+        }
       }
-    };
+    },
+    [
+      handleSeekRelative,
+      handleNextError,
+      handlePrevError,
+      handleNextFrustration,
+    ],
+  );
 
-    window.addEventListener("keydown", handler);
+  const getScope: () => ReplayKeyboardScope =
+    useCallback((): ReplayKeyboardScope => {
+      const scope:
+        | ReplayKeyboardScope
+        | (() => ReplayKeyboardScope)
+        | undefined = latestRef.current.keyboardScope;
 
-    return () => {
-      window.removeEventListener("keydown", handler);
-    };
-  }, [
-    areShortcutsEnabled,
-    currentTimeMs,
-    durationMs,
-    onSeek,
-    onPlayPauseToggle,
-  ]);
+      if (typeof scope === "function") {
+        return scope();
+      }
 
-  const hasErrorAhead: boolean = useMemo(() => {
-    return props.errorMarkers.some((marker: ReplayMarker): boolean => {
-      return marker.atMs > currentTimeMs;
-    });
-  }, [props.errorMarkers, currentTimeMs]);
+      return scope || "player";
+    }, []);
 
-  /*
-   * While a drag is in progress the playhead follows the pointer even though
-   * the player has not been told to seek yet, so the gesture still feels
-   * direct without costing a Replayer rebuild per pixel.
-   */
-  const playheadMs: number = dragMs ?? currentTimeMs;
-  const playheadPercent: number = toPercent(playheadMs, durationMs);
+  useReplayKeyboardShortcuts({
+    isEnabled: props.areShortcutsEnabled !== false || isShortcutsOpen,
+    getScope: getScope,
+    onAction: handleAction,
+  });
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
-      {/* Controls */}
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-          onClick={onPlayPauseToggle}
-          aria-label={props.isPlaying ? "Pause (Space)" : "Play (Space)"}
-          title={props.isPlaying ? "Pause (Space)" : "Play (Space)"}
-        >
-          <Icon
-            icon={props.isPlaying ? IconProp.Pause : IconProp.Play}
-            className="h-4 w-4"
-          />
-        </button>
-
-        <div className="font-mono text-xs tabular-nums text-gray-700">
-          {formatOffset(currentTimeMs)} / {formatOffset(durationMs)}
-        </div>
-
-        {/*
-         * One segmented control rather than four separate ring-1 buttons.
-         * These are mutually exclusive values of a single setting, and four
-         * outlined pills read as four unrelated actions.
-         */}
-        <div
-          role="group"
-          aria-label="Playback speed"
-          className="inline-flex overflow-hidden rounded-md ring-1 ring-inset ring-gray-300"
-        >
-          {REPLAY_SPEEDS.map((speed: number, index: number): ReactElement => {
-            const isActive: boolean = props.speed === speed;
-
-            return (
-              <button
-                key={speed}
-                type="button"
-                aria-pressed={isActive}
-                className={`px-2.5 py-1 text-xs font-medium tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                  index > 0 ? "border-l border-gray-300" : ""
-                } ${
-                  isActive
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-                onClick={(): void => {
-                  props.onSpeedChange(speed);
-                }}
-              >
-                {speed}x
-              </button>
-            );
-          })}
-        </div>
-
-        <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 rounded border-gray-300"
-            checked={props.skipInactive}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-              props.onSkipInactiveChange(event.target.checked);
-            }}
-          />
-          Skip inactivity
-        </label>
-
-        <button
-          type="button"
-          disabled={!hasErrorAhead}
-          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
-            hasErrorAhead
-              ? "bg-white text-rose-700 ring-rose-200 hover:bg-rose-50"
-              : "cursor-not-allowed bg-gray-50 text-gray-300 ring-gray-200"
-          }`}
-          onClick={props.onJumpToNextError}
-        >
-          <Icon icon={IconProp.Alert} className="h-3 w-3" />
-          Next error
-        </button>
-
-        <div className="ml-auto text-[11px] text-gray-500">
-          <kbd className="font-sans font-medium">Space</kbd> play/pause ·{" "}
-          <kbd className="font-sans font-medium">←→</kbd> ±10s ·{" "}
-          <kbd className="font-sans font-medium">, .</kbd> ±1s
-        </div>
-      </div>
-
-      {/* Lane 1: chunk / buffer state, plus the seekable track. */}
-      <div className="flex items-center gap-2">
-        <div className={LANE_LABEL_CLASS}>Recording</div>
-        <div
-          ref={trackRef}
-          role="slider"
-          tabIndex={0}
-          aria-label="Replay position"
-          aria-valuemin={0}
-          aria-valuemax={Math.round(durationMs)}
-          aria-valuenow={Math.round(playheadMs)}
-          aria-valuetext={formatOffset(playheadMs)}
-          className="relative h-6 flex-1 cursor-pointer touch-none rounded bg-gray-100"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onPointerLeave={(): void => {
-            setHoverMs(null);
+    /*
+     * The transport BELOW the track, not above it.
+     *
+     * The old order put ten buttons between the picture and the timeline,
+     * so the two things a viewer moves between - the frame and the
+     * position they want it at - were separated by the noisiest strip on
+     * the page. Every media player ever shipped stacks them
+     * picture -> track -> transport, and the player reads as one object
+     * once it does: no border of its own here, because the shell wraps
+     * stage and scrubber in a single card.
+     */
+    <div data-testid="replay-scrubber" className="px-3 pb-3 pt-2.5">
+      {props.clock ? (
+        <ReplayTimelineClocked
+          clock={props.clock}
+          timelineProps={{
+            durationMs: durationMs,
+            bands: props.bands,
+            activity: props.activity,
+            markers: markers,
+            signals: props.signals,
+            ghostMs: props.ghostMs,
+            selectedSignalId: props.selectedSignalId,
+            startTimeUnixMs: props.startTimeUnixMs,
+            onSeek: onSeek,
+            onSelectSignal: onSelectSignal,
+            onHover: props.onHoverTimeline,
           }}
-        >
-          {props.bands.map((band: ReplayBand, index: number): ReactElement => {
-            const left: number = toPercent(band.startMs, durationMs);
-            const width: number = Math.max(
-              0.4,
-              toPercent(band.endMs, durationMs) - left,
-            );
-
-            /*
-             * A missing band is drawn with a hatch and its own label rather
-             * than simply left blank. An unexplained blank reads as "nothing
-             * happened"; the whole point is that something happened and we
-             * do not have it.
-             */
-            if (band.state === ReplayBandState.Missing) {
-              const missingLabel: string = formatMissing(
-                band.missingMs ?? band.endMs - band.startMs,
-              );
-
-              /*
-               * The inline label is dropped on narrow gaps rather than being
-               * clipped to a meaningless fragment ("18s missing" rendered as
-               * "18"). The hatch pattern still marks the gap and the title
-               * still gives the exact duration on hover.
-               */
-              const isWideEnoughForLabel: boolean = width >= 9;
-
-              return (
-                <div
-                  key={`band-${index}`}
-                  className="absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm border border-dashed border-amber-400 bg-amber-50"
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`Recording gap: ${missingLabel}`}
-                >
-                  {isWideEnoughForLabel && (
-                    <span className="whitespace-nowrap px-1 text-[11px] font-medium text-amber-800">
-                      {missingLabel}
-                    </span>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={`band-${index}`}
-                className={`absolute inset-y-1 rounded-sm ${
-                  band.state === ReplayBandState.Loaded
-                    ? "bg-indigo-400"
-                    : "bg-gray-300"
-                }`}
-                style={{ left: `${left}%`, width: `${width}%` }}
-              />
-            );
-          })}
-
-          {hoverMs !== null && (
-            <div
-              className="pointer-events-none absolute inset-y-0 w-px bg-gray-400"
-              style={{ left: `${toPercent(hoverMs, durationMs)}%` }}
-            />
-          )}
-
-          <div
-            className="pointer-events-none absolute inset-y-0 w-0.5 bg-gray-900"
-            style={{ left: `${playheadPercent}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-1.5 space-y-1">
-        <MarkerLane
-          label="Frustration"
-          markers={props.frustrationMarkers}
-          durationMs={durationMs}
-          colorClassName="bg-amber-500 hover:bg-amber-600"
-          onSeek={onSeek}
         />
-        <MarkerLane
-          label="Errors"
-          markers={props.errorMarkers}
+      ) : (
+        <ReplayTimeline
           durationMs={durationMs}
-          colorClassName="bg-rose-500 hover:bg-rose-600"
+          currentTimeMs={currentTimeMs}
+          bands={props.bands}
+          activity={props.activity}
+          markers={markers}
+          signals={props.signals}
+          ghostMs={props.ghostMs}
+          selectedSignalId={props.selectedSignalId}
+          startTimeUnixMs={props.startTimeUnixMs}
           onSeek={onSeek}
+          onSelectSignal={onSelectSignal}
+          onHover={props.onHoverTimeline}
         />
-        <MarkerLane
-          label="4xx / 5xx"
-          markers={props.networkMarkers}
+      )}
+
+      <div className="mt-3">
+        <ReplayControls
+          phase={snapshot.phase}
+          currentTimeMs={currentTimeMs}
           durationMs={durationMs}
-          colorClassName="bg-orange-400 hover:bg-orange-500"
-          onSeek={onSeek}
-        />
-        <MarkerLane
-          label="Route changes"
-          markers={props.routeMarkers}
-          durationMs={durationMs}
-          colorClassName="bg-sky-400 hover:bg-sky-500"
-          onSeek={onSeek}
+          speed={snapshot.speed}
+          isSkipInactiveEnabled={snapshot.skipInactive}
+          pendingSeekMs={snapshot.pendingSeekMs}
+          errorMessage={props.errorMessage ?? snapshot.error?.message ?? null}
+          hasPrevError={prevError !== null}
+          hasNextError={nextError !== null}
+          hasNextFrustration={nextFrustration !== null}
+          isFollowEnabled={props.isFollowEnabled}
+          isMouseTrailEnabled={props.isMouseTrailEnabled}
+          onPlayPause={props.onPlayPause}
+          onSeekRelative={handleSeekRelative}
+          onSpeedChange={props.onSpeedChange}
+          onSkipInactiveChange={props.onSkipInactiveChange}
+          onPrevError={handlePrevError}
+          onNextError={handleNextError}
+          onNextFrustration={handleNextFrustration}
+          onShowShortcuts={openShortcuts}
+          onRetry={props.onRetry}
+          onFollowChange={props.onFollowChange}
+          onMouseTrailChange={props.onMouseTrailChange}
         />
       </div>
 
-      {/*
-       * A legend, and the hover readout, share one always-present row.
-       *
-       * The row is rendered unconditionally: showing the hover hint only while
-       * hovering shifted every lane above it by a line the moment the pointer
-       * entered the track, which made the thing you were aiming at move.
-       */}
-      <div className="mt-2 flex h-4 items-center gap-3 text-[11px] text-gray-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-indigo-400" />
-          Loaded
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-gray-300" />
-          Not yet loaded
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm border border-dashed border-amber-400 bg-amber-50" />
-          Gap
-        </span>
-
-        {hoverMs !== null && (
-          <span className="ml-auto font-mono tabular-nums text-gray-600">
-            Seek to {formatOffset(hoverMs)}
-          </span>
-        )}
-      </div>
+      {isShortcutsOpen && <ReplayShortcutsModal onClose={closeShortcuts} />}
     </div>
   );
 };

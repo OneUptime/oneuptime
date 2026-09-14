@@ -1,10 +1,29 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { Navigate } from "react-router-dom";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SessionReplayTable from "../../../Components/SessionReplay/SessionReplayTable";
-import SessionReplaySetupGuide from "../../../Components/SessionReplay/SessionReplaySetupGuide";
+import {
+  buildTimeRangeSearch,
+  readTimeRangeFromSearch,
+} from "../../../Components/SessionReplay/SessionReplayListFilters";
 
+/*
+ * The query key and value the list wrote while Users was a toggle on it.
+ * Links minted then still resolve: they land on the Users page instead.
+ */
+export const LEGACY_USERS_VIEW_QUERY_KEY: string = "view";
+export const LEGACY_USERS_VIEW_QUERY_VALUE: string = "users";
+
+/*
+ * Only the sessions. Recording health has its own page (Replay Health) and
+ * setup lives on Documentation; an empty list still names its cause through
+ * the table's empty state.
+ */
 const RumApplicationSessionReplay: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -14,18 +33,34 @@ const RumApplicationSessionReplay: FunctionComponent<
    */
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  /*
+   * ?view=users predates the Users page: the rollup was a toggle on this
+   * list for a while, and links to it exist in tickets and bookmarks. A
+   * replace, not a push, so Back does not bounce through the redirect; the
+   * time range is carried so the link still opens the window it named.
+   */
+  if (
+    Navigation.getQueryStringByName(LEGACY_USERS_VIEW_QUERY_KEY) ===
+    LEGACY_USERS_VIEW_QUERY_VALUE
+  ) {
+    const usersRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS] as Route,
+      { modelId: modelId },
+    );
+
+    return (
+      <Navigate
+        replace={true}
+        to={`${usersRoute.toString()}${buildTimeRangeSearch(
+          readTimeRangeFromSearch(window.location.search),
+        )}`}
+      />
+    );
+  }
+
   return (
     <Fragment>
-      {/*
-       * The setup guide is rendered by the table, not beside it: only the
-       * table knows whether the empty list is "never set up" or "your
-       * filters matched nothing", and showing installation steps to
-       * somebody who simply over-filtered would be noise.
-       */}
-      <SessionReplayTable
-        rumApplicationId={modelId}
-        renderWhenEmpty={<SessionReplaySetupGuide rumApplicationId={modelId} />}
-      />
+      <SessionReplayTable rumApplicationId={modelId} />
     </Fragment>
   );
 };

@@ -4,37 +4,37 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert Episode " episodeNumber ": " alertEpisodeTitle) }}
 
-{{> InfoBlock info=(concat "A new alert episode has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(concat "A new alert episode has been created in the project - " projectName)}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Alert Episode Title:" text=alertEpisodeTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=alertEpisodeSeverity  }}
-{{> DetailBoxField title="Root Cause: " text=rootCause  }}
-{{> DetailBoxField title="Description: " text=alertEpisodeDescription  }}
+{{> DetailBoxField title="Alert Episode Title:" plainText=alertEpisodeTitle }}
+{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " plainText=alertEpisodeSeverity  }}
+{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
+{{> DetailBoxField title="Description: " blockText=alertEpisodeDescription  }}
 {{> DetailBoxEnd this }}
 
 {{#if alertsList}}
 {{> TitleBlock title=(concat "Alerts in this Episode (" alertsCount ")") }}
 <!-- Alerts List Container -->
-<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
-  width="600" style="min-width: 600px;">
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
+  width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
     <tr>
       <td class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64">
+        width="40">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
-      <td style="border: 0; margin: 0; padding: 0;">
+      <td style="border: 0; margin: 0; padding: 0; overflow-wrap: anywhere; word-break: break-word;">
         {{{alertsList}}}
       </td>
       <td class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64">
+        width="40">
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
     </tr>
@@ -53,8 +53,7 @@
 
 {{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText="Acknowledge Alert Episode"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=acknowledgeAlertEpisodeLink}}
+{{> LinkBlock linkUrl=acknowledgeAlertEpisodeLink linkLabel="You can also copy and paste this link:"}}
 
 {{> InfoBlock info="You will be notified when the status of this alert episode changes."}}
 

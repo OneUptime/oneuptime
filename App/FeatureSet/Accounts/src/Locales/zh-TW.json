@@ -31,8 +31,26 @@
     "errorOnSignUp": "註冊前請完成人機驗證挑戰。"
   },
   "login": {
+    "passkey": {
+      "signIn": "使用通行密鑰登入",
+      "description": "使用指紋、臉部辨識或裝置 PIN 碼。",
+      "passwordAlternative": "或使用密碼登入",
+      "inProgress": "使用密碼前，請完成或取消通行密鑰登入。",
+      "title": "使用已儲存的通行密鑰",
+      "helpTitle": "第一次使用通行密鑰？",
+      "help": "先使用密碼或 SSO 登入，再開啟使用者個人資料 → 通行密鑰與雙重驗證，建立您的第一個通行密鑰。",
+      "preparing": "正在準備通行密鑰…",
+      "waiting": "請查看您的裝置",
+      "waitingDescription": "按照瀏覽器或密碼管理員的提示操作。",
+      "verifying": "正在登入…",
+      "cancelled": "已取消通行密鑰登入。您可以重試或使用密碼。",
+      "notCompleted": "通行密鑰登入已取消或逾時。請重試或使用密碼登入。",
+      "unsupported": "此瀏覽器不支援通行密鑰。您仍可使用密碼或 SSO 登入。",
+      "insecure": "通行密鑰需要安全連線（HTTPS）。您仍可使用密碼或 SSO 登入。",
+      "tryAgain": "重試通行密鑰"
+    },
     "title": "登入您的帳號",
-    "subtitle": "加入數千家使用 OneUptime 保持隨時在線的企業。",
+    "subtitle": "使用通行密鑰、密碼或組織的單一登入（SSO）。",
     "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
     "useSso": "改用單一登入（SSO）",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "請依照安全金鑰裝置上的指示操作。",
       "codeFieldDescription": "請輸入驗證器應用程式中的代碼",
       "selectDifferentMethod": "選擇不同的雙重驗證方式",
-      "useBackupCode": "改用備用代碼",
       "backupCodeInstruction": "請輸入您在設定雙重驗證時儲存的備用代碼之一。每個代碼只能使用一次。",
       "backupCodeFieldTitle": "備用代碼",
-      "backupCodeFieldDescription": "備用代碼的格式類似 ABCDE-12345。大小寫與連字號皆可忽略。"
+      "backupCodeFieldDescription": "備用代碼的格式類似 ABCDE-12345。大小寫與連字號皆可忽略。",
+      "confirmSubtitle": "請確認您的身分以完成登入。",
+      "recoverySubtitle": "請使用備用代碼，或了解沒有備用代碼時如何重新登入。",
+      "lostAccess": "無法使用驗證器應用程式？",
+      "noBackupCodesStrong": "您沒有備用代碼。",
+      "noBackupCodes": "此處沒有可輸入的代碼，因為此帳戶從未取得過任何一組備用代碼。",
+      "noBackupCodesInstruction": "請聯絡此 OneUptime 執行個體的管理員，為您的帳戶重設雙重驗證。之後您就可以使用密碼登入並設定新的驗證器應用程式，同時系統也會為您建立備用代碼。",
+      "lostAccessSecurityKey": "無法使用安全金鑰？"
     },
     "twoFactorEnrolment": {
       "title": "設定雙重驗證",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "請輸入驗證器應用程式顯示的六位數驗證碼。",
       "submitButton": "驗證並登入",
       "backToSignIn": "以其他使用者身分登入"
+    },
+    "backupCodes": {
+      "title": "儲存您的備用代碼",
+      "subtitle": "若您日後無法使用驗證器應用程式或安全金鑰，可使用其中一個代碼登入。",
+      "showOnceStrong": "這些代碼只會顯示這一次。",
+      "showOnce": "請將它們儲存在產生代碼的裝置以外的地方。每個代碼只能使用一次。",
+      "download": "下載為文字檔",
+      "savedConfirmation": "我已將這些代碼儲存在安全的地方。",
+      "continue": "繼續前往儀表板",
+      "fileHeading": "OneUptime 雙重驗證備用代碼",
+      "fileInstruction": "每個代碼只能使用一次。請將此檔案保存在安全的地方，並與執行驗證器應用程式的裝置分開存放。",
+      "setUpTitle": "設定備用代碼",
+      "setUpSubtitle": "在繼續之前，還有最後一件事。",
+      "noneStrong": "您沒有備用代碼。",
+      "none": "如果您遺失驗證器應用程式或安全金鑰，管理員必須先重設雙重驗證，您才能再次登入。",
+      "generate": "產生備用代碼",
+      "skip": "暫時略過",
+      "generateFailed": "未傳回任何備用代碼。請前往「使用者設定檔 > 雙重驗證」再試一次。"
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "登入 OneUptime On-Call",
+    "description": "使用為此 OneUptime 伺服器儲存的通行金鑰。",
+    "returnDescription": "確認後，你將返回行動應用程式。",
+    "invalid": "請從 OneUptime 行動應用程式開始登入。此請求缺失或無效。",
+    "insecure": "通行金鑰需要 HTTPS。請返回應用程式並檢查伺服器位址。",
+    "failed": "無法完成登入。請返回應用程式重試。",
+    "complete": "通行金鑰已驗證。請返回應用程式完成登入。",
+    "returnToApp": "返回應用程式",
+    "cancel": "取消並返回應用程式",
+    "setup": "在網頁控制台的「使用者個人資料 → 通行金鑰和雙重驗證」中建立通行金鑰。"
+  },
+  "Use at least {{minimum}} characters.": "請至少使用 {{minimum}} 個字元。",
+  "Try a few unrelated words.": "試著組合幾個互不相關的詞。",
+  "Password meets requirements": "密碼符合要求",
+  "Password must be at least 15 characters.": "密碼必須至少包含 15 個字元。",
+  "Password cannot be more than 100 characters.": "密碼不能超過 100 個字元。",
+  "Choose a less predictable password. Try a few unrelated words.": "請選擇更難猜測的密碼。試著組合幾個互不相關的詞。",
+  "Password cannot be blank.": "密碼不能僅包含空白字元。",
+  "Password is required.": "請輸入密碼。",
+  "Password must be a string.": "密碼必須是字串。",
+  "Account details": "帳戶資訊",
+  "Secure your account": "保護你的帳戶",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 個字元",
+  "Avoid common or repeated patterns": "避免常見或重複的模式",
+  "Password length": "密碼長度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 個字元 / 至少 {{minimum}} 個字元",
+  "Complete:": "已符合：",
+  "Incomplete:": "未符合：",
+  "Special character included (optional)": "已包含特殊字元（選填）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。"
 }

@@ -12,6 +12,7 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
+  FacetValue,
   HistogramBucket,
   HistogramSeriesOption,
   SearchHelpRow,
@@ -35,20 +36,55 @@ import AnalyticsModelAPI, {
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import {
   EXCEPTION_ATTRIBUTE_FACET_PREFIX,
-  ExceptionAttributeSelections,
-  KNOWN_EXCEPTION_SEARCH_FIELDS,
+  ExceptionInstanceScope,
   NO_MATCH_FINGERPRINT,
   MAX_SCOPED_FINGERPRINTS,
-  applyExceptionFingerprintScope,
-  buildExceptionInstanceAttributeQuery,
-  getExceptionAttributeScopeKey,
+  applyExceptionGroupQueryScope,
+  buildExceptionEntityKeyScope,
+  buildExceptionInstanceScopeQuery,
+  mergeExceptionInstanceScopes,
   getExceptionAttributeSelections,
-  hasExceptionAttributeSelections,
+  getExceptionInstanceScopeKey,
+  hasExceptionInstanceScope,
   isExceptionAttributeFacetKey,
 } from "../../Utils/ExceptionsAttributeScope";
+import {
+  ExceptionQueryScope,
+  buildExceptionQueryScope,
+} from "../../Utils/ExceptionQueryScope";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import {
+  EXCEPTION_ERROR_CLASS_COLUMN,
+  EXCEPTION_FIELD_ALIASES,
+  EXCEPTION_SERVICE_COLUMN,
+  ExceptionFieldFilters,
+  ExceptionSearchFilters,
+  ExceptionServiceOption,
+  NO_MATCH_ENTITY_ID,
+  ResolvedExceptionErrorClasses,
+  ResolvedExceptionServices,
+  canonicalizeExceptionErrorClass,
+  hasSearchDsl,
+  parseExceptionSearch,
+  resolveExceptionErrorClasses,
+  resolveExceptionServiceChipId,
+  resolveExceptionServiceIds,
+  splitExceptionFieldPredicates,
+} from "../../Utils/ExceptionsSearchQuery";
+import {
+  SearchQueryValue,
+  SearchValuePredicate,
+  predicateToQueryValue,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import Dictionary from "Common/Types/Dictionary";
+import Search from "Common/Types/BaseDatabase/Search";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import ErrorClass, {
+  NON_ACTIONABLE_ERROR_CLASSES,
+  isNonActionableErrorClass,
+} from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
-import UserUtil from "Common/UI/Utils/User";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -57,7 +93,6 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -67,6 +102,19 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  ExceptionEntityChipRef,
+  ExceptionKnownChipIds,
+  buildExceptionEntityTypeHints,
+  buildExceptionFacetDisplayNames,
+  buildExceptionKnownChipIds,
+  collectExceptionEntityChipIds,
+  getExceptionFacetIncludeDisplayValue,
+  resolveExceptionChipDisplay,
+} from "../../Utils/ExceptionsEntityChipDisplay";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -103,29 +151,94 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   return Math.max(1, Math.ceil(raw / 60000));
 }
 
+/*
+ * The syntax table. Every row is honoured by the shared grammar in
+ * Common/Types/Telemetry/TelemetrySearchQuery and pinned by a test, so the
+ * help cannot drift back into advertising syntax the parser never had — the
+ * three rows this replaces described the ONLY three filters that worked, and
+ * one of them (`@service:api`) matched nothing at all.
+ */
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
-    syntax: "@type:<type>",
+    syntax: "free text",
+    description: "Search exception messages",
+    example: "connection refused",
+  },
+  {
+    syntax: '"quoted phrase"',
+    description: "Keep spaces together",
+    example: '"out of memory"',
+  },
+  {
+    syntax: "type:<type>",
     description: "Filter by exception type",
-    example: "@type:TypeError",
+    example: "type:TypeError",
   },
   {
-    syntax: "@service:<name>",
+    syntax: "service:<name>",
     description: "Filter by service",
-    example: "@service:api",
+    example: "service:api",
   },
   {
-    syntax: "@env:<environment>",
+    syntax: "env:<environment>",
     description: "Filter by environment",
-    example: "@env:production",
+    example: "env:production",
+  },
+  {
+    syntax: "class:<class>",
+    description:
+      "Filter by fault class — code-fault, user-error, expected-denial, infrastructure, unknown",
+    example: "class:user-error",
+  },
+  {
+    syntax: "@<attr>:<value>",
+    description: "Filter by attribute",
+    example: "@http.status_code:500",
+  },
+  {
+    syntax: "@<attr>:<value>*",
+    description: "Wildcard — * is any text, ? is one character",
+    example: "@platform.team:a*",
+  },
+  {
+    syntax: "@<attr>:*",
+    description: "Attribute is present",
+    example: "@user.id:*",
+  },
+  {
+    syntax: "@<attr>:~<text>",
+    description: "Attribute contains",
+    example: "@url.host:~internal",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude — works with every filter above",
+    example: "-type:TypeError",
+  },
+  {
+    syntax: "@<attr>:(a OR b)",
+    description: "Any of these values",
+    example: "@http.method:(GET OR POST)",
+  },
+  {
+    syntax: "@<attr>:>N",
+    description: "Numeric comparison (also >=, <, <=)",
+    example: "@duration:>1000",
   },
 ];
 
-const FIELD_ALIAS_MAP: Record<string, string> = {
-  type: "exceptionType",
-  service: "primaryEntityId",
-  env: "environment",
-};
+/*
+ * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map to
+ * the same underlying `primaryEntityId` column — the discriminator only
+ * matters at facet bucketing time.
+ */
+const RESOURCE_FACET_KEYS: Set<string> = new Set<string>([
+  "primaryEntityId",
+  "hostId",
+  "dockerHostId",
+  "podmanHostId",
+  "kubernetesClusterId",
+]);
 
 export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
 
@@ -136,6 +249,54 @@ const EXCEPTION_STATUS_VALUES: ReadonlyArray<ExceptionStatus> = [
   "all",
 ];
 
+/**
+ * Which fault classes the list is looking at.
+ *
+ * The split exists because an exception group carries an `errorClass` saying
+ * WHOSE problem it is (see Common/Types/Telemetry/ErrorClass), and two of the
+ * five classes — user-error and expected-denial — describe something working
+ * as designed: a caller sent nonsense, or an auth check refused a request.
+ * Those are worth keeping and worth counting, but they are not defects, and
+ * left in the default list they bury the ones that are.
+ *
+ * - "issues"      — everything EXCEPT the non-actionable classes. The default.
+ * - "user-errors" — only the non-actionable classes: the drawer the default
+ *                   sweeps things into, one click away rather than invisible.
+ * - "all"         — no class clause at all.
+ */
+export type ExceptionClassScope = "issues" | "user-errors" | "all";
+
+const EXCEPTION_CLASS_SCOPE_VALUES: ReadonlyArray<ExceptionClassScope> = [
+  "issues",
+  "user-errors",
+  "all",
+];
+
+const DEFAULT_EXCEPTION_CLASS_SCOPE: ExceptionClassScope = "issues";
+
+/*
+ * A class selection that cannot match anything (the "Issues" lens plus a
+ * user-error chip, say) has to show NOTHING — the same rule `@service:` uses
+ * for a name no service has. A string outside the ErrorClass vocabulary is a
+ * value the NOT NULL column can never hold, which forces the empty result
+ * rather than quietly dropping one of the two contradicting filters.
+ */
+const NO_MATCH_ERROR_CLASS: string = "__no_such_error_class__";
+
+/*
+ * Sentence-case labels for the raw enum values, used by the facet sidebar and
+ * by the chips it creates. "Unclassified" rather than "Unknown" because the
+ * value means "triage could not decide", which reads as an accusation of the
+ * reader otherwise.
+ */
+const ERROR_CLASS_DISPLAY_NAMES: Record<string, string> = {
+  [ErrorClass.CodeFault]: "Code fault",
+  [ErrorClass.UserError]: "User error",
+  [ErrorClass.ExpectedDenial]: "Expected denial",
+  [ErrorClass.Infrastructure]: "Infrastructure",
+  [ErrorClass.Unknown]: "Unclassified",
+};
+
 interface InitialUrlState {
   search: string;
   filters: Array<ActiveFilter>;
@@ -143,6 +304,7 @@ interface InitialUrlState {
   page: number;
   pageSize: number;
   status: ExceptionStatus | null;
+  classScope: ExceptionClassScope | null;
 }
 
 /*
@@ -234,27 +396,139 @@ function readInitialUrlState(): InitialUrlState {
       ? (statusRaw as ExceptionStatus)
       : null;
 
-  return { search, filters, timeRange, page, pageSize, status };
+  const classRaw: string | null = params.get("class");
+  const classScope: ExceptionClassScope | null =
+    classRaw &&
+    EXCEPTION_CLASS_SCOPE_VALUES.includes(classRaw as ExceptionClassScope)
+      ? (classRaw as ExceptionClassScope)
+      : null;
+
+  return { search, filters, timeRange, page, pageSize, status, classScope };
 }
 
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
+  /*
+   * Opening lens. The standalone tabs keep the "Issues" default, which hides
+   * user errors and expected denials; a host showing the exceptions of ONE
+   * event has to pass "all", or an exception the classifier called a user
+   * error vanishes from the event that fired on it.
+   */
+  defaultClassScope?: ExceptionClassScope | undefined;
   primaryEntityId?: ObjectID | undefined;
+  /*
+   * Which table `primaryEntityId` points at (a RUM application page passes
+   * ServiceType.RealUserMonitor). The id is polymorphic, and without this the
+   * locked chip could only guess "Service" until a lookup across every
+   * table landed. Display only — the filter is the id either way.
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
+   * Scope to exception groups with an occurrence belonging to any of these
+   * stable entity keys. TelemetryException has no entityKeys column, so this
+   * is resolved through ExceptionInstance fingerprints together with every
+   * other instance-only filter.
+   */
+  entityKeysFilter?: Array<string> | undefined;
+  /*
+   * A STORED exception-instance query to host — the slice an exception
+   * monitor evaluated, kept on the incident / alert row.
+   *
+   * This viewer lists Postgres exception GROUPS while the stored query
+   * selects ClickHouse instances, and `fingerprint` is the only join between
+   * them. So the query is resolved through the instance scope this viewer
+   * already owns: one `GROUP BY fingerprint` read narrows the list, the
+   * histogram and the facet counts together. See Utils/ExceptionQueryScope.
+   *
+   * Its `time` window is adopted as a pinned CUSTOM range, and — because the
+   * fingerprints were resolved INSIDE that window — the group query's own
+   * `lastSeenAt` clause is dropped while it is set. Keeping both would hide
+   * every exception still firing after the snapshot ended, which is the set
+   * an operator most needs to see.
+   */
+  exceptionInstanceQuery?: Query<ExceptionInstance> | undefined;
+  /*
+   * Initial page size. Embedded snapshot cards pass a small number so the
+   * block does not run the length of the page.
+   */
+  limit?: number | undefined;
+  /** Empty-state copy, so an embed can name the window it searched. */
+  emptyMessage?: string | undefined;
+  /*
+   * Embedded hosts own the page URL: when true the viewer neither seeds from
+   * nor mirrors state to the query string. Same polarity as TracesViewer's
+   * prop of this name.
+   */
+  disableUrlSync?: boolean | undefined;
 }
 
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
   /*
+   * The host's stored exception-instance query, read once into the instance
+   * scope this viewer resolves fingerprints from. See
+   * Utils/ExceptionQueryScope.
+   */
+  const hostScope: ExceptionQueryScope = useMemo(() => {
+    return buildExceptionQueryScope(props.exceptionInstanceQuery);
+  }, [props.exceptionInstanceQuery]);
+
+  /*
+   * The window the monitor evaluated over, as a picker value. Always CUSTOM,
+   * so live re-anchoring cannot walk it forward off the event.
+   */
+  const pinnedTimeRange: RangeStartAndEndDateTime | null = useMemo(() => {
+    return TelemetryQueryTimeRange.toRangeStartAndEndDateTime(hostScope.window);
+  }, [hostScope.window]);
+
+  /*
+   * Whether the HOST, not the URL, owns what this view shows: do not seed
+   * from the query string, and do not write back to it. An embed on an
+   * incident page would otherwise rewrite that page's address bar, and the
+   * user would come back from an exception to `?search=…&range=…&status=…`
+   * hanging off the incident.
+   */
+  const hostOwnsView: boolean = Boolean(
+    props.disableUrlSync || props.exceptionInstanceQuery,
+  );
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
-  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+  const initialUrlState: InitialUrlState = useMemo((): InitialUrlState => {
+    if (hostOwnsView) {
+      return {
+        search: "",
+        filters: [],
+        timeRange: pinnedTimeRange || { range: TimeRange.PAST_ONE_DAY },
+        page: 1,
+        pageSize: props.limit || DEFAULT_PAGE_SIZE,
+        status: null,
+        classScope: null,
+      };
+    }
+
+    /*
+     * Seeded once on mount, exactly as the bare `useMemo(readInitialUrlState,
+     * [])` this replaced: it is a seed, not a derivation. A later render must
+     * not recompute it, or a host rebuilding its query would keep yanking the
+     * user back to the pin.
+     */
+    return readInitialUrlState();
+  }, []);
 
   const defaultStatus: ExceptionStatus = props.defaultStatus || "unresolved";
 
   const [status, setStatus] = useState<ExceptionStatus>(
     initialUrlState.status || defaultStatus,
+  );
+
+  const [classScope, setClassScope] = useState<ExceptionClassScope>(
+    initialUrlState.classScope ||
+      props.defaultClassScope ||
+      DEFAULT_EXCEPTION_CLASS_SCOPE,
   );
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
@@ -271,6 +545,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
+  /*
+   * Whether the Service / host / cluster lists above have settled (loaded or
+   * failed). Chip ids are held back from the name resolver until then — see
+   * collectExceptionEntityChipIds.
+   */
+  const [areResourceListsLoaded, setAreResourceListsLoaded] =
+    useState<boolean>(false);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -331,6 +612,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * tweaks don't push extra entries.
    */
   useEffect(() => {
+    /*
+     * An embedded viewer must not rewrite its host page's address bar. Left
+     * on, an incident page would grow `?search=…&range=…&status=…` the moment
+     * this mounted, and the user would land back on that URL from Back.
+     */
+    if (hostOwnsView) {
+      return;
+    }
+
     const params: URLSearchParams = new URLSearchParams();
     if (submittedSearch) {
       params.set("search", submittedSearch);
@@ -343,9 +633,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       );
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_DAY) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the status tabs
+     * now hand their scope to each other through these params, and a window
+     * that is not written down cannot be carried.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
@@ -360,8 +653,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       params.set("status", status);
     }
 
-    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
+    /*
+     * The class lens rides in `class=`, written only when it differs from the
+     * default — the same rule `status` follows above — but it needs the
+     * explicit null. writeTelemetryViewerUrlState clears the params named in
+     * TelemetryViewerUrlParamNames on every write, which is what lets `status`
+     * DISAPPEAR when it returns to its default; `class` is not in that list
+     * (it lives in a shared file this change does not own), so nothing would
+     * ever delete it. Left to rot, a stale `class=user-errors` would sit in
+     * the address bar after the user switched back to Issues and re-apply
+     * itself on the next refresh, and on every link shared from that page.
+     */
+    writeTelemetryViewerUrlState({
+      ...Object.fromEntries(params.entries()),
+      class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
+    });
   }, [
+    hostOwnsView,
     submittedSearch,
     activeFilters,
     timeRange,
@@ -369,6 +677,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     pageSize,
     status,
     defaultStatus,
+    classScope,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -440,6 +749,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
+      } finally {
+        /*
+         * Settled either way: on failure the resolver is the only name source
+         * left, so the held chip ids must be released.
+         */
+        setAreResourceListsLoaded(true);
       }
     };
     void loadResources();
@@ -531,120 +846,301 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return map;
   }, [services]);
 
-  // Parse search
-  const parseSearch: (raw: string) => {
-    freeText: string;
-    fieldFilters: Record<string, Array<string>>;
-  } = useCallback((raw: string) => {
-    const fieldFilters: Record<string, Array<string>> = {};
-    const freeTextParts: Array<string> = [];
-    /*
-     * Tokenizer also matches `@attr:"value with spaces"`. See the matching
-     * block in TracesViewer for details on the merge logic that handles
-     * `@type: "..."` (space after colon) and unclosed quotes.
-     */
-    const rawTokens: Array<string> =
-      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
-    const tokens: Array<string> = [];
-    for (let i: number = 0; i < rawTokens.length; i++) {
-      const token: string = rawTokens[i]!;
+  /*
+   * Parse the search bar with the shared telemetry grammar, so a filter
+   * typed here means what the same filter means on logs, traces and metrics.
+   * The hand-rolled tokenizer this replaces supported exact match only,
+   * matched aliases case-sensitively (`@Type:X` became an attribute filter on
+   * a key called "Type"), and had no bare `type:X` form at all.
+   */
+  const parsedSearch: ExceptionSearchFilters = useMemo(() => {
+    return parseExceptionSearch(submittedSearch);
+  }, [submittedSearch]);
+
+  const searchFieldFilters: ExceptionFieldFilters = useMemo(() => {
+    return splitExceptionFieldPredicates(parsedSearch.fieldPredicates);
+  }, [parsedSearch]);
+
+  const serviceOptions: Array<ExceptionServiceOption> = useMemo(() => {
+    return services
+      .filter((service: Service): boolean => {
+        return Boolean(service.id);
+      })
+      .map((service: Service): ExceptionServiceOption => {
+        return {
+          id: service.id!.toString(),
+          name: service.name?.toString() || "",
+        };
+      });
+  }, [services]);
+
+  /*
+   * `@service:` is documented as taking a service NAME while the column
+   * stores a uuid, so the name resolves against the service list this
+   * component already loads — the same resolution MetricsViewer does. Bound
+   * straight to the column, as it was, `@service:api` asked for an exception
+   * whose service id is the literal string "api", which no row has.
+   */
+  const resolvedServices: ResolvedExceptionServices = useMemo(() => {
+    return resolveExceptionServiceIds({
+      predicates: parsedSearch.fieldPredicates["primaryEntityId"] || [],
+      services: serviceOptions,
+    });
+  }, [parsedSearch, serviceOptions]);
+
+  const facetGroups: Record<string, Array<string>> = useMemo(() => {
+    const groups: Record<string, Array<string>> = {};
+    for (const filter of activeFilters) {
+      if (!groups[filter.facetKey]) {
+        groups[filter.facetKey] = [];
+      }
+      groups[filter.facetKey]!.push(filter.value);
+    }
+    return groups;
+  }, [activeFilters]);
+
+  /*
+   * Chip and typed values on one column are ONE any-of filter, shared by the
+   * list, the chart and the facet counts. Written in sequence — as the list
+   * used to — a typed `@type:` silently overwrote an exceptionType chip the
+   * chart above it was still counting.
+   */
+  const columnLiterals: Record<string, Array<string>> = useMemo(() => {
+    const merged: Record<string, Array<string>> = {};
+
+    const add: (column: string, values: Array<string>) => void = (
+      column: string,
+      values: Array<string>,
+    ): void => {
+      for (const value of values) {
+        if (!merged[column]) {
+          merged[column] = [];
+        }
+        if (!merged[column]!.includes(value)) {
+          merged[column]!.push(value);
+        }
+      }
+    };
+
+    for (const facetKey of Object.keys(facetGroups)) {
       if (
-        token.endsWith(":") &&
-        token.startsWith("@") &&
-        i + 1 < rawTokens.length
+        RESOURCE_FACET_KEYS.has(facetKey) ||
+        isExceptionAttributeFacetKey(facetKey)
       ) {
-        let merged: string = token + rawTokens[i + 1]!;
-        i++;
-        if (merged.includes(':"') && !merged.endsWith('"')) {
-          while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-            i++;
-            merged = merged + " " + rawTokens[i]!;
+        continue;
+      }
+      add(facetKey, facetGroups[facetKey]!);
+    }
+
+    for (const column of Object.keys(searchFieldFilters.literals)) {
+      add(column, searchFieldFilters.literals[column]!);
+    }
+
+    return merged;
+  }, [facetGroups, searchFieldFilters]);
+
+  /*
+   * `class:` tokens, resolved against the ErrorClass vocabulary here rather
+   * than compiled into a query, for the same reason `@service:` is: the
+   * transports cannot all carry it. See resolveExceptionErrorClasses.
+   */
+  const resolvedErrorClasses: ResolvedExceptionErrorClasses = useMemo(() => {
+    return resolveExceptionErrorClasses(
+      parsedSearch.fieldPredicates[EXCEPTION_ERROR_CLASS_COLUMN] || [],
+    );
+  }, [parsedSearch]);
+
+  /*
+   * The ONE clause the `errorClass` column carries, combining every source
+   * that has an opinion about it: the class lens, an `errorClass` facet chip,
+   * and a typed `class:` token.
+   *
+   * They are intersected in one place rather than written one after another,
+   * which is the whole point of building it here: a column can hold a single
+   * clause, so written in sequence whichever ran last would silently win
+   * while the other control stayed lit on screen. An empty intersection — the
+   * "Issues" lens plus a `user-error` chip — is a real answer and shows an
+   * empty list, with both controls visible and either one removable.
+   */
+  const errorClassClause: string | Includes | IncludesNone | null =
+    useMemo(() => {
+      /*
+       * Canonicalised because a chip stores its value verbatim: the search
+       * bar turns `class:User-Error` into a chip out of the raw token, and
+       * the column only ever holds the kebab-case spelling.
+       */
+      const chipValues: Array<string> = (
+        columnLiterals[EXCEPTION_ERROR_CLASS_COLUMN] || []
+      ).map(canonicalizeExceptionErrorClass);
+
+      // Positive constraints AND together; null means "nobody constrained it".
+      let included: Array<string> | null =
+        resolvedErrorClasses.includedClasses === null
+          ? null
+          : [...resolvedErrorClasses.includedClasses];
+
+      if (chipValues.length > 0) {
+        included =
+          included === null
+            ? [...chipValues]
+            : included.filter((value: string): boolean => {
+                return chipValues.includes(value);
+              });
+      }
+
+      const excluded: Array<string> = [...resolvedErrorClasses.excludedClasses];
+
+      if (classScope === "user-errors") {
+        const nonActionable: Array<string> = [...NON_ACTIONABLE_ERROR_CLASSES];
+        included =
+          included === null
+            ? nonActionable
+            : included.filter((value: string): boolean => {
+                return isNonActionableErrorClass(value);
+              });
+      } else if (classScope === "issues") {
+        /*
+         * The default is an EXCLUSION, never an allow-list of the classes we
+         * consider real. It compiles to `"errorClass" NOT IN ('user-error',
+         * 'expected-denial')`, so a row whose class this build has never
+         * heard of — written by a newer release, or by a triage runner
+         * echoing an LLM — stays in the Issues list; an allow-list would drop
+         * exactly those rows, and an exception nobody could classify is the
+         * one most likely to be a real bug. (The column is NOT NULL DEFAULT
+         * 'unknown' for the same reason: in SQL `NULL NOT IN (...)` is NULL
+         * rather than true, so over a nullable column this clause would have
+         * hidden every unclassified row instead of showing it.)
+         */
+        for (const value of NON_ACTIONABLE_ERROR_CLASSES) {
+          if (!excluded.includes(value)) {
+            excluded.push(value);
           }
         }
-        tokens.push(merged);
-        continue;
       }
-      if (token.includes(':"') && !token.endsWith('"')) {
-        let merged: string = token;
-        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-          i++;
-          merged = merged + " " + rawTokens[i]!;
-        }
-        tokens.push(merged);
-        continue;
+
+      if (resolvedErrorClasses.matchedNothing) {
+        return NO_MATCH_ERROR_CLASS;
       }
-      tokens.push(token);
-    }
-    const stripQuotes: (s: string) => string = (s: string): string => {
-      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
-        return s.slice(1, -1);
+
+      if (included !== null) {
+        const allowed: Array<string> = included.filter(
+          (value: string): boolean => {
+            return !excluded.includes(value);
+          },
+        );
+
+        if (allowed.length === 0) {
+          return NO_MATCH_ERROR_CLASS;
+        }
+
+        return allowed.length === 1 ? allowed[0]! : new Includes(allowed);
       }
-      return s;
-    };
-    for (const token of tokens) {
-      const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (match) {
-        const alias: string = match[1]!;
-        const value: string = stripQuotes(match[2]!);
-        if (value.length === 0) {
-          continue;
-        }
-        const backendField: string = FIELD_ALIAS_MAP[alias] || alias;
-        if (!fieldFilters[backendField]) {
-          fieldFilters[backendField] = [];
-        }
-        fieldFilters[backendField]!.push(value);
-      } else {
-        freeTextParts.push(token);
+
+      return excluded.length > 0 ? new IncludesNone(excluded) : null;
+    }, [classScope, columnLiterals, resolvedErrorClasses]);
+
+  const resourceIds: Array<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>(resolvedServices.serviceIds);
+    for (const facetKey of RESOURCE_FACET_KEYS) {
+      for (const value of facetGroups[facetKey] || []) {
+        ids.add(value);
       }
     }
-    return { freeText: freeTextParts.join(" ").trim(), fieldFilters };
-  }, []);
+    return Array.from(ids);
+  }, [facetGroups, resolvedServices]);
 
   // Build query
   /*
-   * Attribute facet scope. TelemetryException has no attributes column —
-   * `attributes.<key>` chips (and unknown `@key:value` search tokens)
-   * resolve against the ClickHouse instance rows first, and the matching
-   * fingerprints narrow the Postgres list below (the ExceptionsTable
-   * entity-scope pattern).
+   * Instance scope. TelemetryException has no attributes column, and the
+   * histogram/facet endpoints take literal lists only — so `attributes.<key>`
+   * chips, `@key:value` attribute tokens and any field filter carrying an
+   * operator (`@type:Type*`) all resolve against the ClickHouse instance rows
+   * first, and the matching fingerprints narrow the list, the chart and the
+   * counts together (the same fingerprint join used for fixed entity scope).
    */
-  const attributeSelections: ExceptionAttributeSelections = useMemo(() => {
-    const facetGroups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!facetGroups[f.facetKey]) {
-        facetGroups[f.facetKey] = [];
-      }
-      facetGroups[f.facetKey]!.push(f.value);
-    }
-    const { fieldFilters } = parseSearch(submittedSearch);
-    return getExceptionAttributeSelections({
-      facetGroups,
-      searchFieldFilters: fieldFilters,
-    });
-  }, [activeFilters, submittedSearch, parseSearch]);
+  const instanceScope: ExceptionInstanceScope = useMemo(() => {
+    const attributePredicates: Dictionary<Array<SearchQueryValue>> = {};
 
-  const attributeScopeKey: string | null = useMemo(() => {
-    if (!hasExceptionAttributeSelections(attributeSelections)) {
+    for (const attributeKey of Object.keys(parsedSearch.attributePredicates)) {
+      attributePredicates[attributeKey] = (
+        parsedSearch.attributePredicates[attributeKey] || []
+      ).map((predicate: SearchValuePredicate): SearchQueryValue => {
+        return predicateToQueryValue(predicate);
+      });
+    }
+
+    const columnPredicates: Dictionary<Array<SearchQueryValue>> = {
+      ...searchFieldFilters.operators,
+    };
+
+    /*
+     * A negated `@service:` cannot ride the `serviceIds` payloads — those
+     * only include — so it resolves through the instance query like every
+     * other operator.
+     */
+    if (resolvedServices.excludedServiceIds.length > 0) {
+      columnPredicates["primaryEntityId"] = [
+        new IncludesNone(resolvedServices.excludedServiceIds),
+      ];
+    }
+
+    const userScope: ExceptionInstanceScope = mergeExceptionInstanceScopes(
+      {
+        attributeSelections: getExceptionAttributeSelections({ facetGroups }),
+        attributePredicates,
+        columnPredicates,
+      },
+      buildExceptionEntityKeyScope(props.entityKeysFilter),
+    );
+
+    /*
+     * ANDed with the host's stored scope, not layered over it: an incident
+     * whose monitor matched `exceptionType IN (...)` still means that when
+     * the user adds a chip. The merge concatenates per-key predicate lists,
+     * which is what makes the two filters intersect rather than the later
+     * one silently replacing the earlier.
+     */
+    return hostScope.hasScope
+      ? mergeExceptionInstanceScopes(hostScope.instanceScope, userScope)
+      : userScope;
+  }, [
+    facetGroups,
+    parsedSearch,
+    searchFieldFilters,
+    resolvedServices,
+    hostScope,
+    props.entityKeysFilter,
+  ]);
+
+  const instanceScopeKey: string | null = useMemo(() => {
+    /*
+     * A hosted view ALWAYS resolves, even with nothing to filter on. The very
+     * common "any exception in the last 60 seconds" monitor stores only its
+     * window, and the window is the scope: the groups to show are the ones
+     * that OCCURRED in it. Falling back to the group query's `lastSeenAt`
+     * would answer a different question — where each group was last seen
+     * anywhere — and silently drop every exception still firing.
+     */
+    if (!hasExceptionInstanceScope(instanceScope) && !hostScope.isHosted) {
       return null;
     }
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    return getExceptionAttributeScopeKey({
-      selections: attributeSelections,
+    return getExceptionInstanceScopeKey({
+      scope: instanceScope,
       windowStartMs: dateRange.startValue.getTime(),
       windowEndMs: dateRange.endValue.getTime(),
     });
-  }, [attributeSelections, timeRange]);
+  }, [instanceScope, timeRange, hostScope.isHosted]);
 
-  const [attributeScope, setAttributeScope] = useState<{
+  const [scopeResolution, setScopeResolution] = useState<{
     key: string;
     fingerprints: Array<string>;
   } | null>(null);
 
   useEffect(() => {
-    if (!attributeScopeKey) {
-      setAttributeScope(null);
+    if (!instanceScopeKey) {
+      setScopeResolution(null);
       return;
     }
 
@@ -664,13 +1160,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           const instances: AnalyticsModelListResult<ExceptionInstance> =
             await AnalyticsModelAPI.getList<ExceptionInstance>({
               modelType: ExceptionInstance,
-              query: buildExceptionInstanceAttributeQuery({
+              query: buildExceptionInstanceScopeQuery({
                 projectId,
                 window: new InBetween<Date>(
                   dateRange.startValue,
                   dateRange.endValue,
                 ),
-                selections: attributeSelections,
+                scope: instanceScope,
               }),
               groupBy: {
                 fingerprint: true,
@@ -697,7 +1193,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             }
           }
 
-          setAttributeScope({ key: attributeScopeKey, fingerprints });
+          setScopeResolution({ key: instanceScopeKey, fingerprints });
         } catch {
           if (!isCancelled) {
             /*
@@ -705,7 +1201,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
              * rather than quietly showing unfiltered exceptions under an
              * active-looking chip.
              */
-            setAttributeScope({ key: attributeScopeKey, fingerprints: [] });
+            setScopeResolution({ key: instanceScopeKey, fingerprints: [] });
           }
         }
       };
@@ -715,16 +1211,27 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [attributeScopeKey, attributeSelections, timeRange]);
+  }, [instanceScopeKey, instanceScope, timeRange]);
 
   /*
    * Fingerprints to carry into the histogram/facets payloads — only once
    * the resolution matches the CURRENT selections+window.
    */
   const resolvedScopeFingerprints: Array<string> | null =
-    attributeScopeKey && attributeScope?.key === attributeScopeKey
-      ? attributeScope.fingerprints
+    instanceScopeKey && scopeResolution?.key === instanceScopeKey
+      ? scopeResolution.fingerprints
       : null;
+
+  /*
+   * While the fingerprints for the CURRENT scope are still in flight the list
+   * query carries the no-match sentinel, so it comes back empty by design —
+   * showing more would be a lie. But rendering that as the empty STATE is a
+   * different lie: an incident card would flash "No exceptions found" and
+   * then fill in. Report it as loading instead.
+   */
+  const isResolvingScope: boolean = Boolean(
+    instanceScopeKey && scopeResolution?.key !== instanceScopeKey,
+  );
 
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
@@ -747,111 +1254,108 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.isArchived = true;
     }
 
-    // Facet filters
-    const facetGroups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!facetGroups[f.facetKey]) {
-        facetGroups[f.facetKey] = [];
-      }
-      facetGroups[f.facetKey]!.push(f.value);
+    // Facet + search filters on the resource column, as one any-of.
+    if (resourceIds.length > 0) {
+      (q as Record<string, unknown>)["primaryEntityId"] =
+        resourceIds.length === 1 ? resourceIds[0]! : new Includes(resourceIds);
     }
 
     /*
-     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map
-     * to the same underlying `primaryEntityId` column on TelemetryException —
-     * the discriminator only matters at facet bucketing time.
+     * A `@service:` naming no existing service must show NOTHING. Dropping
+     * the filter instead answers "exceptions from a service that does not
+     * exist" with every exception in the project.
      */
-    const resourceFacetKeys: Set<string> = new Set<string>([
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]);
-    const resourceIds: Set<string> = new Set<string>();
-    for (const key of resourceFacetKeys) {
-      const values: Array<string> | undefined = facetGroups[key];
-      if (values) {
-        for (const v of values) {
-          resourceIds.add(v);
-        }
-      }
-    }
-    if (resourceIds.size > 0) {
-      (q as Record<string, unknown>)["primaryEntityId"] =
-        resourceIds.size === 1
-          ? Array.from(resourceIds)[0]!
-          : new Includes(Array.from(resourceIds));
+    if (resolvedServices.matchedNothing) {
+      (q as Record<string, unknown>)["primaryEntityId"] = NO_MATCH_ENTITY_ID;
     }
 
-    for (const key of Object.keys(facetGroups)) {
-      if (resourceFacetKeys.has(key)) {
-        continue;
-      }
-      // Instance-attribute chips narrow via the fingerprint scope below.
-      if (isExceptionAttributeFacetKey(key)) {
-        continue;
-      }
-      const values: Array<string> = facetGroups[key]!;
-      if (values.length === 1) {
-        (q as Record<string, unknown>)[key] = values[0]!;
-      } else {
-        (q as Record<string, unknown>)[key] = new Includes(values);
-      }
-    }
-
-    // Search field filters
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
+    /*
+     * Literal column filters (`type:TypeError`, an environment chip). Filters
+     * carrying an operator, and every attribute filter, narrow through the
+     * fingerprint scope below instead — one filter cannot be split across two
+     * stores and still mean one thing.
+     */
+    for (const column of Object.keys(columnLiterals)) {
       /*
-       * Unknown fields (e.g. @http.method:GET) are instance attributes —
-       * previously they landed on the Postgres query as nonexistent
-       * columns; now they narrow via the fingerprint scope below.
+       * errorClass is skipped: it is folded into the class lens below, which
+       * intersects a typed / chipped class with the selected segment. Writing
+       * it here as well would mean two assignments to one column, and the
+       * loser would be a filter still showing as active in the UI.
        */
-      if (!KNOWN_EXCEPTION_SEARCH_FIELDS.includes(key)) {
+      if (column === EXCEPTION_ERROR_CLASS_COLUMN) {
         continue;
       }
-      const values: Array<string> = fieldFilters[key]!;
-      if (values.length === 1) {
-        (q as Record<string, unknown>)[key] = values[0]!;
-      } else {
-        (q as Record<string, unknown>)[key] = new Includes(values);
-      }
+
+      const values: Array<string> = columnLiterals[column]!;
+      (q as Record<string, unknown>)[column] =
+        values.length === 1 ? values[0]! : new Includes(values);
     }
-    if (freeText) {
-      (q as Record<string, unknown>)["exceptionType"] = freeText;
+
+    /*
+     * The resolved class clause. Null only when nothing constrained the
+     * column — "All" with no chip and no `class:` token.
+     *
+     * NOTE: this narrows the LIST and the error-class facet (counted from the
+     * same Postgres rows), but NOT the chart or the other facet counts: those
+     * are aggregated from the ClickHouse ExceptionInstance table, which has
+     * no errorClass column because the class lives on the Postgres exception
+     * group. See the note in fetchHistogram.
+     */
+    if (errorClassClause !== null) {
+      (q as Record<string, unknown>)[EXCEPTION_ERROR_CLASS_COLUMN] =
+        errorClassClause;
+    }
+
+    /*
+     * Free text is a contains-match on the message — what the histogram and
+     * the facet counts have always made of it, and what the placeholder
+     * promises. It used to be assigned to `exceptionType` here, an EXACT
+     * match on a different column, and assigned AFTER the field loop: typing
+     * a word searched the wrong thing AND erased an explicit `@type:` filter
+     * the chart above was still applying.
+     *
+     * Unlike attributes, this needs no cross-store join: TelemetryException
+     * carries the group's own `message` column.
+     */
+    if (parsedSearch.freeText.length > 0) {
+      (q as Record<string, unknown>)["message"] = new Search(
+        parsedSearch.freeText,
+      );
     }
 
     /*
      * Scope the list by the selected time range using lastSeenAt so the
      * viewer + histogram share the same window.
+     *
+     * NOT when any instance scope is active (a hosted query, an attribute or
+     * operator filter, or fixed entity keys). The fingerprints below were
+     * resolved from instances INSIDE the window, so the group set is already
+     * window-correct — and `lastSeenAt` is the group's LAST occurrence
+     * anywhere. If the same exception was still firing after a historical
+     * range ended, ANDing both clauses would drop it from the list while the
+     * histogram and facets still count its in-range occurrence.
      */
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
-      dateRange.startValue,
-      dateRange.endValue,
-    );
-
-    /*
-     * Attribute scope: resolved fingerprints narrow the list; while the
-     * resolution is still in flight the sentinel keeps the list EMPTY —
-     * a flash of unfiltered exceptions under an active chip would be a
-     * lie.
-     */
-    if (attributeScopeKey) {
-      applyExceptionFingerprintScope(q, resolvedScopeFingerprints || []);
-    }
+    applyExceptionGroupQueryScope({
+      query: q,
+      window: dateRange,
+      instanceScopeKey,
+      resolvedFingerprints: resolvedScopeFingerprints,
+    });
 
     return q;
   }, [
     props.primaryEntityId,
     status,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    errorClassClause,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     timeRange,
-    attributeScopeKey,
+    hostScope,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
@@ -910,68 +1414,55 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       bucketSizeInMinutes,
     };
 
-    // Collect filter values from active facets + parsed search
-    const groups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!groups[f.facetKey]) {
-        groups[f.facetKey] = [];
-      }
-      groups[f.facetKey]!.push(f.value);
-    }
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key]!.push(...fieldFilters[key]!);
-    }
-
-    // Scope histogram by the primaryEntityId prop, if present
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
-      }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
-    }
-
     /*
-     * Union primaryEntityId / hostId / dockerHostId / kubernetesClusterId
-     * into a single serviceIds list — they all filter the underlying
-     * `primaryEntityId` column.
+     * The chart reads the SAME filters as the list — chips and search
+     * unioned per column, resource keys unioned into one serviceIds list
+     * (they all filter the underlying `primaryEntityId` column), and the
+     * prop-level scope on top.
      */
-    const histogramResourceIds: Set<string> = new Set<string>();
-    for (const k of [
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]) {
-      const values: Array<string> | undefined = groups[k];
-      if (values) {
-        for (const v of values) {
-          histogramResourceIds.add(v);
-        }
-      }
+    const histogramResourceIds: Array<string> = [...resourceIds];
+    if (
+      props.primaryEntityId &&
+      !histogramResourceIds.includes(props.primaryEntityId.toString())
+    ) {
+      histogramResourceIds.push(props.primaryEntityId.toString());
     }
-    if (histogramResourceIds.size > 0) {
-      payload["serviceIds"] = Array.from(histogramResourceIds);
+    if (resolvedServices.matchedNothing) {
+      payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
+    } else if (histogramResourceIds.length > 0) {
+      payload["serviceIds"] = histogramResourceIds;
     }
-    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
-      payload["exceptionTypes"] = groups["exceptionType"];
+    if (columnLiterals["exceptionType"]) {
+      payload["exceptionTypes"] = columnLiterals["exceptionType"];
     }
-    if (groups["environment"] && groups["environment"].length > 0) {
-      payload["environments"] = groups["environment"];
+    if (columnLiterals["environment"]) {
+      payload["environments"] = columnLiterals["environment"];
     }
-    if (freeText && freeText.length > 0) {
-      payload["messageSearchText"] = freeText;
+    if (parsedSearch.freeText.length > 0) {
+      payload["messageSearchText"] = parsedSearch.freeText;
     }
     /*
-     * Attribute scope: the endpoint has no attribute dimension, but it
-     * accepts `fingerprints` — the resolved scope keeps the histogram
-     * aligned with the narrowed list.
+     * The class lens is deliberately NOT sent, because there is nowhere to
+     * send it: this endpoint aggregates ClickHouse ExceptionInstance rows and
+     * the fault class is a column on the Postgres exception GROUP, so the
+     * chart has no class dimension. The `fingerprints` escape hatch below
+     * cannot carry it either — that list is capped at
+     * MAX_SCOPED_FINGERPRINTS, and "every group that is an issue" is not a
+     * bounded list.
+     *
+     * So the chart counts occurrences of every class while the list under it
+     * shows one lens. That is the known cost of the storage split, and it is
+     * part of why the lens is a labelled control the user can see rather than
+     * a silent default. Carrying errorClass onto the instance rows at ingest
+     * is what would close it.
      */
-    if (attributeScopeKey) {
+
+    /*
+     * Instance scope: the endpoint has no attribute dimension and takes
+     * literal lists only, but it accepts `fingerprints` — the resolved scope
+     * is what carries an attribute or wildcard filter to the chart.
+     */
+    if (instanceScopeKey) {
       payload["fingerprints"] =
         resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
           ? resolvedScopeFingerprints
@@ -994,11 +1485,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
   }, [
     timeRange,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     props.primaryEntityId,
-    attributeScopeKey,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
@@ -1125,6 +1617,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         title: "Environment",
         priority: 7,
       },
+      /*
+       * Last on purpose: the segmented control above the list is the primary
+       * way to move between lenses, and this facet is the breakdown behind it
+       * — "how much is the Issues lens hiding, and of what".
+       */
+      {
+        key: EXCEPTION_ERROR_CLASS_COLUMN,
+        title: "Error Class",
+        valueDisplayMap: ERROR_CLASS_DISPLAY_NAMES,
+        priority: 8,
+      },
     ];
   }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
 
@@ -1155,57 +1658,30 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
 
     /*
-     * Collect filter values from active facets + parsed search (same shape
-     * as the histogram payload above — keeps facet counts aligned with the
-     * list scope).
+     * The same filters the list and the chart read (see fetchHistogram) —
+     * facet counts that disagree with the list are how a user learns not to
+     * trust either.
      */
-    const groups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!groups[f.facetKey]) {
-        groups[f.facetKey] = [];
-      }
-      groups[f.facetKey]!.push(f.value);
+    const facetResourceIds: Array<string> = [...resourceIds];
+    if (
+      props.primaryEntityId &&
+      !facetResourceIds.includes(props.primaryEntityId.toString())
+    ) {
+      facetResourceIds.push(props.primaryEntityId.toString());
     }
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key]!.push(...fieldFilters[key]!);
+    if (resolvedServices.matchedNothing) {
+      payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
+    } else if (facetResourceIds.length > 0) {
+      payload["serviceIds"] = facetResourceIds;
     }
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
-      }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
+    if (columnLiterals["exceptionType"]) {
+      payload["exceptionTypes"] = columnLiterals["exceptionType"];
     }
-
-    const resourceIds: Set<string> = new Set<string>();
-    for (const k of [
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]) {
-      const values: Array<string> | undefined = groups[k];
-      if (values) {
-        for (const v of values) {
-          resourceIds.add(v);
-        }
-      }
+    if (columnLiterals["environment"]) {
+      payload["environments"] = columnLiterals["environment"];
     }
-    if (resourceIds.size > 0) {
-      payload["serviceIds"] = Array.from(resourceIds);
-    }
-    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
-      payload["exceptionTypes"] = groups["exceptionType"];
-    }
-    if (groups["environment"] && groups["environment"].length > 0) {
-      payload["environments"] = groups["environment"];
-    }
-    if (freeText && freeText.length > 0) {
-      payload["messageSearchText"] = freeText;
+    if (parsedSearch.freeText.length > 0) {
+      payload["messageSearchText"] = parsedSearch.freeText;
     }
 
     const facetSearchTextActive: Record<string, string> = {};
@@ -1217,8 +1693,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (Object.keys(facetSearchTextActive).length > 0) {
       payload["facetSearchText"] = facetSearchTextActive;
     }
-    // Attribute scope narrows facet counts too (see fetchHistogram).
-    if (attributeScopeKey) {
+    // The instance scope narrows facet counts too (see fetchHistogram).
+    if (instanceScopeKey) {
       payload["fingerprints"] =
         resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
           ? resolvedScopeFingerprints
@@ -1241,18 +1717,119 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
   }, [
     timeRange,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     props.primaryEntityId,
     facetSearchText,
-    attributeScopeKey,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
     void fetchFacets();
   }, [fetchFacets]);
+
+  const [errorClassFacetValues, setErrorClassFacetValues] = useState<
+    Array<FacetValue>
+  >([]);
+
+  /*
+   * The same query the list runs, minus the class clause.
+   *
+   * Counting the classes UNDER the lens would make the facet useless: from
+   * inside "Issues" it would report "User error 0" and the drawer the lens
+   * sweeps into would look empty. Every other filter still applies, so the
+   * breakdown describes the slice the user is actually looking at.
+   */
+  const errorClassFacetQuery: Query<TelemetryException> = useMemo(() => {
+    const scopeless: Query<TelemetryException> = { ...query };
+    delete (scopeless as Record<string, unknown>)[EXCEPTION_ERROR_CLASS_COLUMN];
+    return scopeless;
+  }, [query]);
+
+  /*
+   * The error-class facet is counted here rather than by
+   * /telemetry/exceptions/facets like every other facet, because that
+   * endpoint aggregates the ClickHouse ExceptionInstance table and the fault
+   * class is a column on the Postgres exception GROUP. Asked for this facet
+   * it would fall through to its attributes-map branch and answer "No values
+   * found" forever. Counting the same Postgres rows the list reads is also
+   * the only way these numbers can agree with it.
+   *
+   * One count per class — five small indexed COUNTs, issued together, on the
+   * same cadence as the list fetch beside them.
+   */
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const loadErrorClassCounts: () => Promise<void> =
+      async (): Promise<void> => {
+        const classes: Array<ErrorClass> = Object.values(ErrorClass);
+
+        try {
+          const counts: Array<number> = await Promise.all(
+            classes.map((errorClass: ErrorClass): Promise<number> => {
+              const classQuery: Query<TelemetryException> = {
+                ...errorClassFacetQuery,
+              };
+              (classQuery as Record<string, unknown>)[
+                EXCEPTION_ERROR_CLASS_COLUMN
+              ] = errorClass;
+
+              return ModelAPI.count({
+                modelType: TelemetryException,
+                query: classQuery,
+              });
+            }),
+          );
+
+          if (isCancelled) {
+            return;
+          }
+
+          const values: Array<FacetValue> = [];
+
+          classes.forEach((errorClass: ErrorClass, index: number): void => {
+            const count: number = counts[index] || 0;
+            // Empty classes are left out, as the server-side facets do.
+            if (count > 0) {
+              values.push({ value: errorClass, count });
+            }
+          });
+
+          values.sort((a: FacetValue, b: FacetValue): number => {
+            return b.count - a.count;
+          });
+
+          setErrorClassFacetValues(values);
+        } catch {
+          // Facets are non-critical; an empty section beats a broken page.
+          if (!isCancelled) {
+            setErrorClassFacetValues([]);
+          }
+        }
+      };
+
+    void loadErrorClassCounts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [errorClassFacetQuery]);
+
+  /*
+   * The backend facets plus the one this component counts itself. Merged
+   * here rather than into `facetData` state so a facet refetch cannot drop
+   * the class counts, and a class recount cannot drop the rest.
+   */
+  const mergedFacetData: FacetData = useMemo(() => {
+    return {
+      ...facetData,
+      [EXCEPTION_ERROR_CLASS_COLUMN]: errorClassFacetValues,
+    };
+  }, [facetData, errorClassFacetValues]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
@@ -1271,13 +1848,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             },
           );
           const displayKey: string = config?.title || facetKey;
-          const displayValue: string =
-            config?.valueDisplayMap?.[value] || value;
+          /*
+           * The server's resolved name is the fallback for a resource the
+           * client-side list (capped per project) never loaded.
+           */
+          const displayValue: string = getExceptionFacetIncludeDisplayValue({
+            value,
+            config,
+            facetValues: mergedFacetData[facetKey],
+          });
           return [...prev, { facetKey, value, displayKey, displayValue }];
         });
         setPage(1);
       },
-      [facetConfigs],
+      [facetConfigs, mergedFacetData],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -1296,10 +1880,74 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, []);
 
   /*
+   * Every chip that names a telemetry entity by id — the page scope, the
+   * host's stored scope and the user's own chips — resolved in ONE lookup.
+   * primaryEntityId is polymorphic, and the Service list this viewer loads
+   * cannot name a RUM application, a host beyond the per-project cap, or the
+   * projectId "Unknown Service" bucket; without this those chips read
+   * "Service: 84858d6c-…".
+   */
+  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+
+  const entityChipRefs: Array<ExceptionEntityChipRef> = useMemo(() => {
+    return [...hostScope.chips, ...activeFilters].map(
+      (chip: ExceptionEntityChipRef): ExceptionEntityChipRef => {
+        return { facetKey: chip.facetKey, value: chip.value };
+      },
+    );
+  }, [hostScope, activeFilters]);
+
+  const facetDisplayNames: Record<
+    string,
+    Record<string, string>
+  > = useMemo(() => {
+    return buildExceptionFacetDisplayNames(mergedFacetData);
+  }, [mergedFacetData]);
+
+  /*
+   * Ids a chip's own facet already names (the loaded lists, the server facet
+   * names). Sending those to the resolver would add a request on every
+   * Service Exceptions mount for a name that is already on screen.
+   */
+  const knownEntityChipIds: ExceptionKnownChipIds = useMemo(() => {
+    return buildExceptionKnownChipIds({ facetConfigs, facetDisplayNames });
+  }, [facetConfigs, facetDisplayNames]);
+
+  const entityChipIds: Array<string> = useMemo(() => {
+    return collectExceptionEntityChipIds({
+      scopeEntityId,
+      scopeEntityType: props.scopeEntityType,
+      chips: entityChipRefs,
+      knownIds: knownEntityChipIds,
+      isKnownIdsPending: !areResourceListsLoaded,
+    });
+  }, [
+    scopeEntityId,
+    props.scopeEntityType,
+    entityChipRefs,
+    knownEntityChipIds,
+    areResourceListsLoaded,
+  ]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return buildExceptionEntityTypeHints({
+      scopeEntityId,
+      scopeEntityType: props.scopeEntityType,
+      chips: entityChipRefs,
+    });
+  }, [scopeEntityId, props.scopeEntityType, entityChipRefs]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityChipIds,
+    { typeHints: entityTypeHints },
+  );
+
+  /*
    * Read-only chips for prop-level scoping (e.g. service view page), merged
-   * with user-added chips. Display labels are re-derived from facetConfigs so
+   * with user-added chips. Display labels are re-derived on every render so
    * URL-restored chips (which only carry facetKey/value) still render the
-   * human-readable label once services/hosts/etc. load.
+   * human-readable label once services/hosts/entity names load. See
+   * Utils/ExceptionsEntityChipDisplay for the precedence.
    */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
@@ -1310,14 +1958,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           return c.key === chip.facetKey;
         },
       );
-      const displayKey: string = chip.facetKey.startsWith("attributes.")
-        ? chip.facetKey.substring("attributes.".length)
-        : config?.title || chip.displayKey || chip.facetKey;
-      const displayValue: string =
-        config?.valueDisplayMap?.[chip.value] ||
-        chip.displayValue ||
-        chip.value;
-      return { ...chip, displayKey, displayValue };
+      return resolveExceptionChipDisplay({
+        chip,
+        config,
+        entityNames,
+        facetDisplayNames: facetDisplayNames[chip.facetKey],
+        scopeEntityId,
+        scopeEntityType: props.scopeEntityType,
+      });
     };
 
     const base: Array<ActiveFilter> = [];
@@ -1332,8 +1980,33 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }),
       );
     }
+    /*
+     * The host's stored scope, as chips the user can see but not remove — a
+     * snapshot that filters silently makes a short list look like the whole
+     * truth.
+     */
+    for (const chip of hostScope.chips) {
+      base.push(
+        resolveDisplay({
+          facetKey: chip.facetKey,
+          value: chip.value,
+          displayKey: chip.displayKey,
+          displayValue: chip.displayValue,
+          readOnly: true,
+        }),
+      );
+    }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.primaryEntityId, activeFilters, facetConfigs]);
+  }, [
+    props.primaryEntityId,
+    props.scopeEntityType,
+    scopeEntityId,
+    hostScope,
+    activeFilters,
+    facetConfigs,
+    entityNames,
+    facetDisplayNames,
+  ]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(
@@ -1349,39 +2022,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     },
     [],
   );
-
-  // Bulk-ish actions via toolbar trailing
-  const handleResolveAll: () => Promise<void> = useCallback(async () => {
-    const ids: Array<ObjectID> = exceptions
-      .filter((e: TelemetryException): boolean => {
-        return !e.isResolved;
-      })
-      .map((e: TelemetryException): ObjectID => {
-        return (e._id || e.id) as ObjectID;
-      })
-      .filter((id: ObjectID | null): id is ObjectID => {
-        return Boolean(id);
-      });
-    if (ids.length === 0) {
-      return;
-    }
-    try {
-      for (const id of ids) {
-        await ModelAPI.updateById<TelemetryException>({
-          id,
-          modelType: TelemetryException,
-          data: {
-            isResolved: true,
-            markedAsResolvedAt: OneUptimeDate.getCurrentDate(),
-            markedAsResolvedByUserId: UserUtil.getUserId() || null,
-          },
-        });
-      }
-      void fetchExceptions();
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-  }, [exceptions, fetchExceptions]);
 
   const statusPills: ReactElement = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
@@ -1415,30 +2055,80 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </div>
   );
 
-  const trailingActions: ReactElement | null =
-    status === "unresolved" && exceptions.length > 0 ? (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100"
-        onClick={() => {
-          void handleResolveAll();
-        }}
-        title="Resolve all visible exceptions"
-      >
-        Resolve page
-      </button>
-    ) : null;
+  /*
+   * The class lens, built as a VISIBLE, removable control alongside the
+   * status pills rather than a default baked into the query.
+   *
+   * The default hides every user error and expected denial, which is most of
+   * what makes an Issues list unreadable — but a filter nobody can see is a
+   * filter nobody can turn off. A developer hunting the BadDataException they
+   * just triggered would find nothing and conclude the exception was never
+   * recorded, which is a worse failure than the noise this removes. So the
+   * lens says what it is doing and takes one click to widen.
+   */
+  const classPills: ReactElement = (
+    <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
+      {(
+        [
+          ["issues", "Issues", "Hide user errors and expected denials"],
+          [
+            "user-errors",
+            "User errors",
+            "Only user errors and expected denials — the classes the Issues lens hides",
+          ],
+          ["all", "All", "Every exception, whatever its fault class"],
+        ] as Array<[ExceptionClassScope, string, string]>
+      ).map(
+        ([key, label, description]: [
+          ExceptionClassScope,
+          string,
+          string,
+        ]): ReactElement => {
+          const isActive: boolean = classScope === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              title={description}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+              onClick={() => {
+                setClassScope(key);
+                setPage(1);
+              }}
+            >
+              {label}
+            </button>
+          );
+        },
+      )}
+    </div>
+  );
+
+  /*
+   * Two independent lenses on the same list — status and fault class — so
+   * they read as two groups rather than one seven-button row.
+   */
+  const leadingActions: ReactElement = (
+    <div className="flex flex-wrap items-center gap-2">
+      {statusPills}
+      {classPills}
+    </div>
+  );
 
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
-      isLoading={isLoading}
+      isLoading={isLoading || isResolvingScope}
       error={error || undefined}
       onRefresh={() => {
         void fetchExceptions();
         void fetchHistogram();
       }}
-      emptyMessage="No exceptions found"
+      emptyMessage={props.emptyMessage || "No exceptions found"}
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId
@@ -1468,18 +2158,25 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search exceptions — e.g. @type:TypeError @service:api"
+      searchPlaceholder="Search exceptions — e.g. type:TypeError @http.status_code:5*"
       /*
-       * Exceptions treats every filter as `@alias:value` (no plain `field:value`
-       * form), so the well-known aliases live alongside the user's attribute
-       * keys in the @-mode dropdown.
+       * The well-known aliases live alongside the user's attribute keys in the
+       * @-mode dropdown. `@type:` has meant the exception type here since this
+       * explorer shipped, so both `@type:` and the bare `type:` resolve to the
+       * column (see parseExceptionSearch).
        */
       searchAttributeSuggestions={[
         "type",
         "service",
         "env",
+        "class",
         ...telemetryAttributes.filter((attr: string): boolean => {
-          return attr !== "type" && attr !== "service" && attr !== "env";
+          return (
+            attr !== "type" &&
+            attr !== "service" &&
+            attr !== "env" &&
+            attr !== "class"
+          );
         }),
       ]}
       searchValueSuggestions={attributeValueSuggestions}
@@ -1487,57 +2184,96 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       searchValuesLoading={attributeValuesLoading}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
-         * Known fields (type/service/env) become chips via their canonical
-         * column name (e.g. `type` → `exceptionType`) so they filter
-         * correctly. The TelemetryException model has no JSON attributes
-         * column, so unknown keys go back through the search string path
-         * — preserving the previous behavior rather than silently breaking
-         * the filter. Alias detection is case-insensitive so users can type
-         * `Type:` or `SERVICE:`; attribute keys keep their original case.
-         *
-         * Strip surrounding quotes before storing the chip so `type:"My Type"`
-         * doesn't store `"My Type"` literally (which would never match).
-         * The unknown-field branch keeps the quotes because the resulting
-         * search string is re-parsed by `parseSearch`, which strips them.
+         * Enter turns `key:value` into a chip. A chip stores its value
+         * verbatim and compiles it as ONE predicate, so a value carrying
+         * operator syntax (`a*`, `~foo`, `(a OR b)`) must NOT be chipped —
+         * returning false leaves the token in the input, where the parser
+         * reads it as the operator the user typed. Chipping it would have
+         * searched for a literal asterisk.
          */
-        const aliased: string | undefined =
-          FIELD_ALIAS_MAP[fieldKey.toLowerCase()];
-        if (aliased) {
-          const cleanValue: string =
-            value.length >= 2 && value.startsWith('"') && value.endsWith('"')
-              ? value.slice(1, -1)
-              : value;
-          handleFacetInclude(aliased, cleanValue);
-          return;
+        if (hasSearchDsl(value)) {
+          return false;
         }
+
         /*
-         * Unknown keys are instance attributes: chip them under the
-         * attributes. prefix so they narrow via the fingerprint scope —
-         * previously they fell back into the raw search string.
+         * Strip surrounding quotes before storing the chip so `type:"My Type"`
+         * doesn't store `"My Type"` literally (which would never match) —
+         * a chip value is never re-tokenized, so it needs no quoting to keep
+         * its spaces.
          */
-        const cleanAttributeValue: string =
+        const cleanValue: string =
           value.length >= 2 && value.startsWith('"') && value.endsWith('"')
             ? value.slice(1, -1)
             : value;
+
+        /*
+         * Known fields (type/service/env) chip under their canonical column
+         * name (e.g. `type` → `exceptionType`) so they filter correctly.
+         * Alias detection is case-insensitive so users can type `Type:` or
+         * `SERVICE:`; attribute keys keep their original case.
+         */
+        const aliased: string | undefined =
+          EXCEPTION_FIELD_ALIASES[fieldKey.toLowerCase()];
+
+        if (aliased === EXCEPTION_SERVICE_COLUMN) {
+          /*
+           * A service chip stores the id the column holds, so a typed NAME
+           * has to resolve first. A name that is unknown, or that matches
+           * several services, goes back to the search string instead — where
+           * it resolves against every service at query time, rather than
+           * chipping a `primaryEntityId = 'api'` filter no row can match.
+           */
+          const chipId: string | null = resolveExceptionServiceChipId({
+            value: cleanValue,
+            services: serviceOptions,
+          });
+
+          if (!chipId) {
+            return false;
+          }
+
+          handleFacetInclude(EXCEPTION_SERVICE_COLUMN, chipId);
+          return true;
+        }
+
+        if (aliased) {
+          /*
+           * A chip stores what the COLUMN holds, so a class is canonicalised
+           * on the way in: chipped as typed, `class:User-Error` would match
+           * no row, and the Error Class facet could not label it either.
+           */
+          handleFacetInclude(
+            aliased,
+            aliased === EXCEPTION_ERROR_CLASS_COLUMN
+              ? canonicalizeExceptionErrorClass(cleanValue)
+              : cleanValue,
+          );
+          return true;
+        }
+
+        /*
+         * Unknown keys are instance attributes: chip them under the
+         * attributes. prefix so they narrow via the fingerprint scope.
+         */
         handleFacetInclude(
           `${EXCEPTION_ATTRIBUTE_FACET_PREFIX}${fieldKey}`,
-          cleanAttributeValue,
+          cleanValue,
         );
+        return true;
       }}
-      searchFieldAliasMap={FIELD_ALIAS_MAP}
+      searchFieldAliasMap={EXCEPTION_FIELD_ALIASES}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="@service:api @env:production TypeError"
+      searchHelpCombinedExample="service:api env:production connection refused"
       // Time — drives both the list (via lastSeenAt) and the histogram window
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
         setTimeRange(value);
         setPage(1);
       }}
-      toolbarLeadingActions={statusPills}
-      toolbarTrailingActions={trailingActions}
+      toolbarLeadingActions={leadingActions}
       // Facets
       showFacetSidebar={true}
-      facetData={facetData}
+      facetData={mergedFacetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}

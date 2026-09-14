@@ -20,6 +20,10 @@ import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DashboardCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
+import OneUptimeDate from "../../Types/Date";
+import CertificateReissueUtil from "../../Utils/CertificateReissue";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 const DASHBOARD_DOMAIN_EGRESS_LABEL: string = "Dashboard domain";
 
@@ -245,6 +249,133 @@ export class Service extends DatabaseService<DashboardDomain> {
         }
       },
     });
+  }
+
+  /*
+   * Reissue this domain's Let's Encrypt certificate because a customer asked
+   * for it, rather than because it is close to expiring.
+   *
+   * Every order spends from a Let's Encrypt account that is shared by the
+   * whole installation - including by the cron that keeps everybody else's
+   * certificates alive - so this is throttled to one request per domain per
+   * CertificateReissueUtil.COOLDOWN_IN_HOURS.
+   *
+   * Throws with a customer-readable reason for every refusal, so the API layer
+   * can hand the message straight back without classifying the failure:
+   * BadDataException for a domain that is not eligible at all, and
+   * TooManyRequestsException (429) for one that is simply too soon.
+   */
+  @CaptureSpan()
+  public async reissueCert(domainId: ObjectID): Promise<void> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const dashboardDomain: DashboardDomain | null = await this.findOneBy({
+      query: {
+        _id: domainId.toString(),
+      },
+      select: {
+        _id: true,
+        fullDomain: true,
+        isCnameVerified: true,
+        isSslOrdered: true,
+        isCustomCertificate: true,
+        certificateReissueRequestedAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!dashboardDomain) {
+      throw new BadDataException("Domain not found.");
+    }
+
+    if (!dashboardDomain.fullDomain) {
+      throw new BadDataException(
+        "Unable to reissue certificate because domain is null",
+      );
+    }
+
+    /*
+     * Nothing to reissue: the certificate on a custom-certificate domain is
+     * the one the customer uploaded, and we have no way to obtain another.
+     */
+    if (dashboardDomain.isCustomCertificate) {
+      throw new BadDataException(
+        "This domain uses a certificate you uploaded yourself, so there is no Let's Encrypt certificate to reissue. Please edit this domain and upload a new certificate instead.",
+      );
+    }
+
+    if (!dashboardDomain.isCnameVerified) {
+      throw new BadDataException(
+        "CNAME is not verified. Please verify CNAME first before you reissue the SSL certificate.",
+      );
+    }
+
+    /*
+     * A domain that never ordered a certificate has nothing to reissue - the
+     * dashboard shows "Order Free SSL" for it, which is the correct button.
+     */
+    if (!dashboardDomain.isSslOrdered) {
+      throw new BadDataException(
+        "No SSL certificate has been ordered for this domain yet. Please order one first.",
+      );
+    }
+
+    /*
+     * Claim the cooldown before ordering anything, and claim it by putting the
+     * cooldown condition in the WHERE clause rather than in an `if` above the
+     * write. Two clicks that arrive together both read a row that is not
+     * cooling down; only the write can decide which one of them gets to spend
+     * the CA's allowance.
+     *
+     * The stamp goes down BEFORE the order and is never rolled back on
+     * failure. A rejected order still costs a validation attempt against the
+     * shared account, and a domain whose order fails is exactly the domain
+     * somebody presses again - so a failed attempt has to start the clock the
+     * same way a successful one does.
+     */
+    const claimedRowCount: number = await this.updateOneBy({
+      query: {
+        _id: domainId.toString(),
+        certificateReissueRequestedAt: QueryHelper.lessThanEqualToOrNull(
+          CertificateReissueUtil.getCooldownCutoff(now),
+        ),
+      },
+      data: {
+        certificateReissueRequestedAt: now,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (claimedRowCount === 0) {
+      if (dashboardDomain.certificateReissueRequestedAt) {
+        throw new TooManyRequestsException(
+          CertificateReissueUtil.getCooldownMessage(
+            dashboardDomain.certificateReissueRequestedAt,
+            now,
+          ),
+        );
+      }
+
+      /*
+       * The row matched the cooldown a moment ago and does not now: another
+       * request claimed it in between, or the domain was deleted. Either way
+       * the caller must not order.
+       */
+      throw new BadDataException(
+        "Could not start a certificate reissue for this domain. Please refresh the page and try again.",
+      );
+    }
+
+    logger.debug(
+      "Reissuing SSL certificate for domain: " + dashboardDomain.fullDomain,
+      { fullDomain: dashboardDomain.fullDomain } as LogAttributes,
+    );
+
+    await this.orderCert(dashboardDomain);
   }
 
   @CaptureSpan()

@@ -55,6 +55,7 @@ const EXPECTED_ARGUMENT_IDS: Array<ArgumentId> = [
   "monitorStatusIds",
   "monitorTypes",
   "labelIds",
+  "labelVariableId",
 ];
 
 const DISPLAY_SECTION_ARGUMENT_IDS: Array<ArgumentId> = [
@@ -68,6 +69,7 @@ const FILTER_SECTION_ARGUMENT_IDS: Array<ArgumentId> = [
   "monitorStatusIds",
   "monitorTypes",
   "labelIds",
+  "labelVariableId",
 ];
 
 const VALID_INPUT_TYPES: Set<string> = new Set<string>(
@@ -157,6 +159,7 @@ describe("DashboardMonitorListComponentUtil", () => {
       expect(component.arguments.monitorStatusIds).toBeUndefined();
       expect(component.arguments.monitorTypes).toBeUndefined();
       expect(component.arguments.labelIds).toBeUndefined();
+      expect(component.arguments.labelVariableId).toBeUndefined();
     });
 
     test("uses the same default row count that the maxRows field shows as its placeholder", () => {
@@ -188,7 +191,7 @@ describe("DashboardMonitorListComponentUtil", () => {
   });
 
   describe("getComponentConfigArguments", () => {
-    test("declares exactly the seven documented arguments, in form order", () => {
+    test("declares the documented arguments, in form order", () => {
       expect(
         getArguments().map((arg: MonitorListArgument) => {
           return arg.id;
@@ -341,6 +344,13 @@ describe("DashboardMonitorListComponentUtil", () => {
       expect(arg.entityFilterModelType).toBe(EntityFilterModelType.Label);
       expect(arg.placeholder).toBe("All labels");
       expect(arg.dropdownOptions).toBeUndefined();
+    });
+
+    test("declares a dedicated project-label variable binding alongside fixed labels", () => {
+      const arg: MonitorListArgument = getArgumentById("labelVariableId");
+      expect(arg.type).toBe(ComponentInputType.ProjectLabelVariable);
+      expect(arg.required).toBe(false);
+      expect(arg.entityFilterModelType).toBeUndefined();
     });
 
     test("renders the monitor-type filter as a static multi-select, not an entity lookup", () => {

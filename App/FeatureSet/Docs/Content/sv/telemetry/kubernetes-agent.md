@@ -162,7 +162,7 @@ Kubernetes-händelser kan inte filtreras efter namespace i agenten. De kommer fr
 
 Accepterar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behåller WARN, ERROR och FATAL och släpper INFO, DEBUG och TRACE. Standardvärdet (`""`) behåller allt. Det gäller i **båda** logglägena — i `daemonset`-läge via insamlaren, i `api`-läge inuti loggläsaren själv — så förinställningarna kan inte stänga av det bakom ryggen på dig.
 
-Containerkörtider registrerar ingen allvarlighetsgrad på loggraden, så agenten tolkar själv fram en ur loggtexten (`[ERROR]`, `WARN:`, `level=info`, …).
+Containerkörtider registrerar ingen allvarlighetsgrad på loggraden, så agenten tolkar själv fram en ur loggtexten (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Kubernetes-händelser och resursspecifikationer filtreras aldrig av detta.** De anländer från Kubernetes-API:et utan någon egen allvarlighetsgrad, så en tröskel skulle radera hela flödet i stället för att tunna ut det — inklusive varningarna `FailedScheduling`, `BackOff` och `OOMKilling` som du helst av allt vill ha. De har låg volym och högt värde, så agenten levererar dem alltid. För att tunna ut dem, använd instrumentpanelens serversidiga **Loggar → Inställningar → Drop-filter** i stället.
 

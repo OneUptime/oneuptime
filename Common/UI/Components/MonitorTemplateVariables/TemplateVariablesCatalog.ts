@@ -33,7 +33,7 @@ export default class TemplateVariablesCatalog {
     /**
      * Attribute keys the user has configured on the metric query
      * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
-     * proxmox/ceph monitors, these become per-series template variables
+     * proxmox/vmware/ceph monitors, these become per-series template variables
      * — one incident fires per unique value combination, and each
      * incident can reference the label values via `{{host.name}}` etc.
      */
@@ -42,6 +42,7 @@ export default class TemplateVariablesCatalog {
     const groups: Array<TemplateVariableGroup> = [];
 
     groups.push(TemplateVariablesCatalog.monitorIdentityGroup());
+    groups.push(TemplateVariablesCatalog.seriesContextGroup());
 
     const perTypeGroup: TemplateVariableGroup | null =
       TemplateVariablesCatalog.perTypeGroup(input.monitorType);
@@ -57,6 +58,7 @@ export default class TemplateVariablesCatalog {
       input.monitorType === MonitorType.Podman ||
       input.monitorType === MonitorType.DockerSwarm ||
       input.monitorType === MonitorType.Proxmox ||
+      input.monitorType === MonitorType.VMware ||
       input.monitorType === MonitorType.Ceph
     ) {
       groups.push(
@@ -82,6 +84,49 @@ export default class TemplateVariablesCatalog {
           key: "monitorId",
           description: "UUID of the monitor.",
           example: "a0f78958-da0a-4775-9fd9-c9fc63d3456f",
+        },
+      ],
+    };
+  }
+
+  /**
+   * Ready-made renderings of the breaching series' identity.
+   *
+   * Listed for EVERY monitor type, not just the grouped ones, because
+   * `MonitorTemplateUtil` defines them unconditionally - they resolve to
+   * an empty string on a monitor with no group-by rather than leaving a
+   * `{{...}}` placeholder in the rendered title. That is the whole reason
+   * they exist: `{{resource.k8s.pod.name}}` is only safe in a template
+   * that is certain to be grouped by that attribute, whereas
+   * `{{seriesResourceSuffix}}` is safe anywhere.
+   */
+  private static seriesContextGroup(): TemplateVariableGroup {
+    return {
+      title: "Affected Resource",
+      description:
+        "The specific pod / container / host / mount that breached. Resolves to an empty string on a monitor with no Group By, so these are safe to use in any title or description.",
+      variables: [
+        {
+          key: "seriesResourceSuffix",
+          description:
+            "The identity, prefixed with a separator, for appending to a title. Empty when the monitor is not grouped.",
+          example: " - Pod: checkout-7d9f-2xk | Namespace: prod",
+        },
+        {
+          key: "seriesResourceSummary",
+          description:
+            "The same identity with no leading separator, for use mid-sentence.",
+          example: "Pod: checkout-7d9f-2xk | Namespace: prod",
+        },
+        {
+          key: "seriesResourceBlock",
+          description:
+            "Every label the series carries, as a markdown list. Best in a description rather than a title.",
+        },
+        {
+          key: "seriesDebugCommands",
+          description:
+            "Read-only commands for this exact resource (kubectl / docker / df ...), already filled in, as a markdown list.",
         },
       ],
     };
@@ -538,6 +583,50 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.Database:
+        return {
+          title: "Database Health",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the database accepted the connection.",
+            },
+            {
+              key: "responseTimeInMs",
+              description: "Time to connect and run the baseline query.",
+            },
+            { key: "failureCause", description: "Failure reason." },
+            {
+              key: "connectionError",
+              description:
+                "Connection error, when the database was unreachable.",
+            },
+            {
+              key: "engineVersion",
+              description: "Version string the database server reported.",
+            },
+            {
+              key: "collectedGroups",
+              description: "Metric groups that produced values on this check.",
+            },
+            {
+              key: "unavailableGroups",
+              description:
+                "Array of {group, reason, message, remediation} for groups that produced nothing.",
+            },
+            {
+              key: "collectionIssueSummary",
+              description:
+                "One-line summary of the unavailable groups - empty when everything was collected.",
+            },
+            {
+              key: "metrics",
+              description:
+                "Collected values keyed by metric name. A metric that was not collected is absent.",
+            },
+          ],
+        };
+
       case MonitorType.ExternalStatusPage:
         return {
           title: "External Status Page",
@@ -584,6 +673,7 @@ export default class TemplateVariablesCatalog {
       case MonitorType.Podman:
       case MonitorType.DockerSwarm:
       case MonitorType.Proxmox:
+      case MonitorType.VMware:
       case MonitorType.Ceph:
         return {
           title: "Metric",

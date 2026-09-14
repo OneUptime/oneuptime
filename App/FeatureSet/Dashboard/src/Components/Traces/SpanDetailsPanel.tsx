@@ -42,10 +42,20 @@ import {
   buildSpanPanelLogQuery,
 } from "../../Utils/TraceCorrelatedSignals";
 import LlmSpanPanel from "./LlmSpanPanel";
+import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
+import { makeSpanSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 
 export interface SpanDetailsPanelProps {
   span: Span;
   service?: Service | undefined;
+  /*
+   * The span's entity when it is not a loaded Service (a RUM application, a
+   * host), resolved by the explorer. Its name and type label replace
+   * "Service: unknown service".
+   */
+  entity?: ResolvedTelemetryEntity | undefined;
   // Base route to the span's full trace (without the spanId highlight query).
   traceRoute?: Route | undefined;
   // Adds an `attributes.<key>:<value>` chip to the parent explorer's filters.
@@ -146,6 +156,69 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
   const spanIdStr: string = span.spanId?.toString() || "";
   const traceIdStr: string = span.traceId?.toString() || "";
+  /*
+   * The RUM session this span ran in ("" on every span that predates the
+   * recorder). The list row may not have selected it, so the lazily
+   * fetched full span is the fallback source.
+   */
+  const sessionIdStr: string =
+    span.sessionId?.toString() || fullSpan?.sessionId?.toString() || "";
+  const spanStartUnixMs: number | null = span.startTime
+    ? OneUptimeDate.fromString(span.startTime as unknown as string).getTime()
+    : null;
+
+  /*
+   * "Watch session at this span": undefined while nothing is known or a
+   * lookup is in flight, null when the session has no recording, a Route
+   * once resolved. Resolved through the shared cached lookup, so the
+   * application id costs one read per session for the whole page.
+   */
+  const [replayRoute, setReplayRoute] = useState<Route | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    setReplayRoute(undefined);
+
+    if (!sessionIdStr) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const resolve: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const route: Route | undefined =
+          await resolveReplayMomentRouteForSession({
+            sessionId: sessionIdStr,
+            ...(spanStartUnixMs !== null && Number.isFinite(spanStartUnixMs)
+              ? { at: spanStartUnixMs }
+              : {}),
+            ...(spanIdStr ? { signal: makeSpanSignalId(spanIdStr) } : {}),
+            rail: "traces",
+          });
+
+        if (!cancelled) {
+          setReplayRoute(route || null);
+        }
+      } catch {
+        /*
+         * A failed lookup is left as "unknown" rather than "no recording":
+         * the link is an aside here and must not assert an absence it did
+         * not verify.
+         */
+        if (!cancelled) {
+          setReplayRoute(undefined);
+        }
+      }
+    };
+
+    void resolve();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionIdStr, spanIdStr, spanStartUnixMs]);
 
   // Expanding a different row reuses the panel — reset the lazy tab state.
   useEffect(() => {
@@ -181,6 +254,8 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             attributes: true,
             events: true,
             statusMessage: true,
+            /* The list row is light; the replay link needs the session id. */
+            sessionId: true,
           } as Select<Span>,
           sort: {},
           requestOptions: {},
@@ -371,8 +446,12 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     spanDurationInUnixNano: durationNano,
   });
 
-  const serviceName: string = service?.name || "unknown service";
-  const serviceColor: string = service?.serviceColor?.toString() || "#64748b";
+  const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
+    service,
+    entity: props.entity,
+  });
+  const serviceName: string = entityDisplay.name;
+  const serviceColor: string = entityDisplay.color || "#64748b";
 
   const statusColor: string = getStatusColor(span.statusCode);
   const statusLabel: string = getStatusLabel(span.statusCode);
@@ -505,7 +584,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     "text-[11px] uppercase tracking-wide text-gray-400";
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
-    { label: "Service", value: serviceName },
+    { label: entityDisplay.typeLabel, value: serviceName },
     { label: "Status", value: statusLabel },
     { label: "Duration", value: durationLabel },
     { label: "Span Kind", value: kindLabel },
@@ -565,17 +644,41 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             </div>
           </div>
 
-          {fullTraceRoute && (
-            <Link
-              to={fullTraceRoute}
-              openInNewTab={false}
-              className="inline-flex flex-none items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:border-indigo-300 hover:bg-indigo-100"
-              title="Open this span in the full trace viewer"
-            >
-              See full trace
-              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-            </Link>
-          )}
+          <div className="flex flex-none flex-wrap items-center gap-2">
+            {replayRoute && (
+              <span data-testid="span-replay-link">
+                <Link
+                  to={replayRoute}
+                  openInNewTab={false}
+                  className="inline-flex flex-none items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                  title="Open the session recording one second before this span started, with the span selected in the traces rail"
+                >
+                  <Icon icon={IconProp.Film} className="h-3.5 w-3.5" />
+                  Watch session at this span
+                </Link>
+              </span>
+            )}
+            {sessionIdStr && replayRoute === null && (
+              <span
+                className="text-[11px] text-gray-400"
+                data-testid="span-replay-missing"
+                title={`Session ${sessionIdStr} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).`}
+              >
+                No recording of session {sessionIdStr.slice(0, 8)}…
+              </span>
+            )}
+            {fullTraceRoute && (
+              <Link
+                to={fullTraceRoute}
+                openInNewTab={false}
+                className="inline-flex flex-none items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:border-indigo-300 hover:bg-indigo-100"
+                title="Open this span in the full trace viewer"
+              >
+                See full trace
+                <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Correlated-signal tabs — Logs / Exceptions fetch on first open. */}

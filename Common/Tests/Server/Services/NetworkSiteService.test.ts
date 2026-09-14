@@ -1,6 +1,12 @@
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import NetworkSiteTypeService from "../../../Server/Services/NetworkSiteTypeService";
 import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSiteStatusTimelineService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
+import NetworkSiteHierarchyLock, {
+  NETWORK_SITE_HIERARCHY_ROOT_SCOPE_ERROR_MESSAGE,
+} from "../../../Server/Utils/NetworkSite/NetworkSiteHierarchyLock";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
@@ -9,13 +15,40 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkSiteStatusTimeline from "../../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import { FindOperator } from "typeorm";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import DeviceReachabilityUtil from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
+import {
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DeviceHealthGroup,
+} from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
+import { AggregateColumn } from "../../../Server/Types/Database/AggregateBy";
+import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
+
+/*
+ * NetworkSiteService only needs the type service's findOneById boundary.
+ * Replacing that boundary keeps this focused unit suite from loading the
+ * reciprocal NetworkSiteTypeService -> NetworkSiteService graph (and all of
+ * its monitoring dependencies) before each isolated hierarchy scenario.
+ */
+jest.mock("../../../Server/Services/NetworkSiteTypeService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+    },
+  };
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 /*
  * Contract under test - the persisted rollup engine and the hierarchy
@@ -54,6 +87,18 @@ const DEVICE_ID: ObjectID = new ObjectID(
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
+const ROOT_SITE_TYPE_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const CHILD_SITE_TYPE_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const ALTERNATE_ROOT_SITE_TYPE_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+const GRANDCHILD_SITE_TYPE_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
+);
 
 function fakeSite(overrides: Record<string, unknown>): NetworkSite {
   return {
@@ -62,6 +107,37 @@ function fakeSite(overrides: Record<string, unknown>): NetworkSite {
     projectId: PROJECT_ID,
     ...overrides,
   } as unknown as NetworkSite;
+}
+
+function fakeNetworkSiteType(data: {
+  id: ObjectID;
+  name?: string | undefined;
+  parentNetworkSiteTypeId?: ObjectID | undefined;
+  projectId?: ObjectID | undefined;
+  isUnitLevel?: boolean | undefined;
+}): any {
+  return {
+    id: data.id,
+    _id: data.id.toString(),
+    name: data.name,
+    projectId: data.projectId || PROJECT_ID,
+    isUnitLevel: data.isUnitLevel,
+    parentNetworkSiteTypeId: data.parentNetworkSiteTypeId,
+  };
+}
+
+function mockNetworkSiteTypes(types: Array<any>): jest.SpyInstance {
+  const typesById: Map<string, any> = new Map(
+    types.map((type: any): [string, any] => {
+      return [type.id.toString(), type];
+    }),
+  );
+
+  return jest
+    .spyOn(NetworkSiteTypeService, "findOneById")
+    .mockImplementation((input: any) => {
+      return Promise.resolve(typesById.get(input.id.toString()) || null);
+    });
 }
 
 function fakeStatuses(): Array<MonitorStatus> {
@@ -90,21 +166,97 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     updateColumns: jest.SpyInstance;
     timelineUpdateBy: jest.SpyInstance;
     timelineCreate: jest.SpyInstance;
-    deviceFindBy: jest.SpyInstance;
+    deviceHealthGroups: jest.SpyInstance;
     descendantSiteIds: jest.SpyInstance;
+    maintainedSiteIds: jest.SpyInstance;
+  }
+
+  /*
+   * The rollup no longer reads device ROWS — it asks Postgres to bucket the
+   * subtree by the facts the reachability rule reads, and classifies the
+   * buckets. So a test still describes its scenario as devices (which is what
+   * the scenario IS), and this turns them into the buckets the database would
+   * have returned for exactly those devices.
+   *
+   * The staleness predicate is the one thing SQL evaluates rather than the
+   * shared util, so it is computed here from that util's own window rather
+   * than a hard-coded number — the same arrangement, for the same reason, as
+   * Common/Tests/Server/Utils/NetworkDevice/DeviceHealthAggregation.test.ts.
+   */
+  function toHealthGroups(
+    devices: Array<NetworkDevice>,
+  ): Array<DeviceHealthGroup> {
+    const now: number = Date.now();
+
+    return devices.map((device: NetworkDevice): DeviceHealthGroup => {
+      const contactTimes: Array<number> = [
+        device.lastPolledAt,
+        device.lastSeenAt,
+      ]
+        .filter((value: Date | undefined): value is Date => {
+          return Boolean(value);
+        })
+        .map((value: Date): number => {
+          return new Date(value).getTime();
+        });
+
+      const lastContactAt: number | null =
+        contactTimes.length > 0 ? Math.max(...contactTimes) : null;
+
+      const staleWindowInMinutes: number =
+        DeviceReachabilityUtil.getStaleWindowInMinutes(
+          device.pollingIntervalInMinutes,
+        );
+
+      return {
+        siteId: null,
+        monitorStatusId: device.currentMonitorStatusId?.toString() ?? null,
+        monitoringMethod: device.monitoringMethod ?? null,
+        isReachable:
+          device.isReachable === undefined ? null : device.isReachable,
+        hasBeenPolled: Boolean(device.lastPolledAt),
+        hasBeenSeen: Boolean(device.lastSeenAt),
+        /*
+         * Guarded exactly as the SQL is: staleness is only computed for the
+         * one branch of the reachability rule that can read it.
+         */
+        isStale:
+          (device.isReachable === undefined || device.isReachable === null) &&
+          Boolean(device.lastSeenAt) &&
+          lastContactAt !== null &&
+          lastContactAt < now - staleWindowInMinutes * 60 * 1000,
+        hasDownInterfaces: (device.interfacesDown || 0) > 0,
+        deviceCount: 1,
+        interfacesDownTotal: device.interfacesDown || 0,
+      };
+    });
   }
 
   function setupRollup(data: {
     site: NetworkSite | null;
     devices: Array<NetworkDevice>;
+    // Site ids an ongoing maintenance window is currently silencing.
+    maintainedSiteIds?: Array<ObjectID> | undefined;
   }): RollupSpies {
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(data.site);
     const descendantSiteIds: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "getDescendantSiteIds")
       .mockResolvedValue([]);
-    const deviceFindBy: jest.SpyInstance = jest
-      .spyOn(NetworkDeviceService, "findBy")
-      .mockResolvedValue(data.devices);
+    const deviceHealthGroups: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "getHealthGroupsForSites")
+      .mockResolvedValue(toHealthGroups(data.devices));
+    const maintainedSiteIds: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteMaintenanceSuppression,
+        "getSiteIdsUnderOngoingMaintenance",
+      )
+      .mockResolvedValue(
+        new Set<string>(
+          (data.maintainedSiteIds || []).map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ),
+      );
     jest
       .spyOn(MonitorStatusService, "findBy")
       .mockResolvedValue(fakeStatuses());
@@ -123,8 +275,9 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
       updateColumns,
       timelineUpdateBy,
       timelineCreate,
-      deviceFindBy,
+      deviceHealthGroups,
       descendantSiteIds,
+      maintainedSiteIds,
     };
   }
 
@@ -132,9 +285,18 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
+        /*
+         * An ordinary probe-polled device - no monitoringMethod, which parses
+         * to Probe - whose last poll got nothing back. Its poll outcome is
+         * its vote, so the site's worst-of lands on the project's offline row
+         * and the timeline has to roll.
+         */
         {
           id: DEVICE_ID,
-          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -171,9 +333,20 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OFFLINE_STATUS_ID }),
       devices: [
+        /*
+         * The device votes offline (its poll got nothing back) and the site
+         * already reads offline. The device has to CONTRIBUTE a verdict for
+         * this to be the "unchanged" case rather than the "nothing to say"
+         * case - a device with no poll columns at all would be Pending, which
+         * takes the same branch for an entirely different reason and would
+         * leave this assertion passing while proving nothing.
+         */
         {
           id: DEVICE_ID,
-          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -201,17 +374,108 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     expect(spies.timelineCreate).not.toHaveBeenCalled();
   });
 
-  it("uses the SNMP fallback for devices without a stamped status", async () => {
+  it("a probe-polled device with no stamped status votes with its poll", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
         {
           id: DEVICE_ID,
-          // Unmonitored, and its last poll could not reach it.
+          // Nothing has ever stamped it, and its last poll got nothing back.
           isReachable: false,
           lastPolledAt: new Date(Date.now() - 60 * 1000),
           lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
           pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
+  });
+
+  /*
+   * Health precedence, and which device the site card is describing.
+   *
+   * A stamped MonitorStatus is a device's verdict only on a MONITOR-BACKED
+   * device. A Network Device monitor watching a switch's SNMP walk stamps the
+   * device it watches, so an "interface down -> Offline" criterion stamps
+   * Offline on a switch that answers every ping - and letting that vote
+   * turned this site card and the topology node above it red while every
+   * device row underneath read Up. The pill, the card and the map now read
+   * the same rule: for a probe-polled device the poll decides.
+   */
+  it("a probe-polled device stamped Offline does not turn the site offline while it answers", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OFFLINE_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          // The stamp its own monitor wrote for a dark interface...
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          // ...on a switch that answered its last poll.
+          isReachable: true,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OPERATIONAL_STATUS_ID.toString(),
+    );
+  });
+
+  it("the same probe-polled device DOES turn the site offline once its poll fails", async () => {
+    /*
+     * The stamp is unchanged; only the poll outcome moved, and the site
+     * follows it. This is the half of the rule that stops "the stamp does not
+     * vote" from quietly becoming "a probe-polled device can never take its
+     * site offline" - which would be the same bug with the colours swapped.
+     */
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
+  });
+
+  it("a monitor-backed device still votes with its stamped status", async () => {
+    /*
+     * The override, and the reason the stamp is carried at all: nothing polls
+     * this device, so it has no poll columns whatsoever. Reachability alone
+     * would call it Pending and the site would keep whatever it said before;
+     * its bound Monitor's status is its entire verdict, and it is offline.
+     */
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -254,11 +518,35 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * The rollup reads four columns and the query has to fetch all four. A
-   * missing `isReachable` here compiles, runs, and silently drops the whole
-   * subtree back onto the legacy freshness path.
+   * The rollup reads four columns, and the hazard has moved from a `select`
+   * to a GROUP BY: a fact the rule reads that the grouping does not is a fact
+   * two devices can disagree on inside one bucket, and the bucket then gets
+   * one verdict for both. A missing `isReachable` still compiles, still runs,
+   * and still silently drops the whole subtree onto the legacy freshness path
+   * — it just does it one layer down now.
    */
-  it("selects every column the reachability rule reads", async () => {
+  it("groups by every column the reachability rule reads", async () => {
+    const expressions: string = DEVICE_HEALTH_GROUP_COLUMNS.map(
+      (column: AggregateColumn): string => {
+        return column.expression;
+      },
+    ).join(" ");
+
+    expect(expressions).toContain("isReachable");
+    expect(expressions).toContain("lastPolledAt");
+    expect(expressions).toContain("lastSeenAt");
+    expect(expressions).toContain("pollingIntervalInMinutes");
+    expect(expressions).toContain("currentMonitorStatusId");
+  });
+
+  /*
+   * Every device in the subtree is classified against ONE instant, passed in
+   * rather than read from the database's clock. Two devices measured against
+   * two different "now"s can disagree about staleness by a whole polling
+   * interval, and the rollup would then flip between runs with nothing
+   * having changed.
+   */
+  it("classifies the whole subtree against one instant", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [],
@@ -266,13 +554,8 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
 
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
-    const select: Record<string, unknown> =
-      spies.deviceFindBy.mock.calls[0]![0].select;
-
-    expect(select["isReachable"]).toBe(true);
-    expect(select["lastPolledAt"]).toBe(true);
-    expect(select["lastSeenAt"]).toBe(true);
-    expect(select["pollingIntervalInMinutes"]).toBe(true);
+    const args: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(args.now).toBeInstanceOf(Date);
   });
 
   it("does nothing when the site does not exist", async () => {
@@ -286,11 +569,13 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * An archived device is decommissioned: it keeps its siteId but must not
-   * vote. Without this filter an archived, never-monitored device hits the
-   * freshness fallback and pins its whole ancestor chain Offline forever.
+   * The bucketing query is scoped to the site's own project and to its own
+   * subtree — one statement, not one per site, and never another tenant's
+   * devices. (The archived-device filter lives inside
+   * getHealthGroupsForSites and is pinned by
+   * App/Tests/BaseAPI/NetworkSiteHierarchyDeviceRollup.test.ts.)
    */
-  it("excludes archived devices from the subtree scan", async () => {
+  it("buckets the subtree's devices in one project-scoped call", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [],
@@ -298,10 +583,50 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
 
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
-    expect(spies.deviceFindBy).toHaveBeenCalledTimes(1);
-    const deviceQuery: any = spies.deviceFindBy.mock.calls[0]![0].query;
-    expect(deviceQuery.isArchived).toBe(false);
-    expect(deviceQuery.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(spies.deviceHealthGroups).toHaveBeenCalledTimes(1);
+    const groupArgs: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(groupArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+    /*
+     * The archived filter moved into getHealthGroupsForSites with the query.
+     * Asserted there — NetworkDeviceService's own suite pins that the method
+     * really does send `isArchived: false`.
+     */
+    expect(
+      groupArgs.siteIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SITE_ID.toString()]);
+  });
+
+  /*
+   * Issue #3431. A rollup must not fail because the maintenance lookup did —
+   * the util already degrades to "nothing suppressed", and this pins that
+   * the engine treats that as an ordinary answer rather than a reason to
+   * skip the run.
+   */
+  it("rolls up normally when nothing is under maintenance", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        // One ordinary probe-polled device, and its last poll got nothing back.
+        {
+          id: DEVICE_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+      maintainedSiteIds: [],
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    expect(spies.maintainedSiteIds).toHaveBeenCalledTimes(1);
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
   });
 
   it("scopes the descendant lookup to the site's own project", async () => {
@@ -515,15 +840,23 @@ describe("NetworkSiteService.onBeforeUpdate (cycle rejection)", () => {
   });
 
   it("allows a legal move and carries the previous state forward", async () => {
-    jest
-      .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValue([
-        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
-      ]);
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([
+      fakeSite({
+        materializedPath: `/${SITE_ID.toString()}/`,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    ]);
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
       fakeSite({
         id: PARENT_SITE_ID,
         _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
     );
     jest
@@ -595,15 +928,23 @@ describe("NetworkSiteService.onBeforeUpdate (cycle rejection)", () => {
   });
 
   it("carries a legal move made through the `parentSite` relation key", async () => {
-    jest
-      .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValue([
-        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
-      ]);
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([
+      fakeSite({
+        materializedPath: `/${SITE_ID.toString()}/`,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    ]);
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
       fakeSite({
         id: PARENT_SITE_ID,
         _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
     );
     jest
@@ -635,6 +976,67 @@ describe("NetworkSiteService.onBeforeUpdate (cycle rejection)", () => {
     ).onBeforeUpdate({
       query: { _id: SITE_ID.toString() },
       data: { name: "renamed" },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(result.carryForward).toBeNull();
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects moving a site to another project", async () => {
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ projectId: PROJECT_ID })]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate({
+        query: { _id: SITE_ID.toString() },
+        data: { projectId: OTHER_PROJECT_ID },
+        props: { isRoot: true },
+      } as unknown as UpdateBy<NetworkSite>),
+    ).rejects.toThrow("cannot be moved to another project");
+  });
+
+  it.each([
+    ["materializedPath", `/${SITE_ID.toString()}/`],
+    ["depth", 0],
+  ])(
+    "rejects a direct write to server-managed %s",
+    async (field: string, value: string | number) => {
+      const findBySpy: jest.SpyInstance = jest.spyOn(
+        NetworkSiteService,
+        "findBy",
+      );
+
+      await expect(
+        (NetworkSiteService as any).onBeforeUpdate({
+          query: { _id: SITE_ID.toString() },
+          data: { [field]: value },
+          props: { isRoot: true },
+        } as unknown as UpdateBy<NetworkSite>),
+      ).rejects.toThrow("cannot be updated directly");
+
+      expect(findBySpy).not.toHaveBeenCalled();
+    },
+  );
+
+  it("treats undefined relation properties on a model instance as omitted", async () => {
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+
+    const result: OnUpdate<NetworkSite> = await (
+      NetworkSiteService as any
+    ).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: {
+        name: "renamed",
+        parentSite: undefined,
+        parentSiteId: undefined,
+        networkSiteType: undefined,
+        networkSiteTypeId: undefined,
+      },
       props: { isRoot: true },
     } as unknown as UpdateBy<NetworkSite>);
 
@@ -729,6 +1131,23 @@ describe("NetworkSiteService.onBeforeUpdate (tenant scoping)", () => {
     expect(result.carryForward.previousItems).toHaveLength(1);
     expect(result.carryForward.newParentPath).toBeNull();
   });
+
+  it("reads the same limit and skip window that the bulk update will write", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+
+    await (NetworkSiteService as any).onBeforeUpdate({
+      query: {},
+      data: { parentSiteId: null },
+      limit: 7,
+      skip: 3,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(findBySpy.mock.calls[0]![0].limit).toBe(7);
+    expect(findBySpy.mock.calls[0]![0].skip).toBe(3);
+  });
 });
 
 describe("NetworkSiteService.onBeforeCreate (cross-project parent guard)", () => {
@@ -777,6 +1196,226 @@ describe("NetworkSiteService.onBeforeCreate (cross-project parent guard)", () =>
   });
 
   it("carries the parent path forward for a same-project parent", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        parentSiteId: PARENT_SITE_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+});
+
+describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("allows a root type without a parent when the type arrives as a relation", async () => {
+    const typeLookup: jest.SpyInstance = mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID }),
+    ]);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteType: { _id: ROOT_SITE_TYPE_ID.toString() },
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBeNull();
+    expect(typeLookup).toHaveBeenCalledTimes(1);
+    expect(typeLookup.mock.calls[0]![0].id.toString()).toBe(
+      ROOT_SITE_TYPE_ID.toString(),
+    );
+  });
+
+  /*
+   * Regression block for GitHub issue #3744. Each of these placements was
+   * refused before the placement rule was relaxed to "a parent may be any site
+   * whose type is not below this one's".
+   */
+  it("accepts a parent of the same type", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("accepts no parent for a type configured below another type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBeNull();
+  });
+
+  it("accepts a direct parent with exactly the configured type through relation fields", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteType: { id: CHILD_SITE_TYPE_ID },
+        parentSite: { _id: PARENT_SITE_ID.toString() },
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  // The issue's own case: a Market (nested type) under an Other (root type).
+  it("accepts a parent whose type is unrelated to the configured one", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("accepts a parent that skips a configured level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: GRANDCHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("accepts a parent that has no site type at all", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
       fakeSite({
         id: PARENT_SITE_ID,
@@ -790,6 +1429,7 @@ describe("NetworkSiteService.onBeforeCreate (cross-project parent guard)", () =>
     const result: any = await (NetworkSiteService as any).onBeforeCreate({
       data: {
         projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
         parentSiteId: PARENT_SITE_ID,
       },
       props: { tenantId: PROJECT_ID },
@@ -798,6 +1438,948 @@ describe("NetworkSiteService.onBeforeCreate (cross-project parent guard)", () =>
     expect(result.carryForward.parentPath).toBe(
       `/${PARENT_SITE_ID.toString()}/`,
     );
+  });
+
+  it("rejects a parent whose type sits below this site's type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      'A site of network site type "Region" cannot be placed under a site of network site type "Market", because "Market" sits below "Region" in the site type hierarchy.',
+    );
+  });
+
+  it("rejects a parent whose type sits below it through a skipped level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Franchisee",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: GRANDCHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow('"Market" sits below "Region"');
+  });
+
+  it("rejects a parent whose type is the unit level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Unit",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+        isUnitLevel: true,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      'Sites of network site type "Unit" are unit level, so they cannot have child sites.',
+    );
+  });
+
+  it("terminates on a cyclic site type catalog instead of looping forever", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: ROOT_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("rejects a type from another project", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: ROOT_SITE_TYPE_ID,
+        projectId: OTHER_PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("Network site type must belong to the same project.");
+  });
+
+  it("uses a project relation payload for cross-project validation", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: ROOT_SITE_TYPE_ID,
+        projectId: OTHER_PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          project: { _id: PROJECT_ID.toString() },
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        },
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow("Network site type must belong to the same project.");
+  });
+
+  it("rejects a missing type", async () => {
+    mockNetworkSiteTypes([]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("Network site type not found.");
+  });
+
+  it("rejects conflicting scalar and relation references before doing lookups", async () => {
+    const siteLookup: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findOneById",
+    );
+    const typeLookup: jest.SpyInstance = jest.spyOn(
+      NetworkSiteTypeService,
+      "findOneById",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          networkSiteType: { _id: CHILD_SITE_TYPE_ID.toString() },
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "Conflicting Network Site Type references were provided.",
+    );
+
+    expect(siteLookup).not.toHaveBeenCalled();
+    expect(typeLookup).not.toHaveBeenCalled();
+  });
+
+  it("rejects a raw parent SQL expression instead of treating it as a clear", async () => {
+    const siteLookup: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findOneById",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          parentSiteId: () => {
+            return "some-parent-id";
+          },
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "parentSiteId cannot be set to a raw SQL expression because the network site hierarchy must be validated against an actual ID.",
+    );
+
+    expect(siteLookup).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed non-null site type relation", async () => {
+    const typeLookup: jest.SpyInstance = jest.spyOn(
+      NetworkSiteTypeService,
+      "findOneById",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteType: { name: "not an id" },
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "networkSiteType must contain a valid Network Site Type ID.",
+    );
+
+    expect(typeLookup).not.toHaveBeenCalled();
+  });
+
+  it("does not permit an untyped child under a parent", async () => {
+    jest
+      .spyOn(NetworkSiteService, "findOneById")
+      .mockResolvedValue(fakeSite({ id: PARENT_SITE_ID }));
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "A network site with a parent must have a network site type.",
+    );
+  });
+});
+
+describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeTypeUpdate(
+    data: Record<string, unknown>,
+  ): UpdateBy<NetworkSite> {
+    return {
+      query: { _id: SITE_ID.toString() },
+      data: data,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>;
+  }
+
+  it("attaches a root-typed site to a parent of the same type", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
+    );
+
+    expect(result.carryForward.newParentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  // Linking an existing child to an existing parent - the second half of #3744.
+  it("attaches an existing site to a parent of an unrelated type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: CHILD_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
+    );
+
+    expect(result.carryForward.newParentId.toString()).toBe(
+      PARENT_SITE_ID.toString(),
+    );
+  });
+
+  it("detaches a site whose type is configured below another type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([
+      fakeSite({
+        parentSiteId: PARENT_SITE_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    ]);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSite: null }),
+    );
+
+    expect(result.carryForward.newParentId).toBeNull();
+    expect(result.carryForward.newParentPath).toBeNull();
+  });
+
+  it("rejects re-parenting a site under a site whose type sits below it", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
+      ),
+    ).rejects.toThrow('"Market" sits below "Region"');
+  });
+
+  it("validates a type-only update against the site's existing parent", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({
+          parentSiteId: PARENT_SITE_ID,
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+
+    const result: OnUpdate<NetworkSite> = await (
+      NetworkSiteService as any
+    ).onBeforeUpdate(makeTypeUpdate({ networkSiteTypeId: CHILD_SITE_TYPE_ID }));
+
+    expect(result.carryForward).toBeNull();
+    expect(findBySpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses both proposed values when type and parent change together as relations", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({
+        networkSiteType: { _id: CHILD_SITE_TYPE_ID.toString() },
+        parentSite: { id: PARENT_SITE_ID },
+      }),
+    );
+
+    expect(result.carryForward.newParentId.toString()).toBe(
+      PARENT_SITE_ID.toString(),
+    );
+  });
+
+  it("rejects a type change that would push this site below its own child", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    const childId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: childId,
+          _id: childId.toString(),
+          parentSiteId: SITE_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        }),
+      ),
+    ).rejects.toThrow('"Market" sits below "Region"');
+  });
+
+  it("rejects a type change to a unit-level type while the site has children", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Unit",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+        isUnitLevel: true,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    const childId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: childId,
+          _id: childId.toString(),
+          parentSiteId: SITE_ID,
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        }),
+      ),
+    ).rejects.toThrow(
+      'Sites of network site type "Unit" are unit level, so they cannot have child sites.',
+    );
+  });
+
+  it("allows a type change when every direct child expects the new type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID }),
+      fakeNetworkSiteType({
+        id: GRANDCHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    const childId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: childId,
+          _id: childId.toString(),
+          parentSiteId: SITE_ID,
+          networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteType: {
+            _id: ALTERNATE_ROOT_SITE_TYPE_ID.toString(),
+          },
+        }),
+      ),
+    ).resolves.toMatchObject({ carryForward: null });
+
+    const childQuery: any = findBySpy.mock.calls[1]![0].query;
+    expect(childQuery.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(childQuery.parentSiteId.toString()).toBe(SITE_ID.toString());
+  });
+
+  it("pages past a full batch so wide sites cannot hide invalid direct children", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    /*
+     * Every child on page one is fine under the relaxed rule; the one that
+     * inverts the hierarchy is alone on page two, so only a loop that keeps
+     * reading finds it.
+     */
+    const child: NetworkSite = fakeSite({
+      id: new ObjectID("99999999-9999-4999-8999-999999999999"),
+      networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+    });
+    const childReadSkips: Array<number> = [];
+    const invalidChildOnSecondPage: NetworkSite = fakeSite({
+      id: new ObjectID("aaaaaaaa-1111-4111-8111-111111111111"),
+      networkSiteTypeId: ROOT_SITE_TYPE_ID,
+    });
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation((input: any) => {
+        if (input.query._id) {
+          return Promise.resolve([
+            fakeSite({ networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID }),
+          ]);
+        }
+
+        childReadSkips.push(input.skip);
+        if (input.skip === 0) {
+          return Promise.resolve(
+            Array.from({ length: input.limit }, () => {
+              return child;
+            }),
+          );
+        }
+
+        return Promise.resolve([invalidChildOnSecondPage]);
+      });
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        }),
+      ),
+    ).rejects.toThrow('"Market" sits below "Region"');
+
+    expect(findBySpy).toHaveBeenCalledTimes(3);
+    expect(childReadSkips).toEqual([0, 1000]);
+  });
+
+  it("rejects clearing a site's type while it still has direct children", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    const childId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: childId,
+          _id: childId.toString(),
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({ networkSiteTypeId: null }),
+      ),
+    ).rejects.toThrow(
+      "A network site with child sites must have a network site type.",
+    );
+  });
+
+  it("rejects a type-only update to a foreign-project type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: ALTERNATE_ROOT_SITE_TYPE_ID,
+        projectId: OTHER_PROJECT_ID,
+      }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+        }),
+      ),
+    ).rejects.toThrow("Network site type must belong to the same project.");
+  });
+
+  it("rejects conflicting parent spellings before hierarchy reads", async () => {
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          parentSiteId: PARENT_SITE_ID,
+          parentSite: { _id: SITE_ID.toString() },
+        }),
+      ),
+    ).rejects.toThrow("Conflicting Parent Site references were provided.");
+
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a raw site-type SQL expression before hierarchy reads", async () => {
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: () => {
+            return "some-type-id";
+          },
+        }),
+      ),
+    ).rejects.toThrow(
+      "networkSiteTypeId cannot be set to a raw SQL expression because the network site hierarchy must be validated against an actual ID.",
+    );
+
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed non-null parent relation before hierarchy reads", async () => {
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({ parentSite: { name: "not an id" } }),
+      ),
+    ).rejects.toThrow("parentSite must contain a valid Parent Site ID.");
+
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  it("does not re-query direct children for a no-op type write", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })]);
+
+    await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+    );
+
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * materializedPath is varchar(500) and each segment costs 37 characters, so a
+ * path holds 13 ids. The old placement rule bounded depth for free by pinning
+ * a site's depth to its type's depth in the catalog. Nothing pins it now, so
+ * the bound is enforced here - and it has to be enforced BEFORE the write,
+ * because the subtree rebase that would overflow the column runs after the
+ * parent change has already been committed.
+ */
+describe("NetworkSiteService hierarchy depth bound", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function pathOfSegments(count: number): string {
+    return `/${Array.from(
+      { length: count },
+      (_unused: unknown, index: number) => {
+        return new ObjectID(
+          `eeeeeeee-eeee-4eee-8eee-${index.toString().padStart(12, "0")}`,
+        ).toString();
+      },
+    ).join("/")}/`;
+  }
+
+  function mockRootTypedParent(): void {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+  }
+
+  it("accepts a create that lands on the last usable level", async () => {
+    mockRootTypedParent();
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(12));
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(pathOfSegments(12));
+  });
+
+  it("rejects a create one level past what the stored path can hold", async () => {
+    mockRootTypedParent();
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(13));
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("can be at most 13 levels deep");
+  });
+
+  /*
+   * The moved site takes its whole subtree with it, so the deepest row under
+   * it is what decides whether the move fits - not the site's own new depth.
+   */
+  it("measures the moved subtree, not just the moved site", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    const ownPath: string = `/${SITE_ID.toString()}/`;
+    const deepestDescendantPath: string = `${ownPath}${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    ).toString()}/${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
+    ).toString()}/`;
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation((input: any) => {
+        if (input.query.materializedPath) {
+          return Promise.resolve([
+            fakeSite({ materializedPath: deepestDescendantPath }),
+          ]);
+        }
+
+        return Promise.resolve([
+          fakeSite({
+            networkSiteTypeId: ROOT_SITE_TYPE_ID,
+            materializedPath: ownPath,
+          }),
+        ]);
+      });
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    // Eleven ancestors + the moved site + its two levels = fourteen.
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(11));
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate({
+        query: { _id: SITE_ID.toString() },
+        data: { parentSiteId: PARENT_SITE_ID },
+        props: { tenantId: PROJECT_ID },
+      } as unknown as UpdateBy<NetworkSite>),
+    ).rejects.toThrow("can be at most 13 levels deep");
+  });
+
+  it("allows the same move when the subtree ends one level higher", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    const ownPath: string = `/${SITE_ID.toString()}/`;
+    const deepestDescendantPath: string = `${ownPath}${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    ).toString()}/`;
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation((input: any) => {
+        if (input.query.materializedPath) {
+          return Promise.resolve([
+            fakeSite({ materializedPath: deepestDescendantPath }),
+          ]);
+        }
+
+        return Promise.resolve([
+          fakeSite({
+            networkSiteTypeId: ROOT_SITE_TYPE_ID,
+            materializedPath: ownPath,
+          }),
+        ]);
+      });
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(11));
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSiteId: PARENT_SITE_ID },
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(result.carryForward.newParentPath).toBe(pathOfSegments(11));
+  });
+
+  it("does not read the subtree when the site is being detached", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([
+        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
+      ]);
+
+    await (NetworkSiteService as any).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSiteId: null },
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(findBySpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -880,6 +2462,117 @@ describe("NetworkSiteService.onUpdateSuccess (subtree rebase)", () => {
     );
     expect(rollupIds).toContain(SITE_ID.toString());
     expect(rollupIds).toContain(oldParentId.toString());
+  });
+
+  it("pages from the old prefix until a subtree larger than one batch is fully rebased", async () => {
+    const newParentId: ObjectID = new ObjectID(
+      "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    );
+    const oldPath: string = `/${PARENT_SITE_ID.toString()}/${SITE_ID.toString()}/`;
+    const firstBatch: Array<NetworkSite> = Array.from(
+      { length: 1000 },
+      (): NetworkSite => {
+        const id: ObjectID = ObjectID.generate();
+        return fakeSite({
+          id,
+          _id: id.toString(),
+          materializedPath: `${oldPath}${id.toString()}/`,
+        });
+      },
+    );
+    const finalId: ObjectID = ObjectID.generate();
+    const finalSite: NetworkSite = fakeSite({
+      id: finalId,
+      _id: finalId.toString(),
+      materializedPath: `${oldPath}${finalId.toString()}/`,
+    });
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce(firstBatch)
+      .mockResolvedValueOnce([finalSite]);
+    const updateColumnsSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors")
+      .mockResolvedValue(undefined as never);
+
+    await (NetworkSiteService as any).onUpdateSuccess(
+      {
+        updateBy: {
+          query: { _id: SITE_ID.toString() },
+          data: { parentSiteId: newParentId },
+          props: { isRoot: true },
+        },
+        carryForward: {
+          previousItems: [
+            fakeSite({
+              materializedPath: oldPath,
+              parentSiteId: PARENT_SITE_ID,
+            }),
+          ],
+          newParentId,
+          newParentPath: `/${newParentId.toString()}/`,
+        },
+      },
+      [SITE_ID],
+    );
+
+    expect(findBySpy).toHaveBeenCalledTimes(2);
+    expect(findBySpy.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ limit: 1000, skip: 0 }),
+    );
+    expect(findBySpy.mock.calls[1]![0]).toEqual(
+      expect.objectContaining({ limit: 1000, skip: 0 }),
+    );
+    expect(updateColumnsSpy).toHaveBeenCalledTimes(1002);
+    expect(updateColumnsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: finalId }),
+    );
+  });
+
+  it("processes overlapping bulk move roots deepest-first", async () => {
+    const descendantId: ObjectID = ObjectID.generate();
+    const ancestorPath: string = `/${SITE_ID.toString()}/`;
+    const descendantPath: string = `${ancestorPath}${descendantId.toString()}/`;
+    const updateColumnsSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors")
+      .mockResolvedValue(undefined as never);
+
+    await (NetworkSiteService as any).onUpdateSuccess(
+      {
+        updateBy: {
+          query: {},
+          data: { parentSiteId: PARENT_SITE_ID },
+          props: { isRoot: true },
+        },
+        carryForward: {
+          previousItems: [
+            fakeSite({ materializedPath: ancestorPath }),
+            fakeSite({
+              id: descendantId,
+              _id: descendantId.toString(),
+              parentSiteId: SITE_ID,
+              materializedPath: descendantPath,
+            }),
+          ],
+          newParentId: PARENT_SITE_ID,
+          newParentPath: `/${PARENT_SITE_ID.toString()}/`,
+        },
+      },
+      [SITE_ID, descendantId],
+    );
+
+    expect(updateColumnsSpy.mock.calls[0]![0].id.toString()).toBe(
+      descendantId.toString(),
+    );
+    expect(updateColumnsSpy.mock.calls[1]![0].id.toString()).toBe(
+      SITE_ID.toString(),
+    );
   });
 
   /*
@@ -1133,6 +2826,271 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
       }),
     ).resolves.toBeUndefined();
   });
+
+  /*
+   * Monitor-backed devices (monitoringMethod "Monitor") are never polled,
+   * so their isReachable - the column the device list's summary tiles and
+   * Status filter count and filter on in SQL - stays NULL forever unless
+   * the server derives it from the bound monitor's status. These cases pin
+   * that derivation: `isReachable = !MonitorStatus.isOfflineState`, read
+   * from the status row ONCE per call and only when a monitor-backed
+   * device is in the set, while a probe-polled device's isReachable stays
+   * its own poll's to write.
+   */
+  describe("isReachable for monitor-backed devices", () => {
+    const SECOND_DEVICE_ID: ObjectID = new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    );
+    const THIRD_DEVICE_ID: ObjectID = new ObjectID(
+      "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    );
+
+    function monitorBackedDevice(id: ObjectID): NetworkDevice {
+      return {
+        id: id,
+        siteId: SITE_ID,
+        monitorId: MONITOR_ID,
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+      } as unknown as NetworkDevice;
+    }
+
+    function probePolledDevice(
+      id: ObjectID,
+      monitoringMethod: string | undefined,
+    ): NetworkDevice {
+      return {
+        id: id,
+        siteId: SITE_ID,
+        monitoringMethod: monitoringMethod,
+      } as unknown as NetworkDevice;
+    }
+
+    function fakeStatus(isOfflineState: boolean): MonitorStatus {
+      return {
+        id: OFFLINE_STATUS_ID,
+        _id: OFFLINE_STATUS_ID.toString(),
+        isOfflineState: isOfflineState,
+      } as unknown as MonitorStatus;
+    }
+
+    function stampedData(stampSpy: jest.SpyInstance): Array<any> {
+      return stampSpy.mock.calls.map((call: Array<any>) => {
+        return call[0].data;
+      });
+    }
+
+    /*
+     * Wires the two device lookups for a "bound by monitorId" set: no
+     * Network Device monitor references anything, every device comes back
+     * from the monitorId query.
+     */
+    function mockBoundDevices(devices: Array<NetworkDevice>): {
+      stamp: jest.SpyInstance;
+      status: jest.SpyInstance;
+    } {
+      jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+      jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue(devices);
+      jest
+        .spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors")
+        .mockResolvedValue(undefined as never);
+
+      const stamp: jest.SpyInstance = jest
+        .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined as never);
+      const status: jest.SpyInstance = jest.spyOn(
+        MonitorStatusService,
+        "findOneBy",
+      );
+
+      return { stamp, status };
+    }
+
+    it("reads the status row once for N monitor-backed rows and stamps isReachable false for an offline status", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+        monitorBackedDevice(SECOND_DEVICE_ID),
+        monitorBackedDevice(THIRD_DEVICE_ID),
+      ]);
+      status.mockResolvedValue(fakeStatus(true));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      const statusArgs: any = status.mock.calls[0]![0];
+      expect(statusArgs.query._id.toString()).toBe(
+        OFFLINE_STATUS_ID.toString(),
+      );
+      expect(statusArgs.query.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(statusArgs.select).toEqual({ _id: true, isOfflineState: true });
+      expect(statusArgs.props).toEqual({ isRoot: true });
+
+      expect(stamp).toHaveBeenCalledTimes(3);
+      for (const data of stampedData(stamp)) {
+        expect(data.currentMonitorStatusId.toString()).toBe(
+          OFFLINE_STATUS_ID.toString(),
+        );
+        expect(data.isReachable).toBe(false);
+      }
+    });
+
+    it("stamps isReachable true for an operational (non-offline) status", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue(fakeStatus(false));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OPERATIONAL_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      expect(stamp).toHaveBeenCalledTimes(1);
+      expect(stampedData(stamp)[0].isReachable).toBe(true);
+      expect(stampedData(stamp)[0].currentMonitorStatusId.toString()).toBe(
+        OPERATIONAL_STATUS_ID.toString(),
+      );
+    });
+
+    /*
+     * A "Degraded" status is neither operational nor offline. It is read
+     * off the offline end, like DeviceReachabilityUtil does, so a degraded
+     * device stays reachable rather than being painted down.
+     */
+    it("treats a status with no offline flag at all as reachable", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue({
+        id: OFFLINE_STATUS_ID,
+        _id: OFFLINE_STATUS_ID.toString(),
+      } as unknown as MonitorStatus);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(stampedData(stamp)[0].isReachable).toBe(true);
+    });
+
+    it("never reads the status row for an all-probe-polled set, and stamps the id only", async () => {
+      const { stamp, status } = mockBoundDevices([
+        probePolledDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Probe),
+        // A row written before the column existed: NULL reads as Probe.
+        probePolledDevice(SECOND_DEVICE_ID, undefined),
+      ]);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).not.toHaveBeenCalled();
+      expect(stamp).toHaveBeenCalledTimes(2);
+      for (const data of stampedData(stamp)) {
+        expect(data.currentMonitorStatusId.toString()).toBe(
+          OFFLINE_STATUS_ID.toString(),
+        );
+        // The poll owns a probe-polled device's isReachable: the key is absent, not undefined.
+        expect(data).not.toHaveProperty("isReachable");
+        expect(Object.keys(data)).toEqual(["currentMonitorStatusId"]);
+      }
+    });
+
+    it("in a mixed set only the monitor-backed rows get isReachable, from one status read", async () => {
+      const { stamp, status } = mockBoundDevices([
+        probePolledDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Probe),
+        monitorBackedDevice(SECOND_DEVICE_ID),
+        probePolledDevice(THIRD_DEVICE_ID, undefined),
+      ]);
+      status.mockResolvedValue(fakeStatus(true));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      expect(stamp).toHaveBeenCalledTimes(3);
+
+      const byDeviceId: Map<string, any> = new Map(
+        stamp.mock.calls.map((call: Array<any>) => {
+          return [call[0].id.toString(), call[0].data];
+        }),
+      );
+
+      expect(byDeviceId.get(SECOND_DEVICE_ID.toString()).isReachable).toBe(
+        false,
+      );
+      expect(byDeviceId.get(DEVICE_ID.toString())).not.toHaveProperty(
+        "isReachable",
+      );
+      expect(byDeviceId.get(THIRD_DEVICE_ID.toString())).not.toHaveProperty(
+        "isReachable",
+      );
+    });
+
+    it("stamps the id but leaves isReachable alone, with a warning, when the status row is not found", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue(null);
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(stamp).toHaveBeenCalledTimes(1);
+      expect(stampedData(stamp)[0].currentMonitorStatusId.toString()).toBe(
+        OFFLINE_STATUS_ID.toString(),
+      );
+      expect(stampedData(stamp)[0]).not.toHaveProperty("isReachable");
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toContain(
+        OFFLINE_STATUS_ID.toString(),
+      );
+    });
+
+    it("selects monitoringMethod on BOTH device lookups", async () => {
+      // A Network Device monitor referencing a device drives the first lookup...
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([fakeNetworkDeviceMonitor([DEVICE_ID.toString()])]);
+      // ...and the monitorId query is always the second.
+      const findDevices: jest.SpyInstance = jest
+        .spyOn(NetworkDeviceService, "findBy")
+        .mockResolvedValue([]);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(findDevices).toHaveBeenCalledTimes(2);
+      for (const call of findDevices.mock.calls) {
+        expect((call[0] as any).select.monitoringMethod).toBe(true);
+        expect((call[0] as any).select._id).toBe(true);
+        expect((call[0] as any).select.siteId).toBe(true);
+      }
+    });
+  });
 });
 
 /*
@@ -1309,10 +3267,10 @@ describe("NetworkSiteService.getMaterializedPathForSite", () => {
 });
 
 /*
- * parentSiteId is onDelete: "SET NULL", so deleting a mid-tree site detaches
- * its children but strands their materializedPath through the dead row -
- * leaving the children endpoint (parentSiteId) and the rollup engine
- * (materializedPath) disagreeing, and double-counting the subtree's outages.
+ * A typed child cannot be promoted or attached to its grandparent without
+ * violating its configured direct-parent type. The before hook therefore
+ * blocks partial subtree deletes. The success-hook tests retain the old
+ * orphan repair as a defensive fallback for hook-bypassing/internal deletes.
  */
 describe("NetworkSiteService delete hooks (orphan repair)", () => {
   afterEach(() => {
@@ -1358,6 +3316,148 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
     const query: any = findBySpy.mock.calls[0]![0].query;
     expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(result.carryForward.sitesToDelete).toEqual([]);
+  });
+
+  it("uses the same tenant scope for a root delete preflight", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+
+    await (NetworkSiteService as any).onBeforeDelete({
+      query: { _id: DISTRICT_ID.toString() },
+      props: { tenantId: PROJECT_ID, isRoot: true },
+    } as unknown as DeleteBy<NetworkSite>);
+
+    expect(findBySpy.mock.calls[0]![0].query.projectId.toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  it("does not invent a tenant scope for a root multi-tenant delete preflight", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+
+    await (NetworkSiteService as any).onBeforeDelete({
+      query: { _id: DISTRICT_ID.toString() },
+      props: {
+        tenantId: PROJECT_ID,
+        isRoot: true,
+        isMultiTenantRequest: true,
+      },
+    } as unknown as DeleteBy<NetworkSite>);
+
+    expect(findBySpy.mock.calls[0]![0].query.projectId).toBeUndefined();
+  });
+
+  it("rejects deleting a site while a direct child would survive", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict()])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: STORE_ID,
+          _id: STORE_ID.toString(),
+          parentSiteId: DISTRICT_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeDelete({
+        query: { _id: DISTRICT_ID.toString() },
+        limit: 1,
+        skip: 0,
+        props: { tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<NetworkSite>),
+    ).rejects.toThrow(
+      "A network site with child sites cannot be deleted. Move or delete its child sites first.",
+    );
+
+    const childQuery: any = findBySpy.mock.calls[1]![0].query;
+    expect(childQuery.projectId).toBeInstanceOf(FindOperator);
+    expect(
+      Object.values(
+        childQuery.projectId.objectLiteralParameters as Record<
+          string,
+          Array<string>
+        >,
+      ).flat(),
+    ).toContain(PROJECT_ID.toString());
+  });
+
+  it("allows a bulk delete when every direct child is in the delete set", async () => {
+    const store: NetworkSite = fakeSite({
+      id: STORE_ID,
+      _id: STORE_ID.toString(),
+      parentSiteId: DISTRICT_ID,
+      materializedPath: STORE_PATH,
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict(), store])
+      .mockResolvedValueOnce([store]);
+
+    const result: OnDelete<NetworkSite> = await (
+      NetworkSiteService as any
+    ).onBeforeDelete({
+      query: {},
+      limit: 2,
+      skip: 0,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as DeleteBy<NetworkSite>);
+
+    expect(result.carryForward.sitesToDelete).toEqual([
+      deletedDistrict(),
+      store,
+    ]);
+  });
+
+  it("rejects a bulk parent-and-child delete when a grandchild would survive", async () => {
+    const store: NetworkSite = fakeSite({
+      id: STORE_ID,
+      _id: STORE_ID.toString(),
+      parentSiteId: DISTRICT_ID,
+      materializedPath: STORE_PATH,
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict(), store])
+      .mockResolvedValueOnce([
+        store,
+        fakeSite({
+          id: UNIT_ID,
+          _id: UNIT_ID.toString(),
+          parentSiteId: STORE_ID,
+          materializedPath: UNIT_PATH,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeDelete({
+        query: {},
+        limit: 2,
+        skip: 0,
+        props: { tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<NetworkSite>),
+    ).rejects.toThrow(
+      "A network site with child sites cannot be deleted. Move or delete its child sites first.",
+    );
+  });
+
+  it("uses the requested window when determining the exact bulk delete set", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+
+    await (NetworkSiteService as any).onBeforeDelete({
+      query: {},
+      limit: 7,
+      skip: 3,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as DeleteBy<NetworkSite>);
+
+    expect(findBySpy.mock.calls[0]![0].limit).toBe(7);
+    expect(findBySpy.mock.calls[0]![0].skip).toBe(3);
   });
 
   it("reparents the direct child and rebases the whole subtree", async () => {
@@ -1417,6 +3517,57 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
     // The surviving ancestor chain's rollup is refreshed.
     expect(rollupSpy).toHaveBeenCalledTimes(1);
     expect(rollupSpy.mock.calls[0]![0].toString()).toBe(REGION_ID.toString());
+  });
+
+  it("pages legacy orphan repair from offset zero until every descendant is rewritten", async () => {
+    const repeatedId: ObjectID = ObjectID.generate();
+    const repeatedDescendant: NetworkSite = fakeSite({
+      id: repeatedId,
+      _id: repeatedId.toString(),
+      materializedPath: `${DISTRICT_PATH}${repeatedId.toString()}/`,
+    });
+    const finalId: ObjectID = ObjectID.generate();
+    const finalDescendant: NetworkSite = fakeSite({
+      id: finalId,
+      _id: finalId.toString(),
+      materializedPath: `${DISTRICT_PATH}${finalId.toString()}/`,
+    });
+
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${REGION_ID.toString()}/`);
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce(
+        new Array<NetworkSite>(1000).fill(repeatedDescendant),
+      )
+      .mockResolvedValueOnce([finalDescendant]);
+    const updateColumnsSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors")
+      .mockResolvedValue(undefined as never);
+
+    await (NetworkSiteService as any).onDeleteSuccess(
+      {
+        deleteBy: { query: {}, props: { tenantId: PROJECT_ID } },
+        carryForward: { sitesToDelete: [deletedDistrict()] },
+      },
+      [DISTRICT_ID],
+    );
+
+    expect(findBySpy).toHaveBeenCalledTimes(2);
+    expect(findBySpy.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ limit: 1000, skip: 0 }),
+    );
+    expect(findBySpy.mock.calls[1]![0]).toEqual(
+      expect.objectContaining({ limit: 1000, skip: 0 }),
+    );
+    expect(updateColumnsSpy).toHaveBeenCalledTimes(1001);
+    expect(updateColumnsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: finalId }),
+    );
   });
 
   it("promotes children to roots when the deleted site was a root", async () => {
@@ -1504,5 +3655,238 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
         [DISTRICT_ID],
       ),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("NetworkSiteService hierarchy mutation lock", () => {
+  const runThroughLock: (data: {
+    operation: () => Promise<unknown>;
+  }) => Promise<unknown> = async (data: {
+    operation: () => Promise<unknown>;
+  }): Promise<unknown> => {
+    return await data.operation();
+  };
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("uses the shared project lock around create", async () => {
+    const site: NetworkSite = fakeSite({});
+    const runExclusiveSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    const superCreateSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "create")
+      .mockResolvedValue(site);
+
+    await expect(
+      NetworkSiteService.create({
+        data: site,
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(site);
+
+    expect(runExclusiveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ projectIds: [PROJECT_ID] }),
+    );
+    expect(runExclusiveSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      superCreateSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it.each([
+    ["parentSiteId", PARENT_SITE_ID],
+    ["networkSiteTypeId", CHILD_SITE_TYPE_ID],
+    ["projectId", PROJECT_ID],
+    ["depth", 0],
+  ])(
+    "locks an update that changes %s",
+    async (field: string, value: ObjectID | number) => {
+      const runExclusiveSpy: jest.SpyInstance = jest
+        .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+        .mockImplementation(runThroughLock as never);
+      const findBySpy: jest.SpyInstance = jest
+        .spyOn(NetworkSiteService, "findBy")
+        .mockResolvedValue([fakeSite({})]);
+      const superUpdateSpy: jest.SpyInstance = jest
+        .spyOn(DatabaseService.prototype, "updateOneBy")
+        .mockResolvedValue(1);
+
+      await expect(
+        NetworkSiteService.updateOneBy({
+          query: { _id: SITE_ID.toString() },
+          data: { [field]: value },
+          props: { isRoot: true },
+        } as any),
+      ).resolves.toBe(1);
+
+      expect(findBySpy).toHaveBeenCalledWith(
+        expect.objectContaining({ select: { projectId: true } }),
+      );
+      expect(runExclusiveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ projectIds: [PROJECT_ID] }),
+      );
+      expect(superUpdateSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("locks deletes with the same project key used by type mutations", async () => {
+    const runExclusiveSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([fakeSite({})]);
+    jest.spyOn(DatabaseService.prototype, "deleteOneBy").mockResolvedValue(1);
+
+    await expect(
+      NetworkSiteService.deleteOneBy({
+        query: { _id: SITE_ID.toString() },
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(1);
+
+    expect(runExclusiveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ projectIds: [PROJECT_ID] }),
+    );
+  });
+
+  it("bypasses the lock for rollup-only and ignoreHooks updates", async () => {
+    const runExclusiveSpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteHierarchyLock,
+      "runExclusive",
+    );
+    const superUpdateSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "updateOneBy")
+      .mockResolvedValue(1);
+
+    await NetworkSiteService.updateOneBy({
+      query: { _id: SITE_ID.toString() },
+      data: { lastRollupAt: new Date() },
+      props: { isRoot: true },
+    });
+    await NetworkSiteService.updateOneBy({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSiteId: PARENT_SITE_ID },
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(runExclusiveSpy).not.toHaveBeenCalled();
+    expect(superUpdateSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an unscoped root hierarchy bulk mutation before writing", async () => {
+    const superUpdateSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseService.prototype,
+      "updateBy",
+    );
+
+    await expect(
+      NetworkSiteService.updateBy({
+        query: { name: "Any matching site" },
+        data: { parentSiteId: null },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(NETWORK_SITE_HIERARCHY_ROOT_SCOPE_ERROR_MESSAGE);
+
+    expect(superUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an open-ended root update even when root supplies tenantId", async () => {
+    const superUpdateSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseService.prototype,
+      "updateBy",
+    );
+
+    await expect(
+      NetworkSiteService.updateBy({
+        query: { name: "Any matching site" },
+        data: { parentSiteId: null },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(NETWORK_SITE_HIERARCHY_ROOT_SCOPE_ERROR_MESSAGE);
+
+    expect(superUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an open-ended root write to a materialized hierarchy field", async () => {
+    const superUpdateSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseService.prototype,
+      "updateBy",
+    );
+
+    await expect(
+      NetworkSiteService.updateBy({
+        query: { name: "Any matching site" },
+        data: { depth: 0 },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(NETWORK_SITE_HIERARCHY_ROOT_SCOPE_ERROR_MESSAGE);
+
+    expect(superUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  it("turns the retention cron's open root query into a leaf-only ID batch", async () => {
+    const parentId: ObjectID = PARENT_SITE_ID;
+    const leafId: ObjectID = SITE_ID;
+    const retentionQuery: any = { deletedAt: { olderThanThirtyDays: true } };
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation(async (findBy: any) => {
+        if (findBy.query?.parentSiteId) {
+          return [
+            fakeSite({
+              id: leafId,
+              _id: leafId.toString(),
+              parentSiteId: parentId,
+            }),
+          ];
+        }
+
+        if (findBy.skip > 0) {
+          return [];
+        }
+
+        return [
+          fakeSite({ id: parentId, _id: parentId.toString() }),
+          fakeSite({ id: leafId, _id: leafId.toString() }),
+        ];
+      });
+    const runExclusiveSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    const superHardDeleteSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "hardDeleteBy")
+      .mockResolvedValue(1);
+
+    await expect(
+      NetworkSiteService.hardDeleteBy({
+        query: retentionQuery,
+        limit: 2,
+        skip: 0,
+        props: { isRoot: true },
+      } as DeleteBy<NetworkSite>),
+    ).resolves.toBe(1);
+
+    expect(runExclusiveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ projectIds: [PROJECT_ID] }),
+    );
+    const closedDelete: any = superHardDeleteSpy.mock.calls[0]![0];
+    expect(closedDelete.query.deletedAt).toBe(retentionQuery.deletedAt);
+    expect(
+      Object.values(closedDelete.query._id.objectLiteralParameters)[0],
+    ).toEqual([leafId.toString()]);
+    expect(closedDelete.limit).toBe(1);
+    expect(closedDelete.skip).toBe(0);
   });
 });

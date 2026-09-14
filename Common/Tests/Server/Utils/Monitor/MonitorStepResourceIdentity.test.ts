@@ -236,6 +236,12 @@ describe("MonitorStepResourceIdentity — declared infra identifiers", () => {
       "clusterIdentifier",
       "proxmoxClusterNames",
     ],
+    [
+      MonitorType.VMware,
+      "vmwareMonitor",
+      "vcenterIdentifier",
+      "vmwareVCenterNames",
+    ],
     [MonitorType.Ceph, "cephMonitor", "clusterIdentifier", "cephClusterNames"],
     [
       MonitorType.DockerSwarm,
@@ -372,6 +378,11 @@ describe("MonitorStepResourceIdentity — monitor types with no resource identit
     MonitorType.Domain,
     MonitorType.DNS,
     MonitorType.SQLQuery,
+    /*
+     * A database health step names a host:port, which is not one of the
+     * buckets SeriesResourceRefs carries.
+     */
+    MonitorType.Database,
     MonitorType.SyntheticMonitor,
     MonitorType.CustomJavaScriptCode,
     MonitorType.IncomingRequest,

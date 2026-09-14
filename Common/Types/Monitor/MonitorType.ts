@@ -12,6 +12,7 @@ enum MonitorType {
   Podman = "Podman",
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   Ceph = "Ceph",
   IoTDevice = "IoT Device",
   IP = "IP",
@@ -23,6 +24,18 @@ enum MonitorType {
 
   // Database monitoring — runs a read-only SQL query on a schedule from a probe.
   SQLQuery = "SQL Query",
+
+  /*
+   * Database health monitoring. Where SQLQuery runs the query the user
+   * wrote, this runs the queries we wrote: a probe connects to the engine
+   * and reads its own catalog views (pg_stat_*, performance_schema,
+   * sys.dm_*) to produce connection, throughput, lock, cache, storage and
+   * replication series without the user knowing a single system table.
+   * The two are deliberately separate types - a health check has no user
+   * query, needs different grants, and runs a different number of
+   * statements per interval.
+   */
+  Database = "Database",
 
   // These two monitor types are same but we are keeping them separate for now - this is for marketing purposes
   SyntheticMonitor = "Synthetic Monitor",
@@ -103,7 +116,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Database Monitoring",
-        monitorTypes: [MonitorType.SQLQuery],
+        monitorTypes: [MonitorType.Database, MonitorType.SQLQuery],
       },
       {
         label: "Synthetic Monitoring",
@@ -129,6 +142,7 @@ export class MonitorTypeHelper {
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
+          MonitorType.VMware,
           MonitorType.Ceph,
           MonitorType.IoTDevice,
         ],
@@ -172,6 +186,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
       monitorType === MonitorType.Proxmox ||
+      monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
       monitorType === MonitorType.IoTDevice
     );
@@ -369,6 +384,26 @@ export class MonitorTypeHelper {
         ],
       },
       {
+        monitorType: MonitorType.VMware,
+        title: "VMware",
+        description:
+          "ESXi host, virtual machine, datastore and cluster health from vCenter.",
+        icon: IconProp.VMware,
+        keywords: [
+          "vsphere",
+          "vcenter",
+          "esxi",
+          "vm",
+          "virtual machine",
+          "hypervisor",
+          "datastore",
+          "vsan",
+          "virtualization",
+          "cluster",
+          "resource pool",
+        ],
+      },
+      {
         monitorType: MonitorType.Ceph,
         title: "Ceph",
         description:
@@ -493,6 +528,37 @@ export class MonitorTypeHelper {
           "sql server",
           "query",
           "row count",
+        ],
+      },
+      {
+        monitorType: MonitorType.Database,
+        title: "Database Health",
+        description:
+          "Connections, locks, replication and cache health for PostgreSQL, MySQL and SQL Server.",
+        icon: IconProp.Database,
+        keywords: [
+          "database",
+          "db",
+          "health",
+          "performance",
+          "postgres",
+          "postgresql",
+          "mysql",
+          "mariadb",
+          "mssql",
+          "sql server",
+          "connections",
+          "replication",
+          "replica",
+          "lag",
+          "locks",
+          "deadlock",
+          "vacuum",
+          "bloat",
+          "buffer",
+          "cache hit",
+          "slow query",
+          "wraparound",
         ],
       },
       {
@@ -780,6 +846,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.Database ||
       monitorType === MonitorType.ExternalStatusPage;
     return isProbeableMonitor;
   }
@@ -808,6 +875,7 @@ export class MonitorTypeHelper {
       MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.SQLQuery,
+      MonitorType.Database,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
@@ -815,6 +883,7 @@ export class MonitorTypeHelper {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
     ];
@@ -855,6 +924,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.Database ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
       return true;

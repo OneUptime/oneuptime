@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <%- include('../../../../Common/Server/Views/Partials/SensitiveUrlToken') -%>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -19,6 +20,13 @@
   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
+      /*
+       * Do not start the container while a single-use bearer token is still in
+       * the address bar. See Common/Server/Views/Partials/SensitiveUrlToken.ejs:
+       * the bootstrap normally removes the token before this runs, and this
+       * guard only fires when it could not.
+       */
+      if (w.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__) { return; }
       w[l] = w[l] || []; w[l].push({
         'gtm.start':
           new Date().getTime(), event: 'gtm.js'

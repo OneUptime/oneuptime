@@ -77,6 +77,8 @@ function mockHappyDependencies(data?: {
   jest
     .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
     .mockResolvedValue(fakeProvider());
+  // The project's enableAi kill switch, read before the provider is resolved.
+  jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue(undefined);
 
   const executeSpy: ExecuteSpy = jest
     .spyOn(AIService, "executeWithLogging")
@@ -130,6 +132,9 @@ describe("CodeFixAgentCompletion.execute guards", () => {
     jest.spyOn(AIService, "executeWithLogging").mockImplementation(() => {
       throw new Error("executeWithLogging must not be reached");
     });
+    jest
+      .spyOn(AIService, "assertProjectAIEnabled")
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {

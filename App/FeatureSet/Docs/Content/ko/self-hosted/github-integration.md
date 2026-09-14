@@ -24,6 +24,7 @@
    - **콜백 URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **설정 URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **중요: 이것은 앱 설치 후 GitHub가 사용자를 리디렉션하는 URL입니다. 리디렉션이 작동하려면 설정되어야 합니다.**
    - **업데이트 시 리디렉션:** 사용자가 앱 설치를 업데이트한 후 리디렉션하려면 이 옵션을 체크합니다
+   - **Request user authorization (OAuth) during installation:** **이 필수 옵션을 선택하세요.** OneUptime은 OAuth로 설치 소유권을 확인하며 이 설정이 없으면 연결을 거부합니다.
    - **웹훅 URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **웹훅 시크릿:** 보안 무작위 문자열 생성 (나중을 위해 저장)
 
@@ -36,11 +37,13 @@
 | 권한        | 액세스 수준  | 목적                                               |
 | ----------- | ------------ | -------------------------------------------------- |
 | 내용        | 읽기 및 쓰기 | 저장소 파일 읽기, 브랜치 푸시 (AI 에이전트에 필요) |
-| 풀 리퀘스트 | 읽기 및 쓰기 | 풀 리퀘스트 생성 및 관리                           |
-| 이슈        | 읽기 및 쓰기 | 이슈 읽기 및 댓글 달기                             |
+| 풀 리퀘스트 | 읽기 및 쓰기 | 풀 리퀘스트 생성 및 관리, 리뷰 게시                |
+| 이슈        | 읽기 및 쓰기 | 이슈 읽기, 그리고 앱 댓글 게시 — **풀 리퀘스트 포함**. 풀 리퀘스트의 대화는 GitHub이 이슈 API로 넘깁니다 |
 | 커밋 상태   | 읽기         | 빌드/CI 상태 확인                                  |
 | 작업        | 읽기         | GitHub Actions 워크플로 실행 및 로그 읽기          |
 | 메타데이터  | 읽기         | 기본 저장소 메타데이터 (필수)                      |
+
+**앱을 대화형으로 만들어 주는 것이 이슈: 읽기 및 쓰기 권한입니다.** 이 권한이 없으면 멘션은 수신되지만 앱이 답하려는 순간 조용히 실패합니다 — GitHub은 풀 리퀘스트의 대화 댓글을 이슈 API로 내려주므로, 앱이 쓰는 모든 답변이 이 권한 하나에 달려 있습니다. [GitHub에서 OneUptime 사용하기](/docs/ai/github-app)를 참조하세요.
 
 **조직 권한 (조직과 함께 사용하는 경우):**
 
@@ -56,11 +59,23 @@
 
 ### 3단계: 웹훅 이벤트 구독
 
-OneUptime이 실시간 업데이트를 받으려면 다음 웹훅 이벤트를 구독합니다:
+OneUptime은 두 종류의 이벤트를 사용하며, 둘은 하는 일이 다릅니다.
 
-- **풀 리퀘스트** - PR이 열리거나, 닫히거나, 병합될 때 알림 수신
-- **푸시** - 코드가 푸시될 때 알림 수신
-- **워크플로 실행** - CI/CD 상태 업데이트 수신
+**저장소 동기화** — `installation`과 `installation_repositories`. GitHub Apps는 이 둘을 자동으로 수신합니다. 연결된 저장소 목록을 앱이 실제로 설치된 곳과 계속 일치시켜 줍니다.
+
+**대화형 앱** — 이 이벤트들은 명시적으로 구독해야 하며, 하나하나가 앱에 작업을 넘기는 특정한 방법을 하나씩 열어 줍니다:
+
+| 이벤트                          | 가능해지는 것                                   |
+| ------------------------------- | ----------------------------------------------- |
+| **Issue comment**               | 이슈 **및** 풀 리퀘스트에서의 `@mention` 명령어 |
+| **Issues**                      | 앱에 이슈 할당, 그리고 저장소의 트리거 라벨     |
+| **Pull request**                | 앱에 리뷰 요청                                  |
+| **Pull request review**         | 제출된 리뷰 본문에 쓴 멘션                      |
+| **Pull request review comment** | diff의 인라인 댓글에 단 멘션                    |
+
+이 중 아무것도 구독하지 않아도 GitHub App은 여전히 저장소를 연결하고 OneUptime에서 수정 풀 리퀘스트를 엽니다 — 다만 GitHub에 쓴 어떤 내용에도 절대 반응하지 않을 뿐입니다. "봇이 나를 무시한다"는 말의 가장 흔한 원인이 바로 이것입니다. 어떤 명령어가 있고 누가 명령할 수 있는지는 [GitHub에서 OneUptime 사용하기](/docs/ai/github-app)를 보세요.
+
+그 밖의 이벤트(**Push**, **Workflow run**)는 수신 확인만 하고 무시합니다. 구독해도 알림이나 CI/CD 자동화가 활성화되지 않습니다.
 
 ### 4단계: 설치 액세스 설정
 
@@ -152,7 +167,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | GitHub 앱 설정의 클라이언트 ID            | 예            |
 | `GITHUB_APP_CLIENT_SECRET`  | 생성한 클라이언트 시크릿                  | 예            |
 | `GITHUB_APP_PRIVATE_KEY`    | 개인 키 (.pem 파일)의 내용                | 예            |
-| `GITHUB_APP_WEBHOOK_SECRET` | 웹훅 페이로드 검증을 위한 웹훅 시크릿     | 아니요 (권장) |
+| `GITHUB_APP_WEBHOOK_SECRET` | 웹훅 페이로드 검증을 위한 웹훅 시크릿     | 웹훅에 필요 |
+
+## 자체 호스팅 배포의 네트워크 액세스
+
+### 트래픽 방향과 엔드포인트
+
+| 트래픽 | 필요한 액세스 |
+| --- | --- |
+| OneUptime → GitHub | DNS 및 TCP 443 아웃바운드 HTTPS. 앱 토큰과 저장소 API는 `api.github.com`, OAuth 교환과 HTTPS Git 작업은 `github.com` |
+| GitHub → OneUptime | 설치 및 저장소 접근 동기화를 위한 `POST /api/github/webhook`의 TCP 443 공개 HTTPS |
+| 사용자 브라우저 → OneUptime | 대시보드 및 설치/승인 리디렉션용 `GET /api/github/auth/callback`. 사용자 VPN으로 접근 가능해도 됩니다 |
+
+Callback/Setup URL은 [브라우저 리디렉션](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url)이며 웹훅은 GitHub 서버가 호출합니다. 사용자 VPN은 GitHub에 웹훅 접근을 제공하지 않습니다. 명시된 도메인은 핵심 요청용이며 도구, 다운로드, LFS, 패키지는 추가 대상이 필요할 수 있습니다. GitHub.com용 설정이므로 방화벽 변경만으로 GitHub Enterprise Server 호스트명을 지원하도록 구성되지는 않습니다.
+
+### 비공개 배포와 콜백 보안
+
+공개 DNS와 공인 신뢰 HTTPS 인증서, 전체 인증서 체인, OneUptime ingress로 연결되는 사설 경로가 있는 게이트웨이를 사용하세요. 인바운드 TCP 443을 허용하고 위의 공급자 POST 콜백만 공개하세요. 사설 `ClusterIP`, 내부 DNS, 직원 VPN만으로는 공급자가 접속할 수 없습니다. 분할 DNS로 같은 호스트명 아래 대시보드와 브라우저 OAuth 경로를 비공개로 유지할 수 있습니다.
+
+`config.env`에서 `HOST=oneuptime.example.com`, `HTTP_PROTOCOL=https`를 설정하거나 Helm에서 `host: oneuptime.example.com`, `httpProtocol: https`를 설정하세요. 적용 후 재시작을 기다리세요. 이 값은 URL을 생성하며 DNS, TLS 또는 방화벽 규칙을 구성하지 않습니다. 호스트명이 바뀌면 GitHub App의 Webhook, Callback, Setup, Homepage URL을 업데이트하세요.
+
+메서드, 원래 경로, 쿼리 문자열, 본문, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event`, `X-GitHub-Delivery`를 보존하세요. 신뢰할 수 있는 프록시 헤더로 공개 호스트와 HTTPS를 유지하세요. 웹훅은 브라우저 SSO, CAPTCHA, 프록시 로그인에서 제외하세요. GitHub SSL 검증을 켜 두고 두 시스템에 동일한 `GITHUB_APP_WEBHOOK_SECRET`을 설정하세요. OneUptime은 서명 없는 요청을 거부하며 비밀 키 없이는 웹훅을 검증하지 못합니다. [GitHub 검증 안내](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)를 참고하세요.
+
+소스 IP도 제한한다면 GitHub Meta API의 최신 `hooks` 범위를 사용하고 정기적으로 갱신하세요. GitHub Actions 러너 범위를 대신 사용하거나 서명 검증을 생략하지 마세요. GitHub는 [주소가 바뀌고 목록도 완전하지 않다](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses)고 설명합니다.
+
+### 접속 확인과 제한 사항
+
+OneUptime에서 설치를 완료하고 GitHub App의 **Advanced > Recent Deliveries**를 확인하세요. 테스트 전달이나 재전달로 경유와 수신을 확인하세요. 설치에 테스트 저장소를 추가하거나 제거하고 연결 목록이 바뀌는지 확인하세요. GitHub의 [전달 진단](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries)과 [10초 이내 2xx 응답 요건](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)을 참고하세요. 브라우저 GET은 서명된 POST 테스트가 아닙니다.
+
+인바운드 접근 없이도 브라우저 승인과 아웃바운드 API/Git 작업은 가능할 수 있지만 설치 삭제와 저장소 접근 변경은 웹훅으로 동기화되지 않습니다. 현재 OneUptime은 `installation`, `installation_repositories`를 처리하며 다른 이벤트 수신이 추가 자동화를 의미하지는 않습니다. [사설 네트워크 액세스 설정](/docs/self-hosted/private-network-access)은 사설 대상의 아웃바운드 요청을 제어하며 웹훅에 대한 접속을 열지 않습니다.
 
 ## 문제 해결
 

@@ -119,6 +119,26 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * vCenter identity rides the agent-stamped resource attribute
+ * (`vmware.vcenter.name` — one value per vCenter Server or standalone
+ * ESXi host the VMware Agent connects to) and its ClickHouse
+ * `resource.`-prefixed twin. Ingest keys vCenter rows by name only —
+ * there is no `oneuptime.*.id` stamp for vCenters — so only name keys
+ * exist. The name maps to the VMwareVCenter model's `name` column. The
+ * shipped VMware alert templates group by the vSphere object's own
+ * resource attribute (`resource.vcenter.host.name`,
+ * `resource.vcenter.vm.name`, `resource.vcenter.datastore.name`, ...),
+ * so their series labels do NOT carry these keys; the deterministic
+ * vCenter link for those monitors comes from the monitor step config
+ * instead (see MonitorResourceContext). These keys cover user-built
+ * monitors that group by the vCenter attribute.
+ */
+export const VMwareVCenterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.vmware.vcenter.name",
+  "vmware.vcenter.name",
+];
+
+/*
  * IoT fleet identity rides the agent-stamped resource attribute
  * (`iot.fleet.name`) and its ClickHouse `resource.`-prefixed twin.
  * Ingest keys fleet rows by name only — there is no `oneuptime.*.id`
@@ -161,6 +181,41 @@ export const ServiceNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * Every label key above, in one list: the complete set of attribute
+ * names that make a series claim to belong to a specific Host / cluster
+ * / Service.
+ *
+ * `extractResourceRefs` below is the READ side of these keys. Writers
+ * that accept attribute names from a user — the custom code and
+ * synthetic monitors, whose scripts choose their own
+ * `oneuptime.captureMetric()` attribute keys — need the same list to
+ * decide what a script must NOT be allowed to stamp, because a series
+ * label saying `service.name = payments-api` is taken at face value
+ * downstream: alerts and incidents get linked to that Service, its
+ * owners are paged through owner inheritance, and a maintenance window
+ * on it silences the series. Deriving the write-side guard from this
+ * array is what stops the two sides from drifting apart the way the
+ * alert and incident linkers once did.
+ */
+export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
+  ...HostIdLabelKeys,
+  ...HostNameLabelKeys,
+  ...DockerHostIdLabelKeys,
+  ...DockerHostNameLabelKeys,
+  ...PodmanHostIdLabelKeys,
+  ...PodmanHostNameLabelKeys,
+  ...DockerSwarmClusterNameLabelKeys,
+  ...KubernetesClusterIdLabelKeys,
+  ...KubernetesClusterNameLabelKeys,
+  ...ProxmoxClusterNameLabelKeys,
+  ...VMwareVCenterNameLabelKeys,
+  ...CephClusterNameLabelKeys,
+  ...IoTFleetNameLabelKeys,
+  ...ServiceIdLabelKeys,
+  ...ServiceNameLabelKeys,
+];
+
+/*
  * The identifiers carried by one series, split by resource type and by
  * id-vs-name. Ids are OneUptime database ids (the `oneuptime.*.id`
  * stamps); names are the human/telemetry identifiers (host.name,
@@ -178,6 +233,7 @@ export interface SeriesResourceRefs {
   kubernetesClusterNames: Array<string>;
   dockerSwarmClusterNames: Array<string>;
   proxmoxClusterNames: Array<string>;
+  vmwareVCenterNames: Array<string>;
   cephClusterNames: Array<string>;
   iotFleetNames: Array<string>;
   serviceIds: Array<string>;
@@ -253,6 +309,10 @@ export default class SeriesResourceLabels {
       proxmoxClusterNames: this.collectLabelValues(
         seriesLabels,
         ProxmoxClusterNameLabelKeys,
+      ),
+      vmwareVCenterNames: this.collectLabelValues(
+        seriesLabels,
+        VMwareVCenterNameLabelKeys,
       ),
       cephClusterNames: this.collectLabelValues(
         seriesLabels,

@@ -1,8 +1,10 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useMonitorDetail,
   useMonitorStatusTimeline,
@@ -16,9 +18,14 @@ import type { MonitorsStackParamList } from "../navigation/types";
 import type { MonitorStatusTimelineItem } from "../api/monitors";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
-import SectionHeader from "../components/SectionHeader";
+import {
+  ResponseDetailHeader,
+  ResponseInfoRow,
+  ResponseSection,
+} from "../components/ResponseDetailLayout";
 import MarkdownContent from "../components/MarkdownContent";
 import MonitorSummaryView from "../components/MonitorSummaryView";
+import EmptyState from "../components/EmptyState";
 
 type Props = NativeStackScreenProps<MonitorsStackParamList, "MonitorDetail">;
 
@@ -37,6 +44,7 @@ function getMonitorTypeLabel(monitorType?: string): string {
     Domain: "Domain",
     Server: "Server",
     IncomingRequest: "Incoming Request",
+    Database: "Database Health",
     SyntheticMonitor: "Synthetic Monitor",
     CustomJavaScriptCode: "Custom JavaScript",
     Logs: "Logs",
@@ -52,56 +60,83 @@ export default function MonitorDetailScreen({
 }: Props): React.JSX.Element {
   const { monitorId, projectId } = route.params;
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
 
   const {
     data: monitor,
     isLoading,
+    isError,
     refetch: refetchMonitor,
   } = useMonitorDetail(projectId, monitorId);
-  const { data: statusTimeline, refetch: refetchTimeline } =
-    useMonitorStatusTimeline(projectId, monitorId);
-  const { data: probeItems, refetch: refetchProbes } = useMonitorProbes(
-    projectId,
-    monitorId,
-  );
-  const { data: feed, refetch: refetchFeed } = useMonitorFeed(
-    projectId,
-    monitorId,
-  );
+  const {
+    data: statusTimeline,
+    isError: timelineError,
+    refetch: refetchTimeline,
+  } = useMonitorStatusTimeline(projectId, monitorId);
+  const {
+    data: probeItems,
+    isLoading: probesLoading,
+    isError: probesError,
+    refetch: refetchProbes,
+  } = useMonitorProbes(projectId, monitorId);
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useMonitorFeed(projectId, monitorId);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchMonitor(),
       refetchTimeline(),
       refetchProbes(),
       refetchFeed(),
     ]);
-  }, [refetchMonitor, refetchTimeline, refetchProbes, refetchFeed]);
+  });
 
   if (isLoading) {
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <SkeletonCard variant="detail" />
-      </View>
+      </ScrollView>
     );
   }
 
   if (!monitor) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.backgroundPrimary,
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
         }}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Monitor not found.
-        </Text>
-      </View>
+        <EmptyState
+          title={isError ? "Something went wrong" : "Monitor not found."}
+          subtitle={
+            isError
+              ? "We could not load this monitor. Check your connection and try again."
+              : "This monitor no longer exists, or it is not part of this project."
+          }
+          icon="monitors"
+          actionLabel={isError ? "Retry" : undefined}
+          onAction={
+            isError
+              ? () => {
+                  return refetchMonitor();
+                }
+              : undefined
+          }
+        />
+      </ScrollView>
     );
   }
 
@@ -115,332 +150,185 @@ export default function MonitorDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      testID="detail-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
       }
     >
-      {/* Header card */}
-      <View
-        style={{
-          borderRadius: 24,
-          overflow: "hidden",
-          marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          shadowColor: "#000",
-          shadowOpacity: 0.28,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
-        }}
-      >
-        <LinearGradient
-          colors={[statusColor + "26", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -50,
-            left: -10,
-            right: -10,
-            height: 190,
-          }}
-        />
+      <ResponseDetailHeader
+        title={monitor.name}
+        kind={getMonitorTypeLabel(monitor.monitorType)}
+        state={isDisabled ? "Disabled" : monitor.currentMonitorStatus?.name}
+        stateColor={isDisabled ? theme.colors.textTertiary : statusColor}
+      />
+      {isDisabled ? (
         <View
           style={{
-            height: 3,
-            backgroundColor: isDisabled
-              ? theme.colors.textTertiary
-              : statusColor,
+            padding: 18,
+            marginBottom: 26,
+            borderRadius: 16,
+            backgroundColor: theme.colors.backgroundTertiary,
           }}
-        />
-        <View style={{ padding: 20 }}>
+        >
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: "600",
-              marginBottom: 8,
+              color: theme.colors.textPrimary,
+              marginBottom: 6,
+            }}
+          >
+            Monitoring is paused
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              lineHeight: 23,
               color: theme.colors.textSecondary,
             }}
           >
-            {getMonitorTypeLabel(monitor.monitorType)}
+            Active checks are disabled. The last recorded status may not reflect
+            this service&apos;s current health.
           </Text>
-
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: theme.colors.textPrimary,
-              letterSpacing: -0.6,
-            }}
-          >
-            {monitor.name}
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            {isDisabled ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: theme.colors.textTertiary,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: theme.colors.textTertiary,
-                  }}
-                >
-                  Disabled
-                </Text>
-              </View>
-            ) : monitor.currentMonitorStatus ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: statusColor + "14",
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: statusColor,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: statusColor,
-                  }}
-                >
-                  {monitor.currentMonitorStatus.name}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Description */}
-      {descriptionText ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Description" iconName="document-text-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <MarkdownContent content={descriptionText} />
-          </View>
         </View>
       ) : null}
-
-      {/* Monitor Summary */}
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Monitor Summary" iconName="analytics-outline" />
-        <MonitorSummaryView
-          monitorType={monitor.monitorType}
-          probeItems={probeItems ?? []}
-        />
-      </View>
-
-      {/* Details */}
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Details" iconName="information-circle-outline" />
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  width: 90,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Type
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {getMonitorTypeLabel(monitor.monitorType)}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  width: 90,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Status
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: isDisabled ? theme.colors.textTertiary : statusColor,
-                }}
-              >
-                {isDisabled
-                  ? "Disabled"
-                  : monitor.currentMonitorStatus?.name ?? "Unknown"}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row" }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  width: 90,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Created
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {formatDateTime(monitor.createdAt)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Status Timeline */}
-      {statusTimeline && statusTimeline.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Status History" iconName="time-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
+      <ResponseSection title="Monitor Summary">
+        {probesError ? (
+          <QueryErrorNotice
+            message="Unable to load the latest monitor measurements."
+            retryLabel="Retry monitor summary"
+            onRetry={refetchProbes}
+          />
+        ) : null}
+        {probesLoading ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ color: theme.colors.textSecondary }}
           >
-            {statusTimeline.map(
-              (entry: MonitorStatusTimelineItem, index: number) => {
-                const entryColor: string = entry.monitorStatus?.color
-                  ? rgbToHex(entry.monitorStatus.color)
-                  : theme.colors.textTertiary;
-                return (
-                  <View
-                    key={entry._id}
-                    style={{
-                      padding: 14,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      borderTopWidth: index > 0 ? 1 : 0,
-                      borderTopColor: theme.colors.borderSubtle,
-                    }}
-                  >
+            Loading monitor measurements…
+          </Text>
+        ) : null}
+        {probeItems || (!probesError && !probesLoading) ? (
+          <MonitorSummaryView
+            monitorType={monitor.monitorType}
+            probeItems={probeItems ?? []}
+          />
+        ) : null}
+      </ResponseSection>
+      {descriptionText ? (
+        <ResponseSection title="Description">
+          <MarkdownContent content={descriptionText} />
+        </ResponseSection>
+      ) : null}
+      <ResponseSection title="Details">
+        <ResponseInfoRow
+          label="Type"
+          value={getMonitorTypeLabel(monitor.monitorType)}
+        />
+        <ResponseInfoRow
+          label="Status"
+          value={
+            isDisabled
+              ? "Disabled"
+              : monitor.currentMonitorStatus?.name ?? "Unknown"
+          }
+        />
+        <ResponseInfoRow
+          label="Created"
+          value={formatDateTime(monitor.createdAt)}
+        />
+      </ResponseSection>
+      {timelineError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest status history."
+          retryLabel="Retry status history"
+          onRetry={refetchTimeline}
+        />
+      ) : null}
+      {statusTimeline && statusTimeline.length > 0 ? (
+        <ResponseSection title="Status History">
+          {statusTimeline.map(
+            (entry: MonitorStatusTimelineItem, index: number) => {
+              const entryColor: string = entry.monitorStatus?.color
+                ? rgbToHex(entry.monitorStatus.color)
+                : theme.colors.textTertiary;
+              return (
+                <View
+                  key={entry._id}
+                  style={{ flexDirection: "row", gap: 12, paddingVertical: 15 }}
+                >
+                  <View style={{ alignItems: "center", width: 10 }}>
                     <View
                       style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 9999,
-                        marginRight: 12,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginTop: 7,
                         backgroundColor: entryColor,
                       }}
                     />
-                    <View style={{ flex: 1 }}>
-                      <Text
+                    {index < statusTimeline.length - 1 ? (
+                      <View
                         style={{
-                          fontSize: 13,
-                          fontWeight: "600",
-                          color: entryColor,
+                          width: 1,
+                          flex: 1,
+                          backgroundColor: theme.colors.borderDefault,
+                          marginTop: 7,
+                          marginBottom: -21,
                         }}
-                      >
-                        {entry.monitorStatus?.name ?? "Unknown"}
-                      </Text>
-                      {entry.rootCause ? (
-                        <View style={{ marginTop: 2 }}>
-                          <MarkdownContent
-                            content={entry.rootCause}
-                            variant="secondary"
-                          />
-                        </View>
-                      ) : null}
-                    </View>
+                      />
+                    ) : null}
+                  </View>
+                  <View style={{ flex: 1, gap: 5 }}>
                     <Text
                       style={{
-                        fontSize: 11,
-                        color: theme.colors.textTertiary,
-                        marginLeft: 8,
+                        fontSize: 15,
+                        lineHeight: 22,
+                        fontWeight: "600",
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
+                      {entry.monitorStatus?.name ?? "Unknown"}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 20,
+                        color: theme.colors.textSecondary,
                       }}
                     >
                       {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
                     </Text>
+                    {entry.rootCause ? (
+                      <MarkdownContent
+                        content={entry.rootCause}
+                        variant="secondary"
+                      />
+                    ) : null}
                   </View>
-                );
-              },
-            )}
-          </View>
-        </View>
+                </View>
+              );
+            },
+          )}
+        </ResponseSection>
       ) : null}
-
-      {/* Activity Feed */}
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
+      ) : null}
       {feed && feed.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Activity Feed" iconName="list-outline" />
+        <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
-        </View>
+        </ResponseSection>
       ) : null}
     </ScrollView>
   );

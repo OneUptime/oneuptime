@@ -69,6 +69,7 @@ podman compose up -d
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _プロジェクト設定 → テレメトリと APM → 取り込みキー_                                        |
 | `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
+| `DOCKER_API_VERSION`      | No       | エージェントが Podman ソケットに対して使用する Docker Engine API のバージョン。デフォルトは `1.44` です。ソケットが報告する最大バージョンがこれより古い場合は値を下げるか、空に設定して自動ネゴシエーションさせてください（トラブルシューティングを参照） |
 
 ## Verify the Installation
 
@@ -145,6 +146,28 @@ The agent container must run as root (`--user 0:0`) to access `/run/podman/podma
 ### Podman Socket / Log Driver
 
 The Podman API socket must be enabled and reachable at `/run/podman/podman.sock`. On rootful systemd hosts, enable it with `systemctl enable --now podman.socket`. Container logs are read from `/var/lib/containers`, so make sure that path is mounted into the agent and that Podman is using a file-based log driver (for example `--log-driver=k8s-file` or `json-file`). If you run Podman rootless, the socket lives under `/run/user/<uid>/podman/podman.sock` instead — mount that path and adjust the volume accordingly.
+
+### エージェントが「client version is too new」で再起動を繰り返す
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+クライアントの最大バージョンを強制する Docker API サーバーは、それより新しいクライアントを拒否します（Docker Engine は上記のように報告します）。そのためレシーバーが起動せず、Collector もそれとともに終了します。Podman ソケットが報告する API バージョンを確認し、その値をエージェントに渡してください。
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+```
+
+次に、`podman run` に `-e DOCKER_API_VERSION=1.41`（または取得した値）を追加するか、Compose で `DOCKER_API_VERSION` を設定します。新しいサーバーでも古い API バージョンは引き続き提供されるため、アップグレード後もこの設定は有効なままです。
+
+バージョン番号を調べたくない場合は、`DOCKER_API_VERSION` に**空文字列**を設定してください。するとエージェントは、バージョンを固定する代わりに、ソケットとのネゴシエーション（`HEAD /_ping` を 1 回実行し、ソケットが報告する最大バージョンを使用）を行います。
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

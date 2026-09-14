@@ -199,6 +199,20 @@ export default class IncomingRequestCriteria {
       }
     }
 
+    /*
+     * Header names and values are compared case-insensitively, and BOTH
+     * sides are lower-cased for it.
+     *
+     * Only the observed side used to be: a filter typed as "X-Api-Key" (the
+     * spelling every HTTP client and every piece of documentation uses) was
+     * matched against a list that had already been lower-cased, so Contains
+     * could never fire and NotContains fired on every single request. The
+     * lower-casing of the observed side is what says the intent was
+     * case-insensitive; this is the other half of it.
+     */
+    const criteriaValueLowerCase: string | null =
+      typeof value === Typeof.String ? (value as string).toLowerCase() : null;
+
     if (input.criteriaFilter.checkOn === CheckOn.RequestHeader) {
       const headerKeys: Array<string> = Object.keys(
         (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {},
@@ -208,14 +222,20 @@ export default class IncomingRequestCriteria {
 
       // contains
       if (input.criteriaFilter.filterType === FilterType.Contains) {
-        if (value && headerKeys && headerKeys.includes(value as string)) {
+        if (
+          criteriaValueLowerCase &&
+          headerKeys.includes(criteriaValueLowerCase)
+        ) {
           return `Request header contains ${value}.`;
         }
         return null;
       }
 
       if (input.criteriaFilter.filterType === FilterType.NotContains) {
-        if (value && headerKeys && !headerKeys.includes(value as string)) {
+        if (
+          criteriaValueLowerCase &&
+          !headerKeys.includes(criteriaValueLowerCase)
+        ) {
           return `Request header does not contain ${value}.`;
         }
         return null;
@@ -231,14 +251,20 @@ export default class IncomingRequestCriteria {
 
       // contains
       if (input.criteriaFilter.filterType === FilterType.Contains) {
-        if (value && headerValues && headerValues.includes(value as string)) {
+        if (
+          criteriaValueLowerCase &&
+          headerValues.includes(criteriaValueLowerCase)
+        ) {
           return `Request header value contains ${value}.`;
         }
         return null;
       }
 
       if (input.criteriaFilter.filterType === FilterType.NotContains) {
-        if (value && headerValues && !headerValues.includes(value as string)) {
+        if (
+          criteriaValueLowerCase &&
+          !headerValues.includes(criteriaValueLowerCase)
+        ) {
           return `Request header value does not contain ${value}.`;
         }
         return null;

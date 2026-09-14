@@ -341,6 +341,13 @@ export class Service extends DatabaseService<Model> {
      * creation is publicly accessible (Permission.Public), so an unauthenticated
      * user can supply this URL. Reject targets that point at private, loopback,
      * link-local, or cloud metadata addresses to prevent SSRF.
+     *
+     * No `allowPrivateNetworkTargets` here, deliberately, and none in
+     * StatusPageSubscriberWebhookUtil either. The private-network exception
+     * (issue #3424) exists for URLs an authenticated project member authored;
+     * this one is chosen by whoever is looking at a public status page, and
+     * granting it the exception would hand any visitor on the internet a POST
+     * into the operator's internal network.
      */
     if (data.data.subscriberWebhook) {
       await SSRFProtection.validateWebhookTargetIsSafe(

@@ -3,6 +3,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -272,7 +273,7 @@ export default class TeamMemberCustomField extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "Dropdown Options",
     description:
       "Options and optional colors for dropdown fields. Plain one-per-line values remain supported.",
@@ -280,10 +281,83 @@ export default class TeamMemberCustomField extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTeamMemberCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamMemberCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTeamMemberCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Map Value From",
+    description:
+      "Related resource this field copies its value from. Empty means values are entered by hand.",
+    example: "Monitor",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mapFromResourceType?: CustomFieldMappingSourceResource = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTeamMemberCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamMemberCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTeamMemberCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Map Value From Field",
+    description:
+      "Name of the custom field on the related resource this field copies its value from.",
+    example: "Vendor",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mapFromCustomFieldName?: string = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -69,6 +69,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | 예     | OneUptime 인스턴스 URL (예: `https://oneuptime.com` 또는 자체 호스팅 호스트)                                        |
 | `ONEUPTIME_SERVICE_TOKEN` | 예     | *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 발급한 텔레메트리 수집 토큰                                          |
 | `DOCKER_HOST_NAME`        | 아니오 | 이 호스트의 친숙한 이름. 기본값은 `docker-host`입니다. 호스트별로 안정적인 값으로 설정하세요 (예: `prod-docker-01`) |
+| `DOCKER_API_VERSION`      | 아니오 | 에이전트가 사용하는 Docker Engine API 버전. 기본값은 `1.44`입니다. 데몬이 더 오래된 호스트에서는 값을 낮추거나, 빈 값으로 설정하여 자동으로 협상하도록 하세요 (문제 해결 참조) |
 
 ## 설치 확인
 
@@ -141,6 +142,28 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 사용자 인스�
 ### Docker 소켓 권한 거부 (Permission Denied)
 
 에이전트 컨테이너는 `/var/run/docker.sock`에 접근하기 위해 root(`--user 0:0`)로 실행되어야 합니다. `--user 0:0` 플래그(또는 Compose의 `user: "0:0"`)가 있는지 확인하세요.
+
+### 에이전트가 "client version is too new" 오류로 재시작됨
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+데몬은 자신이 지원하는 최대 버전보다 최신인 클라이언트를 거부하므로 receiver가 시작되지 못하고 collector도 함께 종료됩니다. 데몬이 지원하는 최대 버전을 확인하여 에이전트에 전달하세요:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+그런 다음 `docker run`에 `-e DOCKER_API_VERSION=1.41`(또는 확인한 값)을 추가하거나 Compose에서 `DOCKER_API_VERSION`을 설정하세요. 최신 데몬도 이전 API 버전을 계속 제공하므로 업그레이드 후에도 이 설정은 유효합니다.
+
+버전 번호를 직접 찾아보고 싶지 않다면 `DOCKER_API_VERSION`을 **빈 문자열**로 설정하세요. 그러면 에이전트가 Docker SDK를 통해 데몬과 버전을 협상하며(`HEAD /_ping` 요청 한 번, 그다음 데몬이 지원하는 최대 버전 사용), 이전 데몬과 최신 데몬 모두에서 동작합니다:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### 에이전트가 연결 끊김으로 표시됨
 

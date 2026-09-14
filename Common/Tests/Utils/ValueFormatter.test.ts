@@ -215,6 +215,154 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.isFractionMetric(undefined)).toBe(false);
       expect(ValueFormatter.isFractionMetric("")).toBe(false);
     });
+
+    /*
+     * The two kubeletstats cores gauges are misnamed. `.utilization` is a
+     * lie the OTel receiver tells: the value is CPU *cores in use*
+     * (UsageNanoCores / 1e9) with unit "1", not a [0, 1] ratio. Before
+     * this exclusion an 0.1831-core pod rendered as "18.31%" with a
+     * "Percent" axis, on the very page that also showed it at 91.55% of
+     * its CPU limit. Reverting the guard flips every assertion below.
+     */
+    test("the two kubeletstats cores gauges are NOT fractions", () => {
+      expect(ValueFormatter.isFractionMetric("k8s.pod.cpu.utilization")).toBe(
+        false,
+      );
+      expect(ValueFormatter.isFractionMetric("k8s.node.cpu.utilization")).toBe(
+        false,
+      );
+    });
+
+    test("the exclusion is anchored, not a prefix or substring match", () => {
+      /*
+       * Kept deliberately narrow so a future widening has to be a
+       * conscious edit. These four still multiply by 100.
+       */
+      expect(
+        ValueFormatter.isFractionMetric("k8s.pod.memory.utilization"),
+      ).toBe(true);
+      expect(
+        ValueFormatter.isFractionMetric("k8s.pod.cpu_limit_utilization"),
+      ).toBe(true);
+      expect(
+        ValueFormatter.isFractionMetric(
+          "k8s.container.cpu_request_utilization",
+        ),
+      ).toBe(true);
+      // Emitted by BOTH kubeletstats and docker_stats; scale is contested.
+      expect(ValueFormatter.isFractionMetric("container.cpu.utilization")).toBe(
+        true,
+      );
+      // Not anchored at the start: a decorated name is still a ratio.
+      expect(
+        ValueFormatter.isFractionMetric("prefix.k8s.pod.cpu.utilization"),
+      ).toBe(true);
+    });
+
+    test("the exclusion ignores surrounding whitespace and case", () => {
+      expect(
+        ValueFormatter.isFractionMetric("  k8s.pod.cpu.utilization  "),
+      ).toBe(false);
+      expect(ValueFormatter.isFractionMetric("K8S.Node.CPU.Utilization")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("kubeletstats cores gauges render as cores, never as a percent", () => {
+    /*
+     * These pin the user-visible half of the same defect. Each case is
+     * paired with the genuine OTel ratio metric so the two behaviours are
+     * visibly contrasted: system.cpu.utilization really is a [0, 1]
+     * fraction and must keep scaling by 100.
+     */
+    test("formatValue renders 0.1831 cores as a bare number", () => {
+      expect(
+        ValueFormatter.formatValue(0.1831, "1", {
+          metricName: "k8s.pod.cpu.utilization",
+        }),
+      ).toBe("0.18");
+      expect(
+        ValueFormatter.formatValue(0.1831, "1", {
+          metricName: "k8s.node.cpu.utilization",
+        }),
+      ).toBe("0.18");
+
+      // The reported dashboard string must not come back.
+      expect(
+        ValueFormatter.formatValue(0.1831, "1", {
+          metricName: "k8s.pod.cpu.utilization",
+        }),
+      ).not.toContain("%");
+
+      // The genuine ratio metric is untouched.
+      expect(
+        ValueFormatter.formatValue(0.25, "1", {
+          metricName: "system.cpu.utilization",
+        }),
+      ).toBe("25.00%");
+    });
+
+    test("a multi-core pod is not reported as a four-figure percentage", () => {
+      // 1.4 cores used to render as "140.00%".
+      expect(
+        ValueFormatter.formatValue(1.4, "1", {
+          metricName: "k8s.node.cpu.utilization",
+        }),
+      ).toBe("1.4");
+    });
+
+    test("getReadableUnit does not label the axis 'Percent'", () => {
+      expect(
+        ValueFormatter.getReadableUnit("1", {
+          metricName: "k8s.pod.cpu.utilization",
+        }),
+      ).toBe("");
+      expect(
+        ValueFormatter.getReadableUnit("1", {
+          metricName: "k8s.node.cpu.utilization",
+        }),
+      ).toBe("");
+      expect(
+        ValueFormatter.getReadableUnit("1", {
+          metricName: "system.cpu.utilization",
+        }),
+      ).toBe("Percent");
+    });
+
+    test("getCompactUnit does not label the tile '%'", () => {
+      expect(
+        ValueFormatter.getCompactUnit("1", {
+          metricName: "k8s.pod.cpu.utilization",
+        }),
+      ).toBe("");
+      expect(
+        ValueFormatter.getCompactUnit("1", {
+          metricName: "k8s.node.cpu.utilization",
+        }),
+      ).toBe("");
+      expect(
+        ValueFormatter.getCompactUnit("1", {
+          metricName: "system.cpu.utilization",
+        }),
+      ).toBe("%");
+    });
+
+    test("value and unit label agree — neither scales without the other", () => {
+      /*
+       * The failure this guards is the divergent pair: a value left in
+       * cores beside a unit still reading "Percent". formatValueCompact
+       * returns both halves from one call, so they cannot drift.
+       */
+      const parts: FormattedValue = ValueFormatter.formatValueCompact(
+        0.1831,
+        "1",
+        { metricName: "k8s.pod.cpu.utilization" },
+      );
+      expect(parts.value).toBe("0.18");
+      expect(parts.unit).toBe("");
+      expect(parts.formatted).toBe("0.18");
+    });
   });
 
   describe("isHigherWorseMetric", () => {

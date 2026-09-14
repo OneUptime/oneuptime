@@ -2,6 +2,7 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import { getNewWorkflowNodePosition } from "./NodePlacement";
 import {
   LintGraphEdge,
   LintGraphNode,
@@ -40,6 +41,7 @@ import ReactFlow, {
   NodeTypes,
   OnConnect,
   ProOptions,
+  ReactFlowInstance,
   addEdge,
   getConnectedEdges,
   updateEdge,
@@ -62,7 +64,7 @@ export const getPlaceholderTriggerNode: GetPlaceholderTriggerNodeFunction =
           iconProp: IconProp.Bolt,
           componentType: ComponentType.Trigger,
           title: "Trigger",
-          description: "Please click here to add trigger",
+          description: "Choose what starts this workflow",
         },
         metadataId: "",
         internalId: "",
@@ -159,6 +161,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, []);
 
   const edgeUpdateSuccessful: any = useRef(true);
+  const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
+    useRef<ReactFlowInstance | null>(null);
   const [showComponentSettingsModal, setShowComponentSettingsModal] =
     useState<boolean>(false);
   const [selectedNodeData, setSelectedNodeData] = useState<NodeDataProp | null>(
@@ -167,7 +171,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   type OnNodeClickFunction = (data: NodeDataProp) => void;
 
-  const onNodeClick: OnNodeClickFunction = (data: NodeDataProp) => {
+  const onNodeClick: OnNodeClickFunction = useCallback((data: NodeDataProp) => {
     // if placeholder node is clicked then show modal.
 
     if (data.nodeType === NodeType.PlaceholderNode) {
@@ -180,7 +184,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       setShowComponentSettingsModal(true);
       setSelectedNodeData(data);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (props.showComponentsPickerModal) {
@@ -194,7 +198,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     if (props.showRunModal) {
       setShowRunModal(true);
     } else {
-      setShowComponentsModal(false);
+      setShowRunModal(false);
     }
   }, [props.showRunModal]);
 
@@ -214,12 +218,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       });
 
       if (
-        nodeToUpdate.filter((n: Node) => {
+        !nodeToUpdate.some((n: Node) => {
           return (
-            (n.data as NodeDataProp).componentType === ComponentType.Trigger &&
-            (n.data as NodeDataProp).nodeType === NodeType.Node
+            (n.data as NodeDataProp).componentType === ComponentType.Trigger ||
+            (n.data as NodeDataProp).nodeType === NodeType.PlaceholderNode
           );
-        }).length === 0
+        })
       ) {
         nodeToUpdate = nodeToUpdate.concat(getPlaceholderTriggerNode());
       }
@@ -244,12 +248,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     });
   };
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(
-    props.initialNodes.map((node: Node) => {
-      node.data.onClick = onNodeClick;
-      return node;
-    }),
-  );
+  const [nodes, setNodes, onNodesChange] = useNodesState(props.initialNodes);
 
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     props.initialEdges.map((edge: Edge) => {
@@ -410,6 +409,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const [showTriggersModal, setShowTriggersModal] = useState<boolean>(false);
 
   const [showRunModal, setShowRunModal] = useState<boolean>(false);
+  const isModalOpen: boolean =
+    showComponentsModal ||
+    showTriggersModal ||
+    showComponentSettingsModal ||
+    showRunModal;
 
   useEffect(() => {
     props.onComponentPickerModalUpdate(showComponentsModal);
@@ -457,7 +461,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const compToAdd: Node = {
       id: ObjectID.generate().toString(), // react-flow id
       type: "node",
-      position: { x: 200, y: 200 },
+      position: getNewWorkflowNodePosition(
+        nodes,
+        componentMetadata.componentType,
+      ),
       selected: true,
       data: {
         nodeType: NodeType.Node,
@@ -491,13 +498,21 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           .concat({ ...compToAdd } as any);
       });
     }
+
+    setSelectedNodeData(compToAdd.data as NodeDataProp);
+    setShowComponentSettingsModal(true);
+    flowInstance.current?.setCenter(
+      compToAdd.position.x + 128,
+      compToAdd.position.y + 100,
+      { zoom: 1, duration: 200 },
+    );
   };
 
   return (
     <div
       style={{
         height: "calc(100vh - 220px)",
-        minHeight: "600px",
+        minHeight: "400px",
         borderRadius: "8px",
         overflow: "hidden",
         border: "1px solid var(--ou-border-default, #e2e8f0)",
@@ -556,20 +571,33 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         `}
       </style>
       <ReactFlow
+        onInit={(instance: ReactFlowInstance) => {
+          flowInstance.current = instance;
+        }}
         nodes={nodesToRender}
         edges={edges}
         fitView={true}
+        fitViewOptions={{ maxZoom: 1 }}
         onEdgeClick={() => {
           refreshEdges();
         }}
-        onNodeClick={() => {
+        onNodeClick={(_event: React.MouseEvent, node: Node) => {
           refreshEdges();
+          /*
+           * Handle every node through the canvas, including newly added steps
+           * and replacement trigger placeholders, without persisting callbacks.
+           */
+          onNodeClick(node.data as NodeDataProp);
         }}
         proOptions={proOptions}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         multiSelectionKeyCode={null}
+        // React Flow listens on document, even while a dialog has focus.
+        panActivationKeyCode={isModalOpen ? null : "Space"}
+        deleteKeyCode={isModalOpen ? null : "Backspace"}
+        selectionKeyCode={isModalOpen ? null : "Shift"}
         onEdgeUpdate={onEdgeUpdate}
         nodeTypes={nodeTypes}
         onEdgeUpdateStart={onEdgeUpdateStart}
@@ -704,11 +732,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               ...componentData,
               error: "",
             };
+            delete dataToStore.onClick;
 
             setNodes((nds: Array<Node>) => {
               return nds.map((n: Node) => {
                 if (n.data.internalId === dataToStore.internalId) {
-                  n.data = dataToStore;
+                  return { ...n, data: dataToStore };
                 }
 
                 return n;

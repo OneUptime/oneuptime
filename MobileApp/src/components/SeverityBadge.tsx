@@ -38,7 +38,24 @@ export default function SeverityBadge({
     },
   };
 
-  const colors: { text: string; bg: string } = colorMap[severity];
+  /*
+   * `severity` is typed down to five literals, but the map is indexed with
+   * whatever actually arrives, and a severity that is not one of the five -
+   * a project's own severity name coming back from the API, a value that lost
+   * its type on the way through untyped JSON - yields undefined, and reading
+   * `.bg` off it throws out of render. Nothing renders this badge today, so
+   * this is hardening rather than a live crash; it is here because the cost of
+   * being wrong is a blank screen in front of a responder.
+   *
+   * The fallback is deliberately NEUTRAL rather than one of the five. Guessing
+   * "info" for an unknown severity would paint something that might be a
+   * critical page in the calmest colour on the palette; grey says "unrecognised"
+   * and leaves the label - which is still the real text - to speak for itself.
+   */
+  const colors: { text: string; bg: string } = colorMap[severity] ?? {
+    text: theme.colors.textSecondary,
+    bg: theme.colors.backgroundTertiary,
+  };
   const displayLabel: string = label || severity;
 
   return (

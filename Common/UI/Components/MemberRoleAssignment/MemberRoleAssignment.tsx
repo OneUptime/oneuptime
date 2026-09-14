@@ -12,7 +12,6 @@ import API from "../../Utils/API/API";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Image from "../Image/Image";
-import Route from "../../../Types/API/Route";
 import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
@@ -229,7 +228,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-3">
           {member.userProfilePictureUrl ? (
             <Image
-              imageUrl={Route.fromString(member.userProfilePictureUrl)}
+              imageUrl={member.userProfilePictureUrl}
               alt={member.userName}
               className="h-8 w-8 rounded-full object-cover"
             />

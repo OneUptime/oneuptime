@@ -19,3 +19,7 @@
 
 4. **Alerts और Scheduled Maintenance Notifications Configure करें**
    - Similar rules Alerts और Scheduled Maintenance पर भी apply किए जा सकते हैं, उनके respective pages पर navigate करके और desired rules configure करके।
+
+## सेल्फ़-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
+
+आउटबाउंड कनेक्शन, इनबाउंड कॉलबैक और निजी डिप्लॉयमेंट के लिए [Slack Integration](/docs/self-hosted/slack-integration) में नेटवर्क एक्सेस वाला अनुभाग देखें।

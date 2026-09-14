@@ -24,6 +24,7 @@
    - **Callback URL：** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL：** `https://your-oneuptime-domain.com/api/github/auth/callback` - **重要：此 URL 是 GitHub 在使用者安裝 App 後重新導向使用者的位置。必須設定此項，重新導向才能運作。**
    - **Redirect on update：** 勾選此選項，以在使用者更新 App 安裝後重新導向使用者
+   - **Request user authorization (OAuth) during installation:** **必須勾選此選項。** OneUptime 使用 OAuth 驗證安裝擁有權，未啟用時會拒絕連接。
    - **Webhook URL：** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret：** 產生一個安全的隨機字串（請儲存此項以供稍後使用）
 
@@ -36,11 +37,13 @@
 | 權限            | 存取層級     | 用途                                      |
 | --------------- | ------------ | ----------------------------------------- |
 | Contents        | Read & Write | 讀取儲存庫檔案、推送分支（AI Agent 所需） |
-| Pull requests   | Read & Write | 建立並管理拉取請求                        |
-| Issues          | Read & Write | 讀取與回覆問題                            |
+| Pull requests   | Read & Write | 建立並管理拉取請求，並張貼審查            |
+| Issues          | Read & Write | 讀取 issue，並張貼 App 的留言——**包含在拉取請求上**，GitHub 是透過 issues API 提供拉取請求的對話 |
 | Commit statuses | Read         | 檢查建置/CI 狀態                          |
 | Actions         | Read         | 讀取 GitHub Actions 工作流程執行與記錄    |
 | Metadata        | Read         | 基本儲存庫中繼資料（必要）                |
+
+**Issues: Read & write 正是讓這個 App 得以互動的關鍵。** 少了它，提及會被收到，然後在 App 試著回覆時默默失敗——GitHub 是從 issues API 提供拉取請求的對話留言，所以這一個權限就決定了 App 寫出的每一則回覆。請參閱[從 GitHub 操作 OneUptime](/docs/ai/github-app)。
 
 **組織權限（若搭配組織使用）：**
 
@@ -56,11 +59,23 @@
 
 ### 步驟 3：訂閱 Webhook 事件
 
-為了讓 OneUptime 接收即時更新，請訂閱下列 Webhook 事件：
+OneUptime 使用兩組事件，它們各司其職。
 
-- **Pull request** - 在 PR 開啟、關閉或合併時接收通知
-- **Push** - 在推送程式碼時接收通知
-- **Workflow run** - 接收 CI/CD 狀態更新
+**儲存庫同步**——`installation` 與 `installation_repositories`。GitHub Apps 會自動收到這兩個事件；它們讓已連接的儲存庫清單，與這個 App 實際安裝的範圍保持一致。
+
+**互動式 App**——這些必須明確訂閱，而每一個都啟用一種把工作交給 App 的方式：
+
+| 事件                            | 啟用了什麼                                  |
+| ------------------------------- | ------------------------------------------- |
+| **Issue comment**               | issue **與**拉取請求上的 `@mention` 指令    |
+| **Issues**                      | 把 issue 指派給 App，以及該儲存庫的觸發標籤 |
+| **Pull request**                | 向 App 要求審查                             |
+| **Pull request review**         | 寫在已送出審查內文裡的提及                  |
+| **Pull request review comment** | 在 diff 內嵌留言上的提及                    |
+
+若這些事件一個都沒訂閱，GitHub App 仍然會連接儲存庫，也仍然會從 OneUptime 開出修復用的拉取請求——它只是永遠不會回應任何寫在 GitHub 裡的內容。這是「機器人不理我」最常見的原因。指令有哪些、誰可以下指令，請參閱[從 GitHub 操作 OneUptime](/docs/ai/github-app)。
+
+其他事件（**Push**、**Workflow run**）會被確認並忽略；訂閱它們不會啟用通知或 CI/CD 自動化。
 
 ### 步驟 4：設定安裝存取權
 
@@ -152,7 +167,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | 來自您 GitHub App 設定的 Client ID       | 是               |
 | `GITHUB_APP_CLIENT_SECRET`  | 您產生的 client secret                   | 是               |
 | `GITHUB_APP_PRIVATE_KEY`    | 私密金鑰（.pem 檔案）的內容              | 是               |
-| `GITHUB_APP_WEBHOOK_SECRET` | 用於驗證 webhook 酬載的 webhook secret   | 否（但建議設定） |
+| `GITHUB_APP_WEBHOOK_SECRET` | 用於驗證 webhook 酬載的 webhook secret   | Webhook 必填 |
+
+## 自架部署的網路存取
+
+### 流量方向與端點
+
+| 流量 | 所需存取 |
+| --- | --- |
+| OneUptime → GitHub | DNS 和 TCP 443 輸出 HTTPS：應用程式權杖與儲存庫 API 使用 `api.github.com`，OAuth 交換與 HTTPS Git 操作使用 `github.com` |
+| GitHub → OneUptime | 透過 TCP 443 公開 HTTPS 存取 `POST /api/github/webhook`，用於同步安裝與儲存庫存取權限 |
+| 使用者瀏覽器 → OneUptime | 儀表板和安裝／授權重新導向 `GET /api/github/auth/callback`；可維持透過使用者 VPN 存取 |
+
+Callback/Setup URL 是[瀏覽器重新導向位址](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url)，Webhook 請求則來自 GitHub 伺服器。使用者 VPN 不會讓 GitHub 存取 Webhook。這些網域涵蓋核心請求；儲存庫工具、下載、LFS 或套件可能需要其他目的地。上述設定適用於 GitHub.com，修改防火牆不會設定對 GitHub Enterprise Server 主機名稱的支援。
+
+### 私有部署與回呼安全
+
+使用公開 DNS，以及具有公開信任 HTTPS 憑證、完整憑證鏈和通往 OneUptime ingress 私有路由的閘道。允許輸入 TCP 443，只公開上述供應商 POST 回呼。私有 `ClusterIP`、內部 DNS 或員工 VPN 本身無法讓供應商存取。使用分割 DNS，可在同一主機名稱下維持儀表板與瀏覽器 OAuth 路由私有。
+
+在 `config.env` 設定 `HOST=oneuptime.example.com` 和 `HTTP_PROTOCOL=https`，或在 Helm 設定 `host: oneuptime.example.com` 和 `httpProtocol: https`。套用設定並等待重新啟動。這些值產生 URL，不會自動設定 DNS、TLS 或防火牆。 變更主機名稱後，更新 GitHub App 的 Webhook、Callback、Setup 和 Homepage URL。
+
+保留方法、原始路徑、查詢字串、本文、`Content-Type`、`X-Hub-Signature-256`、`X-GitHub-Event` 和 `X-GitHub-Delivery`。透過可信任的代理標頭保留公開主機與 HTTPS。Webhook 應豁免瀏覽器 SSO、CAPTCHA 和代理登入頁。保持 GitHub SSL 驗證啟用，並在兩端設定相同的 `GITHUB_APP_WEBHOOK_SECRET`：OneUptime 拒絕未簽章請求，沒有密鑰便無法驗證 Webhook。參閱 [GitHub 驗證指南](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)。
+
+若也限制來源 IP，請使用 GitHub Meta API 的最新 `hooks` 網段並定期更新。不要改用 GitHub Actions 執行器網段，也不要取消簽章驗證。GitHub 指出[位址會變動且清單並不完整](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses)。
+
+### 驗證存取與了解限制
+
+從 OneUptime 完成安裝後，查看 GitHub App 的 **Advanced > Recent Deliveries**。傳送或重新傳遞測試請求，確認閘道轉送且 OneUptime 接受。向安裝新增或移除測試儲存庫，確認已連接清單更新。參閱 GitHub 的[傳遞診斷](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries)與[十秒內回傳 2xx 的要求](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)。瀏覽器 GET 不能測試已簽章 POST。
+
+沒有輸入存取時，瀏覽器授權與輸出 API/Git 操作可能仍可運作，但安裝刪除與儲存庫存取變更無法透過 Webhook 同步。OneUptime 目前處理 `installation` 和 `installation_repositories`；接受其他事件不代表有額外自動化。[私有網路存取設定](/docs/self-hosted/private-network-access)控制傳往私有目的地的輸出請求，不會使 GitHub 能存取 Webhook。
 
 ## 疑難排解
 

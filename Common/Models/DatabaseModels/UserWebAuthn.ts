@@ -155,6 +155,23 @@ class UserWebAuthn extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Registered as a Passkey",
+    description:
+      "Whether this credential was registered for passwordless sign-in. Older credentials have no recorded purpose.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isPasskey?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
     read: [],
     update: [],
   })
@@ -207,6 +224,7 @@ class UserWebAuthn extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "userId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "User",
     description: "Relation to User who owns this WebAuthn credential",
   })

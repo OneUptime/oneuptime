@@ -239,4 +239,55 @@ export default class AppMetrics {
 
     return this.ingestDroppedCounter;
   }
+
+  // -- On-call calendar feeds -------------------------------------------
+
+  /*
+   * The one bounded attribute these carry: which kind of feed was rendered.
+   * "user" (personal), "schedule" (one schedule, shared link) or "project"
+   * (every schedule in a project). Never the token, the user or the project
+   * id -- those are unbounded and belong on traces and logs.
+   */
+  public static readonly ON_CALL_CALENDAR_FEED_KIND_ATTRIBUTE: string =
+    "oneuptime.oncall_calendar.feed_kind";
+
+  private static onCallCalendarRenderDuration: TelemetryHistogram | null = null;
+  private static onCallCalendarRenderEvents: TelemetryHistogram | null = null;
+
+  /*
+   * Wall-clock time to materialise the shifts and serialise a feed body, on a
+   * cache miss. Rendering expands every layer of every candidate schedule
+   * across a window of up to 180 days, so this is the number that says whether
+   * the render cap and the schedule-level cache are doing their job.
+   */
+  public static getOnCallCalendarRenderDuration(): TelemetryHistogram {
+    if (!this.onCallCalendarRenderDuration) {
+      this.onCallCalendarRenderDuration = Telemetry.getHistogram({
+        name: "oncall_calendar_render_duration_ms",
+        description:
+          "Time taken to render an on-call calendar feed body on a cache miss, partitioned by feed kind.",
+        unit: "ms",
+      });
+    }
+
+    return this.onCallCalendarRenderDuration;
+  }
+
+  /*
+   * How many VEVENTs a rendered feed carried. Distribution matters more than
+   * the total: a fat tail near MAX_EVENTS means windows are being shrunk to
+   * fit and subscribers are losing the far end of their calendar.
+   */
+  public static getOnCallCalendarRenderEvents(): TelemetryHistogram {
+    if (!this.onCallCalendarRenderEvents) {
+      this.onCallCalendarRenderEvents = Telemetry.getHistogram({
+        name: "oncall_calendar_render_events",
+        description:
+          "Number of calendar events in a rendered on-call calendar feed, partitioned by feed kind.",
+        unit: "1",
+      });
+    }
+
+    return this.onCallCalendarRenderEvents;
+  }
 }

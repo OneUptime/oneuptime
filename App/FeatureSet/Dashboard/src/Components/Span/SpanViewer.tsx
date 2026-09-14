@@ -96,6 +96,11 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     time: true,
     projectId: true,
     primaryEntityId: true,
+    /*
+     * The row's type hints the shared LogsViewer's name lookup to the right
+     * table for a polymorphic primaryEntityId (RUM application, host, …).
+     */
+    primaryEntityType: true,
     spanId: true,
     traceId: true,
     severityText: true,

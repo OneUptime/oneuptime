@@ -601,6 +601,40 @@ describe("removing tokens", () => {
 });
 
 describe("clearAllSsoTokens", () => {
+  test("still deletes the global token when removing project tokens fails", async () => {
+    await storeSsoToken("project-1", liveToken("project-1"));
+    await storeGlobalSsoToken(liveToken("global"));
+    const failure: Error = new Error("Project token storage unavailable");
+    (AsyncStorage.removeItem as unknown as jest.Mock).mockRejectedValueOnce(
+      failure,
+    );
+
+    await expect(clearAllSsoTokens()).rejects.toBe(failure);
+
+    expect(getCachedSsoTokens()).toEqual({});
+    expect(getCachedGlobalSsoToken()).toBeNull();
+    expect(await AsyncStorage.getItem(GLOBAL_STORAGE_KEY)).toBeNull();
+  });
+
+  test("both memory caches are cleared even when deleting the global token fails", async () => {
+    await storeSsoToken("project-1", liveToken("project-1"));
+    await storeGlobalSsoToken(liveToken("global"));
+    const failure: Error = new Error("Global token storage unavailable");
+    const removeItem: jest.Mock =
+      AsyncStorage.removeItem as unknown as jest.Mock;
+    const removeStoredItem: (key: string) => Promise<void> =
+      removeItem.getMockImplementation() as (key: string) => Promise<void>;
+    removeItem
+      .mockImplementationOnce(removeStoredItem)
+      .mockRejectedValueOnce(failure);
+
+    await expect(clearAllSsoTokens()).rejects.toBe(failure);
+
+    expect(getCachedSsoTokens()).toEqual({});
+    expect(getCachedGlobalSsoToken()).toBeNull();
+    expect(await AsyncStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
   test("clears both stores and both caches", async () => {
     /*
      * This is the logout path. Anything left behind here is a token belonging

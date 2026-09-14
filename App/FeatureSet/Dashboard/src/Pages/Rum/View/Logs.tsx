@@ -15,6 +15,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 
 const RumApplicationLogs: FunctionComponent<
   PageComponentProps
@@ -76,9 +77,16 @@ const RumApplicationLogs: FunctionComponent<
       title="RUM Application Logs"
       description="Live OpenTelemetry logs (browser / mobile events) from this application. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * Telemetry for a RUM application carries the RumApplication id in
+       * primaryEntityId, not a Service id. Tell the viewer so the locked
+       * scope chip reads "RUM Application: <name>" instead of
+       * "Service: <uuid>".
+       */}
       <DashboardLogsViewer
         id={`rum-application-logs-${modelId.toString()}`}
         serviceIds={[modelId]}
+        scopeEntityType={ServiceType.RealUserMonitor}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found for this application."

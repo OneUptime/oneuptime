@@ -774,6 +774,248 @@ describe("CompareCriteria", () => {
       ).toBe("Metric Value is 100 ms which is greater than 50 ms.");
     });
 
+    /*
+     * HUMAN-READABLE UNITS.
+     *
+     * This sentence is the "Filter Conditions Met" line of the alert and
+     * incident email. It used to glue the exporter's raw UCUM code onto
+     * raw digits, so a memory breach the dashboard drew as "1.07 GB"
+     * arrived in the inbox as "1073741824 By".
+     *
+     * The unit rides each NUMBER rather than the sentence, because
+     * auto-scaling can land two samples of one window on different scales
+     * and a single trailing suffix cannot describe both.
+     */
+    test("renders a byte value and its threshold at human scale", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 1073741824,
+          threshold: 1000000000,
+          criteriaFilter: filter,
+          unit: "By",
+        }),
+      ).toBe("Metric Value is 1.07 GB which is greater than 1 GB.");
+    });
+
+    test("rescales a duration", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 1500,
+          threshold: 1000,
+          criteriaFilter: filter,
+          unit: "ms",
+        }),
+      ).toBe("Metric Value is 1.5 sec which is greater than 1 sec.");
+    });
+
+    test("gives every listed sample its own scale", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [921600, 1258291],
+          threshold: 900000,
+          criteriaFilter: filter,
+          unit: "By",
+        }),
+      ).toBe(
+        "All values of Metric Value over the last 5 minutes is 922 KB, 1.26 MB which is greater than 900 KB.",
+      );
+    });
+
+    test("units ride both ends of the 'N samples between X and Y' summary", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: [1e9, 2e9, 3e9, 4e9, 5e9, 6e9],
+        threshold: 5e8,
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).toContain("6 samples between 1 GB and 6 GB");
+      expect(message).toContain("greater than 500 MB");
+    });
+
+    /*
+     * OTel's dimensionless "1" used to be printed: a CLS breach read
+     * "is 0.31 1 which is greater than or equal to 0.25 1".
+     */
+    test("the dimensionless '1' is suppressed on a non-fraction metric", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThanOrEqualTo,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.31,
+        threshold: 0.25,
+        criteriaFilter: filter,
+        metricDisplayName: "browser.cumulative_layout_shift",
+        metricName: "browser.cumulative_layout_shift",
+        unit: "1",
+      });
+
+      expect(message).toBe(
+        "browser.cumulative_layout_shift is 0.31 which is greater than or equal to 0.25.",
+      );
+      expect(message).not.toContain("0.31 1");
+    });
+
+    test("a fraction metric still carrying '1' reads as a percentage", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.0585,
+        threshold: 0.05,
+        criteriaFilter: filter,
+        metricDisplayName: "system.cpu.utilization",
+        metricName: "system.cpu.utilization",
+        unit: "1",
+      });
+
+      expect(message).toBe(
+        "system.cpu.utilization is 5.85% which is greater than 5.00%.",
+      );
+    });
+
+    test("a UCUM annotation-only unit is suppressed", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 512,
+        threshold: 500,
+        criteriaFilter: filter,
+        unit: "{thread}",
+      });
+
+      expect(message).toBe("Metric Value is 512 which is greater than 500.");
+      expect(message).not.toContain("{thread}");
+    });
+
+    /*
+     * THE FORMULA GUARD. metricDisplayName is the formula EXPRESSION for a
+     * formula criteria, and `a / b_ratio` ends in `_ratio` — the suffix
+     * the fraction heuristic keys on. Only `metricName`, which callers
+     * pass exclusively for plain metric criteria, may reach that
+     * heuristic; a formula reported at 100× its value would be a far worse
+     * bug than an unlabelled number.
+     */
+    test("a formula expression is never read as a fraction metric name", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.42,
+        threshold: 0.4,
+        criteriaFilter: filter,
+        metricDisplayName: "a / b_ratio",
+        unit: "1",
+      });
+
+      expect(message).toBe("a / b_ratio is 0.42 which is greater than 0.4.");
+      expect(message).not.toContain("42.00%");
+    });
+
+    /*
+     * BACKWARD COMPATIBILITY. Only MetricMonitorCriteria and
+     * DatabaseMonitorCriteria pass a unit; every other monitor type
+     * carries its unit inside the CheckOn label ("Response Time (in ms)")
+     * and must keep byte-identical, unabbreviated output.
+     */
+    test("a message with no unit is unchanged, digits and all", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+
+      const expected: string =
+        "Response Time (in ms) is 5000 which is greater than 4900.";
+
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+        }),
+      ).toBe(expected);
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+          unit: undefined,
+        }),
+      ).toBe(expected);
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+          unit: "",
+        }),
+      ).toBe(expected);
+    });
+
+    test("non-numeric filter types ignore a supplied unit", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.Contains,
+      });
+
+      const message: string = CompareCriteria.getCompareMessage({
+        values: "abc",
+        threshold: "b",
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).not.toContain("By");
+      expect(message).not.toContain("GB");
+    });
+
+    test("a non-finite value never reaches the scaling ladder", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+
+      const message: string = CompareCriteria.getCompareMessage({
+        values: Infinity,
+        threshold: 1000,
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).toContain("is Infinity which is");
+      expect(message).not.toContain("InfinityP");
+    });
+
     test("includes the disk path for disk usage checks", () => {
       const withPath: CriteriaFilter = makeFilter({
         checkOn: CheckOn.DiskUsagePercent,

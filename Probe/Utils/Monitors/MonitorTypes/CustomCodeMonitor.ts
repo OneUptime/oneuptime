@@ -1,9 +1,13 @@
-import { PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
+import {
+  PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+  PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  PROBE_PRIVATE_NETWORK_HINT,
+} from "../../../Config";
 import ProxyConfig from "../../ProxyConfig";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
 
 export interface CustomCodeMonitorOptions {
@@ -49,6 +53,19 @@ export default class CustomCodeMonitor {
           options: {
             timeout: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
             args: {},
+            /*
+             * A probe is a monitoring agent, placed on purpose inside the
+             * network it watches, and every other monitor type it runs already
+             * reaches whatever host the monitor names. This one inherits the
+             * SSRF guard from the workflow component it shares a sandbox with,
+             * so without this it is the only monitor type that cannot check an
+             * internal service (issue #3424). Off unless whoever deployed this
+             * probe turned it on; loopback and the cloud metadata endpoint stay
+             * refused either way.
+             */
+            allowPrivateNetworkRequests: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+            privateNetworkAccessIsAllowed: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+            privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
           },
         });
 
@@ -77,7 +94,8 @@ export default class CustomCodeMonitor {
          * monitor criteria keep working.
          */
         if (result.scriptError) {
-          logger.error(result.scriptError);
+          // Their script, their throw — never ours.
+          logger.error(result.scriptError, EXTERNAL_FAULT);
           scriptResult.scriptError =
             result.scriptError.message || result.scriptError.toString();
         }

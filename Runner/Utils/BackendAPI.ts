@@ -3,7 +3,7 @@ import RunnerAPIRequest from "./RunnerAPIRequest";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import {
   ImplicatedSpan,
@@ -223,6 +223,101 @@ interface LlmCompletionResponse {
   budget?: LlmCompletionBudget;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * GitHub-triggered runs.
+ *
+ * The worker never names the repository, installation or issue it is acting
+ * on: every request below carries only `taskId`, and the server derives the
+ * rest from the run's own stored context. Keep it that way — a worker that
+ * could name a GitHub object could post into any repository the installation
+ * can reach.
+ * ---------------------------------------------------------------------------
+ */
+
+export interface GitHubTaskRepository {
+  id: string;
+  name: string;
+  organizationName: string;
+  repositoryName: string;
+  mainBranchName: string;
+  setupCommand: string | null;
+  buildCommand: string | null;
+  testCommand: string | null;
+}
+
+export interface GitHubTaskIssue {
+  number: number;
+  title: string;
+  body: string;
+  htmlUrl: string;
+  labels: Array<string>;
+  authorLogin: string;
+}
+
+export interface GitHubTaskPullRequest {
+  number: number;
+  title: string;
+  body: string;
+  htmlUrl: string;
+  /*
+   * The branch pinned at trigger time, or null when there is none to work on
+   * locally — a fork's branch is not in the repository this installation can
+   * reach, so a fork review runs against the BASE branch plus the diff.
+   */
+  headRefName: string | null;
+  isFromFork: boolean;
+  headSha: string;
+  baseRefName: string;
+  authorLogin: string;
+  changedFilesCount: number;
+  additions: number;
+  deletions: number;
+}
+
+export interface GitHubTaskFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  patch: string | null;
+}
+
+export interface GitHubTaskComment {
+  authorLogin: string;
+  isBot: boolean;
+  body: string;
+  createdAt: string;
+}
+
+export interface GitHubTaskDetails {
+  taskType: string;
+  commandType: string;
+  /*
+   * UNTRUSTED. Written by a GitHub user, and quoted into an agent prompt as a
+   * request — never as instructions that widen what the run may do.
+   */
+  instruction: string;
+  triggeredByLogin: string | null;
+  repository: GitHubTaskRepository;
+  issue: GitHubTaskIssue | null;
+  pullRequest: GitHubTaskPullRequest | null;
+  files: Array<GitHubTaskFile>;
+  filesTruncated: boolean;
+  comments: Array<GitHubTaskComment>;
+}
+
+export interface GitHubReviewCommentInput {
+  path: string;
+  line: number;
+  body: string;
+}
+
+export interface PostGitHubReviewResult {
+  reviewUrl: string;
+  inlineCommentsRequested: number;
+}
+
 export default class BackendAPI {
   private baseUrl: URL;
 
@@ -400,6 +495,17 @@ export default class BackendAPI {
   // Get access token for a code repository
   public async getRepositoryToken(
     codeRepositoryId: string,
+    /*
+     * The run this token is for. Optional only for compatibility with older
+     * callers; pass it. The server uses it to decide whether the
+     * per-repository open-PR cap applies — a run that revises or reviews an
+     * EXISTING pull request adds nothing to the review queue and so is exempt,
+     * and without a task id it is treated as one that does.
+     *
+     * It is a task id, not a claim: the server re-derives the recipe from the
+     * run and ignores anything it cannot verify belongs to this agent.
+     */
+    taskId?: string | undefined,
   ): Promise<RepositoryToken> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-repository-token",
@@ -410,6 +516,7 @@ export default class BackendAPI {
       data: {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         codeRepositoryId: codeRepositoryId,
+        ...(taskId ? { taskId: taskId } : {}),
       },
     });
 
@@ -570,5 +677,98 @@ export default class BackendAPI {
     }
 
     logger.debug(`Updated task ${taskId} status to ${status}`);
+  }
+
+  /*
+   * Everything a GitHub-triggered run needs: the issue or pull request it is
+   * about, the thread so far, and (for a pull request) its diff.
+   */
+  public async getGitHubTaskDetails(
+    taskId: string,
+  ): Promise<GitHubTaskDetails> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/get-github-task-details",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: taskId,
+      },
+    });
+
+    if (!response.isSuccess()) {
+      const errorMessage: string =
+        (response.data as JSONObject)?.["message"]?.toString() ||
+        "Failed to get GitHub task details";
+      throw new Error(errorMessage);
+    }
+
+    const data: GitHubTaskDetails =
+      response.data as unknown as GitHubTaskDetails;
+
+    logger.debug(
+      `Got GitHub task details for ${taskId}: ${data.commandType} on ${data.repository?.organizationName}/${data.repository?.repositoryName}`,
+    );
+
+    return {
+      taskType: data.taskType,
+      commandType: data.commandType,
+      instruction: data.instruction || "",
+      triggeredByLogin: data.triggeredByLogin || null,
+      repository: data.repository,
+      issue: data.issue || null,
+      pullRequest: data.pullRequest || null,
+      files: data.files || [],
+      filesTruncated: Boolean(data.filesTruncated),
+      comments: data.comments || [],
+    };
+  }
+
+  /*
+   * Post the agent's review on the run's own pull request. The server decides
+   * WHERE it lands; this call only supplies the words.
+   */
+  public async postGitHubReview(data: {
+    taskId: string;
+    body: string;
+    comments: Array<GitHubReviewCommentInput>;
+  }): Promise<PostGitHubReviewResult> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/post-github-review",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: data.taskId,
+        body: data.body,
+        /*
+         * Widened to plain JSON: the API helper's JSONObject rejects an array
+         * of a named interface, and the server validates every anchor field
+         * itself before it goes anywhere near GitHub.
+         */
+        comments: data.comments as unknown as JSONArray,
+      },
+    });
+
+    if (!response.isSuccess()) {
+      const errorMessage: string =
+        (response.data as JSONObject)?.["message"]?.toString() ||
+        "Failed to post the GitHub review";
+      throw new Error(errorMessage);
+    }
+
+    const result: JSONObject = response.data;
+
+    logger.debug(`Posted a GitHub review for task ${data.taskId}`);
+
+    return {
+      reviewUrl: (result["reviewUrl"] as string) || "",
+      inlineCommentsRequested:
+        (result["inlineCommentsRequested"] as number) || 0,
+    };
   }
 }

@@ -31,8 +31,26 @@
     "errorOnSignUp": "注册前请完成人机验证挑战。"
   },
   "login": {
+    "passkey": {
+      "signIn": "使用通行密钥登录",
+      "description": "使用指纹、面容或设备 PIN 码。",
+      "passwordAlternative": "或使用密码登录",
+      "inProgress": "使用密码前，请完成或取消通行密钥登录。",
+      "title": "使用已保存的通行密钥",
+      "helpTitle": "初次使用通行密钥？",
+      "help": "先使用密码或 SSO 登录，然后打开用户资料 → 通行密钥和双重身份验证，创建您的第一个通行密钥。",
+      "preparing": "正在准备通行密钥…",
+      "waiting": "请查看您的设备",
+      "waitingDescription": "按照浏览器或密码管理器的提示操作。",
+      "verifying": "正在登录…",
+      "cancelled": "已取消通行密钥登录。您可以重试或使用密码。",
+      "notCompleted": "通行密钥登录已取消或超时。请重试或使用密码登录。",
+      "unsupported": "此浏览器不支持通行密钥。您仍可使用密码或 SSO 登录。",
+      "insecure": "通行密钥需要安全连接（HTTPS）。您仍可使用密码或 SSO 登录。",
+      "tryAgain": "重试通行密钥"
+    },
     "title": "登录您的账户",
-    "subtitle": "加入数千家使用 OneUptime 保持随时在线的企业。",
+    "subtitle": "使用通行密钥、密码或组织的单点登录（SSO）。",
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "useSso": "改用单点登录（SSO）",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "请按照安全密钥设备上的说明操作。",
       "codeFieldDescription": "请输入身份验证器应用中的代码",
       "selectDifferentMethod": "选择不同的双因素身份验证方法",
-      "useBackupCode": "改用备用代码",
       "backupCodeInstruction": "请输入您在设置双因素身份验证时保存的备用代码之一。每个代码只能使用一次。",
       "backupCodeFieldTitle": "备用代码",
-      "backupCodeFieldDescription": "备用代码的格式类似 ABCDE-12345。大小写和连字符均可忽略。"
+      "backupCodeFieldDescription": "备用代码的格式类似 ABCDE-12345。大小写和连字符均可忽略。",
+      "confirmSubtitle": "请确认是您本人，以完成登录。",
+      "recoverySubtitle": "请使用备用代码，或了解在没有备用代码时如何重新登录。",
+      "lostAccess": "无法使用身份验证器？",
+      "noBackupCodesStrong": "您没有备用代码。",
+      "noBackupCodes": "此处没有可输入的代码，因为此账户从未获得过一组备用代码。",
+      "noBackupCodesInstruction": "请联系此 OneUptime 实例的管理员，重置您账户的双因素身份验证。之后您就可以使用密码登录并设置新的身份验证器应用，同时系统会为您生成备用代码。",
+      "lostAccessSecurityKey": "无法使用安全密钥？"
     },
     "twoFactorEnrolment": {
       "title": "设置双重身份验证",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
       "submitButton": "验证并登录",
       "backToSignIn": "以其他用户身份登录"
+    },
+    "backupCodes": {
+      "title": "保存您的备用代码",
+      "subtitle": "如果您无法使用身份验证器应用或安全密钥，可以使用其中之一登录。",
+      "showOnceStrong": "这些代码仅显示这一次。",
+      "showOnce": "请将它们保存在生成代码的设备以外的地方。每个代码只能使用一次。",
+      "download": "下载为文本文件",
+      "savedConfirmation": "我已将这些代码保存在安全的地方。",
+      "continue": "继续前往仪表板",
+      "fileHeading": "OneUptime 双因素身份验证备用代码",
+      "fileInstruction": "每个代码只能使用一次。请将此文件保存在安全的地方，并与运行身份验证器应用的设备分开存放。",
+      "setUpTitle": "设置备用代码",
+      "setUpSubtitle": "在继续之前，还有最后一件事。",
+      "noneStrong": "您没有备用代码。",
+      "none": "如果您丢失了身份验证器应用或安全密钥，管理员必须先重置双因素身份验证，您才能重新登录。",
+      "generate": "生成备用代码",
+      "skip": "暂时跳过",
+      "generateFailed": "未返回任何备用代码。请在“用户配置 > 双因素身份验证”中重试。"
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "登录 OneUptime On-Call",
+    "description": "使用为此 OneUptime 服务器保存的通行密钥。",
+    "returnDescription": "确认后，你将返回移动应用。",
+    "invalid": "请从 OneUptime 移动应用开始登录。此请求缺失或无效。",
+    "insecure": "通行密钥需要 HTTPS。请返回应用并检查服务器地址。",
+    "failed": "无法完成登录。请返回应用重试。",
+    "complete": "通行密钥已验证。请返回应用完成登录。",
+    "returnToApp": "返回应用",
+    "cancel": "取消并返回应用",
+    "setup": "在网页控制台的“用户资料 → 通行密钥和双重身份验证”中创建通行密钥。"
+  },
+  "Use at least {{minimum}} characters.": "请至少使用 {{minimum}} 个字符。",
+  "Try a few unrelated words.": "试试组合几个互不相关的词。",
+  "Password meets requirements": "密码符合要求",
+  "Password must be at least 15 characters.": "密码必须至少包含 15 个字符。",
+  "Password cannot be more than 100 characters.": "密码不能超过 100 个字符。",
+  "Choose a less predictable password. Try a few unrelated words.": "请选择更难猜测的密码。试试组合几个互不相关的词。",
+  "Password cannot be blank.": "密码不能仅包含空白字符。",
+  "Password is required.": "请输入密码。",
+  "Password must be a string.": "密码必须是字符串。",
+  "Account details": "账户信息",
+  "Secure your account": "保护你的账户",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 个字符",
+  "Avoid common or repeated patterns": "避免常见或重复的模式",
+  "Password length": "密码长度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 个字符 / 至少 {{minimum}} 个字符",
+  "Complete:": "已满足：",
+  "Incomplete:": "未满足：",
+  "Special character included (optional)": "已包含特殊字符（可选）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。"
 }

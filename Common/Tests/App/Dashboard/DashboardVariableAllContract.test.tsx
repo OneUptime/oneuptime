@@ -439,8 +439,11 @@ describe("dashboard variable All contract", () => {
         React.createElement(PublicDashboardVariableSelector, {
           variables: [variable],
           dashboardId: new ObjectID("11111111-1111-4111-8111-111111111111"),
-          onVariableValueChange: (_id: string, value: string): void => {
-            values.push(value);
+          onVariableValueChange: (
+            _id: string,
+            change: VariableValueChange,
+          ): void => {
+            values.push(change.selectedValue || "");
           },
         }),
       );

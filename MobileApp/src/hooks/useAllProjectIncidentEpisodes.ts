@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
-import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
+import { useActiveProject } from "./useProject";
+import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
 import type {
+  ProjectItem,
   ListResponse,
   IncidentEpisodeItem,
   ProjectIncidentEpisodeItem,
-  ProjectItem,
 } from "../api/types";
 
 const FETCH_LIMIT: number = 100;
@@ -18,51 +18,58 @@ interface UseAllProjectIncidentEpisodesResult {
   refetch: () => Promise<void>;
 }
 
+/** The public name is retained for callers; only the selected project is queried. */
 export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesResult {
-  const { projectList } = useProject();
-
+  const { projectList, isLoadingProjects } = useActiveProject();
+  const project: ProjectItem | undefined = projectList[0];
+  const projectId: string | undefined = project?._id;
   const query: UseQueryResult<
     ListResponse<IncidentEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["incident-episodes", "all-projects"],
+    queryKey: ["incident-episodes", projectId],
     queryFn: () => {
-      return fetchAllIncidentEpisodes({ skip: 0, limit: FETCH_LIMIT });
+      if (!projectId) {
+        return Promise.resolve({
+          data: [],
+          count: 0,
+          skip: 0,
+          limit: FETCH_LIMIT,
+        });
+      }
+      return fetchIncidentEpisodes(projectId, { skip: 0, limit: FETCH_LIMIT });
     },
-    enabled: projectList.length > 0,
+    enabled: Boolean(projectId) && !isLoadingProjects,
+    placeholderData: undefined,
   });
 
-  const projectMap: Map<string, string> = useMemo(() => {
-    const map: Map<string, string> = new Map();
-    projectList.forEach((p: ProjectItem) => {
-      map.set(p._id, p.name);
-    });
-    return map;
-  }, [projectList]);
-
   const items: ProjectIncidentEpisodeItem[] = useMemo(() => {
-    if (!query.data) {
+    const rows: IncidentEpisodeItem[] | undefined = query.data?.data;
+    if (!project || !Array.isArray(rows)) {
       return [];
     }
-    return query.data.data.map(
-      (item: IncidentEpisodeItem): ProjectIncidentEpisodeItem => {
-        const pid: string = item.projectId ?? "";
+    return rows
+      .filter((item: IncidentEpisodeItem) => {
+        return !item.projectId || item.projectId === project._id;
+      })
+      .map((item: IncidentEpisodeItem): ProjectIncidentEpisodeItem => {
         return {
           item,
-          projectId: pid,
-          projectName: projectMap.get(pid) ?? "",
+          projectId: project._id,
+          projectName: project.name,
         };
-      },
-    );
-  }, [query.data, projectMap]);
+      });
+  }, [query.data, project]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await query.refetch();
+    if (projectId) {
+      await query.refetch();
+    }
   };
 
   return {
     items,
-    isLoading: query.isPending,
+    isLoading: isLoadingProjects || query.isLoading,
     isError: query.isError,
     refetch,
   };

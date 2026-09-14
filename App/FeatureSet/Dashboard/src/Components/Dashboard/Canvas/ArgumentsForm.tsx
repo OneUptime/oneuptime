@@ -49,6 +49,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
+import ProjectLabelVariableDropdown from "./ProjectLabelVariableDropdown";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import TraceChartQueryEditor from "./TraceChartQueryEditor";
 import LogChartQueryEditor from "./LogChartQueryEditor";
 import DataSourceQueryEditor from "./DataSourceQueryEditor";
@@ -62,6 +64,7 @@ export interface ComponentProps {
     telemetryAttributes: string[];
   };
   component: DashboardBaseComponent;
+  variables?: Array<DashboardVariable> | undefined;
   onHasFormValidationErrors?:
     | ((values: Dictionary<boolean>) => void)
     | undefined;
@@ -76,6 +79,7 @@ interface SectionGroup {
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const variables: Array<DashboardVariable> | undefined = props.variables;
   const formRefs: React.MutableRefObject<
     Record<string, FormProps<FormValues<JSONObject>> | null>
   > = useRef({});
@@ -486,6 +490,23 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     | undefined => {
     if (arg.type === ComponentInputType.MetricsQueryConfig) {
       return getMetricsQueryConfigForm(arg);
+    }
+    if (arg.type === ComponentInputType.ProjectLabelVariable) {
+      // eslint-disable-next-line react/display-name
+      return (
+        value: FormValues<JSONObject>,
+        componentProps: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <ProjectLabelVariableDropdown
+            variables={variables}
+            value={value[arg.id as string] as string | undefined}
+            onChange={(next: string) => {
+              return componentProps.onChange?.(next);
+            }}
+          />
+        );
+      };
     }
     if (arg.type === ComponentInputType.EntityDropdown) {
       return getEntityDropdownForm(arg, false);

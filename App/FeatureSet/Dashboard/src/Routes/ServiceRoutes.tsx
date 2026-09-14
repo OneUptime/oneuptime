@@ -23,11 +23,14 @@ import ServiceViewProfiles from "../Pages/Service/View/Profiles";
 
 import ServiceViewExceptions from "../Pages/Service/View/Exceptions";
 
+import ServiceViewSourceMaps from "../Pages/Service/View/SourceMaps";
+
 import ServiceViewDelete from "../Pages/Service/View/Delete";
 
 import ServiceViewSettings from "../Pages/Service/View/Settings";
 
 import ServiceViewOwners from "../Pages/Service/View/Owners";
+import ServiceViewFeed from "../Pages/Service/View/Feed";
 
 import ServiceViewAuditLogs from "../Pages/Service/View/AuditLogs";
 
@@ -190,11 +193,32 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_SOURCE_MAPS)}
+          element={
+            <ServiceViewSourceMaps
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_SOURCE_MAPS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_OWNERS)}
           element={
             <ServiceViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_FEED)}
+          element={
+            <ServiceViewFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_FEED] as Route}
             />
           }
         />

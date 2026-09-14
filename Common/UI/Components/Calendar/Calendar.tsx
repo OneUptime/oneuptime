@@ -75,9 +75,33 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
       display: "block",
     };
 
-    return {
-      style,
-    };
+    /*
+     * The accent colour reaches CSS as a custom property rather than as a
+     * border here, so the stylesheet decides how to draw it (an inset stripe
+     * today) and the two can be changed together in one place.
+     */
+    if (event.accentColor) {
+      (style as Record<string, string>)["--oneuptime-event-accent"] =
+        event.accentColor.toString();
+    }
+
+    const className: string | undefined = event.className
+      ? event.className.toString()
+      : undefined;
+
+    return className ? { style, className } : { style };
+  };
+
+  /*
+   * react-big-calendar's default tooltip is the title, which is already
+   * truncated in the block itself — so hovering a clipped label tells the
+   * reader exactly as little as looking at it did. Prefer `desc`, which callers
+   * use for the full, multi-line explanation of what the block means.
+   */
+  const eventTooltipGetter: (event: CalendarEvent) => string = (
+    event: CalendarEvent,
+  ): string => {
+    return event.desc?.toString() || event.title;
   };
 
   return (
@@ -94,6 +118,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         views={CALENDAR_VIEWS}
         defaultView={props.defaultCalendarView || "week"}
         eventPropGetter={eventStyleGetter}
+        tooltipAccessor={eventTooltipGetter}
         popup
         onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
           if (Array.isArray(range)) {

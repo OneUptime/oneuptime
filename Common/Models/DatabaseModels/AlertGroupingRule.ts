@@ -5,7 +5,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -96,7 +96,7 @@ export interface AlertGroupingRuleGroupByFields {
   tableDescription:
     "Configure rules for automatically grouping related alerts into episodes",
 })
-export default class AlertGroupingRule extends BaseModel {
+export default class AlertGroupingRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

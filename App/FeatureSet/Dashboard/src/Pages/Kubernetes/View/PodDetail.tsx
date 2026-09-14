@@ -40,6 +40,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import KubernetesImageReferenceView from "../../../Components/Kubernetes/KubernetesImageReferenceView";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -61,6 +62,11 @@ const KubernetesClusterPodDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          /*
+           * The name is display-only: the Logs tab's locked cluster chip
+           * reads it instead of the machine identifier.
+           */
+          name: true,
         },
       });
       setCluster(item);
@@ -330,20 +336,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         value: (
           <div className="space-y-2">
             {containerImages.map((img: string, idx: number) => {
-              const parts: Array<string> = img.split(":");
-              const imageName: string = parts.slice(0, -1).join(":") || img;
-              const tag: string | undefined =
-                parts.length > 1 ? parts[parts.length - 1] : undefined;
-              return (
-                <div key={idx} className="flex items-center gap-2 text-sm">
-                  <span className="font-mono text-gray-900">{imageName}</span>
-                  {tag && (
-                    <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-700">
-                      {tag}
-                    </span>
-                  )}
-                </div>
-              );
+              return <KubernetesImageReferenceView key={idx} reference={img} />;
             })}
           </div>
         ),
@@ -449,6 +442,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       children: (
         <KubernetesLogsTab
           clusterIdentifier={clusterIdentifier}
+          clusterName={cluster.name}
           podName={podName}
           namespace={podObject?.metadata.namespace}
         />

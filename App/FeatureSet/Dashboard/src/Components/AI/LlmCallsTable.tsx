@@ -95,6 +95,38 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     return <ServiceElement service={telemetryService} />;
   };
 
+  /*
+   * The employee who made the call, as one value. Email is preferred and the
+   * id is the fallback rather than a second column, because an emitter almost
+   * always populates exactly one of the two — the coding-agent CLIs stamp
+   * user.email natively while the gateways report a key-owner id — so a
+   * dedicated column for each would be empty on nearly every row.
+   *
+   * Note what is NOT consulted here: the caller's own downstream-customer
+   * identity (gen_ai.user and friends, see LlmEndUserAttributeKeys) is never
+   * denormalized into these columns, precisely so it can never be read as the
+   * person to charge.
+   */
+  const getUserLabel: (span: Span) => string = (span: Span): string => {
+    return (
+      span.llmUserEmail?.toString().trim() ||
+      span.llmUserId?.toString().trim() ||
+      ""
+    );
+  };
+
+  const renderUserElement: (span: Span) => ReactElement = (
+    span: Span,
+  ): ReactElement => {
+    const label: string = getUserLabel(span);
+
+    if (!label) {
+      return <span className="text-gray-400">—</span>;
+    }
+
+    return <span className="text-xs text-gray-700">{label}</span>;
+  };
+
   return (
     <AnalyticsModelTable<Span>
       modelType={Span}
@@ -171,6 +203,40 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           type: FieldType.Text,
           title: "Operation",
         },
+        /*
+         * Employee identity is filtered as free text rather than a dropdown:
+         * unlike services, the set of people who have made an LLM call is not
+         * a bounded list the page can fetch upfront — it is whatever the
+         * instrumentation happened to stamp, across the whole retention
+         * window.
+         *
+         * Email and id are separate filters even though they render as one
+         * "User" column, because a filter narrows one stored column and most
+         * emitters populate exactly one of the two. Folding them into a
+         * single input would silently return nothing for the half of the
+         * fleet that reports the other one.
+         */
+        {
+          field: {
+            llmUserEmail: true,
+          },
+          type: FieldType.Text,
+          title: "User Email",
+        },
+        {
+          field: {
+            llmUserId: true,
+          },
+          type: FieldType.Text,
+          title: "User ID",
+        },
+        {
+          field: {
+            llmTeam: true,
+          },
+          type: FieldType.Text,
+          title: "Team",
+        },
         {
           field: {
             llmConversationId: true,
@@ -194,6 +260,13 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         llmOutputTokens: true,
         llmResponseModel: true,
         llmConversationId: true,
+        /*
+         * The User column reads llmUserEmail (its declared field) but falls
+         * back to llmUserId, which no column declares on its own — without
+         * this the fallback would render "Unknown" for every emitter that
+         * reports an id and no email.
+         */
+        llmUserId: true,
       }}
       columns={[
         {
@@ -211,12 +284,31 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           type: FieldType.Element,
           getElement: renderServiceElement,
         },
+        /*
+         * Provider and Operation are shipped hidden so the two identity
+         * columns below do not widen the table: adding them to the eight
+         * columns this table already had would have pushed cost and status
+         * off the side of a laptop screen.
+         *
+         * These two are the ones that earn their place least in the DEFAULT
+         * view, and they are still one click away in the column picker and
+         * still filterable. Provider is largely readable off the model name
+         * for the dominant vendors (gpt-*, claude-*, gemini-*), and Operation
+         * is "chat" on the overwhelming majority of rows — neither is the
+         * reason someone opens this table, whereas "who spent this" is.
+         *
+         * Viewers who have already customized this table keep them: a stored
+         * layout that lists a column in `order` wins over isHiddenByDefault
+         * (see ColumnPreference.getCustomizableColumns), so this only
+         * re-shapes the default for people who never opened the picker.
+         */
         {
           field: {
             llmSystem: true,
           },
           title: "Provider",
           type: FieldType.Text,
+          isHiddenByDefault: true,
         },
         {
           field: {
@@ -230,6 +322,24 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             llmOperation: true,
           },
           title: "Operation",
+          type: FieldType.Text,
+          isHiddenByDefault: true,
+        },
+        {
+          field: {
+            llmUserEmail: true,
+          },
+          title: "User",
+          type: FieldType.Element,
+          getElement: renderUserElement,
+          // The cell renders a fallback the declared field does not carry.
+          getExportValue: getUserLabel,
+        },
+        {
+          field: {
+            llmTeam: true,
+          },
+          title: "Team",
           type: FieldType.Text,
         },
         {

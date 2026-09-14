@@ -609,12 +609,22 @@ export default class ModelPermission {
           },
         );
         if (!column) {
+          /*
+           * tableColumns holds AnalyticsTableColumn objects, so joining them
+           * rendered the remediation list as "[object Object], [object
+           * Object], ..." - the half of the sentence that tells the caller
+           * what to do instead said nothing at all.
+           */
+          const selectableColumns: string = tableColumns
+            .map((tableColumn: AnalyticsTableColumn) => {
+              return tableColumn.key;
+            })
+            .join(", ");
+
           throw new BadDataException(
             `Invalid select clause. Cannot select on "${key}". This column does not exist on ${
               model.singularName
-            }. Here are the columns you can select on instead: ${tableColumns.join(
-              ", ",
-            )}`,
+            }. Here are the columns you can select on instead: ${selectableColumns}`,
           );
         }
 

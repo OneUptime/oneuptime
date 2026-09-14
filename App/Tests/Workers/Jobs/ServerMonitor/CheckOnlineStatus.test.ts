@@ -68,11 +68,24 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+jest.mock("Common/Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    SemaphoreLockTimeoutError: class extends Error {},
+    default: {
+      lock: jest.fn().mockImplementation(async () => {
+        return { isAcquired: true };
+      }),
+      release: jest.fn().mockResolvedValue(undefined),
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/MonitorService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneBy: jest.fn(),
       getEnabledMonitorQuery: jest.fn(),
     },
@@ -107,7 +120,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import "../../../../FeatureSet/Workers/Jobs/ServerMonitor/CheckOnlineStatus";
 
 interface MonitorServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneBy: jest.Mock;
   getEnabledMonitorQuery: jest.Mock;
 }
@@ -257,7 +270,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
         return lteOrNullSentinel(value as Date) as never;
       });
 
-    monitorService.findAllBy.mockResolvedValue([]);
+    monitorService.findBy.mockResolvedValue([]);
     monitorService.findOneBy.mockResolvedValue(null);
     monitorService.getEnabledMonitorQuery.mockReturnValue(
       ENABLED_MONITOR_QUERY,
@@ -271,10 +284,9 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   test("sweeps stale Server monitors with monitorSteps in the select and the enabled/active gates", async () => {
     await runWorkerTick();
 
-    expect(monitorService.findAllBy).toHaveBeenCalledTimes(1);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
-    const sweep: FindArgs = monitorService.findAllBy.mock
-      .calls[0]![0] as FindArgs;
+    const sweep: FindArgs = monitorService.findBy.mock.calls[0]![0] as FindArgs;
 
     expect(sweep.query["monitorType"]).toBe(MonitorType.Server);
     expect(sweep.query["disableActiveMonitoring"]).toBe(false);
@@ -288,7 +300,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("a monitor whose steps have no Is Online filter is dropped on the sweep row: no re-fetch, no evaluation", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
@@ -304,7 +316,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("a monitor with no monitorSteps at all is skipped before everything", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({ id: MONITOR_A_ID }),
     ]);
 
@@ -318,7 +330,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   test("a monitor with an Is Online filter is re-fetched WITHOUT monitorSteps, against the same staleness threshold, and evaluated from the re-fetched row", async () => {
     const refetchedReceivedAt: Date = new Date("2026-07-27T09:50:00.000Z");
 
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
@@ -381,7 +393,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   test("requestReceivedAt falls back to the stored response's requestReceivedAt when the column is unset", async () => {
     const responseReceivedAt: Date = new Date("2026-07-27T09:45:00.000Z");
 
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
@@ -408,7 +420,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("a monitor that never received any response falls back to createdAt and an empty hostname", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
@@ -428,7 +440,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("a null re-fetch (a response arrived since the sweep) is skipped silently", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
@@ -444,7 +456,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("a re-fetched row missing projectId is logged and skipped", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
@@ -463,7 +475,7 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("one monitor's evaluation rejecting does not prevent processing of the others", async () => {
-    monitorService.findAllBy.mockResolvedValue([
+    monitorService.findBy.mockResolvedValue([
       makeSweepMonitor({
         id: MONITOR_A_ID,
         monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),

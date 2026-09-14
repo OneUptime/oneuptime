@@ -19,3 +19,7 @@
 
 4. **Configurar Notificações de Alertas e Manutenção Programada**
    - Regras semelhantes podem ser aplicadas a Alertas e Manutenção Programada navegando para suas respectivas páginas e configurando as regras desejadas.
+
+## Acesso à rede para implantações auto-hospedadas
+
+Para conexões de saída, callbacks de entrada e implantações privadas, consulte a seção de acesso à rede do [Integração com Microsoft Teams](/docs/self-hosted/microsoft-teams-integration).

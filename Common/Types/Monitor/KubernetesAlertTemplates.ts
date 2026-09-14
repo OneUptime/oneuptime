@@ -2,8 +2,11 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
+import {
+  buildHealthyCriteriaInstance,
+  buildUnhealthyCriteriaInstance,
+} from "./Recommendation/RecommendationCriteriaBuilder";
+import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceScope,
 } from "./MonitorStepKubernetesMonitor";
@@ -92,59 +95,12 @@ export function buildOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const incidentTitle: string =
-    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
-  const incidentDescription: string =
-    args.incidentDescription ||
-    `${args.monitorName} has triggered an alert condition. See root cause for detailed Kubernetes resource information.`;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        incidentSeverityId: args.incidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        alertSeverityId: args.alertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
-    description:
-      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
-  };
-
-  return instance;
+  return buildUnhealthyCriteriaInstance({
+    ...args,
+    resourceNoun: "Kubernetes resource",
+  });
 }
 
 export function buildOnlineCriteriaInstance(args: {
@@ -152,36 +108,47 @@ export function buildOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  recoveryValue?: number | undefined;
+  marginFraction?: number | undefined;
+  isBinaryMetric?: boolean | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: "Criteria for healthy state.",
-  };
-
-  return instance;
+  return buildHealthyCriteriaInstance(args);
 }
 
+/**
+ * Build a single-query monitor config.
+ *
+ * `groupByAttributeKeys` makes the monitor PER-SERIES: the worker splits
+ * the metric by those attributes and every group is evaluated — and paged —
+ * on its own, so a cluster of 200 pods raises one incident per unhealthy
+ * pod rather than one incident for the whole cluster that then dedupes
+ * every later pod away. Omitting it keeps the monitor whole-cluster.
+ *
+ * Group by an object's own name whenever the metric is genuinely
+ * PER-OBJECT (per node, per pod, per deployment, ...). Leave it off for
+ * cluster-scalar signals — etcd leadership, API server throttling,
+ * scheduler backlog — where there is exactly one value for the cluster
+ * and splitting it would invent series that do not exist.
+ *
+ * Pass MORE than one key when the object's identity genuinely needs
+ * them, and the group-by set is what the alert can name afterwards. A
+ * bare pod name is not an identity — pod names are unique only within a
+ * namespace — and, more practically, an alert that says
+ * "Pod: checkout-7d9f-2xk" without the namespace sends the engineer to
+ * `kubectl` with a guess. The series labels are stored on the alert and
+ * rendered into its title and description (SeriesLabelDisplay), so every
+ * key added here is one more thing the on-call engineer does not have to
+ * go and look up.
+ *
+ * The keys are the ClickHouse-stored attribute names, which carry the
+ * `resource.` prefix for OTel resource attributes (see
+ * OtelMetricsIngestService — resource attributes are stamped with
+ * `prefixKeysWithString: "resource"`). So node grouping is
+ * `resource.k8s.node.name`, not the bare `k8s.node.name`; the bare key
+ * matches nothing and collapses the whole fleet into one mislabeled
+ * series that still renders and still alerts.
+ */
 export function buildKubernetesMonitorConfig(args: {
   clusterIdentifier: string;
   metricName: string;
@@ -190,6 +157,21 @@ export function buildKubernetesMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKeys?: Array<string> | undefined;
+  /*
+   * Native-to-display unit for this query. MetricResultUnitConverter
+   * (invoked on the monitor path in MonitorTelemetryMonitor, before the
+   * criteria are compared) rescales the query's values from the unit
+   * OpenTelemetry reported into this one, and MetricUnitUtil puts UCUM
+   * "1" — OTel's dimensionless marker for a 0-1 fraction — in the percent
+   * family with `toCanonical: 100`.
+   *
+   * So declaring "%" on a receiver-emitted 0-1 ratio lets the criteria
+   * below stay written in percent, and is a no-op if that metric ever
+   * arrives already scaled as "%" (the converter short-circuits when the
+   * native and display units match).
+   */
+  legendUnit?: string | undefined;
 }): MonitorStepKubernetesMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -203,7 +185,7 @@ export function buildKubernetesMonitorConfig(args: {
             title: args.metricAlias,
             description: args.metricAlias,
             legend: args.metricAlias,
-            legendUnit: undefined,
+            legendUnit: args.legendUnit,
           },
           metricQueryData: {
             filterData: {
@@ -212,6 +194,10 @@ export function buildKubernetesMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKeys &&
+            args.groupByAttributeKeys.length > 0
+              ? { groupByAttributeKeys: args.groupByAttributeKeys }
+              : {}),
           },
         },
       ],
@@ -223,8 +209,8 @@ export function buildKubernetesMonitorConfig(args: {
 
 /**
  * Build a per-series ratio monitor: `(numerator / denominator) * 100`,
- * grouped by a single OpenTelemetry attribute so one incident fires per
- * group (e.g. per node).
+ * grouped by one or more OpenTelemetry attributes so one incident fires
+ * per group (e.g. per node, or per namespace+pod).
  *
  * Used for saturation metrics that aren't emitted as a single ready-made
  * series — e.g. node request utilization (summed pod requests ÷ node
@@ -252,17 +238,39 @@ export function buildKubernetesMonitorConfig(args: {
  *     both reported the same row count every minute — fragile across
  *     restarts / missed scrapes / minute-boundary jitter.
  *
- * The group-by key is the ClickHouse-stored attribute name, which carries
- * the `resource.` prefix for OTel resource attributes (see
+ * The group-by keys are the ClickHouse-stored attribute names, which
+ * carry the `resource.` prefix for OTel resource attributes (see
  * OtelMetricsIngestService — resource attributes are stamped with
  * `prefixKeysWithString: "resource"`). So node grouping is
  * `resource.k8s.node.name`, not the bare `k8s.node.name`.
+ *
+ * CHOOSING THE KEYS IS NOT FREE HERE, and the constraint is different
+ * from the single-query builder. The two queries are joined by series
+ * FINGERPRINT — `buildSeriesBreakdown` buckets each query's rows by the
+ * hash of this exact key set — so a key that only ONE side carries
+ * splits the two into fingerprints that never meet, the formula
+ * evaluates against an empty operand, and the monitor silently stops
+ * alerting. Not "alerts less precisely": stops. So only add a key both
+ * metrics are GUARANTEED to carry, from their receivers themselves
+ * rather than from best-effort enrichment:
+ *
+ *   - `k8s.namespace.name` is safe for pod/container/workload ratios:
+ *     kubeletstats stamps it on pod metrics and the k8s_cluster receiver
+ *     stamps it on container and workload metrics, both directly.
+ *
+ *   - `k8s.node.name` is NOT safe on a pod ratio whose denominator is a
+ *     k8s_cluster metric. kubeletstats always has it (the receiver, plus
+ *     the DaemonSet's `resource` processor stamping NODE_NAME); on the
+ *     k8s_cluster side it can only arrive via the k8sattributes
+ *     processor, which is best-effort and depends on pod association
+ *     still resolving. A single-query template over a kubeletstats
+ *     metric has no join to break and may group by it freely.
  */
 export function buildKubernetesRatioMonitorConfig(args: {
   clusterIdentifier: string;
   numeratorMetricName: string;
   denominatorMetricName: string;
-  groupByAttributeKey: string;
+  groupByAttributeKeys: Array<string>;
   numeratorAlias: string;
   denominatorAlias: string;
   resultAlias: string;
@@ -270,6 +278,17 @@ export function buildKubernetesRatioMonitorConfig(args: {
   resourceScope: KubernetesResourceScope;
   rollingTime: RollingTime;
   aggregationType?: MetricsAggregationType | undefined;
+  /*
+   * Override the default `(numerator / denominator) * 100` when the
+   * percentage the template needs is not a plain ratio of the two
+   * operands. Node filesystem usage is the case this exists for: the
+   * only companion series this repo ingests is
+   * `k8s.node.filesystem.available`, so the denominator has to be built
+   * as `usage + available` — the same way `df` computes Use%, and the
+   * same way the cluster dashboard already computes node fill. Reference
+   * the operand ALIASES, not the metric names.
+   */
+  formula?: string | undefined;
 }): MonitorStepKubernetesMonitor {
   const aggregationType: MetricsAggregationType =
     args.aggregationType || MetricsAggregationType.Sum;
@@ -293,7 +312,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
           aggegationType: aggregationType,
           aggregateBy: {},
         },
-        groupByAttributeKeys: [args.groupByAttributeKey],
+        groupByAttributeKeys: args.groupByAttributeKeys,
       },
     };
   };
@@ -317,7 +336,9 @@ export function buildKubernetesRatioMonitorConfig(args: {
             legendUnit: "%",
           },
           metricFormulaData: {
-            metricFormula: `(${args.numeratorAlias} / ${args.denominatorAlias}) * 100`,
+            metricFormula:
+              args.formula ||
+              `(${args.numeratorAlias} / ${args.denominatorAlias}) * 100`,
           },
         },
       ],
@@ -331,8 +352,14 @@ export function buildKubernetesRatioMonitorConfig(args: {
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
   name: "CrashLoopBackOff Detection",
+  /*
+   * No backticks in here. `template.description` is rendered as raw JSX
+   * text on the recommendation card
+   * (KubernetesTemplatePicker.tsx renders `{template.description}` inside a
+   * <p>, not markdown), so a code span would show up as literal backticks.
+   */
   description:
-    "Alert when container restart count exceeds threshold, indicating a CrashLoopBackOff condition.",
+    "Alert when a container has restarted more than 5 times since its pod was created. k8s.container.restarts is the container status' cumulative restartCount, so this is a lifetime count for the CURRENT pod rather than a rate: it resets only when the pod object is replaced, which is also when this alert auto-resolves.",
   category: "Workload",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -346,6 +373,17 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per pod: restarts are a property of one pod's containers, so a
+         * crash-looping pod must page on its own rather than dedupe behind
+         * whichever pod in the cluster crashed first. Max over the window
+         * therefore becomes "the worst container in THIS pod".
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+          "resource.k8s.container.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -356,10 +394,30 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 5,
         incidentTitle: `[K8s] CrashLoopBackOff Detected - ${args.monitorName}`,
-        incidentDescription: `A container in the Kubernetes cluster is repeatedly crashing and restarting (CrashLoopBackOff). The container restart count has exceeded the threshold of 5 restarts. Check the root cause for the specific pod, container, and node details.`,
+        /*
+         * `k8s.container.restarts` is containerStatus.restartCount: it only
+         * ever goes up for the life of the pod object. Everything this copy
+         * says follows from that, so keep the two facts in it — the count is
+         * cumulative, and the alert therefore clears on pod replacement
+         * rather than when the crashing stops.
+         *
+         * No angle-bracket placeholders in here. Incident.description is a
+         * Markdown column, and the subscriber path runs it through
+         * Markdown.convertToPlainText, which strips /<[^>]*>/g BEFORE it
+         * strips code-span backticks — so `<pod>` would silently vanish from
+         * every SMS.
+         *
+         * This template is GROUPED (namespace + pod + container), so it does
+         * NOT send the reader to the root cause for identity: a grouped
+         * alert's rootCause is only the compare line
+         * (MonitorCriteriaEvaluator.collectPerSeriesMatches). The identity
+         * lives in the block SeriesContextEnricher appends to the
+         * description.
+         */
+        incidentDescription: `A container has restarted more than 5 times since its pod was created — the signature of a CrashLoopBackOff. This count is cumulative for THIS pod and never decreases, so the alert clears when the pod is replaced (a redeploy, an eviction, a node drain) rather than at the moment the crashing stops. Common causes: a crash on startup, a missing config map or secret, an OOMKill against the container's memory limit, or a failing liveness probe. The affected namespace, pod and container are named under "Affected resource" below, with the kubectl commands to inspect them — including the previous instance's logs — under "Start here".`,
         criteriaName: "CrashLoopBackOff - Container Restarts > 5",
         criteriaDescription:
-          "Triggers when any container restart count exceeds 5 in the monitoring window, indicating a CrashLoopBackOff condition.",
+          "Triggers when a container's cumulative restart count for its current pod exceeds 5. This is not a per-window rate: a container that crash-looped and then stabilised keeps the alert open until its pod is replaced, and a container that is actively crash-looping but has only reached 3 restarts does not fire yet.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -379,7 +437,7 @@ const podPendingTemplate: KubernetesAlertTemplate = {
   category: "Scheduling",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "pending_pods";
+    const metricAlias: string = "min_pod_phase";
 
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesMonitorConfig({
@@ -387,9 +445,58 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         metricName: "k8s.pod.phase",
         metricAlias,
         resourceScope: KubernetesResourceScope.Cluster,
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Sum,
-        attributes: { "resource.k8s.pod.phase": "Pending" },
+        /*
+         * 15 minutes, with the sustained (AllValues) default: a pod that
+         * is Pending for a few seconds while it is scheduled is normal on
+         * any cluster doing deployments. "Stuck" means every per-minute
+         * bucket in the window still found a pod waiting.
+         */
+        rollingTime: RollingTime.Past15Minutes,
+        /*
+         * `k8s.pod.phase` encodes the phase in the VALUE, not in a label.
+         * The `k8s_cluster` receiver emits one gauge per pod per scrape,
+         * numbered in the order KubernetesMetricCatalog names them:
+         * 1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed,
+         * 5 = Unknown. The numeric mapping comes from the receiver itself;
+         * the catalog names the phases but carries no codes.
+         *
+         * This template used to carry
+         * `attributes: { "resource.k8s.pod.phase": "Pending" }` — an
+         * attribute nothing produces. The `k8s_cluster` receiver does not
+         * stamp it, the agent's `k8sattributes` processor extracts only
+         * name/uid/namespace/node/workload/container keys
+         * (configmap-deployment.yaml), and nothing in the ingest path
+         * synthesises it. The worker copies this map straight into the
+         * ClickHouse predicate (MonitorTelemetryMonitor.monitorKubernetes),
+         * so the query matched zero rows: the monitor never fired, never
+         * resolved, and never reported that it was watching nothing.
+         *
+         * Pending is the LOWEST phase code, so the cluster-wide Min is
+         * exactly 1 when at least one pod is Pending, and >= 2 otherwise.
+         * Min also avoids the trap the previous `Sum` walked into, which
+         * Common/Types/Dashboard/DashboardTemplates.ts documents: a
+         * per-resource gauge re-emitted on every scrape sums to
+         * (pods x scrapes). This is the same idiom k8s-node-not-ready
+         * already uses on `k8s.node.condition_ready` (Min + an equality
+         * against the bad value).
+         */
+        aggregationType: MetricsAggregationType.Min,
+        /*
+         * Deliberately NOT grouped, unlike the other pod-level templates.
+         *
+         * This is a cluster-wide statement about scheduling capacity
+         * ("somebody is stuck waiting") rather than about any one pod's
+         * health — the same signal as k8s-scheduler-backlog, seen from
+         * the pod side.
+         *
+         * Grouping it by `resource.k8s.pod.name` would fan out per pod
+         * name, and pending pod names are ephemeral: a stuck rollout burns
+         * a new replicaset-hash-suffixed name per attempt, so every retry
+         * would open a fresh incident and resolve it again the moment the
+         * name changed. That is an alert storm keyed on an identity that
+         * does not persist, which is the opposite of what per-series
+         * grouping is for (durable entities: nodes, deployments, jobs).
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -397,19 +504,35 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.GreaterThan,
-        value: 0,
+        filterType: FilterType.EqualTo,
+        value: 1,
         incidentTitle: `[K8s] Pods Stuck in Pending - ${args.monitorName}`,
-        incidentDescription: `One or more pods in the Kubernetes cluster are stuck in Pending phase and cannot be scheduled. This typically indicates insufficient cluster resources, node affinity constraints, or unbound PersistentVolumeClaims. Check the root cause for specific pod and scheduling details.`,
-        criteriaName: "Pods Pending - Count > 0",
+        /*
+         * Deliberately self-sufficient: it does NOT say "see the affected
+         * resources below". The shared Kubernetes breakdown renderer sorts
+         * affected resources by descending metric value ("worst first"),
+         * which for a phase code puts Unknown(5)/Failed(4)/Succeeded(3)
+         * pods above the Pending(1) one this alert is about, so the table
+         * cannot be relied on to name the stuck pod until that renderer
+         * learns a per-metric sort direction.
+         */
+        incidentDescription: `At least one pod has been in Pending phase in every sample of the last 15 minutes and cannot be scheduled. This typically indicates insufficient CPU/memory on the nodes, node affinity or taint restrictions, an unbound PersistentVolumeClaim, or an exceeded ResourceQuota. Run \`kubectl get pods --all-namespaces --field-selector=status.phase=Pending\` and \`kubectl describe\` one of them to see the scheduler's reason.`,
+        criteriaName: "Pods Pending - Phase = Pending (1)",
         criteriaDescription:
-          "Triggers when any pods are in Pending phase, unable to be scheduled.",
+          "Triggers when the lowest pod phase code in the cluster is 1 (Pending) for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
+        /*
+         * NotEqualTo rather than GreaterThan: getRecoveryThreshold gives
+         * no dead band to an equality comparison, so the recovery value
+         * stays exactly 1. `GreaterThan` would complement back to
+         * LessThanOrEqualTo and derive a 1.1 recovery threshold — a
+         * fractional edge on a metric whose values are an enum.
+         */
+        filterType: FilterType.NotEqualTo,
+        value: 1,
       }),
     });
   },
@@ -433,6 +556,12 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Min,
+        /*
+         * Per node: one incident per NotReady node. Ungrouped, the Min
+         * across the fleet is 0 as soon as ANY node is down, and the
+         * second node to fail dedupes behind the first one's incident.
+         */
+        groupByAttributeKeys: ["resource.k8s.node.name"],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -443,7 +572,7 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.EqualTo,
         value: 0,
         incidentTitle: `[K8s] Node Not Ready - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes node has transitioned to NotReady state. This is a critical condition that affects all pods scheduled on this node. Check the root cause for the specific node name, conditions, and recommended actions.`,
+        incidentDescription: `A Kubernetes node has transitioned to NotReady state. This is a critical condition that affects all pods scheduled on this node. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to read its conditions and list what it is still hosting.`,
         criteriaName: "Node NotReady - Condition = 0",
         criteriaDescription:
           "Triggers when any node reports a NotReady condition (value 0).",
@@ -473,7 +602,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.node.cpu.usage",
         denominatorMetricName: "k8s.node.allocatable_cpu",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "used_cpu",
         denominatorAlias: "alloc_cpu",
         resultAlias: metricAlias,
@@ -497,7 +626,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] High CPU Utilization (>90%) - ${args.monitorName}`,
-        incidentDescription: `A node's average CPU usage has exceeded 90% of its allocatable CPU. Sustained high CPU usage can cause pod throttling, increased latency, and potential node instability. Check the root cause for the specific node and top CPU-consuming workloads.`,
+        incidentDescription: `A node's average CPU usage has exceeded 90% of its allocatable CPU. Sustained high CPU usage can cause pod throttling, increased latency, and potential node instability. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods on it and find the top CPU consumers.`,
         criteriaName: "High CPU - Utilization > 90%",
         criteriaDescription:
           "Triggers when a node's average CPU usage exceeds 90% of its allocatable CPU over the monitoring window.",
@@ -527,7 +656,7 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.node.memory.usage",
         denominatorMetricName: "k8s.node.allocatable_memory",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "used_mem",
         denominatorAlias: "alloc_mem",
         resultAlias: metricAlias,
@@ -551,7 +680,7 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 85,
         incidentTitle: `[K8s] High Memory Utilization (>85%) - ${args.monitorName}`,
-        incidentDescription: `A node's average memory usage has exceeded 85% of its allocatable memory. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. Check the root cause for the specific node and top memory-consuming workloads.`,
+        incidentDescription: `A node's average memory usage has exceeded 85% of its allocatable memory. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods on it and find the top memory consumers.`,
         criteriaName: "High Memory - Utilization > 85%",
         criteriaDescription:
           "Triggers when a node's average memory usage exceeds 85% of its allocatable memory over the monitoring window.",
@@ -582,8 +711,29 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         metricName: "k8s.deployment.unavailable_replicas",
         metricAlias,
         resourceScope: KubernetesResourceScope.Workload,
-        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * 15 minutes, not 5. With the sustained (AllValues) default, the
+         * window IS the "how long has this been stuck" knob: every
+         * per-minute bucket in it must report unavailable replicas. A
+         * normal rolling update makes unavailable_replicas non-zero for
+         * the duration of the rollout, and a ten-replica deployment with
+         * maxUnavailable 25% and real readiness probes routinely takes
+         * longer than five minutes — so a five-minute window still paged
+         * once per deploy for a condition that is the deploy working.
+         */
+        rollingTime: RollingTime.Past15Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per deployment: a stuck rollout is a property of one Deployment
+         * object, and the incident copy already names the deployment. The
+         * k8s_cluster receiver stamps `k8s.deployment.name` on this metric
+         * (the worker reads `resource.k8s.deployment.name` back off these
+         * rows to build the affected-resource breakdown).
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.deployment.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -594,10 +744,10 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[K8s] Deployment Replica Mismatch - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes deployment has unavailable replicas — the desired replica count does not match the available count. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. Check the root cause for the specific deployment and replica details.`,
-        criteriaName: "Replica Mismatch - Unavailable > 0",
+        incidentDescription: `A Kubernetes deployment has unavailable replicas — the desired replica count does not match the available count. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. The affected namespace and deployment are named under "Affected resource" below, with the rollout-status command under "Start here".`,
+        criteriaName: "Replica Mismatch - Unavailable > 0 for 15 minutes",
         criteriaDescription:
-          "Triggers when any deployment has unavailable replicas.",
+          "Triggers when a deployment reports unavailable replicas in every sample of a fifteen-minute window — long enough that a normal rolling update has completed and the rollout is genuinely stuck.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -626,6 +776,16 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per Job object — one failing Job must not hide the next one.
+         * Jobs are short-lived: when a Job is cleaned up its series stops
+         * arriving and the per-series pass auto-resolves that Job's alert
+         * by absence, which is the behaviour we want here.
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.job.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -636,7 +796,7 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[K8s] Job Failure Detected - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes Job has one or more failed pods. This indicates the job's workload is failing to complete successfully. Check the root cause for the specific job name, failed pod details, and error information.`,
+        incidentDescription: `A Kubernetes Job has one or more failed pods. This indicates the job's workload is failing to complete successfully. The affected namespace and job are named under "Affected resource" below, with the describe command under "Start here".`,
         criteriaName: "Job Failures - Failed Pods > 0",
         criteriaDescription:
           "Triggers when any Kubernetes Job has failed pods.",
@@ -654,8 +814,16 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
 const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
   id: "k8s-etcd-no-leader",
   name: "etcd No Leader",
+  /*
+   * The requirement leads, deliberately: the card truncates long
+   * descriptions, and a user who one-clicks this on a managed cluster gets
+   * a monitor that is never Met and gives no indication it is inert.
+   *
+   * No backticks — KubernetesTemplatePicker renders this as raw JSX text,
+   * so a code span would show up as literal backticks on the card.
+   */
   description:
-    "Alert immediately when etcd has no leader elected. This is a critical cluster health issue.",
+    "Requires the agent's control-plane scrape (controlPlane.enabled); managed clusters (EKS / GKE / AKS) do not expose etcd's metrics endpoint at all, so on those this monitor will never receive a data point. Alert immediately when etcd has no leader elected — a critical cluster health issue.",
   category: "ControlPlane",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -669,6 +837,11 @@ const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past1Minute,
         aggregationType: MetricsAggregationType.Min,
+        /*
+         * Ungrouped: leadership is a property of the etcd cluster as a
+         * whole, not of any one object. "No leader" is one cluster-scalar
+         * fact and belongs in one incident.
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -696,22 +869,54 @@ const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
 
 const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
   id: "k8s-apiserver-throttling",
-  name: "API Server Throttling",
+  name: "API Server Request Saturation",
   description:
-    "Alert when the Kubernetes API server is dropping requests due to throttling.",
+    "Alert when the Kubernetes API server holds 200 or more concurrent in-flight requests for the whole window — the state in which it starts rejecting requests with 429. Requires the agent's control-plane scrape: set controlPlane.enabled and point controlPlane.apiServer.endpoints at an API server address the collector pod can actually reach (the chart's default, localhost:6443, is the collector's own loopback and scrapes nothing).",
   category: "ControlPlane",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "dropped_requests";
+    const metricAlias: string = "inflight_requests";
 
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "apiserver_dropped_requests_total",
+        /*
+         * A GAUGE, deliberately.
+         *
+         * This template used to Sum `apiserver_dropped_requests_total`, a
+         * cumulative Prometheus counter. The agent scrapes the API
+         * server's /metrics raw (configmap-deployment.yaml, job_name:
+         * kube-apiserver, no metric_relabel_configs) and nothing in the
+         * shipped pipeline converts counters to deltas: there is no
+         * cumulativetodelta processor in the chart,
+         * OtelMetricsIngestService records `aggregationTemporality` /
+         * `isMonotonic` but never differences the value, and neither
+         * AggregationType nor CompareCriteria.reduceWindow has a Rate or
+         * Delta member. So every sample was the process's lifetime total.
+         * One throttled request at any point since the API server last
+         * started pinned the monitor Offline, and the "= 0" recovery could
+         * never be met again.
+         *
+         * `apiserver_current_inflight_requests` is the gauge the cluster's
+         * own control-plane dashboard already charts for this signal
+         * (App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/
+         * ControlPlane.tsx: "Current number of in-flight requests being
+         * processed. High counts indicate API server saturation."). It is
+         * emitted per request_kind (mutating / readOnly).
+         */
+        metricName: "apiserver_current_inflight_requests",
         metricAlias,
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Sum,
+        /*
+         * Max across the two request_kind series: saturation of either
+         * queue is the condition, and the two have different ceilings.
+         *
+         * Ungrouped: this is the control plane's aggregate concurrency.
+         * Splitting it would need a per-apiserver-instance identity that
+         * this metric does not carry in the shipped agent config.
+         */
+        aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -719,19 +924,42 @@ const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.GreaterThan,
-        value: 0,
-        incidentTitle: `[K8s] CRITICAL: API Server Throttling - ${args.monitorName}`,
-        incidentDescription: `The Kubernetes API server is dropping requests due to throttling. This indicates the API server is overloaded and cannot process all incoming requests, affecting cluster operations.`,
-        criteriaName: "API Server Throttling - Dropped Requests > 0",
+        /*
+         * GreaterThanOrEqualTo, not GreaterThan.
+         *
+         * This gauge counts ADMITTED concurrency, so it is bounded above by
+         * the API server's own admission limit — it saturates AT the limit
+         * rather than climbing past it. 200 is the default
+         * --max-mutating-requests-inflight exactly, so a strict "> 200"
+         * would ask the mutating queue to exceed its own ceiling and the
+         * one series this number describes would never fire at all. ">="
+         * catches a mutating queue pinned at its limit (actively rejecting
+         * with 429) and a readOnly queue at half of its default 400
+         * ceiling.
+         *
+         * The number is a heuristic tied to the upstream defaults, not a
+         * derived fact; the incident description tells the operator to
+         * retune it against their own flags.
+         */
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 200,
+        incidentTitle: `[K8s] CRITICAL: API Server Request Saturation - ${args.monitorName}`,
+        incidentDescription: `The Kubernetes API server has held 200 or more concurrent in-flight requests for every sample in the monitoring window. The API server admits a bounded number of concurrent requests (--max-requests-inflight, default 400; --max-mutating-requests-inflight, default 200) and rejects the rest with 429, so sustained pressure here is the state immediately preceding cluster-wide API throttling. Common causes: a controller or client hot-looping on LIST, an operator with no resync backoff, or an undersized control plane. If your cluster runs different in-flight limits, retune this threshold to match them.`,
+        criteriaName: "API Server Saturation - In-Flight Requests >= 200",
         criteriaDescription:
-          "Triggers when the API server reports any dropped requests.",
+          "Triggers when the API server's in-flight request count stays at or above 200 for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
+        /*
+         * Complement of the firing comparison. The builder derives the
+         * actual recovery threshold as a 10% dead band inside 200, i.e.
+         * "< 180", so a control plane parked at the limit cannot toggle the
+         * monitor on consecutive evaluations.
+         */
+        filterType: FilterType.LessThan,
+        value: 200,
       }),
     });
   },
@@ -740,8 +968,9 @@ const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
 const schedulerBacklogTemplate: KubernetesAlertTemplate = {
   id: "k8s-scheduler-backlog",
   name: "Scheduler Backlog",
+  // See etcdNoLeaderTemplate for why the requirement leads and why no backticks.
   description:
-    "Alert when there are pods waiting to be scheduled for more than 5 minutes.",
+    "Requires the agent's control-plane scrape (controlPlane.enabled); managed clusters (EKS / GKE / AKS) do not expose the scheduler's metrics endpoint at all, so on those this monitor will never receive a data point. Alert when the scheduler's pending-pod queue is non-empty in every sample of a five-minute window.",
   category: "Scheduling",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -755,6 +984,10 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Avg,
+        /*
+         * Ungrouped: a scheduler queue depth is one number for the
+         * cluster. There is no per-object series to split it into.
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -783,19 +1016,49 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
-  description: "Alert when node filesystem usage exceeds 90% capacity.",
+  description:
+    "Alert when a node's filesystem is more than 90% full. Computed per node as k8s.node.filesystem.usage / (k8s.node.filesystem.usage + k8s.node.filesystem.available) x 100 — both are bytes from the same kubeletstats node scrape, so this is a true percentage and matches what df reports as Use%.",
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "disk_usage";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.node.filesystem.usage",
-        metricAlias,
+        /*
+         * `k8s.node.filesystem.usage` is BYTES (KubernetesMetricCatalog
+         * declares `unit: "bytes"`, and nothing converts it — the query
+         * configs carry no `legendUnit`, so MetricResultUnitConverter
+         * passes the raw value through). This template used to hand that
+         * gauge straight to a `> 90` comparison, so every node in every
+         * cluster breached on its first evaluation and the healthy
+         * criterion — "90 bytes or less used" — was unreachable: a
+         * permanently red monitor with an unresolvable incident.
+         *
+         * The denominator is built from the one companion series this
+         * repo has actually ingested, `k8s.node.filesystem.available`
+         * (KubernetesMetricCatalog, and the cluster dashboard's node
+         * fill tile in App/FeatureSet/Dashboard/src/Pages/Kubernetes/
+         * View/Index.tsx). usage / (usage + available) is what `df`
+         * reports as Use%.
+         */
+        numeratorMetricName: "k8s.node.filesystem.usage",
+        denominatorMetricName: "k8s.node.filesystem.available",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
+        numeratorAlias: "used_disk",
+        denominatorAlias: "avail_disk",
+        resultAlias: metricAlias,
+        resultLegend: "Node Disk Usage (%)",
+        formula: `(used_disk / (used_disk + avail_disk)) * 100`,
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
+        /*
+         * ONE series per node on BOTH sides, from the SAME kubeletstats
+         * node scrape, so Avg gives the representative per-minute value
+         * independent of scrape count. See
+         * buildKubernetesRatioMonitorConfig.
+         */
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
@@ -807,10 +1070,10 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] High Disk Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `Node disk/filesystem usage has exceeded 90% capacity. High disk usage can lead to pod evictions, inability to pull new container images, and node instability. Check the root cause for the specific node and disk usage details.`,
+        incidentDescription: `A node's filesystem is more than 90% full, sustained across the whole monitoring window. High disk usage leads to DiskPressure evictions, failure to pull new container images, and eventually a NotReady node. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
         criteriaName: "High Disk - Usage > 90%",
         criteriaDescription:
-          "Triggers when average node filesystem usage exceeds 90% capacity.",
+          "Triggers when a node's used bytes exceed 90% of used + available for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -823,14 +1086,25 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
 };
 
 const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
+  /*
+   * The `id` still says "unavailable" and deliberately stays that way: it
+   * is the stable key the recommendation catalog and the
+   * already-created-monitor diff match on
+   * (MonitorRecommendationCatalog.buildRecommendationId), so renaming it
+   * would orphan every monitor a user already created from this card.
+   * Everything the user actually READS now says what the metric measures:
+   * KubernetesMetricCatalog defines `k8s.daemonset.misscheduled_nodes` as
+   * "nodes running a daemon pod that should not be running one", which is
+   * the opposite of "nodes missing the daemon pod".
+   */
   id: "k8s-daemonset-unavailable",
-  name: "DaemonSet Unavailable Nodes",
+  name: "DaemonSet Misscheduled Nodes",
   description:
-    "Alert when a DaemonSet has unavailable nodes where the daemon pod should be running.",
+    "Alert when a DaemonSet is running daemon pods on nodes that no longer match its node selector, affinity or taint tolerations. k8s.daemonset.misscheduled_nodes counts nodes that ARE running the pod but should NOT be — it is not the count of nodes that are missing the pod.",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "unavailable_nodes";
+    const metricAlias: string = "misscheduled_nodes";
 
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesMonitorConfig({
@@ -840,6 +1114,15 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per DaemonSet object: the incident names the DaemonSet, so each
+         * one has to own its own alert instead of dedupeing behind
+         * whichever DaemonSet in the cluster misscheduled first.
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.daemonset.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -849,11 +1132,11 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
-        incidentTitle: `[K8s] DaemonSet Unavailable Nodes - ${args.monitorName}`,
-        incidentDescription: `A DaemonSet has nodes where the daemon pod is not running as expected. This indicates misscheduled or unavailable daemon pods, which may affect cluster-wide services like logging, monitoring, or networking.`,
-        criteriaName: "DaemonSet Unavailable - Misscheduled > 0",
+        incidentTitle: `[K8s] DaemonSet Misscheduled Nodes - ${args.monitorName}`,
+        incidentDescription: `A DaemonSet has daemon pods running on nodes that should not be running them, sustained across the monitoring window. This is usually a stale node selector, affinity rule or taint toleration left behind after a node pool change — the pods were scheduled under the old rules and have not been evicted. It is NOT the same as a DaemonSet missing from nodes that need it. The affected namespace and DaemonSet are named under "Affected resource" below, with the describe command under "Start here"; compare its spec against the current node labels and taints.`,
+        criteriaName: "DaemonSet Misscheduled Nodes > 0",
         criteriaDescription:
-          "Triggers when a DaemonSet has nodes where daemon pods are not properly scheduled.",
+          "Triggers when a DaemonSet reports at least one misscheduled node for every sample in the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -880,7 +1163,7 @@ const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.container.cpu_request",
         denominatorMetricName: "k8s.node.allocatable_cpu",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "req_cpu",
         denominatorAlias: "alloc_cpu",
         resultAlias: metricAlias,
@@ -897,7 +1180,7 @@ const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] High Node CPU Request Commitment (>90%) - ${args.monitorName}`,
-        incidentDescription: `A node's committed CPU requests have exceeded 90% of its allocatable CPU. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current CPU usage is low. Check the root cause for the specific node and its top CPU-requesting workloads.`,
+        incidentDescription: `A node's committed CPU requests have exceeded 90% of its allocatable CPU. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current CPU usage is low. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods it hosts and their CPU requests.`,
         criteriaName: "High CPU Request Commitment - Utilization > 90%",
         criteriaDescription:
           "Triggers when any node's summed container CPU requests exceed 90% of its allocatable CPU.",
@@ -927,7 +1210,7 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.container.memory_request",
         denominatorMetricName: "k8s.node.allocatable_memory",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "req_mem",
         denominatorAlias: "alloc_mem",
         resultAlias: metricAlias,
@@ -944,7 +1227,7 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] High Node Memory Request Commitment (>90%) - ${args.monitorName}`,
-        incidentDescription: `A node's committed memory requests have exceeded 90% of its allocatable memory. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current memory usage is low. Check the root cause for the specific node and its top memory-requesting workloads.`,
+        incidentDescription: `A node's committed memory requests have exceeded 90% of its allocatable memory. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current memory usage is low. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to list the pods it hosts and their memory requests.`,
         criteriaName: "High Memory Request Commitment - Utilization > 90%",
         criteriaDescription:
           "Triggers when any node's summed container memory requests exceed 90% of its allocatable memory.",
@@ -973,8 +1256,13 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
  * hops from the cause. These catch the START: the HPA running out of
  * headroom, and the containers pinned at their own limits.
  *
- * All three are per-series ratios, grouped by the ClickHouse-stored
- * `resource.`-prefixed attribute (see buildKubernetesRatioMonitorConfig).
+ * All three are grouped by the ClickHouse-stored `resource.`-prefixed
+ * attribute. The HPA one is a ratio (there is no ready-made
+ * current/max series); the two pod-limit ones read the kubeletstats
+ * receiver's own `k8s.pod.*_limit_utilization` family directly, which is
+ * enabled by default in the shipped chart and — unlike a hand-built ratio
+ * against `k8s.container.*_limit` — divides by the SUM of a pod's
+ * container limits rather than their mean.
  */
 
 const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
@@ -992,7 +1280,10 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.hpa.current_replicas",
         denominatorMetricName: "k8s.hpa.max_replicas",
-        groupByAttributeKey: "resource.k8s.hpa.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.hpa.name",
+        ],
         numeratorAlias: "current_replicas",
         denominatorAlias: "max_replicas",
         resultAlias: metricAlias,
@@ -1018,7 +1309,7 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 90,
         incidentTitle: `[K8s] HPA Saturated at Max Replicas (>=90%) - ${args.monitorName}`,
-        incidentDescription: `A HorizontalPodAutoscaler is running at 90% or more of its maxReplicas and has effectively no scaling headroom left. Any further load cannot be absorbed by scaling out, so it will surface as latency and errors instead. Check whether the workload is genuinely at capacity or whether its per-pod CPU/memory limits are set too low — an under-resourced pod gets throttled or OOMKilled, which inflates the metric the HPA scales on and drives it to the ceiling. Check the root cause for the specific HPA, its target workload, and current vs max replicas.`,
+        incidentDescription: `A HorizontalPodAutoscaler is running at 90% or more of its maxReplicas and has effectively no scaling headroom left. Any further load cannot be absorbed by scaling out, so it will surface as latency and errors instead. Check whether the workload is genuinely at capacity or whether its per-pod CPU/memory limits are set too low — an under-resourced pod gets throttled or OOMKilled, which inflates the metric the HPA scales on and drives it to the ceiling. The affected namespace and HorizontalPodAutoscaler are named under "Affected resource" below, with the describe command under "Start here" for its target and current-vs-max replicas.`,
         criteriaName: "HPA Saturation - Current/Max Replicas >= 90%",
         criteriaDescription:
           "Triggers when any HPA's current replica count reaches 90% or more of its configured maxReplicas.",
@@ -1037,49 +1328,54 @@ const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-memory-limit-saturation",
   name: "Pod Memory Saturating Container Limit",
   description:
-    "Alert when a pod's memory usage exceeds 90% of its configured container memory limit — the state immediately preceding an OOMKill. Computed per pod as k8s.pod.memory.usage ÷ k8s.container.memory_limit × 100 (both bytes). This is the cause-side signal for CrashLoopBackOff and restart storms: a limit set too low shows up here minutes before the container is killed.",
+    "Alert when a pod is using more than 90% of its container memory limit, read straight from the kubeletstats receiver's own k8s.pod.memory_limit_utilization — which divides the pod's usage by the SUM of its containers' limits, so a pod with a sidecar is measured correctly. Note the kubelet's pod memory figure includes reclaimable page cache, so a file-heavy workload can sit high here without ever being OOMKilled: treat this as approaching the limit, not about to be killed.",
   category: "Workload",
   severity: "Critical",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "pod_memory_limit_saturation";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+      kubernetesMonitor: buildKubernetesMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        numeratorMetricName: "k8s.pod.memory.usage",
-        denominatorMetricName: "k8s.container.memory_limit",
-        groupByAttributeKey: "resource.k8s.pod.name",
-        numeratorAlias: "used_mem",
-        denominatorAlias: "limit_mem",
-        resultAlias: metricAlias,
-        resultLegend: "Pod Memory vs Limit (%)",
+        /*
+         * The agent enables this family by DEFAULT:
+         * HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml
+         * ("Saturation metrics — CPU/memory as a percentage of pod
+         * limit/request") turns on k8s.pod.memory_limit_utilization inside
+         * the existing kubeletstats receiver, gated on
+         * `kubeletstats.utilizationMetrics.enabled`, which values.yaml sets
+         * to `true`. No extra scrape.
+         *
+         * It replaces a cross-receiver ratio of `k8s.pod.memory.usage`
+         * (kubeletstats, one series per POD) over
+         * `k8s.container.memory_limit` (k8s_cluster, one series per
+         * CONTAINER), which this template's own comment conceded took the
+         * MEAN container limit for a multi-container pod — so any pod with
+         * a sidecar over-reported its saturation by roughly its container
+         * count — and which joined its two halves by series fingerprint
+         * across two independent scrape cycles, a join that fails silently
+         * rather than loudly.
+         */
+        metricName: "k8s.pod.memory_limit_utilization",
+        metricAlias,
+        /*
+         * kubeletstats reports this family with UCUM unit "1" (a 0-1
+         * fraction). Declaring "%" here makes MetricResultUnitConverter
+         * scale it to 0-100 before the threshold below is compared, and
+         * costs nothing if a collector ever reports it as "%" already.
+         */
+        legendUnit: "%",
         resourceScope: KubernetesResourceScope.Pod,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Avg, deliberately — and the one case in this file where the two
-         * sides have different series shapes, so the trade-off is worth
-         * stating.
-         *
-         * Numerator (k8s.pod.memory.usage, kubeletstats) is ONE series per
-         * pod. Denominator (k8s.container.memory_limit, k8s_cluster) is one
-         * series per CONTAINER, so a multi-container pod contributes
-         * several.
-         *
-         * Sum is definitively wrong here: the two metrics ride different
-         * receivers on independent scrape cycles, so the scrape multiple
-         * would not cancel. Avg is exact for single-container pods (the
-         * overwhelming majority, and the case this template exists for).
-         *
-         * For multi-container pods Avg takes the MEAN container limit
-         * rather than their sum, so the ratio over-reports and the alert
-         * fires early. That is the safe direction for an "OOMKill is
-         * imminent" warning — a false early page beats a missed kill — but
-         * it is a real caveat, not a rounding detail. A per-container
-         * variant needs a container-scoped usage metric to pair against
-         * (`container.memory.usage`), which the shipped catalog does not
-         * carry today.
+         * ONE series per pod, so Max is "the worst sample in this minute"
+         * rather than a mean that hides a spike against the limit.
          */
-        aggregationType: MetricsAggregationType.Avg,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -1090,7 +1386,7 @@ const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] Pod Memory Saturating Container Limit (>90%) - ${args.monitorName}`,
-        incidentDescription: `A pod's memory usage has exceeded 90% of its configured container memory limit. The kubelet OOMKills a container the moment it crosses its limit, so this is the state immediately preceding a restart — and, if the workload sits behind an autoscaler, the start of a restart/scale-up loop. Either the limit is set too low for the workload's real footprint or the workload has a memory leak. Check the root cause for the specific pod, its limit, and its usage trend.`,
+        incidentDescription: `A pod is using more than 90% of its container memory limit, sustained across the monitoring window. The kubelet's pod memory figure includes page cache the kernel reclaims under pressure, so this is "approaching the limit" rather than a guarantee that an OOMKill is imminent — but a pod that stays here is either under-limited for its real working set or leaking, and it is the cause-side signal for the CrashLoopBackOff and restart storms that follow. The affected namespace and pod are named under "Affected resource" below, with the kubectl commands to read its limits and current usage under "Start here".`,
         criteriaName: "Pod Memory Saturation - Usage/Limit > 90%",
         criteriaDescription:
           "Triggers when any pod's memory usage exceeds 90% of its container memory limit.",
@@ -1109,33 +1405,26 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-cpu-limit-saturation",
   name: "Pod CPU Saturating Container Limit",
   description:
-    "Alert when a pod's CPU usage exceeds 90% of its configured container CPU limit — the point at which the kernel's CFS quota starts throttling it. Computed per pod as k8s.pod.cpu.utilization ÷ k8s.container.cpu_limit × 100; both are CPU cores, so this is a true percentage (k8s.pod.cpu.utilization is a misnamed cores gauge, not a percent). A throttled pod gets slower, not louder — behind an HPA that reads CPU, throttling drives the replica count up while every pod stays equally starved.",
+    "Alert when a pod is using more than 90% of its container CPU limit — the point at which the kernel's CFS quota starts throttling it. Read from the kubeletstats receiver's own k8s.pod.cpu_limit_utilization, which divides the pod's CPU by the SUM of its containers' limits, so a pod with a sidecar is not measured against the mean of its containers' limits. A throttled pod gets slower, not louder — behind an HPA that reads CPU, throttling drives the replica count up while every pod stays equally starved.",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "pod_cpu_limit_saturation";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+      kubernetesMonitor: buildKubernetesMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        numeratorMetricName: "k8s.pod.cpu.utilization",
-        denominatorMetricName: "k8s.container.cpu_limit",
-        groupByAttributeKey: "resource.k8s.pod.name",
-        numeratorAlias: "used_cpu",
-        denominatorAlias: "limit_cpu",
-        resultAlias: metricAlias,
-        resultLegend: "Pod CPU vs Limit (%)",
+        // See the memory template above for why this replaces the ratio.
+        metricName: "k8s.pod.cpu_limit_utilization",
+        metricAlias,
+        legendUnit: "%",
         resourceScope: KubernetesResourceScope.Pod,
         rollingTime: RollingTime.Past5Minutes,
-        /*
-         * Avg, for the same reason as the memory template above: ONE
-         * numerator series per pod (kubeletstats) against a per-container
-         * denominator (k8s_cluster) on an independent scrape cycle. Exact
-         * for single-container pods; over-reports (fires early) for
-         * multi-container pods. See that template's note for the full
-         * trade-off.
-         */
-        aggregationType: MetricsAggregationType.Avg,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

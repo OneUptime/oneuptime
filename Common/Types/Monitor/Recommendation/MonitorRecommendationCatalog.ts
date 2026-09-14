@@ -52,6 +52,10 @@ import {
   getAllServiceAlertTemplates,
   getServiceAlertTemplates,
 } from "../ServiceAlertTemplates";
+import {
+  VMwareAlertTemplate,
+  getAllVMwareAlertTemplates,
+} from "../VMwareAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -74,6 +78,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
   // The field name in the owning module's own args interface.
   identifierFieldName:
     | "clusterIdentifier"
+    | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
     | "rumApplicationId"
@@ -285,6 +290,26 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+function getVMwareRecommendations(): Array<MonitorRecommendation> {
+  return getAllVMwareAlertTemplates().map((template: VMwareAlertTemplate) => {
+    return normalize({
+      resourceType: MonitorRecommendationResourceType.VMware,
+      monitorType: MonitorType.VMware,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep({
+          vcenterIdentifier: args.resourceIdentifier,
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+          defaultAlertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+        });
+      },
+    });
+  });
+}
+
 function getCephRecommendations(): Array<MonitorRecommendation> {
   return getAllCephAlertTemplates().map((template: CephAlertTemplate) => {
     return normalize({
@@ -443,6 +468,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,
       getRecommendations: getProxmoxRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.VMware,
+      monitorTypes: [MonitorType.VMware],
+      resourceLabel: "vCenter",
+      identifierFieldName: "vcenterIdentifier",
+      icon: IconProp.VMware,
+      getRecommendations: getVMwareRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Ceph,

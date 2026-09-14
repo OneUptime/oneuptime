@@ -117,6 +117,17 @@ describe("AUTO_IMPORT_SCAN_CREDENTIAL_SELECT", () => {
     expect(Object.keys(AUTO_IMPORT_SCAN_CREDENTIAL_SELECT).sort()).toEqual(
       [
         "probeId",
+        /*
+         * The ordered credential list, and the reason the other nine are no
+         * longer sufficient on their own. A scan tries several credential
+         * sets, the probe stamps each discovered host with the id of the one
+         * that answered it, and the builder resolves THAT set out of this
+         * column. Selecting the flattened columns but not this one would
+         * still produce a device with credentials — the first config's,
+         * mirrored — so the drop is invisible: every host imports carrying
+         * the wrong community string and polls red forever.
+         */
+        "snmpConfigs",
         "snmpVersion",
         "snmpCommunityString",
         "snmpPort",
@@ -138,6 +149,13 @@ describe("AUTO_IMPORT_SCAN_CREDENTIAL_SELECT", () => {
 
     expect(selected).toContain("snmpVersion");
     expect(selected).toContain("snmpV3PrivKey");
+    /*
+     * The newest entry, named explicitly: the two lockstep tests below both
+     * compare EXTRACTED names against the engine's keys, so a regex that
+     * stopped matching `snmpConfigs: true` would make them agree vacuously
+     * instead of failing.
+     */
+    expect(selected).toContain("snmpConfigs");
     // The responder-count read is not a select entry and must not match.
     expect(selected).not.toContain("snmpReachable");
   });

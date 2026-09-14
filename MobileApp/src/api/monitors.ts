@@ -22,7 +22,12 @@ export async function fetchMonitors(
         name: true,
         description: true,
         monitorType: true,
-        currentMonitorStatus: { _id: true, name: true, color: true },
+        currentMonitorStatus: {
+          _id: true,
+          name: true,
+          color: true,
+          isOperationalState: true,
+        },
         disableActiveMonitoring: true,
         createdAt: true,
         projectId: true,
@@ -39,7 +44,7 @@ export async function fetchMonitors(
 export async function fetchMonitorById(
   projectId: string,
   monitorId: string,
-): Promise<MonitorItem> {
+): Promise<MonitorItem | null> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor/get-list?skip=0&limit=1",
     {
@@ -49,7 +54,12 @@ export async function fetchMonitorById(
         name: true,
         description: true,
         monitorType: true,
-        currentMonitorStatus: { _id: true, name: true, color: true },
+        currentMonitorStatus: {
+          _id: true,
+          name: true,
+          color: true,
+          isOperationalState: true,
+        },
         disableActiveMonitoring: true,
         createdAt: true,
       },
@@ -59,7 +69,19 @@ export async function fetchMonitorById(
       headers: { tenantid: projectId },
     },
   );
-  return response.data.data[0];
+
+  /*
+   * `null` for a row that is not there, and never `undefined`.
+   *
+   * A monitor that was deleted, or that sits in a project this responder
+   * cannot see, answers with an empty list from a request that SUCCEEDED, so
+   * `data[0]` is `undefined`. React Query v5 refuses to cache `undefined` and
+   * rejects the query with a synthetic `<queryHash> data is undefined` error,
+   * which would turn "no such monitor" into an apparent request failure.
+   * `null` caches happily and reaches MonitorDetailScreen as settled data.
+   * `undefined` here is a trap, not a style choice.
+   */
+  return response.data.data[0] ?? null;
 }
 
 export async function fetchMonitorStatuses(

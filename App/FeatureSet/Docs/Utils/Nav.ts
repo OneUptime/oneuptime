@@ -10,16 +10,15 @@ export interface NavGroup {
   links: NavLink[];
 }
 
-/*
- * Localized variants used at render time. The shape matches NavGroup/NavLink
- * so EJS templates do not need to change.
- */
+// Localized variants used at render time.
 export interface LocalizedNavLink {
   title: string;
   url: string;
 }
 
 export interface LocalizedNavGroup {
+  // Canonical English title, preserved for icon lookup across languages.
+  key: string;
   title: string;
   links: LocalizedNavLink[];
 }
@@ -103,6 +102,10 @@ const DocsNav: NavGroup[] = [
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",
       },
+      {
+        title: "Import and Export Label Rules",
+        url: "/docs/configuration/label-rule-import-export",
+      },
     ],
   },
   {
@@ -111,6 +114,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "SMTP",
         url: "/docs/emails/smtp",
+      },
+      {
+        title: "Notification Rollup",
+        url: "/docs/emails/notification-rollup",
       },
     ],
   },
@@ -222,6 +229,10 @@ const DocsNav: NavGroup[] = [
     title: "Monitor",
     links: [
       {
+        title: "Monitor Templates",
+        url: "/docs/monitor/monitor-templates",
+      },
+      {
         title: "Website Monitor",
         url: "/docs/monitor/website-monitor",
       },
@@ -266,6 +277,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/sql-monitor",
       },
       {
+        title: "Database Health Monitor",
+        url: "/docs/monitor/database-health-monitor",
+      },
+      {
         title: "Synthetic Monitor",
         url: "/docs/monitor/synthetic-monitor",
       },
@@ -288,6 +303,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Network Device Monitor",
         url: "/docs/monitor/network-device-monitor",
+      },
+      {
+        title: "Network Sites (Health Rollup & Uptime)",
+        url: "/docs/monitor/network-sites",
       },
       {
         title: "Kubernetes Monitor",
@@ -324,6 +343,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "IoT Device Monitor",
         url: "/docs/monitor/iot-device-monitor",
+      },
+      {
+        title: "VMware Monitor",
+        url: "/docs/monitor/vmware-monitor",
       },
       {
         title: "Logs Monitor",
@@ -375,7 +398,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/error-budget",
       },
       {
-        title: "Burn Rate Alerts",
+        title: "Burn Rate Alerts and Incidents",
         url: "/docs/slo/burn-rate-alerts",
       },
     ],
@@ -408,6 +431,10 @@ const DocsNav: NavGroup[] = [
   {
     title: "On Call",
     links: [
+      {
+        title: "Calendar Feeds",
+        url: "/docs/on-call/calendar-feeds",
+      },
       {
         title: "Incoming Call Policy",
         url: "/docs/on-call/incoming-call-policy",
@@ -579,6 +606,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/servicenow",
       },
       {
+        title: "Microsoft Dynamics 365",
+        url: "/docs/integrations/microsoft-dynamics-365",
+      },
+      {
         title: "Prometheus Alertmanager",
         url: "/docs/integrations/prometheus-alertmanager",
       },
@@ -634,9 +665,30 @@ const DocsNav: NavGroup[] = [
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
+      { title: "Search Syntax", url: "/docs/telemetry/search-syntax" },
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",
+      },
+      {
+        title: "AI Coding Assistants",
+        url: "/docs/telemetry/ai-coding-assistants",
+      },
+      {
+        title: "Claude Code",
+        url: "/docs/telemetry/claude-code",
+      },
+      {
+        title: "Cursor",
+        url: "/docs/telemetry/cursor",
+      },
+      {
+        title: "OpenAI Codex",
+        url: "/docs/telemetry/openai-codex",
+      },
+      {
+        title: "Gemini CLI & GitHub Copilot",
+        url: "/docs/telemetry/gemini-cli-and-copilot",
       },
       {
         title: "AI Gateways (LiteLLM, Portkey)",
@@ -650,6 +702,10 @@ const DocsNav: NavGroup[] = [
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",
       },
+      {
+        title: "Source Maps",
+        url: "/docs/telemetry/source-maps",
+      },
       { title: "Serilog (.NET)", url: "/docs/telemetry/serilog" },
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
@@ -657,6 +713,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Security Events (SIEM)",
         url: "/docs/telemetry/security-events",
+      },
+      {
+        title: "Threat Intelligence (STIX/TAXII)",
+        url: "/docs/telemetry/threat-intelligence",
       },
       {
         title: "Host OpenTelemetry Collector",
@@ -695,12 +755,42 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/docker-swarm",
       },
       {
+        title: "VMware Agent",
+        url: "/docs/telemetry/vmware",
+      },
+      {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",
       },
       {
         title: "Cloud Environments",
         url: "/docs/telemetry/cloud-environments",
+      },
+      /*
+       * One page per managed platform, right under the hub, so the sidebar
+       * mirrors the platform picker on the in-app guide. The order is the
+       * hub page's order: the three container platforms with their own
+       * pages, then the rest, then the shared troubleshooting page.
+       */
+      {
+        title: "AWS ECS / Fargate",
+        url: "/docs/telemetry/cloud-aws-ecs",
+      },
+      {
+        title: "Google Cloud Run",
+        url: "/docs/telemetry/cloud-gcp-cloud-run",
+      },
+      {
+        title: "Azure Container Apps",
+        url: "/docs/telemetry/cloud-azure-container-apps",
+      },
+      {
+        title: "Other Cloud Platforms",
+        url: "/docs/telemetry/cloud-other-platforms",
+      },
+      {
+        title: "Cloud Troubleshooting",
+        url: "/docs/telemetry/cloud-troubleshooting",
       },
     ],
   },
@@ -721,6 +811,10 @@ const DocsNav: NavGroup[] = [
       { title: "Core Web Vitals", url: "/docs/rum/web-vitals" },
       { title: "Managing Applications", url: "/docs/rum/applications" },
       { title: "Session Replay", url: "/docs/telemetry/session-replay" },
+      {
+        title: "Session Replay Troubleshooting",
+        url: "/docs/rum/session-replay-troubleshooting",
+      },
       { title: "RUM Troubleshooting", url: "/docs/rum/troubleshooting" },
     ],
   },
@@ -730,6 +824,7 @@ const DocsNav: NavGroup[] = [
       { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
+      { title: "GitHub App", url: "/docs/ai/github-app" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },
       { title: "MCP Server", url: "/docs/ai/mcp-server" },
     ],
@@ -757,6 +852,10 @@ DocsNav.push({
       url: "/docs/self-hosted/microsoft-teams-integration",
     },
     {
+      title: "Twilio Integration",
+      url: "/docs/self-hosted/twilio-integration",
+    },
+    {
       title: "GitHub Integration",
       url: "/docs/self-hosted/github-integration",
     },
@@ -767,6 +866,10 @@ DocsNav.push({
     {
       title: "SendGrid Inbound Email",
       url: "/docs/self-hosted/sendgrid-inbound-email",
+    },
+    {
+      title: "Private Network Access",
+      url: "/docs/self-hosted/private-network-access",
     },
     {
       title: "Architecture",

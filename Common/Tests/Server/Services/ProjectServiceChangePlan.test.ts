@@ -10,6 +10,7 @@ import logger from "../../../Server/Utils/Logger";
 import MarketingEventUtil from "../../../Server/Utils/Marketing/MarketingEventUtil";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
+import { resolveEmittedMarketingEvent } from "../Utils/Marketing/EmittedMarketingEvent";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -715,7 +716,7 @@ describe("ProjectService.changePlan", () => {
 
       const emittedTypes: Array<string> = emitInBackground.mock.calls.map(
         (call: Array<unknown>) => {
-          return (call[0] as MarketingEvent).eventType as string;
+          return resolveEmittedMarketingEvent(call[0]).eventType as string;
         },
       );
 
@@ -774,8 +775,9 @@ describe("ProjectService.changePlan", () => {
         paymentProviderPlanId: NEW_PLAN_ID,
       });
 
-      const event: MarketingEvent = emitInBackground.mock
-        .calls[0]![0] as MarketingEvent;
+      const event: MarketingEvent = resolveEmittedMarketingEvent(
+        emitInBackground.mock.calls[0]![0],
+      );
 
       expect(event.eventId).toBe(
         `subscription_upgraded:${PROJECT_ID.toString()}:${event.occurredAt}`,

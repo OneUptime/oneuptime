@@ -36,6 +36,27 @@ const CodeRepositorySettings: FunctionComponent<
           },
           {
             field: {
+              isGitHubCommandsEnabled: true,
+            },
+            title: "Respond to GitHub Commands",
+            description:
+              "Let people work with the OneUptime GitHub App from GitHub itself — mention it on an issue or pull request, assign it an issue, or add the trigger label below. Only people with write access to the repository can command it, and it never merges anything. Leave on unless you want the app to stay silent here.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              gitHubTriggerLabel: true,
+            },
+            title: "GitHub Trigger Label",
+            description:
+              "The issue label that hands an issue to the app. Adding it to an issue starts the same work a mention would — the reliable way to assign work to the app from the GitHub UI, since GitHub does not let an app be an assignee on every repository. Leave empty for 'oneuptime'.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "oneuptime",
+          },
+          {
+            field: {
               maxOpenFixPullRequests: true,
             },
             title: "Max Open Fix Pull Requests",
@@ -89,6 +110,24 @@ const CodeRepositorySettings: FunctionComponent<
               },
               title: "Main Branch",
               description: "The main branch of the repository.",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                isGitHubCommandsEnabled: true,
+              },
+              title: "Respond to GitHub Commands",
+              description:
+                "Whether the OneUptime GitHub App acts on mentions, assignments and the trigger label in this repository.",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                gitHubTriggerLabel: true,
+              },
+              title: "GitHub Trigger Label",
+              description: "The issue label that hands an issue to the app.",
+              placeholder: "oneuptime",
               fieldType: FieldType.Text,
             },
             {

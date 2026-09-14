@@ -92,8 +92,8 @@ const ENGLISH: LocaleFile = LOCALES.find((locale: LocaleFile) => {
 })!;
 
 describe("locale files", () => {
-  it("has the sixteen languages the reference is offered in", () => {
-    expect(LOCALES).toHaveLength(16);
+  it("has the seventeen languages the reference is offered in", () => {
+    expect(LOCALES).toHaveLength(17);
     expect(ENGLISH).toBeDefined();
   });
 
@@ -200,7 +200,7 @@ describe("keys the templates ask for", () => {
 
   it("uses every ui key it defines", () => {
     /*
-     * The other direction: a key nothing renders is dead weight in sixteen
+     * The other direction: a key nothing renders is dead weight in seventeen
      * files. Keys read from TypeScript rather than a template are listed here.
      */
     const usedFromCode: Array<string> = [

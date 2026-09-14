@@ -12,7 +12,7 @@ Example:
 
 `sudo kubectl exec fi-mongodb-0 -- mongodump --uri="mongodb://oneuptime:password@localhost:27017/oneuptimedb" --archive="/bitnami/mongodb/oneuptimedata.archive"`
 
-**Step 2**: Copy file from conatiner to local machine.
+**Step 2**: Copy file from container to local machine.
 
 Syntax:
 

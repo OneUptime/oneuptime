@@ -23,6 +23,21 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 export interface NetworkSiteTypeOption {
   id: string;
   name: string;
+  /*
+   * The type's own place in the project's type tree. The parser needs the
+   * WHOLE catalog, not one row's direct parent: the placement rule asks
+   * whether one type sits below another, which is an ancestry question.
+   *
+   * `undefined`, or an id that names no type in the array, means "link
+   * unknown" and is treated as a root for ancestry — the parser never refuses
+   * a placement it cannot prove wrong.
+   */
+  parentNetworkSiteTypeId?: string | null | undefined;
+  /*
+   * Unit-level types are the declared leaves of the hierarchy, so their sites
+   * hold devices rather than more sites and can never be a parentName.
+   */
+  isUnitLevel?: boolean | undefined;
 }
 
 export interface ParsedSiteRow {
@@ -186,6 +201,147 @@ function indexSiteTypesByLowercaseName(
   return byLowercaseName;
 }
 
+function normalizeId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+function indexSiteTypesById(
+  siteTypes: Array<NetworkSiteTypeOption>,
+): Map<string, NetworkSiteTypeOption> {
+  const byId: Map<string, NetworkSiteTypeOption> = new Map<
+    string,
+    NetworkSiteTypeOption
+  >();
+
+  for (const siteType of siteTypes) {
+    const id: string = normalizeId(siteType.id);
+    if (id !== "" && !byId.has(id)) {
+      byId.set(id, siteType);
+    }
+  }
+
+  return byId;
+}
+
+function siteTypeNameById(data: {
+  networkSiteTypeId: string | null | undefined;
+  siteTypeById: Map<string, NetworkSiteTypeOption>;
+}): string {
+  if (!data.networkSiteTypeId) {
+    return "no site type";
+  }
+
+  return (
+    data.siteTypeById.get(normalizeId(data.networkSiteTypeId))?.name ||
+    "an unknown site type"
+  );
+}
+
+/*
+ * The shared site placement rule, over the plain option objects this module
+ * works in. It mirrors NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParent-
+ * OfType in Common exactly; the logic is restated rather than imported so this
+ * module keeps depending on nothing but Common/Types (see the file header).
+ *
+ * A site may sit under any site except one whose type is BELOW its own in the
+ * type tree, and except one whose type is the declared unit level. Skipped
+ * levels, unrelated types and the same type on both sides are all allowed —
+ * requiring an exact configured-parent match is what made valid hierarchies
+ * unbuildable in GitHub issue #3744.
+ */
+interface SiteTypePlacementRule {
+  isAllowedParentType: (data: {
+    childNetworkSiteTypeId: string | null | undefined;
+    parentNetworkSiteTypeId: string | null | undefined;
+  }) => boolean;
+}
+
+function buildSiteTypePlacementRule(
+  siteTypeById: Map<string, NetworkSiteTypeOption>,
+): SiteTypePlacementRule {
+  return {
+    isAllowedParentType: (data: {
+      childNetworkSiteTypeId: string | null | undefined;
+      parentNetworkSiteTypeId: string | null | undefined;
+    }): boolean => {
+      if (!data.parentNetworkSiteTypeId) {
+        return true;
+      }
+
+      const parentTypeId: string = normalizeId(data.parentNetworkSiteTypeId);
+      const parentType: NetworkSiteTypeOption | undefined =
+        siteTypeById.get(parentTypeId);
+
+      if (parentType?.isUnitLevel === true) {
+        return false;
+      }
+
+      if (!data.childNetworkSiteTypeId) {
+        return true;
+      }
+
+      const childTypeId: string = normalizeId(data.childNetworkSiteTypeId);
+      if (childTypeId === parentTypeId) {
+        return true;
+      }
+
+      /*
+       * Walk up from the parent type. Reaching the child type means the parent
+       * sits below it. The visited set bounds a catalog that has been made
+       * cyclic by a direct database edit.
+       */
+      const visited: Set<string> = new Set<string>([parentTypeId]);
+      let ancestorId: string | null =
+        parentType && parentType.parentNetworkSiteTypeId
+          ? normalizeId(parentType.parentNetworkSiteTypeId)
+          : null;
+
+      while (ancestorId) {
+        if (ancestorId === childTypeId) {
+          return false;
+        }
+
+        if (visited.has(ancestorId)) {
+          break;
+        }
+        visited.add(ancestorId);
+
+        const ancestor: NetworkSiteTypeOption | undefined =
+          siteTypeById.get(ancestorId);
+        if (!ancestor || !ancestor.parentNetworkSiteTypeId) {
+          break;
+        }
+
+        ancestorId = normalizeId(ancestor.parentNetworkSiteTypeId);
+      }
+
+      return true;
+    },
+  };
+}
+
+function invertedParentTypeMessage(data: {
+  child: ParsedSiteRow;
+  parentName: string;
+  actualParentNetworkSiteTypeId: string | null | undefined;
+  siteTypeById: Map<string, NetworkSiteTypeOption>;
+}): string {
+  const parentTypeName: string = siteTypeNameById({
+    networkSiteTypeId: data.actualParentNetworkSiteTypeId,
+    siteTypeById: data.siteTypeById,
+  });
+  const parentType: NetworkSiteTypeOption | undefined =
+    data.actualParentNetworkSiteTypeId
+      ? data.siteTypeById.get(normalizeId(data.actualParentNetworkSiteTypeId))
+      : undefined;
+
+  if (parentType?.isUnitLevel === true) {
+    return `Parent site "${data.parentName}" uses siteType "${parentTypeName}", which is the unit level of the hierarchy and cannot have child sites.`;
+  }
+
+  return `Parent site "${data.parentName}" uses siteType "${parentTypeName}", which sits below "${data.child.siteType}" in the site type hierarchy.`;
+}
+
 type HeaderIndex = Map<string, number>;
 
 function parseHeader(
@@ -294,6 +450,8 @@ export function parseSiteCsv(
 
   const siteTypeByLowercaseName: Map<string, NetworkSiteTypeOption> =
     indexSiteTypesByLowercaseName(siteTypes);
+  const siteTypeById: Map<string, NetworkSiteTypeOption> =
+    indexSiteTypesById(siteTypes);
   const siteTypeNames: Array<string> = Array.from(
     siteTypeByLowercaseName.values(),
   ).map((siteType: NetworkSiteTypeOption) => {
@@ -372,6 +530,14 @@ export function parseSiteCsv(
       rowErrors.push("A site cannot be its own parent.");
     }
 
+    /*
+     * No per-row placement check exists any more. parentName is optional for
+     * every siteType — including one configured below another — and whether a
+     * given parent is legal depends on that parent's OWN type, which is not
+     * known until the whole file has been read. The cross-row pass below is
+     * the only place placement is judged.
+     */
+
     const address: string = cellAt(record, headerIndex, "address");
 
     const latitudeResult: CoordinateParseResult = parseCoordinate(
@@ -433,7 +599,58 @@ export function parseSiteCsv(
     });
   }
 
-  return { rows: rows, errors: errors };
+  /*
+   * A parent declared elsewhere in this same file is fully known during the
+   * preview, even when it appears after its child. Reject incompatible edges
+   * here rather than letting the create loop discover them one request at a
+   * time. Existing project parents are checked later by planSiteImport because
+   * they are loaded only when the user starts the import.
+   */
+  const importedRowByName: Map<string, ParsedSiteRow> = new Map<
+    string,
+    ParsedSiteRow
+  >();
+  for (const row of rows) {
+    importedRowByName.set(row.name, row);
+  }
+
+  const placementRule: SiteTypePlacementRule =
+    buildSiteTypePlacementRule(siteTypeById);
+  const incompatibleLines: Set<number> = new Set<number>();
+  for (const row of rows) {
+    if (row.parentName === "") {
+      continue;
+    }
+
+    const importedParent: ParsedSiteRow | undefined = importedRowByName.get(
+      row.parentName,
+    );
+    if (
+      importedParent &&
+      !placementRule.isAllowedParentType({
+        childNetworkSiteTypeId: row.networkSiteTypeId,
+        parentNetworkSiteTypeId: importedParent.networkSiteTypeId,
+      })
+    ) {
+      errors.push({
+        line: row.line,
+        message: invertedParentTypeMessage({
+          child: row,
+          parentName: row.parentName,
+          actualParentNetworkSiteTypeId: importedParent.networkSiteTypeId,
+          siteTypeById,
+        }),
+      });
+      incompatibleLines.add(row.line);
+    }
+  }
+
+  return {
+    rows: rows.filter((row: ParsedSiteRow) => {
+      return !incompatibleLines.has(row.line);
+    }),
+    errors: errors,
+  };
 }
 
 export interface SkippedSiteRow {
@@ -462,8 +679,27 @@ export interface SiteImportPlan {
 export function planSiteImport(
   rows: Array<ParsedSiteRow>,
   existingSiteNames: Array<string>,
+  existingSiteTypeIdByName?: Map<string, string | null> | undefined,
+  siteTypes?: Array<NetworkSiteTypeOption> | undefined,
 ): SiteImportPlan {
   const existing: Set<string> = new Set<string>(existingSiteNames);
+  /*
+   * The project's type catalog decides which placements are legal. Without it
+   * the planner cannot judge one and lets the server have the final say, which
+   * is what callers that only order rows have always relied on.
+   */
+  const siteTypeById: Map<string, NetworkSiteTypeOption> = indexSiteTypesById(
+    siteTypes || [],
+  );
+  const placementRule: SiteTypePlacementRule =
+    buildSiteTypePlacementRule(siteTypeById);
+  const importedRowByName: Map<string, ParsedSiteRow> = new Map<
+    string,
+    ParsedSiteRow
+  >();
+  for (const row of rows) {
+    importedRowByName.set(row.name, row);
+  }
 
   const skipped: Array<SkippedSiteRow> = [];
   let pending: Array<ParsedSiteRow> = [];
@@ -474,9 +710,47 @@ export function planSiteImport(
         row: row,
         reason: `A site named "${row.name}" already exists in this project.`,
       });
-    } else {
-      pending.push(row);
+      continue;
     }
+
+    if (siteTypeById.size > 0 && row.parentName !== "") {
+      let actualParentTypeId: string | null | undefined;
+      let shouldValidateParentType: boolean = false;
+
+      if (existing.has(row.parentName) && existingSiteTypeIdByName) {
+        shouldValidateParentType = true;
+        actualParentTypeId = existingSiteTypeIdByName.get(row.parentName);
+      } else if (!existing.has(row.parentName)) {
+        const importedParent: ParsedSiteRow | undefined = importedRowByName.get(
+          row.parentName,
+        );
+        if (importedParent) {
+          shouldValidateParentType = true;
+          actualParentTypeId = importedParent.networkSiteTypeId;
+        }
+      }
+
+      if (
+        shouldValidateParentType &&
+        !placementRule.isAllowedParentType({
+          childNetworkSiteTypeId: row.networkSiteTypeId,
+          parentNetworkSiteTypeId: actualParentTypeId,
+        })
+      ) {
+        skipped.push({
+          row,
+          reason: invertedParentTypeMessage({
+            child: row,
+            parentName: row.parentName,
+            actualParentNetworkSiteTypeId: actualParentTypeId,
+            siteTypeById,
+          }),
+        });
+        continue;
+      }
+    }
+
+    pending.push(row);
   }
 
   const batches: Array<Array<ParsedSiteRow>> = [];

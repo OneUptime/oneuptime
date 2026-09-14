@@ -186,6 +186,97 @@ router.post(
 );
 
 router.post(
+  "/exchange-login-code/:statuspageid",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      const statusPageIdParam: string | undefined = req.params["statuspageid"];
+      const loginCode: unknown = req.body["loginCode"];
+
+      if (!statusPageIdParam || !ObjectID.isValidUUID(statusPageIdParam)) {
+        throw new BadDataException("A valid Status Page ID is required.");
+      }
+
+      if (typeof loginCode !== "string" || !ObjectID.isValidUUID(loginCode)) {
+        throw new BadDataException("A valid login code is required.");
+      }
+
+      const statusPageId: ObjectID = new ObjectID(statusPageIdParam);
+      const sessionMetadata: StatusPageSessionMetadata | null =
+        await StatusPagePrivateUserSessionService.exchangeLoginCode(loginCode, {
+          statusPageId,
+          ipAddress: getClientIp(req),
+          userAgent: headerValueToString(req.headers["user-agent"]),
+          ...extractDeviceInfo(req),
+        });
+
+      if (
+        !sessionMetadata?.session.id ||
+        !sessionMetadata.session.statusPagePrivateUserId ||
+        !sessionMetadata.session.projectId
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Login code is invalid or expired."),
+        );
+      }
+
+      const user: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneById({
+          id: sessionMetadata.session.statusPagePrivateUserId,
+          select: {
+            _id: true,
+            email: true,
+            statusPageId: true,
+            projectId: true,
+          },
+          props: { isRoot: true },
+        });
+
+      if (
+        !user?.id ||
+        !user.statusPageId ||
+        !user.projectId ||
+        user.statusPageId.toString() !== statusPageId.toString() ||
+        user.projectId.toString() !==
+          sessionMetadata.session.projectId.toString()
+      ) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          sessionMetadata.session.id,
+          { reason: "Login code user no longer matches the session" },
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Login code is invalid or expired."),
+        );
+      }
+
+      CookieUtil.setStatusPagePrivateUserCookie({
+        expressResponse: res,
+        user,
+        statusPageId,
+        sessionId: sessionMetadata.session.id,
+        refreshToken: sessionMetadata.refreshToken,
+        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      });
+
+      return Response.sendEntityResponse(req, res, user, StatusPagePrivateUser);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
   "/refresh-token/:statuspageid",
   async (
     req: ExpressRequest,
@@ -235,7 +326,12 @@ router.post(
           refreshToken,
         );
 
-      if (!session || !session.id || !session.statusPageId) {
+      if (
+        !session ||
+        !session.id ||
+        !session.statusPageId ||
+        StatusPagePrivateUserSessionService.isLoginCodeSession(session)
+      ) {
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
         CookieUtil.removeCookie(
           res,

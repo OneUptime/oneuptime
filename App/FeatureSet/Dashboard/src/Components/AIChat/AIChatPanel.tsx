@@ -8,6 +8,7 @@ import KeyboardShortcut, {
 import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
+import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -18,6 +19,7 @@ import React, {
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import AIChatUnavailableView from "./AIChatUnavailableView";
 import ChatActivityFeed from "./ChatActivityFeed";
 import ChatDownloadMenu from "./ChatDownloadMenu";
 import ChatHomeView from "./ChatHomeView";
@@ -118,6 +120,16 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
+
+  /*
+   * The panel is a modal surface — it declares aria-modal, dims the page and
+   * closes on a click outside — so the page behind it has to be inert. Without
+   * this the wheel fell through the backdrop (and off the end of the chat) to
+   * the document, and the incident list the user was asking about slid around
+   * underneath the answer. Shared, counted lock: a Modal or command palette
+   * opened over the panel must not hand scrolling back when it closes.
+   */
+  usePageScrollLock(isOpen);
 
   useEffect(() => {
     if (!isOpen) {
@@ -349,15 +361,23 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
         <div
           ref={chat.scrollContainerRef}
           onScroll={chat.onBodyScroll}
-          className="min-h-0 flex-1 overflow-y-auto"
+          /*
+           * overscroll-contain in addition to the page lock, not instead of
+           * it: it stops the wheel past the end of the thread from chaining
+           * outward at all, so no rubber-band or pull-to-refresh fires on the
+           * surface behind, and the panel still behaves if it is ever rendered
+           * inside a scrolling ancestor of its own.
+           */
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
-          {!chat.isConversationView && (
+          {chat.unavailableReason && (
+            <AIChatUnavailableView reason={chat.unavailableReason} />
+          )}
+
+          {!chat.unavailableReason && !chat.isConversationView && (
             <ChatHomeView
               conversations={chat.conversations}
               isSending={chat.isSending}
-              showNoProviderNotice={
-                chat.providersLoaded && chat.providers.length === 0
-              }
               pageContext={chat.pageContext}
               isPageContextAttached={chat.isPageContextAttached}
               onOpenConversation={chat.openConversation}
@@ -370,7 +390,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             />
           )}
 
-          {chat.isConversationView && (
+          {!chat.unavailableReason && chat.isConversationView && (
             <div className="px-4 py-6">
               {chat.messages.length === 0 && !chat.isWorking && (
                 <div className="flex justify-center py-10">
@@ -411,33 +431,35 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
           )}
         </div>
 
-        {/* Composer */}
-        <ChatInput
-          value={chat.inputValue}
-          onChange={chat.setInputValue}
-          canSend={
-            !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
-          }
-          isWorking={chat.isWorking}
-          isStopping={chat.isCancelling}
-          onStop={
-            chat.isWorking && !chat.isAwaitingApproval
-              ? () => {
-                  chat.cancelRun().catch(() => {
-                    // handled in the hook
-                  });
-                }
-              : undefined
-          }
-          leading={composerLeading}
-          contextChip={contextChip}
-          placeholder={composerPlaceholder}
-          onSend={() => {
-            chat.sendMessage().catch(() => {
-              // handled in the hook
-            });
-          }}
-        />
+        {/* Composer — withheld entirely while AI is switched off. */}
+        {!chat.unavailableReason && (
+          <ChatInput
+            value={chat.inputValue}
+            onChange={chat.setInputValue}
+            canSend={
+              !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
+            }
+            isWorking={chat.isWorking}
+            isStopping={chat.isCancelling}
+            onStop={
+              chat.isWorking && !chat.isAwaitingApproval
+                ? () => {
+                    chat.cancelRun().catch(() => {
+                      // handled in the hook
+                    });
+                  }
+                : undefined
+            }
+            leading={composerLeading}
+            contextChip={contextChip}
+            placeholder={composerPlaceholder}
+            onSend={() => {
+              chat.sendMessage().catch(() => {
+                // handled in the hook
+              });
+            }}
+          />
+        )}
       </div>
     </div>
   );

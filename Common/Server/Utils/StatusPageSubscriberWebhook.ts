@@ -28,6 +28,9 @@ export default class StatusPageSubscriberWebhookUtil {
      * status page. Validate it against the SSRF blocklist before every send (not
      * just at create time) so previously-stored URLs and DNS-rebinding cannot make
      * the server reach internal services or the cloud metadata endpoint.
+     *
+     * Strict policy, with no opt-in passed: the private-network exception
+     * (issue #3424) is only for URLs an authenticated project member authored.
      */
     try {
       await SSRFProtection.validateWebhookTargetIsSafe(data.webhookUrl);

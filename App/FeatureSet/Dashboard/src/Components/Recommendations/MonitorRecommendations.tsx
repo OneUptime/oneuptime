@@ -11,6 +11,9 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -54,6 +57,7 @@ import RecommendationToolbar from "./RecommendationToolbar";
 import RecommendationFilterUtil from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
+import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
 import {
   MONITOR_CONSENT_ERROR,
   MonitorPayAsYouGoCard,
@@ -62,6 +66,10 @@ import {
 import MonitorRecommendationCreateUtil, {
   MonitorRecommendationCreatePlanItem,
 } from "./MonitorRecommendationCreateUtil";
+import MonitorRecommendationCreateRunner, {
+  MonitorRecommendationCreateOutcome,
+  MonitorRecommendationCreateProgress,
+} from "./MonitorRecommendationCreateRunner";
 import {
   RecommendationCategoryGroup,
   RecommendationCounts,
@@ -162,7 +170,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
   const [showCreateSideOver, setShowCreateSideOver] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [createdCount, setCreatedCount] = useState<number>(0);
+  const [createProgress, setCreateProgress] =
+    useState<MonitorRecommendationCreateProgress | null>(null);
 
   const [dismissTarget, setDismissTarget] =
     useState<RecommendationViewModel | null>(null);
@@ -482,7 +491,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
     setIsCreating(true);
     setActionError("");
-    setCreatedCount(0);
+    setCreateProgress(null);
 
     const plan: Array<MonitorRecommendationCreatePlanItem> =
       MonitorRecommendationCreateUtil.buildCreatePlan({
@@ -513,39 +522,79 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    let created: number = 0;
+    /*
+     * Render the full list of pending rows before the first request goes out,
+     * so pressing Create has an immediate visible effect. The previous text
+     * banner only appeared once one monitor had already been created, which
+     * put the longest silence of the whole operation at its very beginning.
+     */
+    setCreateProgress(
+      MonitorRecommendationCreateRunner.getInitialProgress(plan),
+    );
 
-    try {
-      /*
-       * Sequential on purpose. Monitor creation runs label rules, owner rules
-       * and workspace notifications per monitor; firing 18 of those in
-       * parallel is a burst the free-plan monitor-count check also has to
-       * serialize against. A partial failure keeps whatever succeeded — the
-       * page reloads coverage afterwards, so the user sees exactly what landed.
-       */
-      for (const item of plan) {
-        await ModelAPI.createOrUpdate({
-          model: item.monitor,
-          modelType: Monitor,
-          formType: FormType.Create,
-          miscDataProps: item.miscDataProps,
-        });
+    /*
+     * The loop itself lives in MonitorRecommendationCreateRunner: it is the
+     * only part of this page a user watches happen, and a loop inside a .tsx
+     * cannot be tested in a suite that has no renderer. The API call stays
+     * here — the model type and the create form type are what the billing
+     * sweep looks for, and they belong next to the consent check above.
+     */
+    const finalProgress: MonitorRecommendationCreateProgress =
+      await MonitorRecommendationCreateRunner.run({
+        plan: plan,
+        onProgress: (progress: MonitorRecommendationCreateProgress) => {
+          setCreateProgress(progress);
+        },
+        createMonitor: async (
+          item: MonitorRecommendationCreatePlanItem,
+        ): Promise<MonitorRecommendationCreateOutcome> => {
+          try {
+            await ModelAPI.createOrUpdate({
+              model: item.monitor,
+              modelType: Monitor,
+              formType: FormType.Create,
+              miscDataProps: item.miscDataProps,
+            });
 
-        created = created + 1;
-        setCreatedCount(created);
-      }
-
-      setShowCreateSideOver(false);
-      setSelectedRecommendationIds(new Set<string>());
-    } catch (err) {
-      setActionError(
-        `${API.getFriendlyMessage(err)} (${created} of ${
-          plan.length
-        } monitors were created.)`,
-      );
-    }
+            return { isCreated: true };
+          } catch (err) {
+            return {
+              isCreated: false,
+              errorMessage: API.getFriendlyMessage(err),
+            };
+          }
+        },
+      });
 
     setIsCreating(false);
+
+    /*
+     * Only a clean run closes the panel. When something failed, the panel is
+     * the only place the per-monitor reasons are written down — closing it
+     * would replace them with a single error line and no way to see which of
+     * eighteen monitors is missing.
+     */
+    if (finalProgress.failedCount === 0) {
+      setShowCreateSideOver(false);
+      setCreateProgress(null);
+      setSelectedRecommendationIds(new Set<string>());
+    } else {
+      setActionError(
+        MonitorRecommendationCreateRunner.getSummaryText(finalProgress),
+      );
+
+      /*
+       * Drop the ones that landed from the selection. Leaving them selected
+       * would offer to create them a second time, which silently produces
+       * duplicate monitors.
+       */
+      setSelectedRecommendationIds(
+        MonitorRecommendationCreateRunner.getUnsuccessfulRecommendationIds({
+          progress: finalProgress,
+          selectedRecommendationIds: selectedRecommendationIds,
+        }),
+      );
+    }
 
     try {
       await loadCoverage(projectDefaults);
@@ -664,6 +713,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       selectedRecommendationIds: selectedRecommendationIds,
     });
 
+  const selectedCriticalCount: number = selectedRecommendations.filter(
+    (viewModel: RecommendationViewModel) => {
+      return viewModel.recommendation.severity === "Critical";
+    },
+  ).length;
+
+  const selectedWarningCount: number =
+    selectedRecommendations.length - selectedCriticalCount;
+
   type GetMonitorRouteFunction = (monitorId: ObjectID) => Route;
 
   const getMonitorRoute: GetMonitorRouteFunction = (
@@ -729,10 +787,22 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         description={`Monitors OneUptime recommends for this ${definition.resourceLabel.toLowerCase()}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.`}
         buttons={[
           {
-            title: `Create ${selectedRecommendations.length} Selected`,
+            /*
+             * "Create 0 Selected" was the label the page wore most of the
+             * time, since nothing is selected when it loads. A disabled
+             * button counting to zero reads as broken rather than as waiting.
+             */
+            title:
+              selectedRecommendations.length > 0
+                ? `Create ${selectedRecommendations.length} Selected`
+                : "Create Monitors",
             icon: IconProp.Add,
             buttonStyle: ButtonStyleType.PRIMARY,
             disabled: selectedRecommendations.length === 0,
+            tooltip:
+              selectedRecommendations.length === 0
+                ? "Pick at least one recommendation below first."
+                : undefined,
             onClick: () => {
               setActionError("");
               setShowCreateSideOver(true);
@@ -742,6 +812,20 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       >
         <div className="space-y-6">
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
+
+          {/*
+           * The batch's progress, once the panel it started in has been
+           * closed. Closing the drawer does not stop the run — the monitors
+           * it has already created are real — so the report has to follow the
+           * user rather than disappear with the drawer.
+           */}
+          {createProgress && !showCreateSideOver ? (
+            <MonitorRecommendationCreateProgressPanel
+              progress={createProgress}
+            />
+          ) : (
+            <></>
+          )}
 
           {/*
            * Rendered above the toolbar rather than folded into the card
@@ -794,13 +878,37 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
        * exactly when they are at the bottom of the page.
        */}
       {selectedRecommendations.length > 0 ? (
-        <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
-          <span className="text-sm text-gray-600">
-            {selectedRecommendations.length}{" "}
-            {selectedRecommendations.length === 1 ? "monitor" : "monitors"}{" "}
-            selected
-          </span>
-          <div className="flex items-center gap-2">
+        <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-sm font-medium text-gray-900">
+              {selectedRecommendations.length}{" "}
+              {selectedRecommendations.length === 1 ? "monitor" : "monitors"}{" "}
+              selected
+            </span>
+            {/*
+             * The severity split of what is about to be created. It is the
+             * one thing about a batch worth checking before pressing a button
+             * that pages people, and it was only visible inside the panel the
+             * button opens.
+             */}
+            {selectedCriticalCount > 0 ? (
+              <StatusBadge
+                text={`${selectedCriticalCount} Critical`}
+                type={StatusBadgeType.Danger}
+              />
+            ) : (
+              <></>
+            )}
+            {selectedWarningCount > 0 ? (
+              <StatusBadge
+                text={`${selectedWarningCount} Warning`}
+                type={StatusBadgeType.Warning}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-2">
             <Button
               title="Clear"
               buttonStyle={ButtonStyleType.NORMAL}
@@ -840,16 +948,26 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           incidentSeverityOptions={incidentSeverityOptions}
           alertSeverityOptions={alertSeverityOptions}
           isCreating={isCreating}
-          error={actionError || undefined}
-          progressMessage={
-            isCreating && createdCount > 0
-              ? `Created ${createdCount} of ${selectedRecommendations.length}...`
-              : undefined
-          }
+          /*
+           * Suppressed while there is a progress report, because after a
+           * partial failure `actionError` IS the progress report's summary
+           * line — showing both prints the same sentence twice, once as a
+           * banner and once under the bar it belongs to. Errors raised before
+           * the batch starts (the billing consent refusal) still surface here:
+           * those return before any progress is seeded.
+           */
+          error={createProgress ? undefined : actionError || undefined}
+          createProgress={createProgress || undefined}
+          /*
+           * Closes even mid-batch. The footer's Close is disabled while the
+           * run is going, but SideOver's header × deliberately always calls
+           * this — a panel must never trap the user — and the old guard made
+           * that × a control that looked live and did nothing. The batch is
+           * not abandonable anyway: it keeps running, and the progress panel
+           * moves onto the page behind, so nothing is lost by leaving.
+           */
           onClose={() => {
-            if (!isCreating) {
-              setShowCreateSideOver(false);
-            }
+            setShowCreateSideOver(false);
           }}
           onSubmit={(
             notificationSettings: MonitorRecommendationNotificationSettings,

@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(config, state, metadata)")]
       CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Redis\n(cache, queues, sessions)")]
+      REDIS[("Valkey\n(cache, queues, sessions)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## Vad detta visar
 
 - Slutanvändare når OneUptime via klustrets Ingress (NGINX), som dirigerar till UI och API.
-- Kärntjänster läser/skriver tillstånd till PostgreSQL, Redis och ClickHouse.
+- Kärntjänster läser/skriver tillstånd till PostgreSQL, Valkey (den BSD-licensierade forken av Redis 7.2) och ClickHouse.
 - Sonder kan köras inuti ditt kluster (rekommenderas) och/eller på annan plats i ditt nätverk. De kan övervaka:
   - Interna/privata tjänster bakom din brandvägg.
   - Externa/offentliga resurser på internet.
-- Sondresultat skickas till Probe Ingest inuti ditt kluster, köas via Redis och bearbetas av bakgrundsarbetaren till dina datalager.
+- Sondresultat skickas till Probe Ingest inuti ditt kluster, köas via Valkey och bearbetas av bakgrundsarbetaren till dina datalager.
 - Telemetri (mätvärden/spårningar/loggar) och server-/agentdata kan matas in via dedikerade ingest-tjänster och lagras i ClickHouse.
 
 > Observera: Om du använder extern PostgreSQL, Redis eller ClickHouse istället för de inbyggda, pekar anslutningarna från API/Worker/Ingest till dina externa slutpunkter. Det logiska flödet förblir detsamma.

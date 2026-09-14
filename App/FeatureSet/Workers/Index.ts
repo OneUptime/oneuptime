@@ -86,6 +86,9 @@ import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
 
+// Network Alert Policies
+import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
@@ -156,6 +159,9 @@ import "./Jobs/StatusPage/SendReportsToSubscribers";
 // Workspace Notification Summaries
 import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 
+// Owner Email Burst Rollups
+import "./Jobs/EmailRollup/FlushDueRollups";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
@@ -177,6 +183,7 @@ import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
+import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
@@ -195,6 +202,9 @@ import "./Jobs/Llm/EvaluateLlmCostBudgets";
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollGoogleSecOpsConnections";
+import "./Jobs/SecurityEvents/RunGoogleSecOpsConnection";
+import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
+import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
@@ -222,6 +232,9 @@ import "./Jobs/Host/CleanupStaleHosts";
 // Proxmox cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Proxmox/CleanupStaleResources";
 
+// VMware vCenter disconnection sweeper + inventory cleanup.
+import "./Jobs/VMware/CleanupStaleResources";
+
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
 
@@ -230,6 +243,12 @@ import "./Jobs/DockerSwarm/CleanupStaleResources";
 
 // IoT fleet disconnection sweeper + inventory cleanup.
 import "./Jobs/IoT/CleanupStaleResources";
+
+// Cloud environment disconnection sweeper + instance inventory cleanup.
+import "./Jobs/Cloud/CleanupStaleResources";
+
+// Serverless function disconnection sweeper + instance inventory cleanup.
+import "./Jobs/Serverless/CleanupStaleResources";
 
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
@@ -273,6 +292,18 @@ import "./Jobs/Rum/ProcessSessionErasureRequests";
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
 /*
+ * On-call shift reminders ("your shift starts in 1 hour") and the ledger
+ * retention behind them. Load-bearing imports, same as every job above: a
+ * reminder cron nobody imports is a reminder that never sends. The change
+ * pass (catch-up / reassigned notices fired from the on-call configuration
+ * hooks) is registered by the Common listener module, imported here AND in
+ * App/Index.ts so the API role — where the hooks actually run — has it too.
+ */
+import "./Jobs/OnCallDutySchedule/SendShiftReminders";
+import "./Jobs/OnCallDutySchedule/DeleteOldShiftReminderLogs";
+import "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
+
+/*
  * DeleteMonitorLogOlderThan24Hours cron job removed — TTL via retentionDate column
  * now handles automatic MonitorLog retention in ClickHouse. Retention days are read
  * from GlobalConfig.monitorLogRetentionInDays at ingestion time in MonitorLogUtil.
@@ -285,6 +316,8 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 // Enterprise License usage reporting (self-hosted only).
 import "./Jobs/EnterpriseLicense/ReportUserCount";
 import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
+// Hosted license counts derived from active instance reports.
+import "./Jobs/EnterpriseLicense/ReconcileInstanceUsage";
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";
@@ -292,8 +325,7 @@ import "./Jobs/InstanceUpdate/CheckForNewVersion";
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import RunStartupMigrations from "./Utils/StartupMigration";
-import JobDictionary from "./Utils/JobDictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import runWorkerJob from "./Utils/RunWorkerJob";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import MarketingEventWebhook from "Common/Server/Utils/Marketing/MarketingEventWebhook";
@@ -424,14 +456,7 @@ const WorkersFeatureSet: FeatureSet = {
 
             logger.debug("Running Job: " + name, { service: "workers" });
 
-            const funcToRun: PromiseVoidFunction =
-              JobDictionary.getJobFunction(name);
-
-            const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
-
-            if (funcToRun) {
-              await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
-            }
+            await runWorkerJob(job);
           },
           { concurrency: WORKER_CONCURRENCY },
         );

@@ -12,6 +12,7 @@
   <a href="/translations/README.it.md">Italiano</a> ·
   <a href="/translations/README.ru.md">Русский</a> ·
   <a href="/translations/README.hi.md">हिन्दी</a> ·
+  <a href="/translations/README.fa.md">فارسی</a> ·
   <a href="/translations/README.nl.md">Nederlands</a> ·
   <a href="/translations/README.da.md">Dansk</a> ·
   <a href="/translations/README.sv.md">Svenska</a> ·
@@ -193,6 +194,7 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 - **Docker** — één agent detecteert automatisch elke container en levert metrics en logs. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — dezelfde automatische detectie met één agent via Podmans Docker-compatibele socket. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

@@ -2,24 +2,44 @@ import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import RumSessionService from "../../Services/RumSessionService";
 import RumSessionChunkService from "../../Services/RumSessionChunkService";
+import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
 import {
   DbJSONResponse,
   Results,
 } from "../../Services/AnalyticsDatabaseService";
+import logger from "../Logger";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 import ChunkMath from "../../../Utils/Rum/ChunkMath";
+import {
+  SessionReplayTabEndFacts,
+  hasSessionRecordingEnded,
+} from "../../../Utils/Rum/SessionReplayRecordingEnded";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
   MAX_SESSION_REPLAY_READ_BYTES,
+  SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+  SESSION_REPLAY_MAX_SESSION_MS,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_RECORDER_CAPABILITIES,
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
+  SessionReplaySealedReason,
 } from "../../../Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_SORT_BY_VALUES,
+  SessionReplaySortBy,
+  SessionReplaySortedListCursorDto,
+  SessionReplayUserKind,
+  SessionReplayUsersCursorDto,
+} from "../../../Types/Rum/SessionReplayApi";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 
 /*
  * Bespoke ClickHouse reads for session-replay playback.
@@ -50,10 +70,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *  3. The manifest read must never name the `payload` column, so
  *     ClickHouse never touches (and never decompresses) the only column
  *     in the system that holds a recording of a real person's screen.
- *     The byte-cap pre-check is the one exception, and it measures
- *     `length(payload)` inside ClickHouse without ever shipping the
- *     bytes: the cap has to bound the size of what is actually returned,
- *     and the only honest measure of that is the stored column itself.
+ *     getChunks is the one read that names it, and it measures
+ *     `length(payload)` in the same statement that ships the bytes, so
+ *     the column is decompressed exactly once per page.
  *
  * NOTE on aliases: ClickHouse substitutes SELECT aliases into same-level
  * unqualified WHERE references, and an aggregate alias there is an
@@ -81,8 +100,49 @@ const READ_QUERY_SETTINGS: string = getQuerySettings({
 export const DEFAULT_SESSION_REPLAY_LIST_LIMIT: number = 50;
 export const MAX_SESSION_REPLAY_LIST_LIMIT: number = 200;
 
+/*
+ * Audit tables resolve the opaque session ids on one page in a single
+ * ClickHouse read. Keep both the number of bound IN values and each value's
+ * size bounded; session ids are browser-minted 32-character hex strings, but
+ * older recorders and hand-written API callers may have stored another shape.
+ */
+export const MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE: number = 200;
+export const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
+
+/*
+ * Page sizes for the per-user rollup (listUsers). Same figures as the
+ * list, but the cost model differs: every page of the rollup
+ * re-aggregates the whole window (see listUsers), so the cap bounds the
+ * response, not the work.
+ */
+export const DEFAULT_SESSION_REPLAY_USERS_LIMIT: number = 50;
+export const MAX_SESSION_REPLAY_USERS_LIMIT: number = 200;
+
 /* Sessions returned by the exception -> replay lookup. */
 export const MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT: number = 20;
+
+/*
+ * Default window for the exception -> replay lookup when the caller gives
+ * none. RumSession is partitioned by day, so an unbounded lookup scans
+ * every partition the project has ever written; 30 days covers every
+ * retention tier a recording can still be played under.
+ */
+export const DEFAULT_SESSION_REPLAY_FOR_EXCEPTION_WINDOW_DAYS: number = 30;
+
+/*
+ * Sessions the exception-instance side index may name. The instance table
+ * carries the session id of the page that threw, which is how a session
+ * is found BEFORE the finalizer has written its fingerprint list.
+ */
+const MAX_EXCEPTION_INSTANCE_SESSION_IDS: number = 100;
+
+/*
+ * Padding around an exception's own timestamp when the caller pins the
+ * lookup to a moment: a session that contains the error started at most
+ * SESSION_REPLAY_MAX_SESSION_MS before it, and clock skew between the
+ * browser and the server is bounded far below this.
+ */
+export const SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS: number = 5 * 60 * 1000;
 
 /*
  * Row ceiling on one manifest. A session is capped at
@@ -93,11 +153,24 @@ export const MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT: number = 20;
  */
 const MAX_MANIFEST_ROWS: number = 4096;
 
-export interface SessionReplayListCursor {
-  /* Server-clamped session start of the last row of the previous page. */
-  startTimeUnixMs: number;
-  sessionId: string;
-}
+/*
+ * How long one application's activity summary is served from memory. The
+ * health card polls every 10-60s per viewer and the summary is a small
+ * aggregate over a day of headers, so a 30s cache turns N viewers into
+ * one ClickHouse query per pod per half minute.
+ */
+export const SESSION_REPLAY_ACTIVITY_SUMMARY_CACHE_TTL_MS: number = 30 * 1000;
+const MAX_ACTIVITY_SUMMARY_CACHE_ENTRIES: number = 1000;
+
+/* The header attribute the ingest writes chunk 0's capability list into. */
+export const RECORDER_CAPABILITIES_ATTRIBUTE: string = "recorder.capabilities";
+
+/*
+ * The keyset cursor the list accepts and emits. The legacy
+ * {startTimeUnixMs, sessionId} shape is normalised to this by
+ * parseSessionReplayListCursor before it reaches the service.
+ */
+export type SessionReplayListCursor = SessionReplaySortedListCursorDto;
 
 export interface SessionReplayListFilters {
   hasError?: boolean | undefined;
@@ -115,9 +188,30 @@ export interface SessionReplayListFilters {
   deviceTypes?: Array<string> | undefined;
   countryCodes?: Array<string> | undefined;
   identifiedUserKey?: string | undefined;
+  /*
+   * Exact match on the recorder-minted anonymous visitor id: "every
+   * session from this browser". The handler has already checked the
+   * shape. Like identifiedUserKey it is a random token the list returns
+   * to every caller on every row, so it carries no identity gate.
+   */
+  visitorId?: string | undefined;
   /* "sessions that hit /checkout" - matches the routes array. */
   route?: string | undefined;
   minDurationMs?: number | undefined;
+  /*
+   * Free text: sessionId prefix, entry/exit URL and routes substring, exact
+   * trace id, and the identified user label when the caller may read it.
+   * Capped at SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH by the handler.
+   */
+  search?: string | undefined;
+  /* startsWith over the routes array and the entry URL. */
+  urlPrefix?: string | undefined;
+  /* Every pair must match the session's tag map. */
+  tags?: Record<string, string> | undefined;
+  hasIdentifiedUser?: boolean | undefined;
+  /* (not finalized OR has chunks) AND not recording-lost. */
+  isPlayable?: boolean | undefined;
+  hasTraces?: boolean | undefined;
 }
 
 export interface SessionReplayListRequest {
@@ -128,13 +222,22 @@ export interface SessionReplayListRequest {
   filters: SessionReplayListFilters;
   limit: number;
   cursor?: SessionReplayListCursor | undefined;
+  /* Absent means "startTime", which is what the list always did. */
+  sortBy?: SessionReplaySortBy | undefined;
   /*
    * The raw end-user identifier has its own, narrower column ACL than the
    * rest of the header row. This raw-SQL path never invokes
    * ModelPermission, so the caller decides column-by-column and the
    * column is simply not named in the SELECT when it is not permitted.
+   * Gates the traits column and the label half of the search predicate
+   * as well.
    */
   includeIdentifiedUserLabel: boolean;
+  /*
+   * Server "now" in unix ms for the hasRecordingEnded grace. Absent means
+   * Date.now(); a test seam, like getApplicationActivitySummary's.
+   */
+  nowUnixMs?: number | undefined;
 }
 
 export interface SessionReplayListItem {
@@ -168,14 +271,144 @@ export interface SessionReplayListItem {
   viewportWidth: number;
   viewportHeight: number;
   identifiedUserKey: string;
+  /*
+   * The recorder's per-browser anonymous visitor id; "" for a session an
+   * older recorder produced. Under the ordinary session ACL like the
+   * digest above: it names a browser, never a person.
+   */
+  visitorId: string;
   /* Present only when the caller holds the narrower identity permission. */
   identifiedUserLabel?: string | undefined;
+  identifiedUserTraits?: Record<string, string> | undefined;
   samplePercentageAtCapture: number;
+  /* First MAX_LIST_ROUTES routes, in order. */
+  routes: Array<string>;
+  traceCount: number;
+  exceptionGroupCount: number;
+  /*
+   * The first exception fingerprint of the session, "" when there is none.
+   * The list's errors badge links at the exception group with it.
+   */
+  topExceptionFingerprint: string;
+  clickCount: number;
+  activeMs: number;
+  firstErrorOffsetMs: number;
+  expiresAtUnixMs: number;
+  tags: Record<string, string>;
+  startTimeUnixMs: number;
+  endTimeUnixMs: number;
+  /*
+   * True when the session is not finalized yet but every tab of it has
+   * ended (sent its final chunk, or stored its last permitted chunk
+   * index) and nothing has been stored for any of them for
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS, judged from the chunk rows by
+   * the shared rule in Common/Utils/Rum/SessionReplayRecordingEnded.ts.
+   * "Not finalized" only says the finalizer has not run; this says the
+   * recording itself is over, which is what the Dashboard needs to stop
+   * calling a closed tab "Recording now". The grace is the finalizer's
+   * own, measured on the same server clock, so a multi-page app's next
+   * page (a new tab id whose first chunk is still on its way) does not
+   * flip a live session to "ended" for a poll. Always false for a
+   * finalized session, and false when the chunk rows could not be read -
+   * the list never fails for it.
+   */
+  hasRecordingEnded: boolean;
 }
 
 export interface SessionReplayListResult {
   sessions: Array<SessionReplayListItem>;
   nextCursor: SessionReplayListCursor | null;
+}
+
+export interface SessionReplaySummariesRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  sessionIds: Array<string>;
+}
+
+/*
+ * Deliberately excludes every identity field. An audit list needs enough
+ * context to distinguish recordings, not the person or browser identifier
+ * attached to them.
+ */
+export interface SessionReplaySummary {
+  sessionId: string;
+  startTime: Date;
+  startTimeUnixMs: number;
+  durationMs: number;
+  entryUrl: string;
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+}
+
+/* Routes projected onto a list row; the table shows three and says "(N pages)". */
+export const MAX_LIST_ROUTES: number = 5;
+
+/* The keyset cursor the per-user rollup accepts and emits. */
+export type SessionReplayUsersCursor = SessionReplayUsersCursorDto;
+
+export interface SessionReplayUsersRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  limit: number;
+  cursor?: SessionReplayUsersCursor | undefined;
+  /*
+   * The same column-level identity ACL as SessionReplayListRequest: the
+   * label and traits are named at neither level of the statement unless
+   * the handler has already passed canReadIdentifiedUserLabel.
+   */
+  includeIdentifiedUserLabel: boolean;
+}
+
+/*
+ * One person (or one browser, or the anonymous remainder) across every
+ * session of theirs in the window. Mirrors SessionReplayUserRollupDto
+ * field for field; the handler serialises it as-is.
+ */
+export interface SessionReplayUserRollup {
+  /*
+   * "u:<identifiedUserKey>" for an identified person, "v:<visitorId>" for
+   * a linked browser, "" for the anonymous bucket. The row key and the
+   * cursor tiebreak; opaque to the client.
+   */
+  groupKey: string;
+  kind: SessionReplayUserKind;
+  /* "" unless kind is "identified". */
+  identifiedUserKey: string;
+  /* The visitor id of the newest session in the group; "" when it had none. */
+  visitorId: string;
+  /* Present only when the caller holds the narrower identity permission. */
+  identifiedUserLabel?: string | undefined;
+  identifiedUserTraits?: Record<string, string> | undefined;
+  sessionCount: number;
+  /* Sessions still being recorded (not finalized). */
+  liveSessionCount: number;
+  firstSeenUnixMs: number;
+  lastSeenUnixMs: number;
+  totalDurationMs: number;
+  /* Sums over the group's sessions. */
+  errorCount: number;
+  frustrationCount: number;
+  errorSessionCount: number;
+  pageCount: number;
+  /* The newest session, so "Watch latest" needs no second request. */
+  lastSessionId: string;
+  lastEntryUrl: string;
+  /* Device facts of the newest session. */
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+  countryCode: string;
+}
+
+export interface SessionReplayUsersResult {
+  users: Array<SessionReplayUserRollup>;
+  nextCursor: SessionReplayUsersCursor | null;
 }
 
 export interface SessionReplaySessionHeader {
@@ -222,6 +455,72 @@ export interface SessionReplaySessionHeader {
   traceIds: Array<string>;
   exceptionFingerprints: Array<string>;
   clockSkewMs: number;
+  /*
+   * The session clock as numbers, so the player places every telemetry
+   * row at rowUnixMs - startTimeUnixMs without re-parsing an ISO string.
+   */
+  startTimeUnixMs: number;
+  endTimeUnixMs: number;
+  /* The recorder's own start clock, before the server clamped it. */
+  clientReportedStartUnixMs: number;
+  tags: Record<string, string>;
+  expiresAtUnixMs: number;
+  clickCount: number;
+  customEventCount: number;
+  activeMs: number;
+  firstErrorOffsetMs: number;
+  /*
+   * From chunk 0's envelope (attributes["recorder.capabilities"]); empty
+   * for recordings that predate the field.
+   */
+  recorderCapabilities: Array<string>;
+  /*
+   * The pseudonymous identity digest ("" when the page never identified
+   * the user) and the per-browser visitor id ("" from an older recorder).
+   * Both are what the player hands back to /list to find this person's
+   * other sessions. Neither is identity-gated: the list already returns
+   * both to every list-capable caller, and neither names anyone.
+   */
+  identifiedUserKey: string;
+  visitorId: string;
+  /*
+   * Same meaning as SessionReplayListItem.hasRecordingEnded.
+   *
+   * JUDGED ONLY BY getManifest; getSessionHeader always answers false.
+   * The header read is also the authorization lookup behind every chunk
+   * and heartbeat request, and its result is cached for 30s there, so a
+   * chunk-table read on it would add a query to every uncached seek and
+   * cache an answer that goes stale the moment a tab closes. The manifest
+   * is the one read that hands the header to the Dashboard, it always
+   * resolves the header fresh, and it is pinned to the application the
+   * caller was authorized against - which the chunk read needs.
+   */
+  hasRecordingEnded: boolean;
+  /*
+   * Never populated by getSessionHeader. The manifest handler fills them
+   * from getSessionIdentity ONLY after canReadIdentifiedUserLabel passes,
+   * so no statement names the identity columns for a caller who may not
+   * read them.
+   */
+  identifiedUserLabel?: string | undefined;
+  identifiedUserTraits?: Record<string, string> | undefined;
+}
+
+/* The two identity columns, read separately behind the identity ACL. */
+export interface SessionReplaySessionIdentity {
+  identifiedUserLabel: string;
+  identifiedUserTraits: Record<string, string>;
+}
+
+/*
+ * What is still knowable about a session whose header has aged out of
+ * retention (or was never finalized), for the "this recording expired on
+ * <date>" answer instead of a bare "not found".
+ */
+export interface SessionReplayExpiredSessionInfo {
+  rumApplicationId: string;
+  startTime: Date;
+  expiresAt: Date;
 }
 
 /*
@@ -238,6 +537,8 @@ export interface SessionReplayManifestTab {
   gaps: Array<SessionReplayGap>;
   maxChunkIndex: number;
   totalPayloadBytes: number;
+  /* Where this tab's footage begins on the session clock. */
+  firstChunkStartOffsetMs: number;
 }
 
 export interface SessionReplayManifest {
@@ -254,6 +555,17 @@ export interface SessionReplayManifest {
 export interface SessionReplayChunkPayload {
   chunkIndex: number;
   payload: string;
+}
+
+export interface SessionReplayChunkReadResult {
+  /* The longest contiguous prefix of the requested chunks under the cap. */
+  chunks: Array<SessionReplayChunkPayload>;
+  /*
+   * Chunks that exist and were requested but did not fit under
+   * MAX_SESSION_REPLAY_READ_BYTES behind the ones served. A chunk absent
+   * from storage is NOT listed here: that is a gap, not an omission.
+   */
+  omittedChunkIndexes: Array<number>;
 }
 
 export interface SessionReplayExceptionSession {
@@ -275,6 +587,26 @@ export interface SessionReplayExceptionSession {
   osName: string;
   deviceType: string;
   isFinalized: boolean;
+}
+
+export interface SessionReplayApplicationActivitySummary {
+  /* null when ClickHouse could not answer; the UI renders "unknown". */
+  sessionsLast24h: number | null;
+  playableSessionsLast24h: number | null;
+  /* null when the application has no session in retention. */
+  lastSessionStartedAt: Date | null;
+  /*
+   * What the NEWEST session's recorder said it could capture, filtered to
+   * the known vocabulary. null when there is no session in retention, when
+   * that session predates the attribute, or when the query failed - all
+   * three render as "not reported yet", which is the honest answer.
+   *
+   * This is how an operator spots a stale cached recorder artifact
+   * ("click labels: no") without opening a recording, which would write an
+   * audit row. It rides on the last-session query that is already run for
+   * lastSessionStartedAt, so it costs no extra round trip.
+   */
+  recorderCapabilities: Array<string> | null;
 }
 
 /*
@@ -305,6 +637,44 @@ function argMaxDateTime(column: string): string {
   return `toFloat64(toUnixTimestamp64Milli(${argMaxColumn(column)}))`;
 }
 
+/* A Date column (retentionDate) as unix milliseconds. */
+function argMaxDate(column: string): string {
+  return `toFloat64(toUnixTimestamp(${argMaxColumn(column)})) * 1000`;
+}
+
+/*
+ * Duration that stays honest for a session the finalizer has not reached.
+ *
+ * The provisional header is written on chunk 0 with durationMs 0 and
+ * endTime = chunk 0's end, and it stays that way for the 10+ minutes of
+ * idleness the finalizer waits for. Reported verbatim, every live or
+ * recently finished session read "0s" in the list and a "longer than"
+ * filter hid all of them - the first thing a person testing their install
+ * sees is a session that claims to be empty. Until the finalized row
+ * exists, the span the header itself asserts (endTime - startTime) is the
+ * best lower bound there is, so the live value is the larger of the two.
+ * The finalized row's durationMs is authoritative and is used as-is.
+ */
+/*
+ * durationMs is Int128 on disk while the clock arithmetic is Int64; both
+ * branches are cast to Int64 (a session is capped at four hours, so the
+ * cast cannot overflow) so `if` and `greatest` see one type.
+ */
+const LIVE_DURATION_EXPRESSION: string = `toFloat64(if(${argMaxColumn(
+  "isFinalized",
+)}, toInt64(${argMaxColumn("durationMs")}), greatest(toInt64(${argMaxColumn(
+  "durationMs",
+)}), toUnixTimestamp64Milli(${argMaxColumn(
+  "endTime",
+)}) - toUnixTimestamp64Milli(${argMaxColumn("startTime")}))))`;
+
+/*
+ * The frustration total, shared by the hasFrustration predicate and the
+ * "frustration" sort so the two can never disagree about what counts.
+ */
+const FRUSTRATION_TOTAL_EXPRESSION: string =
+  "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)";
+
 /*
  * Aliases deliberately differ from the physical column names. See the
  * ILLEGAL_AGGREGATION note in the file header.
@@ -312,7 +682,7 @@ function argMaxDateTime(column: string): string {
 const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   { alias: "aggStartTime", expression: argMaxDateTime("startTime") },
   { alias: "aggEndTime", expression: argMaxDateTime("endTime") },
-  { alias: "aggDurationMs", expression: argMaxNumeric("durationMs") },
+  { alias: "aggDurationMs", expression: LIVE_DURATION_EXPRESSION },
   { alias: "aggIsFinalized", expression: argMaxColumn("isFinalized") },
   { alias: "aggSealedReason", expression: argMaxColumn("sealedReason") },
   { alias: "aggChunkCount", expression: argMaxNumeric("chunkCount") },
@@ -336,6 +706,12 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   { alias: "aggTriggerReason", expression: argMaxColumn("triggerReason") },
   { alias: "aggEntryUrl", expression: argMaxColumn("entryUrl") },
   { alias: "aggExitUrl", expression: argMaxColumn("exitUrl") },
+  /*
+   * The full routes array: the list projects the first MAX_LIST_ROUTES and
+   * the urlPrefix / search predicates run over the argMax'd whole, never
+   * the raw column (which would match a superseded header version).
+   */
+  { alias: "aggRoutes", expression: argMaxColumn("routes") },
   { alias: "aggBrowserName", expression: argMaxColumn("browserName") },
   { alias: "aggBrowserVersion", expression: argMaxColumn("browserVersion") },
   { alias: "aggOsName", expression: argMaxColumn("osName") },
@@ -347,11 +723,77 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
     alias: "aggIdentifiedUserKey",
     expression: argMaxColumn("identifiedUserKey"),
   },
+  /*
+   * The recorder-minted per-browser id. Under the ordinary session ACL
+   * beside the digest, NOT in IDENTITY_AGGREGATES: it is a random token
+   * that names a browser, never a person.
+   */
+  { alias: "aggVisitorId", expression: argMaxColumn("visitorId") },
   {
     alias: "aggSamplePercentage",
     expression: argMaxNumeric("samplePercentageAtCapture"),
   },
+  /*
+   * Counts rather than the arrays themselves: the list only says "3 traces"
+   * and "2 exception groups", and the hasTraces predicate needs a number.
+   */
+  {
+    alias: "aggTraceCount",
+    expression: `toFloat64(length(${argMaxColumn("traceIds")}))`,
+  },
+  {
+    alias: "aggExceptionGroupCount",
+    expression: `toFloat64(length(${argMaxColumn("exceptionFingerprints")}))`,
+  },
+  /*
+   * The first fingerprint, so the list's "3 errors" badge can link at the
+   * exception group instead of at an unfiltered Exceptions page. Empty
+   * string when the session recorded no exception group; arrayElement on
+   * an empty array returns the type's default, which for String is ''.
+   */
+  {
+    alias: "aggTopExceptionFingerprint",
+    expression: `arrayElement(${argMaxColumn("exceptionFingerprints")}, 1)`,
+  },
+  { alias: "aggClickCount", expression: argMaxNumeric("clickCount") },
+  { alias: "aggActiveMs", expression: argMaxNumeric("activeMs") },
+  {
+    alias: "aggFirstErrorOffsetMs",
+    expression: argMaxNumeric("firstErrorOffsetMs"),
+  },
+  { alias: "aggExpiresAt", expression: argMaxDate("retentionDate") },
+  { alias: "aggTags", expression: argMaxColumn("tags") },
 ];
+
+/*
+ * The narrow projection used by the audit-table summary lookup. Derive it
+ * from the list's aggregates so live duration and replacement-row handling
+ * cannot drift between the two reads.
+ */
+const SESSION_SUMMARY_AGGREGATE_ALIASES: ReadonlyArray<string> = [
+  "aggStartTime",
+  "aggDurationMs",
+  "aggEntryUrl",
+  "aggBrowserName",
+  "aggBrowserVersion",
+  "aggOsName",
+  "aggDeviceType",
+];
+
+const SESSION_SUMMARY_AGGREGATES: Array<AggregatedColumn> =
+  SESSION_SUMMARY_AGGREGATE_ALIASES.map((alias: string): AggregatedColumn => {
+    const column: AggregatedColumn | undefined = HEADER_AGGREGATES.find(
+      (candidate: AggregatedColumn): boolean => {
+        return candidate.alias === alias;
+      },
+    );
+
+    if (!column) {
+      throw new Error(`HEADER_AGGREGATES has no column aliased ${alias}`);
+    }
+
+    return column;
+  });
 
 /* Only the manifest needs these; the list never renders them. */
 const HEADER_DETAIL_AGGREGATES: Array<AggregatedColumn> = [
@@ -362,7 +804,6 @@ const HEADER_DETAIL_AGGREGATES: Array<AggregatedColumn> = [
   { alias: "aggRrwebVersion", expression: argMaxColumn("rrwebVersion") },
   { alias: "aggSchemaVersion", expression: argMaxNumeric("schemaVersion") },
   { alias: "aggWireVersion", expression: argMaxNumeric("wireVersion") },
-  { alias: "aggRoutes", expression: argMaxColumn("routes") },
   { alias: "aggFidelityNotices", expression: argMaxColumn("fidelityNotices") },
   {
     alias: "aggFullSnapshotChunkIndexes",
@@ -374,6 +815,31 @@ const HEADER_DETAIL_AGGREGATES: Array<AggregatedColumn> = [
     expression: argMaxColumn("exceptionFingerprints"),
   },
   { alias: "aggClockSkewMs", expression: argMaxNumeric("clockSkewMs") },
+  {
+    alias: "aggClientReportedStart",
+    expression: argMaxDateTime("clientReportedStartTime"),
+  },
+  {
+    alias: "aggCustomEventCount",
+    expression: argMaxNumeric("customEventCount"),
+  },
+  { alias: "aggAttributes", expression: argMaxColumn("attributes") },
+];
+
+/*
+ * The two columns under the identity ACL. Named in a statement ONLY when
+ * the caller has already passed canReadIdentifiedUserLabel for the
+ * application the statement is pinned to.
+ */
+const IDENTITY_AGGREGATES: Array<AggregatedColumn> = [
+  {
+    alias: "aggIdentifiedUserLabel",
+    expression: argMaxColumn("identifiedUserLabel"),
+  },
+  {
+    alias: "aggIdentifiedUserTraits",
+    expression: argMaxColumn("identifiedUserTraits"),
+  },
 ];
 
 function toSelectList(columns: Array<AggregatedColumn>): string {
@@ -382,6 +848,164 @@ function toSelectList(columns: Array<AggregatedColumn>): string {
       return `${column.expression} AS ${column.alias}`;
     })
     .join(",\n        ");
+}
+
+/*
+ * The per-session facts the user rollup (listUsers) reads at the inner,
+ * per-session level of its statement. Picked out of HEADER_AGGREGATES by
+ * alias rather than re-declared, so the rollup can never disagree with
+ * the list about what a session's live duration or error count is.
+ */
+const USER_ROLLUP_SESSION_ALIASES: ReadonlyArray<string> = [
+  "aggStartTime",
+  "aggDurationMs",
+  "aggIsFinalized",
+  "aggHasError",
+  "aggErrorCount",
+  "aggRageClickCount",
+  "aggDeadClickCount",
+  "aggErrorClickCount",
+  "aggRefreshRageCount",
+  "aggPageCount",
+  "aggEntryUrl",
+  "aggBrowserName",
+  "aggBrowserVersion",
+  "aggOsName",
+  "aggDeviceType",
+  "aggCountryCode",
+  "aggIdentifiedUserKey",
+  "aggVisitorId",
+];
+
+const USER_ROLLUP_SESSION_AGGREGATES: Array<AggregatedColumn> =
+  USER_ROLLUP_SESSION_ALIASES.map((alias: string): AggregatedColumn => {
+    const column: AggregatedColumn | undefined = HEADER_AGGREGATES.find(
+      (candidate: AggregatedColumn): boolean => {
+        return candidate.alias === alias;
+      },
+    );
+
+    if (!column) {
+      throw new Error(`HEADER_AGGREGATES has no column aliased ${alias}`);
+    }
+
+    return column;
+  });
+
+/*
+ * How a de-duplicated session is filed under a person. An identified
+ * session belongs to its user whatever browser it came from; an
+ * unidentified one belongs to its browser; one an older recorder left
+ * with neither key goes in the single anonymous bucket (''). The
+ * prefixes keep a user key and a visitor id from ever colliding, and
+ * readUserRollupKind reads the kind straight back off them. Computed at
+ * the per-session level so the outer GROUP BY can name it.
+ */
+const USER_ROLLUP_IDENTIFIED_PREFIX: string = "u:";
+const USER_ROLLUP_VISITOR_PREFIX: string = "v:";
+const USER_ROLLUP_KEY_ALIAS: string = "rollupKey";
+const USER_ROLLUP_KEY_EXPRESSION: string = `if(aggIdentifiedUserKey != '', concat('${USER_ROLLUP_IDENTIFIED_PREFIX}', aggIdentifiedUserKey), if(aggVisitorId != '', concat('${USER_ROLLUP_VISITOR_PREFIX}', aggVisitorId), ''))`;
+
+/*
+ * The outer, per-person level. Every alias carries the `rollup` prefix
+ * for the reason the per-session ones carry `agg`: none may spell a
+ * physical column, so a WHERE on this level could never trip
+ * ILLEGAL_AGGREGATION. The inputs are the per-session aliases: already
+ * de-duplicated, and already Float64 unix milliseconds where they are
+ * clocks (argMaxDateTime), so min/max/sum need no further conversion.
+ * argMax over aggStartTime takes the newest session's value for the
+ * "last seen" facts.
+ */
+const USER_ROLLUP_AGGREGATES: Array<AggregatedColumn> = [
+  { alias: "rollupSessionCount", expression: "toFloat64(count())" },
+  {
+    alias: "rollupLiveSessionCount",
+    expression: "toFloat64(countIf(aggIsFinalized = 0))",
+  },
+  {
+    alias: "rollupFirstSeenUnixMs",
+    expression: "toFloat64(min(aggStartTime))",
+  },
+  { alias: "rollupLastSeenUnixMs", expression: "toFloat64(max(aggStartTime))" },
+  {
+    alias: "rollupTotalDurationMs",
+    expression: "toFloat64(sum(aggDurationMs))",
+  },
+  { alias: "rollupErrorCount", expression: "toFloat64(sum(aggErrorCount))" },
+  {
+    alias: "rollupFrustrationCount",
+    expression: `toFloat64(sum${FRUSTRATION_TOTAL_EXPRESSION})`,
+  },
+  {
+    alias: "rollupErrorSessionCount",
+    expression: "toFloat64(countIf(aggHasError))",
+  },
+  { alias: "rollupPageCount", expression: "toFloat64(sum(aggPageCount))" },
+  {
+    alias: "rollupLastSessionId",
+    expression: "argMax(sessionId, aggStartTime)",
+  },
+  {
+    alias: "rollupLastEntryUrl",
+    expression: "argMax(aggEntryUrl, aggStartTime)",
+  },
+  /*
+   * Constant within an identified group and '' in every other, so any
+   * row would do; argMax keeps it on the same footing as the rest.
+   */
+  {
+    alias: "rollupIdentifiedUserKey",
+    expression: "argMax(aggIdentifiedUserKey, aggStartTime)",
+  },
+  {
+    alias: "rollupVisitorId",
+    expression: "argMax(aggVisitorId, aggStartTime)",
+  },
+  {
+    alias: "rollupBrowserName",
+    expression: "argMax(aggBrowserName, aggStartTime)",
+  },
+  {
+    alias: "rollupBrowserVersion",
+    expression: "argMax(aggBrowserVersion, aggStartTime)",
+  },
+  { alias: "rollupOsName", expression: "argMax(aggOsName, aggStartTime)" },
+  {
+    alias: "rollupDeviceType",
+    expression: "argMax(aggDeviceType, aggStartTime)",
+  },
+  {
+    alias: "rollupCountryCode",
+    expression: "argMax(aggCountryCode, aggStartTime)",
+  },
+];
+
+/*
+ * The identity pair at the person level. Named ONLY when the inner level
+ * named IDENTITY_AGGREGATES, which is only behind the identity ACL.
+ */
+const USER_ROLLUP_IDENTITY_AGGREGATES: Array<AggregatedColumn> = [
+  {
+    alias: "rollupIdentifiedUserLabel",
+    expression: "argMax(aggIdentifiedUserLabel, aggStartTime)",
+  },
+  {
+    alias: "rollupIdentifiedUserTraits",
+    expression: "argMax(aggIdentifiedUserTraits, aggStartTime)",
+  },
+];
+
+/* The kind USER_ROLLUP_KEY_EXPRESSION encoded, read back off the prefix. */
+function readUserRollupKind(groupKey: string): SessionReplayUserKind {
+  if (groupKey.startsWith(USER_ROLLUP_IDENTIFIED_PREFIX)) {
+    return "identified";
+  }
+
+  if (groupKey.startsWith(USER_ROLLUP_VISITOR_PREFIX)) {
+    return "visitor";
+  }
+
+  return "anonymous";
 }
 
 function readNumber(row: JSONObject, key: string): number {
@@ -457,6 +1081,32 @@ function readNumberArray(row: JSONObject, key: string): Array<number> {
 }
 
 /*
+ * A Map(String, String) column. ClickHouse serialises it as a JSON object;
+ * anything else (including an array, or a row that predates the column)
+ * reads as an empty map.
+ */
+function readStringMap(row: JSONObject, key: string): Record<string, string> {
+  const value: unknown = row[key];
+  const result: Record<string, string> = {};
+
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return result;
+  }
+
+  for (const entryKey of Object.keys(value as Record<string, unknown>)) {
+    const entry: unknown = (value as Record<string, unknown>)[entryKey];
+
+    if (typeof entry === "string") {
+      result[entryKey] = entry;
+    } else if (typeof entry === "number" || typeof entry === "boolean") {
+      result[entryKey] = String(entry);
+    }
+  }
+
+  return result;
+}
+
+/*
  * Unix millis -> Date. The queries return epoch milliseconds as a Float64
  * precisely so no ClickHouse datetime string ever has to be re-parsed
  * (its "YYYY-MM-DD hh:mm:ss.nnnnnnnnn" form has no timezone and is a
@@ -466,7 +1116,269 @@ function readDate(row: JSONObject, key: string): Date {
   return new Date(readNumber(row, key));
 }
 
+/*
+ * A number that has to be MEASURED, not defaulted. readNumber answers 0 for
+ * a missing or garbled value, which is the right degradation for a counter
+ * on a table row but the wrong one for a clock the "has this tab ended?"
+ * rule compares: a missing last-chunk start read as 0 would sit before
+ * every final chunk and call a live tab ended. NaN instead, which the
+ * shared rule refuses outright.
+ */
+function readMeasuredNumber(row: JSONObject, key: string): number {
+  const value: unknown = row[key];
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : Number.NaN;
+  }
+
+  /* Number("") and Number(" ") are 0, which is exactly the default above. */
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed: number = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  return Number.NaN;
+}
+
+/*
+ * The per-tab facts the shared rule in
+ * Common/Utils/Rum/SessionReplayRecordingEnded.ts is judged on, written
+ * exactly as that file documents them. The clocks and the version are
+ * wrapped in toFloat64 for the same reason as every wide column above:
+ * ClickHouse's JSON format quotes Int64 and UInt64 as strings. The chunk
+ * index is an Int32 and would come back as a number anyway; it is wrapped
+ * too so every fact in the group parses the same way. The aliases do not
+ * collide with a real column (see the NOTE on aliases at the top of this
+ * file).
+ *
+ * Two of the five are not about the tab's own clock:
+ *
+ * - tabMaxChunkIndex lets the rule call a tab that stored its last
+ *   permitted chunk index ended. The ingest gate refuses everything past
+ *   it, the recorder's own truncation seal included, so that tab never
+ *   gets a final chunk and would otherwise read as "recording" until the
+ *   idle finalizer.
+ * - tabLastChunkStoredAtUnixMs is max(version): the SERVER unix ms at
+ *   which the tab's newest chunk row was written. The grace is measured
+ *   on it, never on the device clock the chunk times come from.
+ */
+const TAB_HAS_FINAL_CHUNK_ALIAS: string = "tabHasFinalChunk";
+const TAB_FINAL_CHUNK_END_ALIAS: string = "tabFinalChunkEndUnixMs";
+const TAB_LAST_CHUNK_START_ALIAS: string = "tabLastChunkStartUnixMs";
+const TAB_MAX_CHUNK_INDEX_ALIAS: string = "tabMaxChunkIndex";
+const TAB_LAST_CHUNK_STORED_AT_ALIAS: string = "tabLastChunkStoredAtUnixMs";
+
+const TAB_END_FACT_AGGREGATES: Array<AggregatedColumn> = [
+  {
+    alias: TAB_HAS_FINAL_CHUNK_ALIAS,
+    expression: "max(toUInt8(isFinal))",
+  },
+  {
+    alias: TAB_FINAL_CHUNK_END_ALIAS,
+    expression:
+      "toFloat64(toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal)))",
+  },
+  {
+    alias: TAB_LAST_CHUNK_START_ALIAS,
+    expression: "toFloat64(toUnixTimestamp64Milli(max(chunkStartTime)))",
+  },
+  {
+    alias: TAB_MAX_CHUNK_INDEX_ALIAS,
+    expression: "toFloat64(max(chunkIndex))",
+  },
+  {
+    alias: TAB_LAST_CHUNK_STORED_AT_ALIAS,
+    expression: "toFloat64(max(version))",
+  },
+];
+
+/*
+ * The capability list chunk 0 declared, filtered to the vocabulary this
+ * build knows so a stored typo never reaches the player as a capability.
+ */
+function readRecorderCapabilities(row: JSONObject): Array<string> {
+  const attributes: Record<string, string> = readStringMap(
+    row,
+    "aggAttributes",
+  );
+  const raw: string | undefined = attributes[RECORDER_CAPABILITIES_ATTRIBUTE];
+
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(",")
+    .map((capability: string): string => {
+      return capability.trim();
+    })
+    .filter((capability: string): boolean => {
+      return SESSION_REPLAY_RECORDER_CAPABILITIES.includes(capability);
+    });
+}
+
+interface ActivitySummaryCacheEntry {
+  summary: SessionReplayApplicationActivitySummary;
+  expiresAt: number;
+}
+
+const activitySummaryCache: Map<string, ActivitySummaryCacheEntry> = new Map<
+  string,
+  ActivitySummaryCacheEntry
+>();
+
+/*
+ * Where the published recorder version comes from. The recorder manifest
+ * is read by App/FeatureSet/BrowserRecorder/Manifest.ts, which lives in
+ * the App tree and cannot be imported from Common; the feature set that
+ * mounts the read routes registers the reader at boot. Until it does, the
+ * ingest-status route answers null - "unknown", never a guessed version.
+ */
+type PublishedRecorderVersionProvider = () => string | null;
+
+let publishedRecorderVersionProvider: PublishedRecorderVersionProvider | null =
+  null;
+
 export default class SessionReplayReadService {
+  public static setPublishedRecorderVersionProvider(
+    provider: PublishedRecorderVersionProvider | null,
+  ): void {
+    publishedRecorderVersionProvider = provider;
+  }
+
+  public static getPublishedRecorderVersion(): string | null {
+    if (!publishedRecorderVersionProvider) {
+      return null;
+    }
+
+    try {
+      const version: string | null = publishedRecorderVersionProvider();
+
+      return typeof version === "string" && version.length > 0 ? version : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /* Test seam: the summary cache is process-local. */
+  public static clearActivitySummaryCache(): void {
+    activitySummaryCache.clear();
+  }
+
+  /*
+   * Resolve the opaque ids stored on audit rows into compact session facts.
+   * This is intentionally one bespoke query instead of N getSessionHeader
+   * calls (or AnalyticsModelAPI, which RumSession does not expose). The
+   * project and application are both pinned before the caller-controlled IN
+   * list, and argMax collapses provisional/finalized ReplacingMergeTree rows.
+   */
+  @CaptureSpan()
+  public static async getSessionSummaries(
+    request: SessionReplaySummariesRequest,
+  ): Promise<Array<SessionReplaySummary>> {
+    if (request.sessionIds.length === 0) {
+      throw new BadDataException("sessionIds must contain at least one id");
+    }
+
+    if (request.sessionIds.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+      throw new BadDataException(
+        `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+      );
+    }
+
+    for (const sessionId of request.sessionIds) {
+      if (typeof sessionId !== "string" || sessionId.length === 0) {
+        throw new BadDataException(
+          "Every sessionId must be a non-empty string",
+        );
+      }
+
+      if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+        throw new BadDataException(
+          `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+        );
+      }
+    }
+
+    /* Preserve first occurrence order while binding every id only once. */
+    const sessionIds: Array<string> = Array.from(
+      new Set<string>(request.sessionIds),
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+        sessionId,
+    `;
+
+    statement.append(`    ${toSelectList(SESSION_SUMMARY_AGGREGATES)}`);
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.rumApplicationId,
+        }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(
+      " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC",
+    );
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const requestedIds: Set<string> = new Set<string>(sessionIds);
+    const summariesById: Map<string, SessionReplaySummary> = new Map<
+      string,
+      SessionReplaySummary
+    >();
+
+    for (const row of response.data || []) {
+      const sessionId: string = readString(row, "sessionId");
+
+      /* A malformed/unexpected driver row can never add data to the reply. */
+      if (!requestedIds.has(sessionId) || summariesById.has(sessionId)) {
+        continue;
+      }
+
+      const startTime: Date = readDate(row, "aggStartTime");
+
+      summariesById.set(sessionId, {
+        sessionId: sessionId,
+        startTime: startTime,
+        startTimeUnixMs: startTime.getTime(),
+        durationMs: readNumber(row, "aggDurationMs"),
+        entryUrl: readString(row, "aggEntryUrl"),
+        browserName: readString(row, "aggBrowserName"),
+        browserVersion: readString(row, "aggBrowserVersion"),
+        osName: readString(row, "aggOsName"),
+        deviceType: readString(row, "aggDeviceType"),
+      });
+    }
+
+    /* Stable request order makes consumers deterministic; missing ids omit. */
+    return sessionIds.flatMap(
+      (sessionId: string): Array<SessionReplaySummary> => {
+        const summary: SessionReplaySummary | undefined =
+          summariesById.get(sessionId);
+
+        return summary ? [summary] : [];
+      },
+    );
+  }
+
   /*
    * Session list.
    *
@@ -474,7 +1386,10 @@ export default class SessionReplayReadService {
    * are the first three elements of the sort key AND they are part of the
    * ReplacingMergeTree replace key, so they are byte-identical on every
    * duplicate row of a session. Filtering on them before the GROUP BY is
-   * therefore both index-friendly and safe.
+   * therefore both index-friendly and safe. Nothing else is ever added to
+   * the WHERE: any other predicate would have to run over raw rows and
+   * would either match a superseded header version or force a scan that
+   * the (projectId, rumApplicationId, startTime) prefix cannot prune.
    *
    * Everything else is filtered in HAVING against the argMax'd value.
    * That is not a style choice: a provisional header (written on chunk 0,
@@ -492,6 +1407,24 @@ export default class SessionReplayReadService {
       Math.min(request.limit, MAX_SESSION_REPLAY_LIST_LIMIT),
     );
 
+    const sortBy: SessionReplaySortBy = request.sortBy || "startTime";
+
+    if (!SESSION_REPLAY_SORT_BY_VALUES.includes(sortBy)) {
+      throw new BadDataException(
+        `sortBy must be one of ${SESSION_REPLAY_SORT_BY_VALUES.join(", ")}.`,
+      );
+    }
+
+    if (request.cursor && request.cursor.sortBy !== sortBy) {
+      /*
+       * A cursor is a position in ONE ordering. Applying a "most errors"
+       * cursor to a "newest" list would silently skip or repeat sessions.
+       */
+      throw new BadDataException(
+        `The cursor belongs to a list sorted by ${request.cursor.sortBy}, not ${sortBy}. Start from the first page.`,
+      );
+    }
+
     const selectList: string = toSelectList(HEADER_AGGREGATES);
 
     const statement: Statement = SQL`
@@ -503,9 +1436,7 @@ export default class SessionReplayReadService {
     statement.append(`    ${selectList}`);
 
     if (request.includeIdentifiedUserLabel) {
-      statement.append(
-        `,\n        ${argMaxColumn("identifiedUserLabel")} AS aggIdentifiedUserLabel`,
-      );
+      statement.append(`,\n        ${toSelectList(IDENTITY_AGGREGATES)}`);
     }
 
     statement.append(SQL`
@@ -532,19 +1463,24 @@ export default class SessionReplayReadService {
 
     /*
      * Keyset cursor. The sort key is (projectId, rumApplicationId,
-     * startTime, sessionId) and the list is ordered by the same tuple
-     * descending, so the previous page's last startTime is a valid
-     * WHERE-level upper bound: it prunes granules instead of paging with
-     * OFFSET, which on a wide time window would re-read and re-aggregate
-     * everything already returned. The exact ties are removed by the
-     * HAVING tiebreak below - the WHERE bound is deliberately inclusive
-     * so a row sharing the boundary timestamp is not skipped.
+     * startTime, sessionId) and the newest-first list is ordered by the
+     * same tuple descending, so the previous page's last startTime is a
+     * valid WHERE-level upper bound: it prunes granules instead of paging
+     * with OFFSET, which on a wide time window would re-read and
+     * re-aggregate everything already returned. The exact ties are
+     * removed by the HAVING tiebreak below - the WHERE bound is
+     * deliberately inclusive so a row sharing the boundary timestamp is
+     * not skipped.
+     *
+     * Only for the startTime sort: for any other key the cursor value is
+     * an aggregate, and a WHERE on startTime would drop sessions that
+     * belong on later pages.
      */
-    if (request.cursor) {
+    if (request.cursor && sortBy === "startTime") {
       statement.append(
         SQL` AND startTime <= ${{
           type: TableColumnType.DateTime64,
-          value: new Date(request.cursor.startTimeUnixMs),
+          value: new Date(request.cursor.sortValue),
         }}`,
       );
     }
@@ -556,16 +1492,25 @@ export default class SessionReplayReadService {
     SessionReplayReadService.appendListHavingFilters(
       statement,
       request.filters,
+      request.includeIdentifiedUserLabel,
     );
 
+    const sortExpression: string =
+      SessionReplayReadService.getSortExpression(sortBy);
+
     if (request.cursor) {
+      statement.append(` AND (${sortExpression} < `);
       statement.append(
-        SQL` AND (aggStartTime < ${{
+        SQL`${{
           type: TableColumnType.Decimal,
-          value: request.cursor.startTimeUnixMs,
-        }} OR (aggStartTime = ${{
+          value: request.cursor.sortValue,
+        }}`,
+      );
+      statement.append(` OR (${sortExpression} = `);
+      statement.append(
+        SQL`${{
           type: TableColumnType.Decimal,
-          value: request.cursor.startTimeUnixMs,
+          value: request.cursor.sortValue,
         }} AND sessionId < ${{
           type: TableColumnType.Text,
           value: request.cursor.sessionId,
@@ -573,12 +1518,12 @@ export default class SessionReplayReadService {
       );
     }
 
+    statement.append(` ORDER BY ${sortExpression} DESC, sessionId DESC`);
     statement.append(
-      SQL` ORDER BY aggStartTime DESC, sessionId DESC
-           LIMIT ${{
-             type: TableColumnType.Number,
-             value: limit + 1,
-           }}`,
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit + 1,
+      }}`,
     );
 
     statement.append(READ_QUERY_SETTINGS);
@@ -600,11 +1545,14 @@ export default class SessionReplayReadService {
 
     const sessions: Array<SessionReplayListItem> = pageRows.map(
       (row: JSONObject): SessionReplayListItem => {
+        const startTime: Date = readDate(row, "aggStartTime");
+        const endTime: Date = readDate(row, "aggEndTime");
+
         const item: SessionReplayListItem = {
           sessionId: readString(row, "sessionId"),
           rumApplicationId: readString(row, "applicationId"),
-          startTime: readDate(row, "aggStartTime"),
-          endTime: readDate(row, "aggEndTime"),
+          startTime: startTime,
+          endTime: endTime,
           durationMs: readNumber(row, "aggDurationMs"),
           isFinalized: readBoolean(row, "aggIsFinalized"),
           sealedReason: readString(row, "aggSealedReason"),
@@ -631,16 +1579,75 @@ export default class SessionReplayReadService {
           viewportWidth: readNumber(row, "aggViewportWidth"),
           viewportHeight: readNumber(row, "aggViewportHeight"),
           identifiedUserKey: readString(row, "aggIdentifiedUserKey"),
+          visitorId: readString(row, "aggVisitorId"),
           samplePercentageAtCapture: readNumber(row, "aggSamplePercentage"),
+          routes: readStringArray(row, "aggRoutes").slice(0, MAX_LIST_ROUTES),
+          traceCount: readNumber(row, "aggTraceCount"),
+          exceptionGroupCount: readNumber(row, "aggExceptionGroupCount"),
+          topExceptionFingerprint: readString(
+            row,
+            "aggTopExceptionFingerprint",
+          ),
+          clickCount: readNumber(row, "aggClickCount"),
+          activeMs: readNumber(row, "aggActiveMs"),
+          firstErrorOffsetMs: readNumber(row, "aggFirstErrorOffsetMs"),
+          expiresAtUnixMs: readNumber(row, "aggExpiresAt"),
+          tags: readStringMap(row, "aggTags"),
+          startTimeUnixMs: startTime.getTime(),
+          endTimeUnixMs: endTime.getTime(),
+          /* Judged below, only for the page's unfinalized sessions. */
+          hasRecordingEnded: false,
         };
 
         if (request.includeIdentifiedUserLabel) {
           item.identifiedUserLabel = readString(row, "aggIdentifiedUserLabel");
+          item.identifiedUserTraits = readStringMap(
+            row,
+            "aggIdentifiedUserTraits",
+          );
         }
 
         return item;
       },
     );
+
+    /*
+     * "Recording now" or "recording ended"? The header cannot say: a
+     * provisional header stays unfinalized for the whole idle window
+     * after its last tab closed, which is how a closed tab kept its
+     * "Recording now" badge for 10-15 minutes. The chunk rows can, so the
+     * page's unfinalized sessions - and only those - get ONE follow-up
+     * read over the chunk table. A page of finalized sessions (the
+     * overwhelming majority of any list older than a few minutes) runs
+     * no second query at all.
+     *
+     * It is a separate statement rather than a JOIN on the list query
+     * because the list's own read is a range over the HEADER table's sort
+     * key, and joining the chunk table there would aggregate chunk rows
+     * for every session in the window before the LIMIT picked a page.
+     */
+    const unfinalizedSessionIds: Array<string> = sessions
+      .filter((session: SessionReplayListItem): boolean => {
+        return !session.isFinalized;
+      })
+      .map((session: SessionReplayListItem): string => {
+        return session.sessionId;
+      });
+
+    if (unfinalizedSessionIds.length > 0) {
+      const endedSessionIds: Set<string> =
+        await SessionReplayReadService.readRecordingEndedSessionIds({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          sessionIds: unfinalizedSessionIds,
+          nowUnixMs: request.nowUnixMs ?? Date.now(),
+        });
+
+      for (const session of sessions) {
+        session.hasRecordingEnded =
+          !session.isFinalized && endedSessionIds.has(session.sessionId);
+      }
+    }
 
     const lastSession: SessionReplayListItem | undefined =
       sessions[sessions.length - 1];
@@ -650,8 +1657,231 @@ export default class SessionReplayReadService {
       nextCursor:
         hasMore && lastSession
           ? {
-              startTimeUnixMs: lastSession.startTime.getTime(),
+              sortBy: sortBy,
+              sortValue: SessionReplayReadService.getSortValue(
+                sortBy,
+                lastSession,
+              ),
               sessionId: lastSession.sessionId,
+            }
+          : null,
+    };
+  }
+
+  /*
+   * The session list rolled up by person: one row per identified user,
+   * one per anonymous visitor (a browser the recorder linked with a
+   * visitor id), and at most one anonymous bucket (rollupKey '') for
+   * sessions an older recorder left with neither key. The bucket is a row
+   * like any other - the Dashboard shows it as "unlinked sessions" - so
+   * nothing here filters it out.
+   *
+   * Two levels, and it has to be two. The inner SELECT is the list's own
+   * shape - GROUP BY the replace key, argMax(col, version) per session -
+   * because until a merge runs a session is physically several
+   * ReplacingMergeTree rows (a provisional header, a finalized one, a
+   * retry), and a rollup over the raw rows would count one session twice
+   * and add its provisional zero to its finalized error count. Only once
+   * each session is one row can the outer SELECT group those rows by
+   * person and count, sum, and take the newest session's facts.
+   *
+   * It is its own read rather than a client-side fold of listSessions for
+   * the same reason. A keyset page of sessions holds an arbitrary prefix
+   * of a person's sessions: their newest three on this page, their older
+   * twenty on the next. Grouping such a page gives a row that says "3
+   * sessions, no errors" for a person who had 23 and an error in the
+   * fourth, and the boundary moves with every page size - a wrong answer
+   * that looks like a right one. The rollup has to see every session in
+   * the window, so the window is the unit of work here.
+   *
+   * WHERE is the sort-key prefix plus retention, exactly as the list: the
+   * identity keys are argMax'd like every other header column and are
+   * only ever named in a SELECT list, never in a WHERE.
+   *
+   * The keyset cursor lives in the HAVING ONLY. The list can additionally
+   * bound startTime in its WHERE because its sort key is a per-session
+   * fact; here the sort key is max(startTime) over a person's sessions,
+   * and a WHERE bound would cut a person who was on the previous page
+   * down to their older sessions - a smaller "last seen" that slips under
+   * the cursor and returns them as a phantom row with partial counts.
+   * Every page therefore re-aggregates the window, which is what the page
+   * cap and the handler's default window bound.
+   */
+  @CaptureSpan()
+  public static async listUsers(
+    request: SessionReplayUsersRequest,
+  ): Promise<SessionReplayUsersResult> {
+    const limit: number = Math.max(
+      1,
+      Math.min(request.limit, MAX_SESSION_REPLAY_USERS_LIMIT),
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+    `;
+
+    statement.append(
+      `    ${USER_ROLLUP_KEY_ALIAS},\n        ${toSelectList(USER_ROLLUP_AGGREGATES)}`,
+    );
+
+    if (request.includeIdentifiedUserLabel) {
+      statement.append(
+        `,\n        ${toSelectList(USER_ROLLUP_IDENTITY_AGGREGATES)}`,
+      );
+    }
+
+    statement.append(`
+      FROM (
+        SELECT
+          sessionId,
+          ${toSelectList(USER_ROLLUP_SESSION_AGGREGATES)},
+          ${USER_ROLLUP_KEY_EXPRESSION} AS ${USER_ROLLUP_KEY_ALIAS}`);
+
+    if (request.includeIdentifiedUserLabel) {
+      statement.append(`,\n          ${toSelectList(IDENTITY_AGGREGATES)}`);
+    }
+
+    statement.append(SQL`
+        FROM ${AnalyticsTableName.RumSession}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
+        }}
+          AND rumApplicationId = ${{
+            type: TableColumnType.ObjectID,
+            value: request.rumApplicationId,
+          }}
+          AND startTime >= ${{
+            type: TableColumnType.DateTime64,
+            value: request.startTime,
+          }}
+          AND startTime <= ${{
+            type: TableColumnType.DateTime64,
+            value: request.endTime,
+          }}
+    `);
+
+    statement.append(RETENTION_FILTER);
+
+    statement.append(`
+        GROUP BY projectId, rumApplicationId, sessionId
+      )
+      GROUP BY ${USER_ROLLUP_KEY_ALIAS}
+      HAVING 1 = 1`);
+
+    if (request.cursor) {
+      statement.append(" AND (rollupLastSeenUnixMs < ");
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Decimal,
+          value: request.cursor.lastSeenUnixMs,
+        }}`,
+      );
+      statement.append(" OR (rollupLastSeenUnixMs = ");
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Decimal,
+          value: request.cursor.lastSeenUnixMs,
+        }}`,
+      );
+      /*
+       * The alias goes in as trusted SQL, never through the SQL template:
+       * a plain string inside it is bound as an Identifier parameter, not
+       * spelled into the statement.
+       */
+      statement.append(` AND ${USER_ROLLUP_KEY_ALIAS} < `);
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Text,
+          value: request.cursor.groupKey,
+        }}))`,
+      );
+    }
+
+    statement.append(
+      ` ORDER BY rollupLastSeenUnixMs DESC, ${USER_ROLLUP_KEY_ALIAS} DESC`,
+    );
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit + 1,
+      }}`,
+    );
+
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    /* One row over the page size, for the same reason as the list. */
+    const hasMore: boolean = rows.length > limit;
+    const pageRows: Array<JSONObject> = hasMore ? rows.slice(0, limit) : rows;
+
+    const users: Array<SessionReplayUserRollup> = pageRows.map(
+      (row: JSONObject): SessionReplayUserRollup => {
+        const groupKey: string = readString(row, USER_ROLLUP_KEY_ALIAS);
+        const kind: SessionReplayUserKind = readUserRollupKind(groupKey);
+
+        const user: SessionReplayUserRollup = {
+          groupKey: groupKey,
+          kind: kind,
+          /*
+           * The digest is '' for every session of a visitor or anonymous
+           * group by construction of the key; the guard keeps the wire
+           * promise ("" unless identified) even for a row that is not.
+           */
+          identifiedUserKey:
+            kind === "identified"
+              ? readString(row, "rollupIdentifiedUserKey")
+              : "",
+          visitorId: readString(row, "rollupVisitorId"),
+          sessionCount: readNumber(row, "rollupSessionCount"),
+          liveSessionCount: readNumber(row, "rollupLiveSessionCount"),
+          firstSeenUnixMs: readNumber(row, "rollupFirstSeenUnixMs"),
+          lastSeenUnixMs: readNumber(row, "rollupLastSeenUnixMs"),
+          totalDurationMs: readNumber(row, "rollupTotalDurationMs"),
+          errorCount: readNumber(row, "rollupErrorCount"),
+          frustrationCount: readNumber(row, "rollupFrustrationCount"),
+          errorSessionCount: readNumber(row, "rollupErrorSessionCount"),
+          pageCount: readNumber(row, "rollupPageCount"),
+          lastSessionId: readString(row, "rollupLastSessionId"),
+          lastEntryUrl: readString(row, "rollupLastEntryUrl"),
+          browserName: readString(row, "rollupBrowserName"),
+          browserVersion: readString(row, "rollupBrowserVersion"),
+          osName: readString(row, "rollupOsName"),
+          deviceType: readString(row, "rollupDeviceType"),
+          countryCode: readString(row, "rollupCountryCode"),
+        };
+
+        if (request.includeIdentifiedUserLabel) {
+          user.identifiedUserLabel = readString(
+            row,
+            "rollupIdentifiedUserLabel",
+          );
+          user.identifiedUserTraits = readStringMap(
+            row,
+            "rollupIdentifiedUserTraits",
+          );
+        }
+
+        return user;
+      },
+    );
+
+    const lastUser: SessionReplayUserRollup | undefined =
+      users[users.length - 1];
+
+    return {
+      users: users,
+      nextCursor:
+        hasMore && lastUser
+          ? {
+              lastSeenUnixMs: lastUser.lastSeenUnixMs,
+              groupKey: lastUser.groupKey,
             }
           : null,
     };
@@ -663,14 +1893,22 @@ export default class SessionReplayReadService {
    *
    * This is also what resolves a sessionId to its owning RUM application
    * for the handler-level authorization check, which is why it is keyed
-   * on (projectId, sessionId) only and never accepts an application id
-   * from the caller: an application id supplied in the request body would
-   * make the check circular.
+   * on (projectId, sessionId) and the optional rumApplicationId is a
+   * DISAMBIGUATOR, never a substitute for the check: a supplied id only
+   * narrows which header row is read, and the handler still authorizes
+   * the application that row names.
    */
   @CaptureSpan()
   public static async getSessionHeader(data: {
     projectId: ObjectID;
     sessionId: string;
+    /*
+     * Which application's recording to read when the same browser-minted
+     * sessionId was recorded under more than one application (an
+     * appIdentifier rename, two apps on one origin). Without it an
+     * ambiguous id is refused.
+     */
+    rumApplicationId?: ObjectID | undefined;
   }): Promise<SessionReplaySessionHeader | null> {
     const selectList: string = toSelectList([
       ...HEADER_AGGREGATES,
@@ -698,6 +1936,15 @@ export default class SessionReplayReadService {
         }}
     `);
 
+    if (data.rumApplicationId) {
+      statement.append(
+        SQL` AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}`,
+      );
+    }
+
     statement.append(RETENTION_FILTER);
 
     /*
@@ -711,9 +1958,10 @@ export default class SessionReplayReadService {
      * sessionId share a key space. Picking the newest group would let
      * anyone who can write to application A resolve a sessionId belonging
      * to application B onto their own application and pass the label
-     * check. An ambiguous sessionId is refused outright instead: it is
-     * either an attack or a collision, and neither has a correct
-     * recording to return.
+     * check. An ambiguous sessionId is refused outright unless the caller
+     * named the application it wants (which is then authorized on its own
+     * merits): it is either an attack or a collision, and neither has a
+     * single correct recording to return.
      */
     statement.append(
       " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC LIMIT 2",
@@ -730,7 +1978,7 @@ export default class SessionReplayReadService {
 
     if (rows.length > 1) {
       throw new BadDataException(
-        "This session id resolves to more than one RUM application and cannot be played back.",
+        "This session id was recorded under more than one application in this project. Open it from the session list of the application you want to watch, which passes rumApplicationId to choose the recording.",
       );
     }
 
@@ -740,12 +1988,15 @@ export default class SessionReplayReadService {
       return null;
     }
 
+    const startTime: Date = readDate(row, "aggStartTime");
+    const endTime: Date = readDate(row, "aggEndTime");
+
     return {
       sessionId: readString(row, "sessionId"),
       projectId: readString(row, "headerProjectId"),
       rumApplicationId: readString(row, "applicationId"),
-      startTime: readDate(row, "aggStartTime"),
-      endTime: readDate(row, "aggEndTime"),
+      startTime: startTime,
+      endTime: endTime,
       durationMs: readNumber(row, "aggDurationMs"),
       isFinalized: readBoolean(row, "aggIsFinalized"),
       sealedReason: readString(row, "aggSealedReason"),
@@ -787,6 +2038,149 @@ export default class SessionReplayReadService {
       traceIds: readStringArray(row, "aggTraceIds"),
       exceptionFingerprints: readStringArray(row, "aggExceptionFingerprints"),
       clockSkewMs: readNumber(row, "aggClockSkewMs"),
+      startTimeUnixMs: startTime.getTime(),
+      endTimeUnixMs: endTime.getTime(),
+      clientReportedStartUnixMs: readNumber(row, "aggClientReportedStart"),
+      tags: readStringMap(row, "aggTags"),
+      expiresAtUnixMs: readNumber(row, "aggExpiresAt"),
+      clickCount: readNumber(row, "aggClickCount"),
+      customEventCount: readNumber(row, "aggCustomEventCount"),
+      activeMs: readNumber(row, "aggActiveMs"),
+      firstErrorOffsetMs: readNumber(row, "aggFirstErrorOffsetMs"),
+      recorderCapabilities: readRecorderCapabilities(row),
+      identifiedUserKey: readString(row, "aggIdentifiedUserKey"),
+      visitorId: readString(row, "aggVisitorId"),
+      /*
+       * Not judged here: see SessionReplaySessionHeader.hasRecordingEnded.
+       * getManifest, the read that returns this header to the Dashboard,
+       * replaces it for an unfinalized session.
+       */
+      hasRecordingEnded: false,
+    };
+  }
+
+  /*
+   * The identity columns for one session, pinned to the application the
+   * caller was authorized against. This is the ONLY statement outside the
+   * identity-gated list projection that names identifiedUserLabel or
+   * identifiedUserTraits, and the manifest handler calls it strictly
+   * after canReadIdentifiedUserLabel has passed for this application. It
+   * is a separate, tiny read rather than two more columns on
+   * getSessionHeader because the header is resolved BEFORE the
+   * application (and therefore the identity decision) is known.
+   */
+  @CaptureSpan()
+  public static async getSessionIdentity(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    sessionId: string;
+  }): Promise<SessionReplaySessionIdentity> {
+    const statement: Statement = SQL`
+      SELECT
+    `;
+
+    statement.append(`    ${toSelectList(IDENTITY_AGGREGATES)}`);
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
+        AND sessionId = ${{
+          type: TableColumnType.Text,
+          value: data.sessionId,
+        }}
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(
+      " GROUP BY projectId, rumApplicationId, sessionId LIMIT 1",
+    );
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const row: JSONObject | undefined = (response.data || [])[0];
+
+    if (!row) {
+      return { identifiedUserLabel: "", identifiedUserTraits: {} };
+    }
+
+    return {
+      identifiedUserLabel: readString(row, "aggIdentifiedUserLabel"),
+      identifiedUserTraits: readStringMap(row, "aggIdentifiedUserTraits"),
+    };
+  }
+
+  /*
+   * For a sessionId that getSessionHeader could not find: did a header
+   * ever exist, and when did (or does) it expire? Runs WITHOUT the
+   * retention filter, which is safe only because it returns dates and an
+   * application id and never a row's content - it lets the handler say
+   * "this recording expired on <date>" instead of "not found".
+   *
+   * null when no row exists at all (never recorded, or already dropped by
+   * the ClickHouse TTL, or erased).
+   */
+  @CaptureSpan()
+  public static async getExpiredSessionInfo(data: {
+    projectId: ObjectID;
+    sessionId: string;
+    rumApplicationId?: ObjectID | undefined;
+  }): Promise<SessionReplayExpiredSessionInfo | null> {
+    const statement: Statement = SQL`
+      SELECT
+        toString(rumApplicationId) AS applicationId,
+        toFloat64(toUnixTimestamp(max(retentionDate))) * 1000 AS expiresAtUnixMs,
+        toFloat64(toUnixTimestamp64Milli(min(startTime))) AS startTimeUnixMs
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND sessionId = ${{
+          type: TableColumnType.Text,
+          value: data.sessionId,
+        }}
+    `;
+
+    if (data.rumApplicationId) {
+      statement.append(
+        SQL` AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}`,
+      );
+    }
+
+    statement.append(
+      " GROUP BY rumApplicationId ORDER BY expiresAtUnixMs DESC LIMIT 1",
+    );
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const row: JSONObject | undefined = (response.data || [])[0];
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      rumApplicationId: readString(row, "applicationId"),
+      startTime: readDate(row, "startTimeUnixMs"),
+      expiresAt: readDate(row, "expiresAtUnixMs"),
     };
   }
 
@@ -813,6 +2207,11 @@ export default class SessionReplayReadService {
      */
     rumApplicationId: ObjectID;
     sessionId: string;
+    /*
+     * Server "now" in unix ms for the hasRecordingEnded grace. Absent
+     * means Date.now(); a test seam, like listSessions'.
+     */
+    nowUnixMs?: number | undefined;
   }): Promise<SessionReplayManifest> {
     /*
      * LIMIT 1 BY (tabId, chunkIndex) after ORDER BY ... version DESC
@@ -821,6 +2220,11 @@ export default class SessionReplayReadService {
      * tabId/chunkIndex first (rather than by version alone) leaves the
      * output already sorted for the caller - LIMIT BY runs after ORDER
      * BY, so the version DESC tiebreak still selects the right row.
+     *
+     * clickCount and url are narrow columns: the activity lane and the
+     * URL bar read them before any chunk is decoded. payloadBytes stays
+     * the WIRE size the recorder posted; the stored size is only ever
+     * measured by getChunks, which is the read the cap actually bounds.
      */
     const statement: Statement = SQL`
       SELECT
@@ -836,7 +2240,9 @@ export default class SessionReplayReadService {
         deadClickCount,
         errorClickCount,
         refreshRageCount,
-        routeCount
+        routeCount,
+        clickCount,
+        url
       FROM ${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -865,8 +2271,38 @@ export default class SessionReplayReadService {
 
     statement.append(READ_QUERY_SETTINGS);
 
-    const dbResult: Results =
-      await RumSessionChunkService.executeQuery(statement);
+    /*
+     * Whether this unfinalized session's recording is already over, read
+     * alongside the manifest rather than after it: the player re-fetches
+     * the manifest every 30s while a session is not finalized, and this
+     * is what lets it stop calling a closed session "Live" once the
+     * ended grace has passed, instead of waiting for a finalizer run to
+     * seal the header. The same helper, the same grace and the same
+     * clock the list uses, so the list badge and the player pill can
+     * never disagree about one session.
+     *
+     * Its own grouped read rather than a fold over the rows below: those
+     * rows are capped at MAX_MANIFEST_ROWS in (tabId, chunkIndex) order, so
+     * a truncated manifest would lose a tab's newest chunks - exactly the
+     * rows that say whether it kept recording after its final chunk. A
+     * finalized header is authoritative and runs no second read. The
+     * helper never rejects (a failure answers "not ended"), so it cannot
+     * fail the manifest. The manifest statement is issued first.
+     */
+    const manifestResultPromise: Promise<Results> =
+      RumSessionChunkService.executeQuery(statement);
+
+    const endedSessionIdsPromise: Promise<Set<string>> = data.header.isFinalized
+      ? Promise.resolve(new Set<string>())
+      : SessionReplayReadService.readRecordingEndedSessionIds({
+          projectId: data.projectId,
+          rumApplicationId: data.rumApplicationId,
+          sessionIds: [data.sessionId],
+          nowUnixMs: data.nowUnixMs ?? Date.now(),
+        });
+
+    const [dbResult, endedSessionIds]: [Results, Set<string>] =
+      await Promise.all([manifestResultPromise, endedSessionIdsPromise]);
     const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
@@ -877,6 +2313,10 @@ export default class SessionReplayReadService {
       string,
       Array<SessionReplayChunkManifestEntry>
     > = new Map<string, Array<SessionReplayChunkManifestEntry>>();
+
+    let liveDurationMs: number = 0;
+    let liveEventCount: number = 0;
+    let liveMaxChunkIndex: number = 0;
 
     for (const row of rows) {
       const tabId: string = readString(row, "tabId");
@@ -895,7 +2335,13 @@ export default class SessionReplayReadService {
         errorClickCount: readNumber(row, "errorClickCount"),
         refreshRageCount: readNumber(row, "refreshRageCount"),
         routeCount: readNumber(row, "routeCount"),
+        clickCount: readNumber(row, "clickCount"),
+        url: readString(row, "url"),
       };
+
+      liveDurationMs = Math.max(liveDurationMs, entry.chunkEndOffsetMs);
+      liveEventCount += entry.eventCount;
+      liveMaxChunkIndex = Math.max(liveMaxChunkIndex, entry.chunkIndex);
 
       const existing: Array<SessionReplayChunkManifestEntry> | undefined =
         tabsById.get(tabId);
@@ -944,106 +2390,272 @@ export default class SessionReplayReadService {
           },
           0,
         ),
+        firstChunkStartOffsetMs: entries.reduce(
+          (min: number, entry: SessionReplayChunkManifestEntry): number => {
+            return Math.min(min, entry.chunkStartOffsetMs);
+          },
+          Number.POSITIVE_INFINITY,
+        ),
       });
     }
 
+    for (const tab of tabs) {
+      if (!Number.isFinite(tab.firstChunkStartOffsetMs)) {
+        tab.firstChunkStartOffsetMs = 0;
+      }
+    }
+
     return {
-      header: data.header,
+      header: SessionReplayReadService.reconcileLiveHeader({
+        header: data.header,
+        chunkRowCount: rows.length,
+        liveDurationMs: liveDurationMs,
+        liveEventCount: liveEventCount,
+        liveMaxChunkIndex: liveMaxChunkIndex,
+        hasRecordingEnded: endedSessionIds.has(data.sessionId),
+      }),
       tabs: tabs,
       isChunkIndexTruncated: rows.length >= MAX_MANIFEST_ROWS,
     };
   }
 
   /*
-   * Total STORED bytes for a specific set of chunks, without shipping the
-   * payload column to the application.
+   * A provisional header (isFinalized false) says durationMs 0, chunkCount
+   * 0 and eventCount 0 while its chunk rows say otherwise; the manifest
+   * has just read every chunk row, so it reports what the rows prove. A
+   * finalized header is authoritative and returned untouched.
    *
-   * `length(payload)`, deliberately NOT `payloadBytes`. Those are two
-   * different quantities: payloadBytes is the post-gzip WIRE size the
-   * recorder uploaded (the metering signal), while the payload column
-   * holds the DECOMPRESSED JSON and is what this endpoint actually
-   * returns. rrweb JSON gzips 10-20x, so a cap applied to payloadBytes
-   * bounds a number an order of magnitude smaller than the response and
-   * therefore bounds nothing useful.
-   *
-   * The cost is that ClickHouse has to decompress the column to measure
-   * it, which is exactly what naming `payload` was meant to avoid. It is
-   * still worth doing before the read rather than after: the bytes are
-   * measured inside ClickHouse and never cross the wire, and the marks
-   * the following read needs are warm by the time it runs.
+   * hasRecordingEnded is set on every unfinalized header, including one
+   * whose chunk rows have not landed yet: getSessionHeader never judges
+   * it, so the manifest is the only place the field is ever true.
    */
-  @CaptureSpan()
-  public static async getChunkStoredBytes(data: {
+  private static reconcileLiveHeader(data: {
+    header: SessionReplaySessionHeader;
+    chunkRowCount: number;
+    liveDurationMs: number;
+    liveEventCount: number;
+    liveMaxChunkIndex: number;
+    hasRecordingEnded: boolean;
+  }): SessionReplaySessionHeader {
+    if (data.header.isFinalized) {
+      return data.header;
+    }
+
+    if (data.chunkRowCount === 0) {
+      return {
+        ...data.header,
+        hasRecordingEnded: data.hasRecordingEnded,
+      };
+    }
+
+    const durationMs: number = Math.max(
+      data.header.durationMs,
+      data.liveDurationMs,
+    );
+    const endTimeUnixMs: number = Math.max(
+      data.header.endTimeUnixMs,
+      data.header.startTimeUnixMs + durationMs,
+    );
+
+    return {
+      ...data.header,
+      durationMs: durationMs,
+      endTime: new Date(endTimeUnixMs),
+      endTimeUnixMs: endTimeUnixMs,
+      chunkCount: Math.max(data.header.chunkCount, data.chunkRowCount),
+      eventCount: Math.max(data.header.eventCount, data.liveEventCount),
+      maxChunkIndex: Math.max(
+        data.header.maxChunkIndex,
+        data.liveMaxChunkIndex,
+      ),
+      hasRecordingEnded: data.hasRecordingEnded,
+    };
+  }
+
+  /*
+   * Which of these unfinalized sessions have stopped recording, judged by
+   * the shared rule (Common/Utils/Rum/SessionReplayRecordingEnded.ts) over
+   * their chunk rows. The one helper behind both the list badge and the
+   * player's Live pill.
+   *
+   * One statement for any number of sessions:
+   *
+   *   WHERE projectId = ? AND sessionId IN (...) AND rumApplicationId = ?
+   *   GROUP BY sessionId, tabId
+   *
+   * A KEY-RANGE READ. RumSessionChunk is sorted (and primary-keyed) by
+   * (projectId, sessionId, tabId, chunkIndex), so projectId plus a
+   * sessionId IN list is a prefix of the primary index: ClickHouse reads
+   * only the granules of the named sessions - a handful of narrow columns
+   * over at most a few hundred rows each - and never the payload column.
+   * The GROUP BY follows the same key order. rumApplicationId is a plain
+   * column filtered over those granules, and it is not optional: the
+   * table's replace key has no application in it, so two applications
+   * that share a browser-minted sessionId share one key space, and
+   * without the pin one application's closed tab could end another's
+   * recording.
+   *
+   * Grouped per tab, never per session, because the rule is per tab: a
+   * session shared by several tabs (or several page loads of a multi-page
+   * app) is over only when every one of them is. The five aggregates are
+   * maxima, so a redelivered chunk's duplicate row - or a pinned copy -
+   * cannot make a live tab look ended and no LIMIT 1 BY is needed. Such a
+   * row can carry a NEWER version than the original, which only restarts
+   * the grace once; it never shortens it. The retention filter is kept
+   * like on every other replay read.
+   *
+   * The grace. Every tab having ended is not enough on its own: in a
+   * multi-page app, page A's final chunk lands while page B - a new tab id
+   * under the same session - has not stored its first chunk yet, and for
+   * that moment the only tab the rows know about has ended. So the rule
+   * also wants the newest stored chunk of the session to be at least
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS older than nowUnixMs, the same
+   * grace the finalizer waits on, measured on the same server clock (the
+   * rows' version against this process's Date.now()). The list, the player
+   * and the finalizer therefore call a session ended at the same moment,
+   * give or take the finalizer's one-minute schedule, and none of them
+   * depends on Redis for it.
+   *
+   * Best-effort. A failure logs a warning and answers "nothing has ended",
+   * which is what the Dashboard showed before this existed; neither the
+   * list nor the manifest may fail because of it. A session with no chunk
+   * rows has no tabs, and no tabs is "not known", never "ended".
+   */
+  private static async readRecordingEndedSessionIds(data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
-    sessionId: string;
-    tabId: string;
-    chunkIndexes: Array<number>;
-  }): Promise<number> {
-    if (data.chunkIndexes.length === 0) {
-      return 0;
+    sessionIds: Array<string>;
+    /* Server unix ms the grace is measured against. */
+    nowUnixMs: number;
+  }): Promise<Set<string>> {
+    const endedSessionIds: Set<string> = new Set<string>();
+
+    const sessionIds: Array<string> = Array.from(
+      new Set<string>(
+        data.sessionIds.filter((sessionId: string): boolean => {
+          return sessionId.length > 0;
+        }),
+      ),
+    );
+
+    if (sessionIds.length === 0) {
+      return endedSessionIds;
     }
 
     const statement: Statement = SQL`
       SELECT
-        chunkIndex,
-        toFloat64(length(payload)) AS chunkStoredBytes
+        sessionId,
+        tabId,
+    `;
+
+    statement.append(`    ${toSelectList(TAB_END_FACT_AGGREGATES)}`);
+
+    statement.append(SQL`
       FROM ${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
         AND rumApplicationId = ${{
           type: TableColumnType.ObjectID,
           value: data.rumApplicationId,
         }}
-        AND sessionId = ${{
-          type: TableColumnType.Text,
-          value: data.sessionId,
-        }}
-        AND tabId = ${{
-          type: TableColumnType.Text,
-          value: data.tabId,
-        }}
-        AND chunkIndex IN (${{
-          type: TableColumnType.Number,
-          value: new Includes(data.chunkIndexes),
-        }})
-    `;
+    `);
 
     statement.append(RETENTION_FILTER);
-
-    /*
-     * Deduplicated exactly like the payload read, so the pre-check and
-     * the read it guards can never disagree about which rows count.
-     * Summed in TypeScript rather than in SQL because the row count is
-     * bounded by MAX_SESSION_REPLAY_CHUNKS_PER_READ, and a wrapping
-     * aggregate would need a subquery whose LIMIT BY semantics are
-     * easier to get subtly wrong than to read.
-     */
-    statement.append(
-      " ORDER BY chunkIndex ASC, version DESC LIMIT 1 BY chunkIndex",
-    );
-
+    statement.append(" GROUP BY sessionId, tabId");
     statement.append(READ_QUERY_SETTINGS);
 
-    const dbResult: Results =
-      await RumSessionChunkService.executeQuery(statement);
-    const response: DbJSONResponse = await dbResult.json<{
-      data?: Array<JSONObject>;
-    }>();
+    let rows: Array<JSONObject>;
 
-    return (response.data || []).reduce(
-      (total: number, row: JSONObject): number => {
-        return total + readNumber(row, "chunkStoredBytes");
-      },
-      0,
-    );
+    try {
+      const dbResult: Results =
+        await RumSessionChunkService.executeQuery(statement);
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      rows = response.data || [];
+    } catch (err: unknown) {
+      logger.warn(
+        "SessionReplayReadService: could not read chunk rows to tell whether unfinalized sessions have ended; reporting them as still recording",
+      );
+      logger.warn(err);
+
+      return endedSessionIds;
+    }
+
+    const requested: Set<string> = new Set<string>(sessionIds);
+    const tabsBySessionId: Map<
+      string,
+      Array<SessionReplayTabEndFacts>
+    > = new Map<string, Array<SessionReplayTabEndFacts>>();
+
+    for (const row of rows) {
+      const sessionId: string = readString(row, "sessionId");
+
+      /* Defensive: a row for a session nobody asked about decides nothing. */
+      if (!requested.has(sessionId)) {
+        continue;
+      }
+
+      const tab: SessionReplayTabEndFacts = {
+        hasFinalChunk: readBoolean(row, TAB_HAS_FINAL_CHUNK_ALIAS),
+        finalChunkEndUnixMs: readMeasuredNumber(row, TAB_FINAL_CHUNK_END_ALIAS),
+        lastChunkStartUnixMs: readMeasuredNumber(
+          row,
+          TAB_LAST_CHUNK_START_ALIAS,
+        ),
+        maxChunkIndex: readMeasuredNumber(row, TAB_MAX_CHUNK_INDEX_ALIAS),
+        lastChunkStoredAtUnixMs: readMeasuredNumber(
+          row,
+          TAB_LAST_CHUNK_STORED_AT_ALIAS,
+        ),
+      };
+
+      const existing: Array<SessionReplayTabEndFacts> | undefined =
+        tabsBySessionId.get(sessionId);
+
+      if (existing) {
+        existing.push(tab);
+      } else {
+        tabsBySessionId.set(sessionId, [tab]);
+      }
+    }
+
+    for (const [sessionId, tabs] of tabsBySessionId) {
+      if (hasSessionRecordingEnded(tabs, data.nowUnixMs)) {
+        endedSessionIds.add(sessionId);
+      }
+    }
+
+    return endedSessionIds;
   }
 
   /*
    * The payload read. The only query in the system that names the
    * `payload` column.
+   *
+   * The byte cap is measured on `length(payload)` - the DECOMPRESSED
+   * stored JSON that is actually returned - in the SAME statement that
+   * ships the bytes, so the column is decompressed once per page rather
+   * than once for a pre-check and again for the read. `payloadBytes` is
+   * the post-gzip WIRE size the recorder uploaded; rrweb JSON gzips
+   * 10-20x, so a cap on it bounds a number an order of magnitude smaller
+   * than the response and therefore bounds nothing useful.
+   *
+   * Prefix semantics rather than refusal. A page that does not fit is
+   * answered with the longest prefix of whole chunks that does, and ALWAYS
+   * with at least the first chunk: the ingest cap
+   * (SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES) already bounds a single
+   * frame, so a lone chunk can never exceed what the ingest let in, and a
+   * single oversized snapshot that could never be served would dead-end
+   * playback at that chunk forever. The player plans pages against the
+   * wire size it has, requests, and reads back whichever chunks arrived.
    *
    * Both caps are enforced here rather than only at the route so no
    * future caller can reach the payload column without them.
@@ -1055,9 +2667,9 @@ export default class SessionReplayReadService {
     sessionId: string;
     tabId: string;
     chunkIndexes: Array<number>;
-  }): Promise<Array<SessionReplayChunkPayload>> {
+  }): Promise<SessionReplayChunkReadResult> {
     if (data.chunkIndexes.length === 0) {
-      return [];
+      return { chunks: [], omittedChunkIndexes: [] };
     }
 
     if (data.chunkIndexes.length > MAX_SESSION_REPLAY_CHUNKS_PER_READ) {
@@ -1066,52 +2678,69 @@ export default class SessionReplayReadService {
       );
     }
 
-    const totalBytes: number =
-      await SessionReplayReadService.getChunkStoredBytes(data);
-
-    if (totalBytes > MAX_SESSION_REPLAY_READ_BYTES) {
-      throw new BadDataException(
-        `The requested chunks total ${totalBytes} bytes, which exceeds the ${MAX_SESSION_REPLAY_READ_BYTES} byte limit for a single read. Request fewer chunks.`,
-      );
-    }
-
+    /*
+     * Innermost: the de-duplicated rows. A retried delivery is two
+     * physically present rows on a ReplacingMergeTree until a merge runs.
+     * Feeding both to the player would replay the same mutations twice,
+     * which rrweb resolves against node ids and would either throw or
+     * render a DOM that never existed.
+     *
+     * Middle: a running total of stored bytes in chunk order. Outermost:
+     * a row is SERVED when the total up to and including it is under the
+     * cap, or when it is the first row; a row that is not served keeps
+     * its index (so the caller can name what was omitted) but ships an
+     * empty payload, so the bytes crossing the wire are bounded inside
+     * ClickHouse and never in the application.
+     *
+     * The outer projection is aliased servedPayload rather than payload:
+     * an alias that names the column its own expression reads is a
+     * cyclic alias to ClickHouse.
+     */
     const statement: Statement = SQL`
       SELECT
         chunkIndex,
-        payload
-      FROM ${AnalyticsTableName.RumSessionChunk}
-      WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: data.projectId,
-      }}
-        AND rumApplicationId = ${{
-          type: TableColumnType.ObjectID,
-          value: data.rumApplicationId,
-        }}
-        AND sessionId = ${{
-          type: TableColumnType.Text,
-          value: data.sessionId,
-        }}
-        AND tabId = ${{
-          type: TableColumnType.Text,
-          value: data.tabId,
-        }}
-        AND chunkIndex IN (${{
-          type: TableColumnType.Number,
-          value: new Includes(data.chunkIndexes),
-        }})
+        if(isServed, payload, '') AS servedPayload,
+        isServed
+      FROM (
+        SELECT
+          chunkIndex,
+          payload,
+          (sum(length(payload)) OVER (ORDER BY chunkIndex ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) <= ${{
+            type: TableColumnType.Decimal,
+            value: MAX_SESSION_REPLAY_READ_BYTES,
+          }}
+            OR row_number() OVER (ORDER BY chunkIndex ASC) = 1) AS isServed
+        FROM (
+          SELECT
+            chunkIndex,
+            payload
+          FROM ${AnalyticsTableName.RumSessionChunk}
+          WHERE projectId = ${{
+            type: TableColumnType.ObjectID,
+            value: data.projectId,
+          }}
+            AND rumApplicationId = ${{
+              type: TableColumnType.ObjectID,
+              value: data.rumApplicationId,
+            }}
+            AND sessionId = ${{
+              type: TableColumnType.Text,
+              value: data.sessionId,
+            }}
+            AND tabId = ${{
+              type: TableColumnType.Text,
+              value: data.tabId,
+            }}
+            AND chunkIndex IN (${{
+              type: TableColumnType.Number,
+              value: new Includes(data.chunkIndexes),
+            }})
     `;
 
     statement.append(RETENTION_FILTER);
 
-    /*
-     * A retried delivery is two physically present rows on a
-     * ReplacingMergeTree until a merge runs. Feeding both to the player
-     * would replay the same mutations twice, which rrweb resolves against
-     * node ids and would either throw or render a DOM that never existed.
-     */
     statement.append(
-      " ORDER BY chunkIndex ASC, version DESC LIMIT 1 BY chunkIndex",
+      " ORDER BY chunkIndex ASC, version DESC LIMIT 1 BY chunkIndex\n        )\n      )\n      ORDER BY chunkIndex ASC",
     );
 
     statement.append(READ_QUERY_SETTINGS);
@@ -1124,38 +2753,57 @@ export default class SessionReplayReadService {
 
     /*
      * The cap is re-applied to the bytes actually being handed back, not
-     * only to what the pre-check believed. The pre-check reads a
-     * different snapshot of a ReplacingMergeTree than the read it guards,
-     * and any future change to how stored size is derived would otherwise
-     * silently unbound the response. Accumulated as the rows are mapped
-     * so an oversized read fails before the caller ever holds the whole
-     * set.
+     * only to what ClickHouse computed: any future change to how stored
+     * size is derived would otherwise silently unbound the response. The
+     * prefix is also re-established here - a served row behind an
+     * unserved one would be a hole the player cannot play across, so the
+     * served set stops at the first omission.
      */
     let totalReturnedBytes: number = 0;
     const chunks: Array<SessionReplayChunkPayload> = [];
+    const omittedChunkIndexes: Array<number> = [];
 
-    for (const row of response.data || []) {
-      const payload: string = readString(row, "payload");
+    const chunkRows: Array<JSONObject> = response.data || [];
 
-      totalReturnedBytes += Buffer.byteLength(payload, "utf8");
+    for (const row of chunkRows) {
+      const chunkIndex: number = readNumber(row, "chunkIndex");
+      const payload: string = readString(row, "servedPayload");
+      const isServed: boolean =
+        row["isServed"] === undefined ? true : readBoolean(row, "isServed");
 
-      if (totalReturnedBytes > MAX_SESSION_REPLAY_READ_BYTES) {
-        throw new BadDataException(
-          `The requested chunks exceed the ${MAX_SESSION_REPLAY_READ_BYTES} byte limit for a single read. Request fewer chunks.`,
-        );
+      const payloadBytes: number = Buffer.byteLength(payload, "utf8");
+
+      const fits: boolean =
+        chunks.length === 0 ||
+        totalReturnedBytes + payloadBytes <= MAX_SESSION_REPLAY_READ_BYTES;
+
+      if (!isServed || !fits || omittedChunkIndexes.length > 0) {
+        omittedChunkIndexes.push(chunkIndex);
+        continue;
       }
 
+      totalReturnedBytes += payloadBytes;
+
       chunks.push({
-        chunkIndex: readNumber(row, "chunkIndex"),
+        chunkIndex: chunkIndex,
         payload: payload,
       });
     }
 
-    return chunks;
+    return { chunks: chunks, omittedChunkIndexes: omittedChunkIndexes };
   }
 
   /*
    * Sessions that observed a given exception fingerprint.
+   *
+   * Two sources, one header query. The header's exceptionFingerprints
+   * array is written by the finalizer, so for the first 10+ minutes after
+   * the error - the whole incident, from the reporter's point of view -
+   * the session's header knows nothing about it. The exception instance
+   * table, however, carries the session id of the page that threw, from
+   * the moment the exception is ingested. Those ids are looked up first
+   * (cheap: bloom-indexed fingerprint, bounded window) and OR-ed into the
+   * header predicate, so a live session is found as soon as its error is.
    *
    * hasAny() appears twice on purpose. In the WHERE it is a bloom-pruned
    * pre-filter over physical rows; a group survives it if ANY of its rows
@@ -1164,11 +2812,29 @@ export default class SessionReplayReadService {
    * drop a true match. The HAVING then re-checks the argMax'd array so a
    * fingerprint present only on a superseded row does not produce a false
    * positive.
+   *
+   * Typed RUM and fully unscoped legacy lookups are windowed in WHERE for
+   * partition pruning. Scoped non-RUM and ID-only type-unknown lookups apply
+   * the window in QUALIFY: their instance-proven session ids must first be
+   * checked across every retained application in the project so a duplicate
+   * id cannot be hidden outside the caller's time or authorization scope.
    */
   @CaptureSpan()
   public static async getSessionsForException(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    /*
+     * Exception fingerprints are unique per primary entity, not per project.
+     * Keep this optional for older callers, but exception pages should always
+     * provide it so neither the live side index nor finalized headers can mix
+     * identically fingerprinted groups from different services.
+     */
+    primaryEntityId?: ObjectID | undefined;
+    /*
+     * Identifies the owning entity table. ID-only is accepted as a rolling
+     * compatibility mode and uses the conservative scoped-unknown branch.
+     */
+    primaryEntityType?: ServiceType | undefined;
     /*
      * null means "no label restriction". An EMPTY array means the caller
      * can reach no applications at all and must get no rows - the two are
@@ -1178,8 +2844,24 @@ export default class SessionReplayReadService {
     accessibleRumApplicationIds: Array<ObjectID> | null;
     startTime?: Date | undefined;
     endTime?: Date | undefined;
+    /* Pin to the one session the caller already knows threw. */
+    sessionId?: string | undefined;
     limit: number;
   }): Promise<Array<SessionReplayExceptionSession>> {
+    const hasPrimaryEntityId: boolean = data.primaryEntityId !== undefined;
+    const hasPrimaryEntityType: boolean = data.primaryEntityType !== undefined;
+
+    if (!hasPrimaryEntityId && hasPrimaryEntityType) {
+      throw new BadDataException("primaryEntityId is required with its type");
+    }
+
+    if (
+      data.primaryEntityType !== undefined &&
+      !Object.values(ServiceType).includes(data.primaryEntityType)
+    ) {
+      throw new BadDataException("primaryEntityType is not valid");
+    }
+
     if (
       data.accessibleRumApplicationIds &&
       data.accessibleRumApplicationIds.length === 0
@@ -1192,10 +2874,44 @@ export default class SessionReplayReadService {
       Math.min(data.limit, MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT),
     );
 
+    const endTime: Date = data.endTime || OneUptimeDate.getCurrentDate();
+    const startTime: Date =
+      data.startTime ||
+      OneUptimeDate.addRemoveDays(
+        endTime,
+        -DEFAULT_SESSION_REPLAY_FOR_EXCEPTION_WINDOW_DAYS,
+      );
+
+    const instanceSessionIds: Array<string> =
+      await SessionReplayReadService.getSessionIdsForExceptionInstances({
+        projectId: data.projectId,
+        exceptionFingerprint: data.exceptionFingerprint,
+        primaryEntityId: data.primaryEntityId,
+        primaryEntityType: data.primaryEntityType,
+        startTime: startTime,
+        endTime: endTime,
+        sessionId: data.sessionId,
+      });
+
+    const isScopedRumException: boolean =
+      data.primaryEntityType === ServiceType.RealUserMonitor;
+    const isScopedNonRumOrUnknownException: boolean =
+      hasPrimaryEntityId && !isScopedRumException;
+
+    /*
+     * A finalized replay header has only a flat fingerprint list. For a
+     * non-RUM or legacy type-unknown entity that list cannot prove ownership,
+     * so only the scoped instance side index may admit a session. Failure or
+     * an empty lookup must therefore fail closed.
+     */
+    if (isScopedNonRumOrUnknownException && instanceSessionIds.length === 0) {
+      return [];
+    }
+
     const selectList: string = toSelectList([
       { alias: "aggStartTime", expression: argMaxDateTime("startTime") },
       { alias: "aggEndTime", expression: argMaxDateTime("endTime") },
-      { alias: "aggDurationMs", expression: argMaxNumeric("durationMs") },
+      { alias: "aggDurationMs", expression: LIVE_DURATION_EXPRESSION },
       { alias: "aggHasError", expression: argMaxColumn("hasError") },
       { alias: "aggErrorCount", expression: argMaxNumeric("errorCount") },
       /*
@@ -1241,21 +2957,27 @@ export default class SessionReplayReadService {
 
     statement.append(`    ${selectList}`);
 
+    if (isScopedNonRumOrUnknownException) {
+      /* One grouped row per application makes this a cross-app collision count. */
+      statement.append(
+        ", count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+    }
+
     statement.append(SQL`
       FROM ${AnalyticsTableName.RumSession}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
-        AND hasAny(exceptionFingerprints, [${{
-          type: TableColumnType.Text,
-          value: data.exceptionFingerprint,
-        }}])
     `);
 
-    statement.append(RETENTION_FILTER);
-
-    if (data.accessibleRumApplicationIds) {
+    /*
+     * For non-RUM and legacy type-unknown exceptions, authorization belongs
+     * in QUALIFY after the window has counted inaccessible applications too.
+     * Applying it here would make an ambiguous id appear unique.
+     */
+    if (!isScopedNonRumOrUnknownException && data.accessibleRumApplicationIds) {
       statement.append(
         SQL` AND rumApplicationId IN (${{
           type: TableColumnType.ObjectID,
@@ -1264,31 +2986,117 @@ export default class SessionReplayReadService {
       );
     }
 
-    if (data.startTime) {
+    if (!isScopedNonRumOrUnknownException) {
       statement.append(
         SQL` AND startTime >= ${{
           type: TableColumnType.DateTime64,
-          value: data.startTime,
+          value: startTime,
+        }} AND startTime <= ${{
+          type: TableColumnType.DateTime64,
+          value: endTime,
         }}`,
       );
     }
 
-    if (data.endTime) {
+    statement.append(RETENTION_FILTER);
+
+    if (data.sessionId) {
       statement.append(
-        SQL` AND startTime <= ${{
-          type: TableColumnType.DateTime64,
-          value: data.endTime,
+        SQL` AND sessionId = ${{
+          type: TableColumnType.Text,
+          value: data.sessionId,
         }}`,
       );
+    }
+
+    if (isScopedRumException && data.primaryEntityId) {
+      /* Both finalized fingerprints and instance-proven ids stay in this RUM app. */
+      statement.append(
+        SQL` AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
+
+    statement.append(" AND (");
+
+    if (isScopedNonRumOrUnknownException) {
+      statement.append(
+        SQL`sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(instanceSessionIds),
+        }})`,
+      );
+    } else {
+      statement.append(
+        SQL`hasAny(exceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+    }
+
+    if (!isScopedNonRumOrUnknownException && instanceSessionIds.length > 0) {
+      statement.append(
+        SQL` OR sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(instanceSessionIds),
+        }})`,
+      );
+    }
+
+    statement.append(")");
+
+    statement.append(" GROUP BY projectId, rumApplicationId, sessionId");
+
+    if (isScopedNonRumOrUnknownException) {
+      /*
+       * Windowing happens over every application before either the time
+       * window or accessible-app filter is applied. QUALIFY also precedes
+       * ORDER/LIMIT, so a second application can never be sorted away.
+       */
+      statement.append(" QUALIFY matchedApplicationCount = 1");
+      statement.append(
+        SQL` AND aggStartTime >= ${{
+          type: TableColumnType.BigNumber,
+          value: startTime.getTime(),
+        }} AND aggStartTime <= ${{
+          type: TableColumnType.BigNumber,
+          value: endTime.getTime(),
+        }}`,
+      );
+
+      if (data.accessibleRumApplicationIds) {
+        statement.append(
+          SQL` AND rumApplicationId IN (${{
+            type: TableColumnType.ObjectID,
+            value: new Includes(data.accessibleRumApplicationIds),
+          }})`,
+        );
+      }
+    } else {
+      statement.append(" HAVING (");
+      statement.append(
+        SQL`hasAny(aggExceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+      if (instanceSessionIds.length > 0) {
+        statement.append(
+          SQL` OR sessionId IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(instanceSessionIds),
+          }})`,
+        );
+      }
+
+      statement.append(")");
     }
 
     statement.append(
-      SQL` GROUP BY projectId, rumApplicationId, sessionId
-           HAVING hasAny(aggExceptionFingerprints, [${{
-             type: TableColumnType.Text,
-             value: data.exceptionFingerprint,
-           }}])
-           ORDER BY aggStartTime DESC
+      SQL` ORDER BY aggStartTime DESC
            LIMIT ${{
              type: TableColumnType.Number,
              value: limit,
@@ -1302,7 +3110,21 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
-    return (response.data || []).map(
+    const responseRows: Array<JSONObject> = (response.data || []).filter(
+      (row: JSONObject): boolean => {
+        /*
+         * QUALIFY is authoritative. Its count was computed over every app
+         * before ORDER/LIMIT, so retaining only count=1 is also a fail-closed
+         * guard if a changed driver ever returns a row that should not survive.
+         */
+        return (
+          !isScopedNonRumOrUnknownException ||
+          readNumber(row, "matchedApplicationCount") === 1
+        );
+      },
+    );
+
+    return responseRows.map(
       (row: JSONObject): SessionReplayExceptionSession => {
         return {
           sessionId: readString(row, "sessionId"),
@@ -1328,9 +3150,373 @@ export default class SessionReplayReadService {
     );
   }
 
+  /*
+   * Session ids of the pages that threw this exception, from the
+   * exception instance table. The instance's `time` sits inside its
+   * session, so a session that started inside the window threw inside
+   * [startTime, endTime + max session length].
+   *
+   * Best-effort for fully unscoped legacy and typed RUM lookups: there it only
+   * ADDS live sessions, so a failure degrades to finalized headers. Scoped
+   * non-RUM and ID-only lookups rely on it as their sole entity-ownership
+   * proof and therefore fail closed.
+   *
+   * A caller-pinned sessionId narrows the lookup rather than bypassing it,
+   * so the pin can never assert that a session threw something the
+   * instance table has no record of it throwing.
+   */
+  private static async getSessionIdsForExceptionInstances(data: {
+    projectId: ObjectID;
+    exceptionFingerprint: string;
+    primaryEntityId?: ObjectID | undefined;
+    primaryEntityType?: ServiceType | undefined;
+    startTime: Date;
+    endTime: Date;
+    sessionId?: string | undefined;
+  }): Promise<Array<string>> {
+    const statement: Statement = SQL`
+      SELECT DISTINCT sessionId
+      FROM ${AnalyticsTableName.ExceptionInstance}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND fingerprint = ${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}
+        AND sessionId != ''
+        AND time >= ${{
+          type: TableColumnType.DateTime64,
+          value: data.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.DateTime64,
+          value: new Date(
+            data.endTime.getTime() + SESSION_REPLAY_MAX_SESSION_MS,
+          ),
+        }}
+    `;
+
+    if (data.primaryEntityId) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
+
+    if (data.primaryEntityType === ServiceType.OpenTelemetry) {
+      /* NULL/empty is the historical discriminator for an OTel service. */
+      statement.append(
+        SQL` AND (ifNull(primaryEntityType, '') = '' OR primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (data.primaryEntityType) {
+      statement.append(
+        SQL` AND primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: data.primaryEntityType as string,
+        }}`,
+      );
+    }
+
+    /*
+     * A pinned sessionId narrows this lookup; it does NOT replace it.
+     *
+     * Returning the pinned id unchecked made the caller's statement read
+     * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,
+     * whose second arm is trivially true - so the fingerprint constrained
+     * nothing and the "Watch what the user saw" card would present any
+     * accessible session as having observed this exception, on nothing but
+     * a stale occurrence row. Asking the instance table whether THAT
+     * session threw THIS fingerprint keeps the pin's real purpose (a live
+     * session whose header has no fingerprints yet) while keeping the
+     * claim true. A failure here answers [] and the header's mandatory
+     * hasAny() predicate decides alone - fail closed.
+     */
+    if (data.sessionId) {
+      statement.append(
+        SQL` AND sessionId = ${{
+          type: TableColumnType.Text,
+          value: data.sessionId,
+        }}`,
+      );
+    }
+
+    statement.append(SQL`
+      ORDER BY sessionId ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: MAX_EXCEPTION_INSTANCE_SESSION_IDS,
+      }}
+    `);
+
+    statement.append(READ_QUERY_SETTINGS);
+
+    try {
+      const dbResult: Results =
+        await ExceptionInstanceService.executeQuery(statement);
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      return (response.data || [])
+        .map((row: JSONObject): string => {
+          return readString(row, "sessionId");
+        })
+        .filter((sessionId: string): boolean => {
+          return sessionId.length > 0;
+        });
+    } catch (err: unknown) {
+      logger.warn(
+        "SessionReplayReadService: could not look up exception instances by session; scoped non-RUM lookups fail closed and other lookups answer from finalized headers only",
+      );
+      logger.warn(err);
+
+      return [];
+    }
+  }
+
+  /*
+   * Recording activity for one application over the last 24 hours, for
+   * the health surface. No GROUP BY and no payload: uniqExact over the
+   * sort-key range for the counts, and an ORDER BY startTime DESC LIMIT 1
+   * (read in sort-key order, stops after one granule) for the most recent
+   * start, which is NOT bounded to 24h so "the most recent was 3 days
+   * ago" can be said when today is quiet.
+   *
+   * "Playable" is counted by subtraction: a session is unplayable only
+   * when its FINALIZED row says it holds no chunks or was sealed as
+   * recording-lost. Every other session - live, or finalized with footage
+   * - can be watched. Counted that way because a finalized session still
+   * has its provisional row on disk until a merge runs, and that row
+   * would otherwise count a lost recording as live.
+   *
+   * ClickHouse trouble answers null (the UI says "unknown"), never 0:
+   * "no sessions" and "could not count" are different diagnoses.
+   */
+  @CaptureSpan()
+  public static async getApplicationActivitySummary(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    nowUnixMs?: number | undefined;
+  }): Promise<SessionReplayApplicationActivitySummary> {
+    const nowUnixMs: number = data.nowUnixMs ?? Date.now();
+    const cacheKey: string = `${data.projectId.toString()}:${data.rumApplicationId.toString()}`;
+
+    const cached: ActivitySummaryCacheEntry | undefined =
+      activitySummaryCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > nowUnixMs) {
+      return cached.summary;
+    }
+
+    const summary: SessionReplayApplicationActivitySummary =
+      await SessionReplayReadService.readApplicationActivitySummary({
+        projectId: data.projectId,
+        rumApplicationId: data.rumApplicationId,
+        nowUnixMs: nowUnixMs,
+      });
+
+    /*
+     * Coarse LRU: evict the oldest entry when full and the key is new, so
+     * a burst of distinct applications cannot grow the map without bound.
+     */
+    if (
+      activitySummaryCache.size >= MAX_ACTIVITY_SUMMARY_CACHE_ENTRIES &&
+      !activitySummaryCache.has(cacheKey)
+    ) {
+      const oldest: string | undefined = activitySummaryCache
+        .keys()
+        .next().value;
+
+      if (oldest !== undefined) {
+        activitySummaryCache.delete(oldest);
+      }
+    }
+
+    activitySummaryCache.delete(cacheKey);
+    activitySummaryCache.set(cacheKey, {
+      summary: summary,
+      expiresAt: nowUnixMs + SESSION_REPLAY_ACTIVITY_SUMMARY_CACHE_TTL_MS,
+    });
+
+    return summary;
+  }
+
+  private static async readApplicationActivitySummary(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    nowUnixMs: number;
+  }): Promise<SessionReplayApplicationActivitySummary> {
+    const countsStatement: Statement = SQL`
+      SELECT
+        toFloat64(uniqExact(sessionId)) AS sessionCount,
+        toFloat64(uniqExactIf(sessionId, isFinalized AND (chunkCount = 0 OR sealedReason = ${{
+          type: TableColumnType.Text,
+          value: SessionReplaySealedReason.RecordingLost,
+        }}))) AS unplayableCount
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
+        AND startTime >= ${{
+          type: TableColumnType.DateTime64,
+          value: new Date(data.nowUnixMs - 24 * 60 * 60 * 1000),
+        }}
+    `;
+
+    countsStatement.append(RETENTION_FILTER);
+    countsStatement.append(READ_QUERY_SETTINGS);
+
+    const lastStartStatement: Statement = SQL`
+      SELECT
+        toFloat64(toUnixTimestamp64Milli(startTime)) AS lastStartUnixMs,
+        /*
+         * The newest session's recorder capabilities, read off the same row
+         * that answers "when did recording last start". Named directly (not
+         * through the argMax alias set) because this statement has no GROUP
+         * BY: it is one row, read in sort-key order, LIMIT 1.
+         */
+        attributes AS aggAttributes
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
+    `;
+
+    lastStartStatement.append(RETENTION_FILTER);
+    lastStartStatement.append(" ORDER BY startTime DESC LIMIT 1");
+    lastStartStatement.append(READ_QUERY_SETTINGS);
+
+    try {
+      const [countsResult, lastStartResult]: [Results, Results] =
+        await Promise.all([
+          RumSessionService.executeQuery(countsStatement),
+          RumSessionService.executeQuery(lastStartStatement),
+        ]);
+
+      const countsResponse: DbJSONResponse = await countsResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      const lastStartResponse: DbJSONResponse = await lastStartResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      const countsRow: JSONObject | undefined = (countsResponse.data || [])[0];
+      const lastStartRow: JSONObject | undefined = (lastStartResponse.data ||
+        [])[0];
+
+      const sessionCount: number = countsRow
+        ? readNumber(countsRow, "sessionCount")
+        : 0;
+      const unplayableCount: number = countsRow
+        ? readNumber(countsRow, "unplayableCount")
+        : 0;
+
+      const lastStartUnixMs: number = lastStartRow
+        ? readNumber(lastStartRow, "lastStartUnixMs")
+        : 0;
+
+      /*
+       * An empty list means "the newest session declared none" (an old
+       * recorder artifact), which is not the same as "we could not tell" -
+       * but the health copy renders both as "not reported yet", and
+       * claiming a recorder has NO capabilities would be a stronger
+       * statement than the row supports. So an empty list answers null and
+       * only a non-empty one is reported.
+       */
+      const recorderCapabilities: Array<string> = lastStartRow
+        ? readRecorderCapabilities(lastStartRow)
+        : [];
+
+      return {
+        sessionsLast24h: sessionCount,
+        playableSessionsLast24h: Math.max(0, sessionCount - unplayableCount),
+        lastSessionStartedAt:
+          lastStartUnixMs > 0 ? new Date(lastStartUnixMs) : null,
+        recorderCapabilities:
+          recorderCapabilities.length > 0 ? recorderCapabilities : null,
+      };
+    } catch (err: unknown) {
+      logger.warn(
+        "SessionReplayReadService: could not read the application activity summary",
+      );
+      logger.warn(err);
+
+      return {
+        sessionsLast24h: null,
+        playableSessionsLast24h: null,
+        lastSessionStartedAt: null,
+        recorderCapabilities: null,
+      };
+    }
+  }
+
+  /* The HAVING/ORDER BY expression for a sort key. */
+  private static getSortExpression(sortBy: SessionReplaySortBy): string {
+    switch (sortBy) {
+      case "durationMs":
+        return "aggDurationMs";
+      case "errorCount":
+        return "aggErrorCount";
+      case "frustration":
+        return FRUSTRATION_TOTAL_EXPRESSION;
+      case "startTime":
+      default:
+        return "aggStartTime";
+    }
+  }
+
+  /* The cursor value of a row under a sort key: what the expression above yields. */
+  private static getSortValue(
+    sortBy: SessionReplaySortBy,
+    item: SessionReplayListItem,
+  ): number {
+    switch (sortBy) {
+      case "durationMs":
+        return item.durationMs;
+      case "errorCount":
+        return item.errorCount;
+      case "frustration":
+        return (
+          item.rageClickCount +
+          item.deadClickCount +
+          item.errorClickCount +
+          item.refreshRageCount
+        );
+      case "startTime":
+      default:
+        return item.startTime.getTime();
+    }
+  }
+
+  /*
+   * Every list predicate, in cost order: booleans and equality over
+   * aliases first, IN lists next, array membership after, and the
+   * substring predicates (tags, urlPrefix, search) LAST. ClickHouse
+   * evaluates HAVING per group after aggregation, so the order does not
+   * change what is scanned, but a cheap predicate that fails first spares
+   * the string work for every group it eliminates.
+   */
   private static appendListHavingFilters(
     statement: Statement,
     filters: SessionReplayListFilters,
+    includeIdentifiedUserLabel: boolean,
   ): void {
     if (filters.hasError !== undefined) {
       statement.append(
@@ -1341,13 +3527,21 @@ export default class SessionReplayReadService {
       );
     }
 
-    if (filters.hasFrustration === true) {
+    if (filters.hasFrustration !== undefined) {
       /*
        * Over the argMax aliases, like every HAVING predicate here — the
        * raw columns would sum across ReplacingMergeTree versions.
+       *
+       * `!== undefined` rather than `=== true`, so `false` means "sessions
+       * with NO frustration signals" instead of being silently dropped. The
+       * route admits any boolean, and hasError / isFinalized beside it both
+       * honour false, so accepting the value and ignoring it returned the
+       * whole unfiltered list with a 200 and no indication why.
        */
       statement.append(
-        " AND (aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+        filters.hasFrustration
+          ? ` AND ${FRUSTRATION_TOTAL_EXPRESSION} > 0`
+          : ` AND ${FRUSTRATION_TOTAL_EXPRESSION} = 0`,
       );
     }
 
@@ -1357,6 +3551,37 @@ export default class SessionReplayReadService {
           type: TableColumnType.Boolean,
           value: filters.isFinalized,
         }}`,
+      );
+    }
+
+    if (filters.hasIdentifiedUser !== undefined) {
+      /*
+       * The digest column, not the label: it is under the ordinary session
+       * ACL, and "did somebody identify" discloses nothing about who.
+       */
+      statement.append(
+        filters.hasIdentifiedUser
+          ? " AND aggIdentifiedUserKey != ''"
+          : " AND aggIdentifiedUserKey = ''",
+      );
+    }
+
+    if (filters.isPlayable !== undefined) {
+      /*
+       * A live session is playable (its chunks are being written); a
+       * finalized one only when the finalizer counted chunks and did not
+       * seal it as lost.
+       */
+      const playable: string = `((aggIsFinalized = 0 OR aggChunkCount > 0) AND aggSealedReason != '${SessionReplaySealedReason.RecordingLost}')`;
+
+      statement.append(
+        filters.isPlayable ? ` AND ${playable}` : ` AND NOT ${playable}`,
+      );
+    }
+
+    if (filters.hasTraces !== undefined) {
+      statement.append(
+        filters.hasTraces ? " AND aggTraceCount > 0" : " AND aggTraceCount = 0",
       );
     }
 
@@ -1414,18 +3639,26 @@ export default class SessionReplayReadService {
       );
     }
 
+    if (filters.visitorId) {
+      /*
+       * Over the argMax alias like the digest above: the raw column would
+       * match a superseded header version, and a provisional header
+       * written before the recorder's first meta chunk carries no id.
+       */
+      statement.append(
+        SQL` AND aggVisitorId = ${{
+          type: TableColumnType.Text,
+          value: filters.visitorId,
+        }}`,
+      );
+    }
+
     if (filters.route) {
       /*
-       * `has`, not a Search/LIKE. StatementGenerator's own comment calls
-       * restoring the exact-match array fast path "the single biggest
-       * performance fix" - a lowerUTF8 arrayExists has no bloom
-       * pre-filter and full-scans the table.
-       *
-       * The argMax expression is appended as raw SQL rather than
-       * interpolated into the template: a plain string substituted into
-       * an SQL`` literal is bound as an Identifier and would be quoted.
+       * `has`, not a Search/LIKE: exact membership is the cheap array
+       * path. Over the argMax alias, never the raw column.
        */
-      statement.append(` AND has(${argMaxColumn("routes")}, `);
+      statement.append(" AND has(aggRoutes, ");
       statement.append(
         SQL`${{
           type: TableColumnType.Text,
@@ -1445,5 +3678,121 @@ export default class SessionReplayReadService {
         }}`,
       );
     }
+
+    if (filters.tags) {
+      /*
+       * Every pair must match. mapContains first so an absent key never
+       * matches the empty string a Map subscript returns for it. Bounded
+       * by the number of tags a session can even carry.
+       */
+      const pairs: Array<[string, string]> = Object.entries(filters.tags)
+        .filter(([key, value]: [string, string]): boolean => {
+          return key.length > 0 && typeof value === "string";
+        })
+        .slice(0, SESSION_REPLAY_MAX_TAG_KEYS);
+
+      for (const [key, value] of pairs) {
+        statement.append(" AND mapContains(aggTags, ");
+        statement.append(
+          SQL`${{
+            type: TableColumnType.Text,
+            value: key,
+          }}) AND aggTags[${{
+            type: TableColumnType.Text,
+            value: key,
+          }}] = ${{
+            type: TableColumnType.Text,
+            value: value,
+          }}`,
+        );
+      }
+    }
+
+    if (filters.urlPrefix) {
+      /*
+       * "sessions that touched /checkout/*": a prefix over every route the
+       * session visited and over the entry URL, which for a pre-migration
+       * session is the only URL the header holds.
+       *
+       * The stored values are scrubbed ABSOLUTE urls (https://host/path),
+       * but the filter a human types is a PATH - the search box routes any
+       * value beginning with "/" here, and the docs promise `url:/checkout`
+       * outright. Matching only the full string meant that documented
+       * search never matched anything, in any project, with no error to
+       * say so. So the path of each route and of the entry URL is matched
+       * as well as the whole URL: an absolute prefix still matches on the
+       * first arm, a path prefix on the second. ClickHouse's path() returns
+       * the path component without host or query, which is exactly the
+       * shape the recorder's route list is scrubbed down to.
+       */
+      const prefixParameter: { type: TableColumnType; value: string } = {
+        type: TableColumnType.Text,
+        value: filters.urlPrefix,
+      };
+
+      statement.append(" AND (arrayExists(r -> startsWith(r, ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append(") OR startsWith(path(r), ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append("), aggRoutes) OR startsWith(aggEntryUrl, ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append(") OR startsWith(path(aggEntryUrl), ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append("))");
+    }
+
+    if (filters.search) {
+      SessionReplayReadService.appendSearchPredicate(
+        statement,
+        filters.search,
+        includeIdentifiedUserLabel,
+      );
+    }
+  }
+
+  /*
+   * Free-text search, last of the predicates because it is the only one
+   * that does substring work per group. The identified user label is
+   * searched ONLY when the caller may read it: without that gate a caller
+   * denied the label could ask "is jane@example.com here" and read every
+   * other field of the answer.
+   */
+  private static appendSearchPredicate(
+    statement: Statement,
+    search: string,
+    includeIdentifiedUserLabel: boolean,
+  ): void {
+    const term: string = search
+      .trim()
+      .substring(0, SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH);
+
+    if (!term) {
+      return;
+    }
+
+    const textParameter: { type: TableColumnType; value: string } = {
+      type: TableColumnType.Text,
+      value: term,
+    };
+
+    statement.append(" AND (startsWith(sessionId, ");
+    statement.append(SQL`${textParameter})`);
+    statement.append(" OR positionCaseInsensitiveUTF8(aggEntryUrl, ");
+    statement.append(SQL`${textParameter}) > 0`);
+    statement.append(" OR positionCaseInsensitiveUTF8(aggExitUrl, ");
+    statement.append(SQL`${textParameter}) > 0`);
+    statement.append(" OR arrayExists(r -> positionCaseInsensitiveUTF8(r, ");
+    statement.append(SQL`${textParameter}) > 0, aggRoutes)`);
+    statement.append(` OR has(${argMaxColumn("traceIds")}, `);
+    statement.append(SQL`${textParameter})`);
+
+    if (includeIdentifiedUserLabel) {
+      statement.append(
+        " OR positionCaseInsensitiveUTF8(aggIdentifiedUserLabel, ",
+      );
+      statement.append(SQL`${textParameter}) > 0`);
+    }
+
+    statement.append(")");
   }
 }

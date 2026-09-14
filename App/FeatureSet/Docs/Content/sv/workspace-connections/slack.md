@@ -19,3 +19,7 @@
 
 4. **Konfigurera varningar och aviseringar om planerat underhåll**
    - Liknande regler kan tillämpas på varningar och planerat underhåll genom att navigera till respektive sidor och konfigurera önskade regler.
+
+## Nätverksåtkomst för egenhostade installationer
+
+Läs avsnittet om nätverksåtkomst i [Slack-integration](/docs/self-hosted/slack-integration) för information om utgående anslutningar, inkommande återanrop och privata installationer.

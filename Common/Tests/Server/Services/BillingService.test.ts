@@ -39,6 +39,17 @@ import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      requireMeteredSubscriptionPayment: jest.fn(async (): Promise<void> => {
+        return;
+      }),
+    },
+  };
+});
+
 describe("BillingService", () => {
   let billingService: BillingService;
   const customer: CustomerData = getCustomerData();
@@ -1233,30 +1244,34 @@ describe("BillingService", () => {
 
     describe("hasPaymentMethods", () => {
       it("should return true if the customer has payment methods", async () => {
-        billingService.getPaymentMethods =
-          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: mockPaymentMethods,
+          });
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
 
         expect(result).toBeTruthy();
-        expect(billingService.getPaymentMethods).toHaveBeenCalledWith(
-          customerId,
-        );
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledWith({
+          customer: customerId,
+          type: "card",
+          limit: 1,
+        });
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(1);
       });
 
       it("should return false if the customer does not have payment methods", async () => {
-        const mockEmptyPaymentMethods: PaymentMethod[] = Array<PaymentMethod>();
-        billingService.getPaymentMethods =
-          getJestMockFunction().mockResolvedValue(mockEmptyPaymentMethods);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: [],
+          });
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
 
         expect(result).toBeFalsy();
-        expect(billingService.getPaymentMethods).toHaveBeenCalledWith(
-          customerId,
-        );
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(4);
       });
     });
 

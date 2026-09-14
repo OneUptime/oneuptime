@@ -64,20 +64,20 @@ The Docker Agent uses the OpenTelemetry `docker_stats` receiver, which scrapes t
 
 ### CPU
 
-| Metric                                            | Description                                     |
-| ------------------------------------------------- | ----------------------------------------------- |
-| `container.cpu.utilization`                       | CPU utilization as a percentage of the host CPU |
-| `container.cpu.usage.total`                       | Cumulative CPU time consumed by the container   |
-| `container.cpu.throttling_data.throttled_time`    | Time the container was throttled by cgroups     |
-| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods                    |
+| Metric                                            | Description                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `container.cpu.utilization`                       | CPU utilization, where 100% is one full CPU core (the `docker stats` CPU% column)                 |
+| `container.cpu.usage.total`                       | Cumulative CPU time consumed by the container since it started (lifetime counter)                 |
+| `container.cpu.throttling_data.throttled_time`    | Total nanoseconds the container has been throttled by cgroups since it started (lifetime counter) |
+| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods since the container started (lifetime counter)                       |
 
 ### Memory
 
-| Metric                         | Description                               |
-| ------------------------------ | ----------------------------------------- |
-| `container.memory.usage.total` | Current memory usage in bytes             |
-| `container.memory.usage.limit` | Memory limit in bytes                     |
-| `container.memory.percent`     | Memory usage as a percentage of the limit |
+| Metric                         | Description                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `container.memory.usage.total` | Current memory usage in bytes                                                                                         |
+| `container.memory.usage.limit` | Memory limit in bytes                                                                                                 |
+| `container.memory.percent`     | Memory usage as a percentage of the container's memory limit, or of HOST total memory when the container has no limit |
 
 ### Network
 
@@ -95,11 +95,11 @@ The Docker Agent uses the OpenTelemetry `docker_stats` receiver, which scrapes t
 
 ### Container Info
 
-| Metric                 | Description                                 |
-| ---------------------- | ------------------------------------------- |
-| `container.uptime`     | Container uptime in seconds                 |
-| `container.restarts`   | Number of times the container has restarted |
-| `container.pids.count` | Number of processes inside the container    |
+| Metric                 | Description                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `container.uptime`     | Container uptime in seconds                                                                                  |
+| `container.restarts`   | Number of times the container has restarted since it was created (lifetime counter)                          |
+| `container.pids.count` | Number of tasks inside the container — the cgroup pids controller counts kernel threads as well as processes |
 
 ## Monitoring Criteria
 
@@ -136,15 +136,22 @@ Anomaly conditions stay in a "Learning" state and produce no alerts until at lea
 
 OneUptime provides templates for common Docker monitoring scenarios:
 
-| Template               | Description                      | Threshold | Aggregation         |
-| ---------------------- | -------------------------------- | --------- | ------------------- |
-| High Container CPU     | CPU utilization per container    | > 90%     | Max (per container) |
-| High Container Memory  | Memory usage as percent of limit | > 85%     | Max (per container) |
-| High CPU Throttling    | CPU throttled periods            | > 0       | Max (per container) |
-| Container Restart Loop | Container restart count          | > 3       | Sum                 |
-| Container Down         | Container uptime reset to 0      | = 0       | Min                 |
+| Template                     | Description                                    | Threshold         | Aggregation                                  |
+| ---------------------------- | ---------------------------------------------- | ----------------- | -------------------------------------------- |
+| High Container CPU           | CPU utilization per container                  | > 80% of one core | Max (per container)                          |
+| High Container Memory        | Memory usage as percent of limit (or host RAM) | > 85%             | Max (per container)                          |
+| High CPU Throttling          | Growth in CPU throttled time                   | > 1000 ms / 5 min | Max − Min per minute, summed (per container) |
+| Container Restart Loop       | Growth in container restart count              | > 3 / 15 min      | Max − Min per minute, summed (per container) |
+| High Container Process Count | Task count (processes plus threads)            | > 2000            | Max (per container)                          |
+| Container Down               | Container uptime reset to 0                    | = 0               | Min                                          |
 
-> Note: CPU, memory, and throttling templates use **Max** aggregation grouped by `resource.container.name`. This prevents a single hot container's signal from being diluted by many idle containers on the same host.
+> Note: CPU, memory, and process-count templates use **Max** aggregation grouped by `resource.container.name`. This prevents a single hot container's signal from being diluted by many idle containers on the same host.
+
+> Note: **High Container CPU** thresholds `container.cpu.utilization`, which is the number `docker stats` prints — 100% is one full CPU core, not 100% of the host, so a container spread across two cores reads 200. On a multi-core host the threshold is an absolute CPU budget rather than a share of the machine.
+
+> Note: `container.restarts` and `container.cpu.throttling_data.throttled_time` are **lifetime counters**, so those two templates alert on how much the counter GREW in the window rather than on its value. A value comparison would fire forever for any container that has ever restarted or been throttled, and could never recover, because a monotonic counter cannot come back down. The growth is measured between scrapes inside each one-minute bucket, so at the agent's 30s `collection_interval` it captures roughly half of the window's real activity — the thresholds above are already set for that. Raising `collection_interval` to 60s or more leaves one sample per bucket, makes the difference identically zero, and silently disables both templates.
+
+> Note: **High Container Memory** reads `container.memory.percent`, which divides by the container's memory limit when one is set and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before treating a breach as an impending OOM kill.
 
 ## Collected Logs
 
@@ -154,7 +161,7 @@ In addition to metrics, the Docker Agent tails every container's `*-json.log` fi
 - `resource.container.id` — the full container ID
 - `resource.container.runtime` — always `docker`
 - `attributes["log.iostream"]` — `stdout` or `stderr`
-- `severityText` / `severityNumber` — derived from the stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — read from a level keyword in the line (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); lines with no recognisable level fall back to the stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — the raw log line emitted by the container process
 - `time` — the Docker daemon's timestamp for the line
 

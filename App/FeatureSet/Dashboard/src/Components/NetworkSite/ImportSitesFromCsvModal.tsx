@@ -65,9 +65,12 @@ import React, {
  */
 const EXAMPLE_CSV: string = [
   "name,siteType,parentName,address,latitude,longitude",
-  "Franchise East,Region,,,,",
-  '"Springfield Market",Market,Franchise East,,,',
+  '"Acme Account",Account Type,,,,',
+  '"East Region",Region,"Acme Account",,,',
+  '"Franchise East",Franchisee,"East Region",,,',
+  '"Springfield Market",Market,"Franchise East",,,',
   '"Unit 1042","Unit","Springfield Market","742 Evergreen Terrace, Springfield, IL",39.7817,-89.6501',
+  '"Warehouse 7",Other,"East Region",,,',
 ].join("\n");
 
 export interface ComponentProps {
@@ -109,24 +112,39 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   const fetchSiteTypes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoadingSiteTypes(true);
     try {
-      const result: ListResult<NetworkSiteType> =
-        await ModelAPI.getList<NetworkSiteType>({
-          modelType: NetworkSiteType,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-            name: SortOrder.Ascending,
-          },
-        });
+      const allSiteTypes: Array<NetworkSiteType> = [];
+      let skip: number = 0;
+
+      while (true) {
+        const result: ListResult<NetworkSiteType> =
+          await ModelAPI.getList<NetworkSiteType>({
+            modelType: NetworkSiteType,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip,
+            select: {
+              _id: true,
+              name: true,
+              isUnitLevel: true,
+              parentNetworkSiteTypeId: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+              name: SortOrder.Ascending,
+            },
+          });
+
+        allSiteTypes.push(...result.data);
+
+        if (result.data.length < LIMIT_PER_PROJECT) {
+          break;
+        }
+
+        skip += result.data.length;
+      }
 
       setSiteTypes(
-        result.data
+        allSiteTypes
           .filter((siteType: NetworkSiteType) => {
             return Boolean(siteType._id && siteType.name);
           })
@@ -134,6 +152,9 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             return {
               id: siteType._id!.toString(),
               name: siteType.name!,
+              parentNetworkSiteTypeId:
+                siteType.parentNetworkSiteTypeId?.toString() || null,
+              isUnitLevel: siteType.isUnitLevel === true,
             };
           }),
       );
@@ -250,34 +271,58 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
        * Resolve names of sites that already exist — they can be parents of
        * imported rows, and rows that collide with them are skipped.
        */
-      const existingSites: ListResult<NetworkSite> =
-        await ModelAPI.getList<NetworkSite>({
-          modelType: NetworkSite,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+      const existingSites: Array<NetworkSite> = [];
+      let existingSiteSkip: number = 0;
+
+      while (true) {
+        const result: ListResult<NetworkSite> =
+          await ModelAPI.getList<NetworkSite>({
+            modelType: NetworkSite,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: existingSiteSkip,
+            select: {
+              _id: true,
+              name: true,
+              networkSiteTypeId: true,
+            },
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+
+        existingSites.push(...result.data);
+
+        if (result.data.length < LIMIT_PER_PROJECT) {
+          break;
+        }
+
+        existingSiteSkip += result.data.length;
+      }
 
       const existingSiteIdByName: Map<string, string> = new Map<
         string,
         string
       >();
-      for (const site of existingSites.data) {
+      const existingSiteTypeIdByName: Map<string, string | null> = new Map<
+        string,
+        string | null
+      >();
+      for (const site of existingSites) {
         if (site.name && site._id) {
           existingSiteIdByName.set(site.name, site._id.toString());
+          existingSiteTypeIdByName.set(
+            site.name,
+            site.networkSiteTypeId?.toString() || null,
+          );
         }
       }
 
       const summary: SiteImportSummary = await runSiteImport({
         rows: parseResult.rows,
         existingSiteIdByName: existingSiteIdByName,
+        existingSiteTypeIdByName: existingSiteTypeIdByName,
+        siteTypes: siteTypes,
         createSite: createSite,
         onProgress: (progress: SiteImportProgress): void => {
           setRowResults(progress.results);
@@ -361,10 +406,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         <p className="text-sm text-gray-500">
           Columns: {SITE_CSV_COLUMNS.join(", ")}. siteType must be one of this
           project&apos;s configured site types
-          {siteTypeNames ? ` (${siteTypeNames})` : ""}. Rows whose parentName is
-          empty or already exists import first, then their children — parents
-          and children can live in the same file. Rows with an unresolvable
-          parent are skipped and reported.
+          {siteTypeNames ? ` (${siteTypeNames})` : ""}. parentName is optional
+          for every type: leave it empty for a top-level site, or name any site
+          that is not below this one in your site type hierarchy. Rows whose
+          parentName is empty or already exists import first, then their
+          children — parents and children can live in the same file. Rows with
+          an unresolvable parent are skipped and reported.
         </p>
 
         <TextArea

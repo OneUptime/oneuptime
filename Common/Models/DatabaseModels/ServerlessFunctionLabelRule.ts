@@ -1,7 +1,7 @@
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -71,7 +71,7 @@ import {
   tableDescription:
     "Rules for automatically attaching labels to serverless functions when matching functions are created.",
 })
-export default class ServerlessFunctionLabelRule extends BaseModel {
+export default class ServerlessFunctionLabelRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

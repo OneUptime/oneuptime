@@ -1,0 +1,1155 @@
+import React from "react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react-native";
+import { describe, expect, test, beforeEach } from "@jest/globals";
+import MonitorsScreen from "./MonitorsScreen";
+import {
+  makeMonitor,
+  makeNamedEntityWithColor,
+} from "../__tests__/testSupport";
+import type { MonitorItem, ProjectMonitorItem } from "../api/types";
+
+/*
+ * The Monitors tab is a fleet-wide status board, and almost everything that
+ * can go wrong with it goes wrong quietly - the screen still renders, it just
+ * renders a reassuring lie.
+ *
+ * Three of those lies are worth naming, because each one is a sentence a
+ * responder acts on:
+ *
+ *   - "No monitors." A fan-out that has not started yet, or one that failed,
+ *     produces the same empty array as a project that genuinely has nothing
+ *     in it. Told the fleet is empty, a responder stops looking. The hook now
+ *     holds isLoading open until the project list itself has arrived (see
+ *     useAllProjectMonitors), and this screen has to keep honouring it rather
+ *     than racing ahead to its own empty state.
+ *
+ *   - A count. The three digits at the top of the screen are read at a glance
+ *     and are never re-checked. Painting the disabled count into the
+ *     inoperational pill, or counting a monitor whose checks are switched off
+ *     as healthy, changes what someone believes about their production estate
+ *     without changing anything that looks broken.
+ *
+ *   - The order. Monitors in trouble are grouped above the ones that are fine
+ *     precisely so the first thing on screen is the thing that needs someone.
+ *     A regression that flattened the sections would still show every monitor
+ *     and would still look completely normal.
+ *
+ * The data hook is faked rather than the network: what is under test here is
+ * which of those statements the screen is willing to make from a given hook
+ * state, and useAllProjectMonitors.test.tsx already owns how the hook arrives
+ * at one. The `mock` prefix on the holders is what lets jest.mock's hoisted
+ * factories reach them.
+ */
+
+type MonitorsState = ReturnType<
+  typeof import("../hooks/useAllProjectMonitors").useAllProjectMonitors
+>;
+
+const mockMonitors: { current: MonitorsState } = {
+  current: {} as MonitorsState,
+};
+
+const mockNavigate: jest.Mock = jest.fn();
+const mockRoute: {
+  params:
+    | { initialFilter?: "all" | "issues" | "operational" | "disabled" }
+    | undefined;
+} = { params: undefined };
+
+const mockLightImpact: jest.Mock = jest.fn();
+
+jest.mock("../hooks/useAllProjectMonitors", () => {
+  return {
+    useAllProjectMonitors: () => {
+      return mockMonitors.current;
+    },
+  };
+});
+
+jest.mock("../hooks/useHaptics", () => {
+  return {
+    useHaptics: () => {
+      return {
+        successFeedback: jest.fn(),
+        errorFeedback: jest.fn(),
+        lightImpact: mockLightImpact,
+        mediumImpact: jest.fn(),
+        selectionFeedback: jest.fn(),
+      };
+    },
+  };
+});
+
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
+
+jest.mock("@react-navigation/native", () => {
+  return {
+    useRoute: () => {
+      return mockRoute;
+    },
+    useNavigation: () => {
+      return { navigate: mockNavigate };
+    },
+  };
+});
+
+/*
+ * The rendered tree this version of the testing library hands back contains
+ * host elements only, so a parent is always something React actually drew.
+ */
+type RenderedElement = ReturnType<typeof screen.getByText>;
+
+function stateWith(overrides: Partial<MonitorsState> = {}): MonitorsState {
+  return {
+    items: [],
+    isLoading: false,
+    isError: false,
+    refetch: jest.fn(async () => {
+      return undefined;
+    }) as unknown as () => Promise<void>,
+    ...overrides,
+  };
+}
+
+/**
+ * Tag a monitor with the project whose query returned it.
+ *
+ * The project is carried alongside the row rather than read off it, because
+ * the list is assembled by asking each project separately and the row's own
+ * projectId is whatever the server chose to serialise - the two are not
+ * interchangeable, and the detail screen needs the tenant that can actually
+ * answer for this monitor.
+ */
+function wrap(
+  item: MonitorItem,
+  projectId: string = "project-1",
+  projectName: string = "Acme Production",
+): ProjectMonitorItem {
+  return { item, projectId, projectName };
+}
+
+function healthyMonitor(id: string, name: string): MonitorItem {
+  return makeMonitor({
+    _id: id,
+    name,
+    currentMonitorStatus: {
+      ...makeNamedEntityWithColor({
+        _id: "monitor-status-operational",
+        name: "Operational",
+      }),
+      isOperationalState: true,
+    },
+  });
+}
+
+function offlineMonitor(id: string, name: string): MonitorItem {
+  return makeMonitor({
+    _id: id,
+    name,
+    currentMonitorStatus: {
+      ...makeNamedEntityWithColor({
+        _id: "monitor-status-offline",
+        name: "Offline",
+      }),
+      isOperationalState: false,
+    },
+  });
+}
+
+function offlineFleet(count: number): ProjectMonitorItem[] {
+  return Array.from(
+    { length: count },
+    (_: unknown, index: number): ProjectMonitorItem => {
+      return wrap(
+        offlineMonitor(`monitor-${index}`, `host-${index}.example.com`),
+      );
+    },
+  );
+}
+
+test("the search limit appears at the fetched cap and survives an empty search", async () => {
+  mockMonitors.current = stateWith({ items: offlineFleet(99) });
+  const view: Awaited<ReturnType<typeof render>> = await render(
+    <MonitorsScreen />,
+  );
+  expect(
+    screen.queryByText("Search covers the 100 most recent monitors."),
+  ).toBeNull();
+  mockMonitors.current = stateWith({ items: offlineFleet(100) });
+  await view.rerender(<MonitorsScreen />);
+  expect(
+    screen.getByText("Search covers the 100 most recent monitors."),
+  ).toBeTruthy();
+  await fireEvent.changeText(
+    screen.getByLabelText("Search monitors"),
+    "no matching record",
+  );
+  expect(screen.getByText("No matching monitors")).toBeTruthy();
+  expect(
+    screen.getByText("Search covers the 100 most recent monitors."),
+  ).toBeTruthy();
+});
+
+/**
+ * The numbers rendered beside `label`, in the order they appear on screen.
+ *
+ * Every figure this screen shows sits next to a word and nothing carries a
+ * testID: the summary puts "3" above "Inoperational", a section header puts
+ * "4" beside "Issues". A bare getByText("3") would therefore be satisfied by
+ * whichever 3 rendered first, which means it passes just as happily when the
+ * disabled tally has been painted into the inoperational pill - the exact
+ * regression worth catching. Scoping the search to the label's own container
+ * is what makes the assertion say what it means.
+ *
+ * Containers holding no number at all are skipped rather than reported,
+ * because several of these words also appear as a badge on a monitor card
+ * ("Disabled", or a status called "Operational"), and those badges are not
+ * counting anything.
+ */
+function countsBesideLabel(label: string): string[] {
+  const counts: string[] = [];
+  const summary: RenderedElement | null = screen.queryByTestId(
+    `monitor-summary-${label}`,
+  );
+  if (summary) {
+    counts.push(String(within(summary).getByText(/^\d+$/).props.children));
+  }
+
+  for (const labelNode of screen.queryAllByRole("header", { name: label })) {
+    const container: RenderedElement | null = labelNode.parent;
+
+    if (container === null) {
+      continue;
+    }
+
+    const digits: RenderedElement[] = within(container).queryAllByText(/^\d+$/);
+
+    if (digits.length === 1) {
+      counts.push(String(digits[0]!.props["children"]));
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * What a screen reader would announce for each monitor, top to bottom.
+ *
+ * Order is the assertion that grouping actually happened: the sections carry
+ * no other machine-readable mark, and "the troubled ones come first" is the
+ * whole point of having them.
+ */
+function listedMonitors(): string[] {
+  return screen
+    .getAllByRole("button", { name: /^Monitor / })
+    .map((element: RenderedElement): string => {
+      return String(element.props["accessibilityLabel"]);
+    });
+}
+
+/**
+ * The native view a pull-to-refresh gesture lands on.
+ *
+ * There is no query for this: the control is handed to the list as a prop
+ * rather than rendered as a child, so it carries no role, no label and no
+ * text. Firing on the native view is still the honest way in, because the
+ * handler itself sits on the RefreshControl component above it and fireEvent
+ * walks up to find it - which means this exercises the same wiring the
+ * gesture does, rather than reaching into the screen for its callback.
+ *
+ * Both jest projects render this under the same host name, so the lookup does
+ * not have to know which platform it is on.
+ */
+function refreshControl(): RenderedElement {
+  const root: RenderedElement | null = screen.root;
+
+  if (root === null) {
+    throw new Error("Nothing was rendered, so there is nothing to refresh.");
+  }
+
+  const controls: RenderedElement[] = root.queryAll(
+    (instance: RenderedElement): boolean => {
+      return instance.type === "RCTRefreshControl";
+    },
+    { includeSelf: true },
+  );
+
+  if (controls.length !== 1) {
+    throw new Error(
+      `Expected exactly one refreshable element, found ${controls.length}.`,
+    );
+  }
+
+  return controls[0]!;
+}
+
+beforeEach(() => {
+  mockRoute.params = undefined;
+  mockMonitors.current = stateWith();
+});
+
+describe("While the fleet is still being fetched", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({ isLoading: true });
+  });
+
+  test("placeholders stand in for the monitors that have not arrived", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText("Loading content").length).toBe(3);
+    });
+  });
+
+  test("it does not claim the fleet is empty before the projects have even been listed", async () => {
+    /*
+     * The failure this pins down: the fan-out has no queries at all until the
+     * project list lands, so nothing is loading and nothing has failed, and
+     * both the hook and this screen used to read that as a settled answer of
+     * "none". A responder who reads "No monitors" believes they have nothing
+     * to watch.
+     */
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("No monitors")).toBeNull();
+      expect(screen.queryByText("Something went wrong")).toBeNull();
+    });
+  });
+
+  test("monitors from a project that already answered stay on screen while the rest load", async () => {
+    /*
+     * One project answering while another is still in flight is the normal
+     * case for a responder in more than one project. Replacing what has
+     * already been shown with placeholders would make the list flicker back
+     * to nothing on every refresh.
+     */
+    mockMonitors.current = stateWith({
+      isLoading: true,
+      items: [wrap(offlineMonitor("monitor-1", "db.example.com"))],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Monitor db.example.com. Status: Offline.",
+        }),
+      ).toBeTruthy();
+      expect(screen.queryAllByLabelText("Loading content").length).toBe(0);
+    });
+  });
+});
+
+describe("When the fleet has loaded", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(healthyMonitor("monitor-1", "api.example.com")),
+        wrap(offlineMonitor("monitor-2", "db.example.com")),
+      ],
+    });
+  });
+
+  test("every monitor is announced with its name and its status", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Monitor api.example.com. Status: Operational.",
+        }),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("button", {
+          name: "Monitor db.example.com. Status: Offline.",
+        }),
+      ).toBeTruthy();
+    });
+  });
+
+  test("project-scoped rows avoid repeating the workspace header", async () => {
+    /*
+     * The global header identifies the selected project. Lists receive that
+     * project's rows only; repeating its badge on every card adds visual noise.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-1", "api.example.com")),
+        wrap(
+          offlineMonitor("monitor-2", "db.example.com"),
+          "project-1",
+          "Acme Production",
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("api.example.com")).toBeTruthy();
+      expect(screen.getByText("db.example.com")).toBeTruthy();
+      expect(screen.queryByText("Acme Production")).toBeNull();
+    });
+  });
+
+  test("a monitor the server sent no status for is still listed", async () => {
+    /*
+     * currentMonitorStatus is a relation, and a monitor that has never been
+     * checked has none. Dropping such a row - or letting it throw on the way
+     * to reading its name - would hide the monitors most likely to be
+     * misconfigured.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            _id: "monitor-3",
+            name: "new.example.com",
+            currentMonitorStatus: undefined,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Monitor new.example.com. Status: unknown.",
+        }),
+      ).toBeTruthy();
+    });
+  });
+});
+
+describe("Grouping the fleet", () => {
+  test("monitors in trouble are listed above the monitors that are fine", async () => {
+    /*
+     * Input order deliberately puts the healthy monitor first, so passing
+     * this requires the screen to have re-grouped rather than simply rendered
+     * what it was handed.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(healthyMonitor("monitor-1", "api.example.com")),
+        wrap(offlineMonitor("monitor-2", "db.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(listedMonitors()).toEqual([
+        "Monitor db.example.com. Status: Offline.",
+        "Monitor api.example.com. Status: Operational.",
+      ]);
+    });
+  });
+
+  test("a monitor whose checks are switched off is grouped separately above healthy monitors", async () => {
+    /*
+     * A disabled monitor still holds the status it had when it was last
+     * checked, and that status is usually "Operational". Reading the status
+     * first would file it under the healthy monitors, where it is invisible -
+     * and a monitor that is not being checked is precisely the one nobody
+     * will be paged about.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(healthyMonitor("monitor-1", "api.example.com")),
+        wrap(
+          makeMonitor({
+            _id: "monitor-2",
+            name: "cache.example.com",
+            disableActiveMonitoring: true,
+            currentMonitorStatus: makeNamedEntityWithColor({
+              _id: "monitor-status-operational",
+              name: "Operational",
+            }),
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Disabled monitors")).toBeTruthy();
+      expect(listedMonitors()).toEqual([
+        "Monitor cache.example.com. Status: Disabled.",
+        "Monitor api.example.com. Status: Operational.",
+      ]);
+    });
+  });
+
+  test("a fleet with nothing wrong has no issues section at all", async () => {
+    mockMonitors.current = stateWith({
+      items: [wrap(healthyMonitor("monitor-1", "api.example.com"))],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("header", { name: "Issues" })).toBeNull();
+    });
+  });
+});
+
+describe("The summary at the top", () => {
+  test("counts what is wrong, what is switched off and what is fine", async () => {
+    /*
+     * No healthy monitor in this fleet, which keeps the word "Operational"
+     * from appearing twice - once as a summary label and once as the title of
+     * the section it heads - so each number can be tied to exactly one label.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-1", "db.example.com")),
+        wrap(offlineMonitor("monitor-2", "queue.example.com")),
+        wrap(offlineMonitor("monitor-3", "cdn.example.com")),
+        wrap(
+          makeMonitor({
+            _id: "monitor-4",
+            name: "cache.example.com",
+            disableActiveMonitoring: true,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Has issues")).toEqual(["3"]);
+      expect(countsBesideLabel("Disabled")).toEqual(["1"]);
+      expect(countsBesideLabel("Healthy")).toEqual(["0"]);
+    });
+  });
+
+  test("a disabled non-operational monitor contributes to both matching Home counters", async () => {
+    /*
+     * The last thing an offline monitor did before someone disabled it was to
+     * be offline, so it satisfies both descriptions. The Home counters and
+     * their destination filters must describe these same overlapping sets.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            ...offlineMonitor("monitor-1", "cache.example.com"),
+            disableActiveMonitoring: true,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Has issues")).toEqual(["1"]);
+      expect(countsBesideLabel("Disabled")).toEqual(["1"]);
+    });
+  });
+
+  test("the summary and the section heading agree on how many monitors are fine", async () => {
+    /*
+     * Both numbers describe the same set, so a fleet with healthy monitors
+     * shows the word twice and the two figures have to match. They are
+     * derived from different arrays in the screen, which is exactly how they
+     * come to disagree.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(healthyMonitor("monitor-1", "api.example.com")),
+        wrap(healthyMonitor("monitor-2", "www.example.com")),
+        wrap(healthyMonitor("monitor-3", "cdn.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Healthy")).toEqual(["3", "3"]);
+    });
+  });
+
+  test("there is no summary to read when there are no monitors", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Has issues")).toEqual([]);
+    });
+  });
+});
+
+describe("When the fleet is genuinely empty", () => {
+  test("the screen says so, and offers a reason to expect otherwise", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("No monitors")).toBeTruthy();
+      expect(
+        screen.getByText("Monitors in this project will appear here."),
+      ).toBeTruthy();
+    });
+  });
+
+  test("nothing is dressed up as a placeholder or a failure", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.queryAllByLabelText("Loading content").length).toBe(0);
+      expect(screen.queryByText("Something went wrong")).toBeNull();
+    });
+  });
+});
+
+describe("When the monitors could not be loaded", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({ isError: true });
+  });
+
+  test("the failure is admitted rather than shown as an empty fleet", async () => {
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Something went wrong")).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Failed to load monitors. Pull to refresh or try again.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByText("No monitors")).toBeNull();
+    });
+  });
+
+  test("there is a way to ask again", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+
+    mockMonitors.current = stateWith({
+      isError: true,
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<MonitorsScreen />);
+
+    const retry: RenderedElement = await waitFor(() => {
+      return screen.getByRole("button", { name: "Retry" });
+    });
+
+    await fireEvent.press(retry);
+
+    await waitFor(() => {
+      expect(refetch).toHaveBeenCalled();
+    });
+  });
+
+  test("a project that failed does not turn the monitors that did load into an empty fleet", async () => {
+    /*
+     * The fan-out reports isError when any one project fails, so this state
+     * arrives with rows in hand. Whatever the screen chooses to show, the one
+     * thing it must not say is that there are no monitors.
+     */
+    mockMonitors.current = stateWith({
+      isError: true,
+      items: [wrap(offlineMonitor("monitor-1", "db.example.com"))],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("No monitors")).toBeNull();
+    });
+  });
+
+  test("a failure that arrives while the first load is still running keeps the placeholders", async () => {
+    /*
+     * One project failing early says nothing about the ones still being
+     * asked. Swapping straight to the error page here would throw away a
+     * fleet that is about to arrive.
+     */
+    mockMonitors.current = stateWith({ isError: true, isLoading: true });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText("Loading content").length).toBe(3);
+      expect(screen.queryByText("Something went wrong")).toBeNull();
+    });
+  });
+});
+
+describe("Pulling the list down to refresh", () => {
+  test("asks for the fleet again and answers the gesture in the hand", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+
+    mockMonitors.current = stateWith({
+      items: [wrap(offlineMonitor("monitor-1", "db.example.com"))],
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<MonitorsScreen />);
+
+    await fireEvent(refreshControl(), "refresh");
+
+    await waitFor(() => {
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(mockLightImpact).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("a second pull asks a second time", async () => {
+    /*
+     * Nothing debounces this, and nothing should: a responder pulling twice
+     * is a responder who does not believe what is on screen.
+     */
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+
+    mockMonitors.current = stateWith({
+      items: [wrap(offlineMonitor("monitor-1", "db.example.com"))],
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<MonitorsScreen />);
+
+    await fireEvent(refreshControl(), "refresh");
+    await fireEvent(refreshControl(), "refresh");
+
+    await waitFor(() => {
+      expect(refetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("the empty fleet can be refreshed too", async () => {
+    /*
+     * The empty state is rendered as the list's own empty component rather
+     * than in place of the list, which is what keeps the gesture available to
+     * a responder who is looking at "No monitors" and does not believe it.
+     */
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+
+    mockMonitors.current = stateWith({
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<MonitorsScreen />);
+
+    await fireEvent(refreshControl(), "refresh");
+
+    await waitFor(() => {
+      expect(screen.getByText("No monitors")).toBeTruthy();
+      expect(refetch).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("Paging through a large fleet", () => {
+  test("section totals describe the whole matching fleet before scrolling", async () => {
+    mockMonitors.current = stateWith({ items: offlineFleet(25) });
+    await render(<MonitorsScreen />);
+    expect(countsBesideLabel("Issues")).toEqual(["25"]);
+    expect(countsBesideLabel("Has issues")).toEqual(["25"]);
+    expect(screen.getByText("25 results")).toBeTruthy();
+  });
+
+  test("a fleet that fits on one page is not truncated", async () => {
+    mockMonitors.current = stateWith({ items: offlineFleet(4) });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Issues")).toEqual(["4"]);
+    });
+  });
+});
+
+describe("Opening a monitor", () => {
+  test("the detail screen is asked for that monitor in the project it came from", async () => {
+    /*
+     * projectId here is the project whose query returned the row, and it is
+     * deliberately not the projectId serialised onto the monitor itself: the
+     * detail screen sends it as the tenant header, so taking the wrong one
+     * produces an empty detail page for a monitor the responder is looking
+     * straight at.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            _id: "monitor-7",
+            name: "db.example.com",
+            projectId: "project-serialised-onto-the-row",
+            currentMonitorStatus: makeNamedEntityWithColor({
+              _id: "monitor-status-offline",
+              name: "Offline",
+            }),
+          }),
+          "project-2",
+          "Acme Staging",
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    const card: RenderedElement = await waitFor(() => {
+      return screen.getByRole("button", {
+        name: "Monitor db.example.com. Status: Offline.",
+      });
+    });
+
+    await fireEvent.press(card);
+
+    expect(mockNavigate).toHaveBeenCalledWith("MonitorDetail", {
+      monitorId: "monitor-7",
+      projectId: "project-2",
+    });
+  });
+
+  test("two monitors with the same name open the one that was tapped", async () => {
+    /*
+     * The same host watched from two projects is the case where a key or a
+     * closure captured once for the whole list gives itself away.
+     */
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-1", "db.example.com")),
+        wrap(
+          healthyMonitor("monitor-2", "db.example.com"),
+          "project-2",
+          "Acme Staging",
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    const healthy: RenderedElement = await waitFor(() => {
+      return screen.getByRole("button", {
+        name: "Monitor db.example.com. Status: Operational.",
+      });
+    });
+
+    await fireEvent.press(healthy);
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("MonitorDetail", {
+      monitorId: "monitor-2",
+      projectId: "project-2",
+    });
+  });
+});
+
+describe("Finding monitors without losing fleet context", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          healthyMonitor("healthy-1", "Checkout API"),
+          "project-one",
+          "Production",
+        ),
+        wrap(
+          offlineMonitor("offline-1", "Checkout worker"),
+          "project-one",
+          "Production",
+        ),
+        wrap(
+          makeMonitor({
+            _id: "disabled-1",
+            name: "Sandbox API",
+            disableActiveMonitoring: true,
+          }),
+          "project-two",
+          "Sandbox",
+        ),
+      ],
+    });
+  });
+
+  test("search and issue filters are combined, while the summary remains fleet-wide", async () => {
+    await render(<MonitorsScreen />);
+    await fireEvent.changeText(
+      screen.getByLabelText("Search monitors"),
+      "CHECKOUT production",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+    expect(screen.getByText("Checkout worker")).toBeTruthy();
+    expect(screen.queryByText("Checkout API")).toBeNull();
+    expect(screen.queryByText("Sandbox API")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Has issues" }).props
+        .accessibilityState.selected,
+    ).toBe(true);
+  });
+
+  test("empty search results offer a single action to reset both search and state", async () => {
+    await render(<MonitorsScreen />);
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Disabled only" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search monitors"),
+      "production",
+    );
+    expect(screen.getByText("No matching monitors")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Clear filters" }),
+    );
+    expect(screen.getByText("Checkout API")).toBeTruthy();
+    expect(screen.getByText("Checkout worker")).toBeTruthy();
+    expect(screen.getByText("Sandbox API")).toBeTruthy();
+    expect(screen.getByLabelText("Search monitors").props.value).toBe("");
+  });
+
+  test("a Home shortcut selects its requested monitor filter", async () => {
+    mockRoute.params = { initialFilter: "disabled" };
+    await render(<MonitorsScreen />);
+    expect(screen.getByText("Sandbox API")).toBeTruthy();
+    expect(screen.queryByText("Checkout worker")).toBeNull();
+  });
+
+  test("the final monitor can scroll fully above a tall bottom navigation bar", async () => {
+    await render(<MonitorsScreen />);
+    expect(
+      screen.getByTestId("monitor-list").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
+    await fireEvent.changeText(
+      screen.getByLabelText("Search monitors"),
+      "nothing matches",
+    );
+    expect(
+      screen.getByTestId("monitor-list").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
+  });
+});
+
+describe("Semantic monitor health", () => {
+  test.each(["all", "issues", "disabled"] as const)(
+    "a Home %s shortcut clears a previous search and shows the requested monitor set",
+    async (filter: "all" | "issues" | "disabled") => {
+      mockMonitors.current = stateWith({
+        items: [
+          wrap(healthyMonitor("healthy", "Serving API")),
+          wrap(offlineMonitor("offline", "Database outage")),
+          wrap(
+            makeMonitor({
+              ...healthyMonitor("paused", "Paused checks"),
+              disableActiveMonitoring: true,
+            }),
+          ),
+        ],
+      });
+      const view: Awaited<ReturnType<typeof render>> = await render(
+        <MonitorsScreen />,
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Search monitors"),
+        "unmatched search",
+      );
+      expect(screen.getByText("No matching monitors")).toBeTruthy();
+      mockRoute.params = { initialFilter: filter };
+      await view.rerender(<MonitorsScreen />);
+      expect(screen.getByLabelText("Search monitors").props.value).toBe("");
+      if (filter === "all") {
+        expect(screen.getByText("Serving API")).toBeTruthy();
+        expect(screen.getByText("Database outage")).toBeTruthy();
+        expect(screen.getByText("Paused checks")).toBeTruthy();
+      } else if (filter === "issues") {
+        expect(screen.getByText("Database outage")).toBeTruthy();
+        expect(screen.queryByText("Serving API")).toBeNull();
+        expect(screen.queryByText("Paused checks")).toBeNull();
+      } else {
+        expect(screen.getByText("Paused checks")).toBeTruthy();
+        expect(screen.queryByText("Serving API")).toBeNull();
+        expect(screen.queryByText("Database outage")).toBeNull();
+      }
+    },
+  );
+
+  test("a normal render after opening details preserves the current monitor search", async () => {
+    mockRoute.params = { initialFilter: "all" };
+    mockMonitors.current = stateWith({
+      items: [wrap(healthyMonitor("healthy", "Serving API"))],
+    });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <MonitorsScreen />,
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search monitors"),
+      "Serving",
+    );
+    await view.rerender(<MonitorsScreen />);
+    expect(screen.getByLabelText("Search monitors").props.value).toBe(
+      "Serving",
+    );
+    expect(screen.getByText("Serving API")).toBeTruthy();
+  });
+
+  test("custom status names are classified by the server flag, not English words", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            _id: "custom-outage",
+            name: "Database cluster",
+            currentMonitorStatus: {
+              ...makeNamedEntityWithColor({ name: "Outage" }),
+              isOperationalState: false,
+            },
+          }),
+        ),
+        wrap(
+          makeMonitor({
+            _id: "custom-healthy",
+            name: "Edge service",
+            currentMonitorStatus: {
+              ...makeNamedEntityWithColor({ name: "Down" }),
+              isOperationalState: true,
+            },
+          }),
+        ),
+      ],
+    });
+    await render(<MonitorsScreen />);
+    expect(countsBesideLabel("Has issues")).toEqual(["1"]);
+    expect(countsBesideLabel("Healthy")).toEqual(["1", "1"]);
+    await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+    expect(screen.getByText("Database cluster")).toBeTruthy();
+    expect(screen.queryByText("Edge service")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
+    expect(screen.getByText("Edge service")).toBeTruthy();
+    expect(screen.queryByText("Database cluster")).toBeNull();
+  });
+
+  test("missing status metadata stays unknown and cannot produce a healthy verdict", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            _id: "new",
+            name: "Never checked",
+            currentMonitorStatus: undefined,
+          }),
+        ),
+        wrap(
+          makeMonitor({
+            _id: "missing-flag",
+            name: "Incomplete status",
+            currentMonitorStatus: makeNamedEntityWithColor({
+              name: "Operational",
+            }),
+          }),
+        ),
+      ],
+    });
+    await render(<MonitorsScreen />);
+    expect(countsBesideLabel("Status unknown")).toEqual(["2"]);
+    expect(countsBesideLabel("Healthy")).toEqual(["0"]);
+    expect(countsBesideLabel("Has issues")).toEqual(["0"]);
+    await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
+    expect(screen.getByText("No matching monitors")).toBeTruthy();
+    expect(screen.queryByText("Never checked")).toBeNull();
+    expect(screen.queryByText("Incomplete status")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+    expect(screen.getByText("No matching monitors")).toBeTruthy();
+  });
+
+  test("the Home issue filter includes disabled non-operational monitors and excludes disabled healthy ones", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            ...offlineMonitor("paused-down", "Paused database"),
+            disableActiveMonitoring: true,
+          }),
+        ),
+        wrap(
+          makeMonitor({
+            ...healthyMonitor("paused-up", "Paused API"),
+            disableActiveMonitoring: true,
+          }),
+        ),
+        wrap(healthyMonitor("enabled-up", "Serving API")),
+      ],
+    });
+    await render(<MonitorsScreen />);
+    expect(countsBesideLabel("Has issues")).toEqual(["1"]);
+    expect(screen.getByText("Paused database")).toBeTruthy();
+    expect(screen.queryByText("Paused API")).toBeNull();
+    expect(screen.queryByText("Serving API")).toBeNull();
+    expect(
+      screen.getByText(
+        "Includes disabled monitors whose last reported status was non-operational.",
+      ),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
+    expect(screen.getByText("Serving API")).toBeTruthy();
+    expect(screen.queryByText("Paused API")).toBeNull();
+    expect(screen.queryByText("Paused database")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Disabled only" }),
+    );
+    expect(screen.getByText("Paused database")).toBeTruthy();
+    expect(screen.getByText("Paused API")).toBeTruthy();
+    expect(screen.queryByText("Serving API")).toBeNull();
+  });
+});
+
+test("combined monitor filters show their matching total and reset in one tap", async () => {
+  mockMonitors.current = stateWith({
+    items: [
+      wrap(offlineMonitor("issue", "Checkout API")),
+      wrap(healthyMonitor("up", "Customer portal")),
+    ],
+  });
+  await render(<MonitorsScreen />);
+  expect(screen.getByText("2 results")).toBeTruthy();
+  await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+  expect(screen.getByText("1 result")).toBeTruthy();
+  await fireEvent.changeText(
+    screen.getByLabelText("Search monitors"),
+    "Customer portal",
+  );
+  expect(screen.getByText("0 results")).toBeTruthy();
+  await fireEvent.press(screen.getByRole("button", { name: "Reset filters" }));
+  expect(screen.getByLabelText("Search monitors")).toHaveProp("value", "");
+  expect(screen.getByText("2 results")).toBeTruthy();
+});
+
+test("a failed refresh does not present cached health totals as current", async () => {
+  mockMonitors.current = stateWith({
+    items: [wrap(healthyMonitor("up", "API"))],
+    isError: true,
+  });
+  await render(<MonitorsScreen />);
+  expect(screen.queryByTestId("monitor-summary-Healthy")).toBeNull();
+  expect(screen.queryByText("1 result")).toBeNull();
+  expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+});

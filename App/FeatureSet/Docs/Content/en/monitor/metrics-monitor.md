@@ -32,7 +32,7 @@ Define one or more metric queries. Each query includes:
 | Metric Name      | The name of the metric to query                                | Yes      |
 | Aggregation Type | How to aggregate raw metric values (sum, avg, min, max, count) | Yes      |
 | Attributes       | Key-value filters to narrow the metric data                    | No       |
-| Aggregate By     | Dimensions to group the metric by                              | No       |
+| Group By         | Attributes to split the query into one series per unique value | No       |
 
 Each query is assigned an alias (e.g., `a`, `b`, `c`) for use in formulas.
 
@@ -107,6 +107,33 @@ Anomaly conditions stay in a "Learning" state and produce no alerts until at lea
 - **Query**: `request_queue_size`, aggregation: Maximum Value
 - **Condition**: Greater Than
 - **Threshold**: 1000
+
+## Per-Series Alerting (Group By)
+
+**Group By** on a metric query splits that query into one series per unique attribute value — one per host, one per container, one per mountpoint — and a monitor with Group By set evaluates every series independently. That single setting is the difference between "the fleet is unhealthy" and "`prod-db-01` is unhealthy".
+
+### One alert per group
+
+With Group By set to `host.name`, a disk-usage monitor watching fifty hosts raises **one alert (or incident) per breaching host**. Host A filling up opens its own alert; host B filling up ten minutes later opens a second, separate alert alongside it.
+
+Without Group By, the same monitor is a single scalar: the query collapses every host into one number and the monitor raises **one alert for the whole monitor**. While that alert is open, a second host breaching produces nothing — the monitor is already alerting, so there is nothing new to raise, and the on-call engineer never learns about host B. **Setting Group By is how you get per-host alerts.** If you want to be paged per host, per container, or per mountpoint, set it.
+
+### Independent resolution
+
+Each per-group alert tracks its own group. When host A drops back under the threshold its alert resolves on its own, and host B's alert stays open until host B recovers. One group recovering never closes another group's alert.
+
+### Criteria evaluation differs
+
+- **Grouped monitors evaluate every criteria.** Severity bands can therefore fire on different groups at the same time: with "Critical — greater than 95" above "Warning — greater than 80", a host at 96% opens a critical alert while a host at 85% opens a warning alert on the same check. A host that breaches both bands still gets exactly one alert — from the first matching criteria, so **order the criteria most severe first**.
+- **Ungrouped monitors stop at the first matching criteria.** Only that one criteria fires, which is another reason to put the alerting criteria above the healthy one: a broad healthy criteria placed first matches on nearly every check and prevents the alerting criteria below it from ever being evaluated.
+
+### Choosing an attribute to group by
+
+Group by an attribute that genuinely identifies a distinct thing you would page someone about: the host attribute for a fleet-wide host metric, the container or pod attribute for a container metric, the mountpoint or device attribute for a filesystem or disk-I/O metric, the interface attribute for a network metric. The **Group by** dropdown is populated from the attributes your collector actually sends, so pick from the list rather than typing a key by hand.
+
+Do not group a metric that is already a single scalar for the whole system — a cluster-wide leader flag, a scheduler backlog, or a single host's CPU on a single-host monitor. Grouping those produces exactly one series and changes nothing except the alert titles.
+
+The grouping attribute values are also available as [template variables](/docs/monitor/incident-alert-templating) in the alert or incident title, description, and remediation notes — grouping by `host.name` lets the title read `Disk almost full on {{host.name}}`.
 
 ## Setup Requirements
 

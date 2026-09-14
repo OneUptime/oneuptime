@@ -278,6 +278,11 @@ const KubernetesClusterOverview: FunctionComponent<
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so the details card re-reads
+   * Last Seen and Agent Version along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -1058,6 +1063,9 @@ const KubernetesClusterOverview: FunctionComponent<
         void loadSummary(modelId);
         void loadTopPods(cluster.clusterIdentifier);
         void loadWarnings(cluster.clusterIdentifier);
+        setDetailsRefresher((prev: boolean) => {
+          return !prev;
+        });
       }
     }, ms);
     return () => {
@@ -1080,6 +1088,9 @@ const KubernetesClusterOverview: FunctionComponent<
       void loadSummary(modelId);
       void loadTopPods(cluster.clusterIdentifier);
       void loadWarnings(cluster.clusterIdentifier);
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }
   };
 
@@ -2628,6 +2639,7 @@ const KubernetesClusterOverview: FunctionComponent<
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
+        refresher={detailsRefresher}
         formSteps={[
           {
             title: "Cluster Info",

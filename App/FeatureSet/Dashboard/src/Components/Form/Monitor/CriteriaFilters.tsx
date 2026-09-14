@@ -102,6 +102,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
             props.monitorType === MonitorType.Proxmox ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics
               ? "Add Rule"
@@ -139,6 +140,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
             props.monitorType === MonitorType.Proxmox ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics
               ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
@@ -151,6 +153,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
             props.monitorType === MonitorType.Proxmox ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics
               ? `Cannot delete last remaining rule.`

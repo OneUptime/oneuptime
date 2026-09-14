@@ -6,6 +6,25 @@ Expand the name of the chart.
 {{- end }}
 
 {{/*
+The cluster name, refusing to render if it is missing.
+
+This is not merely a label. OneUptime folds `k8s.cluster.name` into the identity
+of every Kubernetes entity it derives, so it is the only thing separating this
+cluster's `worker-1` and `default` namespace from every other cluster's. Ship
+without it and two clusters reporting into one project silently become one
+estate -- nodes, namespaces, pods and deployments merged pairwise by name, with
+no error anywhere to say so.
+
+`required` is deliberate: values.schema.json already lists clusterName in its
+`required` set, but JSON Schema `required` only checks that the key is PRESENT,
+and the chart's default value is the empty string, so it passes. Failing at
+render is the only place this can be caught before the data is wrong.
+*/}}
+{{- define "kubernetes-agent.clusterName" -}}
+{{- required "clusterName is required: it identifies this cluster's nodes, namespaces, pods and deployments in OneUptime, and two clusters installed without it will be merged into one. Set it with --set clusterName=<name>." (.Values.clusterName | trim) -}}
+{{- end }}
+
+{{/*
 Create a default fully qualified app name.
 */}}
 {{- define "kubernetes-agent.fullname" -}}

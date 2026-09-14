@@ -1,8 +1,7 @@
 import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   isImportableDiscoveredHost,
-  monitoringMethodForDiscoveredHost,
+  isPingOnlyDiscoveredHost as isPingOnlyDiscoveredHostForImport,
 } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 
@@ -23,11 +22,12 @@ export { normalizeDiscoveredHosts };
  * unusable at the size real sweeps come back at — issue #3322 reports 2,890
  * ICMP-only hosts and 2,866 SNMP hosts in a single scan, mixed together, with
  * no way to import one group without scrolling the other and unchecking it by
- * hand. The two groups are also not interchangeable: an SNMP host imports as a
- * polled device carrying the scan's credentials, a ping-only host imports as a
- * monitor-backed device with no polling at all (see DiscoveryImportEligibility)
- * — so "import the switches now, deal with the endpoints later" is the normal
- * thing to want, not an edge case.
+ * hand. The two groups are also not interchangeable: an SNMP host imports
+ * carrying the scan's credentials and is walked for inventory, a ping-only
+ * host imports with none and is pinged by the scan's probe until somebody
+ * adds some (see DiscoveryImportEligibility) — so "import the switches now,
+ * deal with the endpoints later" is the normal thing to want, not an edge
+ * case.
  *
  * Kept react-free and out of the page component for the usual reason: the App
  * test suite runs in a plain Node environment with no renderer, so rules left
@@ -40,9 +40,9 @@ export { normalizeDiscoveredHosts };
 export enum DiscoveredHostFilter {
   // Everything the sweep found alive — the pre-#3322 behaviour, still default.
   All = "All",
-  // Answered SNMP: imports as a polled device with the scan's credentials.
+  // Answered SNMP: imports with the scan's credentials, walked for inventory.
   Snmp = "Snmp",
-  // Answered ping only: imports as a monitor-backed device, no polling.
+  // Answered ping only: imports with no credentials, pinged by the probe.
   NoSnmp = "NoSnmp",
 }
 
@@ -64,18 +64,17 @@ export interface DiscoveredHostFilterOption {
 /**
  * True when the host answered ping but not SNMP — the "No SNMP" badge group.
  *
- * Phrased through `monitoringMethodForDiscoveredHost` rather than by reading
+ * Phrased through the shared import predicate rather than by reading
  * `snmpReachable` again so the filter can never disagree with the import: the
- * group a host is shown under and the monitoring method it is imported with
- * are the same decision, made once.
+ * group a host is shown under and the credentials it is imported with are the
+ * same decision, made once. (It used to compare the imported monitoring
+ * method; every host imports as a Probe device now, so the method no longer
+ * tells the two groups apart and the predicate is the seam instead.)
  */
 export function isPingOnlyDiscoveredHost(
   host: DiscoveredNetworkDevice,
 ): boolean {
-  return (
-    monitoringMethodForDiscoveredHost(host) ===
-    NetworkDeviceMonitoringMethod.Monitor
-  );
+  return isPingOnlyDiscoveredHostForImport(host);
 }
 
 export function matchesDiscoveredHostFilter(data: {
@@ -335,11 +334,9 @@ export function isSelectableDiscoveredHost(
  * The scan's hosts with the ones imported during this sitting flipped to
  * already-registered.
  *
- * `isAlreadyRegistered` is computed server-side when the probe uploads its
- * results and then frozen into the jsonb column — nothing recomputes it on
- * read. So a host imported a moment ago still reports false, and the dialog
- * would happily offer it again, pre-checked, creating a second Network Device
- * for the same address.
+ * The server refreshes `isAlreadyRegistered` when a review opens. Imports
+ * made after that read are overlaid here so another batch in the same dialog
+ * cannot create a second Network Device for the same address.
  *
  * That was survivable when one press imported everything and closed the
  * dialog. Importing group by group is now the intended flow (#3322), which
@@ -381,11 +378,9 @@ export function markDiscoveredHostsAsRegistered(data: {
  *     different scan meanwhile, and a bare set written when that run finally
  *     lands would mark the OTHER scan's same-addressed hosts "Already added" —
  *     disabled, unticked, silently skipped by Import.
- *   - Keeping the record per scan lets it outlive the dialog, so closing and
- *     reopening the same scan does not resurrect what was just imported.
- *     `isAlreadyRegistered` is frozen into the jsonb at probe-upload time and
- *     never recomputed, so without that the reopened dialog offers imported
- *     hosts again, pre-checked, and Import creates duplicates.
+ *   - A successful refresh replaces only that scan's record with current
+ *     inventory state. Until then the record preserves what we know was
+ *     imported, including imports that finish during the refresh.
  *
  * A plain Record of arrays rather than a Map of Sets so the value stays
  * JSON-shaped: it is React state, it gets compared and asserted on, and

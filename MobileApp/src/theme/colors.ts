@@ -70,74 +70,77 @@ export interface ColorTokens {
   statusErrorBg: string;
 }
 
-export const darkColors: ColorTokens = {
-  // Background — rich near-black, not pure black
-  backgroundPrimary: "#09090B",
-  backgroundSecondary: "#0F0F12",
-  backgroundTertiary: "#18181F",
-  backgroundElevated: "#141418",
+export const lightColors: ColorTokens = {
+  // Warm paper surfaces and graphite text.
+  backgroundPrimary: "#F6F7F9",
+  backgroundSecondary: "#FFFFFF",
+  backgroundTertiary: "#EDF0F5",
+  backgroundElevated: "#FFFFFF",
 
   // Accent
-  cardAccent: "rgba(255, 255, 255, 0.04)",
-  backgroundGlass: "rgba(255, 255, 255, 0.03)",
-  iconBackground: "rgba(255, 255, 255, 0.08)",
+  cardAccent: "#E9EEFF",
+  backgroundGlass: "#FBFCFE",
+  iconBackground: "#EBEFF8",
 
-  // Gradient — neutral monochrome accent
-  accentGradientStart: "#52525B",
-  accentGradientMid: "#3F3F46",
-  accentGradientEnd: "#27272A",
-  accentCyan: "#A1A1AA",
-  accentCyanBg: "rgba(161, 161, 170, 0.12)",
-  surfaceGlow: "rgba(255, 255, 255, 0.05)",
-  headerGradient: "rgba(255, 255, 255, 0.03)",
-  gradientStart: "rgba(255, 255, 255, 0.07)",
+  // Blue identifies interactive controls; status colors keep their meaning.
+  accentGradientStart: "#3155D9",
+  accentGradientMid: "#2949BA",
+  accentGradientEnd: "#233EA5",
+  accentCyan: "#096B78",
+  accentCyanBg: "#E6F4F5",
+  surfaceGlow: "transparent",
+  headerGradient: "transparent",
+  gradientStart: "transparent",
   gradientEnd: "transparent",
 
   // Border
-  borderDefault: "rgba(255, 255, 255, 0.06)",
-  borderSubtle: "rgba(255, 255, 255, 0.04)",
-  borderGlass: "rgba(255, 255, 255, 0.06)",
+  borderDefault: "#CCD3DD",
+  borderSubtle: "#E6E9EF",
+  borderGlass: "#E1E5EB",
 
   // Text
-  textPrimary: "#FAFAFA",
-  textSecondary: "#A1A1AA",
-  textTertiary: "#52525B",
+  textPrimary: "#17212F",
+  textSecondary: "#526073",
+  textTertiary: "#5E6B7D",
   textInverse: "#FFFFFF",
 
   // Severity
-  severityCritical: "#EF4444",
-  severityCriticalBg: "rgba(239, 68, 68, 0.12)",
-  severityMajor: "#F97316",
-  severityMajorBg: "rgba(249, 115, 22, 0.12)",
-  severityMinor: "#EAB308",
-  severityMinorBg: "rgba(234, 179, 8, 0.12)",
-  severityWarning: "#F59E0B",
-  severityWarningBg: "rgba(245, 158, 11, 0.12)",
-  severityInfo: "#3B82F6",
-  severityInfoBg: "rgba(59, 130, 246, 0.12)",
+  severityCritical: "#B42318",
+  severityCriticalBg: "#FFF0EE",
+  severityMajor: "#A04311",
+  severityMajorBg: "#FFF3E8",
+  severityMinor: "#795B00",
+  severityMinorBg: "#FFF8DC",
+  severityWarning: "#8D4C08",
+  severityWarningBg: "#FFF5E6",
+  severityInfo: "#3155D9",
+  severityInfoBg: "#E9EEFF",
 
   // State
-  stateCreated: "#EF4444",
-  stateAcknowledged: "#F59E0B",
-  stateResolved: "#22C55E",
-  stateInvestigating: "#F97316",
-  stateMuted: "#52525B",
+  stateCreated: "#B42318",
+  stateAcknowledged: "#8D4C08",
+  stateResolved: "#087653",
+  stateInvestigating: "#A04311",
+  stateMuted: "#5E6B7D",
 
   // On-Call
-  oncallActive: "#22C55E",
-  oncallActiveBg: "rgba(34, 197, 94, 0.12)",
-  oncallInactive: "#52525B",
-  oncallInactiveBg: "rgba(82, 82, 91, 0.12)",
+  oncallActive: "#087653",
+  oncallActiveBg: "#E7F6F0",
+  oncallInactive: "#5E6B7D",
+  oncallInactiveBg: "#EDF0F5",
 
-  // Action — neutral accent
-  actionPrimary: "#D4D4D8",
-  actionPrimaryPressed: "#A1A1AA",
-  actionDestructive: "#EF4444",
-  actionDestructivePressed: "#DC2626",
+  // Cobalt indicates action; filled controls use textInverse.
+  actionPrimary: "#3155D9",
+  actionPrimaryPressed: "#233EA5",
+  actionDestructive: "#B42318",
+  actionDestructivePressed: "#851A12",
 
   // Status
-  statusSuccess: "#22C55E",
-  statusSuccessBg: "rgba(34, 197, 94, 0.12)",
-  statusError: "#EF4444",
-  statusErrorBg: "rgba(239, 68, 68, 0.12)",
+  statusSuccess: "#087653",
+  statusSuccessBg: "#E7F6F0",
+  statusError: "#B42318",
+  statusErrorBg: "#FFF0EE",
 };
+
+/** Compatibility export for existing consumers; the app is now light-first. */
+export const darkColors: ColorTokens = lightColors;

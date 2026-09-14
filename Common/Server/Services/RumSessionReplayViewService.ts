@@ -1,5 +1,6 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/RumSessionReplayView";
+import QueryHelper from "../Types/Database/QueryHelper";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
@@ -19,6 +20,45 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * modelled on, the whole point of the audit is that it outlives the
  * recording it describes.
  */
+
+/*
+ * The heartbeat cadence the player reports on. secondsWatched is floored
+ * to it so a chatty client costs at most one write per bucket, and the
+ * figure shown to viewers ("watched 1m 30s") never pretends to more
+ * precision than the heartbeat had.
+ */
+export const SESSION_REPLAY_WATCH_BUCKET_SECONDS: number = 15;
+
+/*
+ * Ceiling on one view's watched time: the longest session the recorder
+ * will ever produce, at the slowest speed anyone would watch it, with
+ * headroom for pauses. A client cannot report more than this; the audit
+ * figure is a privacy control shown to other viewers, and an unbounded
+ * number would let a buggy or hostile client render a nonsense one.
+ */
+export const SESSION_REPLAY_MAX_SECONDS_WATCHED: number = 24 * 60 * 60;
+
+/*
+ * Floor a client-reported figure to the heartbeat bucket and clamp it.
+ * Module-level so the route and the service agree on the one rounding
+ * rule without the route reaching for the class behind the instance.
+ */
+export function normalizeSecondsWatched(secondsWatched: number): number {
+  if (!Number.isFinite(secondsWatched) || secondsWatched <= 0) {
+    return 0;
+  }
+
+  const clamped: number = Math.min(
+    secondsWatched,
+    SESSION_REPLAY_MAX_SECONDS_WATCHED,
+  );
+
+  return (
+    Math.floor(clamped / SESSION_REPLAY_WATCH_BUCKET_SECONDS) *
+    SESSION_REPLAY_WATCH_BUCKET_SECONDS
+  );
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -64,12 +104,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * All three come straight off an untrusted request: a header, or a
+     * All four come straight off an untrusted request: a header, or a
      * free-text field in the body. Truncated rather than validated because
      * failing the audit write would fail the playback it is auditing, and
      * DatabaseService.checkMaxLengthOfFields throws on anything longer
-     * than the column. An oversized user agent must not be able to stop a
-     * read from being recorded.
+     * than the column. An oversized user agent - or a fingerprint longer
+     * than its ShortText column - must not be able to stop a read from
+     * being recorded.
      */
     if (data.ipAddress) {
       item.ipAddress = data.ipAddress.substring(0, ColumnLength.ShortText);
@@ -88,7 +129,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (data.linkedExceptionFingerprint) {
-      item.linkedExceptionFingerprint = data.linkedExceptionFingerprint;
+      item.linkedExceptionFingerprint =
+        data.linkedExceptionFingerprint.substring(0, ColumnLength.ShortText);
     }
 
     return await this.create({
@@ -98,47 +140,85 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Advance how much of the recording was actually watched, from the
-   * player's throttled heartbeat.
+   * The caller's OWN view row, or null. The heartbeat and the manifest
+   * refresh both need "does this viewId belong to this user, this
+   * project, and (for the refresh) this session" answered in one lookup,
+   * and both must refuse somebody else's row indistinguishably from a
+   * missing one: secondsWatched is a privacy control, and the refresh
+   * would otherwise let a caller reuse a colleague's audit row.
+   */
+  @CaptureSpan()
+  public async findOwnView(data: {
+    viewId: ObjectID;
+    projectId: ObjectID;
+    viewedByUserId: ObjectID;
+    sessionId?: string | undefined;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        _id: data.viewId.toString(),
+        projectId: data.projectId,
+        viewedByUserId: data.viewedByUserId,
+        ...(data.sessionId !== undefined && { sessionId: data.sessionId }),
+      },
+      select: {
+        _id: true,
+        rumApplicationId: true,
+        sessionId: true,
+        secondsWatched: true,
+      },
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Advance how much of the recording was actually watched.
+   *
+   * SEMANTICS: secondsWatched is the cumulative number of seconds of
+   * footage the player has PLAYED for this view - accumulated client-side
+   * only while playback is running, scaled by speed - not the furthest
+   * offset the playhead reached. Dragging the scrubber to the end of a
+   * recording is not watching it, and the audit figure is shown to other
+   * viewers as "who watched how much", so it must not over-report.
    *
    * Monotonic on purpose: the heartbeat carries a cumulative total, and a
-   * player that seeks backwards or reloads would otherwise walk the
-   * recorded figure back down and make a full viewing look like a glance.
+   * player that reloads would otherwise walk the recorded figure back
+   * down and make a full viewing look like a glance. The guard is in the
+   * UPDATE's own predicate (secondsWatched < new value) rather than in a
+   * read-then-write, so two heartbeats racing for the same row cannot
+   * regress it; a heartbeat that does not advance writes nothing.
+   *
+   * When the caller already holds the row's current figure (the route
+   * reads it in the same lookup that proves ownership) it passes it as
+   * currentSecondsWatched and a non-advancing heartbeat costs no query at
+   * all.
    */
   @CaptureSpan()
   public async recordSecondsWatched(data: {
     viewId: ObjectID;
     projectId: ObjectID;
     secondsWatched: number;
+    currentSecondsWatched?: number | undefined;
   }): Promise<void> {
-    if (!Number.isFinite(data.secondsWatched) || data.secondsWatched <= 0) {
+    const seconds: number = normalizeSecondsWatched(data.secondsWatched);
+
+    if (seconds <= 0) {
       return;
     }
 
-    const existing: Model | null = await this.findOneBy({
+    if (
+      data.currentSecondsWatched !== undefined &&
+      data.currentSecondsWatched >= seconds
+    ) {
+      return;
+    }
+
+    await this.updateOneBy({
       query: {
         _id: data.viewId.toString(),
         projectId: data.projectId,
+        secondsWatched: QueryHelper.lessThanOrNull(seconds),
       },
-      select: {
-        _id: true,
-        secondsWatched: true,
-      },
-      props: { isRoot: true },
-    });
-
-    if (!existing) {
-      return;
-    }
-
-    const seconds: number = Math.floor(data.secondsWatched);
-
-    if ((existing.secondsWatched || 0) >= seconds) {
-      return;
-    }
-
-    await this.updateOneById({
-      id: data.viewId,
       data: {
         secondsWatched: seconds,
       },

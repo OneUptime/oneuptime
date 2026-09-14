@@ -463,12 +463,24 @@ describe("NotificationRuleConditionUtil", () => {
       );
     });
 
-    test("returns an empty list for an unhandled event type", () => {
-      expect(
+    test("returns on-call checkOns for the OnCallDutyPolicy event", () => {
+      // #3459: this used to be [], leaving the Filter Type dropdown empty.
+      const checkOns: Array<NotificationRuleConditionCheckOn> =
         NotificationRuleConditionUtil.getCheckOnByEventType(
           NotificationRuleEventType.OnCallDutyPolicy,
-        ),
-      ).toEqual([]);
+        );
+      expect(checkOns).toContain(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+      );
+      expect(checkOns).toContain(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+      );
+      expect(checkOns).toContain(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+      );
+      expect(checkOns).not.toContain(
+        NotificationRuleConditionCheckOn.MonitorName,
+      );
     });
   });
 

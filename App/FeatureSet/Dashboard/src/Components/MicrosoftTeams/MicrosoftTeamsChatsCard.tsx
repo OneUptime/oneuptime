@@ -15,7 +15,11 @@ import Exception from "Common/Types/Exception/Exception";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import { APP_API_URL, MicrosoftTeamsAppClientId } from "Common/UI/Config";
+import {
+  APP_API_URL,
+  BILLING_ENABLED,
+  MicrosoftTeamsAppClientId,
+} from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -150,7 +154,17 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 you.
               </p>
             </div>
-            {MicrosoftTeamsAppClientId && (
+            {/*
+             * Store-only. On a self-hosted deployment this screen is reached
+             * precisely when no chat has ever registered, and the most common
+             * reason is that no package built from this deployment has been
+             * uploaded yet — at which point teams.microsoft.com/l/app/<id> has
+             * nothing to resolve to. Offering it as the primary action there
+             * also nudges admins toward the store listing, which is the one
+             * package that can never work here. Self-hosted gets the check that
+             * actually settles it instead.
+             */}
+            {MicrosoftTeamsAppClientId && BILLING_ENABLED && (
               <button
                 type="button"
                 className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
@@ -169,6 +183,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 />
                 Open OneUptime in Microsoft Teams
               </button>
+            )}
+
+            {!BILLING_ENABLED && MicrosoftTeamsAppClientId && (
+              <p className="mx-auto mt-6 max-w-md text-xs text-gray-500">
+                Chats only register for the app package built for this
+                deployment (bot id{" "}
+                <span className="font-mono">{MicrosoftTeamsAppClientId}</span>).
+                If you added the OneUptime app from the Microsoft Teams store,
+                it reports to OneUptime Cloud and will never appear here —
+                remove it and upload the manifest from Project Settings &gt;
+                Workspace &gt; Microsoft Teams instead.
+              </p>
             )}
           </div>
         )}

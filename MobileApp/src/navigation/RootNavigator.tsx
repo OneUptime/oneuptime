@@ -9,6 +9,7 @@ import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
+import { useProject } from "../hooks/useProject";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import { processPendingNotification } from "../notifications/handlers";
@@ -34,14 +35,11 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
   config: {
     screens: {
       Home: "home",
-      Incidents: {
+      Inbox: {
         screens: {
+          InboxList: "inbox",
           IncidentDetail: "incident/:projectId/:incidentId",
           IncidentEpisodeDetail: "incident-episode/:projectId/:episodeId",
-        },
-      },
-      Alerts: {
-        screens: {
           AlertDetail: "alert/:projectId/:alertId",
           AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
         },
@@ -58,6 +56,7 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
+  const { activeProject } = useProject();
   const navigationRef: ReturnType<typeof useNavigationContainerRef> =
     useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -65,6 +64,25 @@ export default function RootNavigator(): React.JSX.Element {
   const [biometricPassed, setBiometricPassed] = useState(false);
 
   usePushNotifications(navigationRef);
+
+  /*
+   * Passing the lock is a property of the SESSION, not of the process.
+   *
+   * `biometric.isEnabled` is a device preference: it survives a sign-out,
+   * because the person who switched it on wants the NEXT sign-in guarded too.
+   * `biometricPassed` used to survive one as well, and it is the only thing
+   * standing between an authenticated render and MainTabNavigator - so once
+   * anybody had unlocked once, every later sign-in on that handset walked
+   * straight past the lock screen, including a sign-in by a different account.
+   * The device protection the user deliberately turned on was then silently
+   * off for the rest of the process lifetime, which on a phone that is never
+   * force-quit is measured in weeks.
+   */
+  useEffect((): void => {
+    if (!isAuthenticated) {
+      setBiometricPassed(false);
+    }
+  }, [isAuthenticated]);
 
   // Hide the native splash screen once initial loading completes
   useEffect(() => {
@@ -97,12 +115,12 @@ export default function RootNavigator(): React.JSX.Element {
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
-    dark: true,
+    dark: false,
     colors: {
       ...DefaultTheme.colors,
       primary: theme.colors.actionPrimary,
       background: theme.colors.backgroundPrimary,
-      card: theme.colors.backgroundPrimary,
+      card: theme.colors.backgroundSecondary,
       text: theme.colors.textPrimary,
       border: theme.colors.borderDefault,
       notification: theme.colors.severityCritical,
@@ -151,6 +169,11 @@ export default function RootNavigator(): React.JSX.Element {
 
   return (
     <NavigationContainer
+      /*
+       * A new container retires every old project route and replays pages onReady.
+       * Keying only Tab.Navigator lets React Navigation reuse its parent state.
+       */
+      key={activeProject?._id ?? "no-project"}
       ref={navigationRef}
       theme={navigationTheme}
       linking={linking}

@@ -66,6 +66,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Calendar,
         },
+        /*
+         * Next to the schedules it exports: the project-wide feed and the
+         * pointers to the personal and per-schedule links live here.
+         */
+        {
+          link: {
+            title: "Calendar Feeds",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_CALENDAR_FEEDS] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
       ],
     },
     {

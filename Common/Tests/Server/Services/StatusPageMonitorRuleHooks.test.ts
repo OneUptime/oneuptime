@@ -26,8 +26,21 @@ import {
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import URL from "../../../Types/API/URL";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 /*
  * Contract under test - the places that have to notice a status page monitor
@@ -64,6 +77,9 @@ const LABEL_ID: ObjectID = new ObjectID("dddddddd-dddd-4ddd-8ddd-dddddddddddd");
 const RULE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const OTHER_RULE_ID: ObjectID = new ObjectID(
   "1a1a1a1a-1a1a-4a1a-8a1a-1a1a1a1a1a1a",
+);
+const CRITERIA_RULE_ID: ObjectID = new ObjectID(
+  "1b1b1b1b-1b1b-4b1b-8b1b-1b1b1b1b1b1b",
 );
 const OTHER_STATUS_PAGE_ID: ObjectID = new ObjectID(
   "34343434-3434-4434-8434-343434343434",
@@ -155,8 +171,13 @@ function fakeRuleRow(id: ObjectID): StatusPageMonitorRule {
   } as unknown as StatusPageMonitorRule;
 }
 
+interface RawOperator {
+  objectLiteralParameters: Record<string, unknown>;
+  getSql: (aliasPath: string) => string;
+}
+
 describe("MonitorService.onUpdateSuccess - keeping status page monitor rules honest", () => {
-  let syncRulesForMonitorSpy: jest.SpyInstance;
+  let syncRulesForMonitorSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     syncRulesForMonitorSpy = jest
@@ -294,8 +315,8 @@ describe("MonitorService.onUpdateSuccess - keeping status page monitor rules hon
 });
 
 describe("LabelService delete hooks - a deleted label must not strand resources", () => {
-  let syncResourcesForRuleSpy: jest.SpyInstance;
-  let ruleFindBySpy: jest.SpyInstance;
+  let syncResourcesForRuleSpy: ReturnType<typeof jest.spyOn>;
+  let ruleFindBySpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     syncResourcesForRuleSpy = jest
@@ -339,6 +360,40 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
         return id.toString();
       }),
     ).toEqual([LABEL_ID.toString()]);
+    expect(ruleFindBySpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("also looks inside criteria filters that reference the deleted monitor label", async () => {
+    await callHook(LabelService, "onBeforeDelete", {
+      query: { _id: LABEL_ID.toString() },
+      props: { isRoot: true },
+    });
+
+    const call: {
+      query: { criteria: RawOperator };
+      limit: number;
+      skip: number;
+    } = ruleFindBySpy.mock.calls[1]![0] as {
+      query: { criteria: RawOperator };
+      limit: number;
+      skip: number;
+    };
+    const sql: string = call.query.criteria.getSql(
+      '"StatusPageMonitorRule"."criteria"',
+    );
+    const parameters: Array<unknown> = Object.values(
+      call.query.criteria.objectLiteralParameters,
+    );
+
+    expect(parameters).toContain("filters");
+    expect(parameters).toContain("field");
+    expect(parameters).toContain("monitorLabels");
+    expect(parameters).toContain("value");
+    expect(parameters).toContainEqual([LABEL_ID.toString()]);
+    expect(sql).not.toContain(LABEL_ID.toString());
+    expect(sql).not.toContain("monitorLabels");
+    expect(call.limit).toBe(LIMIT_MAX);
+    expect(call.skip).toBe(0);
   });
 
   it("does not go looking for rules when the delete matched no labels", async () => {
@@ -370,7 +425,7 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
       { query: { _id: LABEL_ID.toString() }, props: { isRoot: true } },
     )) as OnDelete<Label>;
 
-    expect(ruleFindBySpy).toHaveBeenCalledTimes(1);
+    expect(ruleFindBySpy).toHaveBeenCalledTimes(2);
     expect(
       (
         onDelete.carryForward as {
@@ -378,6 +433,30 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
         }
       ).statusPageMonitorRuleIds,
     ).toEqual([RULE_ID, OTHER_RULE_ID]);
+  });
+
+  it("unions criteria-backed rules with legacy matches and deduplicates overlaps", async () => {
+    ruleFindBySpy
+      .mockReset()
+      .mockResolvedValueOnce([fakeRuleRow(RULE_ID), fakeRuleRow(OTHER_RULE_ID)])
+      .mockResolvedValueOnce([
+        fakeRuleRow(OTHER_RULE_ID),
+        fakeRuleRow(CRITERIA_RULE_ID),
+      ]);
+
+    const onDelete: OnDelete<Label> = (await callHook(
+      LabelService,
+      "onBeforeDelete",
+      { query: { _id: LABEL_ID.toString() }, props: { isRoot: true } },
+    )) as OnDelete<Label>;
+
+    expect(
+      (
+        onDelete.carryForward as {
+          statusPageMonitorRuleIds: Array<ObjectID>;
+        }
+      ).statusPageMonitorRuleIds,
+    ).toEqual([RULE_ID, OTHER_RULE_ID, CRITERIA_RULE_ID]);
   });
 
   it("re-runs each of those rules once the label is gone", async () => {
@@ -503,6 +582,72 @@ describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous ru
     ).resolves.toBeDefined();
   });
 
+  it("accepts a rule configured only with the condition builder", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Production APIs",
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.Contains,
+                value: "api",
+              },
+              {
+                field: "monitorLabels",
+                operator: RuleCriteriaOperator.HasAnyOf,
+                value: [LABEL_ID.toString()],
+              },
+            ],
+          },
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects an empty configured condition set even when stale legacy values remain", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Empty conditions",
+          monitorNamePattern: ".*",
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [],
+          },
+        }),
+      ),
+    ).rejects.toThrow(/at least one match condition/i);
+  });
+
+  it("rejects malformed configured conditions at write time", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Malformed conditions",
+          criteria: {
+            schemaVersion: 99,
+            filterCondition: FilterCondition.All,
+            filters: [],
+          },
+        }),
+      ),
+    ).rejects.toThrow(/schemaVersion/);
+  });
+
   it("requires a status page - a rule with nowhere to add monitors is meaningless", async () => {
     await expect(
       callHook(
@@ -580,11 +725,11 @@ describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous ru
 });
 
 describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
-  let syncResourcesForRuleSpy: jest.SpyInstance;
-  let removeResourcesSpy: jest.SpyInstance;
-  let ruleFindBySpy: jest.SpyInstance;
-  let syncRulesForMonitorSpy: jest.SpyInstance;
-  let resourceDeleteSpy: jest.SpyInstance;
+  let syncResourcesForRuleSpy: ReturnType<typeof jest.spyOn>;
+  let removeResourcesSpy: ReturnType<typeof jest.spyOn>;
+  let ruleFindBySpy: ReturnType<typeof jest.spyOn>;
+  let syncRulesForMonitorSpy: ReturnType<typeof jest.spyOn>;
+  let resourceDeleteSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     syncResourcesForRuleSpy = jest
@@ -994,8 +1139,8 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
  * ones worth checking. Neither is validated by the framework.
  */
 describe("StatusPageMonitorRuleService - keeping a rule's references in scope", () => {
-  let validatorSpy: jest.SpyInstance;
-  let groupFindOneByIdSpy: jest.SpyInstance;
+  let validatorSpy: ReturnType<typeof jest.spyOn>;
+  let groupFindOneByIdSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     validatorSpy = jest
@@ -1177,7 +1322,7 @@ describe("StatusPageMonitorRuleService - keeping a rule's references in scope", 
    * for another project's rules.
    */
   it("pins the caller's project onto the validation read", async () => {
-    const findBySpy: jest.SpyInstance = jest
+    const findBySpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(StatusPageMonitorRuleService, "findBy")
       .mockResolvedValue([fakeRuleRow(RULE_ID)]);
 
@@ -1194,7 +1339,7 @@ describe("StatusPageMonitorRuleService - keeping a rule's references in scope", 
   });
 
   it("leaves the query alone for a genuinely root caller, which carries no tenant", async () => {
-    const findBySpy: jest.SpyInstance = jest
+    const findBySpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(StatusPageMonitorRuleService, "findBy")
       .mockResolvedValue([fakeRuleRow(RULE_ID)]);
 

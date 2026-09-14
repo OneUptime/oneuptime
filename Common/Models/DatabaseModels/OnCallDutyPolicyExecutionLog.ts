@@ -954,6 +954,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "acknowledgedByTeamId",
     type: TableColumnType.Entity,
+    modelType: Team,
     title: "Acknowledged by Team",
     description:
       "Relation to Team who acknowledged this policy execution (if this policy was acknowledged by a Team)",

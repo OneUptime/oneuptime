@@ -3,7 +3,7 @@ import Label from "./Label";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -76,7 +76,7 @@ import {
   tableDescription:
     "Configure rules for automatically executing on-call duty policies when matching incident episodes are created",
 })
-export default class IncidentEpisodeOnCallRule extends BaseModel {
+export default class IncidentEpisodeOnCallRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

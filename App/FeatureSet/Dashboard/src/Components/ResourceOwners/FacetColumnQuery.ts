@@ -6,6 +6,7 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * What one chip writes into the outgoing query.
@@ -76,6 +77,82 @@ export const defaultFacetQueryValue: DefaultFacetQueryValueFunction = (
       : new Includes(values);
   }
   return operator === "is_not" ? new NotEqual(values[0]!) : values[0];
+};
+
+/**
+ * Helper for facets whose values are ObjectIDs (entity references like
+ * Status, Severity, State, Monitor). Wraps each value in ObjectID and
+ * picks the right operator wrapper.
+ */
+export const buildEntityFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+): unknown => {
+  if (operator === "is_empty") {
+    return new IsNull();
+  }
+  if (operator === "is_not_empty") {
+    return new NotNull();
+  }
+  if (values.length === 0) {
+    return undefined;
+  }
+  const ids: Array<ObjectID> = values.map((v: string) => {
+    return new ObjectID(v);
+  });
+  if (isMulti) {
+    return operator === "is_not" ? new IncludesNone(ids) : new Includes(ids);
+  }
+  // NotEqual only accepts string/number/Date — wrap ObjectID's string form.
+  return operator === "is_not" ? new NotEqual(values[0]!) : ids[0]!;
+};
+
+/**
+ * Helper for facets whose values are plain strings (enum-like fields:
+ * MonitorType, otelCollectorStatus, OS, Architecture). Defaults to
+ * multi-select semantics; pass `false` for single-select fields.
+ */
+export const buildEnumFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti?: boolean,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean = true,
+): unknown => {
+  return defaultFacetQueryValue(values, operator, isMulti);
+};
+
+/**
+ * Helper for boolean facets. Maps string "true"/"false" → real booleans
+ * with optional NotEqual for the "is_not" operator. Empty operators
+ * aren't meaningful here (booleans aren't nullable in our schema).
+ */
+export const buildBooleanFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+) => unknown = (values: Array<string>, operator: FilterOperator): unknown => {
+  if (operator === "is_empty") {
+    return new IsNull();
+  }
+  if (operator === "is_not_empty") {
+    return new NotNull();
+  }
+  if (values.length === 0) {
+    return undefined;
+  }
+  const asBool: boolean = values[0] === "true";
+  /*
+   * NotEqual<CompareType> can't take boolean; coerce to a string the
+   * ORM compares against. The Includes/equality path keeps the real bool.
+   */
+  return operator === "is_not" ? new NotEqual(String(asBool)) : asBool;
 };
 
 export interface FacetColumnQuery {

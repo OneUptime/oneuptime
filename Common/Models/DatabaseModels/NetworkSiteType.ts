@@ -65,11 +65,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Network Site Types",
   icon: IconProp.Layers,
   tableDescription:
-    "Configure the levels of your network site hierarchy (Region, Market, Unit and so on). Rename them, reorder them, or add your own.",
+    "Configure the levels of your network site hierarchy (Region, Market, Unit and so on). Choose each type's parent, rename it, or add your own.",
 })
 @Entity({
   name: "NetworkSiteType",
 })
+@Index(["projectId", "parentNetworkSiteTypeId"])
 export default class NetworkSiteType extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -293,13 +294,111 @@ export default class NetworkSiteType extends BaseModel {
     ],
   })
   @TableColumn({
+    manyToOneRelationColumn: "parentNetworkSiteTypeId",
+    type: TableColumnType.Entity,
+    modelType: NetworkSiteType,
+    title: "Parent Site Type",
+    description:
+      "The Network Site Type directly above this type. Empty for top-level types.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkSiteType;
+    },
+    {
+      eager: false,
+      nullable: true,
+      /*
+       * NO ACTION is checked at the end of the delete statement, so deleting
+       * a complete parent/child set together is allowed while any surviving
+       * child still blocks the operation. RESTRICT can reject the former
+       * before the statement has removed its child rows.
+       */
+      onDelete: "NO ACTION",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "parentNetworkSiteTypeId" })
+  public parentNetworkSiteType?: NetworkSiteType = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSiteType,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSiteType,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSiteType,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Parent Site Type ID",
+    description:
+      "ID of the Network Site Type directly above this type. Empty for top-level types.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public parentNetworkSiteTypeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSiteType,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSiteType,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSiteType,
+    ],
+  })
+  @TableColumn({
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Order",
-    description:
-      "Where this type sits in the site hierarchy. Lower numbers are higher up: Region is 2 and Unit is 5, for example.",
+    description: "Display order among site types that have the same parent.",
     example: "5",
   })
   @Column({

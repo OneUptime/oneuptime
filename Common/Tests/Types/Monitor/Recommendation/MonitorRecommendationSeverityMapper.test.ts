@@ -1,5 +1,6 @@
 import MonitorRecommendationSeverityMapper, {
   MonitorRecommendationSeverityOption,
+  MonitorRecommendationTemplateSeverityIds,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import MonitorRecommendationCatalog from "../../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import MonitorRecommendationUtil from "../../../../Types/Monitor/Recommendation/MonitorRecommendationUtil";
@@ -357,6 +358,264 @@ describe("MonitorRecommendationSeverityMapper", () => {
       MonitorRecommendationSeverityMapper.getDefaultSeverityMapping(input);
 
       expect(getNames(input)).toEqual(["Minor Incident", "Critical Incident"]);
+    });
+  });
+
+  describe("getMappingFromRankedIds", () => {
+    /*
+     * The monitor-edit template pickers only ever see the dropdown options the
+     * form built — `{ value, label }` pairs off a list the API already sorted
+     * by `order` — so the `order` column is gone by the time a picker needs a
+     * mapping. This turns position back into rank rather than introducing a
+     * second ranking rule that could disagree with `rankSeverities`.
+     */
+    it("treats array position as the rank", () => {
+      const map: MonitorRecommendationSeverityMap =
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds([
+          CRITICAL_INCIDENT_ID,
+          MAJOR_INCIDENT_ID,
+          MINOR_INCIDENT_ID,
+        ]);
+
+      expect(idString(map.Critical)).toBe(CRITICAL_INCIDENT_ID.toString());
+      expect(idString(map.Warning)).toBe(MAJOR_INCIDENT_ID.toString());
+    });
+
+    it("does not re-sort the ids it was handed", () => {
+      /*
+       * The synthesised orders are 1, 2, 3 in the order given. An
+       * implementation that sorted the ids themselves (by uuid, say) would
+       * pass the test above only by luck.
+       */
+      const map: MonitorRecommendationSeverityMap =
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds([
+          MINOR_INCIDENT_ID,
+          CRITICAL_INCIDENT_ID,
+        ]);
+
+      expect(idString(map.Critical)).toBe(MINOR_INCIDENT_ID.toString());
+      expect(idString(map.Warning)).toBe(CRITICAL_INCIDENT_ID.toString());
+    });
+
+    it("returns an empty map for an empty list", () => {
+      expect(
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds([]),
+      ).toEqual({});
+    });
+  });
+
+  describe("resolveTemplateSeverityIds", () => {
+    /*
+     * The monitor-edit template pickers hand their severity ids to
+     * `getMonitorStep` UP FRONT and never see the criteria instances again —
+     * unlike the recommendations page, which rewrites them afterwards through
+     * `applyNotificationSettingsToMonitorStep`. So a picker has to choose
+     * correctly the first time, and before this resolver existed every one of
+     * them passed the project's FIRST severity into both slots for every
+     * template. "Task Down" (Critical) and "High Task CPU Usage" (Warning)
+     * opened records at exactly the same level.
+     */
+    const FALLBACK_INCIDENT_ID: ObjectID = ObjectID.generate();
+    const FALLBACK_ALERT_ID: ObjectID = ObjectID.generate();
+
+    it("does not resolve a Critical and a Warning template to the same alert severity", () => {
+      /*
+       * The single assertion this whole resolver reduces to. If these collapse
+       * back onto one id, the Critical/Warning badge on a picker card again
+       * describes nothing that subsequently happens.
+       */
+      const critical: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Critical",
+          rankedAlertSeverityIds: [HIGH_ALERT_ID, LOW_ALERT_ID],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      const warning: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Warning",
+          rankedAlertSeverityIds: [HIGH_ALERT_ID, LOW_ALERT_ID],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(critical.alertSeverityId)).toBe(HIGH_ALERT_ID.toString());
+      expect(idString(warning.alertSeverityId)).toBe(LOW_ALERT_ID.toString());
+      expect(idString(critical.alertSeverityId)).not.toBe(
+        idString(warning.alertSeverityId),
+      );
+    });
+
+    it("resolves incident and alert severities independently", () => {
+      /*
+       * The two seeds are not the same shape — incidents get three rows and
+       * alerts get two (ProjectService.addDefaultIncidentSeverity vs
+       * addDefaultAlertSeverity) — so one shared ranked list would be wrong
+       * for one of them. On the real default seed a Warning template lands on
+       * "Major Incident" and on "Low", which is why a production alert email
+       * can read SEVERITY: Low for a card badged Warning.
+       */
+      const ids: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Warning",
+          rankedIncidentSeverityIds: [
+            CRITICAL_INCIDENT_ID,
+            MAJOR_INCIDENT_ID,
+            MINOR_INCIDENT_ID,
+          ],
+          rankedAlertSeverityIds: [HIGH_ALERT_ID, LOW_ALERT_ID],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(ids.incidentSeverityId)).toBe(
+        MAJOR_INCIDENT_ID.toString(),
+      );
+      expect(idString(ids.alertSeverityId)).toBe(LOW_ALERT_ID.toString());
+      expect(idString(ids.incidentSeverityId)).not.toBe(
+        MINOR_INCIDENT_ID.toString(),
+      );
+    });
+
+    it("gives Critical the most severe row of each list", () => {
+      const ids: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Critical",
+          rankedIncidentSeverityIds: [
+            CRITICAL_INCIDENT_ID,
+            MAJOR_INCIDENT_ID,
+            MINOR_INCIDENT_ID,
+          ],
+          rankedAlertSeverityIds: [HIGH_ALERT_ID, LOW_ALERT_ID],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(ids.incidentSeverityId)).toBe(
+        CRITICAL_INCIDENT_ID.toString(),
+      );
+      expect(idString(ids.alertSeverityId)).toBe(HIGH_ALERT_ID.toString());
+    });
+
+    it("ranks by position rather than re-sorting the ids", () => {
+      /*
+       * Guards the synthesised `order` in `getMappingFromRankedIds`: the form
+       * already sorted the API list, so index 0 must win for Critical even
+       * when the ids sort differently by any other measure.
+       */
+      const ids: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Critical",
+          rankedAlertSeverityIds: [LOW_ALERT_ID, HIGH_ALERT_ID],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(ids.alertSeverityId)).toBe(LOW_ALERT_ID.toString());
+    });
+
+    it("falls back to the caller's own defaults when the project has no severities", () => {
+      /*
+       * `<X>AlertTemplateArgs` declares both id fields as required, so the
+       * resolver can never hand back undefined — it would only push the
+       * `|| ObjectID.generate()` fallback back into the eight picker call
+       * sites, which is where this bug lived in the first place.
+       */
+      const ids: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Warning",
+          rankedIncidentSeverityIds: [],
+          rankedAlertSeverityIds: [],
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(ids.incidentSeverityId)).toBe(
+        FALLBACK_INCIDENT_ID.toString(),
+      );
+      expect(idString(ids.alertSeverityId)).toBe(FALLBACK_ALERT_ID.toString());
+    });
+
+    it("falls back when the ranked lists are omitted entirely", () => {
+      // The eight picker call sites can legitimately have nothing to pass yet.
+      const ids: MonitorRecommendationTemplateSeverityIds =
+        MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+          severity: "Critical",
+          fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+          fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+        });
+
+      expect(idString(ids.incidentSeverityId)).toBe(
+        FALLBACK_INCIDENT_ID.toString(),
+      );
+      expect(idString(ids.alertSeverityId)).toBe(FALLBACK_ALERT_ID.toString());
+    });
+
+    it("maps both Critical and Warning to the only severity a one-severity project has", () => {
+      /*
+       * Mirrors the getDefaultSeverityMapping single-severity case: such a
+       * project cannot express the distinction, but the template must still
+       * get a valid id or `MonitorCriteriaInstance.getValidationError` fails
+       * the create.
+       */
+      const onlyIncidentId: ObjectID = ObjectID.generate();
+      const onlyAlertId: ObjectID = ObjectID.generate();
+
+      const severities: Array<MonitorRecommendationSeverity> = [
+        "Critical",
+        "Warning",
+      ];
+
+      for (const severity of severities) {
+        const ids: MonitorRecommendationTemplateSeverityIds =
+          MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+            severity: severity,
+            rankedIncidentSeverityIds: [onlyIncidentId],
+            rankedAlertSeverityIds: [onlyAlertId],
+            fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+            fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+          });
+
+        expect(idString(ids.incidentSeverityId)).toBe(
+          onlyIncidentId.toString(),
+        );
+        expect(idString(ids.alertSeverityId)).toBe(onlyAlertId.toString());
+      }
+    });
+
+    it("agrees with getDefaultSeverityMapping on the real default seed", () => {
+      /*
+       * The two entry points into this decision — the recommendations page
+       * (getDefaultSeverityMapping over rows carrying `order`) and the
+       * monitor-edit pickers (this, over a pre-ranked id list) — must not be
+       * able to drift apart. Pinned against the real seed shapes.
+       */
+      const mapping: MonitorRecommendationSeverityMap =
+        MonitorRecommendationSeverityMapper.getDefaultSeverityMapping(
+          DEFAULT_ALERT_SEVERITIES,
+        );
+
+      const severities: Array<MonitorRecommendationSeverity> = [
+        "Critical",
+        "Warning",
+      ];
+
+      for (const severity of severities) {
+        const ids: MonitorRecommendationTemplateSeverityIds =
+          MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+            severity: severity,
+            rankedAlertSeverityIds: DEFAULT_ALERT_SEVERITIES.map(
+              (option: MonitorRecommendationSeverityOption) => {
+                return option.id;
+              },
+            ),
+            fallbackIncidentSeverityId: FALLBACK_INCIDENT_ID,
+            fallbackAlertSeverityId: FALLBACK_ALERT_ID,
+          });
+
+        expect(idString(ids.alertSeverityId)).toBe(idString(mapping[severity]));
+      }
     });
   });
 

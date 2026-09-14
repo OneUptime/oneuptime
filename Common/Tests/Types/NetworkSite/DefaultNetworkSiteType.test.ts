@@ -1,4 +1,8 @@
 import DefaultNetworkSiteType from "../../../Types/NetworkSite/DefaultNetworkSiteType";
+import {
+  DefaultNetworkSiteTypeCreationOrder,
+  DefaultNetworkSiteTypeParent,
+} from "../../../Types/NetworkSite/DefaultNetworkSiteTypeHierarchy";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -34,6 +38,41 @@ describe("DefaultNetworkSiteType", () => {
         "Unit",
       ].sort(),
     );
+  });
+
+  test("defines the explicit default parent hierarchy", () => {
+    expect(DefaultNetworkSiteTypeParent).toEqual({
+      [DefaultNetworkSiteType.AccountType]: null,
+      [DefaultNetworkSiteType.Region]: DefaultNetworkSiteType.AccountType,
+      [DefaultNetworkSiteType.Franchisee]: DefaultNetworkSiteType.Region,
+      [DefaultNetworkSiteType.Market]: DefaultNetworkSiteType.Franchisee,
+      [DefaultNetworkSiteType.Unit]: DefaultNetworkSiteType.Market,
+      [DefaultNetworkSiteType.DataCenter]: null,
+      [DefaultNetworkSiteType.Other]: null,
+    });
+  });
+
+  test("lists every parent before its children for deterministic seeding", () => {
+    expect(DefaultNetworkSiteTypeCreationOrder).toEqual([
+      DefaultNetworkSiteType.AccountType,
+      DefaultNetworkSiteType.Region,
+      DefaultNetworkSiteType.Franchisee,
+      DefaultNetworkSiteType.Market,
+      DefaultNetworkSiteType.Unit,
+      DefaultNetworkSiteType.DataCenter,
+      DefaultNetworkSiteType.Other,
+    ]);
+
+    for (const type of DefaultNetworkSiteTypeCreationOrder) {
+      const parent: DefaultNetworkSiteType | null =
+        DefaultNetworkSiteTypeParent[type];
+
+      if (parent) {
+        expect(
+          DefaultNetworkSiteTypeCreationOrder.indexOf(parent),
+        ).toBeLessThan(DefaultNetworkSiteTypeCreationOrder.indexOf(type));
+      }
+    }
   });
 });
 

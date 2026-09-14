@@ -198,10 +198,14 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
           monitorStepDockerSwarmMonitor.rollingTime || RollingTime.Past5Minutes,
         aggregationType: metric.defaultAggregation,
         /*
-         * Group by container.name so each Swarm task is evaluated
-         * independently — one incident per task container.
+         * Group by `resource.container.name` so each Swarm task is
+         * evaluated independently — one incident per task container.
+         * docker_stats emits container identity as an OTLP RESOURCE
+         * attribute, so ClickHouse stores it `resource.`-prefixed; the
+         * unprefixed key matches nothing and collapses every task in the
+         * cluster into a single unnamed series.
          */
-        groupByAttributeKey: "container.name",
+        groupByAttributeKey: "resource.container.name",
       },
     );
 
@@ -236,8 +240,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Optional resource filters. The docker_stats receiver keeps container
-   * identity in datapoint labels: container.name (a Swarm task is
+   * Optional resource filters. The docker_stats receiver carries container
+   * identity as RESOURCE attributes: container.name (a Swarm task is
    * `<service>.<slot>.<taskid>`) and container.image.name. The
    * node/service hints map to docker.swarm.node.name /
    * docker.swarm.service.name when the agent stamps them.

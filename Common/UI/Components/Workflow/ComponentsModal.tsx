@@ -146,38 +146,31 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
 
-  const [components, setComponents] = useState<Array<ComponentMetadata>>([]);
-  const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
-  const [componentsToShow, setComponentsToShow] = useState<
-    Array<ComponentMetadata>
-  >([]);
-  const [selectedComponentMetadata, setSelectedComponentMetadata] =
-    useState<ComponentMetadata | null>(null);
-
-  useEffect(() => {
-    setComponents(props.components);
-    setComponentsToShow([...props.components]);
-    setCategories(props.categories);
-  }, [props.categories, props.components]);
-
-  useEffect(() => {
-    const tokens: Array<string> = getSearchTokens(search);
-
-    const filteredComponents: Array<ComponentMetadata> = components
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(
+    null,
+  );
+  const categories: Array<ComponentCategory> = props.categories;
+  const searchTokens: Array<string> = useMemo(() => {
+    return getSearchTokens(search);
+  }, [search]);
+  const components: Array<ComponentMetadata> = useMemo(() => {
+    return props.components.filter((componentMetadata: ComponentMetadata) => {
+      return componentMetadata.componentType === props.componentsType;
+    });
+  }, [props.components, props.componentsType]);
+  const componentsToShow: Array<ComponentMetadata> = useMemo(() => {
+    return components
       .filter((componentMetadata: ComponentMetadata) => {
-        return componentMetadata.componentType === props.componentsType;
-      })
-      .filter((componentMetadata: ComponentMetadata) => {
-        return matchesSearch(componentMetadata, tokens);
+        return matchesSearch(componentMetadata, searchTokens);
       })
       .sort((componentA: ComponentMetadata, componentB: ComponentMetadata) => {
-        if (tokens.length === 0) {
+        if (searchTokens.length === 0) {
           return componentA.title.localeCompare(componentB.title);
         }
 
         const scoreDifference: number =
-          getSearchScore(componentB, tokens) -
-          getSearchScore(componentA, tokens);
+          getSearchScore(componentB, searchTokens) -
+          getSearchScore(componentA, searchTokens);
 
         if (scoreDifference !== 0) {
           return scoreDifference;
@@ -185,9 +178,33 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
 
         return componentA.title.localeCompare(componentB.title);
       });
+  }, [components, searchTokens]);
+  const selectedComponentMetadata: ComponentMetadata | undefined =
+    componentsToShow.find((componentMetadata: ComponentMetadata) => {
+      return componentMetadata.id === selectedComponentId;
+    });
 
-    setComponentsToShow(filteredComponents);
-  }, [components, props.componentsType, search]);
+  useEffect(() => {
+    // A hidden selection must not be submitted or reappear when search clears.
+    if (!selectedComponentMetadata) {
+      setSelectedComponentId(null);
+    }
+  }, [selectedComponentMetadata]);
+
+  const searchHighlightPattern: RegExp | null = useMemo(() => {
+    if (searchTokens.length === 0) {
+      return null;
+    }
+
+    const alternatives: string = [...new Set(searchTokens)]
+      .sort((tokenA: string, tokenB: string) => {
+        return tokenB.length - tokenA.length;
+      })
+      .map(escapeRegExp)
+      .join("|");
+
+    return new RegExp(`(${alternatives})`, "ig");
+  }, [searchTokens]);
 
   /*
    * Grouped once per search rather than re-filtered inside the render loop.
@@ -270,18 +287,16 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     text: string,
     markClassName?: string,
   ): React.ReactNode => {
-    if (!hasSearchTerm) {
+    if (!searchHighlightPattern) {
       return text;
     }
 
-    const highlightedParts: Array<string> = text.split(
-      new RegExp(`(${escapeRegExp(search.trim())})`, "ig"),
-    );
+    const highlightedParts: Array<string> = text.split(searchHighlightPattern);
 
     return (
       <>
         {highlightedParts.map((part: string, index: number) => {
-          if (part.toLowerCase() === normalizedSearch) {
+          if (searchTokens.includes(part.toLowerCase())) {
             return (
               <mark
                 key={`${part}-${index}`}
@@ -424,6 +439,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                       <button
                         key={category.name}
                         type="button"
+                        aria-pressed={isActive}
                         onClick={() => {
                           setSearch(category.name);
                           searchInputRef.current?.focus();
@@ -520,19 +536,23 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     {/* Component cards grid */}
                     <div className="grid grid-cols-1 gap-2">
                       {categoryComponents.map(
-                        (componentMetadata: ComponentMetadata, j: number) => {
+                        (componentMetadata: ComponentMetadata) => {
                           const isSelected: boolean =
-                            selectedComponentMetadata !== null &&
+                            selectedComponentMetadata !== undefined &&
                             selectedComponentMetadata.id ===
                               componentMetadata.id;
 
                           return (
-                            <div
-                              key={j}
+                            <button
+                              key={componentMetadata.id}
+                              type="button"
+                              aria-label={componentMetadata.title}
+                              aria-describedby={`workflow-component-description-${componentMetadata.id}`}
+                              aria-pressed={isSelected}
                               onClick={() => {
-                                setSelectedComponentMetadata(componentMetadata);
+                                setSelectedComponentId(componentMetadata.id);
                               }}
-                              className="cursor-pointer transition-all duration-150"
+                              className="w-full cursor-pointer text-left transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                               style={{
                                 padding: "0.75rem",
                                 borderRadius: "10px",
@@ -618,6 +638,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                   )}
                                 </div>
                                 <p
+                                  id={`workflow-component-description-${componentMetadata.id}`}
                                   style={{
                                     fontSize: "0.75rem",
                                     color: isSelected
@@ -666,7 +687,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                   />
                                 </div>
                               )}
-                            </div>
+                            </button>
                           );
                         },
                       )}

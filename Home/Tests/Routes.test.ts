@@ -243,6 +243,50 @@ describe("Security events product page", () => {
   });
 });
 
+describe("VMware product page", () => {
+  /*
+   * Same three-way agreement as the security-events page: the route, the SEO
+   * entry (pageType "product" is what lists it in llms.txt and products.json)
+   * and the sitemap priority all have to name /product/vmware, or the page is
+   * only half-published.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/vmware")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/vmware`);
+  });
+
+  test("it sits beside the Proxmox product route", () => {
+    // Both hypervisor products are registered the same way, in the same table.
+    expect(hasGetRoute("/product/proxmox")).toBe(true);
+    expect(bodyOfGetRoute("/product/vmware")).toContain("getSEOForPath(");
+    expect(bodyOfGetRoute("/product/vmware")).toContain('"/product/vmware"');
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/vmware")).toBeNull();
+    expect(isRedirectPath("/product/vmware")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/vmware"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/vmware");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/vmware": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("SEO registration", () => {
   test("both new canonical pages resolve their own SEO data", () => {
     for (const pagePath of ["/enterprise/self-hosted", "/trust"]) {

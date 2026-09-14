@@ -524,15 +524,34 @@ router.post(
           "You do not have permission to read this project's AI providers.",
       });
 
-      const [providers, defaultProvider]: [
+      const [providers, defaultProvider, project]: [
         Array<LlmProvider>,
         LlmProvider | null,
+        Project | null,
       ] = await Promise.all([
         LlmProviderService.getSelectableProvidersForProject(projectId),
         LlmProviderService.getLLMProviderForProject(projectId),
+        ProjectService.findOneById({
+          id: projectId,
+          select: { enableAi: true },
+          props: { isRoot: true },
+        }),
       ]);
 
       Response.sendJsonObjectResponse(req, res, {
+        /*
+         * The project's AI kill switch, so Ask AI can say up front why it is
+         * unavailable instead of letting the user compose a question that
+         * send-message will only refuse. This route is where the answer
+         * belongs: the chat surfaces already call it as they open, so the
+         * verdict costs no extra round trip.
+         *
+         * Strictly `!== false`, mirroring AIService's own read — the column is
+         * NOT NULL DEFAULT true, so anything but an explicit false is "on".
+         * A project row we cannot read answers "off", the same way the
+         * server-side gate fails closed.
+         */
+        isAIEnabledForProject: project ? project.enableAi !== false : false,
         defaultProviderId: defaultProvider?.id?.toString() || null,
         providers: providers.map((provider: LlmProvider) => {
           return {

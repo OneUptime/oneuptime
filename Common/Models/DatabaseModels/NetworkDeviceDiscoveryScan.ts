@@ -16,6 +16,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { DiscoveryScanSnmpConfig } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 export interface DiscoveredNetworkDevice {
@@ -33,6 +34,28 @@ export interface DiscoveredNetworkDevice {
   sysLocation?: string | undefined;
   sysContact?: string | undefined;
   sysUpTimeSeconds?: number | undefined;
+  /*
+   * The host's reverse-DNS (PTR) name, resolved by the probe against the
+   * scanned network's own resolvers (OneUptime issue #3529).
+   *
+   * This is what a ping-only host is NAMED by. Before it existed the Review
+   * dialog could only show such a host as its address, which is what the
+   * issue reported: an estate with DNS records for everything still read as
+   * a list of bare IPs.
+   *
+   * Optional in three different ways that all mean "no name": the address has
+   * no PTR record, the probe has no usable resolver, or the row was stored
+   * before this field existed / by an older probe. Every reader falls back to
+   * the address, so none of the three needs telling apart.
+   *
+   * ATTACKER-INFLUENCED. Its value is chosen by whoever runs DNS for the
+   * scanned subnet, which on a discovery scan is frequently not this project,
+   * and it is stored here verbatim in jsonb. Never render or store it without
+   * ReverseDnsNameUtil.normalizeReverseDnsName — normalizeDiscoveredHosts and
+   * buildDeviceName both apply it, which covers every path that reaches a
+   * screen or a name column.
+   */
+  dnsHostname?: string | undefined;
   isAlreadyRegistered?: boolean | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
@@ -41,6 +64,28 @@ export interface DiscoveredNetworkDevice {
    * before this field existed (those hosts all answered SNMP).
    */
   snmpReachable?: boolean | undefined;
+  /*
+   * WHICH of the scan's SNMP configs answered this host — the `id` of an entry
+   * in the `snmpConfigs` column below.
+   *
+   * A scan can now try several credential sets, so this is what makes an
+   * import correct: without it, a host found by the fourth config would be
+   * created carrying the first config's community string and would then fail
+   * every poll, with nothing on the device to say why. See
+   * SnmpScanConfigUtil.resolveForHost, which is what the two import paths ask.
+   *
+   * Undefined on ping-only hosts (no config found them), on results stored
+   * before this field existed, and on results from a probe that predates it —
+   * all three fall back to the scan's first config, which for a
+   * single-config scan is exactly the credential set the old code used.
+   *
+   * It is an OPAQUE ID on purpose. This column is readable by roles that must
+   * never see a credential (Viewer, SettingsViewer), so the credential itself
+   * — and even the config's name — stays in the narrower-permissioned
+   * `snmpConfigs` column and is resolved from there by callers that may read
+   * it.
+   */
+  snmpConfigId?: string | undefined;
 }
 
 @EnableDocumentation()
@@ -88,7 +133,7 @@ export interface DiscoveredNetworkDevice {
   pluralName: "Network Device Discovery Scans",
   icon: IconProp.Search,
   tableDescription:
-    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — via SNMP from a probe and report devices found, so they can be imported as Network Devices.",
+    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; scans with Check SNMP on also query each live host over SNMP.",
 })
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
@@ -191,7 +236,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "probeId",
@@ -233,7 +285,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @Index()
   @TableColumn({
@@ -270,11 +329,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
     /*
-     * Updatable, unlike everything that describes the sweep itself: changing
-     * the target or the credentials of a scan mid-flight would mean the stored
-     * row no longer described the sweep that ran, so those grant no update at
-     * all. (The recurrence pair is updatable too — it describes the NEXT run
-     * rather than the one that happened.)
+     * Updatable, like everything else that DESCRIBES the scan — its target,
+     * its probe, its credentials and its schedule. Only what the scan
+     * REPORTED (status, results, host counts, timestamps) is read-only,
+     * because those belong to a run that happened and cannot be edited into
+     * having happened differently.
+     *
+     * Every one of those settings used to be create-only, on the reasoning
+     * that a row must not stop describing the sweep that ran. The reasoning
+     * was sound and the conclusion was not: the only way to fix a typo'd
+     * subnet or a rejected community string was to delete the scan — losing
+     * its results — and recreate it (OneUptime issue #3444). The invariant is
+     * kept where it belongs instead, in
+     * Common/Server/Services/NetworkDeviceDiscoveryScanService: changing any
+     * of them re-queues the scan and clears the previous run's results, so the
+     * row never advertises findings from settings it no longer has.
      *
      * A name describes nothing but itself, and the whole point of it is to be
      * fixable after the fact: a scan mislabelled "Region 1100" is worse than
@@ -336,7 +405,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   /*
    * The address space this scan sweeps. Two notations are accepted (see
@@ -363,6 +439,73 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
   })
   public cidr?: string = undefined;
 
+  /*
+   * The ordered list of SNMP credential sets this scan tries against every
+   * host, first match wins.
+   *
+   * Real subnets are mixed — v2c access switches, a v3 core, a vendor block on
+   * its own community — and a scan carrying one credential set silently missed
+   * everything speaking anything else (OneUptime issue #3458). The flattened
+   * snmp* columns below are what that single set was stored in; they are kept,
+   * populated from this list's FIRST entry, for two reasons that are not
+   * negotiable:
+   *
+   *   - a probe is deployed separately from the server and is routinely a
+   *     version behind. A probe that has never heard of this column reads the
+   *     flattened ones and nothing else, so without the mirror every older
+   *     probe in the fleet would sweep a saved multi-config scan with the
+   *     column defaults and report a confident zero.
+   *   - every scan created before this column exists has NULL here, and its
+   *     flattened columns are its one credential set.
+   *
+   * SnmpScanConfigUtil.resolve is the single reader that reconciles the two,
+   * and is what the probe, the form and both import paths ask.
+   *
+   * READ is the NARROW list — no Viewer, no SettingsViewer — for the same
+   * reason snmpCommunityString and the two v3 keys below have one: entries in
+   * this array carry those very secrets, and a jsonb column has a single
+   * permission for the whole value, so it takes the strictest of the
+   * permissions of what it contains.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "SNMP Configs",
+    description:
+      "Ordered list of SNMP credential sets tried against every host in the subnet, first match wins. Each entry carries an id, an optional name, a version, a community string or the v3 credentials, and a port. When empty, the scan uses the single flattened SNMP configuration on this row.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public snmpConfigs?: Array<DiscoveryScanSnmpConfig> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -382,7 +525,83 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
+  /*
+   * Whether the sweep asks each live host for its SNMP system group, or stops
+   * at the ICMP ping that finds it (OneUptime issue #3445).
+   *
+   * Every scan is a ping sweep first — that is how a live address is told from
+   * an empty one. This column decides only what happens next, so turning it off
+   * does not narrow WHAT is discovered, it narrows what is discovered ABOUT
+   * each host: an ICMP-only scan still lists everything that answered, it just
+   * has no sysName, no vendor OID and no credentials to poll with, and its
+   * hosts import as monitor-backed devices rather than SNMP-polled ones.
+   *
+   * NOT NULL DEFAULT true, and read everywhere through
+   * Common/Utils/NetworkDiscovery/ScanModeUtil rather than directly. Every scan
+   * that existed before this column did was an SNMP scan, so the default is the
+   * only value that leaves them describing the sweep they actually ran — and an
+   * ABSENT value (a probe polling a server too old to select the column) has to
+   * mean the same thing, which is why the read is `!== false`.
+   *
+   * Updatable, exactly as the other sweep-defining columns became when scans
+   * gained an edit form (issue #3444), and listed in that form's SWEEP_COLUMNS
+   * so flipping the method retires the run the way changing the target does.
+   * Leaving the old results in place would have them describing a sweep that
+   * asked a different question of every address.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Check SNMP",
+    description:
+      "Whether hosts that answer the ping sweep are then queried over SNMP. Turn it off for an ICMP-only scan, which reports every host that answers ping and asks nothing else of them.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isSnmpEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -390,7 +609,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "SNMP Version",
     description:
-      "SNMP version tried against every host in the subnet (V1, V2c, V3)",
+      "SNMP version tried against every host in the subnet (V1, V2c, V3). Ignored when Check SNMP is off.",
     example: "V2c",
   })
   @Column({
@@ -418,14 +637,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP Community String",
     description:
-      "Community string tried against every host in the subnet (SNMP v1/v2c)",
+      "Community string tried against every host in the subnet (SNMP v1/v2c). Ignored when Check SNMP is off.",
     example: "public",
   })
   @Column({
@@ -454,13 +680,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.Number,
     title: "SNMP Port",
-    description: "UDP port tried against every host in the subnet",
+    description:
+      "UDP port tried against every host in the subnet. Ignored when Check SNMP is off.",
     example: "161",
   })
   @Column({
@@ -473,9 +707,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
   /*
    * SNMP v3 credentials tried against every host in the subnet. These mirror
    * the flattened snmpV3* columns on NetworkDevice so a v3 scan can be imported
-   * into a v3 device without re-entering credentials. Like the other SNMP
-   * config columns above they are create+read only (update: []): a scan's
-   * config is fixed once it is dispatched to the probe.
+   * into a v3 device without re-entering credentials.
+   *
+   * Editable after creation, like the rest of the SNMP config above — a
+   * credential that the devices reject is exactly the thing an operator needs
+   * to correct without rebuilding the scan. Changing one re-queues the scan;
+   * see NetworkDeviceDiscoveryScanService.
+   *
+   * READ permissions are untouched by that, and are not uniform across these
+   * columns: the two that carry a secret — snmpV3AuthKey and snmpV3PrivKey,
+   * like snmpCommunityString above them — are read by a narrower list than the
+   * rest of the model (no Viewer, no SettingsViewer), because a passphrase is
+   * not a thing every reader of the scans list should be handed. The security
+   * level, the username and the two protocol names describe HOW the scan
+   * authenticates rather than WITH WHAT, and are read as widely as the target
+   * is.
    */
   @ColumnAccessControl({
     create: [
@@ -496,14 +742,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP v3 Security Level",
     description:
-      "SNMP v3 security level tried against every host: noAuthNoPriv, authNoPriv, or authPriv",
+      "SNMP v3 security level tried against every host: noAuthNoPriv, authNoPriv, or authPriv. Ignored when Check SNMP is off.",
     example: "authPriv",
   })
   @Column({
@@ -532,13 +785,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP v3 Username",
-    description: "SNMP v3 security name (username) tried against every host",
+    description:
+      "SNMP v3 security name (username) tried against every host. Ignored when Check SNMP is off.",
     example: "monitoring",
   })
   @Column({
@@ -567,13 +828,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP v3 Authentication Protocol",
-    description: "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512",
+    description:
+      "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512. Ignored when Check SNMP is off.",
     example: "SHA",
   })
   @Column({
@@ -600,13 +869,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Authentication Key",
-    description: "SNMP v3 authentication passphrase tried against every host",
+    description:
+      "SNMP v3 authentication passphrase tried against every host. Ignored when Check SNMP is off.",
   })
   @Column({
     nullable: true,
@@ -633,13 +910,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP v3 Privacy Protocol",
-    description: "SNMP v3 privacy (encryption) protocol: DES, AES, or AES256",
+    description:
+      "SNMP v3 privacy (encryption) protocol: DES, AES, or AES256. Ignored when Check SNMP is off.",
     example: "AES",
   })
   @Column({
@@ -666,14 +951,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Privacy Key",
     description:
-      "SNMP v3 privacy (encryption) passphrase tried against every host",
+      "SNMP v3 privacy (encryption) passphrase tried against every host. Ignored when Check SNMP is off.",
   })
   @Column({
     nullable: true,
@@ -816,7 +1108,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     title: "Responded Host Count",
     description:
-      "Number of hosts that responded to SNMP during the sweep. Managed by the scanning probe.",
+      "Number of hosts that answered the check this scan performed: SNMP responders on a scan with Check SNMP on, hosts that answered the ping sweep on an ICMP-only one. Managed by the scanning probe.",
   })
   @Column({
     type: ColumnType.Number,

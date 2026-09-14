@@ -6,7 +6,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -100,7 +100,7 @@ export interface EpisodeMemberRoleAssignment {
   tableDescription:
     "Configure rules for automatically grouping related incidents into episodes",
 })
-export default class IncidentGroupingRule extends BaseModel {
+export default class IncidentGroupingRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

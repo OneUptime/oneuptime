@@ -31,8 +31,26 @@
     "errorOnSignUp": "Fuldfør captcha-udfordringen, før du tilmelder dig."
   },
   "login": {
+    "passkey": {
+      "signIn": "Log ind med en adgangsnøgle",
+      "description": "Brug dit fingeraftryk, dit ansigt eller enhedens pinkode.",
+      "passwordAlternative": "eller log ind med en adgangskode",
+      "inProgress": "Fuldfør eller annuller login med adgangsnøgle, før du bruger din adgangskode.",
+      "title": "Brug en gemt adgangsnøgle",
+      "helpTitle": "Er adgangsnøgler nyt for dig?",
+      "help": "Log ind med din adgangskode eller SSO, og åbn derefter Brugerprofil → Adgangsnøgler og tofaktorgodkendelse for at oprette din første adgangsnøgle.",
+      "preparing": "Gør din adgangsnøgle klar…",
+      "waiting": "Se på din enhed",
+      "waitingDescription": "Følg anvisningerne fra din browser eller adgangskodeadministrator.",
+      "verifying": "Logger dig ind…",
+      "cancelled": "Login med adgangsnøgle blev annulleret. Prøv igen, eller brug din adgangskode.",
+      "notCompleted": "Login med adgangsnøgle blev annulleret eller fik timeout. Prøv igen, eller log ind med din adgangskode.",
+      "unsupported": "Adgangsnøgler er ikke tilgængelige i denne browser. Du kan stadig logge ind med din adgangskode eller SSO.",
+      "insecure": "Adgangsnøgler kræver en sikker forbindelse (HTTPS). Du kan stadig logge ind med din adgangskode eller SSO.",
+      "tryAgain": "Prøv adgangsnøglen igen"
+    },
     "title": "Log ind på din konto",
-    "subtitle": "Slut dig til tusindvis af virksomheder, der bruger OneUptime til at holde sig online hele tiden.",
+    "subtitle": "Brug en adgangsnøgle, en adgangskode eller din organisations SSO.",
     "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "useSso": "Brug i stedet single sign-on (SSO)",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Følg venligst instruktionerne på din sikkerhedsnøgleenhed.",
       "codeFieldDescription": "Indtast koden fra din autentifikator-app",
       "selectDifferentMethod": "Vælg en anden tofaktorgodkendelsesmetode",
-      "useBackupCode": "Brug en backup-kode i stedet",
       "backupCodeInstruction": "Indtast en af de backup-koder, du gemte, da du opsatte tofaktorgodkendelse. Hver kode virker kun én gang.",
       "backupCodeFieldTitle": "Backup-kode",
-      "backupCodeFieldDescription": "Backup-koder ser ud som ABCDE-12345. Store og små bogstaver samt bindestregen betyder ikke noget."
+      "backupCodeFieldDescription": "Backup-koder ser ud som ABCDE-12345. Store og små bogstaver samt bindestregen betyder ikke noget.",
+      "confirmSubtitle": "Bekræft, at det er dig, for at fuldføre login.",
+      "recoverySubtitle": "Brug en backup-kode, eller find ud af, hvordan du kommer ind igen uden en.",
+      "lostAccess": "Mistet adgangen til din autentifikator-app?",
+      "noBackupCodesStrong": "Du har ingen backup-koder.",
+      "noBackupCodes": "Der er ingen kode, du kan indtaste her, fordi denne konto aldrig har fået et sæt.",
+      "noBackupCodesInstruction": "Bed en administrator af denne OneUptime-instans om at nulstille tofaktorgodkendelse på din konto. Derefter kan du logge ind med din adgangskode og konfigurere en ny autentifikator-app, og der bliver oprettet backup-koder til dig samtidig.",
+      "lostAccessSecurityKey": "Mistet adgangen til din sikkerhedsnøgle?"
     },
     "twoFactorEnrolment": {
       "title": "Konfigurer tofaktorgodkendelse",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Indtast den sekscifrede kode, som din godkendelsesapp viser.",
       "submitButton": "Bekræft og log ind",
       "backToSignIn": "Log ind som en anden bruger"
+    },
+    "backupCodes": {
+      "title": "Gem dine backup-koder",
+      "subtitle": "Brug en af dem til at logge ind, hvis du på et tidspunkt mister adgangen til din autentifikator-app eller sikkerhedsnøgle.",
+      "showOnceStrong": "Dette er den eneste gang, disse koder vises.",
+      "showOnce": "Gem dem et andet sted end på den enhed, der genererer dine koder. Hver kode kan kun bruges én gang.",
+      "download": "Download som tekstfil",
+      "savedConfirmation": "Jeg har gemt disse koder et sikkert sted.",
+      "continue": "Fortsæt til Dashboard",
+      "fileHeading": "OneUptime backup-koder til tofaktorgodkendelse",
+      "fileInstruction": "Hver kode kan kun bruges én gang. Opbevar denne fil et sikkert sted og adskilt fra den enhed, der kører din autentifikator-app.",
+      "setUpTitle": "Konfigurer backup-koder",
+      "setUpSubtitle": "En sidste ting, før du fortsætter.",
+      "noneStrong": "Du har ingen backup-koder.",
+      "none": "Hvis du mister din autentifikator-app eller sikkerhedsnøgle, skal en administrator nulstille tofaktorgodkendelse, før du kan logge ind igen.",
+      "generate": "Generer backup-koder",
+      "skip": "Spring over for nu",
+      "generateFailed": "Der blev ikke returneret nogen backup-koder. Prøv venligst igen fra Brugerprofil > Tofaktorgodkendelse."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Log ind på OneUptime On-Call",
+    "description": "Brug en adgangsnøgle, der er gemt til denne OneUptime-server.",
+    "returnDescription": "Når du har godkendt, vender du tilbage til mobilappen.",
+    "invalid": "Start login fra OneUptime-mobilappen. Denne anmodning mangler eller er ugyldig.",
+    "insecure": "Adgangsnøgler kræver HTTPS. Vend tilbage til appen, og kontrollér serveradressen.",
+    "failed": "Login kunne ikke fuldføres. Vend tilbage til appen, og prøv igen.",
+    "complete": "Din adgangsnøgle er bekræftet. Vend tilbage til appen for at fuldføre login.",
+    "returnToApp": "Tilbage til appen",
+    "cancel": "Annuller og vend tilbage til appen",
+    "setup": "Opret en adgangsnøgle under Brugerprofil → Adgangsnøgler og tofaktorgodkendelse i webdashboardet."
+  },
+  "Use at least {{minimum}} characters.": "Brug mindst {{minimum}} tegn.",
+  "Try a few unrelated words.": "Prøv et par ord uden relation til hinanden.",
+  "Password meets requirements": "Adgangskoden opfylder kravene",
+  "Password must be at least 15 characters.": "Adgangskoden skal indeholde mindst 15 tegn.",
+  "Password cannot be more than 100 characters.": "Adgangskoden må højst indeholde 100 tegn.",
+  "Choose a less predictable password. Try a few unrelated words.": "Vælg en mindre forudsigelig adgangskode. Prøv et par ord uden relation til hinanden.",
+  "Password cannot be blank.": "Adgangskoden må ikke kun indeholde mellemrum.",
+  "Password is required.": "Adgangskode er påkrævet.",
+  "Password must be a string.": "Adgangskoden skal være en tekststreng.",
+  "Account details": "Kontooplysninger",
+  "Secure your account": "Beskyt din konto",
+  "Between {{minimum}} and {{maximum}} characters": "Mellem {{minimum}} og {{maximum}} tegn",
+  "Avoid common or repeated patterns": "Undgå almindelige eller gentagne mønstre",
+  "Password length": "Adgangskodens længde",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mindst {{minimum}} tegn",
+  "Complete:": "Opfyldt:",
+  "Incomplete:": "Ikke opfyldt:",
+  "Special character included (optional)": "Specialtegn inkluderet (valgfrit)",
+  "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $."
 }

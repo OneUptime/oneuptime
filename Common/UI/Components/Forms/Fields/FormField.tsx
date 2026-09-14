@@ -932,13 +932,26 @@ const FormField: <T extends GenericObject>(
               id={fieldId}
               tabIndex={0}
               disabled={props.isDisabled || props.field.disabled}
-              error={props.touched && props.error ? props.error : undefined}
+              error={
+                !props.field.errorMessageInFooter &&
+                props.touched &&
+                props.error
+                  ? props.error
+                  : undefined
+              }
+              ariaInvalid={Boolean(
+                props.field.errorMessageInFooter &&
+                  props.touched &&
+                  props.error,
+              )}
               dataTestId={props.field.dataTestId}
               type={fieldType as InputType}
+              ariaDescribedby={props.field.ariaDescribedby}
               autoComplete={
-                props.field.fieldType
+                props.field.autoComplete ||
+                (props.field.fieldType
                   ? getAutoComplete(props.field.fieldType)
-                  : undefined
+                  : undefined)
               }
               onChange={(value: string) => {
                 onChange(value);

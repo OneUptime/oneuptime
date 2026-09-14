@@ -24,6 +24,20 @@ export enum SpanKind {
 
 export enum SpanEventType {
   Exception = "exception",
+  /*
+   * A failure that is deliberately NOT an Issue: invalid input we rejected, a
+   * credential we refused, a plan limit we enforced. Emitted by
+   * Telemetry.recordExceptionOnSpan for the user-error and expected-denial
+   * fault domains.
+   *
+   * The name is the whole mechanism. Trace ingest builds an ExceptionInstance
+   * row and a TelemetryException group for every event named "exception" and
+   * nothing else, so an event under this name is still stored in the span's
+   * `events` column and still rendered in the Traces UI — it simply never
+   * becomes an Issue. Its attributes are `error.*`, never `exception.*`, so
+   * the log-derived exception path cannot resurrect it either.
+   */
+  Fault = "fault",
   Event = "event",
 }
 
@@ -1150,6 +1164,80 @@ export default class Span extends AnalyticsBaseModel {
         accessControl: llmColumnAccessControl,
       });
 
+    /*
+     * Employee identity columns. Denormalized at ingest from the OTel general
+     * semantic-convention identity attributes (user.id / user.email / team.id)
+     * and the gateway + coding-agent fallbacks — see
+     * LlmUserIdAttributeKeys in Common/Types/Telemetry/LlmConventions.ts.
+     *
+     * These answer the question the trace-only LLM feature could not: which
+     * PERSON, and which cost centre, does this spend belong to. They are
+     * populated only on LLM spans (the extractor gates them on isLlmSpan), so
+     * the RUM and HTTP fleet — which also carries user.id — pays nothing for
+     * them.
+     *
+     * They hold real identifying data, so TraceScrubRuleService.scrubSpan
+     * applies the project's Attributes-scoped scrub rules to them just as it
+     * does to the attribute they were derived from.
+     */
+    const llmUserIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmUserId",
+      isLowCardinality: true,
+      title: "LLM User ID",
+      description:
+        "Id of the employee / internal actor who made this LLM call (user.id, enduser.id, or the gateway / coding-agent equivalent). NOT the caller's own downstream customer — that identity is deliberately never mapped here. '' when the instrumentation reports none.",
+      required: false,
+      type: TableColumnType.Text,
+      /*
+       * Set index sized like idx_llm_request_model: a project's employee
+       * roster is in the hundreds-to-low-thousands, so 1000 distinct values
+       * per granule keeps the index useful for the "one person's spend"
+       * query without degenerating into a per-granule scan.
+       */
+      skipIndex: {
+        name: "idx_llm_user_id",
+        type: SkipIndexType.Set,
+        params: [1000],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmUserEmailColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmUserEmail",
+      isLowCardinality: true,
+      title: "LLM User Email",
+      description:
+        "Email of the employee / internal actor who made this LLM call (user.email, emitted natively by Claude Code, Gemini CLI and Codex). Subject to the project's Attributes-scoped trace scrub rules. '' when the instrumentation reports none.",
+      required: false,
+      type: TableColumnType.Text,
+      // Same sizing rationale as idx_llm_user_id — one row per employee.
+      skipIndex: {
+        name: "idx_llm_user_email",
+        type: SkipIndexType.Set,
+        params: [1000],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmTeamColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmTeam",
+      isLowCardinality: true,
+      title: "LLM Team",
+      description:
+        "Team / cost centre the LLM spend charges to (team.id, cost_center, department — conventionally set via OTEL_RESOURCE_ATTRIBUTES). '' when none is reported.",
+      required: false,
+      type: TableColumnType.Text,
+      /*
+       * No skip index, mirroring llmResponseModel. Teams number in the tens:
+       * a Set index would match nearly every granule and cost more to read
+       * than the filter it saves, and the LowCardinality dictionary already
+       * makes the column cheap to scan.
+       */
+      accessControl: llmColumnAccessControl,
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -1245,6 +1333,9 @@ export default class Span extends AnalyticsBaseModel {
         llmTotalTokensColumn,
         llmCostColumn,
         llmConversationIdColumn,
+        llmUserIdColumn,
+        llmUserEmailColumn,
+        llmTeamColumn,
         retentionDateColumn,
       ],
       projections: [
@@ -1573,5 +1664,29 @@ export default class Span extends AnalyticsBaseModel {
 
   public set llmConversationId(v: string | undefined) {
     this.setColumnValue("llmConversationId", v);
+  }
+
+  public get llmUserId(): string | undefined {
+    return this.getColumnValue("llmUserId") as string | undefined;
+  }
+
+  public set llmUserId(v: string | undefined) {
+    this.setColumnValue("llmUserId", v);
+  }
+
+  public get llmUserEmail(): string | undefined {
+    return this.getColumnValue("llmUserEmail") as string | undefined;
+  }
+
+  public set llmUserEmail(v: string | undefined) {
+    this.setColumnValue("llmUserEmail", v);
+  }
+
+  public get llmTeam(): string | undefined {
+    return this.getColumnValue("llmTeam") as string | undefined;
+  }
+
+  public set llmTeam(v: string | undefined) {
+    this.setColumnValue("llmTeam", v);
   }
 }

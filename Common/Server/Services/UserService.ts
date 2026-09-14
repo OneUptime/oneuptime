@@ -8,6 +8,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import Attribution from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -58,6 +59,7 @@ import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import EnterpriseLicenseSeatUtil from "../Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -185,6 +187,32 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     /*
+     * The enterprise seat limit, enforced here because this is the one place
+     * every new user passes through: team invitations, self-service signup,
+     * SSO/OIDC just-in-time provisioning, SCIM, and the Admin Dashboard all
+     * end up in `create`. Enforcing on the invitation instead would leave
+     * signup and SSO as open doors around it.
+     *
+     * No isRoot exemption on purpose — invitations create the invited user as
+     * root, so exempting root would exempt invitations, which is the exact
+     * thing this is here to bound. It is a no-op on Community Edition and on
+     * oneuptime.com (see EnterpriseLicenseSeatUtil.isSeatLimitEnforceable),
+     * and it never counts the User table on a licence with no seat limit.
+     */
+    await EnterpriseLicenseSeatUtil.assertSeatAvailableForNewUser({
+      getLocalUserCount: async (): Promise<number> => {
+        const userCount: PositiveNumber = await this.countBy({
+          query: {},
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return userCount.toNumber();
+      },
+    });
+
+    /*
      * clickIds / firstTouchAttribution are publicly creatable jsonb columns
      * (set during signup). Unlike the varchar(500) utm columns they have no
      * DB-level size bound, so whitelist keys and cap value lengths here.
@@ -239,9 +267,16 @@ export class Service extends DatabaseService<Model> {
      * direct signups (true) from invited users (false).
      */
     if (createdItem.email) {
+      /*
+       * Captured before the deferred builder below closes over it: the
+       * narrowing this `if` gives us does not survive into a callback, and
+       * `email` is what makes the signup conversion joinable at all.
+       */
+      const signUpEmail: string = createdItem.email.toString();
+
       ProductAnalytics.capture({
         event: "server/user_created",
-        distinctId: createdItem.email.toString(),
+        distinctId: signUpEmail,
         properties: {
           has_password: Boolean(createdItem.password),
           ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
@@ -263,19 +298,19 @@ export class Service extends DatabaseService<Model> {
        * users, only one is an acquisition, and the receiver decides which it
        * cares about rather than us deciding for it here.
        */
-      MarketingEventUtil.emitInBackground(
-        MarketingEventUtil.buildEvent({
+      MarketingEventUtil.emitInBackground(() => {
+        return MarketingEventUtil.buildEvent({
           eventType: MarketingEventType.SignUp,
           eventId: `${MarketingEventType.SignUp}:${createdItem.id?.toString()}`,
           occurredAt: createdItem.createdAt || new Date(),
-          email: createdItem.email.toString(),
+          email: signUpEmail,
           attributionSource: createdItem,
           data: {
             userId: createdItem.id?.toString() || "",
             hasPassword: Boolean(createdItem.password),
           },
-        }),
-      );
+        });
+      });
     }
 
     // A place holder method used for overriding.
@@ -302,6 +337,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // Reject values that could bypass the exact-false ownership check below.
+    if (
+      updateBy.data.enableTwoFactorAuth !== undefined &&
+      typeof updateBy.data.enableTwoFactorAuth !== "boolean"
+    ) {
+      throw new BadDataException("enableTwoFactorAuth must be a boolean.");
+    }
+
     let carryForward: Array<Model> = [];
 
     if (updateBy.data.password || updateBy.data.email) {
@@ -319,63 +362,122 @@ export class Service extends DatabaseService<Model> {
       carryForward = users;
     }
 
-    /*
-     * There used to be a guard here refusing to set `enableTwoFactorAuth` on
-     * an account with no verified authenticator, on the grounds that doing so
-     * locked the user out: login demanded a second factor, found none, and
-     * said "contact your admin".
-     *
-     * That is no longer true, and the guard was the single thing standing in
-     * the way of the feature it appeared to protect. Login now sends an
-     * account in that state through ENROLMENT -- a QR code and a code to type
-     * back -- rather than refusing it (see App/FeatureSet/Identity/API/
-     * Authentication.ts). "Required, nothing set up yet" is therefore an
-     * ordinary, recoverable state, and it is exactly the state an admin
-     * creates on purpose when they mandate two factor auth for somebody who
-     * has never used it.
-     *
-     * Keeping the guard would have meant an admin could only require two
-     * factor auth from users who had already volunteered for it, which is the
-     * opposite of what a mandate is for.
-     *
-     * What replaces it is the guard below, which protects the opposite
-     * direction.
-     */
+    if (updateBy.data.email) {
+      await this.expirePasswordResetTokensForEmailChange({
+        newEmail: updateBy.data.email as Email,
+        existingUsers: carryForward,
+      });
+    }
 
     /*
-     * TURNING THE REQUIREMENT OFF IS A MASTER-ADMIN ACTION, NOT A USER ONE.
-     *
-     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]` and the
-     * User table's row ACL scopes updates to the caller's own id, so without
-     * this every signed-in user can clear their own flag with an ordinary
-     * `PUT /user/<their own id>` -- and the product ships the button that does
-     * it, at Dashboard > Profile > Two Factor Authentication.
-     *
-     * That makes an admin mandate self-undoing. The admin requires two factor
-     * auth, the user is marched through enrolment at their next sign-in, and
-     * then, from the session they just earned, they switch it straight back
-     * off and delete the factor. The account is password-only again and the
-     * Authentication page reports the mandate as simply absent.
-     *
-     * So: anybody may turn the requirement ON for themselves -- self-service
-     * enrolment is a feature and taking it away would help nobody -- but only
-     * a root caller may turn it OFF. The one root caller is
-     * `setTwoFactorAuthRequired` below, reached through the master-admin
-     * endpoint. A user who wants two factor auth removed now has to ask an
-     * administrator, which is the point of the feature.
-     *
-     * Keyed on `isRoot` rather than on a master-admin check because a master
-     * admin editing their OWN row through the CRUD API is still that user, and
-     * the flag should move through the endpoint that also revokes sessions
-     * either way.
+     * Users may turn off two factor authentication for their own account.
+     * This hook runs before row scoping, so require an exact owner predicate.
+     * Changes to other accounts still use the master-admin endpoints, whose
+     * root writes retain session revocation when enabling the requirement.
      */
-    if (updateBy.data.enableTwoFactorAuth === false && !updateBy.props.isRoot) {
+    if (
+      updateBy.data.enableTwoFactorAuth === false &&
+      !updateBy.props.isRoot &&
+      !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+        Model,
+        updateBy.query,
+        updateBy.props,
+      )
+    ) {
       throw new BadDataException(
-        "Only an administrator can turn off two factor authentication for this account.",
+        "You can only turn off two factor authentication for your own account.",
       );
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /**
+   * Kill any outstanding password-reset link for every account whose email
+   * address this update is about to change.
+   *
+   * A reset link is a bearer credential addressed to ONE mailbox: holding it
+   * proves only that somebody could read mail sent to the address the account
+   * had when the link was minted. Move the account to a different address and
+   * that proof is about a mailbox the account no longer uses, so the link has
+   * to die with the address it was sent to.
+   *
+   * Without this, changing your email is not the account-recovery step that
+   * users -- and our own "You have changed your email" mail -- take it to be:
+   *
+   *   1. An attacker who can read the victim's mailbox requests a password
+   *      reset and does NOT spend the link. Nothing about the account looks
+   *      wrong, because nothing has changed yet.
+   *   2. The victim notices the mailbox is compromised and moves the account
+   *      to an address the attacker cannot read. This is exactly the advice
+   *      they would be given, and they now believe they are safe.
+   *   3. The attacker spends the link from step 1. `/reset-password` finds the
+   *      row BY TOKEN HASH ALONE -- it never looks at the email address -- so
+   *      it happily sets a new password on the account at its NEW address, and
+   *      the victim is locked out of an account they had just rescued.
+   *
+   * Cleared BEFORE the email is written rather than afterwards in
+   * `onUpdateSuccess`, so there is no instant in which the new address is
+   * committed while a link mailed to the old one is still redeemable. The
+   * price of that ordering is that an email update which subsequently fails
+   * has still burned a pending link, and the user has to request another one.
+   * For a credential that is the right way round.
+   *
+   * Only rows whose address actually CHANGES are touched. Directory syncs
+   * rewrite `email` with the value it already has on every push (see
+   * `App/FeatureSet/Identity/API/SCIM.ts`, which updates whenever either the
+   * email or the name is present), and clearing on those would let an
+   * unrelated SCIM run invalidate a reset link the user is part-way through
+   * using.
+   *
+   * A row that came back with no `email` at all is treated as changed. That
+   * happens when the caller could not read the column, and on a credential the
+   * safe assumption is the one that expires the token.
+   *
+   * NOTE: this runs from `onBeforeUpdate`, so an email write made with
+   * `ignoreHooks: true` would slip past it. Nothing does that today -- the
+   * dashboard, the SCIM endpoints and the admin API all go through the hooks
+   * -- and any new caller that writes `email` hook-free has to clear these two
+   * columns itself.
+   */
+  @CaptureSpan()
+  private async expirePasswordResetTokensForEmailChange(data: {
+    newEmail: Email;
+    existingUsers: Array<Model>;
+  }): Promise<void> {
+    const newEmail: string = data.newEmail.toString().toLowerCase();
+
+    for (const user of data.existingUsers) {
+      if (!user.id) {
+        continue;
+      }
+
+      const currentEmail: string | undefined = user.email
+        ?.toString()
+        .toLowerCase();
+
+      if (currentEmail === newEmail) {
+        continue;
+      }
+
+      await this.updateOneById({
+        id: user.id,
+        data: {
+          resetPasswordToken: null!,
+          resetPasswordExpires: null!,
+        },
+        /*
+         * Root because `resetPasswordToken` is declared with `update: []` --
+         * no permission can write it -- and hook-free because this IS the
+         * update hook; re-entering it would have this write go looking for an
+         * email change of its own.
+         */
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
   }
 
   @CaptureSpan()

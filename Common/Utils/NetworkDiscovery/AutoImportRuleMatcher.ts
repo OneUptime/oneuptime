@@ -1,8 +1,13 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../Types/ObjectID";
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import RulePatternMatchUtil from "../Rules/RulePatternMatchUtil";
-import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
+import RuleCriteriaMatcher from "../Rules/RuleCriteriaMatcher";
+import {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import { isPingOnlyDiscoveredHost } from "./DiscoveryImportEligibility";
 import ScanTargetUtil from "./ScanTargetUtil";
 
 /*
@@ -32,6 +37,14 @@ import ScanTargetUtil from "./ScanTargetUtil";
  * this structurally, and tests can build literals.
  */
 export interface AutoImportRuleCandidate {
+  criteria?: unknown;
+  monitorTemplateId?: ObjectID | string | null | undefined;
+  /*
+   * The OID Collection Template imported devices are LINKED to. Purely
+   * carried through the matcher: it never affects whether a host matches,
+   * only what the resulting device collects.
+   */
+  oidTemplateId?: ObjectID | string | null | undefined;
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;
@@ -126,12 +139,21 @@ export function matchesOidPattern(
 }
 
 export class AutoImportRuleMatcher {
-  // True when the host answered ping but not SNMP.
+  /*
+   * True when the host answered ping but not SNMP.
+   *
+   * Asked of the host's own SNMP answer (`isPingOnlyDiscoveredHost`), NOT of
+   * the method it would import under. Under ping-first polling EVERY
+   * discovered host imports as a Probe device, so
+   * `monitoringMethodForDiscoveredHost` is a constant — routing this gate
+   * through it made `isPingOnlyHost` permanently false and silently opened
+   * the default-closed gate below: one SNMP credential typo would have
+   * imported a whole subnet of half-identified hosts through rules that never
+   * opted in. How a host is MONITORED and what it ANSWERED are two different
+   * questions now, and this one is the second.
+   */
   private static isPingOnlyHost(host: DiscoveredNetworkDevice): boolean {
-    return (
-      monitoringMethodForDiscoveredHost(host) ===
-      NetworkDeviceMonitoringMethod.Monitor
-    );
+    return isPingOnlyDiscoveredHost(host);
   }
 
   /*
@@ -149,6 +171,31 @@ export class AutoImportRuleMatcher {
     rule: AutoImportRuleCandidate,
     host: DiscoveredNetworkDevice,
   ): boolean {
+    if (
+      !rule.isExclusion &&
+      !rule.includePingOnlyHosts &&
+      AutoImportRuleMatcher.isPingOnlyHost(host)
+    ) {
+      return false;
+    }
+
+    if (rule.criteria !== undefined && rule.criteria !== null) {
+      return RuleCriteriaMatcher.matchesSync({
+        criteria: rule.criteria,
+        emptyResult: false,
+        matchesFilter: (filter: RuleCriteriaFilter): boolean => {
+          return AutoImportRuleMatcher.matchesConfiguredFilter(filter, host);
+        },
+      });
+    }
+
+    return AutoImportRuleMatcher.ruleMatchesHostLegacy(rule, host);
+  }
+
+  private static ruleMatchesHostLegacy(
+    rule: AutoImportRuleCandidate,
+    host: DiscoveredNetworkDevice,
+  ): boolean {
     const ipMatchTarget: string = (rule.ipMatchTarget || "").trim();
     const sysNamePattern: string = (rule.sysNamePattern || "").trim();
     const sysDescrPattern: string = (rule.sysDescrPattern || "").trim();
@@ -160,14 +207,6 @@ export class AutoImportRuleMatcher {
       !sysNamePattern &&
       !sysDescrPattern &&
       !sysObjectIdPattern
-    ) {
-      return false;
-    }
-
-    if (
-      !rule.isExclusion &&
-      !rule.includePingOnlyHosts &&
-      AutoImportRuleMatcher.isPingOnlyHost(host)
     ) {
       return false;
     }
@@ -212,6 +251,83 @@ export class AutoImportRuleMatcher {
     }
 
     return true;
+  }
+
+  private static matchesConfiguredFilter(
+    filter: RuleCriteriaFilter,
+    host: DiscoveredNetworkDevice,
+  ): boolean {
+    const expected: string = String(filter.value);
+
+    switch (filter.field) {
+      case "ipMatchTarget":
+        return AutoImportRuleMatcher.matchesTextOperator({
+          actual: host.ipAddress,
+          expected: expected,
+          operator: filter.operator,
+          matchesPattern: (
+            actual: string | undefined,
+            pattern: string,
+          ): boolean => {
+            return ScanTargetUtil.contains(pattern, actual || "");
+          },
+        });
+      case "sysNamePattern":
+        return AutoImportRuleMatcher.matchesTextOperator({
+          actual: clampSubject(host.sysName),
+          expected: expected,
+          operator: filter.operator,
+          matchesPattern: RulePatternMatchUtil.matches,
+        });
+      case "sysDescrPattern":
+        return AutoImportRuleMatcher.matchesTextOperator({
+          actual: clampSubject(host.sysDescr),
+          expected: expected,
+          operator: filter.operator,
+          matchesPattern: RulePatternMatchUtil.matches,
+        });
+      case "sysObjectIdPattern":
+        return AutoImportRuleMatcher.matchesTextOperator({
+          actual: clampSubject(host.sysObjectId),
+          expected: expected,
+          operator: filter.operator,
+          matchesPattern: matchesOidPattern,
+        });
+      default:
+        return false;
+    }
+  }
+
+  private static matchesTextOperator(data: {
+    actual: string | undefined;
+    expected: string;
+    operator: RuleCriteriaOperator;
+    matchesPattern: (actual: string | undefined, pattern: string) => boolean;
+  }): boolean {
+    const actual: string = data.actual || "";
+    const actualLower: string = actual.toLocaleLowerCase();
+    const expectedLower: string = data.expected.toLocaleLowerCase();
+
+    switch (data.operator) {
+      case RuleCriteriaOperator.Equals:
+        return actualLower === expectedLower;
+      case RuleCriteriaOperator.NotEquals:
+        return actualLower !== expectedLower;
+      case RuleCriteriaOperator.Contains:
+        return actualLower.includes(expectedLower);
+      case RuleCriteriaOperator.DoesNotContain:
+        return !actualLower.includes(expectedLower);
+      case RuleCriteriaOperator.StartsWith:
+        return actualLower.startsWith(expectedLower);
+      case RuleCriteriaOperator.EndsWith:
+        return actualLower.endsWith(expectedLower);
+      case RuleCriteriaOperator.MatchesPattern:
+        return data.matchesPattern(data.actual, data.expected);
+      case RuleCriteriaOperator.DoesNotMatchPattern:
+        return !data.matchesPattern(data.actual, data.expected);
+      default:
+        return false;
+    }
   }
 
   /**

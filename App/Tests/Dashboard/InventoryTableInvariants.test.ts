@@ -186,7 +186,7 @@ describe("the list uses OneUptime facet chips", () => {
     expect(code).toContain("tableId: tableKey");
   });
 
-  test("facets are merged around the existing project and Overview scope", () => {
+  test("facets are merged around the project and any embedded table scope", () => {
     expect(code).toContain("query={mergeFiltersIntoQuery({");
     expect(code).toContain("...(props.query || {})");
     expect(code).toContain("buildInventoryFacets(");
@@ -315,7 +315,7 @@ describe("the list is usable at estate scale", () => {
   });
 
   test("the table accepts a page-supplied scope", () => {
-    // This is how the Overview's drill-downs narrow the list.
+    // Embedded tables can retain their own immutable base constraints.
     expect(code).toContain("...(props.query || {})");
   });
 
@@ -360,30 +360,37 @@ describe("the pages that mount the table", () => {
     );
   }
 
-  test("the Items page parses its scope out of the live location", () => {
-    /*
-     * A query-string-only change does not remount the page, so a scope
-     * captured at first render leaves the table showing the previous scope
-     * under the new banner.
-     */
+  test("the Items page normalizes scopes from the live location", () => {
+    // Query-only sidebar navigation must apply the new scope immediately.
     const items: string = readPage("Items.tsx");
 
     expect(items).toContain("useLocation()");
-    expect(items).toContain("parseInventoryScope");
+    expect(items).toContain(
+      "normalizeInventoryListFacetSearch( location.search,",
+    );
+    expect(items).toContain("key={`inventory-items-${location.search}`} ");
   });
 
-  test("the Items page always explains a scope it is under", () => {
+  test("legacy scope links redirect before the table restores its facet state", () => {
     const items: string = readPage("Items.tsx");
 
-    expect(items).toContain("describeInventoryScope");
-    expect(items).toContain('dataTestId="inventory-scope-banner"');
+    expect(items).toContain("if (normalizedSearch !== location.search)");
+    expect(items.indexOf("<Navigate")).toBeLessThan(
+      items.indexOf("<InventoryTable"),
+    );
+    expect(items).toContain("replace={true}");
+    expect(items).toContain("search: normalizedSearch");
+    expect(items).toContain("pathname: location.pathname");
+    expect(items).toContain("hash: location.hash");
+    expect(items).toContain("state={location.state}");
   });
 
-  test("the banner clears the scope", () => {
+  test("the Items page exposes scope through clearable facets", () => {
     const items: string = readPage("Items.tsx");
 
-    expect(items).toContain("onClose=");
-    expect(items).toContain("RouteMap[PageMap.INVENTORY_ITEMS] as Route");
+    expect(items).not.toContain("query={");
+    expect(items).not.toContain("inventory-scope-banner");
+    expect(items).not.toContain("buildInventoryScopeQuery");
   });
 
   test("the Overview folds one snapshot into both the tiles and the breakdown", () => {

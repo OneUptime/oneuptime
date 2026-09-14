@@ -665,7 +665,32 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getExceptionsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/exceptions/:id",
-    titles: ["Project", "Exceptions", "Exception Details"],
+    titles: ["Project", "Exceptions", "Exception", "Overview"],
+  },
+  {
+    getter: "getExceptionsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/exceptions/:id/stack-trace",
+    titles: ["Project", "Exceptions", "Exception", "Stack Trace"],
+  },
+  {
+    getter: "getExceptionsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/exceptions/:id/occurrences",
+    titles: ["Project", "Exceptions", "Exception", "Occurrences"],
+  },
+  {
+    getter: "getExceptionsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/exceptions/:id/context",
+    titles: ["Project", "Exceptions", "Exception", "Context"],
+  },
+  {
+    getter: "getExceptionsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/exceptions/:id/ai-assistance",
+    titles: ["Project", "Exceptions", "Exception", "AI Assistance"],
+  },
+  {
+    getter: "getExceptionsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/exceptions/:id/settings",
+    titles: ["Project", "Exceptions", "Exception", "Settings"],
   },
   {
     getter: "getExceptionsBreadcrumbs",
@@ -680,7 +705,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getExceptionsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/exceptions/overview",
-    titles: ["Project", "Exceptions", "Overview"],
+    titles: ["Project", "Exceptions", "Insights"],
   },
   {
     getter: "getExceptionsBreadcrumbs",
@@ -1502,6 +1527,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/workspace-connection-slack",
     titles: ["Project", "Monitors", "Slack"],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/on-call-duty/calendar-feeds",
+    titles: ["Project", "On-Call Duty", "Calendar Feeds"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -2831,6 +2861,16 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/calendar-feed",
+    titles: ["Project", "User Settings", "Calendar Feed"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/email-preferences",
+    titles: ["Project", "User Settings", "Email Preferences"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/user-settings/incident-episode-on-call-rules",
     titles: ["Project", "User Settings", "Incident Episode On-Call Rules"],
@@ -2906,6 +2946,154 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUsersBreadcrumbs",
     pagePattern: "/dashboard/:projectId/users/custom-fields",
     titles: ["Project", "Users", "Custom Fields"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware",
+    titles: ["Project", "VMware", "vCenters"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id",
+    titles: ["Project", "VMware", "View vCenter"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/alerts",
+    titles: ["Project", "VMware", "View vCenter", "Alerts"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/audit-logs",
+    titles: ["Project", "VMware", "View vCenter", "Audit Logs"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/clusters",
+    titles: ["Project", "VMware", "View vCenter", "Clusters"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/clusters/:subModelId",
+    titles: ["Project", "VMware", "View vCenter", "Clusters", "Cluster Detail"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/datastores",
+    titles: ["Project", "VMware", "View vCenter", "Datastores"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/datastores/:subModelId",
+    titles: [
+      "Project",
+      "VMware",
+      "View vCenter",
+      "Datastores",
+      "Datastore Detail",
+    ],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/delete",
+    titles: ["Project", "VMware", "View vCenter", "Delete vCenter"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/documentation",
+    titles: ["Project", "VMware", "View vCenter", "Documentation"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/feed",
+    titles: ["Project", "VMware", "View vCenter", "Feed"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/hosts",
+    titles: ["Project", "VMware", "View vCenter", "Hosts"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/hosts/:subModelId",
+    titles: ["Project", "VMware", "View vCenter", "Hosts", "Host Detail"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/incidents",
+    titles: ["Project", "VMware", "View vCenter", "Incidents"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/insights",
+    titles: ["Project", "VMware", "View vCenter", "Insights"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/logs",
+    titles: ["Project", "VMware", "View vCenter", "Logs"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/metrics",
+    titles: ["Project", "VMware", "View vCenter", "Metrics"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/owners",
+    titles: ["Project", "VMware", "View vCenter", "Owners"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/recommendations",
+    titles: ["Project", "VMware", "View vCenter", "Recommendations"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/resource-pools",
+    titles: ["Project", "VMware", "View vCenter", "Resource Pools"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/scheduled-maintenance",
+    titles: ["Project", "VMware", "View vCenter", "Scheduled Maintenance"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/settings",
+    titles: ["Project", "VMware", "View vCenter", "Settings"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/:id/virtual-machines",
+    titles: ["Project", "VMware", "View vCenter", "Virtual Machines"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/vmware/:id/virtual-machines/:subModelId",
+    titles: [
+      "Project",
+      "VMware",
+      "View vCenter",
+      "Virtual Machines",
+      "Virtual Machine Detail",
+    ],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/documentation",
+    titles: ["Project", "VMware", "Documentation"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/settings/label-rules",
+    titles: ["Project", "VMware", "Settings", "Label Rules"],
+  },
+  {
+    getter: "getVMwareBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/vmware/settings/owner-rules",
+    titles: ["Project", "VMware", "Settings", "Owner Rules"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",

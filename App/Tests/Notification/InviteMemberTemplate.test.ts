@@ -135,7 +135,7 @@ describe("InviteMember.hbs - an invitation that was accepted for the recipient",
     });
 
     test("it sends them to register, because they cannot sign in yet", () => {
-      expect(html).toContain(REGISTER_LINK);
+      expect(html).toContain(Handlebars.escapeExpression(REGISTER_LINK));
       expect(html).toContain("Create Your Account");
     });
 
@@ -188,7 +188,7 @@ describe("InviteMember.hbs - an ordinary invitation", () => {
     });
 
     test("it sends them to register", () => {
-      expect(html).toContain(REGISTER_LINK);
+      expect(html).toContain(Handlebars.escapeExpression(REGISTER_LINK));
       expect(html).toContain("Create Your Account");
       expect(html).not.toContain("Sign In to OneUptime");
     });

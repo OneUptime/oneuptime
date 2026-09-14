@@ -11,8 +11,11 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import MonitorService from "./MonitorService";
 import IncidentService from "./IncidentService";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -117,6 +120,7 @@ export class Service extends DatabaseService<Model> {
         publicNoteReminderIntervalInMinutes: true,
         internalNoteReminderTemplate: true,
         publicNoteReminderTemplate: true,
+        criteria: true,
         monitors: {
           _id: true,
         },
@@ -132,11 +136,17 @@ export class Service extends DatabaseService<Model> {
         incidentTitlePattern: true,
         incidentDescriptionPattern: true,
       },
-      limit: 100,
+      limit: MAX_RULES_EVALUATED_PER_PROJECT,
       skip: 0,
       props: {
         isRoot: true,
       },
+    });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentSlaRule",
+      projectId: data.projectId,
+      rulesRead: rules.length,
     });
 
     if (rules.length === 0) {
@@ -169,6 +179,56 @@ export class Service extends DatabaseService<Model> {
   public async doesIncidentMatchRule(
     incident: Incident,
     rule: Model,
+  ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule: rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "incidentLabels",
+        "monitorLabels",
+        "incidentTitlePattern",
+        "incidentDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (legacyRule: Model): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: ["monitorLabels"],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: Model,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: Model,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     logger.debug(
       `Checking if incident ${incident.id} matches SLA rule ${rule.name || rule.id}`,
@@ -276,17 +336,8 @@ export class Service extends DatabaseService<Model> {
               : undefined;
 
           if (monitorId) {
-            const monitor: Monitor | null = await MonitorService.findOneById({
-              id: monitorId,
-              select: {
-                labels: {
-                  _id: true,
-                },
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            const monitor: Monitor | null =
+              await monitorCache.getMonitor(monitorId);
 
             monitorLabels = monitor?.labels;
           }

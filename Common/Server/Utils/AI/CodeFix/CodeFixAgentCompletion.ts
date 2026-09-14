@@ -177,6 +177,15 @@ export default class CodeFixAgentCompletion {
     }
 
     /*
+     * The project's AI kill switch, before the provider is resolved. This
+     * route is reached by an authenticated agent worker rather than a
+     * browser, so a throw is the correct delivery: /ai-agent-data/
+     * llm-completion turns it into an error response the worker reads and
+     * stops its loop on.
+     */
+    await AIService.assertProjectAIEnabled(run.projectId);
+
+    /*
      * Metered-path provider resolution: project-owned first, else the global
      * provider — on cloud too, because this call is executed through
      * AIService.executeWithLogging and therefore billed/logged/budgeted.

@@ -50,6 +50,7 @@ podman compose up -d
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
 | `PODMAN_HOST_NAME` | No | Friendly name for this host (default: `podman-host`) |
+| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks (default: `1.44`). Set it to the socket's maximum on older hosts, or to the empty string to auto-negotiate |
 
 ## Image Tags
 
@@ -72,7 +73,7 @@ These metrics come from the `docker_stats` receiver, which works against Podman'
 
 ## Collected Logs
 
-Container logs are automatically collected from `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` (the k8s-file log driver's location) and enriched with container metadata (container id, image, runtime, host name) plus a derived severity — lines written to stderr become `ERROR` and lines written to stdout become `INFO`. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+Container logs are automatically collected from `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` (the k8s-file log driver's location) and enriched with container metadata (container id, image, runtime, host name) plus a derived severity. The severity is read from a level keyword in the line itself (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`, `level=error`); only lines with no recognisable level fall back to the stream, where stderr becomes `ERROR` and stdout becomes `INFO`. The keyword is only believed where a level actually sits — in the line's leading preamble, or as the value of a level field (`level`, `lvl`, `severity`, `levelname`, `log.level`) anywhere in the line — so an ordinary message that merely mentions "error" or "panic" in passing is not classified by it and keeps the stream default. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
 
 ### Log Driver Requirement
 
@@ -157,6 +158,36 @@ podman build -f ./PodmanAgent/Dockerfile -t oneuptime/podman-agent:local .
 ### Podman Socket Permission Denied
 
 The agent must run as root (`--user 0:0`) to access `/run/podman/podman.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present, and that the Podman socket is enabled (`systemctl enable --now podman.socket`).
+
+### Container Exits With "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+The `docker_stats` receiver speaks a pinned Docker API version to the socket
+(`DOCKER_API_VERSION`, default `1.44`). A Docker-API server that enforces a maximum
+client version refuses a newer one — Docker Engine reports it as above — so the
+receiver fails to start, the collector exits with it, and the container restart-loops.
+Set `DOCKER_API_VERSION` to the version the socket reports:
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+podman run -d ... -e DOCKER_API_VERSION=1.41 ...   # or set it in Compose
+```
+
+The value keeps working after an upgrade, since newer servers still serve older API
+versions, so it can be removed on its own schedule.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then negotiates the version with the socket (one `HEAD /_ping`,
+then the maximum the socket reports) instead of pinning one:
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### No Container Logs in the Dashboard
 

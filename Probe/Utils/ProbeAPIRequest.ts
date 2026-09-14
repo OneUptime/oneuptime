@@ -6,11 +6,27 @@ import URL from "Common/Types/API/URL";
 import { RequestOptions, RequestOutcome } from "Common/Utils/API";
 import { JSONObject } from "Common/Types/JSON";
 
+/*
+ * What this probe build can do, declared on every control-plane request so
+ * the server can tailor what it hands out to what the caller understands.
+ *
+ * "networkDevicePing": the network-device poll job pings devices and
+ * reports a top-level isOnline plus pingResponse, so the server may hand
+ * this probe credential-less (ping-only) devices. A probe WITHOUT this
+ * capability would receive such a device as an SNMP config with no
+ * community, default it to "public", fail the walk, and report the device
+ * Down — so the server drops ping-mode devices from an old probe's batch
+ * instead. Add to this list only when the code that honours the new
+ * capability ships in the same build.
+ */
+export const PROBE_CAPABILITIES: Array<string> = ["networkDevicePing"];
+
 export default class ProbeAPIRequest {
   public static getDefaultRequestBody(): JSONObject {
     return {
       probeKey: PROBE_KEY,
       probeId: ProbeUtil.getProbeId().toString(),
+      probeCapabilities: [...PROBE_CAPABILITIES],
     };
   }
 

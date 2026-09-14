@@ -20,6 +20,13 @@ export enum RequestFailedPhase {
   NetworkError = "Network Error",
   // Certificate error
   CertificateError = "Certificate Error",
+  /*
+   * The probe never opened a socket: it could not turn the target hostname
+   * into an address it is allowed to dial. Covers DNS failures and egress
+   * policy rejections, which are deliberately reported as one phase so a
+   * tenant cannot tell them apart (see EgressGuardException).
+   */
+  TargetResolution = "Target Resolution",
   // Unknown error
   Unknown = "Unknown",
 }

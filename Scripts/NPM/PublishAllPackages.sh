@@ -19,7 +19,8 @@ fi
 # You need to configure Trusted Publishers for each npm package:
 
 # Go to npmjs.com and log into your account
-# For each package (@oneuptime/common, @oneuptime/cli, etc.):
+# For each package (@oneuptime/common, @oneuptime/react-native-replay,
+# @oneuptime/cli, etc.):
 # Navigate to the package settings
 # Find the "Trusted Publisher" section
 # Click "GitHub Actions"
@@ -30,8 +31,9 @@ fi
 # Save the configuration
 
 publish_to_npm() {
-    directory_name=$1
+    local directory_name="$1"
     # Read the npm package name from the directory's package.json
+    local npm_package_name
     npm_package_name=$(node -p "require('./$directory_name/package.json').name")
 
     # Check if this version is already published on npm
@@ -41,23 +43,25 @@ publish_to_npm() {
     fi
 
     echo "Publishing $npm_package_name@$package_version to npm"
-    cd $directory_name
+    # Run each publish in a subshell. MobileRecorder is nested more deeply
+    # than Common and CLI, so `cd ..` cannot reliably return to the repo root.
+    (
+        cd "$directory_name"
 
-    # `--allow-same-version` because Scripts/Install/SyncPackageVersions.js
-    # (run via the workflow's `npm run prerun`) has already pinned every
-    # internal package.json to VERSION. Without this flag, `npm version`
-    # exits 1 with "Version not changed" and aborts the publish step.
-    npm version --allow-same-version $package_version
+        # `--allow-same-version` because Scripts/Install/SyncPackageVersions.js
+        # (run via the workflow's `npm run prerun`) has already pinned every
+        # internal package.json to VERSION. Without this flag, `npm version`
+        # exits 1 with "Version not changed" and aborts the publish step.
+        npm version --allow-same-version "$package_version"
 
-    # Replace any Common dependency with the pinned version being published
-    sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
-    sed -i "s/\"Common\": \"npm:@oneuptime\/common@latest\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
+        # Replace any Common dependency with the pinned version being published
+        sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
+        sed -i "s/\"Common\": \"npm:@oneuptime\/common@latest\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
 
-    npm install
-    npm run compile
-    npm publish --access public
-
-    cd ..
+        npm install
+        npm run compile
+        npm publish --access public
+    )
 }
 
 
@@ -82,4 +86,5 @@ done
 echo "@oneuptime/common@$package_version is now available on npm"
 
 # Publish packages that depend on Common (after Common is available on npm)
+publish_to_npm "App/FeatureSet/MobileRecorder"
 publish_to_npm "CLI"

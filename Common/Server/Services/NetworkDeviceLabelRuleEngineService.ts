@@ -10,6 +10,9 @@ import { LabelRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult"
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 /*
  * Bounds on one manual "Run now" of a label rule. The automatic path only
@@ -60,14 +63,21 @@ class NetworkDeviceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             networkDeviceLabels: { _id: true },
             networkDeviceNamePattern: true,
             networkDeviceDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "NetworkDeviceLabelRule",
+        projectId: networkDevice.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -186,6 +196,7 @@ class NetworkDeviceLabelRuleEngineServiceClass {
         select: {
           _id: true,
           name: true,
+          criteria: true,
           isEnabled: true,
           networkDeviceLabels: { _id: true },
           networkDeviceNamePattern: true,
@@ -374,6 +385,29 @@ class NetworkDeviceLabelRuleEngineServiceClass {
   }
 
   private doesNetworkDeviceMatchRule(
+    networkDevice: NetworkDevice,
+    rule: NetworkDeviceLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "networkDeviceLabels",
+        "networkDeviceNamePattern",
+        "networkDeviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        networkDeviceRule: NetworkDeviceLabelRule,
+      ): boolean => {
+        return this.doesNetworkDeviceMatchRuleLegacy(
+          networkDevice,
+          networkDeviceRule,
+        );
+      },
+    });
+  }
+
+  private doesNetworkDeviceMatchRuleLegacy(
     networkDevice: NetworkDevice,
     rule: NetworkDeviceLabelRule,
   ): boolean {

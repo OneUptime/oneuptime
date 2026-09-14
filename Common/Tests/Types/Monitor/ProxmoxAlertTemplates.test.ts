@@ -5,10 +5,19 @@ import {
   getProxmoxAlertTemplateById,
 } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
+import {
+  getComplementFilterType,
+  hasRecoveryDeadBand,
+} from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
-import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
@@ -80,6 +89,14 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
+    /*
+     * Two queries, not one: "down" alone is not an incident on a
+     * hypervisor, so pve_up is qualified by pve_onboot_status — Proxmox's
+     * own record of which guests are meant to be running. Both share the
+     * `id` group-by, which is what lets FilterCondition.All mean "the same
+     * guest". Min on both: a single down scrape trips the threshold, and a
+     * guest must have been marked start-on-boot in every scrape.
+     */
     id: "pve-guest-down",
     category: "Availability",
     severity: "Warning",
@@ -87,6 +104,11 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     queries: [
       {
         metricName: "pve_up",
+        aggregation: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "guest" },
+      },
+      {
+        metricName: "pve_onboot_status",
         aggregation: MetricsAggregationType.Min,
         attributes: { "pve.scope": "guest" },
       },
@@ -191,10 +213,18 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
+    /*
+     * Deliberately higher and slower than pve-node-high-cpu, and the only
+     * template that does not use the 5-minute window. `pve_cpu_usage_ratio`
+     * is usage as a fraction of AVAILABLE CPU, and a guest's "available" is
+     * its own vCPU allocation — a right-sized 2-vCPU guest running a build
+     * sits at 1.0 by design, so 0.9 over 5 minutes pages for a workload
+     * doing its job. 0.95 sustained across 15 minutes is starvation.
+     */
     id: "pve-guest-high-cpu",
     category: "Guest",
     severity: "Warning",
-    rollingTime: RollingTime.Past5Minutes,
+    rollingTime: RollingTime.Past15Minutes,
     queries: [
       {
         metricName: "pve_cpu_usage_ratio",
@@ -207,12 +237,12 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     fire: {
       alias: "guest_cpu",
       filterType: FilterType.GreaterThan,
-      value: 0.9,
+      value: 0.95,
     },
     recover: {
       alias: "guest_cpu",
       filterType: FilterType.LessThanOrEqualTo,
-      value: 0.9,
+      value: 0.95,
     },
   },
   {
@@ -421,28 +451,69 @@ function getReferencableAliases(
  * Fire and recover must be disjoint complements on the same alias —
  * otherwise the monitor either flaps (overlap) or wedges (gap).
  */
+/*
+ * Delegates to the shared assertion so all eight recommendation suites
+ * agree on what a correct fire/recover pair looks like. This function used
+ * to require `fire.value === recover.value` — see the comment in
+ * RecommendationCriteriaAssertions for why that was the bug rather than
+ * the invariant.
+ */
+/*
+ * Aliases backed by a strictly 0/1 gauge.
+ *
+ * `pve_up` only ever emits 0 or 1, and a boolean signal is conventionally
+ * thresholded at ONE ("up < 1" fires, "up >= 1" recovers). Widening that by
+ * the shared 10% dead band puts recovery at `>= 1.1`, which such a metric
+ * can never reach: the healthy criteria never matches and a node or guest
+ * that comes back never produces an Online transition. The templates over
+ * these aliases pass `isBinaryMetric` to suppress the band, so their fire
+ * and recover thresholds are the SAME number — correct here, and only here.
+ */
+const BINARY_METRIC_ALIASES: Set<string> = new Set<string>([
+  "node_up",
+  "guest_up",
+]);
+
+/*
+ * The recovery threshold a template must ship for a given firing pair:
+ * the derived dead band, except on a binary gauge where there is none.
+ */
+function expectedRecoveryValue(recover: {
+  alias: string;
+  filterType: FilterType;
+  value: number;
+}): number {
+  if (BINARY_METRIC_ALIASES.has(recover.alias)) {
+    return recover.value;
+  }
+
+  return (
+    getRecoveryThreshold({
+      filterType: getComplementFilterType(recover.filterType)!,
+      value: recover.value,
+    }) ?? recover.value
+  );
+}
+
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
+  metricAlias?: string,
 ): boolean {
-  if (fire.value !== recover.value) {
-    return false;
+  if (metricAlias && BINARY_METRIC_ALIASES.has(metricAlias)) {
+    /*
+     * A 0/1 gauge has no dead band to check, so the pair must be exact
+     * complements on the identical threshold: anything wider is
+     * unreachable (wedges the monitor offline) and anything narrower
+     * overlaps (flaps).
+     */
+    return (
+      getComplementFilterType(fire.filterType) === recover.filterType &&
+      recover.value === fire.value
+    );
   }
-  switch (fire.filterType) {
-    case FilterType.GreaterThan:
-      return (
-        recover.filterType === FilterType.LessThanOrEqualTo ||
-        (fire.value === 0 && recover.filterType === FilterType.EqualTo)
-      );
-    case FilterType.GreaterThanOrEqualTo:
-      return recover.filterType === FilterType.LessThan;
-    case FilterType.LessThan:
-      return recover.filterType === FilterType.GreaterThanOrEqualTo;
-    case FilterType.LessThanOrEqualTo:
-      return recover.filterType === FilterType.GreaterThan;
-    default:
-      return false;
-  }
+
+  return hasRecoveryDeadBand(fire, recover);
 }
 
 const ALL_TEMPLATES: Array<ProxmoxAlertTemplate> =
@@ -606,6 +677,7 @@ describe("ProxmoxAlertTemplates - enumerated invariants (every template)", () =>
                 filterType: recoverFilter.filterType,
                 value: recoverFilter.value as number,
               },
+              fireFilter.metricMonitorOptions.metricAlias,
             ),
           ).toBe(true);
         }
@@ -726,7 +798,265 @@ describe("ProxmoxAlertTemplates - spec table expectations", () => {
         tc.recover.alias,
       );
       expect(recoverFilter.filterType).toBe(tc.recover.filterType);
-      expect(recoverFilter.value).toBe(tc.recover.value);
+      /*
+       * The spec table states the FIRING threshold; the recovery threshold
+       * is derived from it so the dead band lives in one place rather than
+       * being restated in every spec table. A binary gauge gets no band —
+       * see BINARY_METRIC_ALIASES.
+       */
+      expect(recoverFilter.value).toBe(expectedRecoveryValue(tc.recover));
     },
   );
+});
+
+/*
+ * Regression suites below. Each pins a DEFECT that shipped, not merely the
+ * value that replaced it: reverting the fix must turn one of these red.
+ */
+
+function getTemplate(id: string): ProxmoxAlertTemplate {
+  const template: ProxmoxAlertTemplate | undefined =
+    getProxmoxAlertTemplateById(id);
+  if (!template) {
+    throw new Error(`template ${id} is not registered`);
+  }
+  return template;
+}
+
+function getFilters(instance: MonitorCriteriaInstance): Array<any> {
+  return (instance.data?.filters || []) as Array<any>;
+}
+
+function findFilterByAlias(
+  instance: MonitorCriteriaInstance,
+  alias: string,
+): any {
+  return getFilters(instance).find((filter: any) => {
+    return filter.metricMonitorOptions.metricAlias === alias;
+  });
+}
+
+describe("ProxmoxAlertTemplates - binary up-metric recovery (regression)", () => {
+  /*
+   * `pve_up` is strictly 0 or 1. The shared 10% recovery dead band, applied
+   * blindly, derives `>= 1.1` from a firing threshold of `< 1` — a value
+   * the metric can never emit, so the healthy criteria never matches and a
+   * node or guest that comes back stays Offline forever. Both templates
+   * must opt out via `isBinaryMetric`.
+   */
+  test.each([
+    ["pve-node-offline", "node_up"],
+    ["pve-guest-down", "guest_up"],
+  ])(
+    "%s recovers at exactly 1, never at the unreachable 1.1 dead band",
+    (id: string, alias: string) => {
+      const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+      const instances: Array<MonitorCriteriaInstance> =
+        getCriteriaInstances(step);
+      const recoverFilter: any = findFilterByAlias(
+        instances[instances.length - 1]!,
+        alias,
+      );
+
+      expect(recoverFilter).toBeDefined();
+      expect(recoverFilter.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+      expect(recoverFilter.value).toBe(1);
+      expect(recoverFilter.value).not.toBe(1.1);
+      // And the firing side still fires on the only other value it can see.
+      expect(findFilterByAlias(instances[0]!, alias).value).toBe(1);
+    },
+  );
+});
+
+describe("ProxmoxAlertTemplates - pve-guest-down onboot qualifier (regression)", () => {
+  const GUEST_DOWN: string = "pve-guest-down";
+
+  test("fires only for a guest Proxmox says should be running", () => {
+    const step: MonitorStep =
+      getTemplate(GUEST_DOWN).getMonitorStep(buildArgs());
+    const fireInstance: MonitorCriteriaInstance =
+      getCriteriaInstances(step)[0]!;
+
+    /*
+     * ALL, not Any. Combined per series (the two queries share the `id`
+     * group-by, so they land on one fingerprint), this reads "this guest is
+     * down AND this same guest is meant to be up". With Any it would fire
+     * for every guest that merely has onboot set.
+     */
+    expect(fireInstance.data?.filterCondition).toBe(FilterCondition.All);
+
+    const filters: Array<any> = getFilters(fireInstance);
+    expect(filters).toHaveLength(2);
+
+    const upFilter: any = findFilterByAlias(fireInstance, "guest_up");
+    expect(upFilter.filterType).toBe(FilterType.LessThan);
+    expect(upFilter.value).toBe(1);
+
+    const onbootFilter: any = findFilterByAlias(fireInstance, "guest_onboot");
+    expect(onbootFilter).toBeDefined();
+    expect(onbootFilter.filterType).toBe(FilterType.GreaterThan);
+    expect(onbootFilter.value).toBe(0);
+  });
+
+  test("recovers when the guest returns OR when onboot is turned off", () => {
+    const step: MonitorStep =
+      getTemplate(GUEST_DOWN).getMonitorStep(buildArgs());
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const recoverInstance: MonitorCriteriaInstance =
+      instances[instances.length - 1]!;
+
+    // Any: either half clears the alert.
+    expect(recoverInstance.data?.filterCondition).toBe(FilterCondition.Any);
+
+    const upFilter: any = findFilterByAlias(recoverInstance, "guest_up");
+    expect(upFilter.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(upFilter.value).toBe(1);
+
+    /*
+     * Required, not decorative: every firing alias needs a recovering
+     * filter on the same alias, or the monitor can never leave Offline once
+     * the onboot half has fired.
+     */
+    const onbootFilter: any = findFilterByAlias(
+      recoverInstance,
+      "guest_onboot",
+    );
+    expect(onbootFilter).toBeDefined();
+    expect(onbootFilter.filterType).toBe(FilterType.EqualTo);
+    // A 0-threshold pair gets no dead band, so this stays exactly 0.
+    expect(onbootFilter.value).toBe(0);
+  });
+
+  test("both queries fan out on the same `id`, or the AND is meaningless", () => {
+    const step: MonitorStep =
+      getTemplate(GUEST_DOWN).getMonitorStep(buildArgs());
+    const monitor: MonitorStepProxmoxMonitor = getProxmoxMonitor(step);
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+
+    expect(queryConfigs).toHaveLength(2);
+    for (const queryConfig of queryConfigs) {
+      /*
+       * Series fingerprints are computed from the grouped labels alone, so
+       * the two queries only correlate per guest while they share this key.
+       * Drop it from either and FilterCondition.All degrades to "some guest
+       * is down and some other guest has onboot set".
+       */
+      expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["id"]);
+      expect(queryConfig.metricQueryData.filterData.attributes).toEqual({
+        "pve.scope": "guest",
+      });
+    }
+    // No formula: the qualification happens in the criteria, not in a ratio.
+    expect(monitor.metricViewConfig.formulaConfigs).toHaveLength(0);
+  });
+
+  test("never tells the operator to re-scope the monitor themselves", () => {
+    const template: ProxmoxAlertTemplate = getTemplate(GUEST_DOWN);
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const fireInstance: MonitorCriteriaInstance =
+      getCriteriaInstances(step)[0]!;
+
+    /*
+     * The shipped template paged for every intentionally stopped guest and
+     * then instructed the recipient to add a `pve.id` filter by hand. A
+     * one-click template that needs hand-scoping before it is usable is not
+     * a one-click template; the onboot qualifier replaces that advice.
+     */
+    const prose: Array<string> = [
+      template.description,
+      fireInstance.data?.incidents?.[0]?.description || "",
+      fireInstance.data?.incidents?.[0]?.title || "",
+      fireInstance.data?.name || "",
+      fireInstance.data?.description || "",
+    ];
+
+    for (const text of prose) {
+      expect(text).not.toMatch(/add a `?pve\.id`? (attribute )?filter/i);
+    }
+  });
+});
+
+describe("ProxmoxAlertTemplates - guest vs node CPU asymmetry (regression)", () => {
+  const ROLLING_MINUTES: Record<string, number> = {
+    [RollingTime.Past5Minutes]: 5,
+    [RollingTime.Past15Minutes]: 15,
+  };
+
+  /*
+   * `pve_cpu_usage_ratio` is usage as a fraction of AVAILABLE CPU. For a
+   * node that is the hardware; for a guest it is the guest's own vCPU
+   * allocation, which the guest is entitled to spend. A right-sized 2-vCPU
+   * guest running a build, a backup or a vacuum sits at 1.0 by design, so
+   * the node's 0.9-over-5-minutes threshold pages for a workload doing
+   * exactly what it was provisioned to do.
+   *
+   * The asymmetry IS the fix. A later tidy-up that "harmonises" the two
+   * templates would silently restore the false page, so assert the
+   * relationship rather than only the numbers.
+   */
+  test("the guest template fires higher and waits longer than the node one", () => {
+    const nodeStep: MonitorStep =
+      getTemplate("pve-node-high-cpu").getMonitorStep(buildArgs());
+    const guestStep: MonitorStep =
+      getTemplate("pve-guest-high-cpu").getMonitorStep(buildArgs());
+
+    const nodeFire: any = findFilterByAlias(
+      getCriteriaInstances(nodeStep)[0]!,
+      "node_cpu",
+    );
+    const guestFire: any = findFilterByAlias(
+      getCriteriaInstances(guestStep)[0]!,
+      "guest_cpu",
+    );
+
+    expect(guestFire.value).toBeGreaterThan(nodeFire.value);
+
+    const nodeWindow: number =
+      ROLLING_MINUTES[getProxmoxMonitor(nodeStep).rollingTime as string]!;
+    const guestWindow: number =
+      ROLLING_MINUTES[getProxmoxMonitor(guestStep).rollingTime as string]!;
+    expect(guestWindow).toBeGreaterThan(nodeWindow);
+  });
+
+  test("pve-guest-high-cpu is 0.95 sustained across a 15-minute window", () => {
+    const step: MonitorStep =
+      getTemplate("pve-guest-high-cpu").getMonitorStep(buildArgs());
+    const monitor: MonitorStepProxmoxMonitor = getProxmoxMonitor(step);
+
+    expect(monitor.rollingTime).toBe(RollingTime.Past15Minutes);
+    expect(monitor.rollingTime).not.toBe(RollingTime.Past5Minutes);
+
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const fire: any = findFilterByAlias(instances[0]!, "guest_cpu");
+    expect(fire.filterType).toBe(FilterType.GreaterThan);
+    expect(fire.value).toBe(0.95);
+
+    /*
+     * The window is only patience because the quantifier is "every sample".
+     * With AnyValue a 15-minute window and a 1-minute window are identical
+     * for anything that spikes.
+     */
+    expect(fire.metricMonitorOptions.metricAggregationType).toBe(
+      EvaluateOverTimeType.AllValues,
+    );
+  });
+
+  test("pve-guest-high-cpu recovers at 0.855, strictly inside its firing threshold", () => {
+    const step: MonitorStep =
+      getTemplate("pve-guest-high-cpu").getMonitorStep(buildArgs());
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const recover: any = findFilterByAlias(
+      instances[instances.length - 1]!,
+      "guest_cpu",
+    );
+
+    expect(recover.filterType).toBe(FilterType.LessThanOrEqualTo);
+    // 95% minus the shared 10% dead band. A guest parked at 0.95 cannot toggle.
+    expect(recover.value).toBeCloseTo(0.855, 10);
+    expect(recover.value).toBeLessThan(0.95);
+  });
 });

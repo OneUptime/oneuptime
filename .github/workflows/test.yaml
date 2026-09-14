@@ -6,11 +6,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   # App tests run in the dedicated "App Test" workflow (test.app.yaml),
@@ -25,6 +24,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       # Home tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too —
       # otherwise transitive imports like moment-timezone fail to resolve.

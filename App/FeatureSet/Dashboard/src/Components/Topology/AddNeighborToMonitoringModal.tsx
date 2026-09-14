@@ -1,0 +1,522 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  NetworkTopologyEdge,
+  NetworkTopologyNode,
+} from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Route from "Common/Types/API/Route";
+import { JSONObject } from "Common/Types/JSON";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import Fields from "Common/UI/Components/Forms/Types/Fields";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ProbeUtil from "../../Utils/Probe";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import { HOSTNAME_FIELD_DESCRIPTION } from "../NetworkDevice/MonitoringMethodFormFields";
+import {
+  DEVICE_ROLE_DROPDOWN_MODAL,
+  DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_PLACEHOLDER,
+  DEVICE_ROLE_FIELD_TITLE,
+} from "../NetworkDevice/DeviceRoleFormFields";
+import {
+  SnmpConfigModelFields,
+  getSnmpConfigFormFields,
+} from "../../Pages/NetworkDevice/SnmpConfigFormFields";
+import { getMacAddressFormField } from "../../Pages/NetworkDevice/MacAddressFormField";
+import {
+  NeighborAdoptionDraft,
+  buildNeighborAdoptionDraft,
+  unanimousId,
+} from "./AdoptNeighborUtil";
+
+/*
+ * "Add to Monitoring" for an unmanaged neighbour on the topology map —
+ * issue #3435.
+ *
+ * The map has always known these devices: a CDP or LLDP neighbour with a
+ * name, a platform string and the switch port it hangs off. What it could
+ * not do was act on any of it, so an operator who spotted an unmonitored IP
+ * phone in their topology had to leave the map, open Network > Devices >
+ * Create, and retype what OneUptime had already discovered. This dialog is
+ * that trip, pre-filled.
+ *
+ * Every device it creates is probe-polled. The switch that reported the peer
+ * is polled by a probe that reaches the peer's port, so that probe can ping
+ * it — and pinging is all a device needs to have a status. There is no
+ * "how is this device monitored?" question to ask any more: the probe is
+ * required, SNMP credentials are optional, and a phone adopted with no
+ * credentials is simply pinged. (It used to open on a monitor-backed branch
+ * for leaf devices, which created a device nothing polled and left the
+ * operator hand-making a Ping monitor for it.)
+ *
+ * It deliberately reuses the SAME field helpers as the create form on the
+ * Devices list rather than declaring its own: two ways of creating one kind
+ * of device would drift, and the second one would be the one nobody
+ * remembers to update.
+ */
+
+export interface ComponentProps {
+  node: NetworkTopologyNode;
+  edges: Array<NetworkTopologyEdge>;
+  nodeById: Map<string, NetworkTopologyNode>;
+  onClose: () => void;
+  // Called after the device exists; the caller refetches the graph.
+  onSuccess: (device: NetworkDevice) => void;
+}
+
+/*
+ * What the adjacent managed devices agree on, and are therefore worth
+ * inheriting. Both are ids in string form because that is what a form
+ * dropdown option holds — an ObjectID instance would never compare equal.
+ */
+interface InheritedPlacement {
+  probeId?: string | undefined;
+  siteId?: string | undefined;
+}
+
+/*
+ * The SNMP step's copy, worded for a form that no longer asks how the device
+ * is monitored. The shared field helper's default community-string caption
+ * ("Required for SNMP V1 and V2c") was written for a form where reaching
+ * this step meant the operator had already chosen SNMP; here every device
+ * reaches it, and leaving the step empty is a legitimate answer.
+ */
+const SNMP_STEP_TITLE: string = "SNMP Credentials";
+
+const SNMP_STEP_DESCRIPTION: string =
+  "Optional. Leave the community string empty to ping only; add credentials for interfaces, inventory and health. A device without them is pinged by its probe and reads Up or Down from that alone — credentials can be added later on its Settings page.";
+
+const SNMP_COMMUNITY_FIELD_DESCRIPTION: string =
+  "Optional. Leave it empty to ping only; add it for interfaces, inventory and health. Used by SNMP V1 and V2c, not by V3.";
+
+const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [probes, setProbes] = useState<Array<Probe>>([]);
+  const [inherited, setInherited] = useState<InheritedPlacement>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  /*
+   * Worked out ONCE, when the dialog opens, and deliberately not kept in
+   * step with the map afterwards.
+   *
+   * The map behind this dialog refreshes every sixty seconds, and a
+   * refreshed graph is a new edge array and a new node map. Recomputing
+   * from those would mean a second switch starting to report this peer —
+   * or the peer moving ports — re-running the inheritance fetch, swapping
+   * the form for the loader, and discarding whatever the operator had
+   * typed, mid-wizard and with no explanation. The dialog is a form: it
+   * should be a snapshot of the moment it was opened. Its caller keys it on
+   * the node id, so a DIFFERENT node still gets a fresh one.
+   */
+  const [draft] = useState<NeighborAdoptionDraft>(() => {
+    return buildNeighborAdoptionDraft({
+      node: props.node,
+      edges: props.edges,
+      nodeById: props.nodeById,
+    });
+  });
+
+  // Snapshotted with the draft, for the reason the draft is.
+  const [nodeMacAddress] = useState<string | undefined>(() => {
+    return props.node.macAddress;
+  });
+
+  /*
+   * The ids of the managed devices this peer hangs off, as a stable string
+   * so the effect below does not refire on every render of an array that
+   * happens to be rebuilt each time.
+   */
+  const neighborDeviceIdKey: string = draft.links
+    .map((link: { deviceId: string }) => {
+      return link.deviceId;
+    })
+    .join(",");
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    const load: () => Promise<void> = async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const allProbes: Array<Probe> = await ProbeUtil.getAllProbes();
+
+        /*
+         * The switches this peer is cabled to. A device on a switch port is
+         * on that switch's network, so the probe that reaches the switch
+         * reaches it and the site that contains the switch contains it —
+         * which is the difference between a form with two more fields to
+         * fill in and one the operator can submit as it stands.
+         */
+        const neighborIds: Array<string> = neighborDeviceIdKey
+          .split(",")
+          .filter((id: string) => {
+            return id.length > 0;
+          });
+
+        let placement: InheritedPlacement = {};
+
+        if (neighborIds.length > 0) {
+          const neighbors: ListResult<NetworkDevice> =
+            await ModelAPI.getList<NetworkDevice>({
+              modelType: NetworkDevice,
+              query: {
+                _id: new Includes(neighborIds),
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              select: {
+                _id: true,
+                probeId: true,
+                siteId: true,
+              },
+              sort: {},
+            });
+
+          placement = {
+            probeId: unanimousId(
+              neighbors.data.map((device: NetworkDevice) => {
+                return device.probeId?.toString();
+              }),
+            ),
+            siteId: unanimousId(
+              neighbors.data.map((device: NetworkDevice) => {
+                return device.siteId?.toString();
+              }),
+            ),
+          };
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProbes(allProbes);
+        setInherited(placement);
+      } catch (err) {
+        if (isMounted) {
+          setError(API.getFriendlyMessage(err));
+        }
+      }
+
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+
+    load().catch((err: Error) => {
+      if (isMounted) {
+        setError(API.getFriendlyMessage(err));
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [neighborDeviceIdKey]);
+
+  /*
+   * Built only once the probe list has landed, because BasicForm reads
+   * initialValues ONCE — on the first render in which the fields exist —
+   * and a probe id seeded before its dropdown had options would be seeded
+   * into a form that then never re-reads it.
+   */
+  const initialValues: FormValues<NetworkDevice> = useMemo(() => {
+    const values: Record<string, unknown> = {
+      name: draft.name,
+      hostname: draft.hostname,
+      description: draft.description,
+    };
+
+    /*
+     * The role is a relation, so the form is seeded with the ROW's id rather
+     * than the classifier's key. A payload from a project with no row for
+     * that role carries no id and the field simply opens empty - which is the
+     * honest state: there is nothing to assign.
+     */
+    if (draft.networkDeviceRoleId) {
+      values["networkDeviceRole"] = draft.networkDeviceRoleId;
+    }
+
+    /*
+     * Seeded for EVERY device, whatever its role. A phone is as probe-polled
+     * as a switch now — the probe pings it — so the probe its neighbours
+     * agree on is the right head start for a leaf device exactly as it is
+     * for an uplink. (The seed used to be withheld from leaf devices, which
+     * opened on a monitor-backed branch with the probe field hidden.)
+     */
+    if (inherited.probeId) {
+      values["probe"] = inherited.probeId;
+    }
+
+    if (inherited.siteId) {
+      values["site"] = inherited.siteId;
+    }
+
+    /*
+     * A node that already knows its MAC - an endpoint the switch learned
+     * from its forwarding table - hands it over, so the adopted device
+     * stays on that port without the operator retyping it. An unmanaged
+     * LLDP/CDP peer generally carries none, and the field opens empty.
+     */
+    if (nodeMacAddress) {
+      values["macAddress"] = nodeMacAddress;
+    }
+
+    return values as FormValues<NetworkDevice>;
+  }, [draft, inherited.probeId, inherited.siteId, nodeMacAddress]);
+
+  const formFields: Fields<NetworkDevice> = useMemo(() => {
+    /*
+     * The shared SNMP fields, with the step's own heading on the first of
+     * them. The step is walked through by every device, so the heading is
+     * where the operator learns that leaving it empty is an answer.
+     */
+    const snmpFields: Fields<SnmpConfigModelFields> = getSnmpConfigFormFields({
+      stepId: "snmp",
+      communityStringDescription: SNMP_COMMUNITY_FIELD_DESCRIPTION,
+    }).map((field: Field<SnmpConfigModelFields>, index: number) => {
+      if (index !== 0) {
+        return field;
+      }
+
+      return {
+        ...field,
+        sectionTitle: SNMP_STEP_TITLE,
+        sectionDescription: SNMP_STEP_DESCRIPTION,
+      };
+    });
+
+    return [
+      {
+        field: {
+          name: true,
+        },
+        title: "Name",
+        stepId: "device-details",
+        fieldType: FormFieldSchemaType.Text,
+        required: true,
+        /*
+         * The one field on this form with a wrong answer that is not
+         * obviously wrong. The map re-attaches this device to the cable it
+         * was discovered on by comparing what its neighbours advertise
+         * against this name and the hostname below — so a friendlier name
+         * typed here, with no hostname the neighbours would recognise,
+         * leaves the peer on the map as a separate unmanaged node.
+         */
+        description:
+          "The name this device advertises to its neighbours. Keep it, or set the hostname below to an address they report, so the map recognises this device as the one it already draws.",
+        placeholder: "core-switch-01",
+      },
+      {
+        field: {
+          hostname: true,
+        },
+        title: "Hostname",
+        stepId: "device-details",
+        fieldType: FormFieldSchemaType.Text,
+        required: true,
+        placeholder: "10.0.0.1 or switch-01.example.com",
+        description: HOSTNAME_FIELD_DESCRIPTION,
+      },
+      /*
+       * The same shared field as the create form, for the same reason the
+       * SNMP fields are: a peer adopted from the map is the device most
+       * likely to be ping-only, and its MAC is what keeps it on the switch
+       * port it was discovered on once the neighbour report that drew it
+       * here is gone.
+       */
+      getMacAddressFormField({ stepId: "device-details" }),
+      {
+        field: {
+          networkDeviceRole: true,
+        },
+        title: DEVICE_ROLE_FIELD_TITLE,
+        stepId: "device-details",
+        description: DEVICE_ROLE_FIELD_DESCRIPTION,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
+        required: false,
+        placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
+      },
+      {
+        field: {
+          description: true,
+        },
+        title: "Description",
+        stepId: "device-details",
+        fieldType: FormFieldSchemaType.LongText,
+        required: false,
+        placeholder: "Where this device was discovered",
+      },
+      {
+        field: {
+          probe: true,
+        },
+        title: "Probe",
+        stepId: "probe-and-site",
+        /*
+         * Required, for every device: a probe-polled device with no probe is
+         * claimed by nothing and never polls, which is the "Pending forever"
+         * this flow exists to end. The server does not insist (API and
+         * Terraform callers may set it later), so the form does.
+         */
+        description:
+          "The probe that polls this device: it pings it on its schedule, and walks it over SNMP as well when the next step has credentials. It has to reach the device directly, so the probe already polling the switch this device hangs off is pre-selected when every neighbouring device agrees on one.",
+        sideLink: {
+          text: "Create a custom probe",
+          url: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+          ),
+          openLinkInNewTab: true,
+        },
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: probes
+          .filter((probe: Probe) => {
+            return Boolean(probe.name && probe._id);
+          })
+          .map((probe: Probe) => {
+            return {
+              label: probe.name!,
+              value: probe._id!,
+            };
+          }),
+        required: true,
+        placeholder: "Probe",
+      },
+      {
+        field: {
+          site: true,
+        },
+        title: "Site",
+        stepId: "probe-and-site",
+        description:
+          "The network site this device belongs to. Pre-selected from the devices it is cabled to when they all agree.",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownModal: {
+          type: NetworkSite,
+          labelField: "name",
+          valueField: "_id",
+        },
+        required: false,
+        placeholder: "Select Site (optional)",
+      },
+      ...snmpFields,
+    ] as Fields<NetworkDevice>;
+  }, [probes]);
+
+  /*
+   * One button on each of these two, not two. ConfirmModal renders a close
+   * button whenever onClose is set AND a submit button for onSubmit, so
+   * wiring both to "dismiss this" put two controls side by side — and on
+   * the loading branch the second was the word "Cancel" rendered disabled
+   * under a spinner.
+   */
+  if (error) {
+    return (
+      <ConfirmModal
+        title={`Add ${props.node.name} to monitoring`}
+        description={error}
+        submitButtonText="Close"
+        onSubmit={props.onClose}
+      />
+    );
+  }
+
+  if (isLoading) {
+    /*
+     * Held behind a loader rather than opened empty and filled in later.
+     * BasicForm reads its initial values ONCE, on the first render in which
+     * the fields exist, so a probe or a site that landed afterwards would be
+     * computed correctly and then never reach a single field.
+     */
+    return (
+      <ConfirmModal
+        title={`Add ${props.node.name} to monitoring`}
+        description="Reading what the map already knows about this device..."
+        submitButtonText="Cancel"
+        onSubmit={props.onClose}
+      />
+    );
+  }
+
+  return (
+    <ModelFormModal<NetworkDevice>
+      modelType={NetworkDevice}
+      name="Add Unmanaged Neighbour To Monitoring"
+      title={`Add ${props.node.name} to monitoring`}
+      description={[draft.provenance, ...draft.warnings].join(" ")}
+      submitButtonText="Add Device"
+      modalWidth={ModalWidth.Medium}
+      initialValues={initialValues}
+      onClose={props.onClose}
+      /*
+       * The method is written by the dialog, not left to the column default.
+       * ModelForm only sends the fields it renders, and this form renders no
+       * method picker — every neighbour it adopts is probe-polled, and the
+       * draft says so. Stating it on the way out keeps that true even on a
+       * deployment whose column default has not been migrated yet.
+       */
+      onBeforeCreate={(
+        device: NetworkDevice,
+        _miscDataProps: JSONObject,
+      ): Promise<NetworkDevice> => {
+        device.monitoringMethod = draft.monitoringMethod;
+        return Promise.resolve(device);
+      }}
+      onSuccess={(device: NetworkDevice) => {
+        props.onSuccess(device);
+      }}
+      formProps={{
+        name: "Add Unmanaged Neighbour To Monitoring",
+        modelType: NetworkDevice,
+        id: "add-neighbor-to-monitoring-form",
+        formType: FormType.Create,
+        steps: [
+          {
+            title: "Device Details",
+            id: "device-details",
+          },
+          {
+            title: "Probe & Site",
+            id: "probe-and-site",
+          },
+          {
+            /*
+             * Walked through by every device, and optional for every device:
+             * a neighbour adopted with no credentials is pinged by its probe,
+             * and the step's own heading says so.
+             */
+            title: SNMP_STEP_TITLE,
+            id: "snmp",
+          },
+        ],
+        fields: formFields,
+      }}
+    />
+  );
+};
+
+export default AddNeighborToMonitoringModal;

@@ -24,9 +24,11 @@ import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
-import Dictionary from "../Types/Dictionary";
 import { JSONObject } from "../Types/JSON";
 import Version from "../Types/Version";
+import getBrowserTelemetryConfig, {
+  BrowserTelemetryConfig,
+} from "./Utils/Telemetry/BrowserTelemetryConfig";
 
 type GetAllEnvVarsFunction = () => JSONObject;
 
@@ -215,40 +217,20 @@ export const AnalyticsHost: string = env("ANALYTICS_HOST");
 export const GitSha: string = env("GIT_SHA") || "";
 export const AppVersion: string = env("APP_VERSION") || "";
 
-export const OpenTelemetryExporterOtlpEndpoint: URL | null = env(
-  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
-)
-  ? URL.fromString(env("OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT").toString())
-  : null;
+const BrowserTelemetryEnvironmentConfig: BrowserTelemetryConfig =
+  getBrowserTelemetryConfig(env);
 
-type GetOpenTelemetryExporterOtlpHeadersFunction = () => Dictionary<string>;
+export const BrowserOpenTelemetryExporterOtlpEndpoint: URL | null =
+  BrowserTelemetryEnvironmentConfig.endpoint;
 
-const getOpenTelemetryExporterOtlpHeaders: GetOpenTelemetryExporterOtlpHeadersFunction =
-  (): Dictionary<string> => {
-    if (!env("OPENTELEMETRY_EXPORTER_OTLP_HEADERS")) {
-      return {};
-    }
-
-    const headersStrings: Array<string> = env(
-      "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
-    )
-      .toString()
-      .split(";");
-
-    const headers: Dictionary<string> = {};
-
-    for (const headerString of headersStrings) {
-      const header: Array<string> = headerString.split("=");
-      if (header.length === 2) {
-        headers[header[0]!.toString()] = header[1]!.toString();
-      }
-    }
-
-    return headers;
-  };
-
-export const OpenTelemetryExporterOtlpHeaders: Dictionary<string> =
-  getOpenTelemetryExporterOtlpHeaders();
+/*
+ * This value is intentionally public: it is injected into env.js. It must be
+ * a OneUptime Browser ingestion key, whose origin/surface/rate restrictions
+ * are enforced at ingest. Generic backend exporter headers are never read by
+ * browser code.
+ */
+export const BrowserOpenTelemetryExporterOtlpIngestionKey: string =
+  BrowserTelemetryEnvironmentConfig.browserIngestionKey;
 
 export const DisableTelemetry: boolean = env("DISABLE_TELEMETRY") === "true";
 

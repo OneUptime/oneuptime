@@ -5,8 +5,15 @@ import {
   getCephAlertTemplateById,
 } from "../../../Types/Monitor/CephAlertTemplates";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
+import {
+  getComplementFilterType,
+  hasRecoveryDeadBand,
+} from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
-import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepCephMonitor, {
+  CephResourceScope,
+} from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
@@ -35,10 +42,12 @@ import ObjectID from "../../../Types/ObjectID";
  *
  *   2. A per-template expectation table pins the spec'd v3 WI-26 rows
  *      (severity / filter / Past1Minute exceptions / the
- *      MON_DISK_CRIT-before-MON_DISK_LOW criteria ordering) and the v2
- *      decisions (Sum/Sum same-receiver ratios; the pg-inactive
- *      Sum-difference fix — Max/Max would hide inactive PGs in every
- *      pool but the largest).
+ *      MON_DISK_CRIT / MON_DISK_LOW severity split) and the
+ *      aggregation decisions: Sum/Sum for same-receiver RATIOS, and
+ *      grouped Max/Max for the pg-inactive DIFFERENCE — a difference
+ *      does not cancel the scrape multiple the way a ratio does, so
+ *      ungrouped Sum reported a scrape-multiplied PG count and
+ *      ungrouped Max would have hidden every pool but the largest.
  */
 
 interface ThresholdExpectation {
@@ -260,6 +269,11 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
     },
   },
   {
+    /*
+     * ceph_pg_degraded is a PER-POOL gauge (pool_id label). Grouped Max
+     * reports the pool's own degraded count and names the pool; ungrouped
+     * Max reported the largest pool's count as if it were a cluster total.
+     */
     id: "ceph-pg-degraded",
     category: "PG",
     severity: "Warning",
@@ -268,7 +282,7 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
     queries: [
       { alias: "pg_degraded", metricName: "ceph_pg_degraded", attributes: {} },
     ],
-    groupBy: null,
+    groupBy: "pool_id",
     formula: null,
     fireCriteria: [
       [{ alias: "pg_degraded", filterType: FilterType.GreaterThan, value: 0 }],
@@ -282,6 +296,7 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
     },
   },
   {
+    // Per-pool gauge, same contract as ceph-pg-degraded above.
     id: "ceph-pg-undersized",
     category: "PG",
     severity: "Warning",
@@ -294,7 +309,7 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
         attributes: {},
       },
     ],
-    groupBy: null,
+    groupBy: "pool_id",
     formula: null,
     fireCriteria: [
       [
@@ -315,22 +330,26 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
   },
   {
     /*
-     * Sum/Sum difference — ceph_pg_total / ceph_pg_active are PER-POOL
-     * series; Sum folds every pool into a cluster count and the scrape
-     * multiple scales both terms equally. Max would collapse each side
-     * to the largest pool and this Critical alert would never fire for
-     * inactive PGs in any other pool.
+     * GROUPED Max/Max difference. ceph_pg_total / ceph_pg_active are
+     * PER-POOL series, and a difference does not cancel the scrape
+     * multiple the way a ratio does: ungrouped Sum/Sum folded both the
+     * pools AND the two 30s scrapes inside each one-minute bucket into the
+     * value, so a cluster with 3 inactive PGs was alerted as "6". Grouped
+     * Max de-duplicates the scrapes per (pool, minute) and yields that
+     * pool's exact inactive count. Ungrouped Max would be wrong for the
+     * opposite reason — each side collapses to the largest pool — so the
+     * group-by and the aggregation belong together.
      */
     id: "ceph-pg-inactive",
     category: "PG",
     severity: "Critical",
     rollingTime: RollingTime.Past5Minutes,
-    aggregation: MetricsAggregationType.Sum,
+    aggregation: MetricsAggregationType.Max,
     queries: [
       { alias: "pg_total", metricName: "ceph_pg_total", attributes: {} },
       { alias: "pg_active", metricName: "ceph_pg_active", attributes: {} },
     ],
-    groupBy: null,
+    groupBy: "pool_id",
     formula: "pg_total - pg_active",
     fireCriteria: [
       [{ alias: "pg_inactive", filterType: FilterType.GreaterThan, value: 0 }],
@@ -721,9 +740,10 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
   },
   {
     /*
-     * Two-tier template: MON_DISK_CRIT (Critical) is evaluated BEFORE
-     * MON_DISK_LOW (Warning) — criteria are first-match-wins, so the
-     * worst tier must come first or it could never fire.
+     * MON_DISK_CRIT and MON_DISK_LOW are two SEPARATE templates, not two
+     * tiers of one. The create flow stamps every criteria instance in a step
+     * with the recommendation's single declared severity, so a Warning tier
+     * riding along inside this Critical template paged at Critical.
      */
     id: "ceph-mon-disk-space",
     category: "Cluster Health",
@@ -736,11 +756,6 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
         metricName: "ceph_health_detail",
         attributes: { name: "MON_DISK_CRIT" },
       },
-      {
-        alias: "mon_disk_low",
-        metricName: "ceph_health_detail",
-        attributes: { name: "MON_DISK_LOW" },
-      },
     ],
     groupBy: null,
     formula: null,
@@ -752,14 +767,38 @@ const EXPECTED_TEMPLATES: Array<CephTemplateExpectation> = [
           value: 0,
         },
       ],
-      [{ alias: "mon_disk_low", filterType: FilterType.GreaterThan, value: 0 }],
     ],
     recover: {
       filters: [
         { alias: "mon_disk_crit", filterType: FilterType.EqualTo, value: 0 },
+      ],
+      condition: FilterCondition.Any,
+      treatNoDataAsZero: true,
+    },
+  },
+  {
+    id: "ceph-mon-disk-low",
+    category: "Cluster Health",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    queries: [
+      {
+        alias: "mon_disk_low",
+        metricName: "ceph_health_detail",
+        attributes: { name: "MON_DISK_LOW" },
+      },
+    ],
+    groupBy: null,
+    formula: null,
+    fireCriteria: [
+      [{ alias: "mon_disk_low", filterType: FilterType.GreaterThan, value: 0 }],
+    ],
+    recover: {
+      filters: [
         { alias: "mon_disk_low", filterType: FilterType.EqualTo, value: 0 },
       ],
-      condition: FilterCondition.All,
+      condition: FilterCondition.Any,
       treatNoDataAsZero: true,
     },
   },
@@ -841,28 +880,18 @@ function getReferencableAliases(monitor: MonitorStepCephMonitor): Set<string> {
   return aliases;
 }
 
+/*
+ * Delegates to the shared assertion so all eight recommendation suites
+ * agree on what a correct fire/recover pair looks like. This function used
+ * to require `fire.value === recover.value` — see the comment in
+ * RecommendationCriteriaAssertions for why that was the bug rather than
+ * the invariant.
+ */
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
 ): boolean {
-  if (fire.value !== recover.value) {
-    return false;
-  }
-  switch (fire.filterType) {
-    case FilterType.GreaterThan:
-      return (
-        recover.filterType === FilterType.LessThanOrEqualTo ||
-        (fire.value === 0 && recover.filterType === FilterType.EqualTo)
-      );
-    case FilterType.GreaterThanOrEqualTo:
-      return recover.filterType === FilterType.LessThan;
-    case FilterType.LessThan:
-      return recover.filterType === FilterType.GreaterThanOrEqualTo;
-    case FilterType.LessThanOrEqualTo:
-      return recover.filterType === FilterType.GreaterThan;
-    default:
-      return false;
-  }
+  return hasRecoveryDeadBand(fire, recover);
 }
 
 // Health-check series exist only while their check is active.
@@ -908,8 +937,10 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
     const instances: Array<MonitorCriteriaInstance> =
       getCriteriaInstances(step);
     /*
-     * ceph-mon-disk-space carries a third (Warning-tier) instance —
-     * assert at-least-2, never exactly-2.
+     * One unhealthy instance plus the Healthy recovery. Asserted as
+     * at-least-2 rather than exactly-2 so a future template may add an extra
+     * unhealthy tier — but only where every tier means the SAME severity,
+     * because the create flow stamps one severity across the whole step.
      */
     expect(instances.length).toBeGreaterThanOrEqual(2);
 
@@ -990,6 +1021,135 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
            * `resource.`-prefixed in ClickHouse.
            */
           expect(["ceph_daemon", "pool_id"]).toContain(key);
+        }
+      }
+    },
+  );
+
+  test.each(
+    ALL_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s groups every per-pool metric by pool_id",
+    (_id: unknown, template: unknown) => {
+      /*
+       * REGRESSION (ceph-pg-degraded / ceph-pg-undersized / ceph-pg-inactive):
+       * every ceph_pg_* and ceph_pool_* series is exported PER POOL with a
+       * `pool_id` datapoint label — there is no cluster-wide gauge. Without a
+       * group-by the whole pool fan-out collapses into ONE number: the
+       * ungrouped aggregation folds every pool together, so the alert printed
+       * the worst single pool's count (Max) or a scrape-multiplied sum (Sum)
+       * and presented it as a cluster total, and the evaluator never produced
+       * seriesLabels, so the incident could not name the pool the operator has
+       * to go look at.
+       *
+       * Driven off the catalog's own defaultResourceScope so any FUTURE
+       * per-pool template inherits the rule instead of repeating the mistake.
+       */
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+      const monitor: MonitorStepCephMonitor = getCephMonitor(step);
+
+      for (const queryConfig of monitor.metricViewConfig
+        .queryConfigs as Array<any>) {
+        const metricName: string =
+          queryConfig.metricQueryData.filterData.metricName;
+
+        if (
+          getCephMetricByMetricName(metricName)?.defaultResourceScope !==
+          CephResourceScope.Pool
+        ) {
+          continue;
+        }
+
+        expect(queryConfig.metricQueryData.groupByAttributeKeys || []).toEqual([
+          "pool_id",
+        ]);
+      }
+    },
+  );
+
+  test.each(
+    ALL_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s groups every per-daemon metric by ceph_daemon",
+    (_id: unknown, template: unknown) => {
+      /*
+       * The mirror of the pool rule: OSD- and Mon-scoped series carry a
+       * `ceph_daemon` label, so one incident must fire per daemon. This locks
+       * in the existing osd-down / osd-out / osd-high-latency / mon-quorum /
+       * daemon-slow-ops choices against the same collapse.
+       */
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+      const monitor: MonitorStepCephMonitor = getCephMonitor(step);
+
+      for (const queryConfig of monitor.metricViewConfig
+        .queryConfigs as Array<any>) {
+        const metricName: string =
+          queryConfig.metricQueryData.filterData.metricName;
+        const scope: CephResourceScope | undefined =
+          getCephMetricByMetricName(metricName)?.defaultResourceScope;
+
+        if (
+          scope !== CephResourceScope.Osd &&
+          scope !== CephResourceScope.Mon
+        ) {
+          continue;
+        }
+
+        expect(queryConfig.metricQueryData.groupByAttributeKeys || []).toEqual([
+          "ceph_daemon",
+        ]);
+      }
+    },
+  );
+
+  test.each(
+    ALL_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s never subtracts two ungrouped per-series metrics",
+    (_id: unknown, template: unknown) => {
+      /*
+       * REGRESSION (ceph-pg-inactive): an UNGROUPED difference has no correct
+       * aggregation at all, which is why this is asserted as its own
+       * invariant rather than left to the aggregation rule above.
+       *
+       * A one-minute bucket holds one row per (series, scrape) and the shipped
+       * agent scrapes every 30s, so ungrouped Sum returns 2·Σpools — a cluster
+       * with 3 inactive PGs was alerted as "6", and as a different multiple in
+       * each bucket of the window because the bucket boundaries do not divide
+       * the scrape train evenly. Ungrouped Max is worse: it collapses each
+       * side to the largest pool and the difference stops meaning anything.
+       * Only grouping makes the subtraction well-defined.
+       */
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+      const monitor: MonitorStepCephMonitor = getCephMonitor(step);
+      const formulaConfigs: Array<any> = (monitor.metricViewConfig
+        .formulaConfigs || []) as Array<any>;
+
+      for (const formulaConfig of formulaConfigs) {
+        const formula: string =
+          formulaConfig.metricFormulaData.metricFormula || "";
+
+        if (!formula.includes("-")) {
+          continue;
+        }
+
+        for (const queryConfig of monitor.metricViewConfig
+          .queryConfigs as Array<any>) {
+          expect(
+            (queryConfig.metricQueryData.groupByAttributeKeys || []).length,
+          ).toBeGreaterThan(0);
         }
       }
     },
@@ -1087,7 +1247,7 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
       return [t.id, t];
     }),
   )(
-    "%s ratio/formula queries use Sum on both sides (same-receiver contract)",
+    "%s formula queries share one aggregation, chosen by formula shape",
     (_id: unknown, template: unknown) => {
       const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
         buildArgs(),
@@ -1102,17 +1262,37 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
         return;
       }
 
-      /*
-       * Every Ceph metric rides ONE receiver (the active mgr scrape),
-       * so every formula — ratio or difference — must aggregate Sum on
-       * every side: the scrape multiple cancels (ratios) or scales both
-       * terms equally (differences). Max/Max would collapse ungrouped
-       * per-pool series to the largest pool and hide every other pool.
-       */
       expect(formulaConfigs).toHaveLength(1);
+
+      const formula: string =
+        formulaConfigs[0].metricFormulaData.metricFormula || "";
+      const isDifference: boolean = formula.includes("-");
+      const isGrouped: boolean =
+        (queryConfigs[0].metricQueryData.groupByAttributeKeys || []).length > 0;
+
+      /*
+       * Every Ceph metric rides ONE receiver (the active mgr scrape), so
+       * both sides of a formula must share ONE aggregation. WHICH one is a
+       * function of the shape:
+       *
+       *  - RATIO: Sum. The per-bucket scrape multiple cancels between the
+       *    numerator and the denominator, so the percentage is exact.
+       *  - grouped DIFFERENCE: Max. Nothing cancels, so Sum would add the
+       *    identical scrapes inside one (series, minute) bucket and
+       *    multiply the reported count. Max de-duplicates them.
+       *  - ungrouped DIFFERENCE: there is NO correct aggregation — Sum
+       *    multiplies by the scrape count, Max collapses each side to the
+       *    largest series. The separate "difference formulas must be
+       *    grouped" invariant below rejects that shape outright.
+       */
+      const expectedAggregation: MetricsAggregationType =
+        isGrouped && isDifference
+          ? MetricsAggregationType.Max
+          : MetricsAggregationType.Sum;
+
       for (const queryConfig of queryConfigs) {
         expect(queryConfig.metricQueryData.filterData.aggegationType).toBe(
-          MetricsAggregationType.Sum,
+          expectedAggregation,
         );
       }
 
@@ -1215,7 +1395,19 @@ describe("CephAlertTemplates - spec table expectations", () => {
           expectedFilter.alias,
         );
         expect(onlineFilters[j].filterType).toBe(expectedFilter.filterType);
-        expect(onlineFilters[j].value).toBe(expectedFilter.value);
+        /*
+         * The spec table states the FIRING threshold. The recovery
+         * threshold is derived from it, so the table does not have to
+         * restate every dead-banded number — and so a change to the dead
+         * band shows up as a behaviour change in one place rather than as
+         * a diff across nine spec tables.
+         */
+        expect(onlineFilters[j].value).toBe(
+          getRecoveryThreshold({
+            filterType: getComplementFilterType(expectedFilter.filterType)!,
+            value: expectedFilter.value,
+          }) ?? expectedFilter.value,
+        );
         if (tc.recover.treatNoDataAsZero) {
           expect(onlineFilters[j].metricMonitorOptions.onNoDataPolicy).toBe(
             NoDataPolicy.TreatAsZero,
@@ -1228,4 +1420,181 @@ describe("CephAlertTemplates - spec table expectations", () => {
       }
     },
   );
+});
+
+describe("CephAlertTemplates - per-pool PG accounting regressions", () => {
+  /*
+   * These three templates read ceph_pg_* series, which the mgr exports once
+   * per pool. They all shipped UNGROUPED, which is what produced the
+   * "the values do not make any sense at all" reports: with no group-by the
+   * whole pool fan-out is folded into one number before the threshold is
+   * ever compared, and no seriesLabels are produced so the incident cannot
+   * say which pool it is about.
+   *
+   * The spec table above already pins the resulting config; these tests
+   * restate the defect by name so a revert fails with a sentence that
+   * explains itself rather than with an opaque table mismatch.
+   */
+
+  function getQueryConfigs(templateId: string): Array<any> {
+    const template: CephAlertTemplate | undefined =
+      getCephAlertTemplateById(templateId);
+    expect(template).toBeDefined();
+
+    const monitor: MonitorStepCephMonitor = getCephMonitor(
+      template!.getMonitorStep(buildArgs()),
+    );
+
+    return monitor.metricViewConfig.queryConfigs as Array<any>;
+  }
+
+  test.each([
+    ["ceph-pg-degraded", "ceph_pg_degraded"],
+    ["ceph-pg-undersized", "ceph_pg_undersized"],
+  ])(
+    "%s counts one pool's PGs, not the largest pool's presented as a cluster total",
+    (templateId: string, metricName: string) => {
+      // The catalog is the source of truth for the scope this rule keys off.
+      expect(getCephMetricByMetricName(metricName)?.defaultResourceScope).toBe(
+        CephResourceScope.Pool,
+      );
+
+      const queryConfigs: Array<any> = getQueryConfigs(templateId);
+      expect(queryConfigs).toHaveLength(1);
+
+      /*
+       * Grouped: one incident per pool, and the pool_id reaches the alert.
+       * Ungrouped Max — what this shipped as — reported max-across-pools as
+       * if it were a cluster-wide degraded/undersized count.
+       */
+      expect(queryConfigs[0].metricQueryData.groupByAttributeKeys).toEqual([
+        "pool_id",
+      ]);
+
+      /*
+       * Max, not Sum, is the correct reduction WITHIN a (pool, minute)
+       * bucket: the agent scrapes every 30s and buckets are one minute
+       * wide, so the bucket holds two identical samples of the same gauge.
+       */
+      expect(queryConfigs[0].metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Max,
+      );
+    },
+  );
+
+  test("ceph-pg-inactive reports a pool's exact inactive count, not a scrape-multiplied one", () => {
+    const queryConfigs: Array<any> = getQueryConfigs("ceph-pg-inactive");
+
+    // pg_total and pg_active — both per-pool, both on the same mgr scrape.
+    expect(queryConfigs).toHaveLength(2);
+
+    for (const queryConfig of queryConfigs) {
+      expect(
+        getCephMetricByMetricName(
+          queryConfig.metricQueryData.filterData.metricName,
+        )?.defaultResourceScope,
+      ).toBe(CephResourceScope.Pool);
+
+      /*
+       * Both sides must be grouped identically or the per-series join has
+       * nothing to line up on, and the difference stops being a difference.
+       */
+      expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual([
+        "pool_id",
+      ]);
+
+      /*
+       * THE DEFECT: this shipped as ungrouped Sum/Sum. Sum preserves the
+       * SIGN of the difference (k·Total - k·Active = k·Inactive), so the
+       * "> 0" threshold still tripped correctly and no test caught it — but
+       * the VALUE handed to the alert body was multiplied by the number of
+       * scrapes in the bucket, so a cluster with 3 inactive PGs was paged as
+       * 6. Grouped Max de-duplicates those scrapes.
+       */
+      expect(queryConfig.metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Max,
+      );
+      expect(queryConfig.metricQueryData.filterData.aggegationType).not.toBe(
+        MetricsAggregationType.Sum,
+      );
+    }
+  });
+
+  test("ratio formulas keep Sum on both sides — only differences moved to Max", () => {
+    /*
+     * The fix is scoped to DIFFERENCES. A ratio's scrape multiple cancels
+     * between numerator and denominator, so Sum stays exactly right there;
+     * flipping the capacity templates to Max would silently change them
+     * from "the pool's share of its writable capacity" to "the largest
+     * sample in the bucket".
+     */
+    for (const templateId of [
+      "ceph-cluster-near-full",
+      "ceph-cluster-full",
+      "ceph-pool-near-full",
+    ]) {
+      for (const queryConfig of getQueryConfigs(templateId)) {
+        expect(queryConfig.metricQueryData.filterData.aggegationType).toBe(
+          MetricsAggregationType.Sum,
+        );
+      }
+    }
+  });
+});
+
+describe("CephAlertTemplates - mon-disk severity split regression", () => {
+  test("the two mon-disk tiers are separate templates with different severities", () => {
+    /*
+     * THE DEFECT: MON_DISK_CRIT and MON_DISK_LOW used to be two criteria
+     * tiers inside ONE template declared "Critical".
+     *
+     * Severity is per-RECOMMENDATION, not per-criteria: the create flow
+     * resolves one severity from the recommendation and stamps it onto every
+     * criteria instance in the step
+     * (MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep), so
+     * the MON_DISK_LOW tier — a mon disk merely below 30% free, with days of
+     * headroom — opened incidents at the project's top severity and paged
+     * whatever on-call policy is attached to Critical, while the
+     * recommendation card promised Warning. Threading a second severity id
+     * through the template args cannot fix it; two severities need two
+     * templates.
+     */
+    const critical: CephAlertTemplate | undefined = getCephAlertTemplateById(
+      "ceph-mon-disk-space",
+    );
+    const warning: CephAlertTemplate | undefined =
+      getCephAlertTemplateById("ceph-mon-disk-low");
+
+    expect(critical).toBeDefined();
+    expect(warning).toBeDefined();
+    expect(critical!.severity).toBe("Critical");
+    expect(warning!.severity).toBe("Warning");
+
+    // Each watches exactly its own health check, and only its own.
+    const readWatchedCheckNames: (
+      template: CephAlertTemplate,
+    ) => Array<string> = (template: CephAlertTemplate): Array<string> => {
+      const monitor: MonitorStepCephMonitor = getCephMonitor(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      return (monitor.metricViewConfig.queryConfigs as Array<any>).map(
+        (queryConfig: any) => {
+          return queryConfig.metricQueryData.filterData.attributes["name"];
+        },
+      );
+    };
+
+    expect(readWatchedCheckNames(critical!)).toEqual(["MON_DISK_CRIT"]);
+    expect(readWatchedCheckNames(warning!)).toEqual(["MON_DISK_LOW"]);
+  });
+
+  /*
+   * The GENERAL form of this rule — "every recommendation ships exactly one
+   * unhealthy criteria, because one severity is stamped across the whole
+   * step" — is enumerated over the entire catalog in
+   * MonitorRecommendationNotificationMode.test.ts, so it is not repeated per
+   * resource type here. The test above pins the Ceph-specific instance of the
+   * defect by name.
+   */
 });

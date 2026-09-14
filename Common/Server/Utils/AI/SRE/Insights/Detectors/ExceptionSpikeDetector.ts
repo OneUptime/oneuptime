@@ -4,6 +4,8 @@ import SortOrder from "../../../../../../Types/BaseDatabase/SortOrder";
 import InBetween from "../../../../../../Types/BaseDatabase/InBetween";
 import PositiveNumber from "../../../../../../Types/PositiveNumber";
 import { JSONObject } from "../../../../../../Types/JSON";
+import IncludesNone from "../../../../../../Types/BaseDatabase/IncludesNone";
+import { NON_ACTIONABLE_ERROR_CLASSES } from "../../../../../../Types/Telemetry/ErrorClass";
 import { LIMIT_PER_PROJECT } from "../../../../../../Types/Database/LimitMax";
 import AIInsightType from "../../../../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../../../../Types/AI/AIInsightSeverity";
@@ -176,6 +178,14 @@ export default class ExceptionSpikeDetector implements InsightDetector {
       firstSeenAt: QueryHelper.lessThan(establishedBefore),
       isResolved: false,
       isArchived: false,
+      /*
+       * Muted fault domains never file an insight. A spike in rejected
+       * logins or malformed input is a traffic story, not a code defect —
+       * and each candidate costs two ClickHouse counts before it can even
+       * be dropped, so excluding them here saves the scan as well as the
+       * LLM budget. Mirrors the Issues list scope.
+       */
+      errorClass: new IncludesNone([...NON_ACTIONABLE_ERROR_CLASSES]),
     };
 
     const exceptions: Array<TelemetryException> =

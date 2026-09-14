@@ -162,7 +162,7 @@ Kubernetes-events kunnen in de agent niet op namespace worden gefilterd. Ze kome
 
 Accepteert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behoudt WARN, ERROR en FATAL en laat INFO, DEBUG en TRACE vallen. De standaardwaarde (`""`) behoudt alles. Het geldt in **beide** logmodi — in `daemonset`-modus via de collector, in `api`-modus binnen de log-tailer zelf — zodat de presets het niet onder je vandaan kunnen uitschakelen.
 
-Container-runtimes registreren geen severity op de logregel, dus parseert de agent er zelf een uit de logtekst (`[ERROR]`, `WARN:`, `level=info`, …).
+Container-runtimes registreren geen severity op de logregel, dus parseert de agent er zelf een uit de logtekst (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Kubernetes-events en resource-specs worden hier nooit door gefilterd.** Ze komen binnen via de Kubernetes API zonder een eigen severity, dus een drempel zou de hele feed verwijderen in plaats van hem uit te dunnen — inclusief de `FailedScheduling`-, `BackOff`- en `OOMKilling`-waarschuwingen die je juist het hardst nodig hebt. Ze zijn laag in volume en hoog in waarde, dus de agent verzendt ze altijd. Om ze uit te dunnen, gebruik je in plaats daarvan de server-side **Logboeken → Instellingen → Drop-filters** in het dashboard.
 

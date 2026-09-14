@@ -18,6 +18,7 @@ export enum ComponentInputType {
   MultiSelectDropdown = "MultiSelectDropdown",
   EntityDropdown = "EntityDropdown",
   EntityMultiSelectDropdown = "EntityMultiSelectDropdown",
+  ProjectLabelVariable = "ProjectLabelVariable",
   // Monaco code editors, one per language.
   Html = "Html",
   Css = "Css",
@@ -37,6 +38,7 @@ export enum EntityFilterModelType {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
+  VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
   NetworkSiteType = "NetworkSiteType",

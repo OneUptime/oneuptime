@@ -163,21 +163,50 @@ export default class MarketingEventUtil {
    *
    * Guarantees it neither throws nor rejects. Every caller is inside a
    * commercial transaction that has already succeeded by the time it gets
-   * here — a user is created, a plan is changed, a booking is verified — so
-   * the one thing this must never do is turn a completed action into a failed
-   * one. The rejection path is covered by .catch and the synchronous path by
-   * the try, because an argument expression that throws (buildEvent on a
-   * malformed row) would otherwise propagate straight into the caller.
+   * here — a user is created, a plan is changed, a licence is issued — so the
+   * one thing this must never do is turn a completed action into a failed one.
+   *
+   * PASS A BUILDER, NOT AN EVENT. `emitInBackground(buildEvent({...}))`
+   * evaluates the argument at the CALL SITE, outside this try, so anything
+   * that throws while assembling the event propagates straight into the caller
+   * and this wrapper never runs at all. That is not hypothetical: reading
+   * `createdItem.expiresAt.toISOString()` off a licence whose date column held
+   * a string threw a TypeError after the INSERT had committed, and the admin
+   * dashboard reported "Server Error" for a licence it had just created. The
+   * `() => MarketingEvent` form moves that work inside the try, which is what
+   * makes the guarantee above true rather than merely intended.
+   *
+   * A plain event is still accepted for callers that already hold one.
    */
-  public static emitInBackground(event: MarketingEvent): void {
+  public static emitInBackground(
+    event: MarketingEvent | (() => MarketingEvent),
+  ): void {
+    let builtEvent: MarketingEvent | null = null;
+
     try {
-      this.emit(event).catch((err: Error) => {
+      builtEvent = typeof event === "function" ? event() : event;
+
+      const eventToEmit: MarketingEvent = builtEvent;
+
+      this.emit(eventToEmit).catch((err: Error) => {
+        /*
+         * Optional, because the point of this method is that nothing it
+         * touches may throw: a builder that returned something malformed must
+         * still end as a log line, not as an unhandled rejection raised from
+         * inside the handler that exists to prevent one.
+         */
         logger.error(
-          `MarketingEvent: failed to emit ${event.eventType}: ${err}`,
+          `MarketingEvent: failed to emit ${
+            eventToEmit?.eventType || "event"
+          }: ${err}`,
         );
       });
     } catch (err) {
-      logger.error(`MarketingEvent: failed to emit ${event.eventType}: ${err}`);
+      logger.error(
+        `MarketingEvent: failed to emit ${
+          builtEvent?.eventType || "event"
+        }: ${err}`,
+      );
     }
   }
 }

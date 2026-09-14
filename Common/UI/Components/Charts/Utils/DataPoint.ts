@@ -15,6 +15,7 @@ import ChartDataPoint, {
 import SeriesPoints from "../Types/SeriesPoints";
 import { XAxis, XAxisAggregateType } from "../Types/XAxis/XAxis";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
+import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
 import YAxis from "../Types/YAxis/YAxis";
 import XAxisUtil from "./XAxis";
 
@@ -31,7 +32,10 @@ export default class DataPointUtil {
     xAxis: XAxis;
     yAxis: YAxis;
   }): Array<ChartDataPoint> {
-    const { intervals, formatter } = this.initializeXAxisData(data.xAxis);
+    const { intervals, formatter } = this.initializeXAxisData(
+      data.xAxis,
+      data.seriesPoints,
+    );
     const arrayOfData: ChartDataPoint[] = this.initializeArrayOfData(
       intervals,
       formatter,
@@ -45,7 +49,10 @@ export default class DataPointUtil {
     return arrayOfData;
   }
 
-  private static initializeXAxisData(xAxis: XAxis): {
+  private static initializeXAxisData(
+    xAxis: XAxis,
+    seriesPoints: Array<SeriesPoints>,
+  ): {
     xAxisMax: XAxisMaxMin;
     xAxisMin: XAxisMaxMin;
     intervals: Array<Date>;
@@ -53,13 +60,25 @@ export default class DataPointUtil {
   } {
     const xAxisMax: XAxisMaxMin = xAxis.options.max;
     const xAxisMin: XAxisMaxMin = xAxis.options.min;
-    const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
+    const precision: XAxisPrecision | undefined = xAxis.options.precision;
+    /*
+     * Renderable, not raw: the grid's final slot is the bucket holding the
+     * window end, which the query only partly covered and which therefore
+     * comes back empty whenever the window ends on or just past a bucket
+     * boundary. XAxisUtil drops that one slot (and only that one, and only
+     * when nothing landed in it) so the axis stops at the last point there
+     * is data for instead of a bucket beyond it.
+     */
+    const intervals: Array<Date> = XAxisUtil.getRenderableIntervals({
       xAxisMax,
       xAxisMin,
+      precision,
+      seriesPoints,
     });
     const formatter: (value: Date) => string = XAxisUtil.getFormatter({
       xAxisMax,
       xAxisMin,
+      precision,
     });
     return { xAxisMax, xAxisMin, intervals, formatter };
   }

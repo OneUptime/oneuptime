@@ -15,7 +15,7 @@ The following monitor types support dynamic templating with their respective var
 - **Server/VM Monitors**: System metrics (CPU, memory, disk), processes, hostname
 - **Synthetic Monitors**: Script execution results, screenshots, browser details
 - **Custom JavaScript Code Monitors**: Execution results, timing, error messages
-- **SNMP Monitors**: Device status, response times, OID values
+- **Network Device (SNMP) Monitors**: Device reachability, SNMP walk time, OID values
 
 > **Note**: Logs, Traces, and Metrics monitors do not currently support incident/alert templating as they use different trigger mechanisms.
 
@@ -141,10 +141,10 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 
 | Variable               | Description                                                    | Type                 |
 | ---------------------- | -------------------------------------------------------------- | -------------------- |
-| `isOnline`             | Whether the SNMP device is online and responding.              | `boolean`            |
-| `responseTimeInMs`     | The SNMP query response time in milliseconds.                  | `number`             |
-| `failureCause`         | The reason for failure if the SNMP query failed.               | `string`             |
-| `isTimeout`            | Whether the SNMP query timed out.                              | `boolean`            |
+| `isOnline`             | Whether the device is reachable — by ping **or** SNMP. Set on every poll. | `boolean` |
+| `responseTimeInMs`     | The SNMP **walk's** response time in milliseconds — never the ping's round-trip time. | `number` |
+| `failureCause`         | The reason for failure if the SNMP walk failed.                | `string`             |
+| `isTimeout`            | Whether the SNMP walk timed out.                               | `boolean`            |
 | `oidResponses`         | Array of OID response objects with oid, name, value, and type. | `Array<Object>`      |
 | `oidResponses[].oid`   | The OID that was queried.                                      | `string`             |
 | `oidResponses[].name`  | The friendly name of the OID (if provided).                    | `string`             |
@@ -163,6 +163,26 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 | `trapOid`              | Trap OID — set only when the check was triggered by an SNMP trap. | `string`          |
 | `trapSourceIp`         | Source IP the trap was received from — trap-triggered checks only. | `string`         |
 | `trapVarbinds`         | Varbinds carried by the trap, as `{oid, value}` — trap-triggered checks only. | `Array<Object>` |
+
+A Network Device is pinged on every poll and walked over SNMP only when it has credentials, so **`isOnline` is the only variable above that a ping-only device fills in** — every other one comes from the SNMP walk and is empty without one. Lead with `{{isOnline}}` and the device's own name in templates that might be applied to devices without credentials. See [Network Device Monitor](/docs/monitor/network-device-monitor#what-a-poll-actually-does) for what each kind of poll collects.
+
+### Database Health Monitors
+
+| Variable                  | Description                                                                                                          | Type            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `isOnline`                | Whether the probe could connect and run the baseline query. Missing metrics never make this false.                     | `boolean`       |
+| `responseTimeInMs`        | Time to connect and run the baseline query.                                                                            | `number`        |
+| `failureCause`            | The reason the check failed, when it did.                                                                              | `string`        |
+| `connectionError`         | Sanitized connection error. Never contains credentials or a connection string.                                         | `string`        |
+| `engineVersion`           | Version string the database server reported.                                                                           | `string`        |
+| `collectedGroups`         | Metric groups that produced values on this check.                                                                      | `Array<string>` |
+| `unavailableGroups`       | Groups that could not be collected, as `{group, reason, message, remediation}`.                                        | `Array<Object>` |
+| `collectionIssueSummary`  | One line summarising every unavailable group, ready to paste into an alert.                                            | `string`        |
+| `metrics`                 | Collected values keyed by series name, e.g. `{{metrics['oneuptime.monitor.database.connections.used.percent']}}`.      | `Object`        |
+
+A metric that was not collected is **absent** from `metrics` rather than zero,
+so template it defensively — `{{#if metrics.[...]}}` — when a group may be
+unavailable on the database you are monitoring.
 
 ## Basic Usage
 
@@ -385,13 +405,15 @@ Custom code execution: {{executionTimeInMs}}ms
 Log output: {{logMessages[0]}}
 ```
 
-### SNMP Monitor Alert Title
+### Network Device Monitor Alert Title
+
+The next three examples assume the device has SNMP credentials — everything but `{{isOnline}}` comes from the walk, so on a ping-only device they would render blanks.
 
 ```
-SNMP device offline: {{failureCause}} ({{responseTimeInMs}}ms)
+SNMP walk failing: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 
-### SNMP Monitor Alert Description
+### Network Device Monitor Alert Description
 
 ```
 ### SNMP Device Alert
@@ -444,7 +466,7 @@ Memory Usage: **{{memoryUsagePercent}}%**
 {{/each}}
 ```
 
-### SNMP Monitor with OID Loop
+### Network Device Monitor with OID Loop
 
 Description:
 

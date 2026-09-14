@@ -225,8 +225,8 @@ describe("getRunnerLiveStatusLabel", () => {
 
   /*
    * "Connected" and "Disconnected" are pre-existing i18next keys, translated
-   * in all sixteen locale files for the probe pages. Changing the casing or
-   * wording here would silently drop fifteen translations back to English.
+   * in all seventeen locale files for the probe pages. Changing the casing or
+   * wording here would silently drop sixteen translations back to English.
    */
   test("it reuses the exact pre-existing locale keys", () => {
     expect(getRunnerLiveStatusLabel(RunnerLiveStatus.Connected)).not.toBe(

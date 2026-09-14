@@ -64,11 +64,12 @@ docker compose up -d
 
 ## Variabili d'ambiente
 
-| Variabile                 | Obbligatoria | Descrizione                                                                                                                                        |
-| ------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Sì           | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted)                                                   |
-| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_                                  |
-| `DOCKER_HOST_NAME`        | No           | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`) |
+| Variabile                 | Obbligatoria | Descrizione                                                                                                                                                                                                                        |
+| ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Sì           | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted)                                                                                                                                   |
+| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_                                                                                                                  |
+| `DOCKER_HOST_NAME`        | No           | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`)                                                                                 |
+| `DOCKER_API_VERSION`      | No           | Versione dell'API di Docker Engine utilizzata dall'agent. Il valore predefinito è `1.44`; abbassala sugli host con un daemon meno recente oppure lasciala vuota per negoziarla automaticamente (consulta Risoluzione dei problemi) |
 
 ## Verifica dell'installazione
 
@@ -141,6 +142,28 @@ Se la tua istanza è solo HTTP, usa `http://` e la porta appropriata.
 ### Autorizzazione al socket Docker negata
 
 Il container dell'agent deve essere eseguito come root (`--user 0:0`) per accedere a `/var/run/docker.sock`. Assicurati che sia presente il flag `--user 0:0` (oppure `user: "0:0"` in Compose).
+
+### L'agent si riavvia con "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+Un daemon rifiuta un client più recente della propria versione massima supportata, quindi il receiver non si avvia mai e il collector termina insieme a esso. Verifica la versione massima supportata dal daemon e passala all'agent:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Poi aggiungi `-e DOCKER_API_VERSION=1.41` (o il valore che hai ottenuto) al comando `docker run`, oppure imposta `DOCKER_API_VERSION` in Compose. I daemon più recenti continuano a servire anche le versioni precedenti dell'API, quindi l'impostazione resta valida dopo un aggiornamento.
+
+Se preferisci non cercare il numero, imposta `DOCKER_API_VERSION` sulla **stringa vuota**. In questo caso l'agent chiede all'SDK di Docker di negoziare la versione con il daemon (una `HEAD /_ping`, poi la versione massima supportata dal daemon stesso), soluzione che funziona sia con i daemon meno recenti sia con quelli più recenti:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### L'agent risulta disconnesso
 

@@ -22,6 +22,7 @@ import DockerHostIncidents from "../Pages/Docker/View/Incidents";
 import DockerHostAlerts from "../Pages/Docker/View/Alerts";
 import DockerHostScheduledMaintenance from "../Pages/Docker/View/ScheduledMaintenance";
 import DockerHostOwners from "../Pages/Docker/View/Owners";
+import DockerHostFeed from "../Pages/Docker/View/Feed";
 import DockerHostAuditLogs from "../Pages/Docker/View/AuditLogs";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
@@ -231,6 +232,17 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostOwners
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_FEED)}
+          element={
+            <DockerHostFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_FEED] as Route}
             />
           }
         />

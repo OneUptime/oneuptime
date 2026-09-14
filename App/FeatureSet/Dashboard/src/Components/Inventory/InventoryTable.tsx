@@ -95,8 +95,7 @@ const manualEntityTypeOptions: Array<DropdownOption> =
 
 export interface ComponentProps {
   /**
-   * Extra narrowing merged into the base query — how the Overview's
-   * drill-downs scope this list. Applied as part of the model query rather
+   * Extra narrowing for embedded lists. Applied as part of the model query rather
    * than as a filter chip, so it is the page's scope and not something the
    * user removes one chip at a time.
    */
@@ -133,9 +132,9 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
   /*
    * Project custom fields are first-class Inventory facets, just as they are
    * on Monitors, Incidents and Alerts. The base facet list is reduced only
-   * when an Overview drill-down already owns that query field; otherwise an
-   * active chip could replace the fixed scope while the banner still claimed
-   * it was in force.
+   * when an embedded list already owns that query field; otherwise an
+   * active chip could replace the fixed scope. Overview drill-downs instead
+   * arrive as editable facet selections through InventoryListFacetRoute.
    */
   const customFieldFacetsResult: CustomFieldFacetsResult = useCustomFieldFacets(
     {

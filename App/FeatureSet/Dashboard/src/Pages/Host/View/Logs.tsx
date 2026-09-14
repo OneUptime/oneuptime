@@ -98,10 +98,21 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * `logQuery.attributes` stays for the histogram / facet scoping —
        * display behavior is unchanged. Drop the attribute fallback (here and
        * in the logQuery merge) once deploy-date + max retention has passed.
+       *
+       * The attribute value is the machine's host.name (hostIdentifier), which
+       * is what the filter must match — but the locked chip would read
+       * "resource.host.name: ip-10-0-0-12". The display overrides label it
+       * "Host: <name>" without touching the filter.
        */}
       <DashboardLogsViewer
         id={`host-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.host.name": "Host",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier!,
+        }}
         entityScope={{
           entityKeys: [
             keyForHost(

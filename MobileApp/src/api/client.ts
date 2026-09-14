@@ -48,7 +48,23 @@ function normalizeResponseData(data: unknown): unknown {
 
     const normalized: Record<string, unknown> = {};
     for (const key in obj) {
-      normalized[key] = normalizeResponseData(obj[key]);
+      /*
+       * defineProperty rather than `normalized[key] = ...`. A plain assignment
+       * to the key "__proto__" does not create an own property at all: it hits
+       * the accessor Object.prototype defines under that name. A response field
+       * the server really did call __proto__ would therefore disappear from the
+       * rebuilt row, and - when its value is an object - become the rebuilt
+       * row's PROTOTYPE instead, so that object's keys leak back in as
+       * inherited properties of every read of the row. defineProperty always
+       * writes a plain own data property, whatever the key is named, so the
+       * caller reads back exactly what the server sent.
+       */
+      Object.defineProperty(normalized, key, {
+        value: normalizeResponseData(obj[key]),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
     }
     return normalized;
   }
@@ -56,19 +72,55 @@ function normalizeResponseData(data: unknown): unknown {
   return data;
 }
 
+/**
+ * One request that met a 401 while a token refresh was already in flight, and
+ * is parked until that refresh has an answer.
+ *
+ * BOTH halves are kept, not just the resolve half. A refresh fails routinely -
+ * the refresh token expired, the handset is offline, the server 500s - and a
+ * queue that only knows how to hand out a new token has nothing to do with its
+ * waiters when that happens, so every parked request stays pending forever:
+ * the screen awaiting one spins until it is unmounted, with no error to catch
+ * and no empty state to fall back to.
+ */
+interface RefreshWaiter {
+  onRefreshed: (newToken: string) => void;
+  onRefreshFailed: () => void;
+}
+
 let isRefreshing: boolean = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshSubscribers: Array<RefreshWaiter> = [];
 let onAuthFailure: (() => void) | null = null;
 
-function subscribeTokenRefresh(callback: (token: string) => void): void {
-  refreshSubscribers.push(callback);
+function subscribeTokenRefresh(waiter: RefreshWaiter): void {
+  refreshSubscribers.push(waiter);
+}
+
+/*
+ * Hand back the parked waiters and empty the queue in one step, so that every
+ * path which settles them leaves nothing behind. A waiter that outlives its
+ * own refresh is worse than a leak: this queue is module state that survives a
+ * sign-out, and onTokenRefreshed replays whatever it finds - so a callback left
+ * over from a failed refresh would be replayed, carrying the NEXT user's token,
+ * against the previous user's request. Taking the array before settling
+ * anything also keeps a request that re-parks out of the batch being drained.
+ */
+function takeRefreshSubscribers(): Array<RefreshWaiter> {
+  const waiting: Array<RefreshWaiter> = refreshSubscribers;
+  refreshSubscribers = [];
+  return waiting;
 }
 
 function onTokenRefreshed(newToken: string): void {
-  refreshSubscribers.forEach((callback: (token: string) => void) => {
-    callback(newToken);
+  takeRefreshSubscribers().forEach((waiter: RefreshWaiter): void => {
+    waiter.onRefreshed(newToken);
   });
-  refreshSubscribers = [];
+}
+
+function onRefreshFailed(): void {
+  takeRefreshSubscribers().forEach((waiter: RefreshWaiter): void => {
+    waiter.onRefreshFailed();
+  });
 }
 
 export function setOnAuthFailure(callback: () => void): void {
@@ -190,14 +242,42 @@ apiClient.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      return new Promise((resolve: (value: AxiosResponse) => void) => {
-        subscribeTokenRefresh(async (newToken: string) => {
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          }
-          resolve(await apiClient(originalRequest));
-        });
-      });
+      return new Promise<AxiosResponse>(
+        (
+          resolve: (value: AxiosResponse) => void,
+          reject: (reason: unknown) => void,
+        ): void => {
+          subscribeTokenRefresh({
+            onRefreshed: (newToken: string): void => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              }
+
+              /*
+               * Forwarded with .then rather than written as
+               * `resolve(await apiClient(originalRequest))`. Awaiting inside
+               * the executor puts the replay's failure into a callback nothing
+               * is waiting on: this promise would never settle at all, so the
+               * caller keeps spinning and the real error surfaces only as an
+               * unhandled rejection. Passing both outcomes on hands the caller
+               * the same thing an unqueued request would have got.
+               */
+              apiClient(originalRequest).then(resolve, reject);
+            },
+
+            /*
+             * The refresh came back empty-handed, so there is no token to
+             * replay with and this request is finished. It rejects with its OWN
+             * 401 - exactly what the request that happened to drive the refresh
+             * is rejected with below - so no caller has to know, or can tell,
+             * whether it was the one that led or one of the ones that queued.
+             */
+            onRefreshFailed: (): void => {
+              reject(error);
+            },
+          });
+        },
+      );
     }
 
     originalRequest._retry = true;
@@ -237,6 +317,16 @@ apiClient.interceptors.response.use(
 
       return apiClient(originalRequest);
     } catch {
+      /*
+       * Settled first, before anything else in this handler: clearTokens
+       * touches storage and can reject on its own, and onAuthFailure runs
+       * arbitrary caller code. Either of those throwing after the queue had
+       * been left holding waiters is the difference between every parked screen
+       * showing an error and every parked screen spinning until the app is
+       * killed.
+       */
+      onRefreshFailed();
+
       await clearTokens();
       if (onAuthFailure) {
         onAuthFailure();

@@ -57,6 +57,36 @@
     "today": "आज",
     "notAvailable": "उपलब्ध नहीं"
   },
+  "uptimeHistory": {
+    "graphLabel": "पिछले {{total}} दिनों का अपटाइम इतिहास",
+    "dayLabel": "{{date}}: {{uptime}}% अपटाइम",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% अपटाइम, {{total}} घटनाएँ",
+    "dayLabelNoData": "{{date}}: कोई डेटा नहीं",
+    "dayLabelNoDataWithIncidents": "{{date}}: कोई डेटा नहीं, {{total}} घटनाएँ",
+    "uptime": "अपटाइम",
+    "noMonitoringData": "इस दिन के लिए कोई निगरानी डेटा नहीं है",
+    "incidents": "घटनाएँ",
+    "noIncidents": "कोई घटना नहीं",
+    "noIncidentsDescription": "इस दिन कोई घटना दर्ज नहीं की गई।",
+    "declared": "घोषित",
+    "oneIncidentOnThisDay": "इस दिन 1 घटना दर्ज की गई",
+    "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं"
+  },
+  "liveStatus": {
+    "updated": "{{time}} अपडेट किया गया",
+    "refresh": "रीफ़्रेश करें",
+    "refreshing": "रीफ़्रेश हो रहा है",
+    "refreshFailed": "रीफ़्रेश नहीं हो सका। अंतिम ज्ञात स्थिति दिखाई जा रही है।"
+  },
+  "search": {
+    "label": "संसाधन खोजें",
+    "placeholder": "संसाधन खोजें",
+    "clear": "खोज साफ़ करें",
+    "resultCount": "{{total}} में से {{matched}} संसाधन",
+    "noMatchesInGroup": "यहाँ आपकी खोज से मेल खाने वाला कोई संसाधन नहीं है।",
+    "noResultsTitle": "कोई मेल खाने वाला संसाधन नहीं",
+    "noResultsDescription": "इस पृष्ठ पर \"{{query}}\" से मेल खाने वाला कुछ नहीं है। छोटी खोज आज़माएँ।"
+  },
   "incidents": {
     "title": "घटनाएँ",
     "singular": "घटना",

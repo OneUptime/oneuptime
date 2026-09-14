@@ -7,9 +7,15 @@ import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
 import CloudResourceOwnerUserService from "./CloudResourceOwnerUserService";
 import CloudResourceOwnerTeamService from "./CloudResourceOwnerTeamService";
 import CloudResourceService from "./CloudResourceService";
+import CloudResourceFeedService from "./CloudResourceFeedService";
+import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class CloudResourceOwnerRuleEngineServiceClass {
   /**
@@ -36,6 +42,7 @@ class CloudResourceOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             matchLabels: { _id: true },
             nameRegexPattern: true,
@@ -43,9 +50,15 @@ class CloudResourceOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "CloudResourceOwnerRule",
+        projectId: cloudResource.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -76,10 +89,19 @@ class CloudResourceOwnerRuleEngineServiceClass {
       ]);
 
       let anyMatched: boolean = false;
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         if (!this.doesMatchRule(resourceWithDetails, rule)) {
           continue;
+        }
+        if (
+          (rule.ownerUsers || []).length > 0 ||
+          (rule.ownerTeams || []).length > 0
+        ) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         const notify: boolean = rule.notifyOwners !== false;
         for (const user of rule.ownerUsers || []) {
@@ -128,6 +150,27 @@ class CloudResourceOwnerRuleEngineServiceClass {
           });
         }
       }
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await CloudResourceFeedService.createCloudResourceFeedItem({
+        cloudResourceId: cloudResource.id,
+        projectId: cloudResource.projectId,
+        cloudResourceFeedEventType:
+          CloudResourceFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await CloudResourceService.getCloudResourceMarkdownLink(
+          cloudResource.projectId,
+          cloudResource.id,
+        )} by ${matchedRuleNames.length} owner ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying cloud resource owner rules: ${error}`, {
         projectId: cloudResource.projectId?.toString(),
@@ -137,6 +180,24 @@ class CloudResourceOwnerRuleEngineServiceClass {
   }
 
   private doesMatchRule(
+    cloudResource: CloudResource,
+    rule: CloudResourceOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "matchLabels",
+        "nameRegexPattern",
+        "descriptionRegexPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: CloudResourceOwnerRule): boolean => {
+        return this.doesMatchLegacyRule(cloudResource, legacyRule);
+      },
+    });
+  }
+
+  private doesMatchLegacyRule(
     cloudResource: CloudResource,
     rule: CloudResourceOwnerRule,
   ): boolean {

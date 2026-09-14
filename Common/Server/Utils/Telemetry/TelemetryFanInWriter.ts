@@ -125,7 +125,10 @@ export interface FanInWriterOptions {
   maxWaitMs: number;
   /** Per-pod cap on concurrent ClickHouse inserts across all tables. */
   maxConcurrentInserts: number;
-  /** High-water mark of buffered+in-flight rows; submit() blocks above it. */
+  /**
+   * High-water mark of reserved+buffered+in-flight rows. A whole submission
+   * may cross it once; later submit() calls wait for capacity to be released.
+   */
   maxPendingRows: number;
   retryMaxAttempts: number;
   retryBaseDelayMs: number;
@@ -195,6 +198,11 @@ type TableBuffer = {
   submissions: Array<PendingSubmission>;
   rowCount: number;
   timer: NodeJS.Timeout | null;
+};
+
+type CapacityWaiter = {
+  rowCount: number;
+  resolve: () => void;
 };
 
 /*
@@ -328,7 +336,7 @@ export class TelemetryFanInWriter {
   private options: FanInWriterOptions;
   private buffers: Map<string, TableBuffer> = new Map();
   private pendingRows: number = 0;
-  private capacityWaiters: Array<() => void> = [];
+  private capacityWaiters: Set<CapacityWaiter> = new Set();
   private activeInserts: number = 0;
   private insertSlotWaiters: Array<() => void> = [];
   private inFlightDispatches: Set<Promise<void>> = new Set();
@@ -428,7 +436,7 @@ export class TelemetryFanInWriter {
 
     this.acceptingSubmits++;
     try {
-      await this.waitForCapacity();
+      await this.waitForCapacity(rows.length);
 
       let buffer: TableBuffer | undefined = this.buffers.get(tableName);
       if (!buffer) {
@@ -458,7 +466,6 @@ export class TelemetryFanInWriter {
         rejectAck,
       });
       buffer.rowCount += rows.length;
-      this.pendingRows += rows.length;
 
       if (buffer.rowCount >= this.getMaxBatchRows(tableName)) {
         this.cutAndDispatch(tableName, false);
@@ -532,24 +539,39 @@ export class TelemetryFanInWriter {
     );
   }
 
-  private async waitForCapacity(): Promise<void> {
-    while (this.pendingRows >= this.options.maxPendingRows) {
-      await new Promise<void>((resolve: () => void) => {
-        this.capacityWaiters.push(resolve);
-      });
+  private async waitForCapacity(rowCount: number): Promise<void> {
+    /*
+     * Reserve before yielding: concurrent submitters otherwise all observe
+     * the same available capacity and buffer their rows after the await,
+     * multiplying the memory limit by the number of submitters. Keep whole
+     * submissions intact: one submission may cross the high-water mark,
+     * but every later submission waits until pending rows fall below it.
+     */
+    if (this.pendingRows < this.options.maxPendingRows) {
+      this.pendingRows += rowCount;
+      return;
     }
+
+    await new Promise<void>((resolve: () => void) => {
+      this.capacityWaiters.add({ rowCount, resolve });
+    });
   }
 
   private releaseCapacity(): void {
     /*
-     * Wake all waiters; each re-checks the high-water mark in its
-     * waitForCapacity loop, so overshoot stays bounded to one submission
-     * per waiter.
+     * Transfer capacity to FIFO waiters before waking them. Only admitted
+     * callers resume, so completing an insert does not wake the entire
+     * backlog to compete for the same capacity again.
+     * Set keeps FIFO order and releases each waiter without shifting the
+     * remaining queue or retaining consumed entries.
      */
-    const waiters: Array<() => void> = this.capacityWaiters;
-    this.capacityWaiters = [];
-    for (const wake of waiters) {
-      wake();
+    for (const waiter of this.capacityWaiters) {
+      if (this.pendingRows >= this.options.maxPendingRows) {
+        break;
+      }
+      this.pendingRows += waiter.rowCount;
+      this.capacityWaiters.delete(waiter);
+      waiter.resolve();
     }
   }
 

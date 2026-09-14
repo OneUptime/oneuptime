@@ -13,7 +13,7 @@
 {{> DetailBoxField title="Current State: " text=currentState  }}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
 {{> DetailBoxField title="Severity: " text=alertSeverity  }}
-{{> DetailBoxField title="Description: " text=alertDescription  }}
+{{> DetailBoxField title="Description: " blockText=alertDescription  }}
 {{> DetailBoxEnd this }}
 
 
@@ -21,10 +21,11 @@
 
 {{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=alertViewLink}}
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> InfoBlock info="You will be notified when the status of this alert changes."}}
+
+{{> UnsubscribeOwnerEmail this }}
 
 {{> Footer this }}
 

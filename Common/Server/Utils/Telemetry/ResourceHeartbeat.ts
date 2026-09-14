@@ -15,7 +15,8 @@ import logger from "../Logger";
  * RumApplication, DockerSwarmCluster) each carried a hand-copied version of
  * this: read a throttle key, compare a fingerprint, write it back, UPDATE the
  * row. Copying it twelve times copied its defects twelve times, and one of
- * those copies took production down.
+ * those copies took production down. Services added since (VMwareVCenter)
+ * were written against this helper from the start and never carried a copy.
  *
  * THE DEFECT. The throttle keyed on the row id but STORED a fingerprint of the
  * incoming metadata, skipping only when the stored fingerprint matched. That

@@ -22,6 +22,7 @@ import ko from "../Locales/ko.json";
 import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
+import fa from "../Locales/fa.json";
 
 import DocsNav, {
   LocalizedNavGroup,
@@ -53,6 +54,7 @@ const Locales: { [code: string]: LocaleStrings } = {
   "zh-CN": zhCN as LocaleStrings,
   "zh-TW": zhTW as LocaleStrings,
   hi: hi as LocaleStrings,
+  fa: fa as LocaleStrings,
 };
 
 export type TranslateFn = (
@@ -132,6 +134,7 @@ export const getLocalizedNav: (lang: string) => LocalizedNavGroup[] = (
   const t: TranslateFn = makeT(lang);
   return DocsNav.map((group: NavGroup): LocalizedNavGroup => {
     return {
+      key: group.title,
       title: t(`navGroups.${group.title}`),
       links: group.links.map((link: NavLink): LocalizedNavLink => {
         return {

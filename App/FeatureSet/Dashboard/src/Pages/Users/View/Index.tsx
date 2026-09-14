@@ -4,7 +4,6 @@ import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Exception from "Common/Types/Exception/Exception";
-import Route from "Common/Types/API/Route";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import API from "Common/UI/Utils/API/API";
@@ -108,7 +107,7 @@ const UserViewIndex: FunctionComponent<
                   return (
                     <Image
                       className="h-12 w-12 rounded-full"
-                      imageUrl={Route.fromString(`${BlankProfilePic}`)}
+                      imageUrl={BlankProfilePic}
                       alt={
                         item.name?.toString() ||
                         item.email?.toString() ||
@@ -118,9 +117,9 @@ const UserViewIndex: FunctionComponent<
                   );
                 }
 
-                const imageUrl: Route = UserUtil.getProfilePictureRoute(
+                const imageUrl: string = UserUtil.getProfilePictureRoute(
                   item.id,
-                );
+                ).toString();
 
                 return (
                   <Image
