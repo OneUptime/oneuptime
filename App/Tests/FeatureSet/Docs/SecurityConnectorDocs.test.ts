@@ -30,6 +30,7 @@ const SECURITY_EVENTS_PAGE: string = path.join(
   CONTENT_DIR,
   "telemetry/security-events.md",
 );
+const MARKDOWN_HEADING: RegExp = /^#\s/;
 
 /*
  * The OCSF class each connector's imported records land in, from the
@@ -158,7 +159,7 @@ describe.each(DEFINITION_CASES)(
       const heading: string | undefined = page
         .split("\n")
         .find((line: string): boolean => {
-          return /^#\s/.test(line);
+          return MARKDOWN_HEADING.test(line);
         });
 
       expect(heading).toBeDefined();
