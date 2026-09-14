@@ -306,7 +306,10 @@ describe("ReplayCorrelationPanel Session tab", () => {
 
       expect(writeText).toHaveBeenLastCalledWith(SESSION_ID);
       expect(
-        screen.getByRole("button", { name: "Copied" }),
+        within(screen.getByTestId("replay-details-session-id")).getByRole(
+          "button",
+          { name: "Copied" },
+        ),
       ).toBeInTheDocument();
 
       await act(async (): Promise<void> => {
@@ -317,7 +320,12 @@ describe("ReplayCorrelationPanel Session tab", () => {
       expect(writeText).toHaveBeenLastCalledWith(
         "https://app.acme.com/checkout",
       );
-      expect(screen.getAllByRole("button", { name: "Copied" })).toHaveLength(2);
+      expect(
+        within(screen.getByTestId("replay-details-entry-url")).getByRole(
+          "button",
+          { name: "Copied" },
+        ),
+      ).toBeInTheDocument();
     } finally {
       view.unmount();
 
