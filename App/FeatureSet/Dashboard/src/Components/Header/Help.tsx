@@ -4,6 +4,12 @@ import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDrop
 import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
 import IconDropdownRow from "Common/UI/Components/Header/IconDropdown/IconDropdownRow";
+import KeyboardShortcut, {
+  KeyboardShortcutSize,
+  KeyboardShortcutVariant,
+} from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import EventName from "../../Utils/EventName";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +28,26 @@ const Help: () => JSX.Element = (): ReactElement => {
     >
       <IconDropdownMenu>
         <IconDropdownRow>
+          {/*
+           * "?" opens this dialog from anywhere, but only for people who
+           * already know that. Help is where someone looks when they do not,
+           * and the keycap beside it teaches the shortcut on the way past.
+           */}
+          <IconDropdownItem
+            title={t("keyboardShortcuts.title", "Keyboard shortcuts")}
+            icon={IconProp.Keyboard}
+            rightElement={
+              <KeyboardShortcut
+                keys={["?"]}
+                size={KeyboardShortcutSize.ExtraSmall}
+                variant={KeyboardShortcutVariant.Ghost}
+              />
+            }
+            onClick={() => {
+              setIsDropdownVisible(false);
+              GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
+            }}
+          />
           <IconDropdownItem
             title={t("help.supportEmail")}
             icon={IconProp.Email}

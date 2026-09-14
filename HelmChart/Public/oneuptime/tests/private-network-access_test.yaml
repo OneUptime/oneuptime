@@ -1,0 +1,214 @@
+# The instance half of the private-network webhook opt-in (issue #3424).
+#
+# ALLOW_PRIVATE_NETWORK_WEBHOOKS and PRIVATE_NETWORK_WEBHOOK_ALLOWLIST decide
+# whether a self-hosted install may point workflows and webhooks at internal
+# services. Both must default to OFF: an operator upgrading the chart without
+# touching their values file has to keep the strict egress policy they already
+# had, and on a cloud VM the difference between "off" and "on by accident" is
+# whether every project member can read the instance's IAM credentials.
+#
+# ALLOW_PRIVATE_NETWORK_WEBHOOKS is read by the app as
+# `process.env[...] === "true"`, so it must arrive as the quoted STRING "true",
+# never a YAML boolean — `value: true` renders an int/bool and Kubernetes
+# rejects it outright. The parenthesised `(($.Values.webhooks).allowPrivateNetwork)`
+# idiom in _helpers.tpl is what keeps the whole `webhooks:` block optional for
+# values files written before it existed; the "block absent" cases below are
+# what that idiom is for.
+suite: private network access
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: defaults to off when the operator never set it
+    templates:
+      - templates/app.yaml
+    # app.yaml renders a Service and a Deployment under one name.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+            value: ""
+
+  - it: stays off when the webhooks block exists but the toggle does not
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        privateNetworkAllowlist: mattermost.internal
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+            value: "mattermost.internal"
+
+  - it: turns on when the operator explicitly enables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "true"
+
+  # The assertion a `default true` idiom would fail: false is empty in a Go
+  # template, so an explicit false must not fall back to anything.
+  - it: stays off when the operator explicitly disables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "false"
+
+  - it: carries a multi-entry allowlist through verbatim
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+        privateNetworkAllowlist: "mattermost.internal,*.svc.cluster.local,10.20.0.0/16"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+            value: "mattermost.internal,*.svc.cluster.local,10.20.0.0/16"
+
+  # The workers deliver webhooks, so the policy has to reach them too — a
+  # setting that only lands on the API pod would apply to writes and not to
+  # sends.
+  - it: reaches the worker deployment as well
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # The worker deployment ships disabled; turn it on so it renders.
+      worker:
+        enabled: true
+      webhooks:
+        allowPrivateNetwork: true
+        privateNetworkAllowlist: mattermost.internal
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+            value: "mattermost.internal"
+
+  # The probe half is a SEPARATE switch on a SEPARATE process. It must not be
+  # driven by the webhooks block: a self-hosted operator who opens their API
+  # server's egress has not thereby decided anything about what their probes
+  # may reach, and on Kubernetes the two are different pods.
+  - it: the probe switch defaults off and is independent of the webhook settings
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+        privateNetworkAllowlist: "10.0.0.0/8"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+
+  - it: the probe switch turns on per probe
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+
+  # `default true .Values...` would be wrong here for the same reason as above:
+  # false is empty in a Go template and would fall back to the default.
+  - it: an explicit false on a probe stays off
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+
+  # The API server has no business carrying the probe's switch, and vice versa.
+  - it: the two switches do not leak into each other's workloads
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"

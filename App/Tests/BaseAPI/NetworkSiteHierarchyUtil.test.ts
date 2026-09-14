@@ -23,6 +23,13 @@ import NetworkSiteHierarchyUtil, {
  * check ("Store" rather than "Unit") while flagging the leaf level through
  * isUnitLevel. If a rollup ever regresses to comparing siteType strings,
  * these tests fail.
+ *
+ * The device rows are BUCKETS: one per (site, health verdict) combination,
+ * carrying how many devices share it, because the endpoint asks Postgres to
+ * group the fleet rather than fetching it. Most fixtures here pass
+ * deviceCount: 1 — the per-device case the aggregator was originally written
+ * for, and the one that cannot tell counting rows apart from counting
+ * devices. The blocks that say "bucket" in their name are the ones that can.
  */
 
 describe("clampUptimeWindowDays", () => {
@@ -366,7 +373,7 @@ describe("aggregateChildStats", () => {
       children: children,
       descendants: descendants,
       devices: deviceSiteIds.map((siteId: string): DeviceAttachmentRow => {
-        return { siteId: siteId, healthState: "healthy" };
+        return { siteId: siteId, healthState: "healthy", deviceCount: 1 };
       }),
       operationalStatusIds: operationalStatusIds,
     });
@@ -511,7 +518,7 @@ describe("aggregateChildStats", () => {
             currentMonitorStatusId: OPERATIONAL,
           },
         ],
-        devices: [{ siteId: "unit1", healthState: "healthy" }],
+        devices: [{ siteId: "unit1", healthState: "healthy", deviceCount: 1 }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("marketA")!.childSiteCount).toBe(1);
@@ -527,7 +534,7 @@ describe("aggregateChildStats", () => {
       NetworkSiteHierarchyUtil.aggregateChildStats({
         children: [],
         descendants: descendants,
-        devices: [{ siteId: "unit1", healthState: "healthy" }],
+        devices: [{ siteId: "unit1", healthState: "healthy", deviceCount: 1 }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.size).toBe(0);
@@ -552,10 +559,10 @@ describe("aggregateChildStats", () => {
 
     test("each state lands in its own bucket of the owning child", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
-        { siteId: "unit3", healthState: "degraded" },
-        { siteId: "marketA", healthState: "healthy" },
-        { siteId: "unitB", healthState: "unknown" },
+        { siteId: "unit1", healthState: "down", deviceCount: 1 },
+        { siteId: "unit3", healthState: "degraded", deviceCount: 1 },
+        { siteId: "marketA", healthState: "healthy", deviceCount: 1 },
+        { siteId: "unitB", healthState: "unknown", deviceCount: 1 },
       ]);
       expect(result.get("marketA")!.deviceStats).toEqual({
         total: 3,
@@ -575,10 +582,10 @@ describe("aggregateChildStats", () => {
 
     test("deviceStats.total and deviceCount never disagree", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
-        { siteId: "unit1", healthState: "healthy" },
-        { siteId: "unit2", healthState: "degraded" },
-        { siteId: "unitB", healthState: "healthy" },
+        { siteId: "unit1", healthState: "down", deviceCount: 1 },
+        { siteId: "unit1", healthState: "healthy", deviceCount: 1 },
+        { siteId: "unit2", healthState: "degraded", deviceCount: 1 },
+        { siteId: "unitB", healthState: "healthy", deviceCount: 1 },
       ]);
       for (const aggregate of result.values()) {
         expect(aggregate.deviceStats.total).toBe(aggregate.deviceCount);
@@ -592,8 +599,8 @@ describe("aggregateChildStats", () => {
      */
     test("devices outside every child's subtree are counted nowhere", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "parent", healthState: "down" },
-        { siteId: "elsewhere", healthState: "down" },
+        { siteId: "parent", healthState: "down", deviceCount: 1 },
+        { siteId: "elsewhere", healthState: "down", deviceCount: 1 },
       ]);
       for (const aggregate of result.values()) {
         expect(aggregate.deviceStats.total).toBe(0);
@@ -614,13 +621,142 @@ describe("aggregateChildStats", () => {
 
     test("each child's tally is its own object, never a shared one", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
+        { siteId: "unit1", healthState: "down", deviceCount: 1 },
       ]);
       expect(result.get("marketA")!.deviceStats.down).toBe(1);
       expect(result.get("unitB")!.deviceStats.down).toBe(0);
       expect(result.get("marketA")!.deviceStats).not.toBe(
         result.get("unitB")!.deviceStats,
       );
+    });
+  });
+
+  /*
+   * A row is a BUCKET, not a device.
+   *
+   * The rollup stopped reading device rows: Postgres groups the fleet by the
+   * facts the classifier reads and returns one row per (site, verdict)
+   * combination, so a single row routinely stands for four hundred switches.
+   * Every count in here therefore has to MULTIPLY by deviceCount rather than
+   * add one — and getting that wrong is silent, because the shape of the
+   * response is unchanged and only its magnitudes are wrong.
+   *
+   * Every test above passes deviceCount: 1, which is the per-device world
+   * they were written in; not one of them can tell `+= 1` apart from
+   * `+= row.deviceCount`. These can.
+   */
+  describe("a bucket stands for as many devices as it counts", () => {
+    function aggregateBuckets(
+      devices: Array<DeviceAttachmentRow>,
+    ): Map<string, ChildAggregate> {
+      return NetworkSiteHierarchyUtil.aggregateChildStats({
+        children: children,
+        descendants: descendants,
+        devices: devices,
+        operationalStatusIds: operationalStatusIds,
+      });
+    }
+
+    test("one bucket contributes its whole count, not one", () => {
+      const result: Map<string, ChildAggregate> = aggregateBuckets([
+        { siteId: "unitB", healthState: "degraded", deviceCount: 412 },
+      ]);
+      const unitB: ChildAggregate = result.get("unitB")!;
+      expect(unitB.deviceCount).toBe(412);
+      expect(unitB.deviceStats).toEqual({
+        total: 412,
+        down: 0,
+        degraded: 412,
+        healthy: 0,
+        unknown: 0,
+      });
+      /*
+       * The invariant ChildAggregate documents, restated where it can now
+       * actually break: deviceCount and deviceStats.total are incremented by
+       * two separate statements, so one of them can start counting rows while
+       * the other counts devices, and the card would print a denominator its
+       * own breakdown does not add up to.
+       */
+      expect(unitB.deviceStats.total).toBe(unitB.deviceCount);
+    });
+
+    test("several buckets at one site sum, each into its own state", () => {
+      const result: Map<string, ChildAggregate> = aggregateBuckets([
+        { siteId: "unitB", healthState: "down", deviceCount: 3 },
+        { siteId: "unitB", healthState: "degraded", deviceCount: 17 },
+        { siteId: "unitB", healthState: "healthy", deviceCount: 1180 },
+        { siteId: "unitB", healthState: "unknown", deviceCount: 9 },
+      ]);
+      expect(result.get("unitB")!.deviceStats).toEqual({
+        total: 1209,
+        down: 3,
+        degraded: 17,
+        healthy: 1180,
+        unknown: 9,
+      });
+      expect(result.get("unitB")!.deviceCount).toBe(1209);
+    });
+
+    test("buckets from anywhere in a subtree land on the right child", () => {
+      const result: Map<string, ChildAggregate> = aggregateBuckets([
+        { siteId: "marketA", healthState: "healthy", deviceCount: 50 },
+        { siteId: "unit1", healthState: "down", deviceCount: 7 },
+        // Two levels down, under closet.
+        { siteId: "unit3", healthState: "degraded", deviceCount: 200 },
+        { siteId: "unitB", healthState: "healthy", deviceCount: 11 },
+        // The requested level itself, and a site outside the subtree.
+        { siteId: "parent", healthState: "down", deviceCount: 9999 },
+        { siteId: "elsewhere", healthState: "down", deviceCount: 9999 },
+      ]);
+      expect(result.get("marketA")!.deviceCount).toBe(257);
+      expect(result.get("marketA")!.deviceStats).toEqual({
+        total: 257,
+        down: 7,
+        degraded: 200,
+        healthy: 50,
+        unknown: 0,
+      });
+      expect(result.get("unitB")!.deviceCount).toBe(11);
+      expect(result.get("emptyC")!.deviceCount).toBe(0);
+    });
+
+    /*
+     * A bucket can legitimately be empty — a grouped aggregate over a
+     * filtered set answers with the combination and a count of zero rather
+     * than omitting the row. Adding one per row would invent a device that
+     * does not exist, and if its verdict were "down" it would put a red badge
+     * on a site holding nothing at all.
+     */
+    test("a bucket of zero devices contributes nothing", () => {
+      const result: Map<string, ChildAggregate> = aggregateBuckets([
+        { siteId: "unitB", healthState: "down", deviceCount: 0 },
+        { siteId: "unitB", healthState: "healthy", deviceCount: 5 },
+      ]);
+      expect(result.get("unitB")!.deviceCount).toBe(5);
+      expect(result.get("unitB")!.deviceStats).toEqual({
+        total: 5,
+        down: 0,
+        degraded: 0,
+        healthy: 5,
+        unknown: 0,
+      });
+    });
+
+    /*
+     * The regression, at the scale it happens at. Buckets are few BY DESIGN
+     * — that is the whole point of grouping — so a count of rows is not a
+     * little wrong, it is three orders of magnitude wrong, and it still reads
+     * as a perfectly ordinary number on a card.
+     */
+    test("counting rows instead of devices is not a rounding error", () => {
+      const buckets: Array<DeviceAttachmentRow> = [
+        { siteId: "unit1", healthState: "healthy", deviceCount: 38000 },
+        { siteId: "unit2", healthState: "down", deviceCount: 1500 },
+        { siteId: "unit3", healthState: "degraded", deviceCount: 500 },
+      ];
+      const result: Map<string, ChildAggregate> = aggregateBuckets(buckets);
+      expect(result.get("marketA")!.deviceCount).toBe(40000);
+      expect(result.get("marketA")!.deviceCount).not.toBe(buckets.length);
     });
   });
 });
@@ -633,11 +769,11 @@ describe("aggregateChildStats", () => {
  */
 describe("tallyDeviceHealth", () => {
   const devices: Array<DeviceAttachmentRow> = [
-    { siteId: "dc1", healthState: "down" },
-    { siteId: "dc1", healthState: "healthy" },
-    { siteId: "dc1", healthState: "degraded" },
-    { siteId: "store7", healthState: "healthy" },
-    { siteId: "store8", healthState: "unknown" },
+    { siteId: "dc1", healthState: "down", deviceCount: 1 },
+    { siteId: "dc1", healthState: "healthy", deviceCount: 1 },
+    { siteId: "dc1", healthState: "degraded", deviceCount: 1 },
+    { siteId: "store7", healthState: "healthy", deviceCount: 1 },
+    { siteId: "store8", healthState: "unknown", deviceCount: 1 },
   ];
 
   test("counts only the sites asked about", () => {
@@ -684,6 +820,54 @@ describe("tallyDeviceHealth", () => {
       NetworkSiteHierarchyUtil.tallyDeviceHealth(devices, new Set<string>())
         .total,
     ).toBe(0);
+  });
+
+  /*
+   * The level's own devices arrive as buckets too, from the same grouped
+   * aggregate as every other row — so this helper multiplies as well.
+   *
+   * The fixtures above all carry deviceCount: 1, which is exactly the case
+   * that cannot distinguish a tally that adds one per row from one that adds
+   * the row's count. A distribution centre with 276 core switches would print
+   * "3 devices" and read as a rounding-error site instead of the biggest
+   * concentration of hardware on the level.
+   */
+  test("counts a bucket's devices, not the bucket", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(
+        [
+          { siteId: "dc1", healthState: "down", deviceCount: 4 },
+          { siteId: "dc1", healthState: "healthy", deviceCount: 260 },
+          { siteId: "dc1", healthState: "degraded", deviceCount: 12 },
+          { siteId: "store7", healthState: "healthy", deviceCount: 9999 },
+        ],
+        new Set<string>(["dc1"]),
+      ),
+    ).toEqual({
+      total: 276,
+      down: 4,
+      degraded: 12,
+      healthy: 260,
+      unknown: 0,
+    });
+  });
+
+  test("a bucket of zero devices adds nothing to the level's tally", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(
+        [
+          { siteId: "dc1", healthState: "down", deviceCount: 0 },
+          { siteId: "dc1", healthState: "healthy", deviceCount: 2 },
+        ],
+        new Set<string>(["dc1"]),
+      ),
+    ).toEqual({
+      total: 2,
+      down: 0,
+      degraded: 0,
+      healthy: 2,
+      unknown: 0,
+    });
   });
 });
 

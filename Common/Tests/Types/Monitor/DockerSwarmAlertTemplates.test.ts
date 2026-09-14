@@ -6,10 +6,18 @@ import {
   getDockerSwarmAlertTemplatesByCategory,
 } from "../../../Types/Monitor/DockerSwarmAlertTemplates";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
+import {
+  getComplementFilterType,
+  hasRecoveryDeadBand,
+} from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
-import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
@@ -21,9 +29,10 @@ import ObjectID from "../../../Types/ObjectID";
  *   1. ENUMERATED invariants run over getAllDockerSwarmAlertTemplates(), so a
  *      newly added template is automatically covered: it must build a valid
  *      MonitorStep, reference only catalog metrics, resolve every criteria
- *      alias, group by the raw `container.name` datapoint label (docker_stats
- *      container identity lives in datapoint labels — NEVER `resource.`
- *      -prefixed), and use disjoint fire/recover thresholds on the same alias.
+ *      alias, group by `resource.container.name` (docker_stats container
+ *      identity is a RESOURCE attribute, so ClickHouse stores it
+ *      `resource.`-prefixed — the UNPREFIXED spelling matches nothing), and
+ *      use disjoint fire/recover thresholds on the same alias.
  *
  *   2. A per-template expectation table pins the spec'd metric / aggregation /
  *      threshold / rolling-time decisions. The table is exhaustive both ways —
@@ -32,10 +41,15 @@ import ObjectID from "../../../Types/ObjectID";
  * Telemetry contract: the Docker Swarm agent stamps ONLY the resource
  * attribute `docker.swarm.cluster.name` (no container.runtime, no host.name).
  * Metrics come from the docker_stats receiver as standard `container.*`
- * series, with container identity (`container.name` =
- * `<service>.<slot>.<taskid>`) in datapoint labels. Templates group by
- * `container.name` so one incident fires per task; the worker injects the
- * cluster scope from clusterIdentifier.
+ * series. That receiver emits one ResourceMetrics per container and carries
+ * container identity (`container.name` = `<service>.<slot>.<taskid>`,
+ * `container.image.name`) as RESOURCE attributes, so ClickHouse stores them
+ * `resource.`-prefixed — which is exactly the spelling the ingest side reads
+ * back off these very series
+ * (OtelMetricsIngestService.bufferDockerSwarmTaskMetric reads
+ * `resource.container.name`). Templates group by `resource.container.name` so
+ * one incident fires per task; the worker injects the cluster scope from
+ * clusterIdentifier.
  */
 
 interface QueryExpectation {
@@ -64,8 +78,11 @@ interface TemplateExpectation {
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   {
     /*
-     * Min per task over Past1Minute so a single zero-uptime scrape (a fresh
-     * restart) trips it instead of being masked by a longer-running window.
+     * Min per task over Past1Minute, compared as a DURATION: container.uptime
+     * is a float-seconds gauge scraped every 30s, so it is never exactly 0 —
+     * and a Swarm restart yields a new task id, a new container name and a
+     * new series, so no series ever resets to zero. "Under 60s of uptime" is
+     * what a (re)started task actually looks like.
      */
     id: "docker-swarm-task-down",
     name: "Task Down (Low Uptime)",
@@ -76,16 +93,16 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       metricName: "container.uptime",
       aggregation: MetricsAggregationType.Min,
     },
-    groupBy: "container.name",
+    groupBy: "resource.container.name",
     fire: {
       alias: "container_uptime",
-      filterType: FilterType.EqualTo,
-      value: 0,
+      filterType: FilterType.LessThan,
+      value: 60,
     },
     recover: {
       alias: "container_uptime",
-      filterType: FilterType.GreaterThan,
-      value: 0,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 60,
     },
   },
   {
@@ -102,7 +119,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       metricName: "container.cpu.utilization",
       aggregation: MetricsAggregationType.Avg,
     },
-    groupBy: "container.name",
+    groupBy: "resource.container.name",
     fire: {
       alias: "container_cpu",
       filterType: FilterType.GreaterThan,
@@ -125,7 +142,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       metricName: "container.memory.percent",
       aggregation: MetricsAggregationType.Avg,
     },
-    groupBy: "container.name",
+    groupBy: "resource.container.name",
     fire: {
       alias: "container_memory",
       filterType: FilterType.GreaterThan,
@@ -148,7 +165,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       metricName: "container.pids.count",
       aggregation: MetricsAggregationType.Max,
     },
-    groupBy: "container.name",
+    groupBy: "resource.container.name",
     fire: {
       alias: "container_pids",
       filterType: FilterType.GreaterThan,
@@ -215,31 +232,18 @@ function getReferencableAliases(
  * Fire and recover must be disjoint complements on the same alias —
  * otherwise the monitor either flaps (overlap) or wedges (gap).
  */
+/*
+ * Delegates to the shared assertion so all eight recommendation suites
+ * agree on what a correct fire/recover pair looks like. This function used
+ * to require `fire.value === recover.value` — see the comment in
+ * RecommendationCriteriaAssertions for why that was the bug rather than
+ * the invariant.
+ */
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
 ): boolean {
-  if (fire.value !== recover.value) {
-    return false;
-  }
-  switch (fire.filterType) {
-    case FilterType.GreaterThan:
-      return (
-        recover.filterType === FilterType.LessThanOrEqualTo ||
-        (fire.value === 0 && recover.filterType === FilterType.EqualTo)
-      );
-    case FilterType.GreaterThanOrEqualTo:
-      return recover.filterType === FilterType.LessThan;
-    case FilterType.LessThan:
-      return recover.filterType === FilterType.GreaterThanOrEqualTo;
-    case FilterType.LessThanOrEqualTo:
-      return recover.filterType === FilterType.GreaterThan;
-    case FilterType.EqualTo:
-      // Task-down: fire when uptime == 0, recover when uptime > 0.
-      return fire.value === 0 && recover.filterType === FilterType.GreaterThan;
-    default:
-      return false;
-  }
+  return hasRecoveryDeadBand(fire, recover);
 }
 
 const ALL_TEMPLATES: Array<DockerSwarmAlertTemplate> =
@@ -388,7 +392,7 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
       return [t.id, t];
     }),
   )(
-    "%s groups by the container.name datapoint label only (never resource.-prefixed)",
+    "%s groups by the resource-prefixed container name (never the bare datapoint spelling)",
     (_id: unknown, template: unknown) => {
       const step: MonitorStep = (
         template as DockerSwarmAlertTemplate
@@ -402,11 +406,16 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
           queryConfig.metricQueryData.groupByAttributeKeys || [];
         for (const key of groupBys) {
           /*
-           * docker_stats container identity is the `container.name` DATAPOINT
-           * label. A `resource.`-prefixed key would match nothing in
-           * ClickHouse and collapse every task into one mislabeled series.
+           * docker_stats emits one ResourceMetrics per container and carries
+           * container identity as a RESOURCE attribute, so ClickHouse stores
+           * it as `resource.container.name` — the spelling
+           * OtelMetricsIngestService.bufferDockerSwarmTaskMetric reads back
+           * off these very series. The UNPREFIXED `container.name` matches no
+           * stored attribute: aggregatePerSeriesFromRawMetrics then labels
+           * every datapoint `{"container.name": ""}`, collapsing the whole
+           * cluster into one unnamed series.
            */
-          expect(key).toBe("container.name");
+          expect(key).toBe("resource.container.name");
         }
       }
     },
@@ -471,6 +480,133 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
       expect(monitor.metricViewConfig.formulaConfigs || []).toHaveLength(0);
     },
   );
+
+  /*
+   * Regression: every template must group by the RESOURCE-prefixed container
+   * name, read through the same accessor the telemetry worker and the criteria
+   * evaluator use (MonitorStep.getGroupByAttributeKeys).
+   *
+   * WHY this is worth its own assertion rather than being left to the spec
+   * table: the docker_stats receiver emits one ResourceMetrics per container
+   * and carries container identity as a RESOURCE attribute, so ClickHouse
+   * stores it `resource.container.name` — which is what
+   * OtelMetricsIngestService.bufferDockerSwarmTaskMetric reads back off these
+   * very series to mirror them onto DockerSwarmResource Task rows. The
+   * unprefixed `container.name` matches no stored attribute at all, and
+   * MonitorTelemetryMonitor.aggregatePerSeriesFromRawMetrics writes
+   * `labels[key] = ""` for a missing key. The result was ONE synthetic
+   * cluster-wide series: "one incident per task" deduped to a single incident,
+   * an alert naming no container (SeriesLabelDisplay skips empty labels), and
+   * an Avg taken across every container in the swarm, so one hot task beside a
+   * dozen idle sidecars was invisible.
+   */
+  test("every template groups by the resource-prefixed container name", () => {
+    expect(ALL_TEMPLATES.length).toBeGreaterThan(0);
+
+    for (const template of ALL_TEMPLATES) {
+      const keys: Array<string> = MonitorStep.getGroupByAttributeKeys(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      expect(keys).toEqual(["resource.container.name"]);
+      expect(keys[0]!.startsWith("resource.")).toBe(true);
+    }
+  });
+
+  /*
+   * Regression: the Task Down template must compare a DURATION, never equality
+   * with zero.
+   *
+   * `container.uptime` is a float-seconds gauge (docker_stats records
+   * `now.Sub(state.StartedAt).Seconds()`) scraped every 30s by the shipped
+   * agent, and CompareCriteria.equalTo is exact float equality with no
+   * epsilon, so `EqualTo 0` can never be true at a scrape. docker_stats also
+   * lists only RUNNING containers, so a dead task's series stops rather than
+   * reporting zero, and Swarm replaces a failed task with a new task id —
+   * hence a new `<service>.<slot>.<taskid>` container name and a new series —
+   * so uptime never resets to zero WITHIN a series either. The only Critical
+   * template in the file was therefore pinned Online forever.
+   *
+   * The `> 30` bound is the load-bearing half: the threshold must clear the
+   * agent's 30s collection_interval, or a container restarted just before a
+   * scrape can be first observed already above it and the restart is missed.
+   */
+  test("the task-down template compares a duration, never equality with zero", () => {
+    const template: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById("docker-swarm-task-down");
+    expect(template).toBeDefined();
+
+    const instances: Array<MonitorCriteriaInstance> = getCriteriaInstances(
+      template!.getMonitorStep(buildArgs()),
+    );
+    const fireFilter: any = (instances[0]!.data?.filters as Array<any>)[0];
+
+    expect(fireFilter.filterType).not.toBe(FilterType.EqualTo);
+    expect(fireFilter.filterType).toBe(FilterType.LessThan);
+    expect(fireFilter.value).toBeGreaterThan(30);
+
+    /*
+     * A (re)start is an EVENT, not a level, so the fire side deliberately
+     * overrides the builder's sustained default. Samples are bucketed per
+     * MINUTE before the criteria sees them, so under AllValues every bucket
+     * in the window would have to read under 60s — which stops holding the
+     * moment the window straddles uptime crossing 60, narrowing the firing
+     * window to less than the evaluation cadence. Recovery stays sustained.
+     */
+    expect(fireFilter.metricMonitorOptions.metricAggregationType).toBe(
+      EvaluateOverTimeType.AnyValue,
+    );
+
+    const recoverFilter: any = (
+      instances[instances.length - 1]!.data?.filters as Array<any>
+    )[0];
+    expect(recoverFilter.metricMonitorOptions.metricAggregationType).toBe(
+      EvaluateOverTimeType.AllValues,
+    );
+  });
+
+  /*
+   * Regression: the two Resource templates must state the denominator their
+   * metric ACTUALLY uses, because the remediation sentence is the one line an
+   * on-call engineer acts on.
+   *
+   * CPU: docker_stats computes (cpuDelta / systemDelta) * onlineCPUs * 100, so
+   * 100% is one full core and an 8-core node tops out at 800%. There is no
+   * per-container CPU-limit series in the catalog and no formulaConfigs, so
+   * percent-of-limit is not expressible — telling the engineer to raise the
+   * service's "CPU reservation/limit" pointed at a quantity the number was
+   * never measured against.
+   *
+   * Memory: container.memory.percent mirrors `docker stats` MEM%, and the
+   * Docker API's MemoryStats.Limit reports the HOST total for a container with
+   * no limit. `--limit-memory` is optional on a Swarm service, so an
+   * unconditional "85% of its memory limit" is wrong for every limitless
+   * service in the cluster.
+   */
+  test("resource templates state the denominator their metric actually uses", () => {
+    const cpuTemplate: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById("docker-swarm-high-cpu");
+    expect(cpuTemplate).toBeDefined();
+
+    const cpuIncident: any = (
+      getCriteriaInstances(cpuTemplate!.getMonitorStep(buildArgs()))[0]!.data
+        ?.incidents as Array<any>
+    )[0];
+
+    expect(cpuIncident.description).toContain("one full core");
+    expect(cpuIncident.description).not.toContain("CPU reservation/limit");
+
+    const memoryTemplate: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById("docker-swarm-high-memory");
+    expect(memoryTemplate).toBeDefined();
+
+    const memoryIncident: any = (
+      getCriteriaInstances(memoryTemplate!.getMonitorStep(buildArgs()))[0]!.data
+        ?.incidents as Array<any>
+    )[0];
+
+    expect(memoryIncident.description).toContain("node's total memory");
+  });
 });
 
 describe("DockerSwarmAlertTemplates - spec table expectations", () => {
@@ -522,7 +658,17 @@ describe("DockerSwarmAlertTemplates - spec table expectations", () => {
         tc.recover.alias,
       );
       expect(recoverFilter.filterType).toBe(tc.recover.filterType);
-      expect(recoverFilter.value).toBe(tc.recover.value);
+      /*
+       * The spec table states the FIRING threshold; the recovery threshold
+       * is derived from it so the dead band lives in one place rather than
+       * being restated in every spec table.
+       */
+      expect(recoverFilter.value).toBe(
+        getRecoveryThreshold({
+          filterType: getComplementFilterType(tc.recover.filterType)!,
+          value: tc.recover.value,
+        }) ?? tc.recover.value,
+      );
     },
   );
 });

@@ -516,3 +516,318 @@ export const buildOccurrenceLogsExplorerLink: BuildOccurrenceLogsExplorerLinkFun
       return null;
     }
   };
+
+/*
+ * How far outside a recording's own [start, end] an occurrence may fall and
+ * still be treated as "in this session". The occurrence is stamped by the
+ * telemetry SDK's clock and the recording by the ingest clock; the manifest
+ * carries clockSkewMs precisely because they disagree, and the server
+ * clamps that skew, so a minute covers the honest cases without letting an
+ * occurrence from a different visit claim this recording.
+ */
+export const REPLAY_CARD_MOMENT_TOLERANCE_MS: number = 60 * 1000;
+
+export interface ReplayCardMoment {
+  /* Unix ms of the occurrence, to be handed to the route builder as `at`. */
+  errorTimeUnixMs: number;
+}
+
+export interface ReplayCardMomentArgs {
+  /* The occurrence the page is showing (latest instance or the row). */
+  errorTimeUnixMs: number | null | undefined;
+  /* The session THAT occurrence carries; '' on rows predating the recorder. */
+  instanceSessionId: string | null | undefined;
+  /* The session the card is about to link to. */
+  session: {
+    sessionId: string | null | undefined;
+    startTime?: unknown;
+    endTime?: unknown;
+    durationMs?: number | null | undefined;
+  };
+}
+
+type GetReplayCardMomentFunction = (
+  args: ReplayCardMomentArgs,
+) => ReplayCardMoment | null;
+
+/**
+ * Whether the card may promise "N seconds before the error" for a session.
+ *
+ * The /for-exception list is ordered newest-first and an exception group's
+ * latest occurrence is the newest ExceptionInstance; those coincide only by
+ * luck, so pairing one instance's time with another session's start
+ * produced a confident link to the wrong moment (correlation-1). A moment
+ * is claimed only when the occurrence names this very session AND its time
+ * lies inside the recording (with skew tolerance); otherwise the caller
+ * links the session without a moment and says so.
+ */
+export const getReplayCardMoment: GetReplayCardMomentFunction = (
+  args: ReplayCardMomentArgs,
+): ReplayCardMoment | null => {
+  const errorTimeUnixMs: number | null | undefined = args.errorTimeUnixMs;
+
+  if (
+    typeof errorTimeUnixMs !== "number" ||
+    !Number.isFinite(errorTimeUnixMs) ||
+    errorTimeUnixMs <= 0
+  ) {
+    return null;
+  }
+
+  const instanceSessionId: string = toTrimmedString(args.instanceSessionId);
+  const sessionId: string = toTrimmedString(args.session.sessionId);
+
+  if (
+    instanceSessionId.length === 0 ||
+    sessionId.length === 0 ||
+    instanceSessionId !== sessionId
+  ) {
+    return null;
+  }
+
+  const startTime: Date | null = toDate(args.session.startTime);
+
+  /*
+   * Without a start there is nothing to check against; the ids matched, so
+   * the moment is trusted and the player clamps it against the manifest.
+   */
+  if (!startTime) {
+    return { errorTimeUnixMs };
+  }
+
+  if (errorTimeUnixMs < startTime.getTime() - REPLAY_CARD_MOMENT_TOLERANCE_MS) {
+    return null;
+  }
+
+  let endMs: number | null = null;
+  const endTime: Date | null = toDate(args.session.endTime);
+
+  if (endTime) {
+    endMs = endTime.getTime();
+  } else if (
+    typeof args.session.durationMs === "number" &&
+    Number.isFinite(args.session.durationMs) &&
+    args.session.durationMs > 0
+  ) {
+    endMs = startTime.getTime() + args.session.durationMs;
+  }
+
+  /* An open recording (no end yet) accepts any occurrence after its start. */
+  if (
+    endMs !== null &&
+    errorTimeUnixMs > endMs + REPLAY_CARD_MOMENT_TOLERANCE_MS
+  ) {
+    return null;
+  }
+
+  return { errorTimeUnixMs };
+};
+
+/* Longest label an exception group gets in a link; the rest is a tooltip. */
+export const EXCEPTION_GROUP_LABEL_MAX_LENGTH: number = 120;
+
+/* How many characters of a fingerprint are shown when nothing better exists. */
+export const EXCEPTION_FINGERPRINT_SHORT_LENGTH: number = 12;
+
+export interface ExceptionGroupSummary {
+  /* TelemetryException id, when the group row was resolved. */
+  id?: string | null | undefined;
+  fingerprint?: string | null | undefined;
+  exceptionType?: string | null | undefined;
+  message?: string | null | undefined;
+}
+
+type GetExceptionGroupLabelFunction = (
+  group: ExceptionGroupSummary | null | undefined,
+  fingerprint?: string | null | undefined,
+) => string;
+
+/**
+ * Human label for an exception group: "TypeError: x is not a function",
+ * falling back to whichever half exists, and to the first characters of the
+ * fingerprint only when nothing was resolved. A viewer should read an
+ * error, never a hash (correlation-7).
+ */
+export const getExceptionGroupLabel: GetExceptionGroupLabelFunction = (
+  group: ExceptionGroupSummary | null | undefined,
+  fingerprint?: string | null | undefined,
+): string => {
+  const exceptionType: string = toTrimmedString(group?.exceptionType);
+  const message: string = toTrimmedString(group?.message).split("\n")[0] || "";
+
+  let label: string = "";
+
+  if (exceptionType.length > 0 && message.length > 0) {
+    label = `${exceptionType}: ${message}`;
+  } else if (exceptionType.length > 0) {
+    label = exceptionType;
+  } else if (message.length > 0) {
+    label = message;
+  }
+
+  if (label.length > EXCEPTION_GROUP_LABEL_MAX_LENGTH) {
+    label = `${label.slice(0, EXCEPTION_GROUP_LABEL_MAX_LENGTH - 1)}…`;
+  }
+
+  if (label.length > 0) {
+    return label;
+  }
+
+  const resolvedFingerprint: string =
+    toTrimmedString(fingerprint) || toTrimmedString(group?.fingerprint);
+
+  if (resolvedFingerprint.length === 0) {
+    return "Unknown error";
+  }
+
+  return resolvedFingerprint.length > EXCEPTION_FINGERPRINT_SHORT_LENGTH
+    ? `Error ${resolvedFingerprint.slice(0, EXCEPTION_FINGERPRINT_SHORT_LENGTH)}…`
+    : `Error ${resolvedFingerprint}`;
+};
+
+export interface ExceptionGroupLink {
+  route: Route;
+  label: string;
+  /* True when the link opens the exception itself, not a filtered list. */
+  isDirect: boolean;
+}
+
+export interface BuildExceptionGroupLinkArgs {
+  fingerprint: string | null | undefined;
+  /* The group row when it was resolved (id, type, message). */
+  group?: ExceptionGroupSummary | null | undefined;
+  /* Populated EXCEPTIONS_UNRESOLVED route, the filtered-list fallback. */
+  exceptionsListRoute: Route;
+  /*
+   * Builds the exception view route for a TelemetryException id. Passed in
+   * because this module stays free of RouteMap (it reads `window` on load),
+   * so the App jest suite can run it in plain Node.
+   */
+  exceptionViewRouteForId?: ((id: string) => Route) | undefined;
+}
+
+type BuildExceptionGroupLinkFunction = (
+  args: BuildExceptionGroupLinkArgs,
+) => ExceptionGroupLink | null;
+
+/**
+ * A link for one correlated exception group. Direct to the exception page
+ * when the group was resolved to a TelemetryException id and the caller
+ * can build that route; otherwise the list page filtered to the
+ * fingerprint (the pre-existing hop). Null only when there is neither a
+ * fingerprint nor an id to link with.
+ */
+export const buildExceptionGroupLink: BuildExceptionGroupLinkFunction = (
+  args: BuildExceptionGroupLinkArgs,
+): ExceptionGroupLink | null => {
+  const fingerprint: string =
+    toTrimmedString(args.fingerprint) ||
+    toTrimmedString(args.group?.fingerprint);
+  const groupId: string = toTrimmedString(args.group?.id);
+  const label: string = getExceptionGroupLabel(args.group, fingerprint);
+
+  if (groupId.length > 0 && args.exceptionViewRouteForId) {
+    try {
+      return {
+        route: args.exceptionViewRouteForId(groupId),
+        label,
+        isDirect: true,
+      };
+    } catch {
+      // Fall through to the list route below.
+    }
+  }
+
+  if (fingerprint.length === 0) {
+    return null;
+  }
+
+  const route: Route = new Route(args.exceptionsListRoute.toString());
+
+  /*
+   * Same grammar as TraceCorrelatedSignals.buildExceptionsGroupRoute: the
+   * list's search DSL compiles `@fingerprint:<value>` to an exact filter,
+   * and status=all + the widest relative range keep resolved or long-quiet
+   * groups from being filtered out on arrival.
+   */
+  try {
+    route.addQueryParams({
+      search: encodeURIComponent(`@fingerprint:${fingerprint}`),
+      status: "all",
+      range: encodeURIComponent("Past 3 Months"),
+    });
+  } catch {
+    return null;
+  }
+
+  return { route, label, isDirect: false };
+};
+
+type IndexExceptionGroupsByFingerprintFunction = (
+  rows:
+    | Array<
+        | {
+            id?: unknown;
+            _id?: unknown;
+            fingerprint?: unknown;
+            exceptionType?: unknown;
+            message?: unknown;
+          }
+        | null
+        | undefined
+      >
+    | null
+    | undefined,
+) => Map<string, ExceptionGroupSummary>;
+
+/**
+ * Index a TelemetryException lookup result by fingerprint, so a batch of
+ * bare fingerprints (a session header's exceptionFingerprints) resolves to
+ * labels and ids in one pass. The first row per fingerprint wins; rows
+ * without a fingerprint cannot be matched and are skipped.
+ */
+export const indexExceptionGroupsByFingerprint: IndexExceptionGroupsByFingerprintFunction =
+  (
+    rows:
+      | Array<
+          | {
+              id?: unknown;
+              _id?: unknown;
+              fingerprint?: unknown;
+              exceptionType?: unknown;
+              message?: unknown;
+            }
+          | null
+          | undefined
+        >
+      | null
+      | undefined,
+  ): Map<string, ExceptionGroupSummary> => {
+    const index: Map<string, ExceptionGroupSummary> = new Map<
+      string,
+      ExceptionGroupSummary
+    >();
+
+    if (!rows || !Array.isArray(rows)) {
+      return index;
+    }
+
+    for (const row of rows) {
+      const fingerprint: string = toTrimmedString(row?.fingerprint);
+
+      if (fingerprint.length === 0 || index.has(fingerprint)) {
+        continue;
+      }
+
+      const id: string = toTrimmedString(row?.id) || toTrimmedString(row?._id);
+
+      index.set(fingerprint, {
+        id: id.length > 0 ? id : null,
+        fingerprint,
+        exceptionType: toTrimmedString(row?.exceptionType) || null,
+        message: toTrimmedString(row?.message) || null,
+      });
+    }
+
+    return index;
+  };

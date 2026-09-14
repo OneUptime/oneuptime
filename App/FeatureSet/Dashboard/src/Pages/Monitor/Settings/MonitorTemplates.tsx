@@ -46,6 +46,27 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        onBeforeCreate={async (
+          item: MonitorTemplate,
+        ): Promise<MonitorTemplate> => {
+          /*
+           * Manual monitors skip the criteria step, so its type-change cleanup
+           * never mounts when a user returns to Defaults and chooses Manual.
+           */
+          if (item.monitorType === MonitorType.Manual && item.monitorSteps) {
+            const steps: MonitorStepsType = MonitorStepsType.clone(
+              item.monitorSteps,
+            );
+            for (const step of steps.data?.monitorStepsInstanceArray || []) {
+              if (step.data) {
+                step.data.doNotSyncFields = [];
+              }
+            }
+            item.monitorSteps = steps;
+          }
+
+          return item;
+        }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Monitor Templates",
@@ -140,15 +161,22 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               monitorName: true,
             },
             title: "Default Monitor Name",
+            /*
+             * Optional since issue #3486. A Network Device auto-import rule
+             * names what it provisions "<device> - <this>", so a required
+             * field forced the same suffix onto every imported device; blank
+             * now means the monitor is named after the device alone.
+             *
+             * No minLength either: a blank field that accepts nothing shorter
+             * than two characters rejects a one-character name while
+             * accepting no name at all.
+             */
             description:
-              "Default name applied to monitors created from this template. Users can override on creation.",
+              "Default name applied to monitors created from this template. Leave it blank to name each monitor after the resource it watches.",
             fieldType: FormFieldSchemaType.Text,
             stepId: "monitor-defaults",
-            required: true,
+            required: false,
             placeholder: "Monitor Name",
-            validation: {
-              minLength: 2,
-            },
           },
           {
             field: {
@@ -195,11 +223,24 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               value: FormValues<MonitorTemplate>,
               fieldProps: CustomElementProps,
             ) => {
+              /*
+               * The template's OWN name stands in when the default monitor
+               * name is blank (issue #3486). This string is interpolated into
+               * the seeded criteria and incident titles - "Check if {name} is
+               * online" - and those strings are persisted into the template's
+               * monitorSteps and inherited by every monitor made from it, so
+               * an empty one would bake "Check if  is online" in permanently.
+               */
               return (
                 <MonitorStepsForm
                   {...fieldProps}
+                  isMonitorTemplate={true}
                   monitorType={value.monitorType || MonitorType.Manual}
-                  monitorName={value.monitorName || ""}
+                  monitorName={
+                    value.monitorName?.trim() ||
+                    value.templateName?.trim() ||
+                    ""
+                  }
                 />
               );
             },

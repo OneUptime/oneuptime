@@ -3,7 +3,6 @@ import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
-import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import SmsService from "./SmsService";
 import TeamMemberService from "./TeamMemberService";
@@ -51,8 +50,11 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
+import EmailRollupWriter from "../Utils/EmailRollup/EmailRollupWriter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -68,8 +70,24 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
-    whatsAppMessage: WhatsAppMessagePayload;
+    /*
+     * Optional: WhatsApp only delivers Meta-approved template payloads, so a
+     * caller whose event type has no registered template leaves this out and
+     * the channel is skipped (the body of this method already guards for it)
+     * instead of failing at the notification service.
+     */
+    whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
+    /*
+     * Bypasses burst coalescing for this send, before any rollup bookkeeping
+     * runs. Some producers reuse another family's event type: the SLA-breach
+     * job at App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts sends
+     * under EmailTemplateType.IncidentOwnerResourceCreated at :265 and reuses
+     * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286, so the event type
+     * alone cannot express that this particular message is urgent. Only a
+     * caller knows that, so only a caller can say so.
+     */
+    forceImmediate?: boolean | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     alertEpisodeId?: ObjectID | undefined;
@@ -133,34 +151,87 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           },
         });
 
-        for (const userEmail of userEmails) {
-          MailService.sendMail(
-            {
-              ...data.emailEnvelope,
-              toEmail: userEmail.email!,
-            },
-            {
-              projectId: data.projectId,
-              incidentId: data.incidentId,
-              alertId: data.alertId,
-              alertEpisodeId: data.alertEpisodeId,
-              incidentEpisodeId: data.incidentEpisodeId,
-              monitorId: data.monitorId,
-              scheduledMaintenanceId: data.scheduledMaintenanceId,
-              statusPageId: data.statusPageId,
-              statusPageAnnouncementId: data.statusPageAnnouncementId,
-              userId: data.userId,
-              teamId: data.teamId,
-              // OnCall-related fields
-              onCallPolicyId: data.onCallPolicyId,
-              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-              onCallDutyPolicyExecutionLogTimelineId:
-                data.onCallDutyPolicyExecutionLogTimelineId,
-              onCallScheduleId: data.onCallScheduleId,
-            },
-          ).catch((err: Error) => {
+        const emailEnvelope: EmailEnvelope = {
+          ...data.emailEnvelope,
+          vars: { ...data.emailEnvelope.vars },
+        };
+
+        if (userEmails.length > 0) {
+          try {
+            const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+            /*
+             * Keep this out of the producer's envelope and the other channels.
+             * A *Link variable would be mistaken for a resource by the rollup writer.
+             */
+            emailEnvelope.vars["notificationPreferencesUrl"] = URL.fromString(
+              dashboardUrl.toString(),
+            )
+              .addRoute(
+                `/${data.projectId.toString()}/user-settings/notification-settings`,
+              )
+              .toString();
+          } catch (err) {
+            // The footer retains navigation instructions if a URL is unavailable.
             logger.error(err);
-          });
+          }
+        }
+
+        for (const userEmail of userEmails) {
+          /*
+           * The one seam where an owner email can be held back. Below the
+           * burst threshold the email is sent immediately with its original
+           * subject, template and correlation ids, plus the preferences URL
+           * above. Delivery is fire-and-forget inside the writer; above the
+           * threshold the message is
+           * queued for a rollup instead of dropped. Awaited, unlike the raw
+           * send it replaces, because the queue row has to exist before this
+           * method returns; the writer itself never awaits MailService.
+           *
+           * The email-only envelope copy is never mutated by the writer.
+           * The original remains unchanged, which the Telegram fallback and Slack /
+           * Microsoft Teams bodies further down depend on: all three
+           * synthesise their message from data.emailEnvelope.subject.
+           *
+           * Guarded even though sendOrRollup is written not to throw. The send
+           * it replaces was fire-and-forget, so one bad address could never
+           * cost another address its email - let alone cost this notification
+           * its SMS, call, push, Telegram, workspace and webhook deliveries
+           * further down. Awaiting reintroduces that possibility; this catch
+           * takes it back out.
+           */
+          try {
+            await EmailRollupWriter.sendOrRollup({
+              projectId: data.projectId,
+              userId: data.userId,
+              toEmail: userEmail.email!,
+              eventType: data.eventType,
+              emailEnvelope: emailEnvelope,
+              mailOptions: {
+                projectId: data.projectId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                monitorId: data.monitorId,
+                scheduledMaintenanceId: data.scheduledMaintenanceId,
+                statusPageId: data.statusPageId,
+                statusPageAnnouncementId: data.statusPageAnnouncementId,
+                userId: data.userId,
+                teamId: data.teamId,
+                // OnCall-related fields
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+                onCallDutyPolicyExecutionLogTimelineId:
+                  data.onCallDutyPolicyExecutionLogTimelineId,
+                onCallScheduleId: data.onCallScheduleId,
+              },
+              ...(data.forceImmediate !== undefined && {
+                forceImmediate: data.forceImmediate,
+              }),
+            });
+          } catch (err) {
+            logger.error(err);
+          }
         }
       }
 
@@ -797,12 +868,6 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addNotificationSettingIfNotExists(
       userId,
       projectId,
-      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-    );
-
-    await this.addNotificationSettingIfNotExists(
-      userId,
-      projectId,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
     );
 
@@ -845,6 +910,38 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+    );
+
+    await this.addShiftReminderNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * The two shift-reminder events ("before my shift starts", "my upcoming
+   * shift is reassigned"). Email AND push on by default: a reminder that
+   * only lands in a mailbox is easy to miss at 05:45, and both are the
+   * user's own lead times, not a page. Idempotent — the
+   * AddShiftReminderNotificationSettingsForUsers data migration calls this
+   * for every existing member, and sendUserNotification sends nothing
+   * without a row, so this is what makes the reminder worker's output
+   * non-zero for users who joined before the events existed.
+   */
+  @CaptureSpan()
+  public async addShiftReminderNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+      { alertByPush: true },
     );
   }
 
@@ -940,6 +1037,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     userId: ObjectID,
     projectId: ObjectID,
     eventType: NotificationSettingEventType,
+    options?: { alertByPush?: boolean | undefined },
   ): Promise<void> {
     const existingNotification: PositiveNumber = await this.countBy({
       query: {
@@ -958,6 +1056,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       item.projectId = projectId;
       item.eventType = eventType;
       item.alertByEmail = true;
+
+      if (options?.alertByPush) {
+        item.alertByPush = true;
+      }
 
       await this.create({
         data: item,

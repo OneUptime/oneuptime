@@ -4,7 +4,7 @@
 
 Denne integration er **udgående**: OneUptime kalder [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Hændelse → On Create**-trigger og en **API-komponent**.
 
-> **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Den konfigureres med miljøvariabler, ikke workflows — se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration). Denne side handler specifikt om _oprettelse af sager fra hændelser_.
+> **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Du kan tale med den app i dit repository — nævn den i en sag eller en pull request, og den implementerer, reviderer eller gennemgår; se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app), og [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) for at installere den. Denne side handler specifikt om _oprettelse af sager fra hændelser_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,3 +74,10 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrationsoversigt](/docs/integrations/index) — mønstre og autentificeringsoversigten.
 - [GitLab](/docs/integrations/gitlab) — den samme idé for GitLab.
 - [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) — den native GitHub App-forbindelse.
+- [Arbejd med OneUptime fra GitHub](/docs/ai/github-app) — sådan giver du GitHub Appen kommandoer fra en sag eller en pull request.
+
+## Netværksadgang for selvhostede installationer
+
+Workflowet på denne side til oprettelse af issues kræver DNS-opslag og udgående HTTPS (TCP 443) fra OneUptime til `api.github.com`. Det kræver ingen indgående callback fra GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+Læs afsnittet om netværksadgang i [GitHub-integration](/docs/self-hosted/github-integration) for oplysninger om udgående forbindelser, indgående callbacks og private installationer.

@@ -1,4 +1,8 @@
-import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -75,6 +79,7 @@ export class ExceptionAggregationService {
       ["podmanHostId", ServiceType.PodmanHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["vmwareVCenterId", ServiceType.VMwareVCenter],
       ["cephClusterId", ServiceType.CephCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],
@@ -369,10 +374,16 @@ export class ExceptionAggregationService {
       request.messageSearchText &&
       request.messageSearchText.trim().length > 0
     ) {
+      /*
+       * Escaped so a message containing `%` or `_` matches literally. The
+       * list query escapes centrally (Statement.serializseValue); without the
+       * same treatment here a "disk 100% full" filter counted every exception
+       * in the chart while the table below it showed only the matching ones.
+       */
       statement.append(
         SQL` AND message ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${request.messageSearchText.trim()}%`,
+          value: `%${escapeIlikePattern(request.messageSearchText.trim())}%`,
         }}`,
       );
     }

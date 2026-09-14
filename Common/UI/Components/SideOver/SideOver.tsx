@@ -1,13 +1,12 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
+import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useId,
-  useLayoutEffect,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -26,6 +25,23 @@ export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
   submitButtonDisabled?: boolean | undefined;
   submitButtonText?: string | undefined;
+  /*
+   * Spinner on the submit button, and a disable that comes with it — the same
+   * affordance Modal has always forwarded to its footer. Without it a panel
+   * whose submit kicks off a long job has to hand-roll a "Creating..." label
+   * and remember to disable itself, which is what every such panel here did.
+   */
+  submitButtonIsLoading?: boolean | undefined;
+  /*
+   * Disables the footer's Close button. Only worth setting while the panel is
+   * running something it cannot abandon: the alternative every caller reached
+   * for was to no-op inside `onClose`, which leaves a live-looking button that
+   * does nothing when pressed.
+   *
+   * Note this does NOT disable the header's × — that one stays available so a
+   * panel can never trap the user.
+   */
+  closeButtonDisabled?: boolean | undefined;
   leftFooterElement?: ReactElement | undefined;
   size?: SideOverSize | undefined;
   /*
@@ -127,24 +143,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  /*
-   * A layout effect, not an ordinary one. Hiding the page scrollbar widens the
-   * viewport that `right: 0` resolves against, so a panel that painted before
-   * the lock landed would visibly jump sideways by the scrollbar's width on
-   * every platform that draws a classic scrollbar. Locking before paint means
-   * the panel is only ever drawn in its final position.
-   */
-  useLayoutEffect(() => {
-    if (props.disablePageScrollLock) {
-      return undefined;
-    }
-
-    lockPageScroll();
-
-    return () => {
-      unlockPageScroll();
-    };
-  }, [props.disablePageScrollLock]);
+  usePageScrollLock(!props.disablePageScrollLock);
 
   const sideOver: ReactElement = (
     /*
@@ -246,6 +245,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
               <div className="flex justify-end space-x-3">
                 <Button
                   title="Close"
+                  disabled={props.closeButtonDisabled}
                   onClick={() => {
                     props.onClose();
                   }}
@@ -256,6 +256,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                   <Button
                     title={props.submitButtonText || "Save"}
                     disabled={props.submitButtonDisabled}
+                    isLoading={props.submitButtonIsLoading}
                     onClick={() => {
                       props.onSubmit!();
                     }}

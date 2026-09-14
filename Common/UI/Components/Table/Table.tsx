@@ -28,6 +28,8 @@ export interface BulkActionProps<T extends GenericObject> {
 
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
+  /** Optional row attributes and navigation, shared by desktop and mobile rows. */
+  getRowProps?: ((item: T) => React.HTMLAttributes<HTMLElement>) | undefined;
   id: string;
   columns: Columns<T>;
   className?: string;
@@ -41,6 +43,10 @@ export interface ComponentProps<T extends GenericObject> {
    * bound and pagination switches to a prev/next-only UI.
    */
   hasMore?: boolean | undefined;
+  /** Page sizes offered by the shared ModelTable-style footer. */
+  itemsOnPageOptions?: Array<number> | undefined;
+  /** Optional stable id for consumers that need to target this footer. */
+  paginationDataTestId?: string | undefined;
   itemsOnPage: number;
   error: string;
   isLoading: boolean;
@@ -280,6 +286,7 @@ const Table: TableFunction = <T extends GenericObject>(
       <TableBody
         id={`${props.id}-body`}
         data={props.data}
+        getRowProps={props.getRowProps}
         columns={props.columns}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}
@@ -493,9 +500,13 @@ const Table: TableFunction = <T extends GenericObject>(
               hasMore={props.hasMore}
               itemsOnCurrentPage={props.data.length}
               itemsOnPage={props.itemsOnPage}
+              itemsOnPageOptions={props.itemsOnPageOptions}
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}
               isError={Boolean(props.error)}
+              {...(props.paginationDataTestId
+                ? { dataTestId: props.paginationDataTestId }
+                : {})}
             />
           )}
         </div>

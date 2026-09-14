@@ -7,6 +7,8 @@ import {
   getPodmanAlertTemplatesByCategory,
 } from "../../../Types/Monitor/PodmanAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { getPodmanMetricByMetricName } from "../../../Types/Monitor/PodmanMetricCatalog";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
@@ -42,7 +44,7 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     severity: "Warning",
     metricName: "container.cpu.utilization",
     metricAlias: "container_cpu",
-    aggregation: MetricsAggregationType.Max,
+    aggregation: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past5Minutes,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
@@ -54,7 +56,7 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     severity: "Warning",
     metricName: "container.memory.percent",
     metricAlias: "container_memory",
-    aggregation: MetricsAggregationType.Max,
+    aggregation: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past5Minutes,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
@@ -71,19 +73,6 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
     threshold: 5,
-  },
-  {
-    id: "podman-cpu-throttling",
-    category: "Resource",
-    severity: "Warning",
-    metricName: "container.cpu.throttling_data.throttled_time",
-    metricAlias: "cpu_throttled",
-    aggregation: MetricsAggregationType.Max,
-    rollingTime: RollingTime.Past5Minutes,
-    // throttled_time is non-negative: (> 0) unhealthy, (= 0) healthy partitions it.
-    offlineFilterType: FilterType.GreaterThan,
-    onlineFilterType: FilterType.EqualTo,
-    threshold: 0,
   },
   {
     id: "podman-high-pids",
@@ -105,10 +94,15 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     metricAlias: "container_uptime",
     aggregation: MetricsAggregationType.Min,
     rollingTime: RollingTime.Past1Minute,
-    // uptime is non-negative: (= 0) unhealthy, (> 0) healthy partitions it.
-    offlineFilterType: FilterType.EqualTo,
-    onlineFilterType: FilterType.GreaterThan,
-    threshold: 0,
+    /*
+     * uptime is never 0: the docker_stats receiver scrapes only RUNNING
+     * containers, so a stopped one emits nothing rather than a zero, and a
+     * running one is never sampled at the instant it started. The fire test
+     * is a low-uptime (restart) test, not an equality against zero.
+     */
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 120,
   },
 ];
 
@@ -217,7 +211,7 @@ describe("PodmanAlertTemplates", () => {
   );
 
   test.each(PODMAN_TEMPLATES)(
-    "$id unhealthy/healthy criteria partition the range at $threshold",
+    "$id unhealthy/healthy criteria leave a recovery dead band around $threshold",
     (tc: PodmanTemplateCase) => {
       const template: PodmanAlertTemplate = getPodmanAlertTemplateById(tc.id)!;
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -237,7 +231,26 @@ describe("PodmanAlertTemplates", () => {
         tc.metricAlias,
       );
       expect(offlineFilter.value).toBe(tc.threshold);
-      expect(onlineFilter.value).toBe(tc.threshold);
+      /*
+       * The healthy criteria recovers at a threshold strictly INSIDE the
+       * firing one, so a metric hovering at the boundary cannot satisfy
+       * both on consecutive evaluations. This assertion used to be
+       * `expect(onlineFilter.value).toBe(tc.threshold)` — the two criteria
+       * exactly partitioned the range, which is the flapping configuration
+       * this suite existed to lock in.
+       */
+      expect(
+        hasRecoveryDeadBand(
+          {
+            filterType: offlineFilter.filterType,
+            value: offlineFilter.value as number,
+          },
+          {
+            filterType: onlineFilter.filterType,
+            value: onlineFilter.value as number,
+          },
+        ),
+      ).toBe(true);
 
       expect(offlineFilter.filterType).toBe(tc.offlineFilterType);
       expect(onlineFilter.filterType).toBe(tc.onlineFilterType);
@@ -267,5 +280,161 @@ describe("PodmanAlertTemplates", () => {
       expect(offline.data.incidents[0].autoResolveIncident).toBe(true);
       expect(offline.data.alerts[0].autoResolveAlert).toBe(true);
     }
+  });
+
+  /*
+   * Lifetime, monotonic counters. Nothing between OTLP ingest and the
+   * criteria evaluator converts one to a delta or a rate — ingest keeps
+   * aggregationTemporality/isMonotonic only as catalog metadata for the
+   * dashboard's rate-view hint, AggregationType has no rate/increase member,
+   * and CompareCriteria.reduceWindow offers only Average/Sum/Max/Min. So a
+   * "> N" criteria on one of these fires the first time the container ever
+   * breaches and NEVER clears: the recovery comparison is unreachable until
+   * the container is recreated. `podman-cpu-throttling` did exactly that on
+   * throttled_time and was removed for it; this guard stops it, or an
+   * equivalent, being pasted back in from DockerAlertTemplates.
+   */
+  const CUMULATIVE_METRICS: Array<string> = [
+    "container.cpu.throttling_data.throttled_time",
+    "container.cpu.throttling_data.throttled_periods",
+    "container.cpu.usage.total",
+  ];
+
+  test("no template thresholds a cumulative counter it cannot recover from", () => {
+    for (const template of getAllPodmanAlertTemplates()) {
+      const monitor: MonitorStepPodmanMonitor = getPodmanMonitor(
+        template.getMonitorStep(buildArgs()),
+      );
+      for (const queryConfig of monitor.metricViewConfig
+        .queryConfigs as Array<any>) {
+        expect(CUMULATIVE_METRICS).not.toContain(
+          queryConfig.metricQueryData.filterData.metricName,
+        );
+      }
+    }
+  });
+
+  test("podman-cpu-throttling is not registered", () => {
+    // Removed deliberately — see the note in PodmanAlertTemplates.ts.
+    expect(getPodmanAlertTemplateById("podman-cpu-throttling")).toBeUndefined();
+  });
+
+  test("podman-container-down fires on a low uptime, not on an unreachable zero", () => {
+    const step: MonitorStep = getPodmanAlertTemplateById(
+      "podman-container-down",
+    )!.getMonitorStep(buildArgs());
+    const [offline, online]: Array<any> = step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray as Array<any>;
+
+    /*
+     * A stopped container emits no rows at all and a running one is never
+     * scraped at the instant it started, so an equality-to-zero comparison
+     * on container.uptime can never be satisfied in either direction.
+     */
+    expect(offline.data.filters[0].filterType).not.toBe(FilterType.EqualTo);
+    expect(offline.data.filters[0].value).toBeGreaterThan(0);
+
+    // Wider than the 30s scrape and the 60s evaluation interval combined.
+    expect(offline.data.filters[0].value).toBeGreaterThanOrEqual(120);
+
+    // And recovery sits strictly outside the firing threshold.
+    expect(online.data.filters[0].filterType).toBe(
+      FilterType.GreaterThanOrEqualTo,
+    );
+    expect(online.data.filters[0].value).toBeGreaterThan(
+      offline.data.filters[0].value as number,
+    );
+  });
+
+  test("cumulative-counter templates do not claim windowed semantics", () => {
+    /*
+     * container.restarts is a running total kept by the container engine and
+     * nothing in the alerting path converts it to a delta, so copy promising
+     * a per-window count describes behaviour the query does not implement.
+     * The criteria description is what the on-call engineer reads in the
+     * Evaluation Logs, so the correction has to live there, not just in the
+     * template's own name.
+     */
+    const step: MonitorStep = getPodmanAlertTemplateById(
+      "podman-restart-loop",
+    )!.getMonitorStep(buildArgs());
+    const offline: any = (
+      step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray as Array<any>
+    )[0];
+
+    expect(offline.data.description).toMatch(/running total|cumulative/i);
+    expect(offline.data.description).not.toMatch(/in the monitoring window/i);
+    expect(offline.data.incidents[0].description).toMatch(
+      /running total|cumulative/i,
+    );
+    expect(
+      getPodmanAlertTemplateById("podman-restart-loop")!.description,
+    ).not.toMatch(/crash loop/i);
+  });
+
+  test("percentage gauges use the aggregation their catalog entry declares", () => {
+    /*
+     * container.cpu.utilization and container.memory.percent are already
+     * per-container percentages; PodmanMetricCatalog declares Avg for both
+     * and the Docker Swarm templates use Avg on the identical metrics at the
+     * identical thresholds. Max on a per-minute bucket turns a sub-minute
+     * burst into a whole minute above the threshold, which contradicts the
+     * word "sustained" in the copy — and with the fire side now evaluated
+     * over ALL values in the window, Max means "every minute's PEAK crossed",
+     * which is strictly weaker than sustained load.
+     */
+    for (const id of ["podman-high-cpu", "podman-high-memory"]) {
+      const monitor: MonitorStepPodmanMonitor = getPodmanMonitor(
+        getPodmanAlertTemplateById(id)!.getMonitorStep(buildArgs()),
+      );
+      const filterData: any = (
+        monitor.metricViewConfig.queryConfigs as Array<any>
+      )[0].metricQueryData.filterData;
+
+      expect(filterData.aggegationType).toBe(MetricsAggregationType.Avg);
+      expect(filterData.aggegationType).toBe(
+        getPodmanMetricByMetricName(filterData.metricName)!.defaultAggregation,
+      );
+    }
+  });
+
+  test("podman-high-cpu states the percent-of-one-core scale", () => {
+    /*
+     * PodmanMetricCatalog: "100% = 1 full CPU core". A container spread over
+     * several cores sits permanently above 80 while healthy, so copy that
+     * reads as "80% of the container's CPU allowance" is wrong.
+     */
+    const step: MonitorStep =
+      getPodmanAlertTemplateById("podman-high-cpu")!.getMonitorStep(
+        buildArgs(),
+      );
+    const offline: any = (
+      step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray as Array<any>
+    )[0];
+
+    expect(offline.data.incidents[0].description).toMatch(/core/i);
+    expect(offline.data.description).toMatch(/core/i);
+  });
+
+  test("podman-high-memory does not promise a limit the metric may not have", () => {
+    /*
+     * container.memory.percent falls back to a percentage of HOST total for a
+     * container started without --memory, which is Podman's default. Copy
+     * that says only "of its limit", and builds an OOM narrative on it, is
+     * wrong for exactly the container most able to take the host down.
+     */
+    const step: MonitorStep =
+      getPodmanAlertTemplateById("podman-high-memory")!.getMonitorStep(
+        buildArgs(),
+      );
+    const offline: any = (
+      step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray as Array<any>
+    )[0];
+
+    expect(offline.data.incidents[0].description).toMatch(/host/i);
+    expect(offline.data.description).toMatch(/host/i);
   });
 });

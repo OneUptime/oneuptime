@@ -51,6 +51,8 @@ import DashboardTraceChartComponentUtil from "../../../../Utils/Dashboard/Compon
 import DashboardTraceListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceTableComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceTableComponent";
 import DashboardValueComponentUtil from "../../../../Utils/Dashboard/Components/DashboardValueComponent";
+import DashboardVMwareHostListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardVMwareHostListComponent";
+import DashboardVMwareVirtualMachineListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
 import DashboardBaseComponentUtil from "../../../../Utils/Dashboard/Components/DashboardBaseComponent";
 
 /*
@@ -145,6 +147,9 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
     DashboardProxmoxNodeListComponentUtil,
   [DashboardComponentType.ProxmoxGuestList]:
     DashboardProxmoxGuestListComponentUtil,
+  [DashboardComponentType.VMwareHostList]: DashboardVMwareHostListComponentUtil,
+  [DashboardComponentType.VMwareVirtualMachineList]:
+    DashboardVMwareVirtualMachineListComponentUtil,
   [DashboardComponentType.DockerSwarmNodeList]:
     DashboardDockerSwarmNodeListComponentUtil,
   [DashboardComponentType.DockerSwarmServiceList]:

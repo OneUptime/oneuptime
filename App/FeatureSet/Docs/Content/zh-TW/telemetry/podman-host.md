@@ -69,6 +69,7 @@ podman compose up -d
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _專案設定 → 遙測與 APM → 擷取金鑰_                                                |
 | `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
+| `DOCKER_API_VERSION`      | No       | Agent 與 Podman socket 溝通時所使用的 Docker Engine API 版本。預設為 `1.44`；若該 socket 回報的最高版本較舊，請調降此值，或將其留空以自動協商（請參閱 Troubleshooting） |
 
 ## Verify the Installation
 
@@ -145,6 +146,28 @@ The agent container must run as root (`--user 0:0`) to access `/run/podman/podma
 ### Podman Socket / Log Driver
 
 The Podman API socket must be enabled and reachable at `/run/podman/podman.sock`. On rootful systemd hosts, enable it with `systemctl enable --now podman.socket`. Container logs are read from `/var/lib/containers`, so make sure that path is mounted into the agent and that Podman is using a file-based log driver (for example `--log-driver=k8s-file` or `json-file`). If you run Podman rootless, the socket lives under `/run/user/<uid>/podman/podman.sock` instead — mount that path and adjust the volume accordingly.
+
+### Agent 因「client version is too new」而不斷重新啟動
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+會強制限制用戶端最高版本的 Docker API 伺服器，會拒絕比其更新的用戶端（Docker Engine 會以上述方式回報），因此該接收器永遠不會啟動，collector 也會隨之結束。請檢查 Podman socket 所回報的 API 版本，並將該值傳遞給 Agent：
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+```
+
+接著在 `podman run` 中加入 `-e DOCKER_API_VERSION=1.41`（或您取得的值），或在 Compose 中設定 `DOCKER_API_VERSION`。較新的伺服器仍會提供較舊的 API 版本，因此升級後此設定依然有效。
+
+如果您不想特地去查詢這個版本號，可以將 `DOCKER_API_VERSION` 設為**空字串**。此時 Agent 不會固定使用某個版本，而是會與該 socket 協商版本（先送出一次 `HEAD /_ping`，再採用該 socket 回報的最高版本）：
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

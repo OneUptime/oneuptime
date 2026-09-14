@@ -74,6 +74,25 @@ const RULES: Record<string, EntityRelationshipType> = {
     EntityRelationshipType.RunsOn,
   [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxCluster}`]:
     EntityRelationshipType.MemberOf,
+  /*
+   * VMware vSphere topology. Only the six child → parent pairs below are
+   * declared. A VM's cluster membership is reached through its ESXi host
+   * (vm → host → cluster) rather than declared directly, and — mirroring the
+   * deliberate absence of host|proxmox.cluster — a `host.*` entity never
+   * implies membership of a vCenter/cluster it merely co-occurs with.
+   */
+  [`${EntityType.VMwareCluster}|${EntityType.VMwareVCenter}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.VMwareHost}|${EntityType.VMwareVCenter}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.VMwareHost}|${EntityType.VMwareCluster}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.VMwareVirtualMachine}|${EntityType.VMwareHost}`]:
+    EntityRelationshipType.RunsOn,
+  [`${EntityType.VMwareVirtualMachine}|${EntityType.VMwareVCenter}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.VMwareDatastore}|${EntityType.VMwareVCenter}`]:
+    EntityRelationshipType.MemberOf,
 };
 
 /** The relationship `fromType` → `toType` implies, or null if none. */

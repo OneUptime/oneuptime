@@ -113,15 +113,26 @@ export default class MonitorRecommendationCreateUtil {
 
     /*
      * The template interpolates `monitorName` into its incident and alert
-     * titles, so it must be the FULL monitor name — otherwise an incident
-     * reads "High CPU Usage - Alert Triggered" with no hint which cluster or
-     * host it came from.
+     * titles, and every one of those titles already restates the template's
+     * own name — so it must be the bare RESOURCE name, not `monitorName`,
+     * which ends with that same template name. Passing the composed name
+     * produced "[K8s] Pod CPU Saturating Container Limit (>90%) -
+     * oneuptime-test - Pod CPU Saturating Container Limit". The resource is
+     * still named, so an incident still says which cluster or host it came
+     * from. `monitor.name` above is unchanged.
+     *
+     * `MonitorRecommendationUtil.getSerializedFingerprintForRecommendation`
+     * calls the same helper, so the coverage diff keeps building steps the
+     * way this does.
      */
     monitor.monitorSteps = MonitorRecommendationUtil.buildMonitorSteps({
       recommendation: data.recommendation,
       args: {
         ...data.args,
-        monitorName: monitorName,
+        monitorName: MonitorRecommendationUtil.getTemplateMonitorName({
+          recommendation: data.recommendation,
+          resourceDisplayName: data.resourceDisplayName,
+        }),
       },
       defaultMonitorStatusId: data.defaultMonitorStatusId,
       notificationSettings: data.notificationSettings,

@@ -9,10 +9,15 @@ import {
 } from "../api/monitors";
 import type { MonitorItem, FeedItem } from "../api/types";
 
+/*
+ * `MonitorItem | null`, because `fetchMonitorById` resolves `null` for a
+ * monitor that is gone. That miss is settled DATA, so `isError` here means the
+ * request failed and a null `data` means there is no such monitor.
+ */
 export function useMonitorDetail(
   projectId: string,
   monitorId: string,
-): UseQueryResult<MonitorItem, Error> {
+): UseQueryResult<MonitorItem | null, Error> {
   return useQuery({
     queryKey: ["monitor", projectId, monitorId],
     queryFn: () => {

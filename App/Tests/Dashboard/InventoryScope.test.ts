@@ -10,7 +10,6 @@ import {
   InventoryScopeQuery,
   buildInventoryScopeQuery,
   buildInventoryScopeQueryString,
-  describeInventoryScope,
   isInventoryScopeEmpty,
   parseInventoryScope,
 } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryScope";
@@ -21,13 +20,13 @@ import { INVENTORY_STALE_AFTER_MINUTES } from "../../FeatureSet/Dashboard/src/Co
  * page. It travels through the URL, which means:
  *
  *   - it has to round-trip exactly (a link that loses its `stale=true` opens
- *     an unfiltered list under a banner claiming otherwise), and
+ *     an unfiltered list instead of the selected drill-down), and
  *   - it is attacker-reachable, so parsing must validate against the real
  *     vocabularies rather than forwarding whatever the URL said into a model
  *     query.
  *
- * Both are checked here, plus the derived query fragment, since a scope whose
- * query does not match its description is the failure nobody notices.
+ * Both are checked here, plus the derived query fragment, so drill-downs
+ * always load the selected inventory items.
  */
 
 const NOW: Date = new Date("2026-08-13T12:00:00.000Z");
@@ -67,10 +66,6 @@ describe("the empty scope", () => {
 
   test("builds a clean URL rather than a bare question mark", () => {
     expect(buildInventoryScopeQueryString({})).toBe("");
-  });
-
-  test("has nothing to explain", () => {
-    expect(describeInventoryScope({})).toBeNull();
   });
 
   test("adds nothing to the model query", () => {
@@ -254,56 +249,5 @@ describe("the model query fragment", () => {
     );
 
     expect(query.lastSeenAt!.value.getTime()).toBeLessThan(earlier.getTime());
-  });
-});
-
-describe("describing a scope for the banner", () => {
-  test("names the type in plural, human form", () => {
-    expect(
-      describeInventoryScope({ entityType: EntityType.KubernetesPod }),
-    ).toBe("Showing Kubernetes Pods only.");
-  });
-
-  test("names the source", () => {
-    const description: string = describeInventoryScope({
-      source: EntitySource.Manual,
-    })!;
-
-    expect(description).toContain("Added by you");
-  });
-
-  test("mentions staleness", () => {
-    expect(describeInventoryScope({ staleOnly: true })).toContain(
-      "not seen in over a day",
-    );
-  });
-
-  test("every non-empty scope produces a description", () => {
-    /*
-     * A scoped list with no banner is a list silently hiding rows, and the
-     * banner is also the only control that clears the scope.
-     */
-    for (const entityType of Object.values(EntityType)) {
-      expect(describeInventoryScope({ entityType })).not.toBeNull();
-    }
-
-    for (const source of Object.values(EntitySource)) {
-      expect(describeInventoryScope({ source })).not.toBeNull();
-      expect(
-        describeInventoryScope({ source, staleOnly: true }),
-      ).not.toBeNull();
-    }
-  });
-
-  test("a combined scope mentions every part of itself", () => {
-    const description: string = describeInventoryScope({
-      entityType: EntityType.Service,
-      source: EntitySource.Discovered,
-      staleOnly: true,
-    })!;
-
-    expect(description).toContain("Services");
-    expect(description).toContain("Discovered");
-    expect(description).toContain("not seen in over a day");
   });
 });

@@ -81,6 +81,18 @@ describe("DatabaseService._updateBy — save() vs update() write routing", () =>
       .spyOn(NetworkDeviceDiscoveryScanService, "getRepository")
       .mockReturnValue({ save: saveMock, update: updateMock } as never);
 
+    /*
+     * The scan service reconciles after a settings update — a write of its own
+     * that re-queues a scan whose sweep changed (OneUptime issue #3444). It
+     * runs through the raw single-statement path, which reaches for
+     * repository.manager.connection.driver and finds neither on the two-method
+     * stub above. Stubbed out: these tests are about which primitive
+     * _updateBy chooses, not about what the service does afterwards.
+     */
+    jest
+      .spyOn(NetworkDeviceDiscoveryScanService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+
     // The permission layer needs a DB and is not what these tests exercise.
     jest
       .spyOn(ModelPermission, "checkUpdatePermissionByModel")

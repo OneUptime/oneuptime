@@ -1768,6 +1768,18 @@ export interface DrawableMapLink {
   key: string;
   id: string;
   name: string;
+  /*
+   * The markers this line joins, by key rather than by site: a clustered
+   * marker in "all" mode speaks for every site in it, so the site ids on the
+   * link row do not identify the things actually on screen.
+   *
+   * Carried on the line so the map can answer "what is this marker wired
+   * to" without walking the link list once per marker — see
+   * SiteMapInk.buildMapAdjacency, which is what lights a marker's own links
+   * when a reader points at it.
+   */
+  fromMarkerKey: string;
+  toMarkerKey: string;
   x1: number;
   y1: number;
   x2: number;
@@ -1880,6 +1892,8 @@ export const buildMapLinks: (
       key: link.id,
       id: link.id,
       name: link.name,
+      fromMarkerKey: from.key,
+      toMarkerKey: to.key,
       x1: from.x,
       y1: from.y,
       x2: to.x,

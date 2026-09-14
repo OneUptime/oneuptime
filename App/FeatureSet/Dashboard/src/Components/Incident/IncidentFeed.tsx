@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useRef,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -16,12 +11,10 @@ import IncidentFeed, {
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -37,6 +30,7 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
+import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -47,17 +41,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const incidentIdString: string = props.incidentId.toString();
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-  const [loadedIncidentId, setLoadedIncidentId] = React.useState<string | null>(
-    null,
-  );
-  const latestFetchRequestRef: React.MutableRefObject<number> =
-    useRef<number>(0);
-  const activeIncidentIdRef: React.MutableRefObject<string> =
-    useRef<string>(incidentIdString);
-  activeIncidentIdRef.current = incidentIdString;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -239,21 +222,22 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    const requestId: number = latestFetchRequestRef.current + 1;
-    latestFetchRequestRef.current = requestId;
-    const requestedIncidentId: string = incidentIdString;
-    const isLatestRequest: () => boolean = (): boolean => {
-      return (
-        requestId === latestFetchRequestRef.current &&
-        requestedIncidentId === activeIncidentIdRef.current
-      );
-    };
-
-    setError("");
-    setIsLoading(true);
-    try {
-      const incidentFeeds: ListResult<IncidentFeed> = await ModelAPI.getList({
+  const {
+    feedItems,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMoreError,
+    hasMore,
+    isCurrentFeedLoaded,
+    setError,
+    refresh,
+    loadMore,
+  } = useFeedItems<IncidentFeed>({
+    resourceKey: incidentIdString,
+    refreshToken: props.refreshToken,
+    getItems: async (limit: number): Promise<ListResult<IncidentFeed>> => {
+      return await ModelAPI.getList({
         modelType: IncidentFeed,
         query: {
           incidentId: props.incidentId!,
@@ -274,38 +258,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Ascending,
+          postedAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit,
       });
-
-      if (isLatestRequest()) {
-        setFeedItems(getFeedItemsFromIncidentFeeds(incidentFeeds.data));
-        setLoadedIncidentId(requestedIncidentId);
-      }
-    } catch (err: unknown) {
-      if (isLatestRequest()) {
-        setError(API.getFriendlyMessage(err as Exception));
-        setLoadedIncidentId(requestedIncidentId);
-      }
-    }
-
-    if (isLatestRequest()) {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!props.incidentId) {
-      return;
-    }
-
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
-    });
-  }, [incidentIdString, props.refreshToken]);
-
-  const isCurrentFeedLoaded: boolean = loadedIncidentId === incidentIdString;
+    },
+    mapItems: getFeedItemsFromIncidentFeeds,
+  });
 
   return (
     <Card
@@ -365,7 +324,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
           onClick: async () => {
-            await fetchItems();
+            await refresh();
           },
         },
       ]}
@@ -377,8 +336,12 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this incident."
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onMore={loadMore}
           />
         )}
+        {loadMoreError && <ErrorMessage message={loadMoreError} />}
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -401,7 +364,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
@@ -451,7 +414,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPublicNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
@@ -520,7 +483,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            fetchItems().catch((err: unknown) => {
+            refresh().catch((err: unknown) => {
               setError(API.getFriendlyMessage(err as Exception));
             });
           }}
@@ -546,7 +509,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPrivateNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}

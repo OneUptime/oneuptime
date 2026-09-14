@@ -33,6 +33,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @EnableDocumentation()
 @EnableMCP()
+/*
+ * The Security tiers read this table but hold none of the incident permissions.
+ * A Sigma detection rule and a threat-intel feed each choose the severity of
+ * the incident they open, so the SIEM's own forms select from here; without the
+ * read grant the dropdown 500s and the rule cannot be configured at all.
+ * Read-only, and only on the severity list itself - it says nothing about
+ * which incidents a Security role may see.
+ */
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -49,6 +57,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.IncidentAdmin,
     Permission.IncidentMember,
     Permission.IncidentViewer,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
     Permission.ReadIncidentSeverity,
   ],
   delete: [
@@ -100,6 +111,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -107,7 +121,10 @@ export default class IncidentSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "projectId",
     type: TableColumnType.Entity,
-    modelType: Project,
+    // Lazy: Project imports IncidentSeverity back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Project;
+    },
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
   })
@@ -140,6 +157,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -175,6 +195,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [
@@ -210,6 +233,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -244,6 +270,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [
@@ -283,6 +312,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -324,6 +356,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -351,6 +386,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -388,6 +426,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [],
@@ -420,6 +461,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [
@@ -463,6 +507,9 @@ export default class IncidentSeverity extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadIncidentSeverity,
     ],
     update: [

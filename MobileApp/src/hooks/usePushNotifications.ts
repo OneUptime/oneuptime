@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import { type Subscription } from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -31,6 +32,9 @@ export function usePushNotifications(navigationRef: unknown): void {
 
   // Set up channels and categories on mount
   useEffect((): void => {
+    if (Platform.OS === "web") {
+      return;
+    }
     setupNotificationChannels();
     setupNotificationCategories();
   }, []);
@@ -44,7 +48,7 @@ export function usePushNotifications(navigationRef: unknown): void {
 
   // Register push token when authenticated and projects loaded
   useEffect((): (() => void) | undefined => {
-    if (!isAuthenticated || projectList.length === 0) {
+    if (Platform.OS === "web" || !isAuthenticated || projectList.length === 0) {
       return undefined;
     }
 
@@ -123,7 +127,11 @@ export function usePushNotifications(navigationRef: unknown): void {
   }, [isAuthenticated, projectList]);
 
   // Set up notification listeners
-  useEffect((): (() => void) => {
+  useEffect((): (() => void) | undefined => {
+    // Expo's native notification APIs are unavailable in the browser preview.
+    if (Platform.OS === "web") {
+      return undefined;
+    }
     receivedListenerRef.current = Notifications.addNotificationReceivedListener(
       (_notification: Notifications.Notification): void => {
         // Foreground notification received — handler in setup.ts shows it

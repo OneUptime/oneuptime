@@ -1,7 +1,7 @@
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RelationOnlyRuleBaseModel from "./DatabaseBaseModel/RelationOnlyRuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -20,6 +20,7 @@ import Permission from "../../Types/Permission";
 import ScheduledMaintenanceReminderStopState from "../../Types/Reminder/ScheduledMaintenanceReminderStopState";
 import {
   Column,
+  Check,
   Entity,
   Index,
   JoinColumn,
@@ -58,6 +59,7 @@ import {
   ],
 })
 @CrudApiEndpoint(new Route("/scheduled-maintenance-reminder-rule"))
+@Check(`"criteria" IS NULL OR "isEnabled" IS DISTINCT FROM true`)
 @Entity({
   name: "ScheduledMaintenanceReminderRule",
 })
@@ -75,7 +77,7 @@ import {
   tableDescription:
     "Configure reminder rules to periodically notify scheduled maintenance event owners while an event is still not complete",
 })
-export default class ScheduledMaintenanceReminderRule extends BaseModel {
+export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -293,10 +295,10 @@ export default class ScheduledMaintenanceReminderRule extends BaseModel {
   })
   @Column({
     type: ColumnType.Boolean,
-    nullable: false,
+    nullable: true,
     default: true,
   })
-  public isEnabled?: boolean = undefined;
+  public isEnabled?: boolean | null = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -51,6 +51,7 @@ import DockerResource from "../../Models/DatabaseModels/DockerResource";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
+import VMwareResource from "../../Models/DatabaseModels/VMwareResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
@@ -68,6 +69,7 @@ import DockerResourceService from "../Services/DockerResourceService";
 import PodmanHostService from "../Services/PodmanHostService";
 import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
+import VMwareResourceService from "../Services/VMwareResourceService";
 import CephResourceService from "../Services/CephResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import NetworkSiteService from "../Services/NetworkSiteService";
@@ -251,6 +253,14 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.ProxmoxNodeList]: "Node",
       [DashboardComponentType.ProxmoxGuestList]: "Guest",
+    },
+  },
+  "vmware-resource": {
+    modelType: VMwareResource,
+    service: VMwareResourceService,
+    widgets: {
+      [DashboardComponentType.VMwareHostList]: "Host",
+      [DashboardComponentType.VMwareVirtualMachineList]: "VirtualMachine",
     },
   },
   "ceph-resource": {

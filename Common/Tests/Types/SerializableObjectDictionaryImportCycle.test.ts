@@ -28,6 +28,8 @@ import LessThan from "../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../Types/BaseDatabase/LessThanOrNull";
 import NotContains from "../../Types/BaseDatabase/NotContains";
+import Wildcard from "../../Types/BaseDatabase/Wildcard";
+import NotWildcard from "../../Types/BaseDatabase/NotWildcard";
 import NotEqual from "../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../Types/BaseDatabase/NotNull";
 import Search from "../../Types/BaseDatabase/Search";
@@ -147,6 +149,19 @@ describe("query operators survive a serialize/deserialize round trip", () => {
     expect(roundTrip(new NotContains("a"))).toBeInstanceOf(NotContains);
     expect(roundTrip(new StartsWith("a"))).toBeInstanceOf(StartsWith);
     expect(roundTrip(new EndsWith("a"))).toBeInstanceOf(EndsWith);
+  });
+
+  test("the wildcard operators keep their class and their glob list", () => {
+    /*
+     * A wildcard that arrives as a plain `{_type, value}` object is worse
+     * than a crash: on a Map(String,String) column the compiler reads the
+     * WRAPPER as the filter and emits `attributes['_type'] = 'Wildcard'`.
+     */
+    const wildcard: unknown = roundTrip(new Wildcard(["a*", "b"]));
+
+    expect(wildcard).toBeInstanceOf(Wildcard);
+    expect((wildcard as Wildcard<string>).values).toEqual(["a*", "b"]);
+    expect(roundTrip(new NotWildcard("a*"))).toBeInstanceOf(NotWildcard);
   });
 
   test("the null checks keep their class", () => {

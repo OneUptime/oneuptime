@@ -866,6 +866,31 @@ describe("StatementGenerator", () => {
         });
       });
 
+      test("ANDs two Includes memberships on the same Array(String) column", () => {
+        /*
+         * The inventory exception list combines a host/query entity filter
+         * with its fixed inventory key. Both must survive as independent
+         * hasAny predicates; unioning or replacing them widens the list.
+         */
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: [
+            new Includes(["service:checkout"]),
+            new Includes(["k8s.pod:checkout-a"]),
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND hasAny({p0:Identifier}, {p1:Array(String)}) " +
+            "AND hasAny({p2:Identifier}, {p3:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["service:checkout"],
+          p2: "entityKeys",
+          p3: ["k8s.pod:checkout-a"],
+        });
+      });
+
       test("drops empty Includes instead of hasAny(col, [])", () => {
         const statement: Statement = arrayGenerator.toWhereStatement({
           entityKeys: new Includes([]),

@@ -9,6 +9,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import Text from "Common/Types/Text";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
@@ -55,6 +56,15 @@ RunCron(
           },
           alertId: true,
           alertStateId: true,
+          /*
+           * WHY the state changed, in the same sentence the firing email
+           * used. Populated on the autoresolve path by
+           * MonitorAlert.resolveOpenAlert and on every other transition by
+           * AlertService.changeAlertState. Without it the resolution email
+           * said only that the state changed, and a reader could not tell a
+           * real recovery from a monitor oscillating around its threshold.
+           */
+          rootCause: true,
           alertState: {
             name: true,
             color: true,
@@ -89,6 +99,12 @@ RunCron(
           alertSeverity: {
             name: true,
           },
+          /*
+           * The series this alert was raised for. Without it this email said
+           * "Resources Affected: <the monitor's own name>" while the firing
+           * email - which does select it - named the pod.
+           */
+          seriesLabels: true,
         },
       });
 
@@ -195,17 +211,68 @@ RunCron(
         MarkdownContentType.Email,
       );
 
+      /*
+       * Same formatter the created-alert email uses, so a firing and its
+       * resolution name the same thing. A monitor without group-by has no
+       * series labels and keeps the monitor-name fallback, which for it is
+       * the correct answer.
+       */
+      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
+        alert.seriesLabels,
+      );
+
+      const resourcesAffected: string =
+        seriesSummary || alert.monitor?.name || "";
+
+      /*
+       * Assigned unconditionally, "" when the timeline row carries no root
+       * cause: the template's guard is a presence check and a conditionally
+       * ADDED key would still be a defined-but-blank row in some renderers.
+       */
+      const stateChangeRootCauseHtml: string = alertStateTimeline.rootCause
+        ? await Markdown.convertToHTML(
+            alertStateTimeline.rootCause,
+            MarkdownContentType.Email,
+          )
+        : "";
+
+      /*
+       * Hoisted out of the owner loop: it is derived from the row's previous
+       * state, which does not vary per owner. The preheader below needs it,
+       * and computing it three times for three owners was never meaningful.
+       */
+      const previousStateDurationText: string =
+        previousState?.name && previousStateDuration
+          ? `Was ${previousState.name} for ${previousStateDuration}`
+          : "";
+
+      /*
+       * The inbox preview line. Every one of a flap's resolve notifications
+       * previewed as "Alert state has changed", so the list gave the reader
+       * nothing to triage on; this makes the row say which state, for which
+       * resource, and how long it sat in the previous one.
+       *
+       * Deliberately built from plain strings only. The root cause would be
+       * the richest thing to put here, but it is Markdown and no client
+       * renders markup in a preview line - it is in the body instead, under
+       * "Root Cause".
+       */
+      const preheader: string = [
+        alertState.name || "",
+        resourcesAffected,
+        previousStateDurationText,
+      ]
+        .filter((part: string) => {
+          return Boolean(part);
+        })
+        .join(" · ")
+        .slice(0, 160);
+
       for (const user of owners) {
         const alertIdentifier: string =
           alert.alertNumber !== undefined
             ? `${alertNumberStr} (${alert.title})`
             : alert.title!;
-
-        // Build the "Was X for Y" string
-        const previousStateDurationText: string =
-          previousState?.name && previousStateDuration
-            ? `Was ${previousState.name} for ${previousStateDuration}`
-            : "";
 
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
@@ -217,7 +284,9 @@ RunCron(
           previousStateColor: previousState?.color?.toString() || "#6b7280",
           previousStateDurationText: previousStateDurationText,
           alertDescription: alertDescriptionHtml,
-          resourcesAffected: alert.monitor?.name || "",
+          resourcesAffected: resourcesAffected,
+          stateChangeRootCause: stateChangeRootCauseHtml,
+          preheader: preheader,
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: alertStateTimeline.createdAt!,

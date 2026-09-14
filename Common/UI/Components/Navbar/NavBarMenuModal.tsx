@@ -129,6 +129,11 @@ export interface ComponentProps {
     | undefined;
   searchPlaceholder?: string | undefined;
   noResultsText?: string | undefined;
+  /*
+   * Defaults to visible for direct/legacy consumers. Dashboard hides it when
+   * its command palette owns Cmd/Ctrl+K instead of this products menu.
+   */
+  showCommandKShortcutHint?: boolean | undefined;
   keyboardHint?: string | undefined;
   recentLabel?: string | undefined;
   onClose: () => void;
@@ -502,14 +507,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 >
                   <Icon icon={IconProp.Close} className="h-4 w-4" />
                 </button>
-              ) : (
+              ) : props.showCommandKShortcutHint !== false ? (
                 /* OS-appropriate hint: ⌘ K on a Mac, Ctrl K elsewhere. */
                 <KeyboardShortcut
                   keys={[KeyboardKey.Mod, "K"]}
                   size={KeyboardShortcutSize.Small}
                   className="hidden sm:inline-flex"
                 />
-              )}
+              ) : null}
             </div>
 
             {/* Body */}

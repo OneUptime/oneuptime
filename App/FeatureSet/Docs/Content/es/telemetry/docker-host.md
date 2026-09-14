@@ -64,11 +64,12 @@ docker compose up -d
 
 ## Variables de entorno
 
-| Variable                  | Obligatoria | Descripción                                                                                                                                  |
-| ------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Sí          | La URL de tu instancia de OneUptime (por ejemplo `https://oneuptime.com` o tu host autoalojado)                                              |
-| `ONEUPTIME_SERVICE_TOKEN` | Sí          | Token de ingesta de telemetría de _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_                                                              |
-| `DOCKER_HOST_NAME`        | No          | Nombre descriptivo para este host. El valor predeterminado es `docker-host`. Configúralo con algo estable por host (p. ej. `prod-docker-01`) |
+| Variable                  | Obligatoria | Descripción                                                                                                                                                                                                           |
+| ------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Sí          | La URL de tu instancia de OneUptime (por ejemplo `https://oneuptime.com` o tu host autoalojado)                                                                                                                       |
+| `ONEUPTIME_SERVICE_TOKEN` | Sí          | Token de ingesta de telemetría de _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_                                                                                                                       |
+| `DOCKER_HOST_NAME`        | No          | Nombre descriptivo para este host. El valor predeterminado es `docker-host`. Configúralo con algo estable por host (p. ej. `prod-docker-01`)                                                                          |
+| `DOCKER_API_VERSION`      | No          | Versión de la API de Docker Engine que usa el agente. El valor predeterminado es `1.44`; redúcela en hosts con un daemon más antiguo, o déjala vacía para negociarla automáticamente (consulta Solución de problemas) |
 
 ## Verificar la instalación
 
@@ -141,6 +142,28 @@ Si tu instancia es solo HTTP, usa `http://` y el puerto correspondiente.
 ### Permiso denegado para el socket de Docker
 
 El contenedor del agente debe ejecutarse como root (`--user 0:0`) para acceder a `/var/run/docker.sock`. Asegúrate de que esté presente el indicador `--user 0:0` (o `user: "0:0"` en Compose).
+
+### El agente se reinicia con "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+Un daemon rechaza a un cliente más nuevo que su propio máximo, por lo que el receptor nunca se inicia y el collector termina junto con él. Consulta el máximo del daemon y pásaselo al agente:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Después añade `-e DOCKER_API_VERSION=1.41` (o el valor que hayas obtenido) al comando `docker run`, o configura `DOCKER_API_VERSION` en Compose. Los daemons más nuevos siguen sirviendo versiones anteriores de la API, así que el ajuste sigue siendo válido después de una actualización.
+
+Si prefieres no tener que buscar el número, configura `DOCKER_API_VERSION` con una **cadena vacía**. Entonces el agente le pide al SDK de Docker que negocie la versión con el daemon (un `HEAD /_ping` y luego el máximo del propio daemon), lo que funciona tanto con daemons antiguos como nuevos:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### El agente aparece como desconectado
 

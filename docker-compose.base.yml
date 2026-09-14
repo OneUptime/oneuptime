@@ -29,13 +29,25 @@ x-common-variables: &common-variables
 
   ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
+  # Outbound webhook egress policy — see config.example.env for the full
+  # explanation. Both are off by default and both need a matching per-project
+  # opt-in in Project Settings before they grant anything.
+  ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
+  PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
+
   SERVER_APP_HOSTNAME: app
   SERVER_HOME_HOSTNAME: home
   #Ports. Usually they don't need to change.
   APP_PORT: ${APP_PORT}
   HOME_PORT: ${HOME_PORT}
+  # Backend exporter configuration. Headers may contain secrets and are never
+  # included in a frontend env.js response.
   OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
   OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  # Browser RUM is a separate, deliberately public channel. This key must be
+  # a Browser ingestion key with an origin allowlist, never a Server key.
+  PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT:-}
+  PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY:-}
 
   SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
 
@@ -73,14 +85,29 @@ x-common-runtime-variables: &common-runtime-variables
   LETS_ENCRYPT_NOTIFICATION_EMAIL: ${LETS_ENCRYPT_NOTIFICATION_EMAIL}
   LETS_ENCRYPT_ACCOUNT_KEY: ${LETS_ENCRYPT_ACCOUNT_KEY}
 
-  REDIS_USERNAME: ${REDIS_USERNAME}
-  REDIS_PASSWORD: ${REDIS_PASSWORD}
-  REDIS_HOST: ${REDIS_HOST}
-  REDIS_PORT: ${REDIS_PORT}
-  REDIS_DB: ${REDIS_DB}
-  REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
-  REDIS_TLS_CA: ${REDIS_TLS_CA}
-  REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
+  # Cache and queues. VALKEY_* is the current name; the `:-${REDIS_*}` fallback is
+  # what lets a config.env written before the rename keep working with no edits.
+  VALKEY_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
+  VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
+  VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
+  VALKEY_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
+  VALKEY_DB: ${VALKEY_DB:-${REDIS_DB}}
+  VALKEY_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
+  VALKEY_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
+  VALKEY_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
+
+  # Deprecated mirrors, carrying the identical value. The app reads VALKEY_* and
+  # only falls back to these, so they are dead weight for a matching image --
+  # they exist because APP_TAG lets you pin an OLDER image against this file, and
+  # an image from before the rename reads nothing else.
+  REDIS_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
+  REDIS_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
+  REDIS_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
+  REDIS_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
+  REDIS_DB: ${VALKEY_DB:-${REDIS_DB}}
+  REDIS_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
+  REDIS_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
+  REDIS_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
 
   ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
 
@@ -125,6 +152,25 @@ x-common-runtime-variables: &common-runtime-variables
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
   LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
 
+  # On-call calendar feeds (token-in-URL .ics subscriptions). Defaulted so a
+  # config.env upgraded in place, which will not have these keys, neither warns
+  # nor hands the container an empty kill switch. Blank rate-limit values mean
+  # "use the built-in default".
+  DISABLE_ON_CALL_CALENDAR_FEED: ${DISABLE_ON_CALL_CALENDAR_FEED:-false}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS:-}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW:-}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW:-}
+
+  # Browser source map upload / symbolication limits. Blank means "use the
+  # built-in default", so a config.env upgraded in place keeps today's
+  # behaviour. maxFilesPerRequest and maxFileSizeBytes can only be lowered --
+  # the multipart parser's shared, pre-auth ceilings sit above them.
+  SOURCE_MAP_MAX_MAPS_PER_RELEASE: ${SOURCE_MAP_MAX_MAPS_PER_RELEASE:-}
+  SOURCE_MAP_MAX_FILES_PER_REQUEST: ${SOURCE_MAP_MAX_FILES_PER_REQUEST:-}
+  SOURCE_MAP_MAX_FILE_SIZE_BYTES: ${SOURCE_MAP_MAX_FILE_SIZE_BYTES:-}
+  SOURCE_MAP_MAX_BYTES_PER_RESOLVE: ${SOURCE_MAP_MAX_BYTES_PER_RESOLVE:-}
+  SOURCE_MAP_RETENTION_DAYS: ${SOURCE_MAP_RETENTION_DAYS:-}
+
   # How many appending proxies of your own sit in front of the app. Decides
   # which X-Forwarded-For entry counts as the client for IP allowlists and rate
   # limits. Defaulted because an existing config.env upgraded in place will not
@@ -167,16 +213,26 @@ x-common-runtime-variables: &common-runtime-variables
   QUEUE_DASHBOARD_SECRET: ${QUEUE_DASHBOARD_SECRET}
 
 services:
-  redis:
-    image: redis:7.0.12
+  # Valkey is the BSD-licensed fork of Redis 7.2 that most of the original Redis
+  # contributors moved to after Redis 7.4 left the BSD licence, and it speaks the
+  # same wire protocol -- point VALKEY_HOST at a managed Redis instead and
+  # nothing else changes.
+  #
+  # The service is reachable as both "valkey" and "redis" (see the network
+  # alias), so a config.env written before the rename, still saying
+  # REDIS_HOST=redis, resolves with no edits.
+  valkey:
+    image: valkey/valkey:9.1-alpine
     restart: always
     networks:
-      - oneuptime
-    command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
+      oneuptime:
+        aliases:
+          - redis
+    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -332,6 +388,12 @@ services:
   probe-1:
     restart: always
     network_mode: host
+    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
+    # container 64MB of it by default. Several concurrent synthetic browsers at
+    # a desktop viewport exhaust that, and a browser that cannot allocate
+    # shared memory does not fail cleanly -- its renderer or network service
+    # wedges, and the synthetic runtime's first navigation never completes.
+    shm_size: ${GLOBAL_PROBE_1_SHM_SIZE:-512m}
     # The probe remains root so its trusted supervisor can assign a unique UID
     # to every synthetic execution. Drop everything except the capabilities it
     # needs to prepare, terminate, and clean up those workers (plus NET_RAW for
@@ -366,8 +428,13 @@ services:
       # falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      # Bundled probes auto-register as global probes, so the process ignores
+      # this private-probe opt-in and always enforces public-only HTTP egress.
+      # See config.example.env.
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY:-}
+      PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_1_SNMP_GET_CHUNK_SIZE:-}
       HTTP_PROXY_URL: ${GLOBAL_PROBE_1_HTTP_PROXY_URL:-${GLOBAL_PROBE_1_PROXY_URL:-}}
       HTTPS_PROXY_URL: ${GLOBAL_PROBE_1_HTTPS_PROXY_URL:-${GLOBAL_PROBE_1_PROXY_URL:-}}
       NO_PROXY: ${GLOBAL_PROBE_1_NO_PROXY:-}
@@ -386,6 +453,12 @@ services:
   probe-2:
     restart: always
     network_mode: host
+    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
+    # container 64MB of it by default. Several concurrent synthetic browsers at
+    # a desktop viewport exhaust that, and a browser that cannot allocate
+    # shared memory does not fail cleanly -- its renderer or network service
+    # wedges, and the synthetic runtime's first navigation never completes.
+    shm_size: ${GLOBAL_PROBE_2_SHM_SIZE:-512m}
     cap_drop:
       - ALL
     cap_add:
@@ -411,8 +484,13 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      # Bundled probes auto-register as global probes, so the process ignores
+      # this private-probe opt-in and always enforces public-only HTTP egress.
+      # See config.example.env.
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_2_NETWORK_DEVICE_POLL_CONCURRENCY:-}
+      PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_2_SNMP_GET_CHUNK_SIZE:-}
       HTTP_PROXY_URL: ${GLOBAL_PROBE_2_HTTP_PROXY_URL:-${GLOBAL_PROBE_2_PROXY_URL:-}}
       HTTPS_PROXY_URL: ${GLOBAL_PROBE_2_HTTPS_PROXY_URL:-${GLOBAL_PROBE_2_PROXY_URL:-}}
       NO_PROXY: ${GLOBAL_PROBE_2_NO_PROXY:-}

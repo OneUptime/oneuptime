@@ -76,3 +76,40 @@ tests:
           content:
             name: PROBE_NETWORK_DEVICE_POLL_CONCURRENCY
             value: "60"
+
+  # A third knob on the same path, added with OID Collection Templates: the
+  # probe splits a device's health OIDs across several SNMP GETs so a long list
+  # fits in a UDP datagram. It used to send them all in one, which answered
+  # tooBig and reported the DEVICE offline — so configuring more OIDs took the
+  # router down rather than collecting more. Lowering it is the escape hatch
+  # for an agent with an unusually small maximum message size, and it is only
+  # an escape hatch if it actually reaches the container.
+  - it: leaves the probe's SNMP GET chunk size to the code default when unset
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.snmpGetChunkSize: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SNMP_GET_CHUNK_SIZE
+          any: true
+
+  - it: passes the probe's SNMP GET chunk size through when set
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.snmpGetChunkSize: 10
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SNMP_GET_CHUNK_SIZE
+            value: "10"

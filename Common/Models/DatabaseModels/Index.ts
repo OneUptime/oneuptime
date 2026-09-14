@@ -12,6 +12,10 @@ import NetworkDeviceOwnerUser from "./NetworkDeviceOwnerUser";
 import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
 import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceAutoImportRule from "./NetworkDeviceAutoImportRule";
+import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
+import NetworkDeviceRole from "./NetworkDeviceRole";
+import NetworkAlertPolicy from "./NetworkAlertPolicy";
+import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
@@ -47,6 +51,10 @@ import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
 import CephResource from "./CephResource";
+import VMwareVCenter from "./VMwareVCenter";
+import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
+import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
+import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
@@ -117,6 +125,8 @@ import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
+import GoogleSecOpsConnectionRun from "./GoogleSecOpsConnectionRun";
+import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -163,6 +173,12 @@ import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyScheduleOwnerTeam from "./OnCallDutyPolicyScheduleOwnerTeam";
 import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUser";
+// On-call calendar feeds and shift reminders
+import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
+import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
+import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
+import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
 // On-Call Duty Label and Owner Rules
 import OnCallDutyPolicyLabelRule from "./OnCallDutyPolicyLabelRule";
@@ -180,6 +196,7 @@ import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 // Incoming Call Policy
 import IncomingCallPolicy from "./IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "./IncomingCallPolicyEscalationRule";
+import IncomingCallPolicyPhoneNumber from "./IncomingCallPolicyPhoneNumber";
 import IncomingCallLog from "./IncomingCallLog";
 import IncomingCallLogItem from "./IncomingCallLogItem";
 
@@ -318,6 +335,7 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetrySourceMap from "./TelemetrySourceMap";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
@@ -413,6 +431,8 @@ import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
+import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
+import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -437,11 +457,24 @@ import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
+import KubernetesClusterFeed from "./KubernetesClusterFeed";
+import DockerHostFeed from "./DockerHostFeed";
+import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
+import CephClusterFeed from "./CephClusterFeed";
+import PodmanHostFeed from "./PodmanHostFeed";
+import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
+import VMwareVCenterFeed from "./VMwareVCenterFeed";
+import HostFeed from "./HostFeed";
+import CloudResourceFeed from "./CloudResourceFeed";
+import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
+import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
+import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
+import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -468,6 +501,8 @@ const AllModelTypes: Array<{
   LogDropFilter,
   DetectionRule,
   GoogleSecOpsConnection,
+  GoogleSecOpsConnectionRun,
+  ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
@@ -494,6 +529,7 @@ const AllModelTypes: Array<{
   // Incoming Call Policy
   IncomingCallPolicy,
   IncomingCallPolicyEscalationRule,
+  IncomingCallPolicyPhoneNumber,
   IncomingCallLog,
   IncomingCallLogItem,
 
@@ -608,6 +644,8 @@ const AllModelTypes: Array<{
   IoTFleetLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
+  VMwareVCenterOwnerRule,
+  VMwareVCenterLabelRule,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,
@@ -750,6 +788,11 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleLayerUser,
   OnCallDutyPolicyScheduleOwnerTeam,
   OnCallDutyPolicyScheduleOwnerUser,
+  OnCallDutyPolicyScheduleCalendarFeed,
+  ProjectOnCallCalendarFeed,
+  UserOnCallCalendarFeed,
+  UserOnCallShiftReminder,
+  UserOnCallShiftReminderLog,
   OnCallDutyPolicyFeed,
   OnCallDutyPolicyOwnerTeam,
   OnCallDutyPolicyOwnerUser,
@@ -805,6 +848,7 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetrySourceMap,
   InventoryItem,
   InventoryItemCustomField,
   InventoryItemRelationship,
@@ -824,6 +868,16 @@ const AllModelTypes: Array<{
   WorkspaceNotificationSummary,
 
   MonitorFeed,
+  KubernetesClusterFeed,
+  DockerHostFeed,
+  DockerSwarmClusterFeed,
+  CephClusterFeed,
+  PodmanHostFeed,
+  ProxmoxClusterFeed,
+  VMwareVCenterFeed,
+  HostFeed,
+  CloudResourceFeed,
+  ServiceFeed,
 
   MetricType,
 
@@ -845,6 +899,10 @@ const AllModelTypes: Array<{
   NetworkDeviceOwnerRule,
   NetworkDeviceLabelRule,
   NetworkDeviceAutoImportRule,
+  NetworkDeviceOidTemplate,
+  NetworkDeviceRole,
+  NetworkAlertPolicy,
+  NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
   NetworkSite,
@@ -880,6 +938,10 @@ const AllModelTypes: Array<{
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
   CephResource,
+  VMwareVCenter,
+  VMwareVCenterOwnerTeam,
+  VMwareVCenterOwnerUser,
+  VMwareResource,
   Host,
   HostOwnerTeam,
   HostOwnerUser,
@@ -905,6 +967,9 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   DeletedProject,
+  UserNotificationEmailRollupItem,
+  UserNotificationEmailRollupBatch,
+  UserNotificationEmailRollupSetting,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

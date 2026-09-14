@@ -225,7 +225,12 @@ export default class PortMonitor {
     }
 
     if (!port) {
-      throw new BadDataException("Port is not specified");
+      /*
+       * A monitor the tenant configured without a port. Their misconfiguration,
+       * not our defect — and authoritative, so it is not promoted back to
+       * code-fault by the probe-check unit of work.
+       */
+      throw new BadDataException("Port is not specified").asUserError();
     }
 
     const portNumber: number = port.toNumber();

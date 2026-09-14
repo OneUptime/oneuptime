@@ -4,28 +4,18 @@ import {
   FacetSelectionMap,
   isFacetTileSelectionApplied,
 } from "../ResourceOwners/FacetTileSelection";
-import ObjectID from "Common/Types/ObjectID";
-import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import {
+  DeviceSummaryCounts,
+  fetchDeviceSummary,
+} from "../Network/NetworkSummaryApi";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-
-interface SummaryCounts {
-  devicesUp: number;
-  devicesDown: number;
-  devicesPending: number;
-  interfacesDown: number;
-}
 
 export interface ComponentProps {
   /*
@@ -45,7 +35,7 @@ export interface ComponentProps {
 const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [counts, setCounts] = useState<SummaryCounts | null>(null);
+  const [counts, setCounts] = useState<DeviceSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
 
@@ -53,9 +43,17 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
-
       /*
+       * One request, one SQL statement, four integers.
+       *
+       * This used to be four requests — three counts and a LIST of every
+       * device with a down interface, capped at ten thousand rows and summed
+       * here. On a large fleet that is megabytes of device JSON and hundreds
+       * of milliseconds of model hydration to render a strip of numbers; past
+       * ten thousand such devices it also stopped being TRUE, because the cap
+       * silently truncated the sum. The interfaces figure is a real SUM over
+       * the whole fleet now.
+       *
        * `isReachable` — the same stored verdict the Status pill renders and
        * the Status chip filters on, so the rows a tile opens are the rows it
        * counted. The three counts partition the fleet exactly: true, false,
@@ -68,66 +66,7 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
        * DeviceReachabilityUtil, which is why staleness annotates the verdict
        * instead of replacing it.
        */
-      const [
-        devicesUp,
-        devicesDown,
-        devicesPending,
-        devicesWithDownInterfaces,
-      ]: [number, number, number, ListResult<NetworkDevice>] =
-        await Promise.all([
-          ModelAPI.count<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: {
-              projectId: projectId,
-              isArchived: false,
-              isReachable: true,
-            },
-          }),
-          ModelAPI.count<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: {
-              projectId: projectId,
-              isArchived: false,
-              isReachable: false,
-            },
-          }),
-          ModelAPI.count<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: {
-              projectId: projectId,
-              isArchived: false,
-              isReachable: new IsNull(),
-            },
-          }),
-          ModelAPI.getList<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: {
-              projectId: projectId,
-              isArchived: false,
-              interfacesDown: new GreaterThan(0),
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              interfacesDown: true,
-            },
-            sort: {},
-          }),
-        ]);
-
-      const interfacesDown: number = devicesWithDownInterfaces.data.reduce(
-        (total: number, device: NetworkDevice) => {
-          return total + ((device.interfacesDown as number) || 0);
-        },
-        0,
-      );
-
-      setCounts({
-        devicesUp,
-        devicesDown,
-        devicesPending,
-        interfacesDown,
-      });
+      setCounts(await fetchDeviceSummary());
       setHasError(false);
     } catch {
       // The summary row is supplementary — hide it instead of breaking the page.

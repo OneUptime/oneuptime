@@ -1,6 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -12,6 +13,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
 import ProjectSCIMService from "./ProjectSCIMService";
+import ModelPermission from "../Types/Database/Permissions/Index";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -156,6 +158,7 @@ export class Service extends DatabaseService<Model> {
       limit: LIMIT_MAX,
       skip: 0,
       select: {
+        _id: true,
         name: true,
         isTeamDeleteable: true,
         projectId: true,
@@ -187,6 +190,53 @@ export class Service extends DatabaseService<Model> {
           } team cannot be deleted its a critical team for this project.`,
         );
       }
+    }
+
+    /*
+     * Delete these teams' memberships THROUGH TeamMemberService before the
+     * team rows go. The TeamMember.teamId FK is ON DELETE CASCADE, so leaving
+     * the rows to Postgres would remove them hook-free: no token refresh, no
+     * seat update, no notification-settings cleanup and no on-call cleanup —
+     * a user whose ONLY team was deleted kept their schedule-layer and
+     * escalation-rule assignments, their personal calendar feed stayed
+     * enabled and the rotateWhenMemberLeaves feeds were never rotated, so
+     * the schedule kept rotating onto (and paging) an ex-member. Runs after
+     * the guards above so a refused delete removes nobody. Mirrors the SCIM
+     * group-delete path, which already deletes members first for the same
+     * reason.
+     */
+    const teamIds: Array<ObjectID> = teams
+      .map((team: Model) => {
+        return team.id;
+      })
+      .filter((teamId: ObjectID | null): teamId is ObjectID => {
+        return Boolean(teamId);
+      });
+
+    if (teamIds.length > 0) {
+      /*
+       * DatabaseService checks DELETE permission AFTER this hook runs, and the
+       * lookup above only needed READ permission. Since we are about to delete
+       * rows on the caller's behalf, check the caller's delete permission on
+       * Team FIRST — otherwise someone who may read teams but not delete them
+       * would still wipe every membership before being refused. The framework
+       * re-runs the same check on the untouched query straight after, so this
+       * changes nothing for a caller who is allowed.
+       */
+      await ModelPermission.checkDeleteQueryPermission(
+        Model,
+        deleteBy.query,
+        deleteBy.props,
+      );
+
+      await TeamMemberService.deleteBy({
+        query: {
+          teamId: QueryHelper.any(teamIds),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
     }
 
     return { deleteBy, carryForward: null };

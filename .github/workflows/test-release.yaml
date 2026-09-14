@@ -969,7 +969,7 @@ jobs:
         run: |
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.billing.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -1046,7 +1046,7 @@ jobs:
         run: |
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure

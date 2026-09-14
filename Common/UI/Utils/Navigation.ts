@@ -1,4 +1,3 @@
-import { AgnosticRouteMatch } from "@remix-run/router";
 import Hostname from "../../Types/API/Hostname";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
@@ -45,7 +44,7 @@ abstract class Navigation {
   }
 
   public static getRoutePath(routes: Array<{ path: string }>): string {
-    const pathes: AgnosticRouteMatch[] | null = matchRoutes(
+    const pathes: ReturnType<typeof matchRoutes> = matchRoutes(
       routes,
       this.location.pathname,
     );
@@ -229,8 +228,23 @@ abstract class Navigation {
 
       let isOnThisPage: boolean = true;
 
-      const routeItems: Array<string> = route.toString().split("/");
-      const currentPathItems: Array<string> = current.toString().split("/");
+      /*
+       * React Router resolves `/page` and `/page/` to the same route. Match
+       * that behavior here so side-menu selection and the compact mobile
+       * label do not disappear when a bookmarked URL carries a trailing
+       * slash. Keep `/` intact so the root route still has a segment.
+       */
+      const trimTrailingSlashes: (path: string) => string = (
+        path: string,
+      ): string => {
+        return path.length > 1 ? path.replace(/\/+$/, "") : path;
+      };
+      const routeItems: Array<string> = trimTrailingSlashes(
+        route.toString(),
+      ).split("/");
+      const currentPathItems: Array<string> = trimTrailingSlashes(
+        current.toString(),
+      ).split("/");
       if (routeItems.length !== currentPathItems.length) {
         return false;
       }
@@ -270,6 +284,42 @@ abstract class Navigation {
     this.navigateHook(-1);
   }
 
+  /**
+   * Return whether a value is an unambiguous same-origin path. Redirect
+   * targets must be paths rather than URLs so schemes, protocol-relative
+   * values, and backslash authority tricks can never reach a browser
+   * navigation sink.
+   */
+  public static isSafeInternalRoute(route: Route | string): boolean {
+    const routeValue: string = route.toString();
+
+    if (
+      !routeValue.startsWith("/") ||
+      routeValue.startsWith("//") ||
+      routeValue.includes("\\")
+    ) {
+      return false;
+    }
+
+    try {
+      /*
+       * URL accepts characters that Route deliberately rejects. Validate the
+       * exact sink contract here so a value marked safe cannot crash later
+       * when a caller constructs the Route used for navigation.
+       */
+      new Route(routeValue);
+
+      const parsedUrl: globalThis.URL = new window.URL(
+        routeValue,
+        window.location.origin,
+      );
+
+      return parsedUrl.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
   public static navigate(
     to: Route | URL,
     options?: {
@@ -288,6 +338,12 @@ abstract class Navigation {
     }
 
     if (options?.forceNavigate && to instanceof Route) {
+      if (!this.isSafeInternalRoute(to)) {
+        throw new BadDataException(
+          `Cannot force navigate to a non-internal route: ${finalUrl}`,
+        );
+      }
+
       window.location.href = finalUrl;
       return;
     }

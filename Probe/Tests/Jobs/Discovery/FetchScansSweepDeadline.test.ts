@@ -41,6 +41,7 @@ import ObjectID from "Common/Types/ObjectID";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SubnetScanner, {
   SubnetScanConfig,
   SubnetScanResult,
@@ -50,21 +51,15 @@ import InitJob, {
   scanWithDeadline,
   resetDiscoveryRunInProgress,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * A sweep that never settles must not stop discovery forever.
  *
- * The discovery cron holds a single-flight guard for the WHOLE cycle — list
- * fetch, sweep, result upload — and clears it only in a `finally`. Both HTTP
- * calls carry a 45s deadline, but the sweep between them had none, and a
- * sweep is the part most likely to hang: it opens one ICMP child process and
- * one UDP SNMP session per address, up to 32,768 of them.
- *
- * One non-settling promise in there did not cost a cycle. It stranded the
- * guard set for the lifetime of the process, so the probe never asked for
- * another scan, and every scan afterwards sat in "Pending" until someone
- * restarted the container — with nothing anywhere in the product to say why.
- * That is the failure mode OneUptime issue #3287 describes.
+ * Each scan occupies a scheduler slot through its result upload. Both HTTP
+ * calls carry a 45s deadline, and the sweep between them needs one too so
+ * wedged sweeps cannot eventually occupy every slot forever. Before bounded
+ * scan concurrency (#3597), one such sweep blocked the entire probe (#3287).
  *
  * FetchScansGuardAndTimeout.test.ts already pins that the guard releases when
  * the FETCH fails. These pin the case it could not reach: the sweep itself.
@@ -87,15 +82,33 @@ function makeScanResult(): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 0 },
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     icmpFilteredFallbackHostCount: 0,
   } as unknown as SubnetScanResult;
 }
 
+/*
+ * The sweep config is the pair the deadline wraps: a target and the credential
+ * sets to try against it. Written out in full because scanWithDeadline is
+ * asserted to hand it through UNTOUCHED — a deadline that quietly rebuilt or
+ * trimmed the credential list would sweep with something other than what the
+ * scan says, and the operator would have no way to see it.
+ */
 const scanConfig: SubnetScanConfig = {
   cidr: "10.240-249.0-254.220-226",
+  snmpConfigs: [
+    {
+      id: "legacy",
+      label: "SNMP config 1 (V2c)",
+      snmpVersion: SnmpVersion.V2c,
+      communityString: "public",
+      snmpV3Auth: undefined,
+      port: 161,
+    },
+  ],
 };
 
 // A sweep that never settles, exactly as a wedged ping/SNMP promise behaves.
@@ -136,6 +149,15 @@ function loggedErrors(): string {
     .join("\n");
 }
 
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
+
 describe("scanWithDeadline — a sweep that finishes", () => {
   test("returns the sweep's own result untouched", async () => {
     const result: SubnetScanResult = makeScanResult();
@@ -146,10 +168,15 @@ describe("scanWithDeadline — a sweep that finishes", () => {
     );
   });
 
-  test("passes the config straight through to the scanner", async () => {
+  test("preserves the sweep config and adds cancellation and guarded progress", async () => {
     await scanWithDeadline(scanConfig, "scan-1", 5000);
 
-    expect(scanSpy).toHaveBeenCalledWith(scanConfig);
+    expect(scanSpy).toHaveBeenCalledWith({
+      ...scanConfig,
+      signal: expect.any(AbortSignal),
+      onProgress: expect.any(Function),
+    });
+    expect(scanSpy.mock.calls[0]![0].signal?.aborted).toBe(false);
   });
 
   /*
@@ -267,7 +294,7 @@ describe("runScan — a wedged sweep is reported, not swallowed", () => {
   });
 });
 
-describe("the overlap guard survives a wedged sweep", () => {
+describe("the scheduler releases capacity after a wedged sweep", () => {
   function capturedRunFunction(): PromiseVoidFunction {
     InitJob();
     const captured: CapturedCronJob | undefined =
@@ -279,11 +306,10 @@ describe("the overlap guard survives a wedged sweep", () => {
   }
 
   /*
-   * THE regression test for issue #3287's failure mode. Before the deadline,
-   * this second tick returned immediately without fetching — and so did every
-   * tick after it, forever.
+   * Regression for issue #3287: the invocation must eventually finish even
+   * when its sweep never settles, and later ticks must still fetch work.
    */
-  test("a tick whose sweep never settles still releases the guard, so the next tick fetches again", async () => {
+  test("a tick whose sweep never settles still completes, so the next tick fetches again", async () => {
     const runFunction: PromiseVoidFunction = capturedRunFunction();
 
     fetchSpy.mockResolvedValue({

@@ -63,6 +63,7 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
+  disabled?: boolean | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -539,6 +540,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         data-testid={props.dataTestId}
         tabIndex={props.tabIndex}
         isMulti={props.isMultiSelect}
+        isDisabled={props.disabled}
         value={value || null}
         onFocus={() => {
           props.onFocus?.();

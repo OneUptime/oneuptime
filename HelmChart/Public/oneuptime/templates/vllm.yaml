@@ -165,7 +165,7 @@ spec:
               key: api-key
               {{- end }}
         {{- end }}
-        {{- with .Values.vllm.extraEnv }}
+        {{- with (default $.Values.extraEnv $.Values.vllm.extraEnv) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.vllm.startupProbe.enabled }}
@@ -216,6 +216,9 @@ spec:
           mountPath: /data
         - name: shm
           mountPath: /dev/shm
+        {{- with (default $.Values.extraVolumeMounts $.Values.vllm.extraVolumeMounts) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
       # vLLM's multiprocess engine uses /dev/shm for shared-memory IPC (and
       # NCCL needs it for tensor parallelism); the Kubernetes default of 64Mi
@@ -228,6 +231,9 @@ spec:
       - name: data
         emptyDir:
           sizeLimit: {{ .Values.vllm.persistence.size }}
+      {{- end }}
+      {{- with (default $.Values.extraVolumes $.Values.vllm.extraVolumes) }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}
   {{- if .Values.vllm.persistence.enabled }}
   volumeClaimTemplates:

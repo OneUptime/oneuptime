@@ -1,6 +1,10 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
+import UptimeDaySummary, { StatusDuration } from "../Graphs/UptimeDaySummary";
 import OneUptimeDate from "../../../Types/Date";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeHistoryLabels, {
+  DefaultUptimeHistoryLabels,
+} from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -8,27 +12,76 @@ export interface ComponentProps {
   incidents: Array<UptimeBarTooltipIncident>;
   onClose: () => void;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * The day's reading, when the caller has it. Optional so that a caller that
+   * only knows about incidents still renders; the uptime block is simply
+   * absent then, which is what this dialog used to be in every case.
+   */
+  uptimePercent?: number | undefined;
+  hasEvents?: boolean | undefined;
+  statusDurations?: Array<StatusDuration> | undefined;
+  /* Defaults to English. The status page passes translated strings. */
+  labels?: UptimeHistoryLabels | undefined;
 }
 
+/*
+ * What happened on one day of the uptime history.
+ *
+ * This is the only way to read a day without a mouse - the strip's tooltip is
+ * hover-only, so on a phone (which is how most people open a status page
+ * during an outage) and with a keyboard it was previously unreachable. It
+ * therefore shows the same reading the tooltip does, not a strictly poorer
+ * one: uptime, how the day was spent, and then the incidents.
+ */
 const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const dateStr: string =
     OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.date, true);
 
+  const labels: UptimeHistoryLabels =
+    props.labels || DefaultUptimeHistoryLabels;
+
+  /*
+   * Only drawn when the caller actually measured the day. hasEvents false with
+   * a summary present is a real state - a day before the monitor existed - and
+   * UptimeDaySummary says so; hasEvents undefined means nobody measured, which
+   * is not the same claim and must not be rendered as one.
+   */
+  const hasSummary: boolean = props.hasEvents !== undefined;
+
+  let description: string | undefined = undefined;
+
+  if (props.incidents.length === 1) {
+    description = labels.oneIncidentOnThisDay;
+  } else if (props.incidents.length > 1) {
+    description = labels.incidentsOnThisDay.replace(
+      "{{total}}",
+      String(props.incidents.length),
+    );
+  }
+
   return (
     <Modal
-      title={`Incidents - ${dateStr}`}
-      description={
-        props.incidents.length > 0
-          ? `${props.incidents.length} incident${props.incidents.length !== 1 ? "s" : ""} reported on this day`
-          : undefined
-      }
+      title={dateStr}
+      description={description}
       onClose={props.onClose}
       modalWidth={ModalWidth.Medium}
-      closeButtonText="Close"
+      closeButtonText={labels.close}
     >
       <div>
+        {hasSummary && (
+          <div style={{ marginBottom: "16px" }}>
+            <UptimeDaySummary
+              uptimePercent={props.uptimePercent || 0}
+              hasEvents={Boolean(props.hasEvents)}
+              statusDurations={props.statusDurations || []}
+              hasFollowingContent={true}
+              labels={props.labels}
+            />
+          </div>
+        )}
+
         {props.incidents.length === 0 && (
           <div
             style={{
@@ -70,7 +123,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                 marginBottom: "4px",
               }}
             >
-              No incidents
+              {labels.noIncidents}
             </div>
             <div
               style={{
@@ -78,7 +131,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                 color: "var(--ou-text-muted, #6b7280)",
               }}
             >
-              No incidents were reported on this day.
+              {labels.noIncidentsDescription}
             </div>
           </div>
         )}
@@ -153,7 +206,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                       color: "var(--ou-text-muted, #6b7280)",
                     }}
                   >
-                    Declared{" "}
+                    {labels.declared}{" "}
                     {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                       incident.declaredAt,
                       false,

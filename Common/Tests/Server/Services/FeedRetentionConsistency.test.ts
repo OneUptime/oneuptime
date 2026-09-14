@@ -18,9 +18,15 @@ import path from "path";
  * OnCallDutyPolicyFeed is workflow-enabled - would have started hard deleting
  * on-call policy history at 90 days on billing-enabled deployments.
  *
- * Feed tables are the same kind of data as each other: a user-visible activity
- * timeline hung off a parent entity. They should expire together, whether or
- * not they happen to be registered yet.
+ * "Feed" has one deliberate second meaning in this codebase:
+ * ThreatIntelFeedService owns a long-lived TAXII subscription configuration
+ * (credentials, poll cursor, enablement and alerting settings), not an
+ * append-only activity timeline. Expiring that row because it happens to end
+ * in "Feed" would silently turn off a working integration after three years.
+ * Configuration-feed exceptions are therefore explicit and verified below;
+ * every new *FeedService still defaults to being an activity feed and must
+ * declare the common retention window unless somebody deliberately classifies
+ * it as configuration and satisfies the configuration assertions.
  */
 
 const SERVICES_DIRECTORY: string = path.join(
@@ -32,8 +38,61 @@ const SERVICES_DIRECTORY: string = path.join(
   "Services",
 );
 
+const THREAT_INTEL_FEED_MODEL_SOURCE: string = fs.readFileSync(
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Models",
+    "DatabaseModels",
+    "ThreatIntelFeed.ts",
+  ),
+  "utf8",
+);
+
 const RETENTION_PATTERN: RegExp =
   /hardDeleteItemsOlderThanInDays\(\s*"(\w+)"\s*,\s*([^)]+?)\s*\)/;
+
+/*
+ * Alphabetical, because it is compared with a sorted directory listing.
+ *
+ * The three on-call CALENDAR feeds are configuration in the same sense as the
+ * threat-intel feed: each row is a long-lived capability token (the calendar
+ * subscription URL) plus its settings and fetch bookkeeping. Age-expiring one
+ * would silently break every calendar app subscribed to it after three years.
+ * Their semantics are pinned in "calendar feeds own a subscription token"
+ * below.
+ */
+const CONFIGURATION_FEED_SERVICE_NAMES: ReadonlyArray<string> = [
+  "OnCallDutyPolicyScheduleCalendarFeedService",
+  "ProjectOnCallCalendarFeedService",
+  "ThreatIntelFeedService",
+  "UserOnCallCalendarFeedService",
+];
+
+const CALENDAR_FEED_MODEL_NAMES: ReadonlyArray<string> = [
+  "OnCallDutyPolicyScheduleCalendarFeed",
+  "ProjectOnCallCalendarFeed",
+  "UserOnCallCalendarFeed",
+];
+
+const readModelSource: (modelName: string) => string = (
+  modelName: string,
+): string => {
+  return fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Models",
+      "DatabaseModels",
+      `${modelName}.ts`,
+    ),
+    "utf8",
+  );
+};
 
 interface FeedRetention {
   serviceName: string;
@@ -51,13 +110,31 @@ const feedServiceNames: Array<string> = fs
     return fileName.replace(/\.ts$/, "");
   });
 
-const feedRetentions: Array<FeedRetention> = [];
+const activityFeedServiceNames: Array<string> = feedServiceNames.filter(
+  (serviceName: string): boolean => {
+    return !CONFIGURATION_FEED_SERVICE_NAMES.includes(serviceName);
+  },
+);
 
-for (const serviceName of feedServiceNames) {
-  const source: string = fs.readFileSync(
+const configurationFeedServiceNames: Array<string> = feedServiceNames.filter(
+  (serviceName: string): boolean => {
+    return CONFIGURATION_FEED_SERVICE_NAMES.includes(serviceName);
+  },
+);
+
+const readServiceSource: (serviceName: string) => string = (
+  serviceName: string,
+): string => {
+  return fs.readFileSync(
     path.join(SERVICES_DIRECTORY, `${serviceName}.ts`),
     "utf8",
   );
+};
+
+const feedRetentions: Array<FeedRetention> = [];
+
+for (const serviceName of activityFeedServiceNames) {
+  const source: string = readServiceSource(serviceName);
 
   const match: RegExpMatchArray | null = source.match(RETENTION_PATTERN);
 
@@ -74,12 +151,112 @@ for (const serviceName of feedServiceNames) {
 }
 
 describe("Feed service retention windows", () => {
-  test("the feed services were actually found", () => {
+  test("the activity feed services were actually found", () => {
     // Guards the assertions below against a silent pass on an empty list.
-    expect(feedServiceNames.length).toBeGreaterThan(0);
+    expect(activityFeedServiceNames.length).toBeGreaterThan(0);
   });
 
-  test("every feed service declares a retention window at all", () => {
+  test("accounts for every configuration feed explicitly", () => {
+    /*
+     * A stale exception must fail too: filtering the files on disk and then
+     * comparing with the declared list proves every exception still names a
+     * real service. A newly added *FeedService is not silently exempted — it
+     * lands in activityFeedServiceNames unless this list is deliberately
+     * changed.
+     */
+    expect(configurationFeedServiceNames).toEqual(
+      CONFIGURATION_FEED_SERVICE_NAMES,
+    );
+  });
+
+  test.each(CONFIGURATION_FEED_SERVICE_NAMES)(
+    "%s is configuration, not an activity-timeline writer",
+    (serviceName: string) => {
+      const source: string = readServiceSource(serviceName);
+
+      expect(source).toContain("protected override async onBeforeCreate");
+      expect(source).toContain("protected override async onBeforeUpdate");
+      expect(source).not.toMatch(/public async create\w+FeedItem\s*\(/);
+    },
+  );
+
+  test("ThreatIntelFeed owns a live subscription lifecycle", () => {
+    /*
+     * These are the facts that make the exception semantic rather than a
+     * filename allow-list. The row is CRUD-managed configuration with two
+     * kinds of credentials, an enable switch and polling state. An activity
+     * feed item has none of that lifecycle; deleting this row for age would
+     * disable the subscription and discard the poll position.
+     */
+    expect(THREAT_INTEL_FEED_MODEL_SOURCE).toContain(
+      '@CrudApiEndpoint(new Route("/threat-intel-feed"))',
+    );
+    expect(THREAT_INTEL_FEED_MODEL_SOURCE).toContain("@EnableWorkflow({");
+
+    for (const fieldName of [
+      "apiToken",
+      "basicAuthUsername",
+      "basicAuthPassword",
+      "isEnabled",
+      "pollIntervalInMinutes",
+      "lastPolledAt",
+      "cursor",
+      "nextPageToken",
+    ]) {
+      expect(THREAT_INTEL_FEED_MODEL_SOURCE).toMatch(
+        new RegExp(`public ${fieldName}\\?`),
+      );
+    }
+  });
+
+  test.each(CALENDAR_FEED_MODEL_NAMES)(
+    "%s owns a subscription token, not an activity timeline",
+    (modelName: string) => {
+      /*
+       * What makes a calendar feed configuration rather than history: a
+       * capability token (hashed for lookup, encrypted for re-display), an
+       * enable switch, a rotation stamp and fetch bookkeeping. Deleting the
+       * row for age would revoke a link that calendar apps poll forever.
+       */
+      const source: string = readModelSource(modelName);
+
+      expect(source).toMatch(/@CrudApiEndpoint\(new Route\("\/[a-z-]+"\)\)/);
+      expect(source).not.toContain("@EnableDocumentation");
+
+      for (const fieldName of [
+        "tokenHash",
+        "token",
+        "previousTokenHash",
+        "previousTokenExpiresAt",
+        "tokenHint",
+        "isEnabled",
+        "rotatedAt",
+        "lastFetchedAt",
+        "fetchCount",
+      ]) {
+        expect(source).toMatch(new RegExp(`public ${fieldName}\\?`));
+      }
+
+      // An activity feed would carry these; a token row never does.
+      expect(source).not.toMatch(/public feedInfoInMarkdown\?/);
+      expect(source).not.toMatch(/public postedAt\?/);
+    },
+  );
+
+  test.each(CONFIGURATION_FEED_SERVICE_NAMES)(
+    "%s is not age-expired while it remains an active configuration",
+    (serviceName: string) => {
+      expect(readServiceSource(serviceName)).not.toMatch(RETENTION_PATTERN);
+    },
+  );
+
+  test("every feed service is classified exactly once", () => {
+    expect(
+      [...activityFeedServiceNames, ...configurationFeedServiceNames].sort(),
+    ).toEqual(feedServiceNames);
+  });
+
+  test("every activity feed service declares a retention window at all", () => {
     /*
      * The window/column assertions below can only speak for services this file
      * managed to parse. Comparing against the filenames on disk - rather than a
@@ -91,10 +268,10 @@ describe("Feed service retention windows", () => {
       return entry.serviceName;
     });
 
-    expect(parsed).toEqual(feedServiceNames);
+    expect(parsed).toEqual(activityFeedServiceNames);
   });
 
-  test("every feed service expires on the same window", () => {
+  test("every activity feed service expires on the same window", () => {
     const windows: Array<string> = [
       ...new Set(
         feedRetentions.map((entry: FeedRetention) => {
@@ -117,7 +294,7 @@ describe("Feed service retention windows", () => {
     });
   });
 
-  test("every feed service expires on the same column", () => {
+  test("every activity feed service expires on the same column", () => {
     const columns: Array<string> = [
       ...new Set(
         feedRetentions.map((entry: FeedRetention) => {

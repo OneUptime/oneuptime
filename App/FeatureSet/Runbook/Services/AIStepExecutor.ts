@@ -6,6 +6,7 @@ import LlmProviderService from "Common/Server/Services/LlmProviderService";
 import AIService, {
   AILogRequest,
   AILogResponse,
+  AI_DISABLED_MESSAGE,
   RUNBOOK_AI_STEP_FEATURE,
 } from "Common/Server/Services/AIService";
 import ToolResultSerializer from "Common/Server/Utils/AI/Toolbox/Serializer";
@@ -424,6 +425,25 @@ export async function runAiStep(
         output: "",
         errorMessage:
           "AI step has no prompt configured. Edit the step and describe what the AI should do.",
+      };
+    }
+
+    /*
+     * The project's AI kill switch. A runbook containing an AI step can be
+     * run by hand by any member, which is the path the automated triggers'
+     * own gating (AutoRemediationRuleEngineService) never covers. The daily
+     * autonomous budget does bound this feature, but a budget is a ceiling on
+     * spend, not consent to spend at all.
+     *
+     * Failing here is the right shape for this lane: the catch below turns a
+     * throw into a failed step carrying the message, so the responder who
+     * pressed Run reads the reason on the step itself.
+     */
+    if (!(await AIService.isProjectAIEnabled(ctx.projectId))) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: AI_DISABLED_MESSAGE,
       };
     }
 

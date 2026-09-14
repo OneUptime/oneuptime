@@ -95,9 +95,20 @@ An internal or low-traffic app with no overnight visitors is legitimately discon
 
 ## 8. Session Replay problems
 
-Session replay is a separate pipeline with its own failure modes — the recorder script, the origin allowlist, consent, CSP and masking. They are documented in [Session Replay](/docs/telemetry/session-replay); the **Test your installation** panel in _RUM → Session Replay Settings_ checks the token, origin allowlist and CSP together.
+Session replay is a separate pipeline with its own failure modes — the recorder script, the origin allowlist, consent, CSP and masking. They have their own page: [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting).
 
-One overlap worth naming here: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
+Start there rather than here, and start by turning on the recorder's diagnostics, because most of its failure modes are deliberately silent:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+// then reload the page
+```
+
+The **Health** page (_RUM → your application → Session Replay → Health_) and the **Test your installation** panel on _Replay Policy_ check the token, the origin allowlists and the CSP from the server's side, and say why nothing is arriving when that is the case; the console tells you the half the server cannot see.
+
+Worth naming here: under the default capture trigger (`Always`) a session replay recorder posts a chunk roughly every 15 seconds **while the user is interacting** — an idle tab has nothing to send, so click or move the mouse first — and after that **no chunk requests at all** means something is wrong. If the application's capture trigger is set to `On error or frustration` instead, silence is expected — it uploads only when something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path either way.
+
+The two pipelines are independent: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
 
 ## Still stuck
 

@@ -59,6 +59,8 @@ import DashboardPodmanVolumeListComponentUtil from "Common/Utils/Dashboard/Compo
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
+import DashboardVMwareHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareHostListComponent";
+import DashboardVMwareVirtualMachineListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
@@ -78,14 +80,28 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import useDashboardTimeRangeZoom, {
+  DashboardTimeRangeZoom,
+} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableOption,
+  DashboardVariableType,
+} from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
 }
+
+type SaveDashboardViewConfigFunction = (
+  configToSave: DashboardViewConfig,
+) => Promise<boolean>;
 
 const DashboardViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -94,12 +110,44 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     DashboardMode.View,
   );
 
-  const [startAndEndDate, setStartAndEndDate] =
-    useState<RangeStartAndEndDateTime>({
-      range: TimeRange.PAST_ONE_HOUR,
-    });
+  /*
+   * The board's one time range, plus the undo that makes drag-to-zoom on a
+   * panel reversible. A drag-selection on any time-series widget retimes
+   * every widget; a double-click on one puts them all back.
+   */
+  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+  const startAndEndDate: RangeStartAndEndDateTime =
+    timeRangeZoom.startAndEndDate;
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  /*
+   * A save that was refused, kept apart from the page-level `error`. That one
+   * replaces the whole board with a bare message; on a failed save it took
+   * every unsaved widget the user had just placed with it.
+   */
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  /*
+   * Whether this user may write to the dashboard at all.
+   *
+   * The board is a bespoke screen: it does not go through ModelTable or
+   * ModelForm, so none of the generic gates ever ran over it. Every reader -
+   * including a project-wide `Viewer`, whose whole definition is "read-only
+   * access across all project resources" - was offered Edit, Add Widget,
+   * Variables and Save Changes, could rearrange the whole board, and only
+   * found out at Save that the API had never been going to accept it
+   * (github.com/OneUptime/oneuptime/issues/3550). The write is refused by
+   * TablePermission either way; what was broken is that the UI never said so,
+   * and the work was lost when it finally did.
+   */
+  const editGate: PermissionGateResult = useMemo(() => {
+    return PermissionGate.check(new Dashboard(), ModelAction.Update);
+  }, []);
+
+  const canEditDashboard: boolean = editGate.isAllowed;
 
   // Auto-refresh state
   const [autoRefreshInterval, setAutoRefreshInterval] =
@@ -165,24 +213,55 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
   };
 
-  const saveDashboardViewConfig: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        setIsSaving(true);
-        await ModelAPI.updateById({
-          modelType: Dashboard,
-          id: props.dashboardId,
-          data: {
-            dashboardViewConfig:
-              JSONFunctions.serializeValue(dashboardViewConfig),
-          },
-        });
-      } catch (err) {
-        setError(API.getFriendlyErrorMessage(err as Error));
-      }
+  /*
+   * Takes the config to persist as an argument rather than reading the
+   * `dashboardViewConfig` state. The caller stamps the auto-refresh interval
+   * onto the config immediately before saving, and a setState is not visible
+   * to the closure that scheduled it - so reading the state here wrote the
+   * board the user had *before* their last change to the refresh interval,
+   * and that setting only landed on the following save.
+   *
+   * Returns whether the write actually happened, so the caller can keep the
+   * user in edit mode with their work intact when it did not.
+   */
+  const saveDashboardViewConfig: SaveDashboardViewConfigFunction = async (
+    configToSave: DashboardViewConfig,
+  ): Promise<boolean> => {
+    /*
+     * Belt and braces: edit mode is already gated, but nothing should be able
+     * to reach the write path without the permission the write needs.
+     */
+    if (!canEditDashboard) {
+      setSaveError(
+        editGate.disabledReason ||
+          PermissionGate.getMissingPermissionMessage(
+            new Dashboard(),
+            ModelAction.Update,
+          ),
+      );
+      return false;
+    }
 
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      await ModelAPI.updateById({
+        modelType: Dashboard,
+        id: props.dashboardId,
+        data: {
+          dashboardViewConfig: JSONFunctions.serializeValue(configToSave),
+        },
+      });
+    } catch (err) {
+      // A failed save leaves the board on screen, in edit mode, and says why.
+      setSaveError(API.getFriendlyErrorMessage(err as Error));
       setIsSaving(false);
-    };
+      return false;
+    }
+
+    setIsSaving(false);
+    return true;
+  };
 
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -341,7 +420,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     };
   }, [autoRefreshInterval, dashboardMode, triggerRefresh]);
 
-  const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
+  /*
+   * `canEditDashboard` is ANDed in here rather than only at the point the
+   * mode is set, so the canvas and the toolbar cannot disagree with the gate
+   * even if the mode were somehow left over from a permission that has since
+   * been revoked.
+   */
+  const isEditMode: boolean =
+    dashboardMode === DashboardMode.Edit && canEditDashboard;
 
   useEffect(() => {
     handleResize();
@@ -423,7 +509,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       }}
     >
       <DashboardToolbar
-        dashboardMode={dashboardMode}
+        dashboardMode={isEditMode ? DashboardMode.Edit : DashboardMode.View}
         onFullScreenClick={() => {
           const canvasElement: HTMLDivElement | null =
             dashboardCanvasRef.current;
@@ -453,23 +539,50 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           };
           setDashboardViewConfig(configWithRefresh);
 
-          saveDashboardViewConfig().catch((err: Error) => {
-            setError(API.getFriendlyErrorMessage(err));
-          });
-          setDashboardMode(DashboardMode.View);
+          saveDashboardViewConfig(configWithRefresh)
+            .then((didSave: boolean) => {
+              /*
+               * Only leave edit mode once the board is actually persisted.
+               * Dropping straight back to view mode meant a refused save
+               * looked exactly like a successful one.
+               */
+              if (didSave) {
+                setDashboardMode(DashboardMode.View);
+              }
+            })
+            .catch((err: Error) => {
+              setSaveError(API.getFriendlyErrorMessage(err));
+            });
         }}
         startAndEndDate={startAndEndDate}
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          setStartAndEndDate(newStartAndEndDate);
+          timeRangeZoom.setStartAndEndDate(newStartAndEndDate);
         }}
+        isTimeRangeZoomed={timeRangeZoom.isZoomed}
+        onResetTimeRangeZoom={timeRangeZoom.resetZoom}
         onCancelEditClick={async () => {
           // load the dashboard view config again
+          setSaveError(null);
           setDashboardMode(DashboardMode.View);
           await fetchDashboardViewConfig();
         }}
+        canEditDashboard={canEditDashboard}
+        editDashboardDisabledReason={editGate.disabledReason}
         onEditClick={() => {
+          // Readers get no editor. See `editGate` above.
+          if (!canEditDashboard) {
+            return;
+          }
+          setSaveError(null);
+          /*
+           * Editing hides the time-range picker and the reset button, so a
+           * board left zoomed would be stranded on a Custom window with no
+           * way out until the user leaves edit mode. Drop the zoom on the
+           * way in.
+           */
+          timeRangeZoom.resetZoom();
           /*
            * Heal any layout corruption (overlapping or out-of-bounds
            * widgets saved by older builds) before editing starts, so
@@ -536,6 +649,37 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           const next: Array<DashboardVariable> = updated.map(
             (v: DashboardVariable) => {
               const prior: DashboardVariable | undefined = priorById.get(v.id);
+              if (
+                prior?.type !== v.type ||
+                Boolean(prior?.isMultiSelect) !== Boolean(v.isMultiSelect)
+              ) {
+                return {
+                  ...v,
+                  selectedValue: undefined,
+                  selectedValues: undefined,
+                };
+              }
+              if (v.type === DashboardVariableType.ProjectLabel) {
+                const allowed: Set<string> = new Set(
+                  (v.labelOptions || []).map(
+                    (option: DashboardVariableOption) => {
+                      return option.value;
+                    },
+                  ),
+                );
+                return {
+                  ...v,
+                  selectedValue:
+                    prior.selectedValue && !allowed.has(prior.selectedValue)
+                      ? ""
+                      : prior.selectedValue,
+                  selectedValues: prior.selectedValues?.filter(
+                    (value: string) => {
+                      return allowed.has(value);
+                    },
+                  ),
+                };
+              }
               return {
                 ...v,
                 selectedValue: prior?.selectedValue,
@@ -764,6 +908,18 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardProxmoxGuestListComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.VMwareHostList) {
+            newComponent =
+              DashboardVMwareHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.VMwareVirtualMachineList
+          ) {
+            newComponent =
+              DashboardVMwareVirtualMachineListComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.DockerSwarmNodeList) {
             newComponent =
               DashboardDockerSwarmNodeListComponentUtil.getDefaultComponent();
@@ -812,6 +968,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setPendingScrollComponentId(newComponent.componentId);
         }}
       />
+      {saveError ? (
+        <div className="mx-3 mb-3">
+          <ErrorMessage message={saveError} />
+        </div>
+      ) : (
+        <></>
+      )}
       <div
         ref={dashboardCanvasRef}
         className="px-1 pb-4 mx-3 mb-4 rounded-2xl border border-gray-200/60"
@@ -833,6 +996,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           variables={dashboardVariables}
           chartSyncId={props.dashboardId.toString()}
+          onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
+          onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
+          isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
         />
       </div>
     </div>

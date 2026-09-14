@@ -298,5 +298,56 @@ describe("MarketingEventUtil", () => {
         );
       }).not.toThrow();
     });
+
+    test("queues the event a builder returns", async () => {
+      MarketingEventUtil.emitInBackground(() => {
+        return MarketingEventUtil.buildEvent({
+          eventType: MarketingEventType.EnterpriseLicenseIssued,
+          eventId: "enterprise_license_issued:l1",
+          occurredAt: new Date("2026-08-28T09:00:00.000Z"),
+        });
+      });
+
+      await Promise.resolve();
+
+      expect(mockAddJob).toHaveBeenCalledTimes(1);
+      expect(mockAddJob.mock.calls[0]![1]).toBe("enterprise_license_issued:l1");
+    });
+
+    /*
+     * The reason the builder form exists at all.
+     * `emitInBackground(buildEvent({...}))` evaluates its argument at the CALL
+     * SITE, so a throw while assembling the event never reaches this try — it
+     * propagates into the caller, which is always a transaction that has
+     * already committed. Reading a date column that held a string is exactly
+     * how that happened: an enterprise licence was written and the admin
+     * dashboard reported "Server Error" for it.
+     */
+    test("never throws when the builder itself throws", () => {
+      expect(() => {
+        MarketingEventUtil.emitInBackground(() => {
+          throw new TypeError(
+            "createdItem.expiresAt.toISOString is not a function",
+          );
+        });
+      }).not.toThrow();
+
+      expect(mockAddJob).not.toHaveBeenCalled();
+    });
+
+    test("still accepts a plain event for callers that already hold one", async () => {
+      MarketingEventUtil.emitInBackground(
+        MarketingEventUtil.buildEvent({
+          eventType: MarketingEventType.SignUp,
+          eventId: "sign_up:u9",
+          occurredAt: new Date("2026-08-28T09:00:00.000Z"),
+        }),
+      );
+
+      await Promise.resolve();
+
+      expect(mockAddJob).toHaveBeenCalledTimes(1);
+      expect(mockAddJob.mock.calls[0]![1]).toBe("sign_up:u9");
+    });
   });
 });

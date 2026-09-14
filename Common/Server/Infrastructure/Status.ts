@@ -17,12 +17,18 @@ export default class InfrastructureStatus {
     logger.info("Checking infrastructure status");
 
     if (data.checkRedisStatus) {
-      logger.info("Checking Redis status");
+      logger.info("Checking Valkey status");
       if (!(await Redis.checkConnnectionStatus())) {
-        logger.info("Redis is not connected");
-        throw new DatabaseNotConnectedException("Redis is not connected");
+        logger.info("Valkey is not connected");
+        /*
+         * This message is not log-only: StatusAPI passes it straight to
+         * sendErrorResponse, so it is the body of GET /api/status/global-cache,
+         * /ready and /live. It is the first thing an operator curls when the
+         * cache is down, which is why it says what the container actually is.
+         */
+        throw new DatabaseNotConnectedException("Valkey is not connected");
       }
-      logger.info("Redis is connected");
+      logger.info("Valkey is connected");
     }
 
     if (data.checkPostgresStatus) {

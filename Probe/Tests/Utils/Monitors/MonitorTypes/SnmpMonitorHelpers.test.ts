@@ -6,6 +6,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
 import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
@@ -56,6 +57,7 @@ type SnmpMonitorHelpers = {
   toMetricNumber: (value: unknown) => number | undefined;
   walkEntityInfo: (session: unknown) => Promise<SnmpEntityInfo | undefined>;
   walkCdpNeighbors: (session: unknown) => Promise<Array<CdpNeighbor>>;
+  walkLldpNeighbors: (session: unknown) => Promise<Array<LldpNeighbor>>;
   readSystemInfo: (session: unknown) => Promise<SnmpSystemInfo>;
   walkArpTable: (
     session: unknown,
@@ -631,17 +633,73 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
 });
 
 describe("SnmpMonitor.walkCdpNeighbors", () => {
-  test("walks cdpCacheTable with the deviceId/port/platform columns", async () => {
+  test("walks cdpCacheTable with the address, deviceId, port and platform columns", async () => {
     const session: MockTableSession = createTableSession({});
 
     await Internal.walkCdpNeighbors(session);
 
+    /*
+     * 3 and 4 are cdpCacheAddressType and cdpCacheAddress. They ride along
+     * with the identity columns rather than in a walk of their own because
+     * they are columns of this same table — and without them an unmanaged
+     * peer on the topology map has a make and a model but no address, which
+     * is the one thing monitoring it requires (issue #3435).
+     */
     expect(session.calls).toEqual([
       {
         tableOid: "1.3.6.1.4.1.9.9.23.1.2.1",
-        columns: [6, 7, 8],
+        columns: [3, 4, 6, 7, 8],
       },
     ]);
+  });
+
+  test("carries the neighbour's advertised management address", async () => {
+    const neighbors: Array<CdpNeighbor> = await Internal.walkCdpNeighbors(
+      createTableSession({
+        "10101.1": {
+          "3": 1,
+          "4": Buffer.from([10, 0, 12, 41]),
+          "6": Buffer.from("SEP6026AAF2B46B"),
+          "8": Buffer.from("Cisco IP Phone 8811"),
+        },
+      }),
+    );
+
+    expect(neighbors[0]?.remoteIpAddress).toBe("10.0.12.41");
+  });
+
+  /*
+   * cdpCacheAddress is four RAW bytes, and toDisplayString — which every
+   * other column on this row goes through — renders an unprintable buffer as
+   * a MAC address. Reading the address that way would put "0a:00:0c:29" in
+   * the address field of every Cisco neighbour on the estate.
+   */
+  test("an address is decoded as an address, not as a MAC", async () => {
+    const neighbors: Array<CdpNeighbor> = await Internal.walkCdpNeighbors(
+      createTableSession({
+        "10101.1": {
+          "3": 1,
+          "4": Buffer.from([10, 0, 12, 41]),
+          "6": Buffer.from("dist-sw-02"),
+        },
+      }),
+    );
+
+    expect(neighbors[0]?.remoteIpAddress).toBe("10.0.12.41");
+    expect(neighbors[0]?.remoteIpAddress).not.toContain(":");
+  });
+
+  test("a neighbour that advertises no address still becomes a neighbour", async () => {
+    const neighbors: Array<CdpNeighbor> = await Internal.walkCdpNeighbors(
+      createTableSession({
+        "10101.1": {
+          "6": Buffer.from("dist-sw-02"),
+        },
+      }),
+    );
+
+    expect(neighbors).toHaveLength(1);
+    expect(neighbors[0]?.remoteIpAddress).toBeUndefined();
   });
 
   test("rows keyed ifIndex.deviceIndex map to neighbors with the local ifIndex", async () => {
@@ -705,6 +763,170 @@ describe("SnmpMonitor.walkCdpNeighbors", () => {
      * would fossilize stale neighbors as ghost topology edges forever.
      */
     expect(await Internal.walkCdpNeighbors(createTableSession({}))).toEqual([]);
+  });
+});
+
+describe("SnmpMonitor.walkLldpNeighbors", () => {
+  const LLDP_REM_TABLE_OID: string = "1.0.8802.1.1.2.1.4.1";
+  const LLDP_MAN_ADDR_TABLE_OID: string = "1.0.8802.1.1.2.1.4.2";
+
+  /*
+   * walkLldpNeighbors reads TWO tables — the neighbour list and, separately,
+   * the management addresses whose value lives in the row index — so the
+   * single-table stand-in above cannot drive it. This one answers per OID and
+   * records which tables were asked for, which is also how the "do not walk
+   * the second table for nothing" rule is observed.
+   */
+  function createPerOidSession(
+    tables: Record<string, SnmpTableRows>,
+    errorsByOid: Record<string, Error> = {},
+  ): { walkedTableOids: Array<string>; tableColumns: unknown } {
+    const walkedTableOids: Array<string> = [];
+
+    return {
+      walkedTableOids,
+      tableColumns: (
+        tableOid: string,
+        _columns: Array<number>,
+        callback: (err: Error | null, tbl?: unknown) => void,
+      ): void => {
+        walkedTableOids.push(tableOid);
+        const failure: Error | undefined = errorsByOid[tableOid];
+        if (failure) {
+          callback(failure);
+          return;
+        }
+        callback(null, tables[tableOid] || {});
+      },
+    };
+  }
+
+  test("joins each neighbour to the management address it advertises", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession({
+      [LLDP_REM_TABLE_OID]: {
+        "0.24.1": {
+          "5": Buffer.from("chassis-1"),
+          "7": Buffer.from("Gi0/1"),
+          "9": Buffer.from("core-sw-01"),
+        },
+      },
+      [LLDP_MAN_ADDR_TABLE_OID]: {
+        "0.24.1.1.4.10.0.0.9": { "3": 2 },
+      },
+    });
+
+    const neighbors: Array<LldpNeighbor> =
+      await Internal.walkLldpNeighbors(session);
+
+    expect(neighbors).toEqual([
+      {
+        localInterfaceIndex: 24,
+        remoteChassisId: "chassis-1",
+        remotePortId: "Gi0/1",
+        remoteSysName: "core-sw-01",
+        remoteIpAddress: "10.0.0.9",
+      },
+    ]);
+  });
+
+  /*
+   * The time mark is the first index component of BOTH tables and it is a
+   * sysUpTime stamp, so an agent that refreshed one table between the two
+   * walks reports the same neighbour under two different marks. Joining on it
+   * would lose the address on exactly the busy devices that have the most.
+   */
+  test("joins across a time mark that moved between the two walks", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession({
+      [LLDP_REM_TABLE_OID]: {
+        "11.24.1": { "9": Buffer.from("core-sw-01") },
+      },
+      [LLDP_MAN_ADDR_TABLE_OID]: {
+        "907.24.1.1.4.10.0.0.9": { "3": 2 },
+      },
+    });
+
+    const neighbors: Array<LldpNeighbor> =
+      await Internal.walkLldpNeighbors(session);
+
+    expect(neighbors[0]?.remoteIpAddress).toBe("10.0.0.9");
+  });
+
+  /*
+   * lldpRemManAddrTable is the OPTIONAL half of LLDP; plenty of agents do not
+   * implement it and answer with an error. A neighbour list is worth far more
+   * than the addresses decorating it, so the failure must not take the whole
+   * walk — and the device's topology — down with it.
+   */
+  test("an unimplemented management-address table still yields the neighbours", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession(
+      {
+        [LLDP_REM_TABLE_OID]: {
+          "0.24.1": { "9": Buffer.from("core-sw-01") },
+        },
+      },
+      {
+        [LLDP_MAN_ADDR_TABLE_OID]: new Error("NoSuchObjectError"),
+      },
+    );
+
+    const neighbors: Array<LldpNeighbor> =
+      await Internal.walkLldpNeighbors(session);
+
+    expect(neighbors).toHaveLength(1);
+    expect(neighbors[0]?.remoteSysName).toBe("core-sw-01");
+    expect(neighbors[0]?.remoteIpAddress).toBeUndefined();
+  });
+
+  test("a neighbour with no address row keeps its identity", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession({
+      [LLDP_REM_TABLE_OID]: {
+        "0.24.1": { "9": Buffer.from("core-sw-01") },
+        "0.25.1": { "9": Buffer.from("edge-sw-02") },
+      },
+      [LLDP_MAN_ADDR_TABLE_OID]: {
+        "0.24.1.1.4.10.0.0.9": { "3": 2 },
+      },
+    });
+
+    const neighbors: Array<LldpNeighbor> =
+      await Internal.walkLldpNeighbors(session);
+
+    expect(neighbors[0]?.remoteIpAddress).toBe("10.0.0.9");
+    expect(neighbors[1]?.remoteSysName).toBe("edge-sw-02");
+    expect(neighbors[1]?.remoteIpAddress).toBeUndefined();
+  });
+
+  /*
+   * A switch with LLDP on and nothing plugged in is the common case across a
+   * fleet. Walking the address table anyway would cost one wasted round trip
+   * per device per poll for an answer that cannot decorate anything.
+   */
+  test("the address table is not walked when there are no neighbours to decorate", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession({
+      [LLDP_REM_TABLE_OID]: {},
+      [LLDP_MAN_ADDR_TABLE_OID]: {
+        "0.24.1.1.4.10.0.0.9": { "3": 2 },
+      },
+    });
+
+    expect(await Internal.walkLldpNeighbors(session)).toEqual([]);
+    expect(session.walkedTableOids).toEqual([LLDP_REM_TABLE_OID]);
+  });
+
+  /*
+   * The neighbour table failing is a different thing entirely: a walk that
+   * could not run must reject, so the caller keeps the stored snapshot rather
+   * than clearing it to an empty list of ghosts.
+   */
+  test("a failed neighbour walk still propagates to the caller", async () => {
+    const session: { walkedTableOids: Array<string> } = createPerOidSession(
+      {},
+      { [LLDP_REM_TABLE_OID]: new Error("RequestTimedOutError") },
+    );
+
+    await expect(Internal.walkLldpNeighbors(session)).rejects.toThrow(
+      "RequestTimedOutError",
+    );
   });
 });
 

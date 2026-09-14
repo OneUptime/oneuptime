@@ -7,13 +7,23 @@ politeness decision rather than a functional one.
 
 ## What it does
 
-Records the DOM with [rrweb](https://github.com/rrweb-io/rrweb) into a bounded
-in-memory ring buffer, and uploads **only when something actually went wrong**:
-an uncaught error, an unhandled rejection, a 5xx from an instrumented request,
-a frustration signal, an explicit `captureSession()`, or a deterministic
-sample. That single decision cuts storage and privacy exposure by roughly 15x
-versus recording everyone, and turns "a 10% chance a recording exists when an
-engineer looks" into "nearly always, for the sessions that failed".
+Records the DOM with [rrweb](https://github.com/rrweb-io/rrweb) and uploads it
+in 15 s / 256 KB chunks. **The shipped defaults are capture trigger `Always`
+at a 100% sample**: every session records from its first event, and the
+Dashboard's session list fills up without anyone touching a setting. The
+per-application policy can narrow that in two independent ways:
+
+- **Sample percentage** below 100 records a deterministic subset of sessions
+  (the draw is a pure function of the session id, so the recorder and the
+  ingest gate always agree).
+- **Capture trigger `OnErrorOrFrustration`** keeps the last 60 s / 2 MB of
+  events in an in-memory ring buffer and uploads **only when something went
+  wrong**: an uncaught error, an unhandled rejection, a 5xx from an
+  instrumented request, a rage / dead / error click, refresh rage, a
+  performance-budget breach, or an explicit `captureSession()`. The pre-roll
+  becomes the first chunk, so the recording shows what led up to the failure.
+  That mode cuts storage and privacy exposure by roughly 15x versus recording
+  everyone; it is a choice, not the default.
 
 Masking happens **at capture, in the browser, before compression**. The server
 never receives unmasked content, so nothing here can be repaired after the
@@ -65,18 +75,102 @@ panel to confirm — server telemetry cannot see a recorder that never loaded.
 
 ### Public API
 
-Available on `window.OneUptimeReplay` once the artifact has loaded, and via a
-`window.OneUptimeReplayQueue` array of `[command, argument]` pairs for calls
-made before it arrives.
+Available on `window.OneUptimeReplay` once the artifact has loaded, and via
+`window.OneUptimeReplayQueue`, an array of `[command, ...arguments]` entries.
 
-| call                | effect                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| `grantConsent()`    | permits upload; required when the app's consent mode is `RequireExplicit`                  |
-| `revokeConsent()`   | drops the buffer, clears the stored session identity, stops recording. Final for the page. |
-| `captureSession()`  | uploads this session even though nothing went wrong                                        |
-| `identify(userRef)` | attaches an opaque user reference (hashed server-side unless identity capture is enabled)  |
-| `stop()`            | stops recording                                                                            |
-| `getSessionId()`    | the current session id, or null                                                            |
+| call                        | effect                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `grantConsent()`            | permits upload; required when the app's consent mode is `RequireExplicit`. After a `revokeConsent()` it starts a fresh session - consent platforms fire reject-then-accept inside one page life routinely |
+| `revokeConsent()`           | stops uploading, drops the buffer and the retry queue, and clears the stored session identity. Nothing recorded under the withdrawn consent survives; a later grant covers only what happens after it |
+| `captureSession(reason?)`   | uploads this session even though nothing went wrong; the reason lands on the timeline      |
+| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page |
+| `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
+| `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
+| `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
+| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. This is what puts `session.id` on the page's own OpenTelemetry resource |
+| `stop()`                    | stops recording                                                                            |
+| `getSessionId()`            | the current session id, or null                                                            |
+| `getVisitorId()`            | the anonymous visitor id every session from this browser profile carries (32 hex characters), or `""` before start, after `stop()` and while consent is withdrawn. See "Anonymous visitor id" under the privacy model |
+| `setDebug(bool)`            | turn the console diagnostics on or off for this page                                       |
+| `getDiagnostics()`          | the recorder's state plus its last 250 decisions, kept whether or not diagnostics were on  |
+
+**The queue is live, before AND after the artifact loads.** It exists because
+the artifact is ~90 KB of script and a consent banner is not going to wait for
+it, but the reverse case is the common one: the recorder is usually there
+within a second and the banner is clicked minutes later. So a `push` onto
+`window.OneUptimeReplayQueue` is applied immediately once the recorder exists,
+and queued entries are applied at bootstrap - the page never has to know which
+side of the load it is on:
+
+```js
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "grantConsent",
+]);
+```
+
+Commands: `["grantConsent"]`, `["revokeConsent"]`, `["stop"]`,
+`["identify", ref, traits]`, `["setTags", tags]`, `["addTag", key, value]`,
+`["track", name, properties]`, `["captureSession", reason]`,
+`["onSessionChange", callback]`. Anything queued before the artifact arrives is
+applied in order; `identify`, `setTags`, `addTag` and the consent decisions run
+BEFORE the recorder starts, so chunk 0 - the one chunk guaranteed to carry the
+session meta - already knows who the user is, while `track` and
+`captureSession` run after start, where there is a stream for them to land in.
+An unrecognised name is dropped with a `command-queue-unknown-command`
+diagnostic rather than in silence, and a call that finds no recorder at all
+logs `api-no-recorder`.
+
+**Tags are the one host-supplied string that is never masked.** Values passed
+to `setTags()` / `addTag()` are stored verbatim in every masking mode,
+including `MaskAllText`, because their whole purpose is to be searchable
+(`tag:build=1.2.3`) - and they are visible to everyone who can list sessions,
+which is a wider audience than the identity ACL protecting `identify()`
+traits. Do not put page text, an email address or anything else you would not
+want in a session list into a tag; use `identify()` traits for that.
+
+### Diagnostics
+
+Every gate in this package fails **closed and silent**: no init options, a privacy signal, a config
+fetch that 404s behind a reverse proxy, an application somebody switched off, a deployment whose
+recorder artifact was never built, a session that lost the sample draw, a consent mode nobody
+granted, a 401 that trips the circuit breaker. Every one of those produces the same observable
+outcome on a customer's page — nothing, not even a network request — and server telemetry cannot see
+a recorder that never loaded.
+
+`src/Debug.ts` is the other half of the Dashboard's "test your installation" panel: the browser's
+side of the answer. It is **off by default** (a RUM script must not print into a customer's end
+users' consoles) and turns on without a redeploy, because the page that is failing is usually
+production:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true"); // then reload
+```
+
+…or `?oneuptime_debug=1` on the URL, `data-oneuptime-debug="true"` on the tag, `debug: true` in the
+init global, `OneUptimeReplay.setDebug(true)` at runtime, or `SESSION_REPLAY_DEBUG=true` on the
+OneUptime deployment for every recorder it serves.
+
+Two properties are load-bearing and both have tests:
+
+- **Records are always kept; the switch gates OUTPUT.** The ring holds 250 entries, every call site
+  is a cold path (startup, a config fetch, a chunk boundary — never the rrweb emit hot path), and
+  the state lives on a global so the **loader stub** and the artifact share one timeline. So
+  `getDiagnostics()` returns the stub's records too, which are the ones that explain why the
+  artifact was never reached — and it works on a page nobody thought to instrument first.
+- **No page content, ever.** `DebugDetail` admits only primitives, values are truncated, and a
+  non-primitive handed in from untyped JavaScript is replaced with `<object omitted>` rather than
+  stringified. A diagnostics channel that could carry a DOM node would be a second, unmasked egress
+  path for exactly the data the rest of this package exists to protect.
+
+Each record carries a stable kebab-case `code`; `/docs/rum/session-replay-troubleshooting` is the
+index of what every one of them means. The messages in the bundle are deliberately terse for the
+same reason the loader has a byte budget at all — the remediation prose lives in the docs, not in
+every visitor's download.
+
+Diagnostics are printed through `console.warn` / `console.info`, which the console recorder
+patches. Lines carrying the `[OneUptime Session Replay]` prefix are recognised and **never
+recorded** into the replay, and they cost nothing against the console cap — turning diagnostics on
+does not put OneUptime's own output into the customer's session.
 
 ## Two-stage load
 
@@ -127,36 +221,125 @@ attribute and the SRI pin is inert.
 
 | control                 | behaviour                                                                                                                                                                                                                   |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| masking mode            | `MaskSensitiveInputsOnly` by default: only declared-sensitive fields are masked, and page text and ordinary input values are recorded verbatim. `MaskInputsOnly` additionally masks every input value; `MaskAllText` also replaces every text node with a fixed-width placeholder. |
-| input values            | ordinary values are recorded under the default mode and masked under the other two. Passwords and sensitive-`autocomplete` fields are masked in **every** mode.                                                              |
-| who decides             | `maskAllInputs: true` is set in every mode, which routes every input through our own `maskInputFn` rather than rrweb's type-keyed option table. rrweb's own policy reads the *current* input type, which a show-password toggle mutates. |
+| masking mode            | `MaskSensitiveInputsOnly` by default: only declared-sensitive fields are masked, and page text and ordinary input values are recorded verbatim. `MaskInputsOnly` additionally masks every input value; `MaskAllText` also replaces every text node - and every text-like attribute, see below - with a fixed-width placeholder. |
+| input values            | ordinary values are recorded under the default mode and masked under the other two. Passwords, sensitive-`autocomplete` fields and **`type="hidden"` inputs** are masked in **every** mode: nobody sees a hidden field on the page, and what it holds (CSRF tokens, user ids, pre-filled emails) is exactly what a viewer must not read out of a recording. |
+| who decides             | `maskAllInputs: false` with an explicit `maskInputOptions` table whose `input` key matches every `<input>` by **tag name**. That routes every input, hidden ones included, through our own `maskInputFn`. (`true` would make rrweb discard the table and use its own type-keyed one, which has no `hidden` entry - see `Masking.getRrwebMaskingOptions`.) rrweb's own policy reads the *current* input type, which a show-password toggle mutates. |
+| attributes              | under `MaskAllText`: `alt`, `title`, `aria-label`, `aria-description`, `placeholder`, `label`, option values, **a `<meta>` tag's `content`**, **the `value` of `type="submit"` / `"button"` / `"reset"` inputs**, free-text `data-*` values, `srcdoc`, and `href` on links (`mailto:` / `tel:` redacted, navigational URLs scrubbed) are masked in attribute mutations and in full snapshots. The last two are there because rrweb reaches neither: a meta tag has no text node for `maskTextFn`, and rrweb-snapshot skips `maskInputValue` for submit and button inputs (their value is a label, not typed input) - so `<meta name="description" content="Invoices for Alice Hartwell">` and `<input type="submit" value="Continue as alice@example.com">` used to survive verbatim. `src` / `srcset` / `poster` and short enum-like `data-*` tokens (`data-state="open"`) are kept because playback needs them. |
+| click labels            | a click emits `oneuptime.click` with a structural selector and a short label - `aria-label`, else the element's text. The label honours **block and mask in every mode**: a click anywhere inside `blockSelectors` / `.oneuptime-block` has no label at all and is reported against the blocked element itself (never its inner structure), and an element that CONTAINS a masked, blocked or value-bearing descendant is labelled from its own direct text nodes only - `textContent` concatenates every descendant, so a card wrapping a `.oneuptime-mask` span used to ship the span's words. Under `MaskAllText` there is no label at all, and a form control's typed value is never one. |
+| tags                    | `setTags()` / `addTag()` values are stored **verbatim in every masking mode**, including `MaskAllText`: they exist to be searched (`tag:build=1.2.3`), and masking them would defeat that. They are readable by everyone who can list sessions - a wider audience than the identity ACL over `identify()` traits - so page text does not belong in one. |
 | mask width              | fixed, never derived from the value's length. rrweb's default `'*'.repeat(value.length)` is a length oracle for passwords, OTPs and card numbers.                                                                           |
 | sticky password masking | once a node has ever been `type=password` or carried a sensitive `autocomplete` token it stays masked for the life of the page, **and the `type` mutation from a show-password toggle is suppressed from the event stream** |
 | file inputs             | value always blanked; the DOM value is `C:\fakepath\<real filename>` and filenames are routinely personal                                                                                                                   |
 | input timing            | quantised to 250 ms buckets, because inter-keystroke timing is a published side channel even for a masked field                                                                                                             |
 | URLs                    | origin + path only; query and fragment dropped; uuid / object-id / email / long-digit / opaque-token path segments redacted. Applied to the chunk URL, the entry URL, rrweb `Meta` hrefs and every network event.           |
 | network                 | method, scrubbed URL, status, duration, size. **Never bodies. `Authorization` and `Cookie` are never even read.**                                                                                                           |
-| console                 | `error` and `warn` only, arguments masked through the text-node transform, objects described rather than serialised                                                                                                         |
-| DNT / GPC               | honoured before rrweb loads. Only the page **and** the server policy both opting out can disable honouring.                                                                                                                 |
-| consent                 | in `RequireExplicit` the recorder buffers but uploads nothing until `grantConsent()`; `revokeConsent()` drops everything                                                                                                    |
+| console                 | `error` and `warn` only, capped at 100 entries per session with one in-band marker when the cap is hit. Arguments go through the text-node transform; objects are serialised **shallowly** (two levels, ten keys, 64-char strings, 512 chars total) with sensitive-looking keys (`password`, `token`, `card`...) redacted in every mode. |
+| DNT / GPC               | honoured before rrweb loads. One rule: an explicit `data-oneuptime-respect-do-not-track` on the script tag wins (`"true"` honours the signal whatever the dashboard says; `"false"` records regardless - the customer owns the lawful basis for their site); with no page value the server policy decides. |
+| consent                 | in `RequireExplicit` the recorder buffers but uploads nothing until `grantConsent()`; `revokeConsent()` drops everything held and a later grant starts a new session                                                       |
 | copy / paste / cut      | never recorded                                                                                                                                                                                                              |
 | `.oneuptime-block`      | element excluded from the DOM entirely                                                                                                                                                                                      |
 | `.oneuptime-mask`       | element's text masked                                                                                                                                                                                                       |
 | `.oneuptime-ignore`     | element's input events dropped                                                                                                                                                                                              |
 
+**Anonymous visitor id.** A session id lives for one visit (it rotates after
+30 minutes idle or four hours), so two visits from the same browser would
+share nothing a reader could group on. The recorder therefore also mints ONE
+random id per browser profile and origin - 32 lowercase hex characters, the
+same shape as a session id - keeps it in `localStorage` under
+`oneuptime.replay.visitor` (so a site served from two hostnames or ports is
+two visitors; only `identify()` joins them),
+and repeats it on every chunk that carries meta. It is what lets the session
+list group anonymous sessions by visitor ("this visitor came back three
+times") and the player offer "other sessions from this visitor" for an
+application whose pages never call `identify()`. It is **not** an identity:
+it is random, minted client-side, carries no meaning outside the recordings
+it links, and is **not** gated by the "Capture user identity" switch, because
+it is a token the recorder made rather than a reference the page supplied.
+It survives session rotation - that is its purpose - and is forgotten by
+`revokeConsent()` together with the session, so a user who withdraws consent
+is never re-linked to their earlier recordings; a later `grantConsent()`
+mints a new one. Under DNT / GPC the recorder never loads, so nothing is
+minted at all. `getVisitorId()` returns it.
+
 ### Known limits, stated plainly
 
-- **Attribute values are recorded verbatim.** `data-email="..."`, a `title`
-  attribute or an `href` is not masked; rrweb serialises attributes as-is and
-  rewriting them across a full snapshot would cost more than it protects. Use
-  `blockSelectors` or `.oneuptime-block` for elements carrying sensitive data
-  attributes.
+- **Image and media URLs are recorded verbatim.** `src`, `srcset` and
+  `poster` are what the player draws the page from, so they are kept in every
+  mode; a signed query string on one is a reference rather than readable
+  text, but it is still a URL the page handed out. Short `data-*` tokens that
+  CSS attribute selectors key on are kept too. Use `blockSelectors` or
+  `.oneuptime-block` for elements whose URLs or data attributes are
+  sensitive. In the two permissive masking modes attributes, like text, are
+  recorded as-is by policy.
 - Canvas / WebGL, cross-origin iframes, closed shadow roots, cross-origin
   stylesheets, web fonts and `<video>`/`<audio>` are not captured. Each is
   reported to the player as a machine-readable `fidelityNotices` code, so a
   viewer sees "this was not recorded" rather than an unexplained blank.
-- On a hard unload, up to one flush interval (15 s) of tail can be lost, plus
-  anything over the 56 KB keepalive cap.
+- **A terminal flush is ONE keepalive request under a 56 KB cap**, however
+  many chunks it carries. The browser counts the keepalive quota per ORIGIN
+  across every in-flight request, so "one request per piece" is one request
+  that fits and several the browser rejects.
+  - `pagehide` always takes this path, and so does `visibilitychange` to
+    hidden whenever the open chunk still fits the budget: Chrome dispatches
+    both in the same synchronous unload sequence for a same-tab navigation,
+    and anything handed to the ordinary (gzip, async) path there never gets
+    its `fetch` issued at all. An open chunk larger than the budget still
+    goes out through the ordinary path, which is the only one that can carry
+    it — a tab hidden midway through a heavy interval can lose that tail.
+  - Hiding does NOT seal the session. **Every `pagehide` does**, whatever
+    `event.persisted` says. A page entering the back/forward cache
+    (`persisted === true`) is sealed like any other: most cached pages are
+    never restored — the user closes the browser and the cached document is
+    evicted without another event — and the server only calls a session
+    ended once every one of its tabs has, so one unsealed cached page used
+    to keep the whole session "Recording now" until the idle finalizer ran.
+    A page the browser kills or discards without `pagehide` still sends
+    nothing and is left to the idle finalizer.
+  - **A page restored from the back/forward cache records as a new tab.**
+    On `pageshow` with `persisted === true` the sealed tab stays sealed: the
+    recorder mints a fresh tab id, starts its chunk sequence (and the
+    per-tab chunk cap) again at 0, re-checks the session's idle and duration
+    limits (rotating onto a new session if they have passed), and opens
+    chunk 0 on a full snapshot carrying the meta, the way a reloaded page
+    would, followed by the `bfcache-restore` marker and fidelity notice.
+    Nothing is ever minted under the old tab id again; `onSessionChange`
+    listeners are told the new tab id.
+  - **Nothing is posted after the seal.** Closing a visible tab fires
+    `pagehide` BEFORE `visibilitychange` to hidden, so once the final chunk
+    has gone the hidden handler, the flush timer and every other flush path
+    stand down for that session and tab, and events recorded afterwards
+    (the visibility change itself, rrweb's teardown mutations) are not
+    uploaded. The server reads "a final chunk, and no chunk started after
+    it" as *this tab has ended* and stops showing the session as recording
+    without waiting out the idle window. Hiding first and closing second
+    still sends a non-final chunk and then the final one. The seal is lifted
+    only by something that starts a new recording: a session rotation or a
+    consent re-grant (a new session id), or a back/forward-cache restore (a
+    new tab id).
+  - The sealing chunk goes first, then the rest of the split newest-first,
+    then chunks still waiting for a retry. What one request cannot carry is
+    cut at the chunker, before a chunk index is minted for it, and reported
+    as `droppedEvents` on the envelope with a `final-flush-truncated`
+    diagnostic — an index minted for a request that is never issued is a hole
+    the player reports as a missing chunk forever. Every piece beside the
+    sealing one is charged its own envelope (8 KB) as well as its payload,
+    so what is minted is what the request can carry.
+  - **A sealing frame always goes on the wire.** When the newest piece of a
+    final flush cannot fit one request by itself (one indivisible event
+    larger than the 48 KB payload budget, such as a big DOM insertion just
+    before the tab closed), the chunker drops its events and seals with an
+    empty final piece instead: payload `[]`, `eventCount` 0, the dropped
+    events added to `droppedEvents`, both offsets at the dropped footage's
+    end, and the same signals, routes and meta. That piece costs the budget
+    only its two bytes, so the older footage of the split still goes out
+    beside it. The `final-chunk-too-large` diagnostic reports it with
+    `sealed: true`. The transport keeps the same substitution as a backstop
+    for a final frame that goes over the 56 KB quota only once its envelope
+    is added.
+  - A non-final terminal flush is now only a hidden tab's early flush. If
+    its frame does not fit it is dropped whole, and `final-chunk-too-large`
+    reports `sealed: false`: the tab did not close, so the session stays
+    open with a gap.
 - **`traceparent` injection is opt-in per origin, and skips `Request`
   objects.** By default `NetworkRecorder` only READS a traceparent the host
   page already set. When the application's **trace propagation origins**
@@ -183,11 +366,14 @@ attribute and the SRI pin is inert.
 `element.closest()`, so `"*"` is how mask-everything is expressed. Passing a
 non-existent option would have silently recorded every page in plaintext.
 
-**`maskInputOptions` has no `creditcard` key.** rrweb keys on HTML input
-_types_; card fields are `type="text"` or live in a cross-origin PSP iframe.
-Card protection comes from `maskAllInputs` + `maskAllText` + the
-`autocomplete` heuristic. The exact shipped option object is pinned by a
-snapshot test so a fictional key fails CI.
+**`maskInputOptions` has no `creditcard` key, and `maskAllInputs` is `false`.**
+rrweb keys the option table on HTML input _types_ **and on tag names**; card
+fields are `type="text"` or live in a cross-origin PSP iframe. Card protection
+comes from routing every input through `maskInputFn` (the `input` tag key) +
+`maskAllText` + the `autocomplete` heuristic. `maskAllInputs: true` would make
+rrweb throw the table away and use its own, which never routes `type="hidden"`.
+The exact shipped option object is pinned by a snapshot test so a fictional key
+fails CI.
 
 **Chunk boundaries follow rrweb's `isCheckout` flag, never a timer.**
 `checkoutEveryNms` and the flush interval are independent timers; setting both
@@ -199,8 +385,9 @@ user really saw.
 **`unload` and `beforeunload` are never registered.** Both disqualify the
 customer's page from the back/forward cache. A RUM vendor degrading its own
 customer's Core Web Vitals in order to collect data about them has failed at
-its job. Terminal flushes use `visibilitychange` and `pagehide`, branching on
-`event.persisted`. Asserted by both a runtime and a source-level test.
+its job. Terminal flushes use `visibilitychange` and `pagehide`, and a page
+restored from the cache is picked up on `pageshow` (`event.persisted`).
+Asserted by both a runtime and a source-level test.
 
 **The terminal flush is `fetch(keepalive)`, not `sendBeacon`.** `sendBeacon`
 cannot set request headers, and the ingest middleware reads the auth token
@@ -220,12 +407,43 @@ and monaco. The dependency-free pure modules under `Common/Utils/Rum/*` and
 hard-fails the build on any other `Common` import. A test greps the emitted
 bundle for `process.env`, `express`, `typeorm` and `stripe`.
 
-**The circuit breaker is permanent.** After three consecutive retryable flush
-failures the recorder self-disables and releases its buffer. A recorder that
+**Uploads are serialised, retried on their own timer, and the circuit breaker
+counts outages, not requests.** One POST is in flight at a time. A retryable
+failure (the network, or a 5xx with no `Retry-After`) queues the chunk and
+arms a retry after 15 s, then 45 s, then 120 s; new chunks arriving during the
+pause are queued rather than posted into the outage. Three consecutive failed
+_rounds_ - roughly a minute of continuous failure - trip the breaker: the
+recorder self-disables and releases its buffer, because a recorder that
 retries forever against a misconfigured origin is a battery and bandwidth bug
-on someone else's site. A 413 or 422 drops that one chunk without counting
-against the breaker — the chunk was the problem, not the transport — and a 429
-is honoured with `Retry-After` rather than treated as a failure.
+on someone else's site. What does **not** count: a 429, or a 503 carrying the
+server's `throttle` directive / `retryAfterSeconds` / `Retry-After` (its storage
+is briefly unavailable and it is asking for patience - uploads pause for that
+long and resume by themselves); a 413 or 422 (that one chunk was the problem,
+not the transport - and a chunk still over the 2 MB request cap after gzip is
+posted as its SIZE with an empty body, which the parser answers 422 so the
+session survives with a `snapshot-too-large` notice, instead of spending
+megabytes of the visitor's uplink on a request nginx will refuse with a 413). What stops the recorder outright, without retries: 401 /
+403 / 404, a 400 whose body names something about the recorder itself
+(`unsupported-wire-version`, `app-identifier-mismatch`, `missing-app-identifier`,
+`malformed-body`...), three unexplained 400s in a row, and any body carrying
+`directive: "stop"`. No `Content-Encoding` header is ever sent: the body is
+`<envelope JSON>\n<payload>` and only the payload is gzipped, which the
+envelope's `payloadEncoding` declares.
+
+**Sessions are shared across tabs, and so is rotation.** The session record
+lives in `localStorage`. When one tab rolls the session over after the idle
+window, the others adopt the new id on their next flush tick (or at once,
+through the `storage` event) instead of posting into a session that has
+already been sealed. The rotation write is a compare-and-set: a tab that finds
+storage already moved joins that session rather than minting a third one.
+
+**Per-session caps announce themselves.** Errors (100 distinct - repeats are
+fingerprinted and counted, and surface as a rate-limited repeat marker with
+the running count), console entries (100) and route changes (500) are capped
+per session, reset on rotation, and each cap emits one in-band marker when it
+is hit, so the Events panel shows _where_ capture stopped rather than simply
+ending. Resource load failures (a broken `<img>`, an ad-blocked `<script>`)
+are recorded as kind `resource` and never trigger an upload.
 
 ## Frustration signals
 
@@ -233,12 +451,12 @@ Computed here, because rrweb emits none of them. Each is emitted as an rrweb
 type-5 custom event **and** counted on the chunk envelope, so the ingest worker
 can populate the header columns without ever decompressing the payload.
 
-| signal       | detection                                                                                     |
-| ------------ | --------------------------------------------------------------------------------------------- |
-| rage click   | 3+ clicks within 1000 ms inside a 30 px radius                                                |
-| dead click   | click on a non-interactive element with no DOM mutation, navigation or request within 3000 ms |
-| error click  | click followed within 1000 ms by an uncaught error or rejection                               |
-| refresh rage | 3+ reloads of the same scrubbed pathname within 60 s                                          |
+| signal       | detection                                                                                                                                                                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rage click   | 3+ clicks within 1000 ms inside a 30 px radius opens a cluster; it stays open while clicks keep landing and is reported once, when they stop, with the **real** click count and the time of the first click                                                                          |
+| dead click   | click on something that **looks clickable** (a widget `role`, an `onclick` attribute, `cursor: pointer`) but is not a native control, with no DOM mutation, scroll, navigation, request or window blur at or after the click within 3000 ms. Clicks on plain text are not candidates |
+| error click  | click followed within 1000 ms by a trigger-worthy uncaught error or rejection; carries the click's coordinates                                                                                                                                                                         |
+| refresh rage | 3+ reloads of the same scrubbed pathname within 60 s                                                                                                                                                                                                                                  |
 
 There is deliberately **no composite frustration score**. An unexplained 0-100
 number inside an artifact presented as evidence is a liability nobody can
@@ -254,7 +472,7 @@ defend in an incident review.
 | `src/Config.ts`              | init options and the fail-closed policy fetch                             |
 | `src/Consent.ts`             | DNT/GPC and the consent state machine                                     |
 | `src/Masking.ts`             | rrweb masking options and sticky per-node sensitivity                     |
-| `src/SessionId.ts`           | session / tab identity and the chunk counter, over fallible storage       |
+| `src/SessionId.ts`           | session / tab / visitor identity and the chunk counter, over fallible storage |
 | `src/RollingBuffer.ts`       | the pre-roll ring, evicting whole checkout segments                       |
 | `src/Chunker.ts`             | chunk boundaries, snapshot splitting, per-chunk counters                  |
 | `src/Transport.ts`           | compression, the envelope, retries and the circuit breaker                |
@@ -263,6 +481,10 @@ defend in an incident review.
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |
+| `src/PerformanceRecorder.ts` | LCP, long tasks and slow requests — the performance trigger               |
+| `src/EarlyErrors.ts`         | the stub's pre-load error buffer, replayed through masking at start      |
+| `src/ExtendedConfig.ts`      | artifact-side normalisation of fields the stub passes through unvalidated |
+| `src/Debug.ts`               | the diagnostics switch, the record ring, and the redaction that keeps page content out of it |
 | `Manifest.ts`                | **server-side**, not bundled: reads `public/dist/manifest.json` and is the one place the published version, SRI hash and route policy come from |
 
 ## Commands
@@ -277,10 +499,25 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 231 KB raw / 71.4 KB gzip**, **loader.js 4.9 KB raw /
-1.9 KB gzip**. Both raw AND gzip budgets are enforced by the build, which fails
-rather than shipping a regression — gzip being the number a customer's browser
-actually pays.
+Measured: **recorder.js 294.2 KB raw / 88.9 KB gzip**, **loader.js 13.2 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (90 KB gzip
+for the recorder, 5 KB for the stub), which fails rather than shipping a
+regression — gzip being the number a customer's browser actually pays.
+
+It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
+that arrived with it is web vitals, the retry/backoff transport, cross-tab
+session adoption, attribute masking, the public API (`identify`, `track`,
+tags, `onSessionChange`), click and custom events, the split terminal flush
+and the diagnostics decisions — all of it this package's own modules, which
+went 91.6 KB → 106.8 KB raw against an rrweb that is a fixed 181.7 KB.
+
+The stub was 6.5 KB raw / 2.5 KB gzip before the diagnostics module and the ~20
+decision points that report through it. That increase is real and was taken
+deliberately: the stub's entire job is to decide **not** to record, it did so
+five different ways that were indistinguishable from each other and from a
+broken installation, and the browser is the only place that answer exists.
+Roughly 1.9 KB gzip once, for output that is off unless somebody asks for it,
+against support round trips per incident.
 
 The design doc's ~52 KB gzip target is not reachable, and it is worth being
 precise about why rather than leaving it as an open action:

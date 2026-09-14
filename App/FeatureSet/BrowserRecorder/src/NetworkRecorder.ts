@@ -5,30 +5,53 @@
  * a recording to the spans it produced, and the "was the page doing anything
  * at all" signal the dead-click detector needs.
  *
- * What is recorded: method, scrubbed URL, status, duration, response size.
- * What is never recorded: request or response bodies, and the Authorization
- * and Cookie headers. Not "masked" - never read.
+ * What is recorded: method, scrubbed URL, status, duration, request and
+ * response SIZE in bytes, which primitive issued it, and whether the page
+ * aborted it. What is never recorded: request or response bodies, and the
+ * Authorization and Cookie headers. Not "masked" - never read. A body is
+ * measured for its byte length only, and only for shapes whose length can
+ * be read without consuming them.
  *
  * Patching global network primitives on someone else's page is the riskiest
  * thing this recorder does, so every wrapper calls through to the original
  * inside a try/finally and never swallows a rejection.
  */
 
-export const NETWORK_CUSTOM_EVENT_TAG: string = "oneuptime.network";
+import { SessionReplayCustomEventTag } from "Common/Types/Rum/SessionReplayCustomEvents";
+import { utf8ByteLength } from "./Chunker";
 
-/* Per-page cap so a polling app cannot fill the payload with network rows. */
-const MAX_REQUESTS_RECORDED: number = 500;
+export const NETWORK_CUSTOM_EVENT_TAG: string =
+  SessionReplayCustomEventTag.Network;
+
+/*
+ * Per-SESSION cap so a polling app cannot fill the payload with network
+ * rows. Reset by resetForNewSession() when the recorder rolls the session
+ * over: a rotated session is a fresh recording and earns a fresh budget.
+ */
+export const MAX_REQUESTS_RECORDED: number = 500;
 
 /* W3C traceparent: 00-<32 hex trace id>-<16 hex span id>-<2 hex flags>. */
 const TRACEPARENT_PATTERN: RegExp =
   /^[0-9a-f]{2}-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$/i;
+
+export type RequestInitiator = "fetch" | "xhr";
 
 export interface RecordedRequest {
   method: string;
   url: string;
   status: number;
   durationMs: number;
+
+  /*
+   * BYTES, from Content-Length when the server sent one, otherwise the
+   * UTF-8 length of a text response. fetch and XHR used to report in
+   * different units (header bytes vs UTF-16 code units of responseText),
+   * so the same endpoint showed two different sizes depending on which
+   * client the page used. 0 means "no body or not measurable".
+   */
   responseBytes: number;
+
+  /* status === 0 || status >= 500. An aborted request is NOT an error. */
   isError: boolean;
 
   /*
@@ -39,6 +62,32 @@ export interface RecordedRequest {
    * one backend trace.
    */
   traceId?: string;
+
+  /* Which primitive issued the request. */
+  initiator?: RequestInitiator;
+
+  /*
+   * Size of the request body in bytes, when its shape allows reading a
+   * length without consuming it (string, ArrayBuffer, typed array, Blob,
+   * URLSearchParams). Absent for streams and FormData; 0 for no body.
+   */
+  requestBytes?: number;
+
+  /*
+   * The PAGE cancelled this request (AbortController, xhr.abort(), a
+   * navigation that tore it down). A cancelled typeahead or a React
+   * StrictMode double-effect is not a failed request, and rendering it as
+   * one taught viewers to ignore the red rows; status stays 0 because no
+   * response ever arrived, and isError is false.
+   */
+  aborted?: boolean;
+
+  /*
+   * ONE marker entry emitted when the per-session cap is first reached,
+   * so the rail can show where network capture stopped rather than the
+   * list simply ending. Never counts against the cap.
+   */
+  isCapMarker?: boolean;
 }
 
 export interface NetworkRecorderOptions {
@@ -52,6 +101,9 @@ export interface NetworkRecorderOptions {
 
   /* Any network activity at all, used to disqualify a dead click. */
   onActivity: (atUnixMs: number) => void;
+
+  /* The per-session cap was hit; the recorder raises a fidelity notice. */
+  onCapReached?: (cap: number) => void;
 
   scrubUrl: (url: string) => string;
 
@@ -98,6 +150,25 @@ interface XhrState {
    * this latch every send() would stack another listener.
    */
   armed: boolean;
+
+  /* xhr.abort() fired for this request; loadend then reports status 0. */
+  aborted: boolean;
+
+  /* Byte length of the body handed to send(), when measurable. */
+  requestBytes: number | null;
+}
+
+/* Everything record() needs to build one RecordedRequest. */
+interface RequestOutcome {
+  method: string;
+  rawUrl: string;
+  status: number;
+  durationMs: number;
+  responseBytes: number;
+  traceId: string | null;
+  initiator: RequestInitiator;
+  requestBytes: number | null;
+  aborted: boolean;
 }
 
 export interface GeneratedTraceParent {
@@ -121,9 +192,27 @@ export default class NetworkRecorder {
   private readonly injectOrigins: Array<string>;
 
   private recordedCount: number = 0;
+  private capReported: boolean = false;
   private started: boolean = false;
 
   private originalFetch: FetchFunction | null = null;
+
+  /*
+   * The wrappers this instance installed. stop() restores the originals only
+   * while ours are still the ones in place: the artifact loads
+   * asynchronously, so a page whose OpenTelemetry FetchInstrumentation or
+   * error SDK patched fetch AFTER us would have had its patch silently
+   * removed - and stop() is reached on its own at the 480-chunk cap, on a
+   * breaker trip and on a server stop directive, not only when the page asks.
+   * When the chain has moved on, our wrapper stays and passes through
+   * without recording (see the `started` checks in record and
+   * shouldInjectFor).
+   */
+  private installedFetch: unknown = null;
+  private installedXhrOpen: unknown = null;
+  private installedXhrSend: unknown = null;
+  private installedXhrSetRequestHeader: unknown = null;
+
   private originalXhrOpen:
     | ((method: string, url: string | URL) => void)
     | null = null;
@@ -166,10 +255,15 @@ export default class NetworkRecorder {
 
     this.started = false;
 
-    if (this.originalFetch) {
+    if (
+      this.originalFetch &&
+      (windowRef.fetch as unknown) === this.installedFetch
+    ) {
       windowRef.fetch = this.originalFetch as typeof windowRef.fetch;
-      this.originalFetch = null;
     }
+
+    this.originalFetch = null;
+    this.installedFetch = null;
 
     const xhrPrototype: Record<string, unknown> | null =
       NetworkRecorder.getXhrPrototype(windowRef);
@@ -178,20 +272,33 @@ export default class NetworkRecorder {
       return;
     }
 
-    if (this.originalXhrOpen) {
+    if (
+      this.originalXhrOpen &&
+      xhrPrototype["open"] === this.installedXhrOpen
+    ) {
       xhrPrototype["open"] = this.originalXhrOpen;
-      this.originalXhrOpen = null;
     }
 
-    if (this.originalXhrSend) {
+    if (
+      this.originalXhrSend &&
+      xhrPrototype["send"] === this.installedXhrSend
+    ) {
       xhrPrototype["send"] = this.originalXhrSend;
-      this.originalXhrSend = null;
     }
 
-    if (this.originalXhrSetRequestHeader) {
+    if (
+      this.originalXhrSetRequestHeader &&
+      xhrPrototype["setRequestHeader"] === this.installedXhrSetRequestHeader
+    ) {
       xhrPrototype["setRequestHeader"] = this.originalXhrSetRequestHeader;
-      this.originalXhrSetRequestHeader = null;
     }
+
+    this.originalXhrOpen = null;
+    this.originalXhrSend = null;
+    this.originalXhrSetRequestHeader = null;
+    this.installedXhrOpen = null;
+    this.installedXhrSend = null;
+    this.installedXhrSetRequestHeader = null;
   }
 
   private patchFetch(windowRef: Window): void {
@@ -218,8 +325,21 @@ export default class NetworkRecorder {
       const method: string = NetworkRecorder.readMethod(input, init);
       const startedAtMs: number = Date.now();
 
-      let traceId: string | null = NetworkRecorder.readTraceIdFromInit(init);
+      /*
+       * init.headers wins when both are present, exactly as fetch itself
+       * merges them; otherwise a traceparent the page put on a Request
+       * object (Angular's fetch backend, most SDKs, OpenTelemetry's own
+       * fetch instrumentation) is read from there. It used to be ignored,
+       * so every page building Request objects lost its trace links.
+       */
+      let traceId: string | null =
+        NetworkRecorder.readTraceIdFromInit(init) ||
+        NetworkRecorder.readTraceIdFromRequest(input);
       let effectiveInit: RequestInit | undefined = init;
+
+      const requestBytes: number | null = NetworkRecorder.measureBody(
+        init ? init.body : undefined,
+      );
 
       /*
        * Injection happens ONLY when all of these hold: the page did not
@@ -268,14 +388,17 @@ export default class NetworkRecorder {
 
       return promise.then(
         (response: Response): Response => {
-          this.record(
-            method,
-            url,
-            response.status,
-            Date.now() - startedAtMs,
-            NetworkRecorder.readContentLength(response),
-            traceId,
-          );
+          this.record({
+            method: method,
+            rawUrl: url,
+            status: response.status,
+            durationMs: Date.now() - startedAtMs,
+            responseBytes: NetworkRecorder.readContentLength(response),
+            traceId: traceId,
+            initiator: "fetch",
+            requestBytes: requestBytes,
+            aborted: false,
+          });
 
           return response;
         },
@@ -285,12 +408,24 @@ export default class NetworkRecorder {
            * got a response. Re-thrown unchanged so the host page's own
            * error handling is untouched.
            */
-          this.record(method, url, 0, Date.now() - startedAtMs, 0, traceId);
+          this.record({
+            method: method,
+            rawUrl: url,
+            status: 0,
+            durationMs: Date.now() - startedAtMs,
+            responseBytes: 0,
+            traceId: traceId,
+            initiator: "fetch",
+            requestBytes: requestBytes,
+            aborted: NetworkRecorder.isAbortError(error),
+          });
 
           throw error;
         },
       );
     }) as typeof windowRef.fetch;
+
+    this.installedFetch = windowRef.fetch as unknown;
   }
 
   private patchXhr(windowRef: Window): void {
@@ -376,22 +511,10 @@ export default class NetworkRecorder {
       }
     };
 
-    const recordRequest: (
-      method: string,
-      url: string,
-      status: number,
-      durationMs: number,
-      responseBytes: number,
-      traceId: string | null,
-    ) => void = (
-      method: string,
-      url: string,
-      status: number,
-      durationMs: number,
-      responseBytes: number,
-      traceId: string | null,
+    const recordRequest: (outcome: RequestOutcome) => void = (
+      outcome: RequestOutcome,
     ): void => {
-      this.record(method, url, status, durationMs, responseBytes, traceId);
+      this.record(outcome);
     };
 
     prototype["open"] = function patchedOpen(
@@ -407,6 +530,8 @@ export default class NetworkRecorder {
         traceId: null,
         hasPageTraceParent: false,
         armed: false,
+        aborted: false,
+        requestBytes: null,
       });
 
       (originalOpen as (...args: Array<unknown>) => void).apply(this, [
@@ -415,6 +540,8 @@ export default class NetworkRecorder {
         ...rest,
       ]);
     };
+
+    this.installedXhrOpen = prototype["open"];
 
     if (typeof originalSetHeader === "function") {
       prototype["setRequestHeader"] = function patchedSetRequestHeader(
@@ -446,6 +573,8 @@ export default class NetworkRecorder {
           value,
         ]);
       };
+
+      this.installedXhrSetRequestHeader = prototype["setRequestHeader"];
     }
 
     prototype["send"] = function patchedSend(
@@ -460,6 +589,22 @@ export default class NetworkRecorder {
         if (!state.armed) {
           state.armed = true;
           state.startedAtMs = Date.now();
+          state.requestBytes = NetworkRecorder.measureBody(args[0]);
+
+          /*
+           * abort() fires "abort" and then "loadend" with status 0, which
+           * is byte-for-byte what a network failure looks like from
+           * loadend alone. The flag is what tells the two apart.
+           */
+          this.addEventListener(
+            "abort",
+            (): void => {
+              if (xhrState.get(this) === state) {
+                state.aborted = true;
+              }
+            },
+            { once: true },
+          );
 
           this.addEventListener(
             "loadend",
@@ -475,14 +620,17 @@ export default class NetworkRecorder {
                 return;
               }
 
-              recordRequest(
-                state.method,
-                state.url,
-                this.status,
-                Date.now() - state.startedAtMs,
-                NetworkRecorder.readXhrResponseSize(this),
-                state.traceId,
-              );
+              recordRequest({
+                method: state.method,
+                rawUrl: state.url,
+                status: this.status,
+                durationMs: Date.now() - state.startedAtMs,
+                responseBytes: NetworkRecorder.readXhrResponseSize(this),
+                traceId: state.traceId,
+                initiator: "xhr",
+                requestBytes: state.requestBytes,
+                aborted: state.aborted,
+              });
             },
             { once: true },
           );
@@ -491,46 +639,164 @@ export default class NetworkRecorder {
 
       (originalSend as (...args: Array<unknown>) => void).apply(this, args);
     };
+
+    this.installedXhrSend = prototype["send"];
   }
 
-  private record(
-    method: string,
-    rawUrl: string,
-    status: number,
-    durationMs: number,
-    responseBytes: number,
-    traceId: string | null,
-  ): void {
+  private record(outcome: RequestOutcome): void {
+    /*
+     * A wrapper that outlived stop() - because the page patched fetch after
+     * us and we refused to break its chain - passes the request through and
+     * records nothing.
+     */
+    if (!this.started) {
+      return;
+    }
+
     const atUnixMs: number = Date.now();
 
     this.options.onActivity(atUnixMs);
 
     if (this.recordedCount >= MAX_REQUESTS_RECORDED) {
+      this.reportCapOnce();
       return;
     }
 
     this.recordedCount++;
 
     const request: RecordedRequest = {
-      method: method,
-      url: this.options.scrubUrl(rawUrl),
-      status: status,
-      durationMs: durationMs,
-      responseBytes: responseBytes,
-      isError: status === 0 || status >= 500,
+      method: outcome.method,
+      url: this.options.scrubUrl(outcome.rawUrl),
+      status: outcome.status,
+      durationMs: outcome.durationMs,
+      responseBytes: outcome.responseBytes,
+
+      /*
+       * An aborted request never had a response, so status is 0 - but the
+       * page chose that, and it is not a failure the user experienced.
+       */
+      isError:
+        !outcome.aborted && (outcome.status === 0 || outcome.status >= 500),
+      initiator: outcome.initiator,
     };
 
     /* Only present when there is one — absent beats null on the wire. */
-    if (traceId) {
-      request.traceId = traceId;
+    if (outcome.traceId) {
+      request.traceId = outcome.traceId;
+    }
+
+    if (outcome.requestBytes !== null) {
+      request.requestBytes = outcome.requestBytes;
+    }
+
+    if (outcome.aborted) {
+      request.aborted = true;
     }
 
     this.options.emitCustomEvent(NETWORK_CUSTOM_EVENT_TAG, request);
-    this.options.onRequestComplete(atUnixMs, request, traceId);
+    this.options.onRequestComplete(atUnixMs, request, outcome.traceId);
+  }
+
+  /*
+   * The first request past the cap becomes ONE marker in the stream, so the
+   * Network tab shows where capture stopped instead of simply ending. Not
+   * counted against the cap, emitted once per session, and never handed to
+   * onRequestComplete: a marker is not a request and must not trigger.
+   */
+  private reportCapOnce(): void {
+    if (this.capReported) {
+      return;
+    }
+
+    this.capReported = true;
+
+    const marker: RecordedRequest = {
+      method: "",
+      url: "",
+      status: 0,
+      durationMs: 0,
+      responseBytes: 0,
+      isError: false,
+      isCapMarker: true,
+    };
+
+    this.options.emitCustomEvent(NETWORK_CUSTOM_EVENT_TAG, marker);
+
+    if (this.options.onCapReached) {
+      this.options.onCapReached(MAX_REQUESTS_RECORDED);
+    }
+  }
+
+  /*
+   * A rotated session is a fresh recording with its own cap. Without this
+   * a long-lived SPA that burned the budget in session 1 had network rows
+   * permanently dead for every later session on the same page load.
+   */
+  public resetForNewSession(): void {
+    this.recordedCount = 0;
+    this.capReported = false;
+  }
+
+  public hasReachedCap(): boolean {
+    return this.recordedCount >= MAX_REQUESTS_RECORDED;
   }
 
   public getRecordedCount(): number {
     return this.recordedCount;
+  }
+
+  /*
+   * Was this rejection the page cancelling its own request? fetch rejects
+   * with a DOMException named AbortError for AbortController.abort() and
+   * for a navigation tearing the request down.
+   */
+  public static isAbortError(error: unknown): boolean {
+    if (!error || typeof error !== "object") {
+      return false;
+    }
+
+    const name: unknown = (error as Record<string, unknown>)["name"];
+
+    return name === "AbortError";
+  }
+
+  /*
+   * Byte length of a request body, WITHOUT consuming it. Only shapes that
+   * expose a length are measured; a stream or a FormData (which would have
+   * to be iterated, touching field names) yields null and the field is
+   * omitted. No body at all is a measured 0.
+   */
+  public static measureBody(body: unknown): number | null {
+    if (body === undefined || body === null) {
+      return 0;
+    }
+
+    if (typeof body === "string") {
+      return utf8ByteLength(body);
+    }
+
+    if (typeof ArrayBuffer !== "undefined") {
+      if (body instanceof ArrayBuffer) {
+        return body.byteLength;
+      }
+
+      if (ArrayBuffer.isView(body)) {
+        return body.byteLength;
+      }
+    }
+
+    if (typeof Blob !== "undefined" && body instanceof Blob) {
+      return body.size;
+    }
+
+    if (
+      typeof URLSearchParams !== "undefined" &&
+      body instanceof URLSearchParams
+    ) {
+      return utf8ByteLength(body.toString());
+    }
+
+    return null;
   }
 
   /*
@@ -545,7 +811,12 @@ export default class NetworkRecorder {
    * when we cannot say where a header would go, we do not add one.
    */
   private shouldInjectFor(url: string, windowRef: Window): boolean {
-    if (this.injectOrigins.length === 0) {
+    /*
+     * A wrapper that outlived stop() must not annotate the page's requests
+     * either: the recorder is no longer here to report the trace id, so the
+     * header would only add a preflight for nothing.
+     */
+    if (!this.started || this.injectOrigins.length === 0) {
       return false;
     }
 
@@ -859,6 +1130,47 @@ export default class NetworkRecorder {
     return null;
   }
 
+  /*
+   * A traceparent carried on a Request OBJECT. Only the header is read,
+   * by name, through the Request's own Headers; nothing else on it is
+   * touched, and a Request from another realm (no same-realm instanceof)
+   * is still read as long as it quacks like one.
+   */
+  private static readTraceIdFromRequest(
+    input: RequestInfo | URL,
+  ): string | null {
+    if (!input || typeof input !== "object" || input instanceof URL) {
+      return null;
+    }
+
+    const headers: unknown = (input as unknown as Record<string, unknown>)[
+      "headers"
+    ];
+
+    if (!headers || typeof headers !== "object") {
+      return null;
+    }
+
+    const get: unknown = (headers as Record<string, unknown>)["get"];
+
+    if (typeof get !== "function") {
+      return null;
+    }
+
+    try {
+      const value: unknown = (get as (name: string) => unknown).call(
+        headers,
+        "traceparent",
+      );
+
+      return typeof value === "string"
+        ? NetworkRecorder.parseTraceParent(value)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
   private static readUrl(input: RequestInfo | URL): string {
     if (typeof input === "string") {
       return input;
@@ -925,15 +1237,32 @@ export default class NetworkRecorder {
   }
 
   /*
-   * responseText is read for its LENGTH only, and only when the response type
-   * makes that safe. Touching responseText on a non-text response throws in
-   * some browsers, and the value itself is never emitted.
+   * BYTES, the same unit fetch reports: Content-Length first (the server's
+   * own number, also what a compressed response actually cost), then the
+   * UTF-8 length of a text response. responseText is read for its length
+   * only, and only when the response type makes that safe - touching it
+   * on a non-text response throws in some browsers - and the value itself
+   * is never emitted.
    */
   private static readXhrResponseSize(xhr: XMLHttpRequest): number {
     try {
+      const header: string | null = xhr.getResponseHeader("content-length");
+
+      if (header) {
+        const parsed: number = Number.parseInt(header, 10);
+
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* Header not exposed (a cross-origin response); measure the text. */
+    }
+
+    try {
       if (xhr.responseType === "" || xhr.responseType === "text") {
         return typeof xhr.responseText === "string"
-          ? xhr.responseText.length
+          ? utf8ByteLength(xhr.responseText)
           : 0;
       }
 

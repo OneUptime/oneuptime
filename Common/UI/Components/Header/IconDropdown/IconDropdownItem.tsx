@@ -11,6 +11,12 @@ export interface ComponentProps {
   title: string;
   openInNewTab?: boolean;
   onClick?: (() => void) | undefined;
+  /*
+   * Optional trailing content, pinned to the right edge of the row. Meant for
+   * a keycap hint on an item that also has a keyboard shortcut, so the menu
+   * teaches the shortcut instead of only competing with it.
+   */
+  rightElement?: ReactElement | undefined;
 }
 
 const IconDropdown: FunctionComponent<ComponentProps> = (
@@ -26,7 +32,10 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
       <div className="flex-shrink-0 h-5 w-5 text-gray-400">
         {props.icon ? <Icon icon={props.icon} /> : <></>}
       </div>
-      <span className="font-medium">{props.title}</span>
+      <span className="min-w-0 flex-1 truncate font-medium">{props.title}</span>
+      {props.rightElement && (
+        <span className="flex shrink-0 items-center">{props.rightElement}</span>
+      )}
     </Link>
   );
 };

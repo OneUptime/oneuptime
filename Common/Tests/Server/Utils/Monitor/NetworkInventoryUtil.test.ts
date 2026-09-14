@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
-import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
+import NetworkInterfaceService, {
+  InterfaceWalkUpsertResult,
+} from "../../../../Server/Services/NetworkInterfaceService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../../Models/DatabaseModels/NetworkInterface";
 import ObjectID from "../../../../Types/ObjectID";
@@ -15,6 +17,11 @@ import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDevicePollMode } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import logger from "../../../../Server/Utils/Logger";
+import { JSONObject } from "../../../../Types/JSON";
+import { FindOperator } from "typeorm";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -40,9 +47,10 @@ type DeviceUpdatePayload = Record<string, unknown>;
 let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
-let interfaceUpdateSpy: jest.SpyInstance;
-let interfaceCreateSpy: jest.SpyInstance;
+let interfaceUpsertSpy: jest.SpyInstance;
 let endpointUpsertSpy: jest.SpyInstance;
+let deviceLookupSpy: jest.SpyInstance;
+let macWriteSpy: jest.SpyInstance;
 
 function mockServices(
   existingInterfaces: Array<NetworkInterface> = [],
@@ -65,18 +73,69 @@ function mockServices(
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
+  /*
+   * The inventory read now happens INSIDE the batched service call, so this
+   * stub only exists to keep a stray direct read from reaching a database.
+   */
   interfaceFindSpy = jest
     .spyOn(NetworkInterfaceService, "findBy")
     .mockResolvedValue(existingInterfaces);
-  interfaceUpdateSpy = jest
-    .spyOn(NetworkInterfaceService, "updateOneById")
-    .mockResolvedValue(1);
-  interfaceCreateSpy = jest
-    .spyOn(NetworkInterfaceService, "create")
-    .mockResolvedValue(new NetworkInterface());
+  /*
+   * Interfaces are written by one batched service call now (one SELECT plus
+   * one INSERT/UPDATE per 500 rows) instead of a create()/updateOneById() per
+   * port. The column-by-column contract is pinned in
+   * Tests/Utils/Monitor/InterfaceInventoryUtil.test.ts and the SQL in
+   * Tests/Server/Services/NetworkInterfaceServiceUpsert.test.ts; this stub
+   * reproduces the one part of the contract this util depends on — which
+   * walked indexes come back reported as muted — so the response-pruning
+   * tests below still exercise the whole seam.
+   */
+  interfaceUpsertSpy = jest
+    .spyOn(NetworkInterfaceService, "upsertWalkedInterfaces")
+    .mockImplementation(
+      async (input: {
+        projectId: ObjectID;
+        deviceId: ObjectID;
+        walkedInterfaces: Array<SnmpInterface>;
+        now: Date;
+      }): Promise<InterfaceWalkUpsertResult> => {
+        const mutedIndexes: Set<number> = new Set(
+          existingInterfaces
+            .filter((row: NetworkInterface) => {
+              return row.isMonitored === false;
+            })
+            .map((row: NetworkInterface) => {
+              return row.interfaceIndex!;
+            }),
+        );
+
+        return {
+          unmonitoredInterfaceIndexes: input.walkedInterfaces
+            .map((walked: SnmpInterface) => {
+              return walked.interfaceIndex;
+            })
+            .filter((interfaceIndex: number) => {
+              return mutedIndexes.has(interfaceIndex);
+            }),
+        };
+      },
+    );
   endpointUpsertSpy = jest
     .spyOn(NetworkEndpointService, "upsertDiscoveredEndpoints")
     .mockResolvedValue(undefined as never);
+  /*
+   * Device MAC learning follows the endpoint upsert on any walk that
+   * carried ARP bindings: one findBy for the devices registered at the
+   * bound addresses, then a hook-free compare-and-set write per device the
+   * planner picked. Stubbed here so the ARP cases never reach a database;
+   * the learning block seeds findBy with real rows where it matters.
+   */
+  deviceLookupSpy = jest
+    .spyOn(NetworkDeviceService, "findBy")
+    .mockResolvedValue([]);
+  macWriteSpy = jest
+    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined);
 }
 
 function deviceUpdatePayload(): DeviceUpdatePayload {
@@ -114,9 +173,17 @@ function existingInterface(interfaceIndex: number): NetworkInterface {
   return row;
 }
 
+/*
+ * A poll that ran a walk. With no pollMode this is what an old probe's walk
+ * looks like to the util (the processor stamps "snmp" for it); pass
+ * pollMode "snmp" for a ping-first probe's walk.
+ */
 async function runWalk(
   snmpFields?: Partial<SnmpMonitorResponse>,
-  options?: { isOnline?: boolean | undefined },
+  options?: {
+    isOnline?: boolean | undefined;
+    pollMode?: NetworkDevicePollMode | undefined;
+  },
 ): Promise<SnmpMonitorResponse> {
   const snmpResponse: SnmpMonitorResponse = buildSnmpResponse(snmpFields);
 
@@ -125,9 +192,21 @@ async function runWalk(
     deviceId: new ObjectID(DEVICE_ID),
     snmpResponse: snmpResponse,
     isOnline: options && "isOnline" in options ? options.isOnline : true,
+    pollMode: options?.pollMode,
   });
 
   return snmpResponse;
+}
+
+// A ping-only poll: the device has no usable credentials, so no walk ran.
+async function runPingOnlyPoll(options: { isOnline: boolean }): Promise<void> {
+  await NetworkInventoryUtil.updateFromWalk({
+    projectId: new ObjectID(PROJECT_ID),
+    deviceId: new ObjectID(DEVICE_ID),
+    snmpResponse: undefined,
+    isOnline: options.isOnline,
+    pollMode: "ping",
+  });
 }
 
 beforeEach(() => {
@@ -231,8 +310,7 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
     });
 
     expect(deviceUpdateSpy).not.toHaveBeenCalled();
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
   });
 
   test("the ownership lookup is scoped to both the device id and the project id", async () => {
@@ -261,7 +339,7 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
  * called both of them Down.
  */
 describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () => {
-  test("a reachable poll stamps all three columns", async () => {
+  test("a reachable poll stamps all three columns - and, for a walk, the SNMP pair", async () => {
     mockServices();
 
     await runWalk();
@@ -271,6 +349,8 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () =>
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(update["isReachable"]).toBe(true);
     expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
   });
 
   test("an unreachable poll with no walk data still records the attempt", async () => {
@@ -296,23 +376,35 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () =>
     expect(update["isReachable"]).toBe(false);
     // The device did not answer, so its last contact must not move.
     expect(update).not.toHaveProperty("lastSeenAt");
+    // The walk was attempted and failed: false, not NULL.
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
   });
 
-  test("an unreachable poll with walk data still enriches but never stamps lastSeenAt", async () => {
+  /*
+   * Inventory comes only from a successful walk. A failed walk carries no
+   * system group in practice, and reading whatever a malformed failure did
+   * carry would let a session that never opened rewrite sysName (and so
+   * re-run site-assignment rules) or clear the LLDP snapshot.
+   */
+  test("a failed walk records the attempt but never enriches inventory", async () => {
     mockServices();
 
     await runWalk(
       {
         isOnline: false,
         systemInfo: { sysName: "core-sw-01" },
+        lldpNeighbors: [],
       },
       { isOnline: false },
     );
 
     const update: DeviceUpdatePayload = deviceUpdatePayload();
 
-    expect(update["sysName"]).toBe("core-sw-01");
+    expect(update).not.toHaveProperty("sysName");
+    expect(update).not.toHaveProperty("lldpNeighbors");
     expect(update["isReachable"]).toBe(false);
+    expect(update["isSnmpReachable"]).toBe(false);
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(update).not.toHaveProperty("lastSeenAt");
   });
@@ -624,7 +716,17 @@ describe("NetworkInventoryUtil.updateFromWalk — cached interface counts", () =
 });
 
 describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
-  test("the update path passes macAddress and interfaceType through", async () => {
+  /*
+   * The util used to loop over the walk writing each interface with its own
+   * create() / updateOneById(); because DatabaseService._updateBy SELECTs
+   * before every UPDATE, a 50-port switch cost 101 statements. It now hands
+   * the whole walk to one batched service call. What is left to pin HERE is
+   * the hand-off and the response pruning that depends on its answer — the
+   * column-by-column contract lives in
+   * Tests/Utils/Monitor/InterfaceInventoryUtil.test.ts and the SQL in
+   * Tests/Server/Services/NetworkInterfaceServiceUpsert.test.ts.
+   */
+  test("the whole walk is handed to the batched upsert in one call", async () => {
     mockServices([existingInterface(1)]);
 
     await runWalk({
@@ -634,104 +736,42 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
           macAddress: "aa:bb:cc:dd:ee:ff",
           interfaceType: 6,
         }),
+        walkedInterface({ interfaceIndex: 2, name: "GigabitEthernet0/2" }),
       ],
     });
 
-    expect(interfaceUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
 
-    const updateData: Record<string, unknown> =
-      interfaceUpdateSpy.mock.calls[0][0].data;
-
-    expect(updateData["macAddress"]).toBe("aa:bb:cc:dd:ee:ff");
-    expect(updateData["interfaceType"]).toBe(6);
-    expect(updateData["name"]).toBe("GigabitEthernet0/1");
-    expect(updateData["lastSeenAt"]).toEqual(NOW);
+    const call: Record<string, any> = interfaceUpsertSpy.mock.calls[0][0];
+    expect(call["projectId"].toString()).toBe(PROJECT_ID);
+    expect(call["deviceId"].toString()).toBe(DEVICE_ID);
+    expect(call["walkedInterfaces"]).toHaveLength(2);
+    expect(call["walkedInterfaces"][0].interfaceIndex).toBe(1);
+    expect(call["walkedInterfaces"][0].macAddress).toBe("aa:bb:cc:dd:ee:ff");
+    expect(call["walkedInterfaces"][1].interfaceIndex).toBe(2);
   });
 
-  test("the update path clears macAddress and interfaceType when the walk stops reporting them", async () => {
+  /*
+   * One timestamp for the whole walk, shared with the device row's
+   * lastSeenAt. Per-row clock reads would make "which ports answered on this
+   * walk" unanswerable, because no two rows would share a value to group on.
+   */
+  test("the upsert is stamped with the same `now` as the device row", async () => {
     mockServices([existingInterface(1)]);
 
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1 })],
-    });
+    await runWalk({ interfaces: [walkedInterface({ interfaceIndex: 1 })] });
 
-    const updateData: Record<string, unknown> =
-      interfaceUpdateSpy.mock.calls[0][0].data;
-
-    expect(updateData["macAddress"]).toBeNull();
-    expect(updateData["interfaceType"]).toBeNull();
-  });
-
-  test("the create path passes macAddress and interfaceType through", async () => {
-    mockServices([]);
-
-    await runWalk({
-      interfaces: [
-        walkedInterface({
-          interfaceIndex: 7,
-          macAddress: "aa:bb:cc:dd:ee:ff",
-          interfaceType: 6,
-        }),
-      ],
-    });
-
-    expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-
-    expect(created.macAddress).toBe("aa:bb:cc:dd:ee:ff");
-    expect(created.interfaceType).toBe(6);
-    expect(created.interfaceIndex).toBe(7);
-    expect(created.name).toBe("GigabitEthernet0/1");
-    expect(created.isMonitored).toBe(true);
-    expect(created.networkDeviceId?.toString()).toBe(DEVICE_ID);
-    expect(created.projectId?.toString()).toBe(PROJECT_ID);
-  });
-
-  test("the create path leaves macAddress and interfaceType unset when the walk has none", async () => {
-    mockServices([]);
-
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 7 })],
-    });
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-
-    expect(created.macAddress).toBeUndefined();
-    expect(created.interfaceType).toBeUndefined();
-  });
-
-  test("over-long mac addresses are truncated on both paths", async () => {
-    const longMac: string = "a".repeat(150);
-
-    mockServices([existingInterface(1)]);
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1, macAddress: longMac })],
-    });
-
-    expect(interfaceUpdateSpy.mock.calls[0][0].data["macAddress"]).toBe(
-      longMac.substring(0, 100),
-    );
-
-    jest.restoreAllMocks();
-    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
-
-    mockServices([]);
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1, macAddress: longMac })],
-    });
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-    expect(created.macAddress).toBe(longMac.substring(0, 100));
+    expect(interfaceUpsertSpy.mock.calls[0][0].now).toEqual(NOW);
+    expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
   });
 
   /*
    * A user muting an interface (isMonitored=false) keeps it in inventory but
    * prunes it from the in-flight response so criteria and metrics ignore it.
+   * If the pruning is lost, a muted port starts raising incidents again the
+   * moment it goes down — which is exactly what the user muted it to stop.
    */
-  test("an unmonitored interface is still updated in inventory but pruned from the response", async () => {
+  test("an unmonitored interface is still written to inventory but pruned from the response", async () => {
     const muted: NetworkInterface = existingInterface(1);
     muted.isMonitored = false;
     mockServices([muted]);
@@ -743,13 +783,54 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
       ],
     });
 
-    // Inventory keeps the full picture: one update (index 1), one create (index 2).
-    expect(interfaceUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
+    // Inventory keeps the full picture: both ports went into the upsert.
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(interfaceUpsertSpy.mock.calls[0][0].walkedInterfaces).toHaveLength(
+      2,
+    );
 
     // The in-flight response only keeps the monitored interface.
     expect(snmpResponse.interfaces).toHaveLength(1);
     expect(snmpResponse.interfaces?.[0]?.interfaceIndex).toBe(2);
+  });
+
+  test("a walk with nothing muted leaves the response untouched", async () => {
+    mockServices([existingInterface(1)]);
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1 }),
+        walkedInterface({ interfaceIndex: 2, name: "GigabitEthernet0/2" }),
+      ],
+    });
+
+    expect(snmpResponse.interfaces).toHaveLength(2);
+  });
+
+  /*
+   * Inventory bookkeeping must never fail the walk PIPELINE: an upsert that
+   * throws is logged and swallowed by updateFromWalk's own catch, so nothing
+   * escapes into the probe-ingest handler and the device row keeps the
+   * enrichment that was already written.
+   *
+   * Be precise about what it does NOT survive, because the obvious reading is
+   * wrong: the upsert call and the ARP/FDB endpoint block sit inside the SAME
+   * try, so a throw jumps past endpoint discovery and past the response
+   * pruning for that cycle. That is unchanged from the row-at-a-time loop, and
+   * it is why NetworkInterfaceService retries a failed chunk row by row —
+   * a single unwritable interface should never get as far as this catch.
+   */
+  test("a failing interface upsert does not abort the rest of the walk", async () => {
+    mockServices();
+    interfaceUpsertSpy.mockRejectedValue(new Error("deadlock detected"));
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk({
+      interfaces: [walkedInterface({ interfaceIndex: 1 })],
+    });
+
+    // The device row was still enriched, and nothing threw out of the util.
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(snmpResponse.interfaces).toHaveLength(1);
   });
 });
 
@@ -770,8 +851,7 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
     expect(update).not.toHaveProperty("interfacesDown");
 
     expect(interfaceFindSpy).not.toHaveBeenCalled();
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
   });
 
   test("a walk with no snmpResponse at all still records the poll", async () => {
@@ -784,13 +864,172 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
       isOnline: true,
     });
 
-    // Exactly the reachability columns and nothing else — no walk, no data.
+    /*
+     * Exactly the reachability columns and nothing else — no walk, no
+     * data. isSnmpReachable is NULL, not false: nothing was walked. (No
+     * pollMode reads as "snmp", so the interface counts are left alone as
+     * they are across any failed walk.)
+     */
     expect(deviceUpdatePayload()).toEqual({
       lastPolledAt: NOW,
       isReachable: true,
       lastSeenAt: NOW,
+      isSnmpReachable: null,
     });
     expect(interfaceFindSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Ping-first polling. The three device columns answer "did the device
+ * answer ping or SNMP"; the SNMP pair answers "did the WALK", and NULL there
+ * means "no walk ran" - which is what a credential-less device looks like
+ * on every poll and must never read as "SNMP down".
+ */
+describe("NetworkInventoryUtil.updateFromWalk — ping-first column matrix", () => {
+  test("a reachable ping-only poll: device columns stamped, walk columns NULL, interface counts NULL, no inventory", async () => {
+    mockServices();
+
+    await runPingOnlyPoll({ isOnline: true });
+
+    expect(deviceUpdatePayload()).toEqual({
+      lastPolledAt: NOW,
+      isReachable: true,
+      lastSeenAt: NOW,
+      isSnmpReachable: null,
+      interfacesTotal: null,
+      interfacesUp: null,
+      interfacesDown: null,
+    });
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
+  });
+
+  test("an unreachable ping-only poll: the attempt is recorded, nothing was seen, walk columns NULL", async () => {
+    mockServices();
+
+    await runPingOnlyPoll({ isOnline: false });
+
+    expect(deviceUpdatePayload()).toEqual({
+      lastPolledAt: NOW,
+      isReachable: false,
+      isSnmpReachable: null,
+      interfacesTotal: null,
+      interfacesUp: null,
+      interfacesDown: null,
+    });
+  });
+
+  test("an snmp-mode poll whose walk succeeded stamps the SNMP pair and the counts beside the device columns", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        interfaces: [
+          walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+          walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+        ],
+      },
+      { isOnline: true, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
+    expect(update["interfacesTotal"]).toBe(2);
+    expect(update["interfacesUp"]).toBe(1);
+    expect(update["interfacesDown"]).toBe(1);
+  });
+
+  /*
+   * The credentials are wrong, the agent is off, or an ACL blocks 161 - but
+   * the device answers ping. It is Up; its walk is down; the last good
+   * interface counts stay (the best estimate until the next good walk);
+   * and nothing the failed session "found" is written as inventory.
+   */
+  test("an snmp-mode poll where ping answered but the walk failed: device up, walk down, counts and inventory untouched", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "SNMP timed out after 3 attempts",
+        systemInfo: { sysName: "should-not-land" },
+      },
+      { isOnline: true, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
+    expect(update).not.toHaveProperty("interfacesTotal");
+    expect(update).not.toHaveProperty("interfacesUp");
+    expect(update).not.toHaveProperty("interfacesDown");
+    expect(update).not.toHaveProperty("sysName");
+  });
+
+  test("an snmp-mode poll that failed both ways: device down, walk down, nothing seen", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "SNMP timed out after 3 attempts",
+      },
+      { isOnline: false, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSeenAt");
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
+  });
+
+  /*
+   * A probe that predates ping-first polling only ever walked, so its walk
+   * verdict is the device verdict and both columns carry it - a credentialed
+   * device is never left with a NULL walk column by an old probe.
+   */
+  test("an old probe's walk (no pollMode) keeps the walk verdict for BOTH the device and the SNMP columns", async () => {
+    mockServices();
+
+    await runWalk({ isOnline: false }, { isOnline: false });
+    const failed: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(failed["isReachable"]).toBe(false);
+    expect(failed["isSnmpReachable"]).toBe(false);
+
+    deviceUpdateSpy.mockClear();
+    await runWalk();
+    const good: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(good["isReachable"]).toBe(true);
+    expect(good["isSnmpReachable"]).toBe(true);
+    expect(good["lastSeenAt"]).toEqual(NOW);
+    expect(good["lastSnmpSeenAt"]).toEqual(NOW);
+  });
+
+  test("a walk with no verdict at all counts as succeeded, matching the device convention", async () => {
+    mockServices();
+
+    await runWalk({ isOnline: undefined as unknown as boolean });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
   });
 });
 
@@ -879,6 +1118,306 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
   });
 });
 
+/*
+ * A walked router's ARP table binds the address a managed device is
+ * registered at to the MAC the switches learned - the one fact a ping-only
+ * register or handset never reports about itself. After the endpoint
+ * inventory is written, the walk hands those bindings to
+ * NetworkDeviceMacLearningUtil, which stamps the MAC on the device row while
+ * its column is still empty. The planner's rules are pinned in
+ * Tests/Utils/Monitor/DeviceMacLearningUtil.test.ts and the database contract
+ * in Tests/Server/Utils/Monitor/NetworkDeviceMacLearningUtil.test.ts; what is
+ * pinned HERE is the hand-off from the walk: when learning runs, what it is
+ * scoped by, and that a failure in it stays in it.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
+  const SITE_ID: ObjectID = new ObjectID(
+    "5a5a5a5a-0000-4000-8000-00000000000a",
+  );
+  const OTHER_SITE_ID: ObjectID = new ObjectID(
+    "5b5b5b5b-0000-4000-8000-00000000000b",
+  );
+  const REGISTER_ID: string = "8f2c1f0e-0000-4000-8000-0000000000bb";
+  const HANDSET_ID: string = "8f2c1f0e-0000-4000-8000-0000000000cc";
+  const REGISTER_IP: string = "10.0.0.5";
+  const REGISTER_MAC: string = "aa:bb:cc:00:11:22";
+
+  // A managed, ping-only device registered at the address the router bound.
+  function registeredDevice(
+    id: string,
+    overrides?: { siteId?: ObjectID; macAddress?: string },
+  ): NetworkDevice {
+    const row: NetworkDevice = new NetworkDevice();
+    row.id = new ObjectID(id);
+    row.hostname = REGISTER_IP;
+    if (overrides?.siteId) {
+      row.siteId = overrides.siteId;
+    }
+    if (overrides?.macAddress !== undefined) {
+      row.macAddress = overrides.macAddress;
+    }
+    return row;
+  }
+
+  // The ARP table spelling differs from the column's: learning normalizes.
+  function arpWalk(): Partial<SnmpMonitorResponse> {
+    return {
+      arpEntries: [
+        {
+          ipAddress: REGISTER_IP,
+          macAddress: "AA-BB-CC-00-11-22",
+          interfaceIndex: 3,
+          entryType: "dynamic",
+        },
+      ],
+    };
+  }
+
+  /*
+   * The addresses the device lookup asked about. QueryHelper.any renders
+   * them into a TypeORM Raw operator with a RANDOM parameter name, so the
+   * list is recovered from the operator's parameters.
+   */
+  function addressesLookedUp(): Array<string> {
+    const query: JSONObject = (deviceLookupSpy.mock.calls[0]![0] as JSONObject)[
+      "query"
+    ] as JSONObject;
+    const operator: FindOperator<string> = query[
+      "hostname"
+    ] as unknown as FindOperator<string>;
+    const parameters: Record<string, unknown> =
+      (operator.objectLiteralParameters || {}) as Record<string, unknown>;
+    const values: Array<unknown> =
+      (Object.values(parameters)[0] as Array<unknown>) || [];
+    return values.map((value: unknown): string => {
+      return String(value);
+    });
+  }
+
+  function spyError(): jest.SpyInstance {
+    return jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined;
+    });
+  }
+
+  test("a walk carrying an ARP entry looks up the devices at the bound address, in the walked device's project", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+
+    const query: JSONObject = (deviceLookupSpy.mock.calls[0]![0] as JSONObject)[
+      "query"
+    ] as JSONObject;
+
+    expect((query["projectId"] as ObjectID).toString()).toBe(PROJECT_ID);
+    expect(addressesLookedUp()).toEqual([REGISTER_IP]);
+  });
+
+  test("a device with an empty MAC in the router's site is stamped through the hook-free compare-and-set write", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+
+    const write: JSONObject = macWriteSpy.mock.calls[0]![0] as JSONObject;
+
+    expect((write["id"] as ObjectID).toString()).toBe(REGISTER_ID);
+    expect(write["data"]).toEqual({
+      macAddress: REGISTER_MAC,
+      isMacAddressLearned: true,
+    });
+    expect(write["expectedData"]).toEqual({
+      macAddress: null,
+      deletedAt: null,
+    });
+    // The walked router's own row is untouched by learning.
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdatePayload()).not.toHaveProperty("macAddress");
+  });
+
+  test("learning runs after the endpoint inventory has been written", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk(arpWalk());
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(endpointUpsertSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      deviceLookupSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a walk with FDB entries only never looks devices up", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({
+      interfaces: [walkedInterface({ interfaceIndex: 5, name: "Gi0/5" })],
+      fdbEntries: [
+        {
+          macAddress: REGISTER_MAC,
+          bridgePort: 5,
+          interfaceIndex: 5,
+          status: "learned",
+        },
+      ],
+    });
+
+    // The attachment was still written; only the ARP half was absent.
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("a walk without endpoint arrays at all never looks devices up", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({ interfaces: [walkedInterface()] });
+
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Learning keys off the bindings the attachment pass KEPT, not the raw
+   * ARP rows: an entry for the router's own interface MAC is dropped there
+   * and must not come back as a lookup here.
+   */
+  test("an ARP entry the attachment pass discards never reaches learning", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 3, macAddress: REGISTER_MAC }),
+      ],
+      ...arpWalk(),
+    });
+
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failure in the learning step is logged and does not prevent the walk from completing", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockRejectedValue(new Error("connection reset"));
+    const error: jest.SpyInstance = spyError();
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk(arpWalk());
+
+    // Nothing escaped, and everything before the learning step landed.
+    expect(snmpResponse).toBeDefined();
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+
+    const messages: Array<string> = error.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+
+    /*
+     * Its OWN catch, naming the device - never the outer "failed to update
+     * network inventory" line, which would read as the endpoint upsert
+     * having failed too.
+     */
+    expect(
+      messages.some((message: string) => {
+        return message.includes("MAC") && message.includes(DEVICE_ID);
+      }),
+    ).toBe(true);
+    expect(
+      messages.some((message: string) => {
+        return message.includes("Failed to update network inventory");
+      }),
+    ).toBe(false);
+  });
+
+  test("a failing MAC write is contained the same way", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+    macWriteSpy.mockRejectedValue(new Error("deadlock detected"));
+    const error: jest.SpyInstance = spyError();
+
+    await expect(runWalk(arpWalk())).resolves.toBeDefined();
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalled();
+  });
+
+  test("the observing device's site scopes the match: a device in another site is not stamped", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: OTHER_SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    // Looked up - the read is project-wide by design - but refused.
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("an observing device with no site stamps only a device with no site", async () => {
+    // The default device carries no siteId: a project without sites.
+    mockServices();
+    const siteless: NetworkDevice = registeredDevice(HANDSET_ID);
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+    expect(macWriteSpy).not.toHaveBeenCalled();
+
+    deviceLookupSpy.mockResolvedValue([siteless]);
+
+    await runWalk(arpWalk());
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (macWriteSpy.mock.calls[0]![0] as JSONObject)["id"] as ObjectID
+      ).toString(),
+    ).toBe(HANDSET_ID);
+  });
+
+  test("a device that already carries a MAC is left alone", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, {
+        siteId: SITE_ID,
+        macAddress: "00:11:22:33:44:55",
+      }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("selects siteId on the device read, or learning could never scope by site", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["siteId"]).toBe(true);
+  });
+});
+
 describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-apply", () => {
   /*
    * The automatic counterpart of the dashboard's vendor-template banner:
@@ -961,5 +1500,200 @@ describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-ap
     });
 
     expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  /*
+   * A device linked to an OID Collection Template is exempt outright, even
+   * though it satisfies every other condition: opted in, empty local list,
+   * vendor fingerprinted.
+   *
+   * Its effective OID list already comes from the template, resolved fresh on
+   * every poll, and its own snmpOids column is by design the small set of
+   * device-specific ADDITIONS — usually empty, which is exactly the condition
+   * this auto-apply keys off. Without the guard, the first poll after linking
+   * writes a vendor copy on top of the template and the device silently
+   * collects the union of two sources, only one of which the operator can see
+   * or edit. Auto-imported devices are all opted in, so this would have been
+   * the common case rather than an edge one.
+   */
+  test("a device linked to an OID Collection Template is never seeded", async () => {
+    mockServices([], {
+      autoApplyVendorHealthTemplate: true,
+      oidTemplateId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+    });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  test("selects oidTemplateId, or the guard above can never see the link", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["oidTemplateId"]).toBe(true);
+  });
+});
+
+/*
+ * A monitor-backed device (monitoringMethod "Monitor") is never meant to be
+ * walked - its bound Monitor owns reachability. But claimDevicesForPolling
+ * only excludes such rows at CLAIM time, so a device claimed as SNMP and
+ * switched to Monitor before its walk result arrived still reaches this
+ * writer. The poll verdict must not overwrite the monitor's: these cases
+ * pin that the health columns (lastPolledAt / isReachable / lastSeenAt and
+ * the cached interface counts) are withheld for such a row, that the rest
+ * of the walk's inventory still lands, and that an SNMP walk is untouched.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", () => {
+  const POLL_AND_INTERFACE_COLUMNS: Array<string> = [
+    "lastPolledAt",
+    "isReachable",
+    "lastSeenAt",
+    "isSnmpReachable",
+    "lastSnmpSeenAt",
+    "interfacesTotal",
+    "interfacesUp",
+    "interfacesDown",
+  ];
+
+  function spyWarn(): jest.SpyInstance {
+    return jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined;
+    });
+  }
+
+  test("a walk for a monitor-backed device leaves the poll and interface-count columns out and warns once", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      systemInfo: { sysName: "ap-01" },
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    // Inventory still lands...
+    expect(update["sysName"]).toBe("ap-01");
+    // ...but nothing that decides the device's health does.
+    for (const column of POLL_AND_INTERFACE_COLUMNS) {
+      expect(update).not.toHaveProperty(column);
+    }
+
+    // The interface inventory itself is still recorded - it is not health.
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain(DEVICE_ID);
+  });
+
+  test("an unreachable walk of a monitor-backed device with nothing else to record writes nothing", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "Device did not respond",
+      },
+      { isOnline: false },
+    );
+
+    /*
+     * For a probe-polled device this exact walk MUST write (the attempt has
+     * to be recorded); for a monitor-backed one the attempt is meaningless
+     * and an empty payload is correctly skipped.
+     */
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The ping-mode NULLs are health writes too: a monitor-backed device's
+   * interface counts belong to whatever last wrote them, not to a poll that
+   * should never have reached it.
+   */
+  test("a ping-only poll of a monitor-backed device writes nothing - not even the NULLs - and warns once", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runPingOnlyPoll({ isOnline: true });
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("selects monitoringMethod on the device read, or the guard can never fire", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["monitoringMethod"]).toBe(true);
+  });
+
+  test("an SNMP walk is unchanged: every poll and interface column is written and nothing warns", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
+    expect(update["interfacesTotal"]).toBe(2);
+    expect(update["interfacesUp"]).toBe(1);
+    expect(update["interfacesDown"]).toBe(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("a row with no monitoringMethod at all (written before the column existed) is walked as SNMP", async () => {
+    // The default device carries no monitoringMethod, exactly like a legacy row.
+    mockServices();
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk();
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(warn).not.toHaveBeenCalled();
   });
 });

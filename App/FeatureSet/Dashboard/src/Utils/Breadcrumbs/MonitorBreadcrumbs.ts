@@ -121,7 +121,61 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Notification Logs",
     ]),
 
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_PROBE_DISCONNECTED, [
+      "Project",
+      "Monitors",
+      "Probe Disconnected",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_PROBE_DISABLED, [
+      "Project",
+      "Monitors",
+      "Probe Disabled",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_ALERTS, [
+      "Project",
+      "Monitors",
+      "View Monitor",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_DOCUMENTATION, [
+      "Project",
+      "Monitors",
+      "View Monitor",
+      "Documentation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Monitors",
+      "View Monitor",
+      "Audit Logs",
+    ]),
+
     // Monitor Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_TEMPLATES, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Templates",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Templates",
+      "View Template",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Label Rules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS, [
       "Project",
       "Monitors",

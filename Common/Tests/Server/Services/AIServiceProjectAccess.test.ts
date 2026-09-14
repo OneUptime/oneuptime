@@ -182,6 +182,12 @@ describe("AIService.assertProjectCanUseAI", () => {
 function mockFailedProviderRequest(
   error: Error,
 ): jest.SpiedFunction<typeof LlmLogService.create> {
+  /*
+   * executeWithLogging reads the project before anything else — the enableAi
+   * kill switch is enforced there, not only at the entry points above. These
+   * cases are about what a PROVIDER failure discloses, so the switch is on.
+   */
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
   jest.spyOn(LlmProviderService, "getProviderForChat").mockResolvedValue({
     id: ObjectID.generate(),
     name: "Test Provider",

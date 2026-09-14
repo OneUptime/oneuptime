@@ -2,6 +2,9 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../../Utils/Metrics/MetricResourceAttributeUtil";
+import CapturedMetricAttributeUtil, {
+  SanitizedCapturedMetricAttributes,
+} from "./CapturedMetricAttributeUtil";
 import MetricService from "../../Services/MetricService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -16,11 +19,17 @@ import BasicInfrastructureMetrics, {
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
+import { getAllDatabaseMetrics } from "../../../Types/Monitor/DatabaseMetricCatalog";
+import DatabaseMonitorResponse from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import PortMonitorTimings from "../../../Types/Monitor/PortMonitor/PortMonitorTimings";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import {
+  MAX_INTERFACE_METRIC_SERIES,
+  MAX_OID_METRIC_SERIES,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -245,9 +254,14 @@ export default class MonitorMetricUtil {
    * same monitor, so there is nothing per-metric to decide, and one pass is
    * far easier to keep correct than thirty call sites.
    *
-   * Resource attributes are merged LAST. Custom code monitors let a user
-   * supply their own attribute names, and those must not be able to shadow the
-   * oneuptime.* namespace.
+   * Resource attributes are merged LAST, so a resource attribute wins any
+   * collision. That merge is NOT what keeps the oneuptime.* namespace safe
+   * from a monitor script, though — it only ever writes the handful of keys
+   * this monitor's own labels and custom fields produce, and it does not run
+   * at all for a monitor that has neither. Script-supplied attribute keys are
+   * refused at the point they are read instead, by
+   * CapturedMetricAttributeUtil, which rejects the whole oneuptime.* and
+   * resource.* namespaces rather than the keys that happen to collide today.
    */
   public static applyResourceAttributesToMetricRows(data: {
     metricRows: Array<JSONObject>;
@@ -944,6 +958,45 @@ export default class MonitorMetricUtil {
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
     }
 
+    const databaseResponse: DatabaseMonitorResponse | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).databaseMonitorResponse;
+
+    if (databaseResponse) {
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      /*
+       * Driven off the catalog rather than a list here so a metric is wired
+       * end to end the moment it is added there. Every database series is
+       * single-valued per check, so there is no per-series fan-out to cap
+       * and probeId is the only attribute worth carrying.
+       *
+       * A metric the engine could not report, or whose group was skipped,
+       * is simply absent from the map and pushMonitorMetric writes no row
+       * for it. Absent must never become zero: a replication lag that was
+       * not measured and a replication lag of zero mean opposite things.
+       */
+      for (const definition of getAllDatabaseMetrics()) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: definition.metricType,
+          value: databaseResponse.metrics[definition.metricType],
+          description: definition.description,
+          unit: definition.unit,
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
+    }
+
     const snmpInterfaces: Array<SnmpInterface> | undefined = (
       data.dataToProcess as ProbeMonitorResponse
     ).snmpResponse?.interfaces;
@@ -956,7 +1009,7 @@ export default class MonitorMetricUtil {
        */
       const interfacesToEmit: Array<SnmpInterface> = snmpInterfaces.slice(
         0,
-        200,
+        MAX_INTERFACE_METRIC_SERIES,
       );
 
       if (interfacesToEmit.length < snmpInterfaces.length) {
@@ -1042,10 +1095,17 @@ export default class MonitorMetricUtil {
     ).snmpResponse?.oidResponses;
 
     if (snmpOidResponses && snmpOidResponses.length > 0) {
-      // Same unbounded-write cap rationale as the interface block above.
+      /*
+       * Same unbounded-write cap rationale as the interface block above.
+       *
+       * Shared with NetworkDeviceMetricUtil rather than repeated as a
+       * literal: this is the monitor-scoped copy of the same emit, and the
+       * two caps have to move together or a device charts a different number
+       * of OIDs than the monitors watching it.
+       */
       const oidResponsesToEmit: Array<SnmpOidResponse> = snmpOidResponses.slice(
         0,
-        50,
+        MAX_OID_METRIC_SERIES,
       );
 
       if (oidResponsesToEmit.length < snmpOidResponses.length) {
@@ -1327,13 +1387,13 @@ export default class MonitorMetricUtil {
       );
     }
 
-    const reservedAttributeKeys: Set<string> = new Set([
-      "monitorId",
-      "projectId",
-      "monitorName",
-      "probeName",
-      "probeId",
-    ]);
+    /*
+     * Keys a script tried to write but is not allowed to own, collected
+     * across the whole check so the operator gets one line naming them
+     * rather than one per datapoint. Without it, an attribute that silently
+     * never reaches a chart is indistinguishable from a bug in the script.
+     */
+    const droppedReservedAttributeKeys: Set<string> = new Set<string>();
 
     for (const customMetric of allCustomMetrics) {
       if (
@@ -1347,7 +1407,20 @@ export default class MonitorMetricUtil {
 
       const prefixedName: string = `custom.monitor.${customMetric.name}`;
 
+      /*
+       * Script-supplied attributes first, OneUptime's own stamps after, so
+       * the stamps are written onto a set the guard has already cleared of
+       * every key OneUptime owns.
+       */
+      const sanitized: SanitizedCapturedMetricAttributes =
+        CapturedMetricAttributeUtil.sanitize(customMetric.attributes);
+
+      for (const droppedKey of sanitized.droppedReservedKeys) {
+        droppedReservedAttributeKeys.add(droppedKey);
+      }
+
       const extraAttributes: JSONObject = {
+        ...sanitized.attributes,
         isCustomMetric: "true",
       };
 
@@ -1355,14 +1428,6 @@ export default class MonitorMetricUtil {
         extraAttributes["probeId"] = (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString();
-      }
-
-      if (customMetric.attributes) {
-        for (const [key, val] of Object.entries(customMetric.attributes)) {
-          if (typeof val === "string" && !reservedAttributeKeys.has(key)) {
-            extraAttributes[key] = val;
-          }
-        }
       }
 
       const attributes: JSONObject = this.buildMonitorMetricAttributes({
@@ -1390,6 +1455,16 @@ export default class MonitorMetricUtil {
       metricType.unit = "";
 
       metricNameServiceNameMap[prefixedName] = metricType;
+    }
+
+    if (droppedReservedAttributeKeys.size > 0) {
+      logger.warn(
+        `${data.monitorId.toString()} - Custom metric attributes dropped, these keys are reserved by OneUptime: ${Array.from(
+          droppedReservedAttributeKeys,
+        )
+          .sort()
+          .join(", ")}`,
+      );
     }
 
     this.applyResourceAttributesToMetricRows({

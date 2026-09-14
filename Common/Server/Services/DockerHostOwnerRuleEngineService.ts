@@ -7,9 +7,15 @@ import DockerHostOwnerRuleService from "./DockerHostOwnerRuleService";
 import DockerHostOwnerUserService from "./DockerHostOwnerUserService";
 import DockerHostOwnerTeamService from "./DockerHostOwnerTeamService";
 import DockerHostService from "./DockerHostService";
+import DockerHostFeedService from "./DockerHostFeedService";
+import { DockerHostFeedEventType } from "../../Models/DatabaseModels/DockerHostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DockerHostOwnerRuleEngineServiceClass {
   /**
@@ -35,6 +41,7 @@ class DockerHostOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             dockerHostLabels: { _id: true },
             dockerHostNamePattern: true,
@@ -42,9 +49,15 @@ class DockerHostOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "DockerHostOwnerRule",
+        projectId: dockerHost.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -140,6 +153,26 @@ class DockerHostOwnerRuleEngineServiceClass {
         `DockerHostOwnerRuleEngine added owners to Docker host ${dockerHost.id}`,
         { projectId: dockerHost.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await DockerHostFeedService.createDockerHostFeedItem({
+        dockerHostId: dockerHost.id,
+        projectId: dockerHost.projectId,
+        dockerHostFeedEventType: DockerHostFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await DockerHostService.getDockerHostMarkdownLink(
+          dockerHost.projectId,
+          dockerHost.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: DockerHostOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Docker host owner rules: ${error}`, {
         projectId: dockerHost.projectId?.toString(),
@@ -149,6 +182,24 @@ class DockerHostOwnerRuleEngineServiceClass {
   }
 
   private doesDockerHostMatchRule(
+    dockerHost: DockerHost,
+    rule: DockerHostOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dockerHostLabels",
+        "dockerHostNamePattern",
+        "dockerHostDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DockerHostOwnerRule): boolean => {
+        return this.doesDockerHostMatchLegacyRule(dockerHost, legacyRule);
+      },
+    });
+  }
+
+  private doesDockerHostMatchLegacyRule(
     dockerHost: DockerHost,
     rule: DockerHostOwnerRule,
   ): boolean {

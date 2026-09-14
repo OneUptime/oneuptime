@@ -91,6 +91,7 @@
     "FAQ & Troubleshooting": "FAQ & Fehlerbehebung",
     "IP Addresses": "IP-Adressen",
     "SMTP": "SMTP",
+    "Notification Rollup": "Benachrichtigungs-Zusammenfassung",
     "SSO": "SSO",
     "SCIM": "SCIM",
     "Users, Teams & Permissions": "Benutzer, Teams & Berechtigungen",
@@ -139,6 +140,7 @@
     "Incident & Alert Templating": "Vorfall- & Warnmeldungsvorlagen",
     "Monitor Secrets": "Überwachungs-Geheimnisse",
     "AI SRE": "AI SRE",
+    "Calendar Feeds": "Kalender-Feeds",
     "Incoming Call Policy": "Richtlinie für eingehende Anrufe",
     "Phone Number Whitelist": "Telefonnummern-Whitelist",
     "Runbooks Overview": "Runbooks – Übersicht",
@@ -169,6 +171,7 @@
     "PagerDuty": "PagerDuty",
     "Opsgenie": "Opsgenie",
     "ServiceNow": "ServiceNow",
+    "Microsoft Dynamics 365": "Microsoft Dynamics 365",
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
@@ -188,6 +191,7 @@
     "Docker Agent": "Docker-Agent",
     "IoT Devices": "IoT-Geräte",
     "Fix Tasks": "Fix Tasks",
+    "GitHub App": "GitHub App",
     "LLM Providers": "LLM-Anbieter",
     "MCP Server": "MCP-Server",
     "OneUptime API Reference": "OneUptime-API-Referenz",
@@ -196,6 +200,7 @@
     "GitHub Integration": "GitHub-Integration",
     "Push Notifications": "Push-Benachrichtigungen",
     "SendGrid Inbound Email": "SendGrid Inbound E-Mail",
+    "Private Network Access": "Zugriff auf private Netzwerke",
     "Architecture": "Architektur",
     "Custom Fields": "Benutzerdefinierte Felder",
     "Exporting to a CMDB": "Export in eine CMDB",
@@ -207,6 +212,7 @@
     "Status Pages Overview": "Statusseiten – Übersicht",
     "Status Page Resources & Groups": "Statusseiten – Ressourcen & Gruppen",
     "Status Page Branding & Domains": "Statusseiten – Branding & Domains",
-    "Subscribers & Announcements": "Abonnenten & Ankündigungen"
+    "Subscribers & Announcements": "Abonnenten & Ankündigungen",
+    "Twilio Integration": "Twilio-Integration"
   }
 }

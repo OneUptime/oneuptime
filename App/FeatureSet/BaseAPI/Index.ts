@@ -34,12 +34,15 @@ import AIInsightService, {
   Service as AIInsightServiceType,
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
+import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
+import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
+import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -114,6 +117,7 @@ import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
+import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import ApiKeyPermissionService, {
@@ -140,6 +144,9 @@ import StatusPageSCIMLogService, {
 import TelemetryIngestionKeyService, {
   Service as TelemetryIngestionKeyServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetrySourceMapService, {
+  Service as TelemetrySourceMapServiceType,
+} from "Common/Server/Services/TelemetrySourceMapService";
 import IoTDeviceCredentialService, {
   Service as IoTDeviceCredentialServiceType,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -154,6 +161,7 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
@@ -381,6 +389,9 @@ import KubernetesClusterLabelRuleService, {
 import ProxmoxClusterOwnerRuleService, {
   Service as ProxmoxClusterOwnerRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+import VMwareVCenterOwnerRuleService, {
+  Service as VMwareVCenterOwnerRuleServiceType,
+} from "Common/Server/Services/VMwareVCenterOwnerRuleService";
 import IoTFleetOwnerRuleService, {
   Service as IoTFleetOwnerRuleServiceType,
 } from "Common/Server/Services/IoTFleetOwnerRuleService";
@@ -391,6 +402,9 @@ import DockerSwarmClusterOwnerRuleService, {
 import ProxmoxClusterLabelRuleService, {
   Service as ProxmoxClusterLabelRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+import VMwareVCenterLabelRuleService, {
+  Service as VMwareVCenterLabelRuleServiceType,
+} from "Common/Server/Services/VMwareVCenterLabelRuleService";
 import IoTFleetLabelRuleService, {
   Service as IoTFleetLabelRuleServiceType,
 } from "Common/Server/Services/IoTFleetLabelRuleService";
@@ -530,9 +544,13 @@ import LogDropFilterService, {
 import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
-import GoogleSecOpsConnectionService, {
-  Service as GoogleSecOpsConnectionServiceType,
-} from "Common/Server/Services/GoogleSecOpsConnectionService";
+import GoogleSecOpsConnectionAPI from "Common/Server/API/GoogleSecOpsConnectionAPI";
+import GoogleSecOpsConnectionRunService, {
+  Service as GoogleSecOpsConnectionRunServiceType,
+} from "Common/Server/Services/GoogleSecOpsConnectionRunService";
+import ThreatIntelFeedService, {
+  Service as ThreatIntelFeedServiceType,
+} from "Common/Server/Services/ThreatIntelFeedService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -689,6 +707,9 @@ import PodmanResourceService, {
 import ProxmoxClusterService, {
   Service as ProxmoxClusterServiceType,
 } from "Common/Server/Services/ProxmoxClusterService";
+import VMwareVCenterService, {
+  Service as VMwareVCenterServiceType,
+} from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService, {
   Service as IoTFleetServiceType,
 } from "Common/Server/Services/IoTFleetService";
@@ -701,6 +722,9 @@ import CephClusterService, {
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import VMwareVCenterOwnerTeamService, {
+  Service as VMwareVCenterOwnerTeamServiceType,
+} from "Common/Server/Services/VMwareVCenterOwnerTeamService";
 import IoTFleetOwnerTeamService, {
   Service as IoTFleetOwnerTeamServiceType,
 } from "Common/Server/Services/IoTFleetOwnerTeamService";
@@ -710,6 +734,9 @@ import DockerSwarmClusterOwnerTeamService, {
 import ProxmoxClusterOwnerUserService, {
   Service as ProxmoxClusterOwnerUserServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import VMwareVCenterOwnerUserService, {
+  Service as VMwareVCenterOwnerUserServiceType,
+} from "Common/Server/Services/VMwareVCenterOwnerUserService";
 import IoTFleetOwnerUserService, {
   Service as IoTFleetOwnerUserServiceType,
 } from "Common/Server/Services/IoTFleetOwnerUserService";
@@ -743,6 +770,9 @@ import LogService, {
 import SecurityEventService, {
   SecurityEventService as SecurityEventServiceType,
 } from "Common/Server/Services/SecurityEventService";
+import ThreatIntelIndicatorService, {
+  ThreatIntelIndicatorService as ThreatIntelIndicatorServiceType,
+} from "Common/Server/Services/ThreatIntelIndicatorService";
 /*
  * Sibling-relative on purpose: the `Common` package specifier resolves
  * through App/node_modules, which may symlink a checkout that predates
@@ -819,6 +849,9 @@ import IncomingCallPolicyService, {
 import IncomingCallPolicyEscalationRuleService, {
   Service as IncomingCallPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
+import IncomingCallPolicyPhoneNumberService, {
+  Service as IncomingCallPolicyPhoneNumberServiceType,
+} from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallLogService, {
   Service as IncomingCallLogServiceType,
 } from "Common/Server/Services/IncomingCallLogService";
@@ -849,6 +882,30 @@ import OnCallDutyPolicyScheduleLayerUserService, {
 import OnCallDutyPolicyScheduleService, {
   Service as OnCallDutyPolicyScheduleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+import UserOnCallCalendarFeedService, {
+  Service as UserOnCallCalendarFeedServiceType,
+} from "Common/Server/Services/UserOnCallCalendarFeedService";
+import OnCallDutyPolicyScheduleCalendarFeedService, {
+  Service as OnCallDutyPolicyScheduleCalendarFeedServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
+import ProjectOnCallCalendarFeedService, {
+  Service as ProjectOnCallCalendarFeedServiceType,
+} from "Common/Server/Services/ProjectOnCallCalendarFeedService";
+import UserOnCallShiftReminderService, {
+  Service as UserOnCallShiftReminderServiceType,
+} from "Common/Server/Services/UserOnCallShiftReminderService";
+import UserOnCallShiftReminderLogService, {
+  Service as UserOnCallShiftReminderLogServiceType,
+} from "Common/Server/Services/UserOnCallShiftReminderLogService";
+import UserNotificationEmailRollupItemService, {
+  Service as UserNotificationEmailRollupItemServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupSettingService, {
+  Service as UserNotificationEmailRollupSettingServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupSettingService";
+import UserNotificationEmailRollupBatchService, {
+  Service as UserNotificationEmailRollupBatchServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupBatchService";
 import ProjectCallSMSConfigService, {
   Service as ProjectCallSMSConfigServiceType,
 } from "Common/Server/Services/ProjectCallSMSConfigService";
@@ -976,9 +1033,7 @@ import TelemetryUsageBillingService, {
 import UserNotificationRuleService, {
   Service as UserNotificationRuleServiceType,
 } from "Common/Server/Services/UserNotificationRuleService";
-import UserNotificationSettingService, {
-  Service as UserNotificationSettingServiceType,
-} from "Common/Server/Services/UserNotificationSettingService";
+import UserNotificationSettingAPI from "Common/Server/API/UserNotificationSettingAPI";
 import UserOnCallLogService, {
   Service as UserNotificationLogServiceType,
 } from "Common/Server/Services/UserOnCallLogService";
@@ -1069,6 +1124,7 @@ import Express, {
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import ChangeEvent from "../../../Common/Models/AnalyticsModels/ChangeEvent";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
@@ -1138,9 +1194,11 @@ import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRul
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
 import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
 import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
@@ -1228,12 +1286,15 @@ import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTea
 import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
 import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import VMwareVCenterOwnerTeam from "Common/Models/DatabaseModels/VMwareVCenterOwnerTeam";
 import IoTFleetOwnerTeam from "Common/Models/DatabaseModels/IoTFleetOwnerTeam";
 import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import VMwareVCenterOwnerUser from "Common/Models/DatabaseModels/VMwareVCenterOwnerUser";
 import IoTFleetOwnerUser from "Common/Models/DatabaseModels/IoTFleetOwnerUser";
 import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
@@ -1264,6 +1325,7 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 // Incoming Call Policy Models
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -1272,6 +1334,14 @@ import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
+import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
+import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
+import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
+import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
+import UserNotificationEmailRollupSetting from "Common/Models/DatabaseModels/UserNotificationEmailRollupSetting";
+import UserNotificationEmailRollupBatch from "Common/Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -1298,6 +1368,7 @@ import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterL
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
@@ -1312,7 +1383,6 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
-import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
@@ -1362,7 +1432,8 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
+import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
+import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -1412,6 +1483,46 @@ import MonitorFeed from "Common/Models/DatabaseModels/MonitorFeed";
 import MonitorFeedService, {
   Service as MonitorFeedServiceType,
 } from "Common/Server/Services/MonitorFeedService";
+import KubernetesClusterFeed from "Common/Models/DatabaseModels/KubernetesClusterFeed";
+import KubernetesClusterFeedService, {
+  Service as KubernetesClusterFeedServiceType,
+} from "Common/Server/Services/KubernetesClusterFeedService";
+import DockerHostFeed from "Common/Models/DatabaseModels/DockerHostFeed";
+import DockerHostFeedService, {
+  Service as DockerHostFeedServiceType,
+} from "Common/Server/Services/DockerHostFeedService";
+import DockerSwarmClusterFeed from "Common/Models/DatabaseModels/DockerSwarmClusterFeed";
+import DockerSwarmClusterFeedService, {
+  Service as DockerSwarmClusterFeedServiceType,
+} from "Common/Server/Services/DockerSwarmClusterFeedService";
+import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
+import CephClusterFeedService, {
+  Service as CephClusterFeedServiceType,
+} from "Common/Server/Services/CephClusterFeedService";
+import PodmanHostFeed from "Common/Models/DatabaseModels/PodmanHostFeed";
+import PodmanHostFeedService, {
+  Service as PodmanHostFeedServiceType,
+} from "Common/Server/Services/PodmanHostFeedService";
+import ProxmoxClusterFeed from "Common/Models/DatabaseModels/ProxmoxClusterFeed";
+import ProxmoxClusterFeedService, {
+  Service as ProxmoxClusterFeedServiceType,
+} from "Common/Server/Services/ProxmoxClusterFeedService";
+import VMwareVCenterFeed from "Common/Models/DatabaseModels/VMwareVCenterFeed";
+import VMwareVCenterFeedService, {
+  Service as VMwareVCenterFeedServiceType,
+} from "Common/Server/Services/VMwareVCenterFeedService";
+import HostFeed from "Common/Models/DatabaseModels/HostFeed";
+import HostFeedService, {
+  Service as HostFeedServiceType,
+} from "Common/Server/Services/HostFeedService";
+import CloudResourceFeed from "Common/Models/DatabaseModels/CloudResourceFeed";
+import CloudResourceFeedService, {
+  Service as CloudResourceFeedServiceType,
+} from "Common/Server/Services/CloudResourceFeedService";
+import ServiceFeed from "Common/Models/DatabaseModels/ServiceFeed";
+import ServiceFeedService, {
+  Service as ServiceFeedServiceType,
+} from "Common/Server/Services/ServiceFeedService";
 
 // MetricType.
 import MetricTypeService, {
@@ -1421,6 +1532,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
@@ -1570,6 +1682,30 @@ import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDev
 import NetworkDeviceAutoImportRuleService, {
   Service as NetworkDeviceAutoImportRuleServiceType,
 } from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
+
+// NetworkDeviceRole
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import NetworkDeviceRoleService, {
+  Service as NetworkDeviceRoleServiceType,
+} from "Common/Server/Services/NetworkDeviceRoleService";
+
+// NetworkSnmpCredentialProfile
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import NetworkSnmpCredentialProfileService, {
+  Service as NetworkSnmpCredentialProfileServiceType,
+} from "Common/Server/Services/NetworkSnmpCredentialProfileService";
+
+// NetworkAlertPolicy
+import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkAlertPolicyService, {
+  Service as NetworkAlertPolicyServiceType,
+} from "Common/Server/Services/NetworkAlertPolicyService";
+
+// NetworkDeviceOidTemplate
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkDeviceOidTemplateService, {
+  Service as NetworkDeviceOidTemplateServiceType,
+} from "Common/Server/Services/NetworkDeviceOidTemplateService";
 
 // NetworkDeviceDiscoveryScan
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -1964,6 +2100,96 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorFeed, MonitorFeedServiceType>(
         MonitorFeed,
         MonitorFeedService,
+      ).getRouter(),
+    );
+
+    // Kubernetes cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<KubernetesClusterFeed, KubernetesClusterFeedServiceType>(
+        KubernetesClusterFeed,
+        KubernetesClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Docker host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostFeed, DockerHostFeedServiceType>(
+        DockerHostFeed,
+        DockerHostFeedService,
+      ).getRouter(),
+    );
+
+    // Docker Swarm cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerSwarmClusterFeed, DockerSwarmClusterFeedServiceType>(
+        DockerSwarmClusterFeed,
+        DockerSwarmClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Ceph cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterFeed, CephClusterFeedServiceType>(
+        CephClusterFeed,
+        CephClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Podman host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostFeed, PodmanHostFeedServiceType>(
+        PodmanHostFeed,
+        PodmanHostFeedService,
+      ).getRouter(),
+    );
+
+    // Proxmox cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterFeed, ProxmoxClusterFeedServiceType>(
+        ProxmoxClusterFeed,
+        ProxmoxClusterFeedService,
+      ).getRouter(),
+    );
+
+    // VMware vCenter feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenterFeed, VMwareVCenterFeedServiceType>(
+        VMwareVCenterFeed,
+        VMwareVCenterFeedService,
+      ).getRouter(),
+    );
+
+    // host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostFeed, HostFeedServiceType>(
+        HostFeed,
+        HostFeedService,
+      ).getRouter(),
+    );
+
+    // cloud resource feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceFeed, CloudResourceFeedServiceType>(
+        CloudResourceFeed,
+        CloudResourceFeedService,
+      ).getRouter(),
+    );
+
+    // service feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceFeed, ServiceFeedServiceType>(
+        ServiceFeed,
+        ServiceFeedService,
       ).getRouter(),
     );
 
@@ -2537,6 +2763,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenterOwnerRule, VMwareVCenterOwnerRuleServiceType>(
+        VMwareVCenterOwnerRule,
+        VMwareVCenterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IoTFleetOwnerRule, IoTFleetOwnerRuleServiceType>(
         IoTFleetOwnerRule,
         IoTFleetOwnerRuleService,
@@ -2559,6 +2793,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
         ProxmoxClusterLabelRule,
         ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenterLabelRule, VMwareVCenterLabelRuleServiceType>(
+        VMwareVCenterLabelRule,
+        VMwareVCenterLabelRuleService,
       ).getRouter(),
     );
 
@@ -2862,6 +3104,11 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ProxmoxResourceAPI().getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VMwareResourceAPI().getRouter(),
+    );
+
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
@@ -2933,6 +3180,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<
+        ThreatIntelIndicator,
+        ThreatIntelIndicatorServiceType
+      >(ThreatIntelIndicator, ThreatIntelIndicatorService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<ChangeEvent, ChangeEventServiceType>(
         ChangeEvent,
         ChangeEventService,
@@ -2965,6 +3220,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetryIngestionKey, TelemetryIngestionKeyServiceType>(
         TelemetryIngestionKey,
         TelemetryIngestionKeyService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetrySourceMap, TelemetrySourceMapServiceType>(
+        TelemetrySourceMap,
+        TelemetrySourceMapService,
       ).getRouter(),
     );
 
@@ -3274,9 +3537,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<GoogleSecOpsConnection, GoogleSecOpsConnectionServiceType>(
-        GoogleSecOpsConnection,
-        GoogleSecOpsConnectionService,
+      new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
+        ThreatIntelFeed,
+        ThreatIntelFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new GoogleSecOpsConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        GoogleSecOpsConnectionRun,
+        GoogleSecOpsConnectionRunServiceType
+      >(
+        GoogleSecOpsConnectionRun,
+        GoogleSecOpsConnectionRunService,
       ).getRouter(),
     );
 
@@ -4089,6 +4368,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenter, VMwareVCenterServiceType>(
+        VMwareVCenter,
+        VMwareVCenterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IoTFleet, IoTFleetServiceType>(
         IoTFleet,
         IoTFleetService,
@@ -4108,6 +4395,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
         ProxmoxClusterOwnerTeam,
         ProxmoxClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenterOwnerTeam, VMwareVCenterOwnerTeamServiceType>(
+        VMwareVCenterOwnerTeam,
+        VMwareVCenterOwnerTeamService,
       ).getRouter(),
     );
 
@@ -4135,6 +4430,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
         ProxmoxClusterOwnerUser,
         ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareVCenterOwnerUser, VMwareVCenterOwnerUserServiceType>(
+        VMwareVCenterOwnerUser,
+        VMwareVCenterOwnerUserService,
       ).getRouter(),
     );
 
@@ -4220,10 +4523,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<UserNotificationSetting, UserNotificationSettingServiceType>(
-        UserNotificationSetting,
-        UserNotificationSettingService,
-      ).getRouter(),
+      new UserNotificationSettingAPI().getRouter(),
     );
 
     app.use(
@@ -4381,6 +4681,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // IncomingCallPolicyPhoneNumber (read-only through model permissions)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyPhoneNumber,
+        IncomingCallPolicyPhoneNumberServiceType
+      >(
+        IncomingCallPolicyPhoneNumber,
+        IncomingCallPolicyPhoneNumberService,
+      ).getRouter(),
+    );
+
     // IncomingCallLog
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4414,6 +4726,115 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * On-call calendar feeds. The custom router carries the public
+     * capability routes (/on-call-calendar/user|schedule|project/:token/...,
+     * no UserMiddleware -- the token in the path is the credential) and the
+     * session routes the settings pages and the mobile app use (/feed/*,
+     * /schedule-feed/*, /project-feed/*, /my-shifts). A bare router for the
+     * same reason OnCallReadinessAPI is one. The five generic CRUD routers
+     * below serve the settings columns; every token column has read [] so
+     * CRUD can never return one.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<UserOnCallCalendarFeed, UserOnCallCalendarFeedServiceType>(
+        UserOnCallCalendarFeed,
+        UserOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleCalendarFeed,
+        OnCallDutyPolicyScheduleCalendarFeedServiceType
+      >(
+        OnCallDutyPolicyScheduleCalendarFeed,
+        OnCallDutyPolicyScheduleCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ProjectOnCallCalendarFeed,
+        ProjectOnCallCalendarFeedServiceType
+      >(
+        ProjectOnCallCalendarFeed,
+        ProjectOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<UserOnCallShiftReminder, UserOnCallShiftReminderServiceType>(
+        UserOnCallShiftReminder,
+        UserOnCallShiftReminderService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserOnCallShiftReminderLog,
+        UserOnCallShiftReminderLogServiceType
+      >(
+        UserOnCallShiftReminderLog,
+        UserOnCallShiftReminderLogService,
+      ).getRouter(),
+    );
+
+    /*
+     * The owner-email rollup queue and its claim ledger. Both routers deny
+     * every operation - the models' table access lists are empty, because
+     * they are mail-delivery bookkeeping and not a user-facing resource.
+     * They are mounted anyway so the models stay addressable like every
+     * other tenant model, exactly as UserOnCallShiftReminderLog above is.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupItem,
+        UserNotificationEmailRollupItemServiceType
+      >(
+        UserNotificationEmailRollupItem,
+        UserNotificationEmailRollupItemService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupBatch,
+        UserNotificationEmailRollupBatchServiceType
+      >(
+        UserNotificationEmailRollupBatch,
+        UserNotificationEmailRollupBatchService,
+      ).getRouter(),
+    );
+
+    /*
+     * Unlike the two rollup tables above, this one is genuinely used by a
+     * person: the User Settings > Email Preferences page reads and writes it
+     * through this router to turn burst rollup off for themselves. Its
+     * access control is Permission.CurrentUser scoped by
+     * @CurrentUserCanAccessRecordBy("userId"), so a member can only ever see
+     * or change their own row.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupSetting,
+        UserNotificationEmailRollupSettingServiceType
+      >(
+        UserNotificationEmailRollupSetting,
+        UserNotificationEmailRollupSettingService,
+      ).getRouter(),
+    );
 
     /*
      * Administrative management of another member's notification methods —
@@ -4606,6 +5027,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentDataAPI().getRouter(),
+    );
+
+    // The agent worker's protocol for GitHub-triggered runs.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentGitHubAPI().getRouter(),
     );
 
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
@@ -4868,6 +5295,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * The session replay health endpoint reports which recorder build this
+     * deployment publishes. The manifest reader lives in the BrowserRecorder
+     * feature set, which Common cannot import, so the read service takes it
+     * through a provider seam registered here, where both sides are known.
+     */
+    SessionReplayReadService.setPublishedRecorderVersionProvider(
+      getRecorderVersion,
+    );
+
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 
     //attach api's
@@ -4937,6 +5374,45 @@ const BaseAPIFeatureSet: FeatureSet = {
         NetworkDeviceAutoImportRule,
         NetworkDeviceAutoImportRuleService,
       ).getRouter(),
+    );
+
+    // network device role
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceRole, NetworkDeviceRoleServiceType>(
+        NetworkDeviceRole,
+        NetworkDeviceRoleService,
+      ).getRouter(),
+    );
+
+    // network snmp credential profile
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSnmpCredentialProfile,
+        NetworkSnmpCredentialProfileServiceType
+      >(
+        NetworkSnmpCredentialProfile,
+        NetworkSnmpCredentialProfileService,
+      ).getRouter(),
+    );
+
+    // network alert policy
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkAlertPolicy, NetworkAlertPolicyServiceType>(
+        NetworkAlertPolicy,
+        NetworkAlertPolicyService,
+      ).getRouter(),
+    );
+
+    // network device oid collection template
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkDeviceOidTemplate,
+        NetworkDeviceOidTemplateServiceType
+      >(NetworkDeviceOidTemplate, NetworkDeviceOidTemplateService).getRouter(),
     );
 
     // network device discovery scan
@@ -5057,6 +5533,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkSiteHierarchyAPI().getRouter(),
+    );
+    /*
+     * Fleet-wide counts for the device strip, the site strip and the network
+     * overview. Mounted after both CRUD routers, and safe there: BaseAPI
+     * claims no `/summary` or `/overview` path on either model.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkSummaryAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

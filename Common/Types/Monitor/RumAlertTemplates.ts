@@ -209,12 +209,28 @@ function buildWebVitalTemplate(data: WebVitalTemplateData): RumAlertTemplate {
   };
 }
 
+/*
+ * A monitor holds exactly ONE metric name. There is no server-side equivalent
+ * of the RUM overview card's candidate probing — WEB_VITAL_DEFS in
+ * telemetryMetrics.ts tries four spellings per vital and keeps whichever has
+ * data, but MonitorTelemetryMonitor queries `name` as an exact match
+ * (MonitorTelemetryMonitor.ts:1183) — and a query that matches nothing returns
+ * rootCause: null under the default NoDataPolicy.Ignore. No error, no warning,
+ * nothing.
+ *
+ * So a team whose SDK emits `browser.largest_contentful_paint` sees a
+ * populated Core Web Vitals card, clicks create on this recommendation, and
+ * gets a monitor that will never fire and never say why. Every template below
+ * therefore targets the `web_vital.*` name the docs tell new instrumentation
+ * to emit AND names its alternates in the description, so retargeting is one
+ * visible edit rather than a mystery.
+ */
 const webVitalTemplates: Array<RumAlertTemplate> = [
   buildWebVitalTemplate({
     id: "rum-poor-lcp",
     name: "Poor Largest Contentful Paint",
     description:
-      "Alert when average Largest Contentful Paint reaches the poor-performance boundary of 4 seconds.",
+      "Alert when average Largest Contentful Paint reaches the poor-performance boundary of 4 seconds. Reads web_vital.lcp; an SDK emitting browser.largest_contentful_paint, largest_contentful_paint or web.vitals.lcp must retarget the created monitor.",
     metricName: "web_vital.lcp",
     metricAlias: "rum_lcp",
     threshold: 4000,
@@ -226,7 +242,7 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
     id: "rum-poor-inp",
     name: "Poor Interaction to Next Paint",
     description:
-      "Alert when average Interaction to Next Paint reaches the poor-performance boundary of 500 milliseconds.",
+      "Alert when average Interaction to Next Paint reaches the poor-performance boundary of 500 milliseconds. Reads web_vital.inp; an SDK emitting browser.interaction_to_next_paint, interaction_to_next_paint or web.vitals.inp must retarget the created monitor.",
     metricName: "web_vital.inp",
     metricAlias: "rum_inp",
     threshold: 500,
@@ -238,7 +254,7 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
     id: "rum-poor-cls",
     name: "Poor Cumulative Layout Shift",
     description:
-      "Alert when average Cumulative Layout Shift reaches the poor-experience boundary of 0.25.",
+      "Alert when average Cumulative Layout Shift reaches the poor-experience boundary of 0.25. Reads web_vital.cls; an SDK emitting browser.cumulative_layout_shift, cumulative_layout_shift or web.vitals.cls must retarget the created monitor.",
     metricName: "web_vital.cls",
     metricAlias: "rum_cls",
     threshold: 0.25,
@@ -250,7 +266,7 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
     id: "rum-slow-fcp",
     name: "Slow First Contentful Paint",
     description:
-      "Alert when average First Contentful Paint reaches the poor-performance boundary of 3 seconds.",
+      "Alert when average First Contentful Paint reaches the poor-performance boundary of 3 seconds. Reads web_vital.fcp; an SDK emitting browser.first_contentful_paint, first_contentful_paint or web.vitals.fcp must retarget the created monitor.",
     metricName: "web_vital.fcp",
     metricAlias: "rum_fcp",
     threshold: 3000,
@@ -262,7 +278,7 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
     id: "rum-slow-ttfb",
     name: "Slow Time to First Byte",
     description:
-      "Alert when average Time to First Byte reaches the poor-performance boundary of 1.8 seconds.",
+      "Alert when average Time to First Byte reaches the poor-performance boundary of 1.8 seconds. Reads web_vital.ttfb; an SDK emitting browser.time_to_first_byte, time_to_first_byte or web.vitals.ttfb must retarget the created monitor.",
     metricName: "web_vital.ttfb",
     metricAlias: "rum_ttfb",
     threshold: 1800,
@@ -276,9 +292,32 @@ const failedUserOperationsTemplate: RumAlertTemplate = {
   id: "rum-failed-user-operations",
   name: "Failed User Operations",
   description:
-    "Alert when the RUM application reports one or more error-status spans in five minutes.",
+    "Alert when the RUM application reports one or more error-status spans in five minutes. The earliest signal that user-facing requests are failing, whatever the cause.",
   category: "Errors",
-  severity: "Critical",
+  /*
+   * Warning, not Critical, for the reason ServiceAlertTemplates gives
+   * `service-failed-operations` the same severity: a bar of "more than zero
+   * error spans" is cleared by one ad blocker, one browser extension, one
+   * third-party script, or one user on a flaky mobile connection. It is a
+   * near-certainty on any real site, and browser spans are strictly noisier
+   * than the backend ones that sibling already declined to page on. The two
+   * share the config kind, the error-status filter and the threshold; only the
+   * window differs — five minutes here against ten there, for the reason
+   * written on that template.
+   *
+   * `severity` is not cosmetic. MonitorRecommendationSeverityMapper maps
+   * Critical onto the project's MOST severe incident/alert severity and
+   * Warning onto the next one down, and that is the severity row every
+   * incident and alert this monitor opens carries from then on. It is not what
+   * attaches the escalation: on-call policies are picked once in the create
+   * side-over and applied to every selected recommendation alike.
+   *
+   * `rum-unhandled-exceptions` below keeps Critical on a `> 0` bar that only
+   * looks like this one. It counts exception GROUPS that are neither resolved
+   * nor archived, so anything already triaged stops counting. A raw span count
+   * has no such gate.
+   */
+  severity: "Warning",
   monitorType: MonitorType.Traces,
   getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
     const step: MonitorStep = MonitorStep.getDefaultMonitorStep({

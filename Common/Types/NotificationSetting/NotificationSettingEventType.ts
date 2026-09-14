@@ -68,6 +68,10 @@ enum NotificationSettingEventType {
   SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY = "When user is added to on-call policy",
   SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY = "When user is removed from on-call policy",
   SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER = "When user is no longer active on on-call roster",
+
+  // On Call Shift Reminders (see UserOnCallShiftReminder)
+  SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS = "Before user's on-call shift starts",
+  SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED = "User's upcoming on-call shift is reassigned",
 }
 
 export default NotificationSettingEventType;

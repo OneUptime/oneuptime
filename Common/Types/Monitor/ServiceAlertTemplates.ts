@@ -105,16 +105,19 @@ export interface ServiceAlertTemplate {
 }
 
 /*
- * `EvaluateOverTimeType` names the window collapse, and its two members used
- * here do NOT mean what their names suggest — worth stating once, here, rather
- * than being rediscovered per template:
+ * `EvaluateOverTimeType` names the window collapse. The two members these
+ * templates use are worth stating once, here, rather than being rediscovered
+ * per template:
  *
  *   AnyValue  -> ANY bucket in the rolling window breaching is a breach.
  *                Right for spikes.
- *   AllValues -> EVERY bucket must breach. Right for sustained pressure, and
- *                what the comparators actually do for every member that is not
- *                `AnyValue` (they fall through to `.every()`; there is no
- *                averaging on this code path despite `Average` existing).
+ *   AllValues -> EVERY bucket must breach. Right for sustained pressure.
+ *
+ * The reducing members (`Average`, `Sum`, `MaximumValue`, `MunimumValue`) do
+ * now collapse the window to one sample before the comparison —
+ * `CompareCriteria.reduceWindow` — so they mean what they say. `AllValues` is
+ * still the right default here: a reduced window hides the shape, and a metric
+ * that spends half the window fine is not under sustained pressure.
  *
  * A window with no samples at all never reaches the comparator — the
  * evaluator's no-data guard returns "not breaching" under the default
@@ -128,6 +131,34 @@ export interface ServiceAlertTemplate {
  * team to mute it.
  */
 const SUSTAINED: EvaluateOverTimeType = EvaluateOverTimeType.AllValues;
+
+/*
+ * The resource attribute that identifies ONE process of a service.
+ *
+ * Every metric template here except the two request-latency percentiles
+ * thresholds a property of a single process — a heap, an event loop, a
+ * goroutine count, a thread pool. Without a group-by the ClickHouse
+ * aggregation collapses every replica of the service into one number, so an
+ * `Avg` template on three replicas at 95/20/20 reads 45 and stays green while
+ * one of them OOM-kills, and a `Max` template fires on the worst replica with
+ * no way to say which. Grouping fixes both at once: the worker emits one
+ * series per instance and the alert carries that instance in `seriesLabels`,
+ * which `SeriesLabelDisplay` renders into the title and the description block.
+ *
+ * `service.instance.id` is OPTIONAL in the resource semantic conventions, and
+ * this degrades safely when it is absent: the query returns one series whose
+ * label value is the empty string (ClickHouse `attributes[k]` on a missing key
+ * yields ""), `MetricSeriesFingerprint.extractSeriesLabels` keeps the key so
+ * the fingerprint stays stable across evaluations, and
+ * `SeriesLabelDisplay.getDisplayLabels` drops empty values rather than
+ * rendering "Instance: ". A service that does not report it therefore gets
+ * exactly today's single-series behaviour, not silence.
+ *
+ * The `resource.` prefix is the one OtelMetricsIngestService stamps onto OTel
+ * resource attributes (`prefixKeysWithString: "resource"`), the same spelling
+ * KubernetesAlertTemplates uses for `resource.k8s.pod.name`.
+ */
+const PER_INSTANCE_GROUP_BY: Array<string> = ["resource.service.instance.id"];
 
 interface CountCriteriaArgs {
   args: ServiceAlertTemplateArgs;
@@ -201,7 +232,17 @@ function buildCriteriaPair(data: {
         checkOn: data.checkOn,
         filterType: data.unhealthyFilterType,
         value: data.threshold,
-        metricMonitorOptions: metricMonitorOptions,
+        /*
+         * A copy per filter, not the shared object. `MetricMonitorCriteria`
+         * writes its `AnyValue` default straight back through this reference
+         * when `metricAggregationType` is unset, and the criteria form spreads
+         * and re-assigns it on edit — either of which, on a shared object,
+         * changes the healthy criteria as a side effect of touching the
+         * unhealthy one.
+         */
+        metricMonitorOptions: metricMonitorOptions
+          ? { ...metricMonitorOptions }
+          : undefined,
       },
     ],
     incidents: [
@@ -242,7 +283,10 @@ function buildCriteriaPair(data: {
         checkOn: data.checkOn,
         filterType: data.healthyFilterType,
         value: data.threshold,
-        metricMonitorOptions: metricMonitorOptions,
+        // A copy per filter — see the unhealthy filter above.
+        metricMonitorOptions: metricMonitorOptions
+          ? { ...metricMonitorOptions }
+          : undefined,
       },
     ],
     incidents: [],
@@ -316,6 +360,7 @@ function buildQueryConfig(data: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string> | undefined;
   legendUnit?: string | undefined;
+  groupByAttributeKeys?: Array<string> | undefined;
 }): MetricQueryConfigData {
   return {
     metricAliasData: {
@@ -332,6 +377,14 @@ function buildQueryConfig(data: {
         aggegationType: data.aggregationType,
         aggregateBy: {},
       },
+      /*
+       * Omitted entirely rather than written as [] when there is nothing to
+       * group by, so an ungrouped template serializes to exactly the shape it
+       * did before this parameter existed.
+       */
+      ...(data.groupByAttributeKeys && data.groupByAttributeKeys.length > 0
+        ? { groupByAttributeKeys: data.groupByAttributeKeys }
+        : {}),
     },
   };
 }
@@ -356,6 +409,13 @@ function buildMetricTemplate(data: {
   rollingTime?: RollingTime | undefined;
   unhealthyFilterType?: FilterType | undefined;
   healthyFilterType?: FilterType | undefined;
+  /*
+   * Defaults to per-instance. Pass `[]` only for a metric that is a property
+   * of the SERVICE rather than of one process — the request latency
+   * percentiles are the only two here, and grouping them would quietly change
+   * "the service's p95" into "some replica's p95", which is a different alert.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
   incidentDescription: string;
 }): ServiceAlertTemplate {
   return {
@@ -388,6 +448,8 @@ function buildMetricTemplate(data: {
               aggregationType: data.aggregationType,
               attributes: data.attributes,
               legendUnit: data.legendUnit,
+              groupByAttributeKeys:
+                data.groupByAttributeKeys || PER_INSTANCE_GROUP_BY,
             }),
           ],
           formulaConfigs: [],
@@ -443,6 +505,7 @@ function buildRatioTemplate(data: {
   denominatorAlias: string;
   resultAlias: string;
   thresholdPercent: number;
+  groupByAttributeKeys?: Array<string> | undefined;
   incidentDescription: string;
 }): ServiceAlertTemplate {
   return {
@@ -494,6 +557,18 @@ function buildRatioTemplate(data: {
               title: `${data.name} (used)`,
               aggregationType: MetricsAggregationType.Sum,
               attributes: data.numeratorAttributes,
+              /*
+               * The SAME key set on both queries. The worker splits every
+               * query on the UNION of their keys, so the split itself cannot
+               * go wrong from setting only one side — but
+               * `MetricMonitorCriteria.buildContext` reads
+               * `groupByAttributeKeys` off a SINGLE query config when it
+               * builds the alert's "Grouped By" root-cause block, and a
+               * one-sided setting renders that block empty for whichever side
+               * it read.
+               */
+              groupByAttributeKeys:
+                data.groupByAttributeKeys || PER_INSTANCE_GROUP_BY,
             }),
             buildQueryConfig({
               metricName: data.denominatorMetricName,
@@ -501,6 +576,8 @@ function buildRatioTemplate(data: {
               title: `${data.name} (limit)`,
               aggregationType: MetricsAggregationType.Sum,
               attributes: data.denominatorAttributes,
+              groupByAttributeKeys:
+                data.groupByAttributeKeys || PER_INSTANCE_GROUP_BY,
             }),
           ],
           formulaConfigs: [formulaConfig],
@@ -760,6 +837,14 @@ const latencyP95Template: ServiceAlertTemplate = buildMetricTemplate({
   metricAlias: "service_latency_p95",
   aggregationType: MetricsAggregationType.P95,
   legendUnit: "ms",
+  /*
+   * Not grouped, unlike every other metric template here. A request latency
+   * percentile is a property of the SERVICE — it is the number the SLO is
+   * written against — and splitting it per instance would turn "the service's
+   * p95 is above a second" into "one replica's p95 is above a second", which
+   * fires on a single slow pod and means something else.
+   */
+  groupByAttributeKeys: [],
   threshold: 1000,
   thresholdLabel: "1,000 ms",
   incidentDescription:
@@ -777,6 +862,8 @@ const latencyP99Template: ServiceAlertTemplate = buildMetricTemplate({
   metricAlias: "service_latency_p99",
   aggregationType: MetricsAggregationType.P99,
   legendUnit: "ms",
+  // Service-level, not per instance — see latencyP95Template.
+  groupByAttributeKeys: [],
   threshold: 2500,
   thresholdLabel: "2,500 ms",
   incidentDescription:
@@ -1147,7 +1234,7 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
     id: "service-python-rss-memory",
     name: "Resident Memory High",
     description:
-      "Alert when resident memory stays above 1 GB per worker — the signal that precedes an OOM kill. Needs the system-metrics instrumentation enabled.",
+      "Alert when a worker's resident memory stays above 1 GB — the signal that precedes an OOM kill. Needs the system-metrics instrumentation enabled. Reads process.runtime.cpython.memory with type=rss; newer opentelemetry-python releases report this as process.memory.usage, which the language-agnostic Process Memory High template already covers.",
     category: "Python Runtime",
     severity: "Warning",
     language: "python",
@@ -1166,7 +1253,7 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
     id: "service-python-thread-growth",
     name: "Thread Count Growth",
     description:
-      "Alert when thread count stays above 200, which usually means a leaked executor or an unclosed client pool. Needs the system-metrics instrumentation enabled.",
+      "Alert when thread count stays above 200, which usually means a leaked executor or an unclosed client pool. Needs the system-metrics instrumentation enabled. Reads process.runtime.cpython.thread_count; newer opentelemetry-python releases report this as process.thread.count — retarget the created monitor in one edit if your SDK emits that instead.",
     category: "Python Runtime",
     severity: "Warning",
     language: "python",

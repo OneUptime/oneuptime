@@ -11,6 +11,11 @@ export function getLlmBreadcrumbs(path: string): Array<Link> | undefined {
       "AI / LLM",
       "Overview",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_USAGE, [
+      "Project",
+      "AI / LLM",
+      "Usage",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.LLM_CALLS, [
       "Project",
       "AI / LLM",

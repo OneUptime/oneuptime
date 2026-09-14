@@ -299,20 +299,54 @@ data:
           # severity on the log line, so OTel LogRecords arrive at OneUptime
           # with severity_number=0 and render as "Unspecified" on the Logs
           # page. Derive a best-effort severity: route to body-based extraction
-          # when the body carries a recognizable severity keyword (covers
-          # "[ERROR]", "WARN:", " INFO ", etc. used by CoreDNS, most app
-          # frameworks, klog-style Kubernetes components), else fall back to
-          # stdout/stderr mapping. Using a router rather than regex_parser's
-          # on_error keeps this compatible with OTel Collector v0.96.0.
+          # when the body carries a recognizable severity keyword, else fall
+          # back to stdout/stderr mapping. Using a router rather than
+          # regex_parser's on_error keeps this compatible with OTel Collector
+          # v0.96.0.
+          #
+          # A level keyword is only believed when it sits where a LEVEL sits, not
+          # merely because the word turns up somewhere in the line. Two shapes
+          # count, and the pattern is those two, in this order:
+          #
+          #   1. LINE PREAMBLE. The keyword is on the first line of the record and
+          #      everything before it is preamble: punctuation, digits, and word
+          #      tokens that end on a structural delimiter (. ] = - : / | ) }).
+          #      That is "[ERROR] ...", Monolog's "app.INFO: ...", "2026-08-31
+          #      07:25:04 INFO ...", Python's "... - myapp - INFO - ..." and
+          #      logfmt's leading "level=error ...". Prose is not: "Connection
+          #      error, retrying" stops the preamble dead at "Connection ",
+          #      because a bare word followed by a space is not a preamble token.
+          #      The repetition is LAZY, so the first keyword in preamble
+          #      position wins rather than the last.
+          #   2. LEVEL FIELD. The keyword is the value of a level-ish key anywhere
+          #      in the line -- level / lvl / severity / severity_text / levelname
+          #      / log.level / log_level -- quoted or not, separated by ":" or
+          #      "=". That is zap and logrus JSON ({"level":"info"}) and logfmt
+          #      whose level is not the first field (ts=... level=error msg=...).
+          #
+          # The preamble branch is anchored, so when it matches it is the leftmost
+          # match and beats a level field further along the same line. Both
+          # branches take end-of-body as a trailing delimiter, so Docker (whose
+          # json-file driver keeps the newline in the `log` field) and Podman
+          # (whose CRI format does not) read the same line the same way.
+          #
+          # A line matching neither shape takes the stream fallback below, exactly
+          # as it did before any of this existed. Every keyword in the alternation
+          # MUST also resolve in `severity-parser` below: stanza's built-in preset
+          # knows nothing of notice/crit/critical/panic/alert/emerg/emergency, and
+          # an unmapped keyword leaves the record Unspecified, which is worse than
+          # the stream guess it replaced.
+          # Tests/Ops/ContainerAgentLogSeverity.test.js pins all of it, the corpus
+          # of lines that must NOT match included.
           - type: router
             id: severity-router
             routes:
               - output: parse-severity-from-body
-                expr: 'body matches "(?i)(?:^|[\\s\\[(])(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\\s\\]:=,)])"'
+                expr: 'body matches "(?i)(?:^(?:[^A-Za-z\"\\n]|[A-Za-z][A-Za-z0-9_]*[ \\t]*[.:=,/>|)}\\]-])*?|(?:^|[\\s,{\\[])\"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)\"?[ \\t]*[:=][ \\t]*\"?)(TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\\s\\]:=,)\"}|>])"'
             default: add-fallback-severity
           - type: regex_parser
             id: parse-severity-from-body
-            regex: '(?i)(?:^|[\s\[(])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)])'
+            regex: '(?i)(?:^(?:[^A-Za-z"\n]|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\s\]:=,)"}|>])'
             parse_from: body
             output: severity-parser
           - type: add
@@ -331,8 +365,13 @@ data:
                 - err
                 - crit
                 - critical
+              # PSR-3 / syslog put alert and emergency above critical, and
+              # neither has a built-in mapping; nginx writes it as [emerg].
               fatal:
                 - panic
+                - alert
+                - emerg
+                - emergency
               info:
                 - notice
           - type: remove
@@ -381,11 +420,30 @@ data:
       resource:
         attributes:
           - key: k8s.cluster.name
-            value: {{ .Values.clusterName | quote }}
+            value: {{ include "kubernetes-agent.clusterName" . | quote }}
             action: upsert
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
+          # Node identity. Every receiver in this collector reads
+          # node-local data — /proc and /sys for hostmetrics, this node's
+          # kubelet for kubeletstats and the cAdvisor scrape,
+          # /var/log/pods for filelog — so the node this pod is scheduled
+          # on owns all of it. kubeletstats stamps `k8s.node.name`
+          # itself, but hostmetrics and the Prometheus cAdvisor scrape do
+          # not, so without this every node's `system.*` series arrives
+          # with no node attribution at all and all of them collapse into
+          # one meaningless series. `insert` leaves a receiver-supplied
+          # (or k8sattributes-resolved) value alone.
+          #
+          # It has to be `k8s.node.name`, not `host.name`: OneUptime keys
+          # the k8s.node entity on k8s.cluster.name + k8s.node.name, and
+          # it suppresses Host identity on any resource that already
+          # carries a Kubernetes identity — so a `host.name` here would
+          # populate no entity at all.
+          - key: k8s.node.name
+            value: "${env:NODE_NAME}"
+            action: insert
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: upsert

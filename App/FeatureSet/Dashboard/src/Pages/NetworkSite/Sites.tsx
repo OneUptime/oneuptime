@@ -4,6 +4,10 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
+import {
+  fetchAllNetworkSiteTypeOptions,
+  fetchParentNetworkSiteOptions,
+} from "../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
@@ -34,6 +38,8 @@ import {
 import Route from "Common/Types/API/Route";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -46,6 +52,7 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
@@ -472,9 +479,36 @@ const NetworkSites: FunctionComponent<
         ]}
         formSteps={[
           { title: "Site Details", id: "site-details" },
+          { title: "Hierarchy", id: "hierarchy" },
           { title: "Location", id: "location" },
+          { title: "Monitoring Defaults", id: "monitoring-defaults" },
         ]}
         formFields={[
+          {
+            field: {
+              networkSiteType: true,
+            },
+            title: "Site Type",
+            stepId: "site-details",
+            description:
+              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
+            onChange: (
+              _value: unknown,
+              currentFormValues: FormValues<NetworkSite>,
+              setNewFormValues: (
+                currentFormValues: FormValues<NetworkSite>,
+              ) => void,
+            ): void => {
+              setNewFormValues({
+                ...currentFormValues,
+                parentSite: null,
+              });
+            },
+            required: true,
+            placeholder: "Select Site Type",
+          },
           {
             field: {
               name: true,
@@ -497,37 +531,19 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            description:
-              "Level of this site in the hierarchy. Unit-level types are leaf sites — the network map opens their device topology. Manage the list in Network Settings.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSiteType,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Select Site Type",
-          },
-          {
-            field: {
               parentSite: true,
             },
             title: "Parent Site",
-            stepId: "site-details",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
             description:
-              "The site this one is nested under. Leave empty for a root site.",
+              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
-            },
+            fetchDropdownOptions: fetchParentNetworkSiteOptions,
             required: false,
-            placeholder: "Select Parent Site (optional)",
+            placeholder: "No parent site (top level)",
           },
           {
             field: {
@@ -562,6 +578,43 @@ const NetworkSites: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "-89.6501",
+          },
+          {
+            field: {
+              probe: true,
+            },
+            title: "Default Probe",
+            stepId: "monitoring-defaults",
+            sectionTitle: "Monitoring Defaults",
+            sectionDescription:
+              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            description:
+              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Probe,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default probe",
+          },
+          {
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "Default SNMP Credential Profile",
+            stepId: "monitoring-defaults",
+            description:
+              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSnmpCredentialProfile,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default credential profile",
           },
         ]}
         columns={[

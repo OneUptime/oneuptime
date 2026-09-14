@@ -6,6 +6,10 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
+import {
+  getTableCellClassName,
+  getTableCellContentClassName,
+} from "./CellClassName";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -17,6 +21,7 @@ import LongTextViewer from "../LongText/LongTextViewer";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
+  rowProps?: React.HTMLAttributes<HTMLElement> | undefined;
   columns: Columns<T>;
   actionButtons?: Array<ActionButtonSchema<T>> | undefined;
   enableDragAndDrop?: boolean | undefined;
@@ -95,10 +100,20 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     };
   }, []);
 
+  /*
+   * The local isMobile state above starts false and is only corrected inside
+   * an effect, i.e. after the first paint. TableBody already knows which
+   * layout it is mounting and says so explicitly, so prefer what it passed:
+   * without this, a mobile card renders its hideOnMobile columns for one frame
+   * and then drops them, which is a visible jump on exactly the narrow screens
+   * the flag exists to protect.
+   */
+  const isMobileView: boolean = props.isMobile ?? isMobile;
+
   // The columns this row will actually put on screen.
   const renderedColumns: Array<Column<T>> = (props.columns || []).filter(
     (column: Column<T>) => {
-      return !(column.hideOnMobile && isMobile);
+      return !(column.hideOnMobile && isMobileView);
     },
   );
 
@@ -150,9 +165,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       return (
         <>
           <div
+            {...props.rowProps}
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className="p-4 bg-white border-b border-gray-200"
+            className={`p-4 bg-white border-b border-gray-200 ${props.rowProps?.className || ""}`}
           >
             {props.enableDragAndDrop ? (
               <div
@@ -175,10 +191,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             )}
 
             <div className="space-y-3">
-              {props.columns.map((column: Column<T>, i: number) => {
+              {renderedColumns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
+                  const customAction: ReactElement | null = column.getElement
+                    ? column.getElement(props.item)
+                    : null;
+
                   return (
                     <div key={i} className="flex flex-wrap gap-2">
+                      {customAction}
                       {error && (
                         <ConfirmModal
                           title={`Error`}
@@ -363,7 +384,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     // Desktop view: render as table row
     return (
       <>
-        <tr {...provided?.draggableProps} ref={provided?.innerRef}>
+        <tr
+          {...props.rowProps}
+          {...provided?.draggableProps}
+          ref={provided?.innerRef}
+        >
           {props.enableDragAndDrop && (
             <td
               className="ml-5 py-4 w-10 align-top"
@@ -385,17 +410,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           )}
           {props.columns &&
             renderedColumns.map((column: Column<T>, i: number) => {
-              let className: string =
-                "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
               /*
-               * Compared against the rendered count, not the declared one:
-               * with any column filtered out the two differ, and the extra
-               * right padding would land on the wrong cell - or on none.
+               * Shared with the loading skeleton, so the two can no longer
+               * drift, and the one place that decides whether this cell's
+               * text may wrap.
                */
-              if (i === renderedColumns.length - 1) {
-                className =
-                  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              }
+              const className: string = getTableCellClassName<T>({
+                column: column,
+                isLastRenderedColumn: i === renderedColumns.length - 1,
+              });
 
               let columnContent: React.ReactNode = null;
 
@@ -469,12 +492,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 columnContent = column.getElement(props.item);
               }
 
-              const contentWrapperClassName: string = column.contentClassName
-                ? column.contentClassName
-                : "";
+              /*
+               * The column's own classes, plus the width cap a wrapping
+               * column gets - which has to sit on this div rather than on the
+               * <td>, because max-width is ignored on a table-cell box.
+               */
+              const contentWrapperClassName: string =
+                getTableCellContentClassName<T>(column);
 
-              const actionsContainerClassName: string = column.contentClassName
-                ? `flex justify-end ${column.contentClassName}`
+              const actionsContainerClassName: string = contentWrapperClassName
+                ? `flex justify-end ${contentWrapperClassName}`
                 : "flex justify-end";
 
               return (
@@ -491,13 +518,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     }
                   }}
                 >
-                  {columnContent !== null && columnContent !== undefined && (
-                    <div className={contentWrapperClassName}>
-                      {columnContent}
-                    </div>
-                  )}
+                  {column.type !== FieldType.Actions &&
+                    columnContent !== null &&
+                    columnContent !== undefined && (
+                      <div className={contentWrapperClassName}>
+                        {columnContent}
+                      </div>
+                    )}
                   {column.type === FieldType.Actions && (
                     <div className={actionsContainerClassName}>
+                      {columnContent}
                       {error && (
                         <div className="text-align-left">
                           <ConfirmModal
@@ -520,7 +550,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           }
 
                           // Hide button on mobile if hideOnMobile is true
-                          if (button.hideOnMobile && isMobile) {
+                          if (button.hideOnMobile && isMobileView) {
                             return <div key={i}></div>;
                           }
 

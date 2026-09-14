@@ -24,11 +24,24 @@ set -eu
 SOCKET="${PODMAN_INVENTORY_SOCKET:-/run/podman/podman.sock}"
 LOG_PATH="${PODMAN_INVENTORY_LOG_PATH:-/var/log/oneuptime-podman-inventory.log}"
 INTERVAL="${PODMAN_INVENTORY_INTERVAL_SECONDS:-300}"
+API_VERSION="${DOCKER_API_VERSION-1.44}"
 
-# Pin to a modern API version that matches the docker_stats receiver
-# pin so we don't get rejected on newer daemons. Podman's Docker-API
-# compatible socket serves the same versioned endpoints.
-PODMAN_API="http://localhost/v1.44"
+# Follow the collector's DOCKER_API_VERSION so that a host which lowers the
+# docker_stats receiver's version for an older daemon lowers ours too.
+#
+# Note the "-" rather than ":-": unset means "use the shipped default", but an
+# explicitly EMPTY value is the documented "let the server pick" escape hatch.
+# The collector answers that by auto-negotiating; curl has no negotiation, so we
+# answer it by dropping the /v<version> prefix -- the Docker API serves those
+# unversioned paths at the daemon's own latest version, which is the same
+# outcome. A pinned modern default keeps newer daemons from rejecting us with
+# "client version too old".
+# Podman's Docker-API compatible socket serves the same versioned endpoints.
+if [ -n "${API_VERSION}" ]; then
+    PODMAN_API="http://localhost/v${API_VERSION}"
+else
+    PODMAN_API="http://localhost"
+fi
 
 emit_array_endpoint() {
     kind="$1"

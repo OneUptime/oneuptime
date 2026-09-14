@@ -36,6 +36,7 @@
     "projectTeams": "टीमें",
     "projectTeam": "टीम",
     "projectSubscription": "सदस्यता",
+    "projectSupport": "सहायता",
     "settings": "सेटिंग्स",
     "authentication": "प्रमाणीकरण",
     "appearance": "दिखावट",
@@ -95,6 +96,8 @@
     "teams": "टीमें",
     "billing": "बिलिंग",
     "subscription": "सदस्यता",
+    "support": "सहायता",
+    "customerSupportAccess": "ग्राहक सहायता पहुँच",
     "advanced": "उन्नत",
     "overview": "अवलोकन",
     "projects": "परियोजनाएँ",
@@ -336,6 +339,16 @@
       "amountTooLarge": "एक ही समायोजन में राशि {{max}} USD से अधिक नहीं हो सकती।",
       "amountTooPrecise": "राशि में दो से अधिक दशमलव स्थान नहीं हो सकते।",
       "reasonRequired": "कृपया इस समायोजन के लिए एक कारण दर्ज करें।"
+    },
+    "projectSupport": {
+      "title": "ग्राहक सहायता पहुँच",
+      "cardTitle": "ग्राहक सहायता पहुँच",
+      "cardDescription": "क्या OneUptime ग्राहक सहायता टीम समस्या निवारण के लिए इस प्रोजेक्ट तक पहुँच सकती है। यह वही स्विच है जो ग्राहक के पास उसकी प्रोजेक्ट सेटिंग्स में होता है।",
+      "editButton": "ग्राहक सहायता पहुँच संपादित करें",
+      "fieldLabel": "ग्राहक सहायता को प्रोजेक्ट तक पहुँचने दें",
+      "fieldDescription": "सक्षम होने पर, OneUptime ग्राहक सहायता टीम किसी समस्या की जाँच के लिए इस प्रोजेक्ट को खोल सकती है। जाँच पूरी होने पर इसे फिर से बंद कर दें।",
+      "consentWarning": "इसे केवल तभी चालू करें जब ग्राहक ने सहायता टीम से अपने प्रोजेक्ट को देखने के लिए कहा हो। ग्राहक इसे प्रोजेक्ट सेटिंग्स में स्वयं चालू और बंद कर सकता है, इसलिए बेहतर है कि उसी से ऐसा करने को कहें, और जाँच पूरी होने पर इसे फिर से बंद कर दें।",
+      "billingDisabled": "इस इंस्टेंस पर बिलिंग सक्षम नहीं है, इसलिए पहुँच देने के लिए कोई OneUptime ग्राहक सहायता टीम नहीं है। यह सेटिंग केवल OneUptime के होस्टेड संस्करण पर लागू होती है।"
     },
     "projectUsers": {
       "title": "Project Users",
@@ -805,9 +818,9 @@
   "You can find this in your Twilio console.": "आप इसे अपने Twilio console में पा सकते हैं।",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "आपके बॉट का Telegram उपयोगकर्ता नाम, बिना शुरुआती @ के। Telegram उपयोगकर्ता नाम 'bot' से समाप्त होते हैं।",
   "ClickHouse disk": "ClickHouse डिस्क",
-  "Postgres, ClickHouse, Redis and queue health at a glance.": "Postgres, ClickHouse, Redis और कतार स्वास्थ्य एक नज़र में।",
+  "Postgres, ClickHouse, Valkey and queue health at a glance.": "Postgres, ClickHouse, Valkey और कतार स्वास्थ्य एक नज़र में।",
   "Projects, users, monitors and incidents across the instance.": "इंस्टेंस भर के प्रोजेक्ट, उपयोगकर्ता, मॉनिटर और घटनाएं।",
-  "Redis memory": "Redis मेमोरी",
+  "Valkey memory": "Valkey मेमोरी",
   "Spot job backlogs and failures before they cause incidents.": "जॉब बैकलॉग और विफलताओं को घटनाएं उत्पन्न करने से पहले पहचानें।",
   "Track database disk and memory utilization before you run out.": "समाप्त होने से पहले डेटाबेस डिस्क और मेमोरी उपयोग को ट्रैक करें।"
 }

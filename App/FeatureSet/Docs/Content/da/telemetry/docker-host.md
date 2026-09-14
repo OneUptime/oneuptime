@@ -64,11 +64,12 @@ docker compose up -d
 
 ## Miljøvariabler
 
-| Variabel                  | Påkrævet | Beskrivelse                                                                                                                 |
-| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Ja       | URL'en til din OneUptime-instans (for eksempel `https://oneuptime.com` eller din selvhostede vært)                          |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja       | Telemetry ingestion-token fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_                                 |
-| `DOCKER_HOST_NAME`        | Nej      | Brugervenligt navn til denne vært. Som standard `docker-host`. Sæt det til noget stabilt pr. vært (f.eks. `prod-docker-01`) |
+| Variabel                  | Påkrævet | Beskrivelse                                                                                                                                                                       |
+| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Ja       | URL'en til din OneUptime-instans (for eksempel `https://oneuptime.com` eller din selvhostede vært)                                                                                |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja       | Telemetry ingestion-token fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_                                                                                       |
+| `DOCKER_HOST_NAME`        | Nej      | Brugervenligt navn til denne vært. Som standard `docker-host`. Sæt det til noget stabilt pr. vært (f.eks. `prod-docker-01`)                                                       |
+| `DOCKER_API_VERSION`      | Nej      | Den Docker Engine API-version, agenten taler. Som standard `1.44`; sænk den på værter med en ældre daemon, eller lad den stå tom for at forhandle den automatisk (se Fejlfinding) |
 
 ## Verificér installationen
 
@@ -141,6 +142,28 @@ Hvis din instans kun er HTTP, så brug `http://` og den korrekte port.
 ### Docker Socket Permission Denied
 
 Agent-containeren skal køre som root (`--user 0:0`) for at få adgang til `/var/run/docker.sock`. Sørg for, at flaget `--user 0:0` (eller `user: "0:0"` i Compose) er til stede.
+
+### Agenten genstarter med "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+En daemon afviser en klient, der er nyere end dens egen maksimale version, så receiveren aldrig starter, og collectoren afsluttes sammen med den. Tjek daemonens maksimale version, og giv den videre til agenten:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Tilføj derefter `-e DOCKER_API_VERSION=1.41` (eller den værdi, du fik) til `docker run`, eller sæt `DOCKER_API_VERSION` i Compose. Nyere daemons betjener stadig ældre API-versioner, så indstillingen forbliver gyldig efter en opgradering.
+
+Hvis du hellere vil undgå at slå tallet op, så sæt `DOCKER_API_VERSION` til den **tomme streng**. Agenten beder så Docker-SDK'et om at forhandle versionen med daemonen (ét `HEAD /_ping`, derefter daemonens egen maksimale version), hvilket fungerer med både gamle og nye daemons:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent vises som afbrudt
 

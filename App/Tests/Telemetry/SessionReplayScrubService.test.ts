@@ -354,3 +354,215 @@ describe("SessionReplayScrubService.scrubEvents", () => {
     expect(text).not.toContain("4111 1111 1111 1111");
   });
 });
+
+/*
+ * Audit finding ingest-14. Value rules used to run over every string in the
+ * tree, and most of an rrweb tree is not text: a digit run in an SVG path,
+ * an inline style or a base64 image source matched a card / phone rule and
+ * was rewritten to "[REDACTED]", which broke playback with nothing
+ * explaining why. Scanning is now confined to text-bearing fields.
+ */
+describe("SessionReplayScrubService.scrubEvents leaves rrweb plumbing alone", () => {
+  const PHONE_REDACT: CompiledScrubRule = rule(
+    LogScrubPatternType.PhoneNumber,
+    LogScrubAction.Redact,
+    /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+  );
+
+  const DATA_URI: string =
+    "data:image/png;base64,AAAA4111111111111111BBBB555-123-4567CCCC";
+  const SVG_PATH: string = "M 4111 1111 L 1111 1111 Z";
+
+  test("a data: URI image source survives a card rule, and the skip is counted", async () => {
+    const events: Array<JSONValue> = [
+      {
+        type: 2,
+        data: {
+          node: {
+            type: 2,
+            tagName: "img",
+            id: 7,
+            attributes: { src: DATA_URI, alt: "card 4111 1111 1111 1111" },
+            childNodes: [],
+          },
+        },
+      },
+    ];
+
+    const result: SessionReplayScrubResult =
+      await SessionReplayScrubService.scrubEvents(events, [PAN_MASK]);
+
+    const attributes: JSONObject = (
+      ((events[0] as JSONObject)["data"] as JSONObject)["node"] as JSONObject
+    )["attributes"] as JSONObject;
+
+    expect(attributes["src"]).toBe(DATA_URI);
+    /* Text-bearing attributes are still scrubbed. */
+    expect(attributes["alt"]).toBe("card ****-****-****-1111");
+    expect(result.skippedStructuralStrings).toBeGreaterThan(0);
+    expect(result.isComplete).toBe(true);
+  });
+
+  test("a data: URI is skipped wherever it sits, including a bare array element", async () => {
+    const events: Array<JSONValue> = [
+      { type: 5, data: { tag: "console", payload: { args: [DATA_URI] } } },
+      { type: 3, data: { source: 0, texts: [{ id: 3, value: DATA_URI }] } },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [PAN_MASK]);
+
+    expect(JSON.stringify(events)).toContain(DATA_URI);
+  });
+
+  test("SVG geometry, class lists and ids are never rewritten", async () => {
+    const events: Array<JSONValue> = [
+      {
+        type: 2,
+        data: {
+          node: {
+            type: 2,
+            tagName: "path",
+            id: 4111111111111111,
+            isSVG: true,
+            attributes: {
+              d: SVG_PATH,
+              points: "4111,1111 1111,1111",
+              class: "c-4111111111111111",
+              id: "el-555-123-4567",
+              transform: "translate(4111 1111)",
+            },
+            childNodes: [],
+          },
+        },
+      },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [
+      PAN_MASK,
+      PHONE_REDACT,
+    ]);
+
+    const attributes: JSONObject = (
+      ((events[0] as JSONObject)["data"] as JSONObject)["node"] as JSONObject
+    )["attributes"] as JSONObject;
+
+    expect(attributes["d"]).toBe(SVG_PATH);
+    expect(attributes["points"]).toBe("4111,1111 1111,1111");
+    expect(attributes["class"]).toBe("c-4111111111111111");
+    expect(attributes["id"]).toBe("el-555-123-4567");
+    expect(attributes["transform"]).toBe("translate(4111 1111)");
+  });
+
+  test("an inline style object in an attribute mutation is skipped whole", async () => {
+    const events: Array<JSONValue> = [
+      {
+        type: 3,
+        data: {
+          source: 0,
+          attributes: [
+            {
+              id: 9,
+              attributes: {
+                style: {
+                  "background-image": `url(${DATA_URI})`,
+                  "font-family": "4111 1111 1111 1111",
+                  "z-index": ["555-123-4567", "important"],
+                },
+                value: "555-123-4567",
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [
+      PAN_MASK,
+      PHONE_REDACT,
+    ]);
+
+    const mutation: Array<JSONObject> = (
+      (events[0] as JSONObject)["data"] as JSONObject
+    )["attributes"] as unknown as Array<JSONObject>;
+    const attributes: JSONObject = mutation[0]!["attributes"] as JSONObject;
+    const style: JSONObject = attributes["style"] as JSONObject;
+
+    expect(style["font-family"]).toBe("4111 1111 1111 1111");
+    expect((style["z-index"] as Array<string>)[0]).toBe("555-123-4567");
+    /* The input's VALUE is text a person typed, so it is still scrubbed. */
+    expect(attributes["value"]).toBe("[REDACTED]");
+  });
+
+  test("a key-targeted rule cannot redact the structural attributes the DOM needs", async () => {
+    const NAME_TYPE_KEYS: CompiledScrubRule = rule(
+      LogScrubPatternType.SensitiveKeys,
+      LogScrubAction.Redact,
+      /(name|type|id|password)/i,
+    );
+
+    const events: Array<JSONValue> = [
+      {
+        type: 2,
+        data: {
+          node: {
+            type: 2,
+            tagName: "input",
+            id: 12,
+            attributes: {
+              name: "email",
+              type: "password",
+              id: "login-password",
+              "data-password-hint": "hunter2",
+            },
+            childNodes: [],
+          },
+        },
+      },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [NAME_TYPE_KEYS]);
+
+    const node: JSONObject = ((events[0] as JSONObject)["data"] as JSONObject)[
+      "node"
+    ] as JSONObject;
+    const attributes: JSONObject = node["attributes"] as JSONObject;
+
+    expect(node["tagName"]).toBe("input");
+    expect(node["type"]).toBe(2);
+    expect(attributes["name"]).toBe("email");
+    expect(attributes["type"]).toBe("password");
+    expect(attributes["id"]).toBe("login-password");
+    /* A data-* attribute whose NAME matches is user-authored: redacted. */
+    expect(attributes["data-password-hint"]).toBe("[REDACTED]");
+  });
+
+  test("text nodes, input values and placeholders are still scrubbed", async () => {
+    const events: Array<JSONValue> = [
+      {
+        type: 2,
+        data: {
+          node: {
+            type: 2,
+            tagName: "label",
+            id: 1,
+            childNodes: [{ type: 3, id: 2, textContent: "Call 555-123-4567" }],
+          },
+        },
+      },
+      { type: 3, data: { source: 5, id: 3, text: "555-123-4567" } },
+      {
+        type: 3,
+        data: {
+          source: 0,
+          attributes: [
+            { id: 4, attributes: { placeholder: "e.g. 555-123-4567" } },
+          ],
+        },
+      },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [PHONE_REDACT]);
+
+    expect(JSON.stringify(events)).not.toContain("555-123-4567");
+  });
+});

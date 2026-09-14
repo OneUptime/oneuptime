@@ -321,14 +321,15 @@ test(
     assert.equal((rendered.match(/gzip_proxied\s+any;/g) || []).length, 3);
 
     // One per operator-controllable ingest location: /telemetry, /otlp,
-    // /kubernetes-cost, /security-events, /session-replay and /pyroscope.
+    // /kubernetes-cost, /security-events, /session-replay, /pyroscope and
+    // /source-maps.
     assert.equal(
       (
         rendered.match(
           /access_log \/var\/log\/nginx\/access\.log main buffer=64k flush=10s if=\$ingest_access_log;/g,
         ) || []
       ).length,
-      6,
+      7,
     );
 
     // The {8,} repetition quantifier in the immutable location's regex must not
@@ -407,5 +408,121 @@ test(
     );
 
     assert.equal(result.status, 0, result.stderr);
+  },
+);
+
+test(
+  "the calendar feed location survives rendering in every server block",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * The location's whole purpose is keeping a URL that carries a bearer
+     * token out of nginx's logs: `access_log off` for the per-request line,
+     * `error_log /dev/null crit` for the upstream-failure lines (which quote
+     * the same request line, and which every polling client triggers during a
+     * deploy), and `proxy_max_temp_file_size 0` for the [warn] nginx emits
+     * when a large feed is spooled to a temp file. The sed passes and envsubst
+     * run over the source before nginx sees it, so assert on the rendered
+     * output: three copies of the location (one per server block), three of
+     * each directive, and none of them anywhere else.
+     */
+    const rendered = render(baseEnvironment());
+
+    const locationHeader =
+      "location ~ ^/api/on-call-calendar/(user|schedule|project)/ {";
+
+    assert.equal(rendered.split(locationHeader).length - 1, 3);
+    assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);
+    assert.equal(
+      (rendered.match(/^\s*error_log \/dev\/null crit;/gm) || []).length,
+      3,
+    );
+    assert.equal((rendered.match(/^\s*error_log /gm) || []).length, 3);
+    assert.equal(
+      (rendered.match(/^\s*proxy_max_temp_file_size 0;/gm) || []).length,
+      3,
+    );
+    assert.equal(
+      (rendered.match(/^\s*proxy_max_temp_file_size /gm) || []).length,
+      3,
+    );
+
+    // Each copy proxies to the app and keeps the pooled upstream connection.
+    let searchFrom = 0;
+
+    for (let copy = 0; copy < 3; copy++) {
+      const start = rendered.indexOf(locationHeader, searchFrom);
+
+      assert.ok(start >= 0, `copy ${copy + 1} of the location is missing`);
+
+      const end = rendered.indexOf("\n    }", start);
+      const block = rendered.slice(start, end);
+
+      for (const directive of [
+        "access_log off;",
+        "error_log /dev/null crit;",
+        "proxy_max_temp_file_size 0;",
+        "proxy_pass $backend_app;",
+        "proxy_http_version 1.1;",
+        "proxy_set_header Connection $connection_upgrade;",
+        "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+        "resolver 127.0.0.11 valid=30s;",
+      ]) {
+        assert.ok(
+          block.includes(directive),
+          `copy ${copy + 1} of the calendar feed location lost "${directive}" in rendering`,
+        );
+      }
+
+      searchFrom = end;
+    }
+  },
+);
+
+test(
+  "the /api proxy timeouts survive rendering",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * envsubst-on-templates.sh runs sed passes over the template before
+     * envsubst, and one of them strips a whole "# BEGIN upstream-keepalive"
+     * block. A directive that is correct in the source but eaten in rendering
+     * leaves /api back on nginx's 60s default, which is GH#3434 all over
+     * again — and the source-level assertions in NginxConfig.test.js cannot
+     * see it. Assert on what the container actually loads.
+     */
+    const rendered = render(baseEnvironment());
+
+    // /api, /mqtt and /mcp — the three locations allowed to hold a connection
+    // open for minutes. See PROXY_TIMEOUT_LOCATIONS in NginxConfig.test.js.
+    assert.equal(
+      (rendered.match(/proxy_read_timeout\s+\S+;/g) || []).length,
+      3,
+    );
+    assert.equal(
+      (rendered.match(/proxy_send_timeout\s+\S+;/g) || []).length,
+      3,
+    );
+
+    const apiBlockStart = rendered.indexOf("location /api {");
+
+    assert.ok(
+      apiBlockStart >= 0,
+      "the /api location did not survive rendering",
+    );
+
+    const apiBlock = rendered.slice(
+      apiBlockStart,
+      rendered.indexOf("\n    }", apiBlockStart),
+    );
+
+    assert.ok(
+      apiBlock.includes("proxy_read_timeout 300s;"),
+      "location /api lost its proxy_read_timeout in rendering: a synchronous 'Generate with AI' call would 504 at 60s (GH#3434)",
+    );
+    assert.ok(
+      apiBlock.includes("proxy_send_timeout 300s;"),
+      "location /api lost its proxy_send_timeout in rendering",
+    );
   },
 );

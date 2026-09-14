@@ -49,9 +49,27 @@ Handlebars.registerHelper("ifCond", function (v1, v2, options) {
   return options.inverse(this);
 });
 
-Handlebars.registerHelper("concat", (v1: any, v2: any) => {
-  // contact v1 and v2
-  return v1 + v2;
+/*
+ * Join every argument the template passed, not just the first two.
+ *
+ * The two-argument version silently truncated every caller that passed
+ * more. `{{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}`
+ * rendered as "Alert ALT-113" — the separator and the alert title were
+ * dropped — so the headline of every alert and incident email was a bare
+ * identifier with no indication of what had happened.
+ *
+ * Handlebars appends its own options object as the final argument to every
+ * helper call, so that one is dropped rather than stringified into the
+ * output as "[object Object]".
+ */
+Handlebars.registerHelper("concat", (...args: Array<any>) => {
+  const values: Array<any> = args.slice(0, -1);
+
+  return values
+    .map((value: any) => {
+      return value === null || value === undefined ? "" : String(value);
+    })
+    .join("");
 });
 
 Handlebars.registerHelper("ifNotCond", function (v1, v2, options) {

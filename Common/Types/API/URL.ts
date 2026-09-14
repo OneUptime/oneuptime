@@ -191,6 +191,23 @@ export default class URL extends DatabaseProperty {
     this.setParamsFromQueryString(queryString);
   }
 
+  /*
+   * Everything after the FIRST "?". split("?")[1] stopped at the second one,
+   * so a query that legitimately contains "?" — an encoded redirect target,
+   * say — lost its tail. RFC 3986 3.4 lets "?" appear inside a query.
+   */
+  private static queryStringOf(url: string): string {
+    const separatorIndex: number = url.indexOf("?");
+    return separatorIndex === -1 ? "" : url.substring(separatorIndex + 1);
+  }
+
+  /*
+   * Each pair splits on its FIRST "=" only. Splitting on every "=" and taking
+   * element [1] silently dropped everything after the second one, so a Jira
+   * JQL search ("?jql=project = OPS"), an OData "$filter", or a base64
+   * signature padded with "==" went out as a different query than the caller
+   * wrote — and the request still reported success.
+   */
   private setParamsFromQueryString(queryString?: string): void {
     if (!queryString) {
       return;
@@ -198,13 +215,25 @@ export default class URL extends DatabaseProperty {
 
     const keyValues: Array<string> = queryString.split("&");
     for (const keyValue of keyValues) {
-      if (keyValue.split("=")[0] && keyValue.split("=")[1]) {
-        const key: string | undefined = keyValue.split("=")[0];
-        const value: string | undefined = keyValue.split("=")[1];
-        if (key && value) {
-          this._params[key] = value;
-        }
+      const separatorIndex: number = keyValue.indexOf("=");
+
+      /*
+       * No "=" at all is a value-less param ("?flag"). It is kept with an
+       * empty value instead of being dropped, and queryStringSuffix re-emits
+       * it bare. A pair with no key ("?=v", or the empty segment in "?a=1&&b=2")
+       * has nothing to key on, so it is skipped.
+       */
+      const key: string =
+        separatorIndex === -1
+          ? keyValue
+          : keyValue.substring(0, separatorIndex);
+
+      if (!key) {
+        continue;
       }
+
+      this._params[key] =
+        separatorIndex === -1 ? "" : keyValue.substring(separatorIndex + 1);
     }
   }
 
@@ -221,7 +250,13 @@ export default class URL extends DatabaseProperty {
       "?" +
       Object.keys(this.params)
         .map((key: string) => {
-          return key + "=" + this.params[key];
+          /*
+           * An empty value re-emits as a bare key, so "?flag" survives a round
+           * trip. Values go back out verbatim: whatever encoding the caller
+           * supplied is what reaches the wire.
+           */
+          const value: string | undefined = this.params[key];
+          return value ? key + "=" + value : key;
         })
         .join("&")
     );
@@ -241,21 +276,32 @@ export default class URL extends DatabaseProperty {
     }
 
     let urlString: string = `${this.protocol}${this.hostname || this.email}`;
-    if (!this.email && !urlString.startsWith("mailto:")) {
-      if (this.route && this.route.toString().startsWith("/")) {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
-        }
-        urlString += this.route.toString();
-      } else {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
-        }
-        urlString += "/" + this.route.toString();
-      }
 
-      urlString += this.queryStringSuffix();
+    /*
+     * mailto: has no authority to trim and no route to append, so it skips the
+     * branch below — but it CAN carry a query, and "?subject=...&body=..." is
+     * the whole point of a prefilled mail link. The suffix used to be appended
+     * inside that branch, so skipping the route silently dropped the subject
+     * and body too, and the link opened on an empty draft. It returns here
+     * with the suffix attached instead, the way the opaque branch above does.
+     */
+    if (this.email || urlString.startsWith("mailto:")) {
+      return urlString + this.queryStringSuffix();
     }
+
+    if (this.route && this.route.toString().startsWith("/")) {
+      if (urlString.endsWith("/")) {
+        urlString = urlString.substring(0, urlString.length - 1);
+      }
+      urlString += this.route.toString();
+    } else {
+      if (urlString.endsWith("/")) {
+        urlString = urlString.substring(0, urlString.length - 1);
+      }
+      urlString += "/" + this.route.toString();
+    }
+
+    urlString += this.queryStringSuffix();
 
     return urlString;
   }
@@ -354,7 +400,7 @@ export default class URL extends DatabaseProperty {
        * to accept an email address — and "?subject=..." along with it.
        */
       const address: string = url.split("?")[0] || "";
-      const mailQueryString: string = url.split("?")[1] || "";
+      const mailQueryString: string = URL.queryStringOf(url);
 
       return new URL(protocol, address, undefined, mailQueryString);
     }
@@ -366,10 +412,24 @@ export default class URL extends DatabaseProperty {
        * Hostname.
        */
       const number: string = url.split("?")[0] || "";
-      const opaqueQueryString: string = url.split("?")[1] || "";
+      const opaqueQueryString: string = URL.queryStringOf(url);
 
       return new URL(protocol, number, undefined, opaqueQueryString);
     }
+
+    /*
+     * The query and the fragment come off BEFORE the authority and the route
+     * are read off the string.
+     *
+     * Splitting on "/" first meant a "/" inside a QUERY VALUE was read as a
+     * path segment whenever the URL had no path of its own:
+     * "https://example.com?next=/a/b" parsed to a route of "a/b" and went back
+     * out as "https://example.com/a/b?next=/a/b" — a path nobody wrote, on a
+     * request the workflow API components dispatch verbatim. The authority was
+     * already cut at "?"/"#" and is unchanged by this, so the host stays the
+     * one the SSRF check upstream resolved; what moved was the path.
+     */
+    const beforeQuery: string = url.split("?")[0] || "";
 
     /*
      * The authority ends at the first "/", "?" or "#". Splitting on "/" alone
@@ -378,19 +438,31 @@ export default class URL extends DatabaseProperty {
      * round-tripped wrong and handed anything that later interpolated the
      * host a way to smuggle a path.
      */
-    const authority: string = (url.split("/")[0] || "").split(/[?#]/)[0] || "";
+    const authorityAndPath: string = beforeQuery.split("#")[0] || "";
+
+    /*
+     * A fragment is not a field on this type. It rides on the end of the route
+     * — which is where it has always ended up, because the route was cut at
+     * "?" and never at "#" — so "…/docs#section" keeps round-tripping instead
+     * of losing its "#section" to this change.
+     */
+    const fragment: string = beforeQuery.substring(authorityAndPath.length);
+
+    const authority: string = authorityAndPath.split("/")[0] || "";
 
     const hostname: Hostname = new Hostname(authority);
 
     let route: Route | undefined;
 
-    if (url.split("/").length > 1) {
-      const paths: Array<string> = url.split("/");
-      paths.shift();
-      route = new Route(paths.join("/").split("?")[0]);
+    const pathSegments: Array<string> = authorityAndPath.split("/");
+    pathSegments.shift(); // drop the authority; what is left is the path
+    const path: string = pathSegments.join("/");
+
+    if (path || fragment) {
+      route = new Route(path + fragment);
     }
 
-    const queryString: string | undefined = url.split("?")[1] || "";
+    const queryString: string = URL.queryStringOf(url);
 
     return new URL(protocol, hostname, route, queryString);
   }

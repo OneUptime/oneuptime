@@ -92,8 +92,9 @@ function getRecoveryCriteriaInstances(
 
 /*
  * Every criteria instance that ships something to create — the "Unhealthy"
- * ones. Ceph's Monitor Disk template ships two of them (a CRIT tier and a LOW
- * tier), so this is deliberately a list and not a single instance.
+ * ones. Deliberately a list and not a single instance: nothing in
+ * `applyNotificationSettingsToMonitorStep` limits a step to one, and a monitor
+ * a user has edited by hand can carry several.
  */
 function getBreachCriteriaInstances(
   monitorStep: MonitorStep,
@@ -114,6 +115,50 @@ function applyMode(data: {
     notificationSettings: { notificationMode: data.notificationMode },
     severity: data.recommendation.severity,
   });
+}
+
+/*
+ * A step carrying TWO unhealthy criteria, assembled by hand.
+ *
+ * No shipped template has two any more — Ceph's monitor-disk template used to
+ * tier MON_DISK_CRIT and MON_DISK_LOW into one monitor, and that was the bug
+ * the split fixed. The guarantee that the mode is applied to EVERY unhealthy
+ * criteria is still real: `applyNotificationModeToCriteriaInstance` runs per
+ * instance, and a monitor a user has since edited can hold any number. So it
+ * is exercised against a synthetic step rather than dropped, and an
+ * implementation that only touched the first instance still fails.
+ */
+function buildTwoUnhealthyCriteriaStep(
+  recommendation: MonitorRecommendation,
+): MonitorStep {
+  const monitorStep: MonitorStep = recommendation.getMonitorStep(buildArgs());
+
+  const breachInstance: MonitorCriteriaInstance =
+    getBreachCriteriaInstances(monitorStep)[0]!;
+
+  const secondTier: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+  secondTier.data = {
+    ...breachInstance.data!,
+    id: ObjectID.generate().toString(),
+    name: "Second Unhealthy Tier",
+    incidents: (breachInstance.data!.incidents || []).map(
+      (incident: CriteriaIncident) => {
+        return { ...incident, id: ObjectID.generate().toString() };
+      },
+    ),
+    alerts: (breachInstance.data!.alerts || []).map((alert: CriteriaAlert) => {
+      return { ...alert, id: ObjectID.generate().toString() };
+    }),
+  };
+
+  monitorStep.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray = [
+    breachInstance,
+    secondTier,
+    ...getRecoveryCriteriaInstances(monitorStep),
+  ];
+
+  return monitorStep;
 }
 
 const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
@@ -149,7 +194,7 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("has recommendations to test at all", () => {
       // Guards every for-loop in this file against a vacuous pass.
       expect(ALL_RECOMMENDATIONS.length).toBeGreaterThan(0);
-      expect(ONE_PER_RESOURCE_TYPE.length).toBe(10);
+      expect(ONE_PER_RESOURCE_TYPE.length).toBe(11);
     });
 
     it("ships every unhealthy criteria with createIncidents AND createAlerts true, and both arrays populated", () => {
@@ -191,24 +236,27 @@ describe("MonitorRecommendationNotificationMode", () => {
       }
     });
 
-    it("ships at least one recommendation with more than one unhealthy criteria", () => {
+    it("ships exactly one unhealthy criteria per recommendation", () => {
       /*
-       * Ceph's monitor-disk template tiers CRIT and LOW into two unhealthy
-       * criteria on one monitor. Without a multi-criteria template in the
-       * catalog, "the mode is applied to EVERY unhealthy criteria" below could
-       * never fail — a buggy implementation that only touched the first
-       * criteria instance would pass every other test in this file.
+       * `applyNotificationSettingsToMonitorStep` stamps ONE severity — the
+       * recommendation's own — onto every criteria instance in the step, so a
+       * second, milder tier inside a single template opens incidents at the
+       * template's severity and pages that severity's on-call policy. Ceph's
+       * monitor-disk template did exactly that: its MON_DISK_LOW (Warning)
+       * tier opened Critical incidents while the card promised Warning. Two
+       * severities need two templates (`ceph-mon-disk-space` and
+       * `ceph-mon-disk-low`).
+       *
+       * A future template that genuinely wants two tiers at the SAME severity
+       * may relax this — but it has to say so here, deliberately, rather than
+       * re-introduce the mismatch by accident.
        */
-      const multiCriteriaRecommendations: Array<MonitorRecommendation> =
-        ALL_RECOMMENDATIONS.filter((recommendation: MonitorRecommendation) => {
-          return (
-            getBreachCriteriaInstances(
-              recommendation.getMonitorStep(buildArgs()),
-            ).length > 1
-          );
-        });
-
-      expect(multiCriteriaRecommendations.length).toBeGreaterThan(0);
+      for (const recommendation of ALL_RECOMMENDATIONS) {
+        expect(
+          getBreachCriteriaInstances(recommendation.getMonitorStep(buildArgs()))
+            .length,
+        ).toBe(1);
+      }
     });
   });
 
@@ -257,6 +305,33 @@ describe("MonitorRecommendationNotificationMode", () => {
         )) {
           expect(criteriaInstance.data?.createIncidents).toBe(true);
           expect(criteriaInstance.data?.createAlerts).toBe(true);
+        }
+      }
+    });
+
+    it("applies the mode to EVERY unhealthy criteria, not just the first", () => {
+      for (const notificationMode of ALL_MODES) {
+        const recommendation: MonitorRecommendation = ALL_RECOMMENDATIONS[0]!;
+        const monitorStep: MonitorStep =
+          buildTwoUnhealthyCriteriaStep(recommendation);
+
+        expect(getBreachCriteriaInstances(monitorStep).length).toBe(2);
+
+        MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
+          monitorStep: monitorStep,
+          notificationSettings: { notificationMode: notificationMode },
+          severity: recommendation.severity,
+        });
+
+        for (const criteriaInstance of getBreachCriteriaInstances(
+          monitorStep,
+        )) {
+          expect(criteriaInstance.data?.createIncidents).toBe(
+            notificationMode !== MonitorRecommendationNotificationMode.Alert,
+          );
+          expect(criteriaInstance.data?.createAlerts).toBe(
+            notificationMode !== MonitorRecommendationNotificationMode.Incident,
+          );
         }
       }
     });

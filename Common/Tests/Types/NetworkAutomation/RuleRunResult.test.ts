@@ -1,5 +1,7 @@
 import {
+  AutoImportRuleRunResult,
   LabelRuleRunResult,
+  MAX_RUN_FAILURE_REASON_LENGTH,
   RuleRunResultUtil,
   SiteAssignmentRuleRunResult,
 } from "../../../Types/NetworkAutomation/RuleRunResult";
@@ -180,5 +182,171 @@ describe("RuleRunResultUtil.parseLabelRuleRunResult", () => {
 
     expect(parsed.labelsAttached).toBe(0);
     expect(parsed.devicesLabeled).toBe(0);
+  });
+});
+
+describe("RuleRunResultUtil.parseAutoImportRuleRunResult", () => {
+  it("reads the device and active-monitor outcome independently", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        hostsEvaluated: 20,
+        hostsMatched: 10,
+        hostsExcluded: 2,
+        hostsSkippedAlreadyRegistered: 3,
+        devicesCreated: 4,
+        devicesFailed: 1,
+        monitorsWouldCreate: 0,
+        monitorsCreated: 3,
+        monitorsSkippedAlreadyExisting: 2,
+        monitorsSkippedUnsupportedHost: 1,
+        monitorsFailed: 1,
+        deviceFailureReasons: ["Name too long"],
+        monitorFailureReasons: ["Plan limit reached"],
+        monitorProvisioningHalted: true,
+        isTruncated: true,
+        hasMoreScans: true,
+        isDryRun: false,
+        matchedIpAddressSample: ["10.0.0.1", "10.0.0.2"],
+      } as JSONObject);
+
+    expect(parsed).toEqual({
+      hostsEvaluated: 20,
+      hostsMatched: 10,
+      hostsExcluded: 2,
+      hostsSkippedAlreadyRegistered: 3,
+      devicesCreated: 4,
+      devicesFailed: 1,
+      monitorsWouldCreate: 0,
+      monitorsCreated: 3,
+      monitorsSkippedAlreadyExisting: 2,
+      monitorsSkippedUnsupportedHost: 1,
+      monitorsFailed: 1,
+      deviceFailureReasons: ["Name too long"],
+      monitorFailureReasons: ["Plan limit reached"],
+      monitorProvisioningHalted: true,
+      isTruncated: true,
+      /*
+       * Absent from the payload above, which is what a pre-#3642 server
+       * sends: a truncated run from one of those reports nothing pending
+       * rather than NaN, and the summary falls back to its unquantified
+       * "stopped at the run cap" sentence.
+       */
+      hostsPendingImport: 0,
+      monitorsPendingCreation: 0,
+      hasUnevaluatedScans: false,
+      hasMoreScans: true,
+      isDryRun: false,
+      matchedIpAddressSample: ["10.0.0.1", "10.0.0.2"],
+    });
+  });
+
+  /*
+   * The reasons come from a server that may be older than this dashboard, or
+   * from a hand-rolled client. Anything that is not a usable string is dropped
+   * rather than rendered into the modal, and the list is bounded on both axes
+   * so a pathological payload cannot become the whole dialog.
+   */
+  it("reads absent failure reasons as empty rather than undefined", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({ hostsEvaluated: 1 });
+
+    expect(parsed.deviceFailureReasons).toEqual([]);
+    expect(parsed.monitorFailureReasons).toEqual([]);
+    expect(parsed.monitorProvisioningHalted).toBe(false);
+  });
+
+  it("drops non-string, blank and surplus failure reasons", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        monitorFailureReasons: [
+          "  plan limit  ",
+          "",
+          "   ",
+          42,
+          null,
+          "duplicate key",
+          "third",
+          "fourth",
+        ],
+        deviceFailureReasons: "not an array",
+      } as unknown as JSONObject);
+
+    expect(parsed.monitorFailureReasons).toEqual([
+      "plan limit",
+      "duplicate key",
+      "third",
+    ]);
+    expect(parsed.deviceFailureReasons).toEqual([]);
+  });
+
+  it("truncates an over-long failure reason", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        monitorFailureReasons: ["x".repeat(MAX_RUN_FAILURE_REASON_LENGTH + 50)],
+      } as unknown as JSONObject);
+
+    expect(parsed.monitorFailureReasons[0]!.length).toBe(
+      MAX_RUN_FAILURE_REASON_LENGTH,
+    );
+  });
+
+  it("reads every missing monitor counter as zero for older servers", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        hostsEvaluated: 1,
+      });
+
+    expect(parsed.monitorsWouldCreate).toBe(0);
+    expect(parsed.monitorsCreated).toBe(0);
+    expect(parsed.monitorsSkippedAlreadyExisting).toBe(0);
+    expect(parsed.monitorsSkippedUnsupportedHost).toBe(0);
+    expect(parsed.monitorsFailed).toBe(0);
+  });
+
+  it("refuses malformed and non-finite monitor counters", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        monitorsWouldCreate: "4",
+        monitorsCreated: Number.NaN,
+        monitorsSkippedAlreadyExisting: null,
+        monitorsSkippedUnsupportedHost: {},
+        monitorsFailed: Number.POSITIVE_INFINITY,
+      } as unknown as JSONObject);
+
+    expect(parsed.monitorsWouldCreate).toBe(0);
+    expect(parsed.monitorsCreated).toBe(0);
+    expect(parsed.monitorsSkippedAlreadyExisting).toBe(0);
+    expect(parsed.monitorsSkippedUnsupportedHost).toBe(0);
+    expect(parsed.monitorsFailed).toBe(0);
+  });
+
+  it("keeps only a bounded sample of string IP addresses", () => {
+    const sample: Array<unknown> = Array.from(
+      { length: 60 },
+      (_value: unknown, index: number): unknown => {
+        return index === 1 ? 42 : `10.0.0.${index}`;
+      },
+    );
+
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        matchedIpAddressSample: sample,
+      } as unknown as JSONObject);
+
+    expect(parsed.matchedIpAddressSample).toHaveLength(50);
+    expect(parsed.matchedIpAddressSample).not.toContain(42);
+  });
+
+  it("treats only literal true as dry-run and truncation flags", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        isDryRun: "true",
+        isTruncated: 1,
+        hasMoreScans: true,
+      } as unknown as JSONObject);
+
+    expect(parsed.isDryRun).toBe(false);
+    expect(parsed.isTruncated).toBe(false);
+    expect(parsed.hasMoreScans).toBe(true);
   });
 });

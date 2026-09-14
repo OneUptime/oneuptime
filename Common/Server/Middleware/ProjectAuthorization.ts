@@ -199,7 +199,12 @@ export default class ProjectMiddleware {
         (req as OneUptimeRequest).userType = UserType.API;
 
         /*
-         * TODO: Add API key permissions.
+         * The two halves of an API key's authority. The global half is the
+         * fixed marker set every key carries (see APIKeyAccessPermission); the
+         * per-key grants an administrator actually configured are read from
+         * ApiKeyPermission just below. That second half is what the long-lived
+         * "TODO: Add API key permissions" here was asking for, and it is done -
+         * the TODO outlived the work.
          */
         (req as OneUptimeRequest).userGlobalAccessPermission =
           await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);
@@ -276,6 +281,17 @@ export default class ProjectMiddleware {
 
       throw new BadDataException("Invalid Project ID or API Key");
     } catch (err) {
+      /*
+       * Record on THIS middleware's own @CaptureSpan span before handing the
+       * error to Express. The decorator sees a normal return (we call
+       * next(err) rather than rethrowing — Express 4 does not catch a
+       * rejection from an async middleware), so its recorder never runs and
+       * without this the error is invisible on the span it actually belongs
+       * to. Goes through SpanUtil so the event is typed by class name rather
+       * than by HTTP status, and so a rejected credential produces a `fault`
+       * event instead of an Issue.
+       */
+      SpanUtil.recordExceptionOnCurrentSpan(err);
       next(err);
     }
   }

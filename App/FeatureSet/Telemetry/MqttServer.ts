@@ -2,8 +2,8 @@ import net from "net";
 import http from "http";
 import { timingSafeEqual } from "crypto";
 import { Duplex } from "stream";
-import Aedes, {
-  createBroker,
+import {
+  Aedes,
   AuthenticateError,
   Client,
   PublishPacket,
@@ -15,6 +15,13 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingService";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import IoTDeviceCredentialService, {
   IoTDeviceCredentialContext,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -178,6 +185,10 @@ async function resolveAuthContext(
         return null;
       }
 
+      await PayAsYouGoBillingService.requirePayAsYouGo(
+        new ObjectID(context.projectId),
+      );
+
       return {
         projectId: new ObjectID(context.projectId),
         device: {
@@ -204,16 +215,48 @@ async function resolveAuthContext(
     return null;
   }
 
-  const projectId: ObjectID | null =
-    await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
-      projectSecretKey,
-    );
+  const policy: TelemetryIngestionKeyPolicy | null =
+    await TelemetryIngestionKeyService.getPolicyFromSecretKey(projectSecretKey);
 
-  if (!projectId) {
+  if (!policy) {
     return null;
   }
 
-  return { projectId };
+  /*
+   * Kill switch, expiry, and the key TYPE.
+   *
+   * The type check matters MORE here than on the gRPC port, not less. This
+   * broker's WebSocket listener rides the ordinary HTTP ingress, so unlike
+   * raw MQTT over TCP it is reachable straight from page JavaScript — which
+   * means a Browser key lifted out of a customer's page source could be
+   * replayed into MQTT ingest by the same script that scraped it, from any
+   * origin, with no Origin check to fail (a WebSocket handshake's Origin is
+   * not something this broker inspects). No OneUptime browser SDK publishes
+   * MQTT; browser keys exist for OTLP and session replay. So a Browser key
+   * presented at CONNECT has no honest explanation, and is refused.
+   */
+  const refusal: TelemetryIngestionKeyRefusal | null =
+    TelemetryIngestionKeyGuard.getRefusal({
+      policy: policy,
+      surface: TelemetryIngestSurface.Mqtt,
+    });
+
+  if (refusal) {
+    /*
+     * CONNACK rc=4 carries no reason string on the wire — MQTT 3.1.1 has no
+     * field for one — so this log line is the only place the WHY exists.
+     * It names the key id and the refusal reason and never the credential:
+     * on this transport the password IS the ingestion key, which is why
+     * nothing in this file ever logs it.
+     */
+    logger.warn(
+      `MQTT: ingestion key ${policy.ingestionKeyId.toString()} refused — ${refusal.reason}.`,
+      { service: "telemetry" },
+    );
+    return null;
+  }
+
+  return { projectId: policy.projectId };
 }
 
 async function handleAuthorizePublish(
@@ -289,6 +332,12 @@ async function handleAuthorizePublish(
     return;
   }
 
+  /*
+   * A connected session can outlive its project's payment setup, including
+   * device credentials that do not use a project ingestion key.
+   */
+  await PayAsYouGoBillingService.requirePayAsYouGo(projectId);
+
   const payload: Buffer = Buffer.isBuffer(packet.payload)
     ? packet.payload
     : Buffer.from(packet.payload || "", "utf8");
@@ -362,8 +411,14 @@ async function handleAuthorizePublish(
   await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
 }
 
-function createMqttBroker(): Aedes {
-  const broker: Aedes = createBroker();
+async function createMqttBroker(): Promise<Aedes> {
+  /*
+   * Aedes 1.x initializes its async persistence layer before the broker can
+   * accept connections. Awaiting createBroker is therefore part of startup,
+   * not optional scheduling: binding either listener first can hand a client
+   * to a broker whose session store is not ready yet.
+   */
+  const broker: Aedes = await Aedes.createBroker();
 
   broker.authenticate = (
     client: Client,
@@ -397,7 +452,18 @@ function createMqttBroker(): Aedes {
          * takeover), so an un-namespaced id would let one tenant evict
          * another tenant's device — and fire its Last Will.
          */
-        client.id = `${authContext.projectId.toString()}/${client.id}`;
+        /*
+         * Aedes assigns id immediately before it calls authenticate and uses
+         * the possibly-updated value when it registers the session. Its 1.x
+         * declaration marks the property readonly for consumers even though
+         * the broker deliberately keeps it writable at this hook. Reflect
+         * preserves the tenant namespace without weakening Client elsewhere.
+         */
+        Reflect.set(
+          client,
+          "id",
+          `${authContext.projectId.toString()}/${client.id}`,
+        );
 
         if (authContext.device) {
           /*
@@ -418,6 +484,18 @@ function createMqttBroker(): Aedes {
         done(null, true);
       })
       .catch((err: unknown) => {
+        if (err instanceof PaymentRequiredException) {
+          logger.warn(err.message, { service: "telemetry" });
+          done(
+            makeAuthenticateError(
+              err.message,
+              CONNACK_BAD_USERNAME_OR_PASSWORD,
+            ),
+            false,
+          );
+          return;
+        }
+
         logger.error("MQTT: error while authenticating client:", {
           service: "telemetry",
         });
@@ -766,7 +844,7 @@ function startWebSocketListener(broker: Aedes): void {
   );
 }
 
-export function startMqttServer(): void {
+export async function startMqttServer(): Promise<void> {
   if (!MQTT_INGEST_ENABLED) {
     logger.info(
       "MQTT_INGEST_ENABLED=false — MQTT ingest listeners not started.",
@@ -775,7 +853,7 @@ export function startMqttServer(): void {
     return;
   }
 
-  const broker: Aedes = createMqttBroker();
+  const broker: Aedes = await createMqttBroker();
 
   startTcpListener(broker);
   startWebSocketListener(broker);

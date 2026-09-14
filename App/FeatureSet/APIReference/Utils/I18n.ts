@@ -22,6 +22,7 @@ import ko from "../Locales/ko.json";
 import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
+import fa from "../Locales/fa.json";
 
 export interface LocaleStrings {
   ui: { [key: string]: string };
@@ -45,6 +46,7 @@ const Locales: { [code: string]: LocaleStrings } = {
   "zh-CN": zhCN as LocaleStrings,
   "zh-TW": zhTW as LocaleStrings,
   hi: hi as LocaleStrings,
+  fa: fa as LocaleStrings,
 };
 
 export type TranslateFn = (

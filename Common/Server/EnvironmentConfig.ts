@@ -15,6 +15,7 @@ import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
+import LIMIT_MAX from "../Types/Database/LimitMax";
 import ObjectID from "../Types/ObjectID";
 import Port from "../Types/Port";
 import Hostname from "../Types/API/Hostname";
@@ -41,8 +42,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "ANALYTICS_HOST",
   "GIT_SHA",
   "APP_VERSION",
-  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
-  "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+  "PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+  "PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY",
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
@@ -53,6 +54,32 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "INBOUND_EMAIL_DOMAIN",
 ];
 
+/*
+ * These values are credentials (or may contain credentials) for backend
+ * exporters. Keep this denylist even though none of them is in the allowlist:
+ * it makes the security boundary explicit and ensures that a future broad
+ * prefix or an accidental allowlist addition cannot publish them in env.js.
+ *
+ * Browser telemetry has its own deliberately public endpoint and Browser
+ * ingestion key above. Browser keys are origin-bound, surface-limited and
+ * rate-limited by TelemetryIngest; a Server key is none of those things.
+ */
+const FRONTEND_ENV_DENY_LIST: ReadonlySet<string> = new Set<string>([
+  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+  "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+]);
+
+/*
+ * PUBLIC_ is an intentional escape hatch for browser-readable settings, but it
+ * must not turn a renamed OTLP header variable into an escape hatch for an
+ * arbitrary bearer token. Cover the OpenTelemetry-standard OTEL spelling, the
+ * historical OneUptime OPENTELEMETRY spelling, generic headers and every
+ * signal-specific/future extension ending in _HEADERS. Endpoint and dedicated
+ * Browser-key names remain unaffected.
+ */
+const FRONTEND_OTLP_HEADERS_PATTERN: RegExp =
+  /^PUBLIC_(?:OTEL|OPENTELEMETRY)_EXPORTER_OTLP(?:_[A-Z0-9]+)*_HEADERS$/i;
+
 const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
   "SUBSCRIPTION_PLAN_",
   "PUBLIC_",
@@ -62,6 +89,13 @@ export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
   const frontendEnv: JSONObject = {};
 
   for (const key of Object.keys(process.env)) {
+    if (
+      FRONTEND_ENV_DENY_LIST.has(key) ||
+      FRONTEND_OTLP_HEADERS_PATTERN.test(key)
+    ) {
+      continue;
+    }
+
     const shouldInclude: boolean =
       FRONTEND_ENV_ALLOW_LIST.includes(key) ||
       FRONTEND_ENV_ALLOW_PREFIXES.some((prefix: string) => {
@@ -99,6 +133,49 @@ const parsePositiveNumberFromEnv: (
   }
 
   return parsedValue;
+};
+
+/*
+ * Like parsePositiveNumberFromEnv, but for settings that count things
+ * (requests, seconds): "1.5" or "0" are misconfigurations and fall back to the
+ * default rather than being rounded into something the operator did not ask
+ * for.
+ */
+const parsePositiveIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+) => number = (envKey: string, fallback: number): number => {
+  const rawValue: string | undefined = process.env[envKey];
+
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return fallback;
+  }
+
+  const parsedValue: number = Number(rawValue.trim());
+
+  if (
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue) ||
+    parsedValue <= 0
+  ) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
+/*
+ * parsePositiveIntegerFromEnv with a ceiling the rest of the system can
+ * actually honour. A configured value the app would silently fail to enforce
+ * is worse than a visibly clamped one -- so this clamps rather than trusting
+ * the operator, and every call site documents WHY its ceiling exists.
+ */
+const parseClampedIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+  ceiling: number,
+) => number = (envKey: string, fallback: number, ceiling: number): number => {
+  return Math.min(parsePositiveIntegerFromEnv(envKey, fallback), ceiling);
 };
 
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
@@ -277,6 +354,75 @@ export const EncryptionSecret: ObjectID = new ObjectID(
   process.env["ENCRYPTION_SECRET"] || "secret",
 );
 
+/*
+ * The ENCRYPTION_SECRET values that ship in this repository, and are therefore
+ * as public as the source tree itself.
+ *
+ * "secret" is the fallback above. "please-change-this-to-random-value" is what
+ * `config.example.env` sets, and the documented Docker Compose install is
+ * `cp config.example.env config.env` (README) with
+ * `ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}` passed straight through by
+ * docker-compose.base.yml -- so it is the key an install that follows the docs
+ * actually runs with unless the operator edits it. Home/Scripts/Install.sh
+ * randomizes the placeholders, but nothing in the documented compose path
+ * calls it, and Scripts/Install/MergeEnvTemplate.js carries the placeholder
+ * forward on upgrade. The Helm chart is unaffected: it generates a random
+ * secret when `encryptionSecret` is left empty.
+ */
+export const InsecureEncryptionSecretValues: Array<string> = [
+  "secret",
+  "please-change-this-to-random-value",
+];
+
+/*
+ * The prefix every placeholder in config.example.env starts with. Flagging it
+ * catches a partially edited placeholder ("please-change-this-to-random-value-2")
+ * as well as the exact strings above.
+ */
+export const InsecureEncryptionSecretPrefix: string = "please-change-this";
+
+/*
+ * True when the install is encrypting columns with a value the repository
+ * ships rather than one the operator chose.
+ *
+ * Every `@TableColumn({ encrypted: true })` value -- OAuth tokens, SMTP
+ * passwords, the on-call calendar feed tokens -- is AES-encrypted with
+ * ENCRYPTION_SECRET, so leaving it unset or at one of the shipped placeholders
+ * means anyone who can read a database dump can read every one of those
+ * columns with a key that is public on GitHub. Nothing refuses to start over
+ * it (that would take down an existing install on upgrade), but the boot log
+ * says so loudly; see EncryptionSecretWarning and StartServer.init.
+ *
+ * The comparison is case-sensitive on purpose: the encryption key is, and the
+ * warning is about the exact values an attacker would try first. Any other
+ * weak key is the operator's own choice.
+ */
+export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
+  const rawValue: string | undefined = process.env["ENCRYPTION_SECRET"];
+
+  if (rawValue === undefined) {
+    return true;
+  }
+
+  const value: string = rawValue.trim();
+
+  return (
+    value === "" ||
+    InsecureEncryptionSecretValues.includes(value) ||
+    value.startsWith(InsecureEncryptionSecretPrefix)
+  );
+})();
+
+/*
+ * The boot warning itself, or null when the secret is fine. EnvironmentConfig
+ * cannot log it directly -- Logger imports LogLevel from this module, so
+ * importing Logger here would be circular -- which is why the message is
+ * exported and the process entrypoint emits it.
+ */
+export const EncryptionSecretWarning: string | null = IsEncryptionSecretInsecure
+  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
+  : null;
+
 export const OpenSourceDeploymentWebhookUrl: string =
   process.env["OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL"] || "";
 
@@ -326,32 +472,63 @@ export const HomeHostname: Hostname = Hostname.fromString(
 
 export const Env: string = process.env["NODE_ENV"] || "production";
 
-// Redis does not require password.
-export const RedisHostname: string = process.env["REDIS_HOST"] || "redis";
-export const RedisPort: Port = new Port(process.env["REDIS_PORT"] || "6379");
-export const RedisDb: number = Number(process.env["REDIS_DB"]) || 0;
-export const RedisUsername: string = process.env["REDIS_USERNAME"] || "default";
-export const RedisPassword: string =
-  process.env["REDIS_PASSWORD"] || "password";
+/*
+ * The cache and queue tier runs Valkey -- the BSD-licensed fork of Redis 7.2 --
+ * so its settings are named VALKEY_*. Any Redis-protocol server works here,
+ * including real Redis, which is why the in-code names below stay `Redis*`:
+ * they describe the protocol, not the vendor.
+ *
+ * The REDIS_* names these shipped under are still read, so an existing
+ * config.env or values.yaml keeps working untouched. They are DEPRECATED, not
+ * removed; VALKEY_* wins when both are set. Nothing here may start requiring
+ * the new name -- a self-hoster who never edits config.env must keep running.
+ *
+ * `||` here is load-bearing and must not be "modernised" to `??`. Compose
+ * materialises an unset variable as an EMPTY STRING, and docker-compose.base.yml
+ * lists every VALKEY_* name, so the new name is always *defined* inside our
+ * containers. Under `??` an empty VALKEY_PASSWORD would beat the operator's real
+ * REDIS_PASSWORD and the app would silently fall through to the literal default
+ * below.
+ */
+export function getCacheEnvVar(suffix: string): string | undefined {
+  return (
+    process.env[`VALKEY_${suffix}`] ||
+    process.env[`REDIS_${suffix}`] ||
+    undefined
+  );
+}
 
-export const RedisTlsCa: string | undefined =
-  process.env["REDIS_TLS_CA"] || undefined;
+/*
+ * The cache does not require a password.
+ *
+ * The default hostname stays "redis" even though the compose service is now
+ * `valkey`. This default is only reached when NEITHER variable is set, which
+ * never happens in our own compose or Helm -- both always set them. What it does
+ * cover is hand-written Kubernetes manifests, a bare `docker run`, and third
+ * party compose files, where the Service has been called `redis` for years.
+ * Compose is unaffected either way: its valkey service answers to `redis` too.
+ */
+export const RedisHostname: string = getCacheEnvVar("HOST") || "redis";
+export const RedisPort: Port = new Port(getCacheEnvVar("PORT") || "6379");
+export const RedisDb: number = Number(getCacheEnvVar("DB")) || 0;
+export const RedisUsername: string = getCacheEnvVar("USERNAME") || "default";
+export const RedisPassword: string = getCacheEnvVar("PASSWORD") || "password";
 
-export const RedisTlsCert: string | undefined =
-  process.env["REDIS_TLS_CERT"] || undefined;
+export const RedisTlsCa: string | undefined = getCacheEnvVar("TLS_CA");
 
-export const RedisTlsKey: string | undefined =
-  process.env["REDIS_TLS_KEY"] || undefined;
+export const RedisTlsCert: string | undefined = getCacheEnvVar("TLS_CERT");
+
+export const RedisTlsKey: string | undefined = getCacheEnvVar("TLS_KEY");
 
 export const RedisTlsSentinelMode: boolean =
-  process.env["REDIS_TLS_SENTINEL_MODE"] === "true";
+  getCacheEnvVar("TLS_SENTINEL_MODE") === "true";
 
 export const ShouldRedisTlsEnable: boolean = Boolean(
   RedisTlsCa || (RedisTlsCert && RedisTlsKey),
 );
 
-export const RedisIPFamily: number = process.env["REDIS_IP_FAMILY"]
-  ? Number(process.env["REDIS_IP_FAMILY"])
+export const RedisIPFamily: number = getCacheEnvVar("IP_FAMILY")
+  ? Number(getCacheEnvVar("IP_FAMILY"))
   : 4;
 
 export const IsProduction: boolean =
@@ -718,12 +895,163 @@ export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
 /*
+ * Master switch for fault classification (code-fault / user-error /
+ * expected-denial / infrastructure). When false, ErrorClassResolver reports
+ * CodeFault for everything, so every thrown value is recorded as an exception
+ * event, marked ERROR and logged at ERROR — exactly the pre-classification
+ * behaviour.
+ *
+ * Default ON. It exists so a regression in classification is a config flip on
+ * a running fleet rather than a redeploy, which matters because this runs on
+ * the universal error path of every decorated method in the product.
+ */
+export const TelemetryErrorClassEnabled: boolean =
+  process.env["TELEMETRY_ERROR_CLASS_ENABLED"] !== "false";
+
+/*
  * Opt out of the daily "is a newer OneUptime released?" check against the
  * GitHub API. Deliberately separate from DISABLE_TELEMETRY, which turns off
  * the OpenTelemetry SDK and says nothing about outbound calls.
  */
 export const DisableUpdateCheck: boolean =
   process.env["DISABLE_UPDATE_CHECK"] === "true";
+
+/*
+ * On-call calendar feeds: the public, token-in-URL .ics endpoints that Google
+ * Calendar / Outlook / Apple Calendar poll for on-call shifts
+ * (/api/on-call-calendar/{user,schedule,project}/<token>/...).
+ *
+ * Kill switch. When true every feed route answers 503 with Retry-After: 3600
+ * so calendar clients back off for an hour and keep the copy they already
+ * have, instead of dropping the calendar the way a 404 would make them.
+ * Nothing about the feeds is deleted; flip it back and they resume.
+ */
+export const DisableOnCallCalendarFeed: boolean =
+  process.env["DISABLE_ON_CALL_CALENDAR_FEED"] === "true";
+
+/*
+ * Fixed-window rate limits for those same feed routes. Two counters, either of
+ * which can reject: per token + client address, and per client address alone
+ * (the ceiling that survives a caller rotating tokens). The defaults are sized
+ * for calendar clients, which poll on the order of once an hour -- Apple is the
+ * most eager at every five minutes -- with a lot of headroom for a team's
+ * clients behind one office address. The limiter fails OPEN when Redis is
+ * unreachable: it is load control, not the only thing guarding the token.
+ */
+export const OnCallCalendarFeedRateLimitWindowSeconds: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS",
+    60,
+  );
+
+export const OnCallCalendarFeedRateLimitPerTokenPerWindow: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+    60,
+  );
+
+export const OnCallCalendarFeedRateLimitPerIpPerWindow: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
+    3000,
+  );
+
+/*
+ * Source map ingestion and resolution limits.
+ *
+ * These were fixed constants, sized on the assumption that "a build rarely
+ * emits more than a few dozen chunks with maps". That assumption does not
+ * survive route-level code splitting: a Nuxt/Vite/Next app with a hundred
+ * routes emits hundreds of chunk .map files per release, and the maps that
+ * did not fit simply never resolved. They are operator knobs now, and the
+ * Helm chart exposes each one.
+ *
+ * The division of labour matters, because it is what makes raising the
+ * ceiling safe:
+ *
+ *   - SourceMapMaxMapsPerRelease is purely a WRITE gate. An upload past it is
+ *     rejected with a 400 that names the limit. It is no longer the
+ *     resolver's read limit, so raising it can never turn stored maps into
+ *     maps that store fine and then silently never resolve.
+ *   - SourceMapMaxBytesPerResolve is what bounds the READ path. Resolution
+ *     loads whole maps into memory, so a byte budget -- not a row count -- is
+ *     the invariant that actually protects the process.
+ */
+
+/*
+ * Distinct bundles one (project, service, release) may hold.
+ *
+ * Clamped to LIMIT_MAX because the gate reads the release's existing bundle
+ * paths with LIMIT_MAX; a configured value above that could not be enforced
+ * and would be a lie.
+ */
+export const SourceMapMaxMapsPerRelease: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_MAPS_PER_RELEASE",
+  1000,
+  LIMIT_MAX,
+);
+
+/*
+ * How long uploaded maps are kept. A map is only useful while exceptions from
+ * its release are still within telemetry retention, and the default
+ * comfortably exceeds it.
+ */
+export const SourceMapRetentionInDays: number = parsePositiveIntegerFromEnv(
+  "SOURCE_MAP_RETENTION_DAYS",
+  90,
+);
+
+/*
+ * Hard ceiling on ONE map, enforced on the raw upload and again on the
+ * decoded string.
+ *
+ * The ceiling is MAX_MULTIPART_FILE_BYTES from
+ * Common/Server/Middleware/MultipartFormData.ts, repeated as a literal
+ * because that module pulls in multer and express and has no business being
+ * imported by config. The two are pinned to each other by
+ * Common/Tests/Server/Utils/Telemetry/SourceMapLimits.test.ts. Configuring
+ * past it would not raise anything: multer aborts the request first, turning
+ * the 400 this ceiling is meant to give into a confusing 413.
+ */
+export const SourceMapMaxFileSizeInBytes: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_FILE_SIZE_BYTES",
+  50 * 1024 * 1024,
+  50 * 1024 * 1024,
+);
+
+/*
+ * Source map files accepted in ONE upload request.
+ *
+ * Separate from the per-release ceiling: a release may hold far more maps
+ * than any single request may carry, and CI splits the upload. Clamped to
+ * MAX_MULTIPART_FILES, which is the shared middleware default and runs
+ * BEFORE authentication on every route that mounts it -- so this knob only
+ * ever narrows the source map route, never widens the pre-auth surface that
+ * Pyroscope and inbound email sit behind.
+ */
+export const SourceMapMaxFilesPerRequest: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_FILES_PER_REQUEST",
+  50,
+  50,
+);
+
+/*
+ * Total map bytes one resolve request may pull into memory.
+ *
+ * This is the bound that used to be implied by the per-release count, and it
+ * is a much tighter one: resolution materialises whole maps, each up to
+ * SourceMapMaxFileSizeInBytes, and the set it loads is chosen by a
+ * caller-supplied frames array. Maps that do not fit the budget are skipped
+ * in match-quality order and REPORTED on the response, so a skip is visible
+ * rather than looking like "no map was uploaded".
+ *
+ * 512 MiB is roughly ten maps at the per-file ceiling, or every map of a
+ * realistically sized release many times over.
+ */
+export const SourceMapMaxBytesPerResolve: number = parsePositiveIntegerFromEnv(
+  "SOURCE_MAP_MAX_BYTES_PER_RESOLVE",
+  512 * 1024 * 1024,
+);
 
 export const EnableProfiling: boolean =
   process.env["ENABLE_PROFILING"] === "true";

@@ -21,7 +21,16 @@ export class Service extends DatabaseService<Model> {
     instanceResourceName?: string | undefined;
     serviceAccountJson?: string | undefined;
     pollIntervalInMinutes?: number | undefined;
+    includeNonAlertingDetections?: boolean | undefined;
   }): void {
+    if (
+      data.includeNonAlertingDetections !== undefined &&
+      typeof data.includeNonAlertingDetections !== "boolean"
+    ) {
+      throw new BadDataException(
+        "Include non-alerting detections must be true or false.",
+      );
+    }
     if (data.region !== undefined) {
       GoogleSecOpsClient.validateRegion(data.region);
     }
@@ -61,6 +70,7 @@ export class Service extends DatabaseService<Model> {
       instanceResourceName: createBy.data.instanceResourceName,
       serviceAccountJson: createBy.data.serviceAccountJson,
       pollIntervalInMinutes: createBy.data.pollIntervalInMinutes,
+      includeNonAlertingDetections: createBy.data.includeNonAlertingDetections,
     });
 
     return { createBy, carryForward: null };
@@ -80,6 +90,8 @@ export class Service extends DatabaseService<Model> {
       pollIntervalInMinutes: updateBy.data.pollIntervalInMinutes as
         | number
         | undefined,
+      includeNonAlertingDetections: updateBy.data
+        .includeNonAlertingDetections as boolean | undefined,
     });
 
     return { updateBy, carryForward: null };

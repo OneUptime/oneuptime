@@ -104,6 +104,7 @@ export type PaletteActionId =
   | "action-create-announcement"
   | "action-toggle-theme"
   | "action-ask-ai"
+  | "action-keyboard-shortcuts"
   | "action-log-out"
   | "action-project-invitations"
   | "action-active-incidents"
@@ -187,6 +188,11 @@ export function getVisibleActionIds(
 
   actionIds.push("action-toggle-theme");
   actionIds.push("action-ask-ai");
+  /*
+   * Never gated: the shortcuts dialog is a reference, not a capability, and
+   * someone who has just met the palette is exactly who needs to find it.
+   */
+  actionIds.push("action-keyboard-shortcuts");
   actionIds.push("action-active-incidents");
   actionIds.push("action-my-on-call-policies");
   actionIds.push("action-project-invitations");

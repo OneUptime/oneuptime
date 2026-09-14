@@ -28,26 +28,27 @@ function formatTooltipTime(label: string | undefined): string {
     return label;
   }
 
-  const now: Date = new Date();
-  const isToday: boolean = date.toDateString() === now.toDateString();
+  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
 
-  const time: string = date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-
-  if (isToday) {
-    return time;
+  /*
+   * Today's buckets need no date on them - the explorer's own range picker
+   * already says which day is on screen. "Today" has to be decided in the
+   * configured timezone, or buckets either side of midnight there get the
+   * date added and dropped a few hours off.
+   */
+  if (
+    OneUptimeDate.areOnTheSameLocalDay(date, OneUptimeDate.getCurrentDate())
+  ) {
+    return OneUptimeDate.getLocalTimeString(date, {
+      includeSeconds: true,
+      use12HourFormat,
+    });
   }
 
-  const dateStr: string = date.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
+    includeSeconds: true,
+    use12HourFormat,
   });
-
-  return `${dateStr}, ${time}`;
 }
 
 const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (

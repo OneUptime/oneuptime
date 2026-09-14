@@ -400,6 +400,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/books", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/books",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/books.ejs`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+      });
+    });
+
     app.get(
       "/oss-friends",
       async (_req: ExpressRequest, res: ExpressResponse) => {
@@ -774,6 +785,17 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    app.get("/product/vmware", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/vmware",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/vmware`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+      });
+    });
 
     app.get(
       "/product/ai-observability",

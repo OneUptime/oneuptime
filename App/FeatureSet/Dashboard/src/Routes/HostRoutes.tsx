@@ -28,6 +28,7 @@ import HostIncidents from "../Pages/Host/View/Incidents";
 import HostAlerts from "../Pages/Host/View/Alerts";
 import HostScheduledMaintenance from "../Pages/Host/View/ScheduledMaintenance";
 import HostOwners from "../Pages/Host/View/Owners";
+import HostFeed from "../Pages/Host/View/Feed";
 import HostAuditLogs from "../Pages/Host/View/AuditLogs";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
@@ -250,6 +251,17 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostOwners
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_FEED)}
+          element={
+            <HostFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_FEED] as Route}
             />
           }
         />

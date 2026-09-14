@@ -1,0 +1,37 @@
+name: Kubernetes Log Tailer Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      # `npm test` compiles with tsc first and then runs the node:test suites
+      # against the build output, so this covers type errors as well.
+      #
+      # These suites had no workflow of their own, which mattered most for
+      # Tests/Severity.test.js: it holds this tailer's severity table in
+      # lockstep with the DaemonSet collector chain in
+      # HelmChart/Public/kubernetes-agent, and the two had already drifted
+      # (NOTICE 10 vs 9, CRITICAL 20 vs 17) with nothing to say so.
+      - run: cd KubernetesLogTailer && npm install
+      - run: cd KubernetesLogTailer && npm run test

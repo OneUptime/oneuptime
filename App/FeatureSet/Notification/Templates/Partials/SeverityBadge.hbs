@@ -1,0 +1,54 @@
+<!-- Severity Badge -->
+{{!--
+  StatusBadge.hbs cannot be reused here: it switches on five hardcoded
+  badgeType names, and alert severities are project-defined rows, so a project
+  that renamed "High" would silently render no badge at all. This partial
+  takes the severity's OWN colour instead.
+
+  `badgeColor` is a double stash inside a style attribute on purpose:
+  Handlebars.escapeExpression escapes quotes and "=", so a value cannot break
+  out of the attribute, and the value itself comes from a colour picker.
+--}}
+<table role="presentation"
+  class="st-Copy st-Width st-Width--mobile"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="100%"
+  style="width: 100%; table-layout: fixed;"
+>
+  <tbody>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="40"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td style="border: 0; margin: 0; padding: 0;">
+        <span
+          style="display:inline-block;padding:6px 14px;border-radius:9999px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background-color:#ffffff;color:{{badgeColor}};border:1px solid {{badgeColor}};font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;"
+        >{{badgeText}}</span>
+      </td>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="40"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--stacked"
+        colspan="3"
+        height="12"
+        style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<!-- /Severity Badge -->

@@ -31,8 +31,26 @@
     "errorOnSignUp": "登録する前にcaptchaチャレンジを完了してください。"
   },
   "login": {
+    "passkey": {
+      "signIn": "パスキーでサインイン",
+      "description": "指紋、顔認証、またはデバイスのPINを使用します。",
+      "passwordAlternative": "またはパスワードでサインイン",
+      "inProgress": "パスワードを使用する前に、パスキーでのサインインを完了またはキャンセルしてください。",
+      "title": "保存済みのパスキーを使う",
+      "helpTitle": "パスキーを初めて使う方へ",
+      "help": "パスワードまたはSSOでサインインしてから、ユーザープロフィール → パスキーと二要素認証を開き、最初のパスキーを作成してください。",
+      "preparing": "パスキーを準備しています…",
+      "waiting": "デバイスを確認してください",
+      "waitingDescription": "ブラウザーまたはパスワードマネージャーの案内に従ってください。",
+      "verifying": "サインインしています…",
+      "cancelled": "パスキーでのサインインをキャンセルしました。もう一度試すか、パスワードを使用してください。",
+      "notCompleted": "パスキーでのサインインがキャンセルされたか、タイムアウトしました。もう一度試すか、パスワードでサインインしてください。",
+      "unsupported": "このブラウザーではパスキーを使用できません。パスワードまたはSSOでサインインできます。",
+      "insecure": "パスキーには安全な接続（HTTPS）が必要です。パスワードまたはSSOでサインインできます。",
+      "tryAgain": "パスキーでもう一度試す"
+    },
     "title": "アカウントにサインインする",
-    "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
+    "subtitle": "パスキー、パスワード、または組織のSSOでサインインできます。",
     "submitButton": "ログイン",
     "forgotPassword": "パスワードをお忘れですか？",
     "useSso": "代わりにシングルサインオン（SSO）を使用する",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "セキュリティキーデバイスの指示に従ってください。",
       "codeFieldDescription": "認証アプリからコードを入力してください",
       "selectDifferentMethod": "別の二要素認証方法を選択",
-      "useBackupCode": "代わりにバックアップコードを使用する",
       "backupCodeInstruction": "二要素認証を設定したときに保存したバックアップコードのいずれかを入力してください。各コードは一度だけ使用できます。",
       "backupCodeFieldTitle": "バックアップコード",
-      "backupCodeFieldDescription": "バックアップコードは ABCDE-12345 のような形式です。大文字と小文字、ハイフンの有無は問いません。"
+      "backupCodeFieldDescription": "バックアップコードは ABCDE-12345 のような形式です。大文字と小文字、ハイフンの有無は問いません。",
+      "confirmSubtitle": "サインインを完了するには、ご本人であることを確認してください。",
+      "recoverySubtitle": "バックアップコードを使用するか、コードがない場合にアカウントへ再度アクセスする方法をご確認ください。",
+      "lostAccess": "認証アプリにアクセスできませんか？",
+      "noBackupCodesStrong": "バックアップコードがありません。",
+      "noBackupCodes": "このアカウントには一度もバックアップコードが発行されていないため、ここに入力できるコードはありません。",
+      "noBackupCodesInstruction": "このOneUptimeインスタンスの管理者に、アカウントの二要素認証をリセットするよう依頼してください。リセット後は、パスワードでサインインして新しい認証アプリを設定でき、その際にバックアップコードも同時に作成されます。",
+      "lostAccessSecurityKey": "セキュリティキーにアクセスできませんか？"
     },
     "twoFactorEnrolment": {
       "title": "二要素認証の設定",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "認証アプリに表示されている 6 桁のコードを入力してください。",
       "submitButton": "確認してサインイン",
       "backToSignIn": "別のユーザーとしてサインイン"
+    },
+    "backupCodes": {
+      "title": "バックアップコードを保存",
+      "subtitle": "認証アプリやセキュリティキーにアクセスできなくなった場合は、これらのいずれかを使用してサインインしてください。",
+      "showOnceStrong": "これらのコードが表示されるのはこの一度だけです。",
+      "showOnce": "コードを生成するデバイスとは別の場所に保存してください。各コードは一度だけ使用できます。",
+      "download": "テキストファイルとしてダウンロード",
+      "savedConfirmation": "これらのコードを安全な場所に保存しました。",
+      "continue": "ダッシュボードへ進む",
+      "fileHeading": "OneUptime二要素認証のバックアップコード",
+      "fileInstruction": "各コードは一度だけ使用できます。このファイルは、認証アプリを実行しているデバイスとは別の安全な場所に保管してください。",
+      "setUpTitle": "バックアップコードの設定",
+      "setUpSubtitle": "続行する前に、最後にもう一つだけ。",
+      "noneStrong": "バックアップコードがありません。",
+      "none": "認証アプリやセキュリティキーを紛失した場合、再びサインインするには管理者が二要素認証をリセットする必要があります。",
+      "generate": "バックアップコードを生成",
+      "skip": "今はスキップ",
+      "generateFailed": "バックアップコードが返されませんでした。ユーザープロファイル > 二要素認証 からもう一度お試しください。"
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "OneUptime On-Call にサインイン",
+    "description": "この OneUptime サーバー用に保存したパスキーを使用します。",
+    "returnDescription": "承認すると、モバイルアプリに戻ります。",
+    "invalid": "OneUptime モバイルアプリからサインインを開始してください。このリクエストは存在しないか、無効です。",
+    "insecure": "パスキーには HTTPS が必要です。アプリに戻り、サーバーアドレスを確認してください。",
+    "failed": "サインインを完了できませんでした。アプリに戻って、もう一度お試しください。",
+    "complete": "パスキーを確認しました。アプリに戻ってサインインを完了してください。",
+    "returnToApp": "アプリに戻る",
+    "cancel": "キャンセルしてアプリに戻る",
+    "setup": "Web ダッシュボードの「ユーザープロフィール → パスキーと二要素認証」でパスキーを作成してください。"
+  },
+  "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
+  "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
+  "Password meets requirements": "パスワードは要件を満たしています",
+  "Password must be at least 15 characters.": "パスワードは15文字以上にしてください。",
+  "Password cannot be more than 100 characters.": "パスワードは100文字以内にしてください。",
+  "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
+  "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
+  "Password is required.": "パスワードは必須です。",
+  "Password must be a string.": "パスワードは文字列で入力してください。",
+  "Account details": "アカウント情報",
+  "Secure your account": "アカウントのセキュリティ",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",
+  "Avoid common or repeated patterns": "よく使われるパターンや繰り返しを避ける",
+  "Password length": "パスワードの長さ",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}文字 / 最低{{minimum}}文字",
+  "Complete:": "達成済み：",
+  "Incomplete:": "未達成：",
+  "Special character included (optional)": "記号が含まれています（任意）",
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
 }

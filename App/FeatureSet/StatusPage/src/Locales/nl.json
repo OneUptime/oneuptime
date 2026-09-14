@@ -57,6 +57,36 @@
     "today": "Vandaag",
     "notAvailable": "Niet beschikbaar"
   },
+  "uptimeHistory": {
+    "graphLabel": "Beschikbaarheidsgeschiedenis van de afgelopen {{total}} dagen",
+    "dayLabel": "{{date}}: {{uptime}}% beschikbaarheid",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% beschikbaarheid, {{total}} incidenten",
+    "dayLabelNoData": "{{date}}: geen gegevens",
+    "dayLabelNoDataWithIncidents": "{{date}}: geen gegevens, {{total}} incidenten",
+    "uptime": "Beschikbaarheid",
+    "noMonitoringData": "Geen monitoringgegevens voor deze dag",
+    "incidents": "Incidenten",
+    "noIncidents": "Geen incidenten",
+    "noIncidentsDescription": "Op deze dag zijn geen incidenten gemeld.",
+    "declared": "Gemeld",
+    "oneIncidentOnThisDay": "1 incident gemeld op deze dag",
+    "incidentsOnThisDay": "{{total}} incidenten gemeld op deze dag"
+  },
+  "liveStatus": {
+    "updated": "Bijgewerkt {{time}}",
+    "refresh": "Vernieuwen",
+    "refreshing": "Bezig met vernieuwen",
+    "refreshFailed": "Vernieuwen is mislukt. De laatst bekende status wordt getoond."
+  },
+  "search": {
+    "label": "Bronnen zoeken",
+    "placeholder": "Bronnen zoeken",
+    "clear": "Zoekopdracht wissen",
+    "resultCount": "{{matched}} van {{total}} bronnen",
+    "noMatchesInGroup": "Geen enkele bron hier komt overeen met uw zoekopdracht.",
+    "noResultsTitle": "Geen overeenkomende bronnen",
+    "noResultsDescription": "Niets op deze pagina komt overeen met ‘{{query}}’. Probeer een kortere zoekopdracht."
+  },
   "incidents": {
     "title": "Incidenten",
     "singular": "Incident",

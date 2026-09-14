@@ -4,6 +4,8 @@ import Search from "../../../Types/BaseDatabase/Search";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
+import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -28,6 +30,8 @@ export enum DictionaryFilterOperator {
   NotContains = "NotContains",
   StartsWith = "StartsWith",
   EndsWith = "EndsWith",
+  Matches = "Matches",
+  NotMatches = "NotMatches",
   GreaterThan = "GreaterThan",
   LessThan = "LessThan",
   GreaterThanOrEqual = "GreaterThanOrEqual",
@@ -96,6 +100,16 @@ export const DICTIONARY_FILTER_OPERATOR_OPTIONS: ReadonlyArray<DictionaryFilterO
       symbol: "ends with",
     },
     {
+      operator: DictionaryFilterOperator.Matches,
+      label: "matches",
+      symbol: "matches",
+    },
+    {
+      operator: DictionaryFilterOperator.NotMatches,
+      label: "does not match",
+      symbol: "does not match",
+    },
+    {
       operator: DictionaryFilterOperator.GreaterThan,
       label: "greater than",
       symbol: ">",
@@ -143,6 +157,8 @@ export type DictionaryEntryValue =
   | NotContains<string>
   | StartsWith<string>
   | EndsWith<string>
+  | Wildcard<string>
+  | NotWildcard<string>
   | GreaterThan<number>
   | GreaterThanOrEqual<number>
   | LessThan<number>
@@ -151,6 +167,40 @@ export type DictionaryEntryValue =
   | NotNull
   | Includes
   | IncludesNone;
+
+const GLOB_SEPARATOR: string = " OR ";
+
+type JoinGlobsFunction = (value: unknown) => string;
+
+const joinGlobs: JoinGlobsFunction = (value: unknown): string => {
+  const raw: unknown =
+    value instanceof Wildcard || value instanceof NotWildcard
+      ? value.values
+      : (value as { value?: unknown }).value;
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map((glob: unknown) => {
+        return String(glob ?? "");
+      })
+      .join(GLOB_SEPARATOR);
+  }
+
+  return String(raw ?? "");
+};
+
+type SplitGlobsFunction = (value: string) => Array<string>;
+
+const splitGlobs: SplitGlobsFunction = (value: string): Array<string> => {
+  return value
+    .split(GLOB_SEPARATOR)
+    .map((glob: string) => {
+      return glob.trim();
+    })
+    .filter((glob: string) => {
+      return glob.length > 0;
+    });
+};
 
 export const getOperatorOption: (
   operator: DictionaryFilterOperator,
@@ -331,6 +381,30 @@ export const detectOperatorFromValue: (
       rawValue: wrapperValue,
     };
   }
+  /*
+   * A wildcard carries an ARRAY of globs (one operator can express an OR),
+   * so its payload is joined for the single-value input the form renders.
+   * Round-tripping through that input keeps the disjunction: the builder
+   * splits on the same separator.
+   */
+  if (
+    value instanceof Wildcard ||
+    matchesObjectType(value, ObjectType.Wildcard)
+  ) {
+    return {
+      operator: DictionaryFilterOperator.Matches,
+      rawValue: joinGlobs(value),
+    };
+  }
+  if (
+    value instanceof NotWildcard ||
+    matchesObjectType(value, ObjectType.NotWildcard)
+  ) {
+    return {
+      operator: DictionaryFilterOperator.NotMatches,
+      rawValue: joinGlobs(value),
+    };
+  }
   if (
     value instanceof GreaterThan ||
     matchesObjectType(value, ObjectType.GreaterThan)
@@ -434,6 +508,15 @@ export const buildDictionaryValue: (input: {
       return new StartsWith<string>(trimmed);
     case DictionaryFilterOperator.EndsWith:
       return new EndsWith<string>(trimmed);
+    /*
+     * A glob, e.g. `api-*`. The pattern translation happens at compile time
+     * (Wildcard.toPatterns), so what is stored stays readable and can be
+     * re-rendered into this same input.
+     */
+    case DictionaryFilterOperator.Matches:
+      return new Wildcard<string>(splitGlobs(trimmed));
+    case DictionaryFilterOperator.NotMatches:
+      return new NotWildcard<string>(splitGlobs(trimmed));
     case DictionaryFilterOperator.GreaterThan:
       return new GreaterThan<number>(Number(trimmed));
     case DictionaryFilterOperator.GreaterThanOrEqual:

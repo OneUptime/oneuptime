@@ -35,6 +35,10 @@ import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import Select from "../../../Types/BaseDatabase/Select";
+import {
+  getRuleCriteriaTableConfiguration,
+  RuleCriteriaTableConfiguration,
+} from "../RuleCriteria/RuleCriteriaModelTable";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
@@ -123,6 +127,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
   let bulkActions: BulkActionProps<TBaseModel> | undefined = props.bulkActions;
   let cardProps: CardComponentProps | undefined = props.cardProps;
   let refreshToggle: string | undefined = props.refreshToggle;
+  const ruleCriteriaTable: RuleCriteriaTableConfiguration<TBaseModel> =
+    getRuleCriteriaTableConfiguration({
+      model: model,
+      formFields: props.formFields,
+      columns: props.columns,
+      filters: props.filters,
+      selectMoreFields: props.selectMoreFields,
+      helpContent: props.helpContent,
+    });
 
   if (props.enableJsonImportExport) {
     bulkActions = {
@@ -182,6 +195,12 @@ const ModelTable: <TBaseModel extends BaseModel>(
       )}
       <BaseModelTable
         {...props}
+        columns={ruleCriteriaTable.columns}
+        filters={ruleCriteriaTable.filters}
+        {...(ruleCriteriaTable.selectMoreFields
+          ? { selectMoreFields: ruleCriteriaTable.selectMoreFields }
+          : {})}
+        helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}
         cardProps={cardProps}
         refreshToggle={refreshToggle}
@@ -303,15 +322,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   fields:
                     props.formFields?.filter(
                       (field: ModelField<TBaseModel>) => {
-                        // If the field has doNotShowWhenEditing set to true, then don't show it when editing
+                        /*
+                         * On the modal's own type, which is what these two flags
+                         * are about, rather than on modelIdToEdit - every other
+                         * branch in this function already reads modalType, and
+                         * an id that outlived the edit it belonged to used to be
+                         * enough to make a create form hide its create-only
+                         * fields.
+                         */
+                        if (modalType === ModalType.Create) {
+                          // If the field has doNotShowWhenCreating set to true, then don't show it when creating
 
-                        if (modelIdToEdit) {
-                          return !field.doNotShowWhenEditing;
+                          return !field.doNotShowWhenCreating;
                         }
 
-                        // If the field has doNotShowWhenCreating set to true, then don't show it when creating
+                        // If the field has doNotShowWhenEditing set to true, then don't show it when editing
 
-                        return !field.doNotShowWhenCreating;
+                        return !field.doNotShowWhenEditing;
                       },
                     ) || [],
                   steps: props.formSteps || [],

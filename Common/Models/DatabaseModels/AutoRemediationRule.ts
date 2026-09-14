@@ -6,7 +6,7 @@ import Project from "./Project";
 import Runbook from "./Runbook";
 import Runner from "./Runner";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -71,7 +71,7 @@ import {
   tableDescription:
     "Automatically propose or start remediation runbooks when matching incidents or alerts are created.",
 })
-export default class AutoRemediationRule extends BaseModel {
+export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

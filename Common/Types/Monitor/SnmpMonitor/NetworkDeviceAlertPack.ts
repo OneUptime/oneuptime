@@ -26,7 +26,7 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
   {
     name: "Device unreachable",
     description:
-      "The device stopped answering SNMP — likely down or unreachable.",
+      "The device stopped answering ping and SNMP — likely down or unreachable.",
     filters: [
       {
         checkOn: CheckOn.SnmpIsOnline,
@@ -36,6 +36,27 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
     ],
     createIncidents: true,
     createAlerts: false,
+  },
+  /*
+   * An alert, not an incident: the device is still answering ping, so it is
+   * not down - but its SNMP walk is failing, which means no interfaces, no
+   * inventory and no health OIDs until someone fixes the credentials, the
+   * agent or the ACL. Never fires on a device that is only pinged: the
+   * criterion is not evaluated at all when no walk ran.
+   */
+  {
+    name: "SNMP walk failing",
+    description:
+      "The device answers ping but its SNMP walk is failing — check the credentials, the SNMP agent, or an ACL.",
+    filters: [
+      {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+    ],
+    createIncidents: false,
+    createAlerts: true,
   },
   {
     name: "Interface down",

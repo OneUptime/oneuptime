@@ -24,6 +24,7 @@ For at integrere GitHub med din selvhostede OneUptime-instans skal du oprette en
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Opsætnings-URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` – **Vigtigt: Denne URL er der, GitHub omdirigerer brugere til, efter de installerer appen. Den skal indstilles for at omdirigeringen fungerer.**
    - **Omdiriger ved opdatering:** Marker denne mulighed for at omdirigere brugere, efter de opdaterer app-installationen
+   - **Request user authorization (OAuth) during installation:** **Marker denne obligatoriske mulighed.** OneUptime bruger OAuth til at kontrollere ejerskabet af installationen og afviser forbindelsen uden denne indstilling.
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook-hemmelighed:** Generer en sikker tilfældig streng (gem denne til senere)
 
@@ -36,11 +37,13 @@ I afsnittet "Tilladelser og hændelser" skal du konfigurere følgende tilladelse
 | Tilladelse       | Adgangsniveau | Formål                                                 |
 | ---------------- | ------------- | ------------------------------------------------------ |
 | Indhold          | Læs og skriv  | Læs repository-filer, push grene (kræves til AI Agent) |
-| Pull requests    | Læs og skriv  | Opret og administrer pull requests                     |
-| Issues           | Læs og skriv  | Læs og kommenter på issues                             |
+| Pull requests    | Læs og skriv  | Opret og administrer pull requests, og post reviews    |
+| Issues           | Læs og skriv  | Læs issues, og post appens kommentarer — **også på pull requests**, hvis samtaler GitHub leverer gennem issues-API'et |
 | Commit-statusser | Læs           | Kontroller build/CI-status                             |
 | Actions          | Læs           | Læs GitHub Actions-workflow-kørsler og logs            |
 | Metadata         | Læs           | Grundlæggende repository-metadata (påkrævet)           |
+
+**Issues: Læs og skriv er det, der gør appen interaktiv.** Uden den bliver omtaler modtaget og fejler så lydløst, når appen forsøger at svare — GitHub leverer kommentarer i pull request-samtaler fra issues-API'et, så denne ene tilladelse er det, der styrer hvert eneste svar, appen skriver. Se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app).
 
 **Organisations-tilladelser (hvis du bruger med organisationer):**
 
@@ -56,11 +59,23 @@ I afsnittet "Tilladelser og hændelser" skal du konfigurere følgende tilladelse
 
 ### Trin 3: Abonnér på webhook-hændelser
 
-Hændelser til OneUptime til at modtage realtidsopdateringer; abonnér på disse webhook-hændelser:
+OneUptime bruger to sæt hændelser, og de gør hver sit.
 
-- **Pull request** – Modtag notifikationer, når PR'er åbnes, lukkes eller merges
-- **Push** – Modtag notifikationer, når kode pushes
-- **Workflow-kørsel** – Modtag CI/CD-statusopdateringer
+**Repository-synkronisering** — `installation` og `installation_repositories`. GitHub Apps modtager dem automatisk; de holder sættet af forbundne repositories i takt med det, appen er installeret på.
+
+**Den interaktive app** — dem skal du abonnere eksplicit på, og hver enkelt aktiverer en bestemt måde at overdrage arbejde til appen på:
+
+| Hændelse                        | Hvad den aktiverer                                                |
+| ------------------------------- | ----------------------------------------------------------------- |
+| **Issue comment**               | `@mention`-kommandoer på issues **og** på pull requests           |
+| **Issues**                      | tildeling af et issue til appen og repositoryets triggerlabel     |
+| **Pull request**                | anmodning om et review fra appen                                  |
+| **Pull request review**         | en omtale skrevet i teksten på et indsendt review                 |
+| **Pull request review comment** | en omtale på en inline-kommentar i diffen                         |
+
+Er der ikke abonneret på nogen af dem, forbinder GitHub Appen stadig repositories og åbner stadig rettelses-pull requests fra OneUptime — den svarer bare aldrig på noget, der bliver skrevet i GitHub. Det er den hyppigste årsag til "botten ignorerer mig". Se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app) for, hvad kommandoerne er, og hvem der må bruge dem.
+
+Andre hændelser (**Push**, **Workflow run**) kvitteres og ignoreres; abonnement aktiverer ikke notifikationer eller CI/CD-automatisering.
 
 ### Trin 4: Angiv installationsadgang
 
@@ -152,7 +167,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | Klient-ID'et fra dine GitHub App-indstillinger                         | Ja                  |
 | `GITHUB_APP_CLIENT_SECRET`  | Den klienthemmelighed, du genererede                                   | Ja                  |
 | `GITHUB_APP_PRIVATE_KEY`    | Indholdet af den private nøglefil (.pem-fil)                           | Ja                  |
-| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmelighed til verifikation af webhook-nyttelaster            | Nej (men anbefalet) |
+| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmelighed til verifikation af webhook-nyttelaster            | Ja, for webhooks |
+
+## Netværksadgang for selvhostede installationer
+
+### Trafikretning og endpoints
+
+| Trafik | Påkrævet adgang |
+| --- | --- |
+| OneUptime → GitHub | DNS og udgående HTTPS på TCP 443 til `api.github.com` for app-tokens og repository-API’er samt `github.com` for OAuth-udveksling og HTTPS-Git-operationer |
+| GitHub → OneUptime | Offentlig HTTPS på TCP 443 til `POST /api/github/webhook` for synkronisering af installation og repository-adgang |
+| Brugerens browser → OneUptime | Dashboard og `GET /api/github/auth/callback` for installations-/godkendelsesomdirigeringer; kan forblive tilgængelige via brugerens VPN |
+
+Callback-/setup-URL’er bruges til en [browseromdirigering](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url); GitHubs servere kalder webhooken. Brugerens VPN giver ikke GitHub adgang til webhooken. Domænerne dækker kerneforespørgsler; værktøjer, downloads, LFS eller pakker kan kræve flere destinationer. Dette gælder GitHub.com; firewallændringer konfigurerer ikke understøttelse af et GitHub Enterprise Server-værtsnavn.
+
+### Private installationer og callback-sikkerhed
+
+Brug offentlig DNS og en gateway med offentligt betroet HTTPS-certifikat, komplet certifikatkæde og privat rute til OneUptime-ingress. Tillad indgående TCP 443, og offentliggør kun udbyderens POST-callbacks ovenfor. Privat `ClusterIP`, intern DNS eller en medarbejders VPN giver ikke udbyderen adgang. Opdelt DNS kan holde dashboard og browserens OAuth-ruter private under samme værtsnavn.
+
+Indstil `HOST=oneuptime.example.com` og `HTTP_PROTOCOL=https` i `config.env`, eller `host: oneuptime.example.com` og `httpProtocol: https` i Helm. Anvend konfigurationen, og vent på genstart. Værdierne genererer URL’er; de etablerer ikke DNS, TLS eller firewallregler. Opdatér GitHub Appens webhook-, callback-, setup- og homepage-URL’er efter ændring af værtsnavn.
+
+Bevar metode, original sti, querystreng, body, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` og `X-GitHub-Delivery`. Bevar offentlig host og HTTPS via betroede proxy-headere. Undtag webhooken fra browser-SSO, CAPTCHA og proxy-login. Behold GitHubs SSL-verifikation, og indstil samme `GITHUB_APP_WEBHOOK_SECRET` i begge systemer: OneUptime afviser usignerede forespørgsler og kan ikke validere webhooks uden hemmeligheden. Se [GitHubs validering](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+
+Hvis du også begrænser kilde-IP’er, brug og opdatér jævnligt `hooks`-områderne fra GitHubs Meta API. Brug ikke GitHub Actions-runnerområder, og behold signaturkontrollen. GitHub advarer om, at [adresser ændres, og listen ikke er komplet](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+
+### Kontrollér adgang og forstå begrænsninger
+
+Fuldfør installationen fra OneUptime, og se **Advanced > Recent Deliveries** i GitHub Appen. Send eller gentag en testlevering, og kontrollér videresendelse og accept. Tilføj eller fjern et test-repository fra installationen, og kontrollér den tilknyttede liste. GitHub beskriver [leveringsdiagnostik](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) og kræver [en 2xx-kvittering inden ti sekunder](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). Et browser-GET tester ikke et signeret POST.
+
+Uden indgående adgang kan browsergodkendelse og udgående API-/Git-operationer virke, men installationssletninger og ændringer i repository-adgang synkroniseres ikke via webhooks. OneUptime behandler aktuelt `installation` og `installation_repositories`; accept af andre hændelser betyder ikke yderligere automatisering. [Indstillingen for privat netværksadgang](/docs/self-hosted/private-network-access) styrer udgående forespørgsler til private destinationer og gør ikke webhooken tilgængelig.
 
 ## Fejlfinding
 

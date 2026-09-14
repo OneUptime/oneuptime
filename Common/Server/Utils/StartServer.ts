@@ -3,9 +3,9 @@ import CommonAPI from "../API/Index";
 import { StatusAPIOptions } from "../API/StatusAPI";
 import {
   AppVersion,
+  EncryptionSecretWarning,
   GoogleTagManagerEnabled,
   TrustedProxyHops,
-  getFrontendEnvVars,
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
@@ -15,6 +15,7 @@ import CorsOptions, {
   CORS_PREFLIGHT_MAX_AGE_SECONDS,
 } from "./CorsOptions";
 import "./Environment";
+import { sendFrontendEnvironmentResponse } from "./FrontendEnvironment";
 import Express, {
   ExpressApplication,
   ExpressJson,
@@ -36,6 +37,12 @@ import "./Process";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
 import TelemetryContext from "./Telemetry/TelemetryContext";
+import {
+  COMPONENT_ATTRIBUTE_KEY,
+  TelemetryComponent,
+  UNIT_OF_WORK_ATTRIBUTE_KEY,
+  UnitOfWork,
+} from "../../Types/Telemetry/UnitOfWork";
 import mountVendorAssets from "./VendorAssets";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
@@ -283,13 +290,34 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
    * ContextSpanProcessor and Logger read this ambient context, every span and
    * log produced downstream inherits it automatically.
    */
-  TelemetryContext.runWithContext({ requestId: requestId }, () => {
-    SpanUtil.addAttributesToCurrentSpan({
+  TelemetryContext.runWithContext(
+    {
       requestId: requestId,
-    });
+      /*
+       * Seed the unit of work EXPLICITLY. ErrorClassResolver honours a
+       * user-error / expected-denial classification only inside an HTTP
+       * request — everywhere else there is no client to blame, so those
+       * classes are promoted back to code-fault. runWithContext inherits the
+       * enclosing scope, so leaving this unset would let a request's marker
+       * leak into background work started from inside the request.
+       */
+      [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.HttpRequest,
+      /*
+       * Which deployment role served this. service.name cannot answer it: the
+       * Helm chart runs the worker from the same image and entrypoint as the
+       * API, so worker pods also report service.name="api".
+       */
+      [COMPONENT_ATTRIBUTE_KEY]:
+        LocalCache.getString("app", "name") || TelemetryComponent.Api,
+    },
+    () => {
+      SpanUtil.addAttributesToCurrentSpan({
+        requestId: requestId,
+      });
 
-    next();
-  });
+      next();
+    },
+  );
 });
 
 export interface InitFuctionOptions {
@@ -314,6 +342,15 @@ const init: InitFunction = async (
 
   logger.info(`App Version: ${AppVersion.toString()}`);
 
+  /*
+   * Said once per process at boot, where an operator reading the startup log
+   * will see it. EnvironmentConfig computes the message but cannot log it
+   * (Logger depends on EnvironmentConfig), so the entrypoint does.
+   */
+  if (EncryptionSecretWarning) {
+    logger.warn(EncryptionSecretWarning);
+  }
+
   await Express.launchApplication(appName, port);
   LocalCache.setString("app", "name", appName);
 
@@ -336,22 +373,7 @@ const init: InitFunction = async (
       [`/${appName}/env.js`, "/env.js"],
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          // ping api server for database config.
-
-          const env: JSONObject = getFrontendEnvVars();
-
-          const script: string = `
-    if(!window.process){
-      window.process = {}
-    }
-
-    if(!window.process.env){
-      window.process.env = {}
-    }
-    window.process.env = ${JSON.stringify(env)};
-  `;
-
-          Response.sendJavaScriptResponse(req, res, script);
+          sendFrontendEnvironmentResponse(req, res);
         } catch (err) {
           return next(err);
         }
@@ -476,68 +498,100 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
   });
 
   // Attach Error Handler.
-  app.use(
-    (
-      err: Error | Exception | HTTPErrorResponse,
-      _req: ExpressRequest,
-      res: ExpressResponse,
-      next: NextFunction,
-    ) => {
-      logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
+  app.use(expressErrorHandler);
+};
 
-      // Mark span as error.
-      if (err) {
-        const span: api.Span | undefined = api.trace.getSpan(
-          api.context.active(),
-        );
-        if (span) {
-          // record exception
-          span.recordException(err);
+/**
+ * The last-resort error handler: whatever it writes is what the browser reads,
+ * so its job is to preserve the diagnosis rather than flatten it.
+ *
+ * Exported so the status-code handling can be asserted directly — see
+ * Common/Tests/Server/Utils/StartServerErrorStatus.test.ts.
+ */
+export const expressErrorHandler: (
+  err: Error | Exception | HTTPErrorResponse,
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => void = (
+  err: Error | Exception | HTTPErrorResponse,
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
-          // set span status code to ERROR
-          span.setStatus({
-            code: api.SpanStatusCode.ERROR,
-            message: err.message,
-          });
-        }
-      }
+  /*
+   * Deliberately does NOT record the exception on a span.
+   *
+   * There is no HTTP instrumentation (Telemetry.init passes an empty
+   * `instrumentations` array) and nothing creates a request-scoped span, so at
+   * this point the ambient span is either absent or an already-ENDED
+   * @CaptureSpan span — and addEvent no-ops on an ended span. On the whole
+   * BaseAPI CRUD surface this emitted exactly zero events while looking like
+   * it emitted one.
+   *
+   * Where it DID fire was the handful of @CaptureSpan-decorated middleware
+   * that swallow an error and call next(err) from inside their own still-open
+   * span. There it wrote to a span the request does not own, and — because the
+   * raw error was passed to span.recordException, and the SDK reads
+   * `exception.code` before `exception.name` — it typed the event with the
+   * HTTP status ("400", "422") instead of the class name. Those middleware now
+   * rethrow instead of swallowing, so CaptureSpan's normalized recorder does
+   * the right thing on the right span.
+   */
 
-      if (res.headersSent) {
-        return next(err);
-      }
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
 
-      if (err instanceof Promise) {
-        err.catch((exception: Exception) => {
-          if (StatusCode.isValidStatusCode((exception as Exception).code)) {
-            res.status((exception as Exception).code);
-            res.send({ error: (exception as Exception).message });
-          } else {
-            res.status(500);
-            res.send({ error: "Server Error" });
-          }
-        });
-      } else if (err instanceof HTTPErrorResponse) {
-        const errorStatusCode: number = StatusCode.isValidStatusCode(
-          err.statusCode,
-        )
-          ? err.statusCode
-          : 500;
-
-        const payload: unknown = err.jsonData ?? {
-          error: err.message || "Server Error",
-        };
-
-        res.status(errorStatusCode);
-        res.send(payload);
-      } else if (err instanceof Exception) {
-        res.status((err as Exception).code);
-        res.send({ error: (err as Exception).message });
+  if (err instanceof Promise) {
+    err.catch((exception: Exception) => {
+      if (StatusCode.isValidStatusCode((exception as Exception).code)) {
+        res.status((exception as Exception).code);
+        res.send({ error: (exception as Exception).message });
       } else {
         res.status(500);
         res.send({ error: "Server Error" });
       }
-    },
-  );
+    });
+  } else if (err instanceof HTTPErrorResponse) {
+    const errorStatusCode: number = StatusCode.isValidStatusCode(err.statusCode)
+      ? err.statusCode
+      : 500;
+
+    const payload: unknown = err.jsonData ?? {
+      error: err.message || "Server Error",
+    };
+
+    res.status(errorStatusCode);
+    res.send(payload);
+  } else if (err instanceof Exception) {
+    /*
+     * ExceptionCode is not a status-code enum: NotImplementedException is 0,
+     * GeneralException 1, APIException 2, BadOperationException 5,
+     * WebRequestException 6. Handing one of those to res.status() makes Node's
+     * writeHead throw ERR_HTTP_INVALID_STATUS_CODE, and Express's finalhandler
+     * then answers with a bare HTML 500 — discarding the message this branch
+     * exists to deliver. That is not hypothetical: an LLM provider that times
+     * out or refuses the connection surfaces as an APIException (code 2), so
+     * the operator's real diagnosis was being replaced by "Server Error".
+     * Both sibling branches already guard; this one was the outlier.
+     */
+    const exception: Exception = err as Exception;
+
+    if (StatusCode.isValidStatusCode(exception.code)) {
+      res.status(exception.code);
+    } else {
+      res.status(500);
+    }
+
+    res.send({ error: exception.message || "Server Error" });
+  } else {
+    res.status(500);
+    res.send({ error: "Server Error" });
+  }
 };
 
 export default { init, addDefaultRoutes };

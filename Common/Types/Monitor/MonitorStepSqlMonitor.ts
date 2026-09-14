@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import SqlConnectionConfig from "./SqlConnectionConfig";
 import SqlDatabaseType from "./SqlDatabaseType";
 
 /*
@@ -56,26 +57,7 @@ export const clampSqlMaxRows: (value: number) => number = (
  * the config is handed to a probe. OneUptime never creates these secrets for
  * the user; referencing one is the user's choice.
  */
-export default interface MonitorStepSqlMonitor {
-  databaseType: SqlDatabaseType;
-  host: string;
-  port: number;
-  databaseName: string;
-  username: string;
-  // Raw password OR a {{monitorSecrets.name}} reference resolved server-side.
-  password: string;
-  /*
-   * Microsoft SQL Server only: authenticate with the identity under which the
-   * probe is running (SSPI on Windows, Kerberos on Linux/macOS). Username and
-   * password are ignored when this is enabled.
-   */
-  useWindowsIntegratedAuthentication: boolean;
-  useSsl: boolean;
-  /*
-   * When SSL is on, whether the server certificate chain must validate. Users
-   * connecting to a DB with a self-signed cert set this to false.
-   */
-  rejectUnauthorizedSsl: boolean;
+export default interface MonitorStepSqlMonitor extends SqlConnectionConfig {
   // The read-only SQL query to run. A single statement is expected.
   query: string;
   connectionTimeoutInMs: number;

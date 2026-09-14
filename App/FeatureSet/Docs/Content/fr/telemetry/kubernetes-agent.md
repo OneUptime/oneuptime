@@ -162,7 +162,7 @@ Les événements Kubernetes ne peuvent pas être filtrés par espace de noms dan
 
 Accepte `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserve WARN, ERROR et FATAL et supprime INFO, DEBUG et TRACE. La valeur par défaut (`""`) conserve tout. Cela s'applique dans les **deux** modes de journalisation — en mode `daemonset` via le collecteur, en mode `api` à l'intérieur du collecteur de journaux lui-même — de sorte que les préréglages ne peuvent pas le désactiver à votre insu.
 
-Les runtimes de conteneurs n'enregistrent pas de gravité sur la ligne de journal ; l'agent en extrait donc une du texte du journal lui-même (`[ERROR]`, `WARN:`, `level=info`, …).
+Les runtimes de conteneurs n'enregistrent pas de gravité sur la ligne de journal ; l'agent en extrait donc une du texte du journal lui-même (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Les événements Kubernetes et les spécifications de ressources ne sont jamais filtrés par ce paramètre.** Ils arrivent depuis l'API Kubernetes sans gravité propre ; un seuil supprimerait donc l'intégralité du flux au lieu de l'alléger — y compris les avertissements `FailedScheduling`, `BackOff` et `OOMKilling` qui vous intéressent le plus. Ils sont peu volumineux et à forte valeur, c'est pourquoi l'agent les transmet toujours. Pour les alléger, utilisez plutôt les **Journaux → Paramètres → Filtres d'abandon** côté serveur du tableau de bord.
 

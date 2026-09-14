@@ -88,6 +88,115 @@ describe("log attribute filters — operator support", () => {
       expect(statement.query).toContain(`AND NOT ${KEY_MATCH}`);
       expect(paramValues(statement)).toContain("%web%");
     });
+
+    test.each([
+      ["a percent", "100%", "%100\\%%"],
+      ["an underscore", "req_id", "%req\\_id%"],
+      ["a backslash", "a\\b", "%a\\\\b%"],
+    ])(
+      "%s in the needle is escaped rather than read as a wildcard",
+      (_label: string, value: string, expected: string) => {
+        /*
+         * `%` is match-anything to the database and `_` matches any single
+         * character. Unescaped, a "100% CPU" filter counted every log line in
+         * the chart while the list beside it — which escapes centrally, in
+         * Statement.serializseValue — showed only the matching ones.
+         */
+        const statement: Statement = histogramFor(operator("Search", value));
+
+        expect(paramValues(statement)).toContain(expected);
+      },
+    );
+  });
+
+  describe("wildcards compile to one ILIKE per glob", () => {
+    /*
+     * A glob is the one operator whose `%`/`_` handling is NOT plain
+     * escaping: toLikePattern decides in a single pass which metacharacters
+     * the user meant as wildcards (`*`, `?`) and which are literal text, so
+     * escaping on top of it would escape the wildcards it just produced.
+     */
+    test("a prefix glob anchors at the front", () => {
+      const statement: Statement = histogramFor(
+        operator("Wildcard", ["api-*"]),
+      );
+
+      expect(statement.query).toContain(`AND ${KEY_MATCH}`);
+      expect(statement.query).toContain("AND (v ILIKE ");
+      expect(paramValues(statement)).toContain("api-%");
+    });
+
+    test("a suffix glob anchors at the back", () => {
+      const statement: Statement = histogramFor(
+        operator("Wildcard", ["*.internal"]),
+      );
+
+      expect(paramValues(statement)).toContain("%.internal");
+    });
+
+    test("`?` matches exactly one character", () => {
+      const statement: Statement = histogramFor(
+        operator("Wildcard", ["svc-?"]),
+      );
+
+      expect(paramValues(statement)).toContain("svc-_");
+    });
+
+    test("a multi-glob list ORs inside a single key match", () => {
+      /*
+       * `Query<T>` has no OR node, so an any-of list that mixes patterns with
+       * literals is carried by the operator itself — it has to stay one
+       * arrayExists or the globs would AND and match nothing.
+       */
+      const statement: Statement = histogramFor(
+        operator("Wildcard", ["api-*", "web"]),
+      );
+
+      expect(statement.query.match(/arrayExists/g)).toHaveLength(1);
+      expect(statement.query.match(/v ILIKE /g)).toHaveLength(2);
+      expect(paramValues(statement)).toContain("api-%");
+      expect(paramValues(statement)).toContain("web");
+    });
+
+    test("NotWildcard negates the whole existence test", () => {
+      /*
+       * Negating outside arrayExists is what lets a log line that does not
+       * carry the attribute pass — it trivially fails to match the glob.
+       */
+      const statement: Statement = histogramFor(
+        operator("NotWildcard", ["api-*"]),
+      );
+
+      expect(statement.query).toContain(`AND NOT ${KEY_MATCH}`);
+      expect(paramValues(statement)).toContain("api-%");
+    });
+
+    test("a scalar glob is accepted as well as a one-element array", () => {
+      const scalar: Statement = histogramFor(operator("Wildcard", "api-*"));
+      const array: Statement = histogramFor(operator("Wildcard", ["api-*"]));
+
+      expect(scalar.query).toBe(array.query);
+      expect(scalar.query_params).toStrictEqual(array.query_params);
+    });
+
+    test("an empty glob list constrains nothing", () => {
+      const empty: Statement = histogramFor(operator("Wildcard", []));
+      const none: Statement = histogramFor({});
+
+      expect(empty.query).toBe(none.query);
+    });
+
+    test.each([
+      ["a percent", "100%*", "100\\%%"],
+      ["an underscore", "req_id-*", "req\\_id-%"],
+    ])(
+      "%s beside a glob stays literal",
+      (_label: string, glob: string, expected: string) => {
+        const statement: Statement = histogramFor(operator("Wildcard", [glob]));
+
+        expect(paramValues(statement)).toContain(expected);
+      },
+    );
   });
 
   describe("equality operators", () => {

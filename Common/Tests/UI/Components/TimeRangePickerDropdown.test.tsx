@@ -8,10 +8,11 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import Timezone from "../../../Types/Timezone";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 const PREFIX: string = "test-range-picker";
 const DROPDOWN_WIDTH_IN_PX: number = 288;
@@ -71,7 +72,30 @@ function minutesBetweenFields(): number {
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
+  OneUptimeDate.setUserTimezone(null);
 });
+
+/*
+ * The label writes times the way the machine running the browser writes them,
+ * so a test that does not pin the preference reads "Mar 1, 10:00" on a European
+ * laptop and "Mar 1, 10:00 AM" on a US one. Pinning it is what lets these
+ * assert the digits rather than a regex loose enough to accept the time going
+ * missing altogether.
+ */
+function pin(use12HourFormat: boolean): void {
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(use12HourFormat);
+}
+
+const CUSTOM_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.CUSTOM,
+  startAndEndDate: new InBetween<Date>(
+    new Date("2024-03-01T10:00:00.000Z"),
+    new Date("2024-03-02T13:30:00.000Z"),
+  ),
+};
 
 describe("getTimeRangeButtonLabel", () => {
   test("uses the preset label for a preset range", () => {
@@ -87,15 +111,129 @@ describe("getTimeRangeButtonLabel", () => {
   });
 
   test("summarises a custom range as a start–end pair", () => {
-    const label: string = getTimeRangeButtonLabel({
-      range: TimeRange.CUSTOM,
-      startAndEndDate: new InBetween<Date>(
-        new Date("2024-03-01T10:00:00.000Z"),
-        new Date("2024-03-02T13:30:00.000Z"),
-      ),
+    pin(false);
+
+    expect(getTimeRangeButtonLabel(CUSTOM_RANGE)).toBe(
+      "Mar 1, 10:00 – Mar 2, 13:30",
+    );
+  });
+
+  /*
+   * The bug these cover: the label was built by reading the digits off the
+   * Date - `date.getHours().toString().padStart(2, "0")` - so it was always a
+   * 24-hour clock in the browser process's own zone. A user whose computer is
+   * set to AM/PM picked an afternoon window and got "Mar 1, 14:30" back, and a
+   * user with a timezone set in User Settings got a label that disagreed with
+   * the modal they had just picked the window in.
+   */
+  describe("clock format", () => {
+    test("writes both ends with AM/PM on a 12-hour machine", () => {
+      pin(true);
+
+      expect(getTimeRangeButtonLabel(CUSTOM_RANGE)).toBe(
+        "Mar 1, 10:00 AM – Mar 2, 1:30 PM",
+      );
     });
 
-    expect(label).toBe("Mar 1, 10:00 – Mar 2, 13:30");
+    test("writes both ends on a 24-hour clock on a 24-hour machine", () => {
+      pin(false);
+
+      const label: string = getTimeRangeButtonLabel(CUSTOM_RANGE);
+
+      expect(label).toBe("Mar 1, 10:00 – Mar 2, 13:30");
+      expect(label).not.toMatch(/AM|PM/);
+    });
+
+    test("marks a morning start AM and an afternoon end PM", () => {
+      pin(true);
+
+      expect(
+        getTimeRangeButtonLabel({
+          range: TimeRange.CUSTOM,
+          startAndEndDate: new InBetween<Date>(
+            new Date("2024-03-01T09:15:00.000Z"),
+            new Date("2024-03-01T17:45:00.000Z"),
+          ),
+        }),
+      ).toBe("Mar 1, 9:15 AM – Mar 1, 5:45 PM");
+    });
+
+    test("writes a midnight-to-noon window as 12 AM to 12 PM", () => {
+      pin(true);
+
+      expect(
+        getTimeRangeButtonLabel({
+          range: TimeRange.CUSTOM,
+          startAndEndDate: new InBetween<Date>(
+            new Date("2024-03-01T00:00:00.000Z"),
+            new Date("2024-03-01T12:00:00.000Z"),
+          ),
+        }),
+      ).toBe("Mar 1, 12:00 AM – Mar 1, 12:00 PM");
+    });
+
+    test("keeps the en dash separator on both clocks", () => {
+      pin(true);
+      expect(getTimeRangeButtonLabel(CUSTOM_RANGE)).toContain(" – ");
+
+      pin(false);
+      expect(getTimeRangeButtonLabel(CUSTOM_RANGE)).toContain(" – ");
+    });
+
+    test("leaves preset labels untouched by the clock preference", () => {
+      pin(true);
+      const on12Hour: string = getTimeRangeButtonLabel({
+        range: TimeRange.PAST_ONE_HOUR,
+      });
+
+      pin(false);
+      const on24Hour: string = getTimeRangeButtonLabel({
+        range: TimeRange.PAST_ONE_HOUR,
+      });
+
+      expect(on12Hour).toBe("Past 1 Hour");
+      expect(on24Hour).toBe("Past 1 Hour");
+    });
+  });
+
+  describe("timezone", () => {
+    test("reads the window in the timezone configured in User Settings", () => {
+      pin(true);
+      OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
+
+      // 10:00 and 13:30 UTC are 15:30 and 19:00 at +05:30.
+      expect(getTimeRangeButtonLabel(CUSTOM_RANGE)).toBe(
+        "Mar 1, 3:30 PM – Mar 2, 7:00 PM",
+      );
+    });
+
+    test("moves the date too when the configured zone crosses midnight", () => {
+      pin(false);
+      OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+      expect(
+        getTimeRangeButtonLabel({
+          range: TimeRange.CUSTOM,
+          startAndEndDate: new InBetween<Date>(
+            new Date("2024-03-01T02:00:00.000Z"),
+            new Date("2024-03-01T06:00:00.000Z"),
+          ),
+        }),
+      ).toBe("Feb 29, 21:00 – Mar 1, 01:00");
+    });
+
+    test("relabels the same window when the configured zone changes", () => {
+      pin(false);
+
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+      const inUtc: string = getTimeRangeButtonLabel(CUSTOM_RANGE);
+
+      OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
+      const inKolkata: string = getTimeRangeButtonLabel(CUSTOM_RANGE);
+
+      expect(inUtc).toBe("Mar 1, 10:00 – Mar 2, 13:30");
+      expect(inKolkata).toBe("Mar 1, 15:30 – Mar 2, 19:00");
+    });
   });
 });
 

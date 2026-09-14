@@ -6,6 +6,9 @@ import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import Email from "../../../Types/Email";
@@ -901,49 +904,215 @@ describe("UserService -- admin-controlled two factor auth", () => {
       ).onBeforeUpdate(updateBy);
     };
 
-    /*
-     * ---------------------------------------------------------------------
-     * The guard that REPLACED the deleted one, and the reason it had to
-     * exist at all.
-     *
-     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]`
-     * (Common/Models/DatabaseModels/User.ts) and the User table's row ACL
-     * scopes updates to the caller's own id, so every signed-in user can
-     * write their own copy of this flag through the ordinary CRUD API -- and
-     * the product ships the button that does it, at Dashboard > Profile >
-     * Two Factor Authentication.
-     *
-     * Without the guard the whole feature is self-undoing: the admin requires
-     * two factor auth, the user is marched through enrolment at their next
-     * sign-in, and then from the session they just earned they flip the
-     * toggle back off and delete the factor -- which the removal of the
-     * onBeforeDelete guards now also permits. The account is password-only
-     * again and the Authentication page reports the mandate as simply absent.
-     * ---------------------------------------------------------------------
-     */
-    test("onBeforeUpdate refuses to let a non-root caller turn the requirement OFF", async () => {
+    type InvalidTwoFactorFlag = { label: string; value: unknown };
+    const invalidTwoFactorFlags: Array<InvalidTwoFactorFlag> = [
+      { label: 'the string "false"', value: "false" },
+      { label: 'the string "true"', value: "true" },
+      { label: "an empty string", value: "" },
+      { label: "zero", value: 0 },
+      { label: "one", value: 1 },
+      { label: "null", value: null },
+      { label: "an array", value: [] },
+      { label: "an object", value: {} },
+    ];
+
+    describe.each(["owner", "master admin", "root"])(
+      "%s flag validation",
+      (caller: string): void => {
+        test.each(invalidTwoFactorFlags)(
+          `rejects $label as a two factor auth flag for ${caller}`,
+          async ({ value }: InvalidTwoFactorFlag) => {
+            await expect(
+              callOnBeforeUpdate({
+                query: {
+                  _id: (caller === "owner" ? userId : foundUserId).toString(),
+                },
+                data: { enableTwoFactorAuth: value },
+                props: {
+                  userId: userId,
+                  isMasterAdmin: caller === "master admin",
+                  isRoot: caller === "root",
+                },
+              }),
+            ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+          },
+        );
+      },
+    );
+
+    test("rejects a malformed flag before email and password change side effects", async () => {
       await expect(
         callOnBeforeUpdate({
-          query: { _id: userId },
-          data: { enableTwoFactorAuth: false },
-          props: {},
+          query: { _id: userId.toString() },
+          data: {
+            enableTwoFactorAuth: "false",
+            email: new Email("changed@example.com"),
+            password: new HashedString("a new password"),
+          },
+          props: { userId: userId },
         }),
-      ).rejects.toThrow(BadDataException);
+      ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+      expect(findBySpy).not.toHaveBeenCalled();
+      expect(updateBySpy).not.toHaveBeenCalled();
+      expect(revokeSessionsSpy).not.toHaveBeenCalled();
     });
 
-    test("the refusal names an administrator, so the user knows who to ask", async () => {
-      /*
-       * The message is the only thing the user sees when the profile toggle
-       * refuses. "Bad data" would send them to support with nothing to say.
-       */
+    test("ignores an undefined flag on an unrelated profile update", async () => {
       await expect(
         callOnBeforeUpdate({
-          query: { _id: userId },
-          data: { enableTwoFactorAuth: false },
-          props: {},
+          query: { _id: userId.toString() },
+          data: { name: "Someone", enableTwoFactorAuth: undefined },
+          props: { userId: userId },
         }),
-      ).rejects.toThrow(/administrator/i);
+      ).resolves.toBeDefined();
     });
+
+    /*
+     * The hook runs before row permissions scope a query. Self-service must
+     * therefore identify exactly the caller's row, including the string id
+     * produced by the real updateOneById path. Query operators may stringify
+     * to the caller's id while selecting other users, so they stay forbidden.
+     */
+    describe.each([false, true])(
+      "self-service ownership (master admin: %s)",
+      (isMasterAdmin: boolean): void => {
+        test.each(["string", "ObjectID"])(
+          `allows the owner to turn off two factor auth with a %s id: master admin ${isMasterAdmin}`,
+          async (idType: string) => {
+            const updateBy: {
+              query: { _id: string | ObjectID };
+              data: { enableTwoFactorAuth: boolean };
+              props: DatabaseCommonInteractionProps;
+              limit: number;
+              skip: number;
+            } = {
+              query: {
+                _id: idType === "string" ? userId.toString() : userId,
+              },
+              data: { enableTwoFactorAuth: false },
+              props: { userId, isMasterAdmin, isRoot: false },
+              limit: 1,
+              skip: 0,
+            };
+
+            const result: { updateBy: unknown; carryForward: Array<User> } =
+              await callOnBeforeUpdate(updateBy);
+
+            expect(result.updateBy).toBe(updateBy);
+            expect(result.carryForward).toEqual([]);
+            expect(findBySpy).not.toHaveBeenCalled();
+            expect(revokeSessionsSpy).not.toHaveBeenCalled();
+            expect(totpDeleteBySpy).not.toHaveBeenCalled();
+            expect(webAuthnDeleteBySpy).not.toHaveBeenCalled();
+          },
+        );
+
+        type RejectedQueryCase = {
+          label: string;
+          query: (ownerId: ObjectID, otherId: ObjectID) => unknown;
+        };
+
+        const rejectedQueries: Array<RejectedQueryCase> = [
+          {
+            label: "another user's string id",
+            query: (_ownerId: ObjectID, otherId: ObjectID): unknown => {
+              return { _id: otherId.toString() };
+            },
+          },
+          {
+            label: "another user's ObjectID",
+            query: (_ownerId: ObjectID, otherId: ObjectID): unknown => {
+              return { _id: otherId };
+            },
+          },
+          {
+            label: "a bulk query with no id",
+            query: (): unknown => {
+              return {};
+            },
+          },
+          {
+            label: "a missing query",
+            query: (): unknown => {
+              return undefined;
+            },
+          },
+          {
+            label: "a null id",
+            query: (): unknown => {
+              return { _id: null };
+            },
+          },
+          {
+            label: "a query array containing the owner",
+            query: (ownerId: ObjectID): unknown => {
+              return [{ _id: ownerId }];
+            },
+          },
+          {
+            label: "a query array containing another account",
+            query: (ownerId: ObjectID, otherId: ObjectID): unknown => {
+              return [{ _id: ownerId }, { _id: otherId }];
+            },
+          },
+          {
+            label: "a NotEqual predicate that stringifies to the owner",
+            query: (ownerId: ObjectID): unknown => {
+              return { _id: new NotEqual(ownerId.toString()) };
+            },
+          },
+          {
+            label: "an Includes predicate containing another account",
+            query: (ownerId: ObjectID, otherId: ObjectID): unknown => {
+              return { _id: new Includes([ownerId, otherId]) };
+            },
+          },
+          {
+            label: "an array of ids",
+            query: (ownerId: ObjectID): unknown => {
+              return { _id: [ownerId] };
+            },
+          },
+          {
+            label: "an object that stringifies to the owner",
+            query: (ownerId: ObjectID): unknown => {
+              return {
+                _id: {
+                  toString: (): string => {
+                    return ownerId.toString();
+                  },
+                },
+              };
+            },
+          },
+        ];
+
+        test.each(rejectedQueries)(
+          `rejects $label when turning off two factor auth: master admin ${isMasterAdmin}`,
+          async ({ query }: RejectedQueryCase) => {
+            await expect(
+              callOnBeforeUpdate({
+                query: query(userId, foundUserId),
+                data: { enableTwoFactorAuth: false },
+                props: { userId, isMasterAdmin },
+                limit: LIMIT_MAX,
+                skip: 0,
+              }),
+            ).rejects.toThrow(BadDataException);
+          },
+        );
+
+        test(`rejects disabling without an authenticated owner: master admin ${isMasterAdmin}`, async () => {
+          await expect(
+            callOnBeforeUpdate({
+              query: { _id: userId.toString() },
+              data: { enableTwoFactorAuth: false },
+              props: { isMasterAdmin },
+            }),
+          ).rejects.toThrow(/your own account/i);
+        });
+      },
+    );
 
     test("a ROOT caller may turn the requirement off -- that is the admin endpoint", async () => {
       /*

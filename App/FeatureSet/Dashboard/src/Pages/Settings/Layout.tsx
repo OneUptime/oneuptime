@@ -2,9 +2,10 @@ import { getSettingsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import DashboardSideMenu from "./SideMenu";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { Outlet } from "react-router-dom";
 
 const SettingsLayout: FunctionComponent<
@@ -17,7 +18,9 @@ const SettingsLayout: FunctionComponent<
       breadcrumbLinks={getSettingsBreadcrumbs(path)}
       sideMenu={<DashboardSideMenu />}
     >
-      <Outlet />
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <Outlet />
+      </Suspense>
     </Page>
   );
 };

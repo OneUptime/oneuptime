@@ -61,7 +61,7 @@ export function getDevicePollingFormFields(
       },
       title: "Collect Connected Endpoints (ARP + FDB)",
       description:
-        "Off by default. When on, each poll also walks the device's ARP and bridge-forwarding tables to discover endpoints attached to it — POS terminals, printers, phones, laptops.",
+        "Off by default. When on, each poll also walks the device's ARP and bridge-forwarding tables to discover endpoints attached to it — POS terminals, printers, phones, laptops. On a router, or any device whose walk returns an ARP table, this also fills in the MAC address of devices registered at addresses in that table, which is what puts a ping-only device on its switch port on the map.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },

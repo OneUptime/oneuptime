@@ -86,10 +86,26 @@ const FORBIDDEN_IN_BUNDLE = [
  * Raised from 6 KB after three deliberate feature sets landed in the stub:
  * the pre-load early-error buffer, the host-defaulting + misconfiguration
  * warning from the end-to-end fixes, and the /telemetry-prefixed paths.
- * Measured 6345 bytes at the time of the raise; the gzip budget below is
- * unchanged and is the number a customer's browser actually pays.
+ * Measured 6345 bytes at the time of that raise.
+ *
+ * Raised again from 7 KB for the diagnostics module (src/Debug.ts) and the
+ * ~20 decision points that report through it. Measured 12386 bytes raw /
+ * 4662 gzip at the time of this raise, against 6608 / 2596 before it.
+ *
+ * That is a real cost - the stub is on the critical path of every page view
+ * on a customer's site - and it was taken deliberately. The stub's entire
+ * job is to decide NOT to record: no init options, a privacy signal, a
+ * config fetch that 404s behind a reverse proxy, an application that is
+ * switched off, a deployment whose recorder artifact was never built. All
+ * five produced exactly the same observable outcome (nothing at all, not
+ * even a network request) and there was no way to tell them apart from the
+ * failing browser, which is where the answer has to be found: server
+ * telemetry cannot see a recorder that never loaded. Roughly 1.9 KB gzip,
+ * once, to make those five distinguishable is the better trade than the
+ * support round trips the silence costs - and the output is off unless
+ * somebody asks for it.
  */
-const LOADER_MAX_BYTES = 7 * 1024;
+const LOADER_MAX_BYTES = 13 * 1024;
 const RECORDER_MAX_BYTES = 320 * 1024;
 
 /*
@@ -98,8 +114,10 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  * minified JavaScript compresses 3-4x, and by very different ratios
  * depending on what changed.
  *
- * Measured at the time of writing: recorder.js 227 KB raw / 70.7 KB gzip,
- * loader.js 4.7 KB raw / 1.9 KB gzip. Of the recorder's 70.7 KB, rrweb's
+ * Measured after the diagnostics module landed: recorder.js 245 KB raw /
+ * 75.7 KB gzip, loader.js 12.1 KB raw / 4.6 KB gzip. Before it, and for the
+ * measurements the rest of this note is based on: recorder.js 227 KB raw /
+ * 70.7 KB gzip, loader.js 4.7 KB raw / 1.9 KB gzip. Of the recorder's 70.7 KB, rrweb's
  * record entry point alone is 57.8 KB gzip (182 KB raw) with the Replayer,
  * xstate, the fflate packer and the canvas-webgl path all already tree-shaken
  * out; this package's own 15 modules are the remaining ~12.8 KB. The design
@@ -108,9 +126,21 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  *
  * The budgets are set just above the measured values so a regression fails
  * the build rather than being discovered in a customer's Core Web Vitals.
+ *
+ * Raised from 78 KB for the session-replay overhaul (September 2026). What
+ * the extra ~12 KB gzip buys, all of it customer-visible: web vitals
+ * (LCP/FCP/CLS/INP/TTFB) on every page; a transport that retries with
+ * backoff, honours throttle directives and splits the terminal flush so a
+ * tab switch no longer drops the last chunk; cross-tab session adoption;
+ * attribute masking under MaskAllText and hidden-input masking; the public
+ * API (identify with traits, track, setTags/addTag, onSessionChange,
+ * diagnostics decisions); labelled click, visibility and custom events.
+ * Measured after: recorder.js 288.9 KB raw / 87.5 KB gzip; before the
+ * overhaul 245 KB / 75.7 KB. rrweb's record entry point is still the
+ * fixed 57.8 KB floor of that number.
  */
-const LOADER_MAX_GZIP_BYTES = 3 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 76 * 1024;
+const LOADER_MAX_GZIP_BYTES = 5 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 90 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

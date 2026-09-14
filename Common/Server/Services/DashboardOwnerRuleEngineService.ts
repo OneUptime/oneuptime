@@ -10,6 +10,9 @@ import DashboardService from "./DashboardService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DashboardOwnerRuleEngineServiceClass {
   /**
@@ -35,6 +38,7 @@ class DashboardOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             dashboardLabels: { _id: true },
             dashboardNamePattern: true,
@@ -42,9 +46,15 @@ class DashboardOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "DashboardOwnerRule",
+        projectId: dashboard.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -149,6 +159,24 @@ class DashboardOwnerRuleEngineServiceClass {
   }
 
   private doesDashboardMatchRule(
+    dashboard: Dashboard,
+    rule: DashboardOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dashboardLabels",
+        "dashboardNamePattern",
+        "dashboardDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DashboardOwnerRule): boolean => {
+        return this.doesDashboardMatchLegacyRule(dashboard, legacyRule);
+      },
+    });
+  }
+
+  private doesDashboardMatchLegacyRule(
     dashboard: Dashboard,
     rule: DashboardOwnerRule,
   ): boolean {

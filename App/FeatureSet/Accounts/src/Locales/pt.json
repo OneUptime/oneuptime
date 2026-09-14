@@ -31,8 +31,26 @@
     "errorOnSignUp": "Complete o desafio captcha antes de se cadastrar."
   },
   "login": {
+    "passkey": {
+      "signIn": "Entrar com uma chave de acesso",
+      "description": "Use sua impressão digital, seu rosto ou o PIN do dispositivo.",
+      "passwordAlternative": "ou entre com uma senha",
+      "inProgress": "Conclua ou cancele o acesso com a chave de acesso antes de usar sua senha.",
+      "title": "Usar uma chave de acesso salva",
+      "helpTitle": "Ainda não conhece as chaves de acesso?",
+      "help": "Entre com sua senha ou SSO e abra Perfil do usuário → Chaves de acesso e autenticação de dois fatores para criar sua primeira chave de acesso.",
+      "preparing": "Preparando sua chave de acesso…",
+      "waiting": "Confira seu dispositivo",
+      "waitingDescription": "Siga as instruções do navegador ou gerenciador de senhas.",
+      "verifying": "Entrando…",
+      "cancelled": "O acesso com chave de acesso foi cancelado. Tente novamente ou use sua senha.",
+      "notCompleted": "O acesso com chave de acesso foi cancelado ou expirou. Tente novamente ou entre com sua senha.",
+      "unsupported": "As chaves de acesso não estão disponíveis neste navegador. Você ainda pode entrar com sua senha ou SSO.",
+      "insecure": "As chaves de acesso precisam de uma conexão segura (HTTPS). Você ainda pode entrar com sua senha ou SSO.",
+      "tryAgain": "Tentar novamente com chave de acesso"
+    },
     "title": "Faça login na sua conta",
-    "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
+    "subtitle": "Use uma chave de acesso, uma senha ou o SSO da sua organização.",
     "submitButton": "Entrar",
     "forgotPassword": "Esqueceu a senha?",
     "useSso": "Use o login único (SSO) em vez disso",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Siga as instruções no seu dispositivo de chave de segurança.",
       "codeFieldDescription": "Digite o código do seu aplicativo autenticador",
       "selectDifferentMethod": "Selecione um método diferente de autenticação de dois fatores",
-      "useBackupCode": "Usar um código de backup",
       "backupCodeInstruction": "Digite um dos códigos de backup que você salvou ao configurar a autenticação de dois fatores. Cada código funciona apenas uma vez.",
       "backupCodeFieldTitle": "Código de backup",
-      "backupCodeFieldDescription": "Os códigos de backup são parecidos com ABCDE-12345. Maiúsculas, minúsculas e o hífen não fazem diferença."
+      "backupCodeFieldDescription": "Os códigos de backup são parecidos com ABCDE-12345. Maiúsculas, minúsculas e o hífen não fazem diferença.",
+      "confirmSubtitle": "Confirme que é você para concluir o login.",
+      "recoverySubtitle": "Use um código de backup ou saiba como recuperar o acesso sem ele.",
+      "lostAccess": "Perdeu o acesso ao seu autenticador?",
+      "noBackupCodesStrong": "Você não tem códigos de backup.",
+      "noBackupCodes": "Não há nenhum código que você possa digitar aqui, porque esta conta nunca recebeu um conjunto de códigos.",
+      "noBackupCodesInstruction": "Peça a um administrador desta instância do OneUptime para redefinir a autenticação de dois fatores na sua conta. Depois disso, você poderá fazer login com sua senha e configurar um novo aplicativo autenticador, e códigos de backup serão criados para você ao mesmo tempo.",
+      "lostAccessSecurityKey": "Perdeu o acesso à sua chave de segurança?"
     },
     "twoFactorEnrolment": {
       "title": "Configurar a autenticação de dois fatores",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Introduza o código de seis dígitos apresentado pela sua aplicação de autenticação.",
       "submitButton": "Verificar e iniciar sessão",
       "backToSignIn": "Inicie sessão como outro utilizador"
+    },
+    "backupCodes": {
+      "title": "Salve seus códigos de backup",
+      "subtitle": "Use um deles para fazer login caso você perca o acesso ao seu aplicativo autenticador ou à sua chave de segurança.",
+      "showOnceStrong": "Esta é a única vez que estes códigos serão exibidos.",
+      "showOnce": "Salve-os em um lugar diferente do dispositivo que gera seus códigos. Cada código pode ser usado apenas uma vez.",
+      "download": "Baixar como arquivo de texto",
+      "savedConfirmation": "Salvei estes códigos em um lugar seguro.",
+      "continue": "Continuar para o Painel",
+      "fileHeading": "Códigos de backup da autenticação de dois fatores do OneUptime",
+      "fileInstruction": "Cada código pode ser usado apenas uma vez. Guarde este arquivo em um lugar seguro e separado do dispositivo que executa o seu aplicativo autenticador.",
+      "setUpTitle": "Configurar códigos de backup",
+      "setUpSubtitle": "Uma última coisa antes de continuar.",
+      "noneStrong": "Você não tem códigos de backup.",
+      "none": "Se você perder o seu aplicativo autenticador ou a sua chave de segurança, um administrador terá que redefinir a autenticação de dois fatores antes que você possa fazer login novamente.",
+      "generate": "Gerar códigos de backup",
+      "skip": "Pular por enquanto",
+      "generateFailed": "Nenhum código de backup foi retornado. Tente novamente em Perfil do usuário > Autenticação de dois fatores."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Entrar no OneUptime On-Call",
+    "description": "Use uma chave de acesso salva para este servidor OneUptime.",
+    "returnDescription": "Após confirmar, você voltará ao aplicativo móvel.",
+    "invalid": "Inicie o acesso pelo aplicativo móvel do OneUptime. Esta solicitação está ausente ou é inválida.",
+    "insecure": "As chaves de acesso exigem HTTPS. Volte ao aplicativo e confira o endereço do servidor.",
+    "failed": "Não foi possível concluir o acesso. Volte ao aplicativo e tente novamente.",
+    "complete": "Sua chave de acesso foi verificada. Volte ao aplicativo para concluir o acesso.",
+    "returnToApp": "Voltar ao aplicativo",
+    "cancel": "Cancelar e voltar ao aplicativo",
+    "setup": "Crie uma chave de acesso em Perfil do usuário → Chaves de acesso e autenticação de dois fatores no painel web."
+  },
+  "Use at least {{minimum}} characters.": "Use pelo menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Experimente algumas palavras sem relação entre si.",
+  "Password meets requirements": "A senha atende aos requisitos",
+  "Password must be at least 15 characters.": "A senha deve ter pelo menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "A senha não pode ter mais de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Escolha uma senha menos previsível. Experimente algumas palavras sem relação entre si.",
+  "Password cannot be blank.": "A senha não pode conter apenas espaços.",
+  "Password is required.": "A senha é obrigatória.",
+  "Password must be a string.": "A senha deve ser uma sequência de texto.",
+  "Account details": "Detalhes da conta",
+  "Secure your account": "Proteja sua conta",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} e {{maximum}} caracteres",
+  "Avoid common or repeated patterns": "Evite padrões comuns ou repetidos",
+  "Password length": "Comprimento da senha",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mínimo de {{minimum}} caracteres",
+  "Complete:": "Atendido:",
+  "Incomplete:": "Não atendido:",
+  "Special character included (optional)": "Caractere especial incluído (opcional)",
+  "Special characters are optional. Try !, @, # or $.": "Caracteres especiais são opcionais. Experimente !, @, # ou $."
 }

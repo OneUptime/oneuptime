@@ -1219,12 +1219,12 @@ describe("User two factor auth page route", () => {
 });
 
 describe("User two factor auth translations", () => {
-  test("all sixteen locale files are being looked at", () => {
+  test("all seventeen locale files are being looked at", () => {
     /*
      * The loops below prove nothing if the directory read comes back short, and
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
      * keys renders an English page with no error to notice. Pinned as the exact
-     * list rather than a count, so a seventeenth language added without these
+     * list rather than a count, so an eighteenth language added without these
      * keys is a failure here rather than a half-translated page.
      */
     expect(localeFileNames).toEqual([
@@ -1232,6 +1232,7 @@ describe("User two factor auth translations", () => {
       "de.json",
       "en.json",
       "es.json",
+      "fa.json",
       "fr.json",
       "hi.json",
       "it.json",
@@ -1291,8 +1292,8 @@ describe("User two factor auth translations", () => {
 
   test("en.json carries no two factor key the page has stopped rendering", () => {
     /*
-     * The other direction. A key left in all sixteen files after its call site
-     * was renamed is sixteen dead translations that the i18n validator happily
+     * The other direction. A key left in all seventeen files after its call site
+     * was renamed is seventeen dead translations that the i18n validator happily
      * keeps in sync forever, and it hides the rename: the page renders the raw
      * path while every locale file looks complete.
      */

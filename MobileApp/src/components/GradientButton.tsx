@@ -17,6 +17,15 @@ interface GradientButtonProps {
   icon?: keyof typeof Ionicons.glyphMap;
   variant?: "primary" | "secondary";
   style?: ViewStyle;
+
+  /*
+   * Needed because the label is not always a stable handle. A button whose
+   * text changes with state -- "Generate Backup Codes" becoming a spinner, for
+   * one -- cannot be found by its label at the moment a test needs to press
+   * it, and finding it by position is how a test starts passing for the wrong
+   * reason.
+   */
+  testID?: string;
 }
 
 export default function GradientButton({
@@ -27,25 +36,41 @@ export default function GradientButton({
   icon,
   variant = "primary",
   style,
+  testID,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
-  const primaryContentColor: string = theme.colors.backgroundPrimary;
+  const primaryContentColor: string = theme.colors.textInverse;
 
   const isDisabled: boolean = disabled || loading;
 
   if (variant === "secondary") {
     return (
       <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        /*
+         * Named explicitly because the label is not always rendered. While
+         * `loading` the text is replaced by a spinner, and a Pressable with no
+         * text inside it has no accessible name at all - so the control a
+         * responder is waiting on becomes an unlabelled button at the exact
+         * moment they ask what it is doing.
+         */
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
+        aria-disabled={isDisabled}
+        aria-busy={loading}
         onPress={onPress}
         disabled={isDisabled}
         style={[
           {
-            height: 50,
+            minHeight: 52,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
             borderRadius: 12,
             alignItems: "center" as const,
             justifyContent: "center" as const,
             overflow: "hidden" as const,
-            backgroundColor: "transparent",
+            backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: 1,
             borderColor: theme.colors.borderDefault,
             opacity: isDisabled ? 0.5 : 1,
@@ -84,11 +109,20 @@ export default function GradientButton({
 
   return (
     <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      /* Named explicitly for the reason given on the secondary variant above. */
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
+      aria-busy={loading}
       onPress={onPress}
       disabled={isDisabled}
       style={[
         {
-          height: 50,
+          minHeight: 52,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
           borderRadius: 12,
           overflow: "hidden" as const,
           alignItems: "center" as const,
@@ -97,10 +131,10 @@ export default function GradientButton({
           backgroundColor: theme.colors.actionPrimary,
           opacity: isDisabled ? 0.5 : 1,
           shadowColor: theme.colors.actionPrimary,
-          shadowOpacity: 0.3,
+          shadowOpacity: 0,
           shadowOffset: { width: 0, height: 4 },
           shadowRadius: 12,
-          elevation: 4,
+          elevation: 0,
         },
         style,
       ]}

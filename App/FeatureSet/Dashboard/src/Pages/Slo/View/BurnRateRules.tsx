@@ -1,14 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  BURN_RATE_RULE_FORM_FIELDS,
+  BURN_RATE_RULE_FORM_STEPS,
+  describeBurnRateOutputs,
+} from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import {
-  canSloFireBurnRateAlerts,
+  canSloFireBurnRateRules,
   isBurnRateRuleFiring,
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -16,8 +20,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -34,10 +36,25 @@ const documentationMarkdown: string = `
 
 A **burn rate** of 1 means the error budget is being spent exactly fast enough to run out at the end of the compliance window. A burn rate of 14.4 exhausts a 30-day budget in about 2 days.
 
-A rule fires an **Alert** when the burn rate exceeds its threshold over **both** windows:
+A rule fires when the burn rate exceeds its threshold over **both** windows:
 
 - The **long window** confirms the problem is sustained.
 - The **short window** confirms it is still happening right now, so you are not paged for an outage that already ended.
+
+---
+
+### What a Rule Declares
+
+Each rule can raise an **Alert**, declare an **Incident**, or both — and it must do at least one of the two.
+
+- An **Alert** is the lightweight signal: it lands in the alert inbox and runs whatever on-call policies you attach to it.
+- An **Incident** is the heavyweight one: it takes an incident number, runs its own on-call policies, and carries the whole response workflow (notes, timeline, postmortem).
+
+The two are independent. They get their own severity and their own on-call policies, so you can route the Alert to a team rotation and the Incident to the major-incident rotation. Each also has its own quiet period after it resolves — resolving the Incident does not reset the Alert's, or the other way around.
+
+Burn rate incidents are **not** published to status pages and do not notify subscribers: an error budget burning fast is an internal engineering signal, not a declared customer-facing outage.
+
+If you resolve the Incident by hand while the budget is still burning, the rule will not re-declare it. It stays closed until the burn recovers and the rule genuinely fires again.
 
 ---
 
@@ -54,57 +71,55 @@ Route the fast-burn rule to a paging on-call policy at a high severity, and let 
 
 ---
 
+### Creating One
+
+The form walks the four questions a rule answers:
+
+| Step | What you set |
+|------|--------------|
+| **Rule** | Its name, and whether it is enabled. |
+| **Burn Window** | The threshold, the long and short windows, and the re-fire suppression. |
+| **What It Declares** | Alert, Incident, or both. |
+| **Alert Routing** | The alert's severity and on-call policies. Only shown when the rule raises one. |
+| **Incident Routing** | The incident's severity and on-call policies. Only shown when the rule declares one. |
+
+The two routing steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incident severity.
+
+---
+
 ### Other Settings
 
 - A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, or Slow burn for its first six.
-- **Re-fire Suppression** is the quiet period after an alert resolves before the same rule may fire again. It defaults to the long window.
-- Alerts are created with the configured **severity** and attached **on-call duty policies**, so they page through your normal escalation.
-- While any monitor on the SLO is under an active scheduled maintenance window, alert creation is suppressed — planned work should not page anyone.
+- **Re-fire Suppression** is the quiet period after an alert or incident resolves before the same rule may declare that record again. Each output is suppressed independently, measured from its own resolve. It defaults to the long window.
+- Alerts and incidents are created with their configured **severity** and attached **on-call duty policies**, so they page through your normal escalation. Leave a severity blank and the project's most severe one is used.
+- While any monitor on the SLO is under an active scheduled maintenance window, the rule is suppressed entirely — planned work should not page anyone.
 `;
 
 /*
- * Client-side mirrors of ServiceLevelObjectiveBurnRateRuleService's
- * validators. The server compares the two windows and rejects
- * short >= long, but that only surfaced after a failed round-trip that
- * re-rendered the raw exception — and the windows are exactly the pair a
- * user is most likely to transpose.
+ * The form's pure half lives in a React-free sibling: App has no react, and
+ * a node test that wants these four functions must be able to import them
+ * without pulling this page - and the whole component graph - into App's
+ * program. Re-exported here so importers of the page are unchanged.
+ * See Pages/Slo/Utils/BurnRateRuleForm.
  */
-export type ValidateBurnRateWindowsFunction = (
-  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-) => string | null;
-
-export const validateBurnRateWindows: ValidateBurnRateWindowsFunction = (
-  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-): string | null => {
-  const longWindow: number = Number(value.longWindowInMinutes);
-  const shortWindow: number = Number(value.shortWindowInMinutes);
-
-  if (!isFinite(longWindow) || !isFinite(shortWindow)) {
-    return null;
-  }
-
-  if (shortWindow >= longWindow) {
-    return "The short window must be shorter than the long window.";
-  }
-
-  return null;
-};
-
-export type ValidateBurnRateThresholdFunction = (
-  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-) => string | null;
-
-export const validateBurnRateThreshold: ValidateBurnRateThresholdFunction = (
-  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-): string | null => {
-  const threshold: number = Number(value.burnRateThreshold);
-
-  if (!isFinite(threshold) || threshold <= 0) {
-    return "The burn rate threshold must be greater than 0.";
-  }
-
-  return null;
-};
+export {
+  BURN_RATE_RULE_FORM_FIELDS,
+  BURN_RATE_RULE_FORM_STEPS,
+  describeBurnRateOutputs,
+  validateBurnRateOutputs,
+  validateBurnRateThreshold,
+  validateBurnRateWindows,
+  willCreateAlert,
+  willDeclareIncident,
+} from "../Utils/BurnRateRuleForm";
+export type {
+  BurnRateRuleOutputFlags,
+  DescribeBurnRateOutputsFunction,
+  ReadsBurnRateOutputFlagFunction,
+  ValidateBurnRateOutputsFunction,
+  ValidateBurnRateThresholdFunction,
+  ValidateBurnRateWindowsFunction,
+} from "../Utils/BurnRateRuleForm";
 
 const SloBurnRateRules: FunctionComponent<
   PageComponentProps
@@ -137,7 +152,7 @@ const SloBurnRateRules: FunctionComponent<
           });
 
         if (!cancelled && slo) {
-          setCanFire(canSloFireBurnRateAlerts(slo));
+          setCanFire(canSloFireBurnRateRules(slo));
         }
       } catch {
         // Keep the optimistic default; the notice banner owns real errors.
@@ -179,7 +194,7 @@ const SloBurnRateRules: FunctionComponent<
         cardProps={{
           title: "Burn Rate Rules",
           description:
-            "Fire alerts when the error budget is being spent too fast. Rules alert only when both the long and short windows exceed the threshold.",
+            "Raise alerts and declare incidents when the error budget is being spent too fast. Rules fire only when both the long and short windows exceed the threshold.",
         }}
         noItemsMessage="No burn rate rules on this SLO — nothing will page anyone when the error budget starts burning. Create a fast-burn rule to get paged before the budget runs out."
         helpContent={{
@@ -205,119 +220,8 @@ const SloBurnRateRules: FunctionComponent<
             type: FieldType.Boolean,
           },
         ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Fast burn",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this burn rate rule.",
-          },
-          {
-            field: {
-              burnRateThreshold: true,
-            },
-            title: "Burn Rate Threshold",
-            description:
-              "Fire when the burn rate exceeds this value over both windows. 14.4 is the classic fast-burn threshold for a 30-day window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14.4",
-            customValidation: validateBurnRateThreshold,
-          },
-          {
-            field: {
-              longWindowInMinutes: true,
-            },
-            title: "Long Window (Minutes)",
-            description:
-              "Lookback that confirms the burn is sustained, e.g. 60 for fast burn or 360 for slow burn.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "60",
-            validation: {
-              minValue: 1,
-            },
-          },
-          {
-            field: {
-              shortWindowInMinutes: true,
-            },
-            title: "Short Window (Minutes)",
-            description:
-              "Lookback that confirms the burn is still happening, e.g. 5 for fast burn or 30 for slow burn. Must be shorter than the long window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "5",
-            validation: {
-              minValue: 1,
-            },
-            customValidation: validateBurnRateWindows,
-          },
-          /*
-           * Minimum Sample Count is intentionally absent. It only guards
-           * event-based (Metric) SLIs, which OneUptime does not evaluate
-           * yet — the worker never reads the column, so offering the knob
-           * promised a noise guard that does nothing. The column and its
-           * server-side validation remain for that later phase.
-           */
-          {
-            field: {
-              refireSuppressionMinutes: true,
-            },
-            title: "Re-fire Suppression (Minutes)",
-            description:
-              "Quiet period after an alert resolves before this rule may fire again. Defaults to the long window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "60",
-            validation: {
-              minValue: 1,
-            },
-          },
-          {
-            field: {
-              alertSeverity: true,
-            },
-            title: "Alert Severity",
-            description: "Severity of the alert this rule creates.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: AlertSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Alert Severity",
-          },
-          {
-            field: {
-              onCallDutyPolicies: true,
-            },
-            title: "On-Call Duty Policies",
-            description:
-              "On-call policies to execute when this rule creates an alert.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On-Call Policies (optional)",
-          },
-        ]}
+        formSteps={BURN_RATE_RULE_FORM_STEPS}
+        formFields={BURN_RATE_RULE_FORM_FIELDS}
         columns={[
           {
             field: {
@@ -378,9 +282,25 @@ const SloBurnRateRules: FunctionComponent<
           },
           {
             field: {
+              shouldCreateAlert: true,
+            },
+            title: "Declares",
+            type: FieldType.Element,
+            getElement: (
+              item: ServiceLevelObjectiveBurnRateRule,
+            ): ReactElement => {
+              return (
+                <span className="text-sm text-gray-900">
+                  {describeBurnRateOutputs(item)}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
               lastAlertCreatedAt: true,
             },
-            title: "Alert Status",
+            title: "Status",
             type: FieldType.Element,
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
@@ -389,24 +309,45 @@ const SloBurnRateRules: FunctionComponent<
                 return <Pill color={Red} text="Firing" size={PillSize.Small} />;
               }
 
-              if (!item.lastAlertCreatedAt) {
+              /*
+               * "Last fired" is the most recent of the two lifecycles: an
+               * incident-only rule has no lastAlertCreatedAt at all, and a
+               * rule switched from one output to the other has both — the
+               * later one is the one the reader means.
+               */
+              const firedAtCandidates: Array<Date> = [
+                item.lastAlertCreatedAt,
+                item.lastIncidentCreatedAt,
+              ]
+                .filter((firedAt: Date | undefined): boolean => {
+                  return Boolean(firedAt);
+                })
+                .map((firedAt: Date | undefined): Date => {
+                  return OneUptimeDate.fromString(firedAt!);
+                });
+
+              if (firedAtCandidates.length === 0) {
                 return (
                   <span className="text-sm text-gray-400">Never fired</span>
                 );
               }
 
-              const lastAlertCreatedAt: Date = OneUptimeDate.fromString(
-                item.lastAlertCreatedAt,
+              const lastFiredAt: Date = firedAtCandidates.reduce(
+                (latest: Date, candidate: Date): Date => {
+                  return candidate.getTime() > latest.getTime()
+                    ? candidate
+                    : latest;
+                },
               );
 
               return (
                 <span
                   className="text-sm text-gray-900"
                   title={OneUptimeDate.getDateAsLocalFormattedString(
-                    lastAlertCreatedAt,
+                    lastFiredAt,
                   )}
                 >
-                  Last fired {OneUptimeDate.fromNow(lastAlertCreatedAt)}
+                  Last fired {OneUptimeDate.fromNow(lastFiredAt)}
                 </span>
               );
             },
@@ -417,19 +358,44 @@ const SloBurnRateRules: FunctionComponent<
                 name: true,
               },
             },
-            title: "Alert Severity",
+            title: "Severity",
             type: FieldType.Entity,
             hideOnMobile: true,
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
-              if (!item.alertSeverity?.name) {
-                return <span className="text-sm text-gray-400">Default</span>;
+              /*
+               * One cell for both outputs, labelled, and only for the outputs
+               * the rule actually declares — an incident-only rule showing an
+               * "Alert Severity" column reads as a promise of an alert that
+               * will never arrive.
+               */
+              const lines: Array<string> = [];
+
+              if (item.shouldCreateAlert !== false) {
+                lines.push(`Alert: ${item.alertSeverity?.name || "Default"}`);
               }
+
+              if (item.shouldCreateIncident === true) {
+                lines.push(
+                  `Incident: ${item.incidentSeverity?.name || "Default"}`,
+                );
+              }
+
+              if (lines.length === 0) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+
               return (
-                <span className="text-sm text-gray-900">
-                  {item.alertSeverity.name}
-                </span>
+                <div>
+                  {lines.map((line: string) => {
+                    return (
+                      <div key={line} className="text-sm text-gray-900">
+                        {line}
+                      </div>
+                    );
+                  })}
+                </div>
               );
             },
           },
@@ -445,29 +411,57 @@ const SloBurnRateRules: FunctionComponent<
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
-              const policies: Array<OnCallDutyPolicy> =
-                (item.onCallDutyPolicies as Array<OnCallDutyPolicy>) || [];
+              const describePolicies: (
+                policies: Array<OnCallDutyPolicy> | undefined,
+              ) => string = (
+                policies: Array<OnCallDutyPolicy> | undefined,
+              ): string => {
+                const names: Array<string> = (policies || [])
+                  .map((policy: OnCallDutyPolicy) => {
+                    return policy.name || "";
+                  })
+                  .filter(Boolean);
 
-              if (policies.length === 0) {
                 /*
-                 * A rule with no policy still creates an Alert, but nothing
-                 * escalates it — worth saying, because "I have a fast-burn
-                 * rule" is usually shorthand for "I will get paged".
+                 * A rule with no policy still declares its alert or incident,
+                 * but nothing escalates it — worth saying, because "I have a
+                 * fast-burn rule" is usually shorthand for "I will get paged".
                  */
-                return (
-                  <span className="text-sm text-gray-400">No escalation</span>
+                return names.length > 0 ? names.join(", ") : "No escalation";
+              };
+
+              const lines: Array<string> = [];
+
+              if (item.shouldCreateAlert !== false) {
+                lines.push(
+                  `Alert: ${describePolicies(
+                    item.onCallDutyPolicies as Array<OnCallDutyPolicy>,
+                  )}`,
                 );
               }
 
+              if (item.shouldCreateIncident === true) {
+                lines.push(
+                  `Incident: ${describePolicies(
+                    item.incidentOnCallDutyPolicies as Array<OnCallDutyPolicy>,
+                  )}`,
+                );
+              }
+
+              if (lines.length === 0) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+
               return (
-                <span className="text-sm text-gray-900">
-                  {policies
-                    .map((policy: OnCallDutyPolicy) => {
-                      return policy.name || "";
-                    })
-                    .filter(Boolean)
-                    .join(", ")}
-                </span>
+                <div>
+                  {lines.map((line: string) => {
+                    return (
+                      <div key={line} className="text-sm text-gray-900">
+                        {line}
+                      </div>
+                    );
+                  })}
+                </div>
               );
             },
           },
@@ -475,7 +469,13 @@ const SloBurnRateRules: FunctionComponent<
             field: {
               isEnabled: true,
             },
-            title: "Status",
+            /*
+             * "Enabled", not "Status": the Status column above now reports the
+             * rule's firing lifecycle, and two columns called Status in one
+             * table is a coin toss for the reader. This one renders the
+             * Enabled/Disabled pill, so it is named for what it shows.
+             */
+            title: "Enabled",
             type: FieldType.Boolean,
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
@@ -494,7 +494,16 @@ const SloBurnRateRules: FunctionComponent<
         selectMoreFields={{
           shortWindowInMinutes: true,
           refireSuppressionMinutes: true,
+          shouldCreateIncident: true,
           lastAlertResolvedAt: true,
+          lastIncidentCreatedAt: true,
+          lastIncidentResolvedAt: true,
+          incidentSeverity: {
+            name: true,
+          },
+          incidentOnCallDutyPolicies: {
+            name: true,
+          },
         }}
       />
     </Fragment>

@@ -754,4 +754,47 @@ export default class DashboardDomain extends BaseModel {
     default: false,
   })
   public isCustomCertificate?: boolean = undefined;
+
+  /*
+   * When a reissue of this domain's Let's Encrypt certificate was last
+   * REQUESTED from the dashboard - not when one last succeeded.
+   *
+   * This is the whole state behind the reissue cooldown. Certificates come
+   * from a Let's Encrypt account shared by every customer on the
+   * installation, and a failed order still spends a validation attempt
+   * against that account, so the stamp is written before the order is
+   * attempted and is left in place whether the order succeeds or fails.
+   *
+   * Null means this domain has never had a reissue requested; automated
+   * renewal never writes here, so the cron keeping a certificate fresh can
+   * never be the reason a customer's button is refused.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboardDomain,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    type: TableColumnType.Date,
+    title: "Certificate Reissue Requested At",
+    description:
+      "When a reissue of the SSL certificate for this domain was last requested. Used to rate limit how often a certificate can be reissued.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public certificateReissueRequestedAt?: Date = undefined;
 }

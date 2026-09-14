@@ -71,6 +71,11 @@ export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.ProxmoxNode, 1000],
   [EntityType.ProxmoxGuest, 5000],
   [EntityType.CephCluster, 10000],
+  [EntityType.VMwareVCenter, 10000],
+  [EntityType.VMwareCluster, 1000],
+  [EntityType.VMwareHost, 2000],
+  [EntityType.VMwareVirtualMachine, 10000],
+  [EntityType.VMwareDatastore, 2000],
 ]);
 
 // For types not in the map (future promotions of high-churn types).
@@ -217,7 +222,17 @@ export async function reconcileEntityRegistryThrottled(data: {
   try {
     const promoted: Array<ExtractedEntity> = data.entities.filter(
       (entity: ExtractedEntity) => {
-        return REGISTRY_PROMOTED_TYPES.has(entity.entityType);
+        /*
+         * Two gates, and they answer different questions. The type gate asks
+         * "does this KIND of thing belong in the registry"; the per-entity
+         * flag asks "is this particular observation the resource's entity of
+         * that type, or a duplicate the producer sent alongside it". See
+         * `ExtractedEntity.membershipOnly`.
+         */
+        return (
+          !entity.membershipOnly &&
+          REGISTRY_PROMOTED_TYPES.has(entity.entityType)
+        );
       },
     );
     const retiredHosts: Array<RetiredEntityIdentity> = (

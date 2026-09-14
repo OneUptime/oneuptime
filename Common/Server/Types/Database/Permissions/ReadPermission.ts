@@ -1,6 +1,7 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import QueryHelper from "../QueryHelper";
+import QueryUtil from "../QueryUtil";
 import RelationSelect from "../RelationSelect";
 import Select from "../Select";
 import SelectUtil from "../SelectUtil";
@@ -12,8 +13,11 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../../../Types/ObjectID";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
+import { FindOperator } from "typeorm";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
   extends CheckPermissionBaseInterface<TBaseModel> {
@@ -119,13 +123,49 @@ export default class ReadPermission {
       }
     }
 
-    // now add these to query
-
     const model: TBaseModel = new modelType();
+    const accessControlColumn: string | null = model.getAccessControlColumn();
+    const manyToManyMeta: ReturnType<
+      typeof QueryUtil.getManyToManyRelationMetadata
+    > = accessControlColumn
+      ? QueryUtil.getManyToManyRelationMetadata(modelType, accessControlColumn)
+      : null;
 
-    (query as any)[model.getAccessControlColumn() as string] = {
-      _id: QueryHelper.notInOrNull(labelIds),
-    };
+    if (!manyToManyMeta) {
+      throw new BadDataException(
+        "Cannot apply read label restrictions without access-control relation metadata.",
+      );
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+    const existingIdFilter: unknown = idQuery._id;
+    if (
+      existingIdFilter !== undefined &&
+      typeof existingIdFilter !== "string" &&
+      !(existingIdFilter instanceof FindOperator)
+    ) {
+      throw new BadDataException(
+        "Cannot combine read label restrictions with an unsupported ID filter.",
+      );
+    }
+
+    /*
+     * Keep the caller's label selection intact. Blocking labels is a separate
+     * condition on the owner: it must have none of the blocked label links.
+     * Applying that condition to _id also lets grouped dashboard label filters
+     * and existing record selectors reach QueryUtil without being replaced.
+     * Serialize the ID condition first because QueryUtil does not descend into
+     * the database AND operator to convert application query operators later.
+     */
+    (query as any)._id = combineWithPrivacyClause(
+      existingIdFilter,
+      QueryHelper.noneEntitiesInManyToMany({
+        values: labelIds,
+        ...manyToManyMeta,
+      }),
+    );
 
     return { query };
   }

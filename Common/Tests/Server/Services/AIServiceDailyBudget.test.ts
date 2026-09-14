@@ -534,6 +534,15 @@ describe("AIService.executeWithLogging autonomous lane forwarding", () => {
     const projectId: ObjectID = ObjectID.generate();
     const incidentId: ObjectID = ObjectID.generate();
     const aiRunId: ObjectID = ObjectID.generate();
+    /*
+     * executeWithLogging reads the project first — the enableAi kill switch
+     * is enforced there for every caller. This case is about the budget lane
+     * the call is attributed to, so the switch is on.
+     */
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+    } as unknown as Project);
     jest.spyOn(LlmProviderService, "getProviderForChat").mockResolvedValue({
       id: ObjectID.generate(),
       llmType: LlmType.OpenAI,

@@ -3,9 +3,15 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import DockerHostLabelRule from "../../Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostLabelRuleService from "./DockerHostLabelRuleService";
 import DockerHostService from "./DockerHostService";
+import DockerHostFeedService from "./DockerHostFeedService";
+import { DockerHostFeedEventType } from "../../Models/DatabaseModels/DockerHostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DockerHostLabelRuleEngineServiceClass {
   /**
@@ -30,14 +36,21 @@ class DockerHostLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             dockerHostLabels: { _id: true },
             dockerHostNamePattern: true,
             dockerHostDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "DockerHostLabelRule",
+        projectId: dockerHost.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -59,6 +72,7 @@ class DockerHostLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesDockerHostMatchRule(
@@ -67,6 +81,11 @@ class DockerHostLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -122,6 +141,26 @@ class DockerHostLabelRuleEngineServiceClass {
         `DockerHostLabelRuleEngine attached ${newLabelIds.length} labels to Docker host ${dockerHost.id}`,
         { projectId: dockerHost.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await DockerHostFeedService.createDockerHostFeedItem({
+        dockerHostId: dockerHost.id,
+        projectId: dockerHost.projectId,
+        dockerHostFeedEventType: DockerHostFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await DockerHostService.getDockerHostMarkdownLink(
+          dockerHost.projectId,
+          dockerHost.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Docker host label rules: ${error}`, {
         projectId: dockerHost.projectId?.toString(),
@@ -131,6 +170,24 @@ class DockerHostLabelRuleEngineServiceClass {
   }
 
   private doesDockerHostMatchRule(
+    dockerHost: DockerHost,
+    rule: DockerHostLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dockerHostLabels",
+        "dockerHostNamePattern",
+        "dockerHostDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DockerHostLabelRule): boolean => {
+        return this.doesDockerHostMatchLegacyRule(dockerHost, legacyRule);
+      },
+    });
+  }
+
+  private doesDockerHostMatchLegacyRule(
     dockerHost: DockerHost,
     rule: DockerHostLabelRule,
   ): boolean {

@@ -33,6 +33,7 @@ import DockerSwarmClusterIncidents from "../Pages/DockerSwarm/View/Incidents";
 import DockerSwarmClusterAlerts from "../Pages/DockerSwarm/View/Alerts";
 import DockerSwarmClusterScheduledMaintenance from "../Pages/DockerSwarm/View/ScheduledMaintenance";
 import DockerSwarmClusterOwners from "../Pages/DockerSwarm/View/Owners";
+import DockerSwarmClusterFeed from "../Pages/DockerSwarm/View/Feed";
 import DockerSwarmClusterAuditLogs from "../Pages/DockerSwarm/View/AuditLogs";
 import DockerSwarmClusterSettings from "../Pages/DockerSwarm/View/Settings";
 import DockerSwarmClusterDelete from "../Pages/DockerSwarm/View/Delete";
@@ -401,6 +402,21 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED,
+          )}
+          element={
+            <DockerSwarmClusterFeed
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED] as Route
               }
             />
           }

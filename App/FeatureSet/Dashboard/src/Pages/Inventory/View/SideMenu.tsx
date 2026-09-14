@@ -146,16 +146,6 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
-        {
-          link: {
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INVENTORY_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.List,
-        },
       ],
     },
     {
@@ -170,6 +160,16 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Settings,
+        },
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.List,
         },
         {
           link: {

@@ -3,6 +3,7 @@ import PublicDashboardResourceListPolicy, {
 } from "../../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -422,6 +423,62 @@ const MAPPING_CASES: Array<MappingCase> = [
     expectedLimit: 25,
   },
   {
+    name: "vmware host",
+    componentType: DashboardComponentType.VMwareHostList,
+    resourceType: "vmware-resource",
+    argumentsObject: {
+      vmwareVCenterIds: ["vcenter"],
+      /*
+       * The vcenter receiver reports no per-host state, so the host widget
+       * offers no status filter; a stray one must not reach the query.
+       */
+      statusFilter: "online",
+      powerStateFilter: "on",
+    },
+    expectedQuery: {
+      kind: "Host",
+      vmwareVCenterId: new Includes(["vcenter"]),
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
+    name: "vmware virtual machine",
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    resourceType: "vmware-resource",
+    argumentsObject: {
+      vmwareVCenterIds: ["vcenter"],
+      powerStateFilter: "on",
+      templateFilter: "exclude",
+    },
+    expectedQuery: {
+      kind: "VirtualMachine",
+      vmwareVCenterId: new Includes(["vcenter"]),
+      isPoweredOn: true,
+      isTemplate: false,
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
+    name: "vmware virtual machine templates only, powered off",
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    resourceType: "vmware-resource",
+    argumentsObject: {
+      vmwareVCenterIds: ["vcenter"],
+      powerStateFilter: "off",
+      templateFilter: "only",
+    },
+    expectedQuery: {
+      kind: "VirtualMachine",
+      vmwareVCenterId: new Includes(["vcenter"]),
+      isPoweredOn: false,
+      isTemplate: true,
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
     name: "ceph OSD",
     componentType: DashboardComponentType.CephOsdList,
     resourceType: "ceph-resource",
@@ -566,7 +623,23 @@ describe("PublicDashboardResourceListPolicy", () => {
       const swarmService: JSONObject = build({
         componentType: DashboardComponentType.DockerSwarmServiceList,
       }).select;
+      const vmwareHost: JSONObject = build({
+        componentType: DashboardComponentType.VMwareHostList,
+      }).select;
+      const vmwareVirtualMachine: JSONObject = build({
+        componentType: DashboardComponentType.VMwareVirtualMachineList,
+      }).select;
 
+      expect(vmwareHost["cpuCapacityMhz"]).toBe(true);
+      expect(vmwareHost["maxMemoryBytes"]).toBe(true);
+      expect(vmwareHost["isPoweredOn"]).toBeUndefined();
+      expect(vmwareHost["isTemplate"]).toBeUndefined();
+      expect(vmwareHost["hostName"]).toBeUndefined();
+      expect(vmwareVirtualMachine["isPoweredOn"]).toBe(true);
+      expect(vmwareVirtualMachine["isTemplate"]).toBe(true);
+      expect(vmwareVirtualMachine["hostName"]).toBe(true);
+      expect(vmwareVirtualMachine["cpuCapacityMhz"]).toBeUndefined();
+      expect(vmwareVirtualMachine["maxMemoryBytes"]).toBeUndefined();
       expect(proxmoxNode["latestCpuPercent"]).toBe(true);
       expect(proxmoxNode["vmid"]).toBeUndefined();
       expect(proxmoxGuest["vmid"]).toBe(true);
@@ -594,6 +667,279 @@ describe("PublicDashboardResourceListPolicy", () => {
       expect(node["phase"]).toBeUndefined();
       expect(deployment["isReady"]).toBe(true);
       expect(deployment["phase"]).toBeUndefined();
+    });
+  });
+
+  describe("VMware widgets", () => {
+    const vmwareWidgets: Array<DashboardComponentType> = [
+      DashboardComponentType.VMwareHostList,
+      DashboardComponentType.VMwareVirtualMachineList,
+    ];
+
+    it("resolves both widgets to the vmware-resource registry key", () => {
+      for (const componentType of vmwareWidgets) {
+        expect(build({ componentType }).resourceType).toBe("vmware-resource");
+      }
+    });
+
+    it("owns the kind and never copies a caller-supplied one", () => {
+      const host: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.VMwareHostList,
+        argumentsObject: { kind: "VirtualMachine" },
+        requestedQuery: { kind: "Datastore", projectId: "other" },
+      });
+      const virtualMachine: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.VMwareVirtualMachineList,
+        argumentsObject: { kind: "Host" },
+        requestedQuery: { kind: "Datastore", projectId: "other" },
+      });
+
+      expect(host.query).toEqual({ kind: "Host" });
+      expect(virtualMachine.query).toEqual({ kind: "VirtualMachine" });
+    });
+
+    it("whitelists the virtual machine power-state and template filters", () => {
+      const expectations: Array<{
+        argumentsObject: JSONObject;
+        expectedQuery: JSONObject;
+      }> = [
+        {
+          argumentsObject: { powerStateFilter: "on" },
+          expectedQuery: { kind: "VirtualMachine", isPoweredOn: true },
+        },
+        {
+          argumentsObject: { powerStateFilter: "off" },
+          expectedQuery: { kind: "VirtualMachine", isPoweredOn: false },
+        },
+        {
+          argumentsObject: { templateFilter: "exclude" },
+          expectedQuery: { kind: "VirtualMachine", isTemplate: false },
+        },
+        {
+          argumentsObject: { templateFilter: "only" },
+          expectedQuery: { kind: "VirtualMachine", isTemplate: true },
+        },
+        // "" means All for both filters.
+        {
+          argumentsObject: { powerStateFilter: "", templateFilter: "" },
+          expectedQuery: { kind: "VirtualMachine" },
+        },
+        // Proxmox-style filters mean nothing to a VMware widget.
+        {
+          argumentsObject: { statusFilter: "running", guestTypeFilter: "qemu" },
+          expectedQuery: { kind: "VirtualMachine" },
+        },
+      ];
+
+      for (const expectation of expectations) {
+        expect(
+          build({
+            componentType: DashboardComponentType.VMwareVirtualMachineList,
+            argumentsObject: expectation.argumentsObject,
+          }).query,
+        ).toEqual(expectation.expectedQuery);
+      }
+
+      /*
+       * Anything outside the whitelist fails closed rather than reaching
+       * the query: the receiver never reports "suspended" separately from
+       * "off", and a non-string can never be a stored filter.
+       */
+      for (const invalidArguments of [
+        { powerStateFilter: "suspended" },
+        { powerStateFilter: "running" },
+        { powerStateFilter: true },
+        { templateFilter: "include" },
+        { templateFilter: ["only"] },
+        { templateFilter: 1 },
+      ] as Array<JSONObject>) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.VMwareVirtualMachineList,
+            argumentsObject: invalidArguments,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("scopes hosts and virtual machines to the stored vCenter ids only", () => {
+      for (const componentType of vmwareWidgets) {
+        const result: PublicDashboardResourceListPolicyResult = build({
+          componentType,
+          argumentsObject: { vmwareVCenterIds: ["a", "b"] },
+          requestedQuery: { vmwareVCenterId: "forged" },
+        });
+        expect(result.query["vmwareVCenterId"]).toEqual(
+          new Includes(["a", "b"]),
+        );
+
+        const unscoped: PublicDashboardResourceListPolicyResult = build({
+          componentType,
+          argumentsObject: { vmwareVCenterIds: [] },
+        });
+        expect(unscoped.query["vmwareVCenterId"]).toBeUndefined();
+      }
+    });
+
+    it("interpolates host variables by vSphere attribute, bare or resource-prefixed", () => {
+      const hostVariable: JSONObject = {
+        id: "host",
+        name: "Host",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: "resource.vcenter.host.name",
+      };
+      const clusterVariable: JSONObject = {
+        id: "cluster",
+        name: "Cluster",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: "vcenter.cluster.name",
+        isMultiSelect: true,
+      };
+      const datacenterVariable: JSONObject = {
+        id: "datacenter",
+        name: "Datacenter",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: "vcenter.datacenter.name",
+        defaultValue: "dc-1",
+      };
+
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.VMwareHostList,
+        storedVariables: [hostVariable, clusterVariable, datacenterVariable],
+        requestedVariables: [
+          { id: "host", selectedValue: "esxi-01.example.com" },
+          {
+            id: "cluster",
+            selectedValue: null,
+            selectedValues: ["prod", "dr"],
+          },
+          { id: "datacenter", selectedValue: null },
+        ],
+      });
+
+      expect(result.query).toEqual({
+        kind: "Host",
+        name: "esxi-01.example.com",
+        clusterName: new Includes(["prod", "dr"]),
+        datacenterName: "dc-1",
+      });
+    });
+
+    it("interpolates virtual machine variables onto the VM's own columns", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.VMwareVirtualMachineList,
+        argumentsObject: { powerStateFilter: "on" },
+        storedVariables: [
+          {
+            id: "vm",
+            name: "VM",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "vcenter.vm.name",
+          },
+          {
+            id: "host",
+            name: "Host",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "resource.vcenter.host.name",
+          },
+          {
+            id: "cluster",
+            name: "Cluster",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "resource.vcenter.cluster.name",
+          },
+        ],
+        requestedVariables: [
+          { id: "vm", selectedValue: "web-01" },
+          { id: "host", selectedValue: "esxi-01.example.com" },
+          { id: "cluster", selectedValue: "prod" },
+        ],
+      });
+
+      /*
+       * For a VM the host attribute is its PARENT host (hostName), not the
+       * row's own name — the maps differ between the two widgets on purpose.
+       */
+      expect(result.query).toEqual({
+        kind: "VirtualMachine",
+        isPoweredOn: true,
+        name: "web-01",
+        hostName: "esxi-01.example.com",
+        clusterName: "prod",
+      });
+    });
+
+    it("ignores variables keyed on attributes the widget does not map", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.VMwareHostList,
+        storedVariables: [
+          {
+            id: "vm",
+            name: "VM",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "vcenter.vm.name",
+          },
+          {
+            id: "datastore",
+            name: "Datastore",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "vcenter.datastore.name",
+          },
+        ],
+        requestedVariables: [
+          { id: "vm", selectedValue: "web-01" },
+          { id: "datastore", selectedValue: "vsanDatastore" },
+        ],
+      });
+
+      expect(result.query).toEqual({ kind: "Host" });
+    });
+
+    it("projects only public-safe inventory columns", () => {
+      const publicColumns: Array<string> = [
+        "_id",
+        "name",
+        "externalId",
+        "kind",
+        "datacenterName",
+        "clusterName",
+        "hostName",
+        "resourcePoolName",
+        "isPoweredOn",
+        "isTemplate",
+        "latestCpuPercent",
+        "latestMemoryPercent",
+        "latestDiskPercent",
+        "cpuCapacityMhz",
+        "maxMemoryBytes",
+        "metricsUpdatedAt",
+        "vmwareVCenterId",
+        "vmwareVCenter",
+      ];
+      const privateColumns: Array<string> = [
+        "projectId",
+        "project",
+        "createdByUserId",
+        "createdByUser",
+        "deletedByUserId",
+        "deletedByUser",
+        "resourcePoolPath",
+        "virtualAppName",
+        "vmInstanceUuid",
+        "lastSeenAt",
+      ];
+
+      for (const componentType of vmwareWidgets) {
+        const select: JSONObject = build({ componentType }).select;
+
+        for (const column of Object.keys(select)) {
+          expect(publicColumns).toContain(column);
+        }
+        for (const column of privateColumns) {
+          expect(select[column]).toBeUndefined();
+        }
+        expect(select["vmwareVCenter"]).toEqual({ name: true });
+      }
     });
   });
 
@@ -1035,6 +1381,219 @@ describe("PublicDashboardResourceListPolicy", () => {
           ],
         });
       }).toThrow(BadDataException);
+    });
+  });
+
+  describe("monitor project label variables", () => {
+    const firstLabelId: string = ObjectID.generate().toString();
+    const secondLabelId: string = ObjectID.generate().toString();
+    const fixedLabelId: string = ObjectID.generate().toString();
+    const labelVariable: JSONObject = {
+      id: "unit",
+      name: "UNIT",
+      type: DashboardVariableType.ProjectLabel,
+      labelOptions: [
+        { label: "Payments", value: firstLabelId },
+        { label: "Support", value: secondLabelId },
+      ],
+      defaultValue: firstLabelId,
+    };
+
+    it("filters by the saved variable's default when no selection was sent", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+      });
+
+      expect(result.query).toEqual({ labels: new Includes([firstLabelId]) });
+    });
+
+    it("uses the selected label ID while retaining the saved widget filters", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          statusFilter: "operational",
+          monitorTypes: ["Ping"],
+          monitorStatusIds: ["status"],
+          maxRows: 7,
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query).toEqual({
+        labels: new Includes([secondLabelId]),
+        currentMonitorStatus: { isOperationalState: true },
+        monitorType: new Includes(["Ping"]),
+        currentMonitorStatusId: new Includes(["status"]),
+      });
+      expect(result.limit).toBe(7);
+      expect(result.sort).toEqual({ name: SortOrder.Ascending });
+      expect(result.select).toEqual({
+        _id: true,
+        name: true,
+        monitorType: true,
+        currentMonitorStatus: { name: true, color: true },
+      });
+    });
+
+    it("requires both a fixed label group and the selected variable group", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          labelIds: [fixedLabelId],
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query["labels"]).toEqual(
+        new IncludesAnyOfGroups([[fixedLabelId], [secondLabelId]]),
+      );
+    });
+
+    it("lets All clear only the variable filter and preserves fixed labels", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          labelIds: [fixedLabelId],
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: "" }],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+    });
+
+    it("leaves the label filter absent when All is selected without fixed labels", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: "" }],
+      });
+
+      expect(result.query["labels"]).toBeUndefined();
+    });
+
+    it("matches either selected label for a multi-select", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [{ ...labelVariable, isMultiSelect: true }],
+        requestedVariables: [
+          { id: "unit", selectedValues: [firstLabelId, secondLabelId] },
+        ],
+      });
+
+      expect(result.query["labels"]).toEqual(
+        new Includes([firstLabelId, secondLabelId]),
+      );
+    });
+
+    it("treats an empty multi-select as All even when a default or stale scalar exists", () => {
+      for (const requestedVariables of [
+        [],
+        [{ id: "unit", selectedValue: firstLabelId, selectedValues: [] }],
+      ]) {
+        const result: PublicDashboardResourceListPolicyResult = build({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: {
+            labelVariableId: "unit",
+            labelIds: [fixedLabelId],
+          },
+          storedVariables: [{ ...labelVariable, isMultiSelect: true }],
+          requestedVariables,
+        });
+
+        expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+      }
+    });
+
+    it("ignores stale multi-select values for a saved single-select", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+        requestedVariables: [
+          {
+            id: "unit",
+            selectedValue: firstLabelId,
+            selectedValues: [secondLabelId],
+          },
+        ],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([firstLabelId]));
+    });
+
+    it("does not apply a label variable to an unbound widget", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelIds: [fixedLabelId] },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+    });
+
+    it("rejects a selection that is no longer among the published choices", () => {
+      expect(() => {
+        return build({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: { labelVariableId: "unit" },
+          storedVariables: [labelVariable],
+          requestedVariables: [
+            { id: "unit", selectedValue: ObjectID.generate().toString() },
+          ],
+        });
+      }).toThrow(BadDataException);
+    });
+
+    it("rejects a missing or incompatible saved variable binding", () => {
+      for (const storedVariables of [
+        [],
+        [
+          {
+            id: "unit",
+            name: "UNIT",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "unit",
+          },
+        ],
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.MonitorList,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("rejects malformed saved label choices", () => {
+      for (const labelOptions of [
+        null,
+        "Payments",
+        [null],
+        [{ value: firstLabelId }],
+        [{ label: "Payments", value: 42 }],
+        [{ label: "", value: firstLabelId }],
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.MonitorList,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables: [{ ...labelVariable, labelOptions }],
+          });
+        }).toThrow(BadDataException);
+      }
     });
   });
 

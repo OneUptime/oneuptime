@@ -251,7 +251,15 @@ describe("ChangeEvent model + registries", () => {
       "App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts",
     );
     expect(route).toContain("/change-events/v1/ingest");
-    expect(route).toContain("TelemetryIngest.isAuthorizedServiceMiddleware");
+    /*
+     * The SURFACE is the assertion, not just "some auth middleware". A
+     * change-event route registered with a browser-capable surface would
+     * accept a key scraped off a public page, so the enum member is the
+     * thing worth pinning in source.
+     */
+    expect(route).toContain(
+      "TelemetryIngest.forSurface(TelemetryIngestSurface.ChangeEvents)",
+    );
     expect(route).toContain("TelemetryIngestionDisabled.middleware");
 
     expect(readSquashed("App/FeatureSet/Telemetry/Index.ts")).toContain(

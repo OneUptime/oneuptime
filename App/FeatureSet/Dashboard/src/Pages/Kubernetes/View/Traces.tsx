@@ -81,6 +81,10 @@ const KubernetesClusterTraces: FunctionComponent<
        * histogram / facet scoping — display behavior is unchanged. Drop the
        * attribute fallback (here and in the attributeFilters query merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip's filter value stays the clusterIdentifier (what telemetry
+       * carries in k8s.cluster.name); attributeFilterDisplayValues only swaps
+       * what the chip reads for the cluster's friendly name.
        */}
       <TracesViewer
         attributeFilters={{
@@ -88,6 +92,10 @@ const KubernetesClusterTraces: FunctionComponent<
         }}
         attributeFilterDisplayKeys={{
           "resource.k8s.cluster.name": "Cluster",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.k8s.cluster.name":
+            cluster.name || cluster.clusterIdentifier,
         }}
         entityScope={{
           entityKeys: [

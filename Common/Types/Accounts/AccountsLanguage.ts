@@ -31,6 +31,7 @@ export const SUPPORTED_ACCOUNTS_LANGUAGES: Array<AccountsLanguage> = [
     englishName: "Chinese (Traditional)",
   },
   { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
+  { code: "fa", nativeName: "فارسی", englishName: "Persian" },
 ];
 
 export const SUPPORTED_ACCOUNTS_LANGUAGE_CODES: Array<string> =

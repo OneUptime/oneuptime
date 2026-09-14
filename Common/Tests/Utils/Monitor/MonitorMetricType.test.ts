@@ -1,9 +1,20 @@
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
-import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
+import {
+  DatabaseMetricCategory,
+  DatabaseMetricDefinition,
+  getAllDatabaseMetrics,
+  getDatabaseMetricsForEngine,
+} from "../../../Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../../Types/Monitor/MonitorType";
+import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import MonitorMetricTypeUtil, {
   MonitorMetricCategory,
 } from "../../../Utils/Monitor/MonitorMetricType";
@@ -476,5 +487,273 @@ describe("getMonitorMetricTypeByCheckOnOrNull", () => {
     expect(() => {
       MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(CheckOn.ResponseBody);
     }).toThrow();
+  });
+});
+
+/*
+ * Database Health declares its ~40 series in DatabaseMetricCatalog rather
+ * than in the five metadata switches in this util; a short prelude in each
+ * switch resolves them. A prelude that is missing does not throw - it
+ * renders a chart with a blank legend, no unit, or the wrong aggregation.
+ * These sweep the whole catalog through the public lookups so a metric can
+ * never end up half-wired.
+ */
+describe("Database Health metric metadata", () => {
+  const catalog: Array<DatabaseMetricDefinition> = getAllDatabaseMetrics();
+
+  test("every catalog metric resolves its display metadata", () => {
+    for (const metric of catalog) {
+      expect(
+        MonitorMetricTypeUtil.getTitleByMonitorMetricType(metric.metricType),
+      ).toBe(metric.friendlyName);
+      expect(
+        MonitorMetricTypeUtil.getLegendByMonitorMetricType(metric.metricType),
+      ).toBe(metric.friendlyName);
+      expect(
+        MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+          metric.metricType,
+        ),
+      ).toBe(metric.unit);
+      expect(
+        MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+          metric.metricType,
+        ).length,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  test("every catalog metric aggregates the way the catalog says", () => {
+    for (const metric of catalog) {
+      expect(
+        MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+          metric.metricType,
+        ),
+      ).toBe(metric.defaultAggregation);
+    }
+  });
+
+  /*
+   * The preludes run before the switches, so a catalog row that ever matched
+   * a shared series would rewrite the metadata of every monitor type using
+   * it, not just Database Health.
+   */
+  test("the catalog does not shadow the shared probe series", () => {
+    expect(
+      MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+      ),
+    ).toBe("ms");
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.IsOnline,
+      ),
+    ).toBe(AggregationType.Min);
+  });
+});
+
+describe("Database Health metric lists and cards", () => {
+  const catalog: Array<DatabaseMetricDefinition> = getAllDatabaseMetrics();
+
+  test("Database exposes availability plus every catalog series", () => {
+    const metrics: Array<MonitorMetricType> =
+      MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+        MonitorType.Database,
+      );
+
+    expect(metrics[0]).toBe(MonitorMetricType.IsOnline);
+    expect(metrics[1]).toBe(MonitorMetricType.ResponseTime);
+
+    for (const metric of catalog) {
+      expect(metrics).toContain(metric.metricType);
+    }
+
+    expect(metrics.length).toBe(catalog.length + 2);
+  });
+
+  test("with no engine chosen the cards show the full capability set", () => {
+    const categories: Array<MonitorMetricCategory> =
+      MonitorMetricTypeUtil.getDatabaseMetricCategories();
+
+    const shown: Array<MonitorMetricType> = categories.flatMap(
+      (category: MonitorMetricCategory) => {
+        return category.metrics;
+      },
+    );
+
+    for (const metric of catalog) {
+      expect(shown).toContain(metric.metricType);
+    }
+  });
+
+  /*
+   * A card of permanently empty charts is worse than no card: it reads as a
+   * broken monitor rather than as an engine that does not report the data.
+   */
+  test("a MySQL monitor drops the cards its engine can never fill", () => {
+    const mysqlMetrics: Array<MonitorMetricType> = getDatabaseMetricsForEngine(
+      SqlDatabaseType.MySQL,
+    ).map((metric: DatabaseMetricDefinition) => {
+      return metric.metricType;
+    });
+
+    const categories: Array<MonitorMetricCategory> =
+      MonitorMetricTypeUtil.getDatabaseMetricCategories(SqlDatabaseType.MySQL);
+
+    const titles: Array<string> = categories.map(
+      (category: MonitorMetricCategory) => {
+        return category.title;
+      },
+    );
+
+    // Every PostgreSQL-only vacuum and wraparound metric lives on this card.
+    expect(titles).not.toContain(DatabaseMetricCategory.Maintenance);
+
+    for (const category of categories) {
+      expect(category.title.length).toBeGreaterThan(0);
+      expect(category.description.length).toBeGreaterThan(0);
+      expect(category.metrics.length).toBeGreaterThan(0);
+
+      for (const metric of category.metrics) {
+        if (
+          metric === MonitorMetricType.IsOnline ||
+          metric === MonitorMetricType.ResponseTime
+        ) {
+          continue;
+        }
+
+        expect(mysqlMetrics).toContain(metric);
+      }
+    }
+  });
+
+  test("PostgreSQL keeps the maintenance card", () => {
+    const categories: Array<MonitorMetricCategory> =
+      MonitorMetricTypeUtil.getDatabaseMetricCategories(
+        SqlDatabaseType.PostgreSQL,
+      );
+
+    const titles: Array<string> = categories.map(
+      (category: MonitorMetricCategory) => {
+        return category.title;
+      },
+    );
+
+    expect(titles).toContain(DatabaseMetricCategory.Maintenance);
+  });
+
+  /*
+   * Availability carries the shared probe series on top of its catalog
+   * metrics, so it is the one card that must render whatever the engine.
+   */
+  test("availability is the first card on every engine", () => {
+    for (const engine of [
+      SqlDatabaseType.PostgreSQL,
+      SqlDatabaseType.MySQL,
+      SqlDatabaseType.MicrosoftSqlServer,
+    ]) {
+      const categories: Array<MonitorMetricCategory> =
+        MonitorMetricTypeUtil.getDatabaseMetricCategories(engine);
+
+      expect(categories[0]?.title).toBe(DatabaseMetricCategory.Availability);
+      expect(categories[0]?.metrics).toContain(MonitorMetricType.IsOnline);
+      expect(categories[0]?.metrics).toContain(MonitorMetricType.ResponseTime);
+    }
+  });
+
+  test("the monitor type routes through the database cards", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricCategoriesByMonitorType(
+        MonitorType.Database,
+        SqlDatabaseType.MySQL,
+      ),
+    ).toEqual(
+      MonitorMetricTypeUtil.getDatabaseMetricCategories(SqlDatabaseType.MySQL),
+    );
+  });
+});
+
+/*
+ * Database Health filters name their series in databaseMonitorOptions rather
+ * than in the CheckOn, because one CheckOn covers all 40. Resolving from the
+ * CheckOn alone returns null, which turns "evaluate over time" back into an
+ * instantaneous comparison while the UI still offers the toggle - so
+ * EvaluateOverTime has to ask with the whole filter.
+ */
+describe("getMonitorMetricTypeByCriteriaFilterOrNull", () => {
+  const buildFilter: (filter: Partial<CriteriaFilter>) => CriteriaFilter = (
+    filter: Partial<CriteriaFilter>,
+  ): CriteriaFilter => {
+    return {
+      checkOn: CheckOn.DatabaseMetric,
+      filterType: FilterType.GreaterThan,
+      value: "90",
+      ...filter,
+    };
+  };
+
+  test("resolves the series a database metric filter names", () => {
+    for (const metric of getAllDatabaseMetrics()) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+          buildFilter({
+            databaseMonitorOptions: { metricType: metric.metricType },
+          }),
+        ),
+      ).toBe(metric.metricType);
+    }
+  });
+
+  test("returns null when the filter names no series", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+        buildFilter({}),
+      ),
+    ).toBeNull();
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+        buildFilter({ databaseMonitorOptions: {} }),
+      ),
+    ).toBeNull();
+  });
+
+  test("the database online check reads the shared online series", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+        buildFilter({
+          checkOn: CheckOn.DatabaseIsOnline,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ),
+    ).toBe(MonitorMetricType.IsOnline);
+  });
+
+  test("collection errors are text, not a series", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+        buildFilter({
+          checkOn: CheckOn.DatabaseCollectionError,
+          filterType: FilterType.IsNotEmpty,
+          value: undefined,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("every other CheckOn still resolves the way it always did", () => {
+    for (const checkOn of [
+      CheckOn.CPUUsagePercent,
+      CheckOn.ResponseTime,
+      CheckOn.DnsIsOnline,
+      CheckOn.JavaScriptExpression,
+    ]) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+          buildFilter({ checkOn: checkOn }),
+        ),
+      ).toBe(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(checkOn),
+      );
+    }
   });
 });

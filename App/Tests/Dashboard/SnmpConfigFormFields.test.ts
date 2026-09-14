@@ -811,11 +811,20 @@ describe("getSnmpConfigFormFields — form step assignment", () => {
  * the page sources to pin that, which is the only way to catch a page that
  * quietly stops calling the helper.
  *
- * Discovery.tsx is included even though it builds a form over
- * NetworkDeviceDiscoveryScan rather than NetworkDevice: the helper is authored
- * against the SnmpConfigModelFields shape both models satisfy, so it serves
- * both. It had the same drift — a hand-rolled block offering V3 with no v3
- * fields behind it.
+ * Discovery.tsx is deliberately NOT in this list any more. It used to be, for
+ * the good reason that the helper is authored against the SnmpConfigModelFields
+ * shape both NetworkDevice and NetworkDeviceDiscoveryScan satisfy — but a scan
+ * no longer collects ONE credential set. It collects an ordered LIST
+ * (issue #3458), which a flat spread of nine Fields cannot express at all: a
+ * Field is one value at one key. The SNMP step is now a single
+ * CustomComponent bound to `snmpConfigs`, rendering SnmpConfigListEditor.
+ *
+ * That guarantee is REPLACED rather than dropped — see "the discovery scan's
+ * SNMP step" below, which pins the wiring the scan page has instead, including
+ * the same "no hand-rolled version dropdown" rule this list enforces. Deleting
+ * the page from the list without replacing the rule would leave the scan form
+ * free to grow its own SNMP block again, which is the exact drift this whole
+ * block of tests exists to catch.
  *
  * View/Index.tsx (the device Overview) is deliberately NOT in this list
  * anymore: SNMP credentials now live only in View/Settings.tsx, and the
@@ -823,10 +832,21 @@ describe("getSnmpConfigFormFields — form step assignment", () => {
  * below pins that instead — the drift to catch there is an SNMP field
  * sneaking back outside the helper.
  */
-const SNMP_FORM_PAGES: Array<string> = [
-  "Devices.tsx",
+const SNMP_FORM_PAGES: Array<string> = ["Devices.tsx", "View/Settings.tsx"];
+
+/*
+ * Every page that renders an SNMP credential box in any shape — the three that
+ * spread the helper AND the scan page's repeated editor.
+ *
+ * The one-way-hash prohibition is about the CREDENTIAL, not about which
+ * mechanism renders it, so it has to keep covering Discovery.tsx after that
+ * page stopped spreading the helper. A community string hashed on the way in
+ * is a community string the probe can never present to a device, and the
+ * failure is silent: the scan runs and reports zero.
+ */
+const SNMP_CREDENTIAL_PAGES: Array<string> = [
+  ...SNMP_FORM_PAGES,
   "Discovery.tsx",
-  "View/Settings.tsx",
 ];
 
 // Pages that must not carry any SNMP form at all.
@@ -872,7 +892,7 @@ describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () =>
    * Password hashes one-way, so a community string or v3 key saved through it
    * is unusable by the probe. The helper uses EncryptedText, which round-trips.
    */
-  test.each(SNMP_FORM_PAGES)(
+  test.each(SNMP_CREDENTIAL_PAGES)(
     "%s does not put SNMP credentials behind a one-way hash",
     (page: string) => {
       expect(readNetworkDevicePage(page)).not.toContain(
@@ -880,6 +900,123 @@ describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () =>
       );
     },
   );
+});
+
+/*
+ * The scan page's replacement guarantee.
+ *
+ * Discovery.tsx left SNMP_FORM_PAGES above because its SNMP step stopped
+ * being nine flat fields, so "spreads the shared fields" is no longer the
+ * right shape of promise for it. The promise that MATTERS is unchanged
+ * though — the scan form must not grow an SNMP block of its own — so it is
+ * restated here against the wiring the page actually has now.
+ *
+ * All four assertions are about drift a type cannot catch. A CustomComponent
+ * field bound to the wrong key, or missing its customValidation, compiles
+ * perfectly and produces a create form that posts a scan with no credentials
+ * and validates nothing (Validation.validate skips a key the form values do
+ * not carry). The App suite has no renderer — App/jest.config.json sets
+ * testEnvironment "node", and App/tsconfig.json excludes FeatureSet/Dashboard
+ * so the .tsx cannot even be imported — so the page is read as text, the same
+ * technique the list above uses and the same one
+ * AddNeighborToMonitoringWiring.test.ts uses for the topology dialog.
+ */
+function readNetworkDevicePageCode(relativePath: string): string {
+  /*
+   * Comments out, whitespace collapsed. Discovery.tsx explains this field in
+   * a long comment that names getSnmpConfigFormFields, validateSnmpConfigs and
+   * SnmpConfigListEditor in prose — an assertion about the code has to read
+   * the code, not the commentary describing it.
+   */
+  return readNetworkDevicePage(relativePath)
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/.*$/gm, " ")
+    .replace(/\s+/g, " ");
+}
+
+const DISCOVERY_CODE: string = readNetworkDevicePageCode("Discovery.tsx");
+
+/*
+ * The field definition itself, sliced out of the page.
+ *
+ * Anchored on `field: { snmpConfigs: true` rather than on the bare column
+ * name, because the page names that column a second time in the ModelTable's
+ * selectMoreFields — which is a different promise, pinned elsewhere.
+ */
+function getSnmpConfigsFieldBlock(): string {
+  const start: number = DISCOVERY_CODE.indexOf("field: { snmpConfigs: true");
+
+  if (start === -1) {
+    throw new Error(
+      "Discovery.tsx no longer declares a field bound to snmpConfigs",
+    );
+  }
+
+  return DISCOVERY_CODE.slice(start, start + 900);
+}
+
+describe("the discovery scan's SNMP step is the repeated editor, not the flat fields", () => {
+  /*
+   * The reason the page left SNMP_FORM_PAGES. Asserted explicitly so that a
+   * well-meaning change putting the nine flat fields back — which would
+   * silently reduce the scan to one credential set again, the whole of issue
+   * #3458 — fails here rather than passing both lists.
+   */
+  test("the scan page no longer spreads the nine flat SNMP fields", () => {
+    expect(DISCOVERY_CODE).not.toContain("...getSnmpConfigFormFields(");
+  });
+
+  test("the scan page renders the repeated SnmpConfigListEditor instead", () => {
+    expect(DISCOVERY_CODE).toContain("<SnmpConfigListEditor");
+    expect(DISCOVERY_CODE).toContain(
+      'from "../../Components/NetworkDevice/SnmpConfigListEditor"',
+    );
+  });
+
+  /*
+   * The binding, all four parts of it. `snmpConfigs` is the jsonb column the
+   * probe and the import path both read, "snmp" is the wizard step the editor
+   * has to appear on, and CustomComponent is what lets one Field own a
+   * repeated block at all.
+   */
+  test("the editor is bound to the snmpConfigs column on the SNMP step", () => {
+    const block: string = getSnmpConfigsFieldBlock();
+
+    expect(block).toContain("field: { snmpConfigs: true, },");
+    expect(block).toContain('stepId: "snmp",');
+    expect(block).toContain("fieldType: FormFieldSchemaType.CustomComponent,");
+    expect(block).toContain("<SnmpConfigListEditor");
+  });
+
+  /*
+   * Without customValidation the only rule on this field is `required`, and
+   * `required` on a CustomComponent is satisfied by any non-empty value — a
+   * list of ten half-filled v3 cards with no usernames included. The
+   * validator delegates to SnmpScanConfigUtil, which is what the server
+   * enforces with, so the sentence under the editor is the sentence the API
+   * would have returned.
+   */
+  test("the editor's field carries the shared list validator", () => {
+    const block: string = getSnmpConfigsFieldBlock();
+
+    expect(block).toContain("customValidation: validateSnmpConfigs,");
+    expect(block).toContain("required: true,");
+    expect(DISCOVERY_CODE).toContain("validateSnmpConfigs,");
+  });
+
+  /*
+   * The same rule SNMP_FORM_PAGES enforces for the pages that still spread
+   * the helper, kept for this page by hand: the version options belong to
+   * SnmpConfigFormFields, and the editor imports them from there. A literal
+   * option list appearing on this page again is the signature of a
+   * hand-rolled SNMP block, which is how the v3 fields went missing the first
+   * time.
+   */
+  test("the scan page still hand-rolls no SNMP version dropdown of its own", () => {
+    expect(readNetworkDevicePage("Discovery.tsx")).not.toContain(
+      'value: "V2c"',
+    );
+  });
 });
 
 describe("NetworkDevice pages that must stay SNMP-free", () => {

@@ -1,5 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import OneUptimeDate from "../../../../Types/Date";
 import { BasicDiskMetrics } from "../../../../Types/Infrastructure/BasicMetrics";
@@ -211,9 +212,39 @@ export default class ServerMonitorCriteria {
 
       const normalizedDiskPath: string = normalizeDiskPath(diskPath);
 
-      const diskMetric: BasicDiskMetrics | undefined = (
-        input.dataToProcess as ServerMonitorResponse
-      ).basicInfrastructureMetrics?.diskMetrics?.find(
+      const allDiskMetrics: Array<BasicDiskMetrics> =
+        (input.dataToProcess as ServerMonitorResponse)
+          .basicInfrastructureMetrics?.diskMetrics || [];
+
+      /*
+       * "*" means every disk the agent reported. The criteria is met
+       * when ANY of them breaches, mirroring how a grouped metric
+       * monitor's criteria is met when any series breaches. The
+       * per-entity pass then re-runs this filter once per disk to work
+       * out which ones, so each full mount gets its own alert instead
+       * of the first one silencing the rest.
+       */
+      if (PerEntityCriteriaFanOut.isWildcard(diskPath)) {
+        for (const candidateDisk of allDiskMetrics) {
+          const candidateUsage: number =
+            candidateDisk.percentUsed ?? candidateDisk.percentFree ?? 0;
+
+          const candidateResult: string | null =
+            CompareCriteria.compareCriteriaNumbers({
+              value: candidateUsage,
+              threshold: threshold as number,
+              criteriaFilter: input.criteriaFilter,
+            });
+
+          if (candidateResult) {
+            return `Disk ${candidateDisk.diskPath} - ${candidateResult}`;
+          }
+        }
+
+        return null;
+      }
+
+      const diskMetric: BasicDiskMetrics | undefined = allDiskMetrics.find(
         (item: BasicDiskMetrics) => {
           return normalizeDiskPath(item.diskPath) === normalizedDiskPath;
         },

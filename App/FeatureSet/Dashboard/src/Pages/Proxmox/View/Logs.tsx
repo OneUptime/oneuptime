@@ -101,10 +101,16 @@ const ProxmoxClusterLogs: FunctionComponent<
        * attributes-equality filter into the query itself — that defeats the
        * OR. Drop the attribute fallback (here and in the logQuery merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip value is already the cluster's name, so only the key needs a
+       * label: "Cluster" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`proxmox-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.proxmox.cluster.name": "Cluster",
+        }}
         entityScope={{
           entityKeys: [
             keyForProxmoxCluster(

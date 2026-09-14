@@ -1,4 +1,5 @@
 import NetworkTopology, {
+  NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyLinkProtocol,
@@ -13,6 +14,13 @@ import {
   classifyEndpointRole,
   resolveDeviceRole,
 } from "./NetworkDeviceRoleUtil";
+import {
+  TopologyDeviceRoleInput,
+  applyRoleStamp,
+  buildDeviceRoleIndex,
+  roleKeyForNode,
+  stampForRoleKey,
+} from "./NetworkDeviceRoleCatalog";
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
@@ -34,6 +42,21 @@ export interface TopologyDeviceInput {
   lastPolledAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
   pollingIntervalInMinutes?: number | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Read only when `monitorStatus` below is absent, and load-bearing there:
+   * a monitor-backed device (monitoringMethod "Monitor") with nothing
+   * stamped yet is drawn "unknown", which is what the device list says
+   * about it too. Without this the poll columns above would decide — and on
+   * a device switched over from SNMP they hold the last thing a probe found
+   * before it stopped asking, so a months-old lastSeenAt would draw the node
+   * red while its row in the device list reads Pending.
+   */
+  monitoringMethod?: string | null | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
@@ -45,11 +68,18 @@ export interface TopologyDeviceInput {
   sysDescr?: string | undefined;
   sysObjectId?: string | undefined;
   /*
-   * The operator's own answer to what this device is, when they gave one.
-   * Outranks the classifier below, because it is the only statement about
-   * the role that is not an inference — and on a device nothing walks it
-   * is the ONLY statement available at all, the classifier having nothing
-   * but a hostname to go on.
+   * The KEY of the role the operator assigned this device, when they
+   * assigned one. Outranks the classifier below, because it is the only
+   * statement about the role that is not an inference — and on a device
+   * nothing walks it is the ONLY statement available at all, the classifier
+   * having nothing but a hostname to go on.
+   *
+   * A key, not a name: roles are per-project rows an operator can rename, so
+   * the caller reads it off the assigned row (NetworkDevice.networkDeviceRole)
+   * rather than passing a label. It may be a key outside the built-in twelve
+   * — a role the project invented — in which case `role` on the node falls
+   * back to the classifier and the node's roleKey/roleLabel/roleShape carry
+   * the configured answer instead. See buildTopology's deviceRoles argument.
    */
   deviceRole?: string | undefined;
   /*
@@ -79,6 +109,25 @@ export interface TopologyDeviceInput {
    * peer advertises about itself.
    */
   macAddresses?: Array<string> | undefined;
+  /*
+   * The device's OWN MAC, as declared by an operator or learned from a
+   * router's ARP table (NetworkDevice.macAddress). Distinct from the
+   * interface MACs above, which a walk reports and only a walked device
+   * has: this one exists precisely for the device nothing walks. It is a
+   * match key twice over - for an LLDP chassis id like the interface MACs,
+   * and for the endpoint inventory, where a switch's forwarding table
+   * having learned it on an access port is what puts the device on that
+   * port. See adoptEndpointsIntoDevices.
+   */
+  macAddress?: string | undefined;
+  /*
+   * Which site the device belongs to. ALWAYS a string, never an ObjectID -
+   * the endpoint adoption below keys a Map on it, and an ObjectID instance
+   * would compare by identity. Read only to scope the by-address match:
+   * every branch site has a 10.0.0.5, so an endpoint's ARP-learned address
+   * may only name a device in the SAME site as the switch that learned it.
+   */
+  siteId?: string | undefined;
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
 }
@@ -116,6 +165,12 @@ export interface TopologyEndpointInput {
   attachedInterfaceIndex?: number | undefined;
   attachedPortName?: string | undefined;
   lastSeenAt?: Date | undefined;
+  /*
+   * The site of the switch that learned this MAC, stamped by the endpoint
+   * service when the attachment was written. A string for the same reason
+   * TopologyDeviceInput.siteId is one.
+   */
+  siteId?: string | undefined;
 }
 
 /*
@@ -152,6 +207,14 @@ export interface TopologyBuildResult extends NetworkTopology {
   // True when more attachable endpoints existed than the render cap allows.
   endpointsTruncated?: boolean | undefined;
   /*
+   * Endpoints that turned out to BE a managed device - matched to one by
+   * MAC or by site-scoped address - and were therefore drawn as a link to
+   * that device's own node rather than as a node of their own. Reported so
+   * the count of what the switches learned still adds up: rendered +
+   * dropped + adopted is every row the caller passed in (less truncation).
+   */
+  adoptedEndpointCount?: number | undefined;
+  /*
    * Nodes removed because the project hid them. Always reported, even when
    * zero: a map that quietly drops things is the same failure as a map that
    * quietly invents them, and this is what the "N hidden — show" affordance
@@ -181,6 +244,13 @@ interface NeighborClaim {
   remotePortId: string | undefined;
   // CDP-only: the platform string the neighbor advertises about itself.
   remotePlatform: string | undefined;
+  /*
+   * The management address the peer advertises (CDP cdpCacheAddress, LLDP
+   * lldpRemManAddrTable). Deliberately NOT one of `identifiers`: it is a
+   * match key of its own kind, because an address and a name are not
+   * interchangeable evidence — see MatchKeyKind "ip".
+   */
+  remoteIpAddress: string | undefined;
 }
 
 /*
@@ -191,17 +261,25 @@ interface NeighborClaim {
  * "serial"    — the ENTITY-MIB chassis serial, which is what LLDP
  *               chassis-id subtype 7 ("locally assigned") usually carries.
  * "mac"       — an interface MAC; LLDP chassis-id subtype 4 IS a MAC.
+ * "ip"        — a management address: the device's own hostname when that
+ *               hostname is an address, against the address a neighbor
+ *               advertises for itself. This is how a device imported from
+ *               a subnet sweep — hostname `10.0.0.7`, name whatever its
+ *               sysName said — stops being drawn as a stranger by the
+ *               switch it hangs off, which advertises its address and
+ *               nothing that looks like its name.
  * "shortHost" — the first label of an FQDN, so `sw01.corp.local` and
  *               `sw01` are read as one device. Deliberately weakest: it
  *               throws information away, so it may only decide a match no
  *               stronger key could.
  */
-type MatchKeyKind = "name" | "serial" | "mac" | "shortHost";
+type MatchKeyKind = "name" | "serial" | "mac" | "ip" | "shortHost";
 
 const MATCH_KEY_KINDS_STRONGEST_FIRST: ReadonlyArray<MatchKeyKind> = [
   "name",
   "serial",
   "mac",
+  "ip",
   "shortHost",
 ];
 
@@ -212,6 +290,13 @@ const MATCH_KEY_KINDS_STRONGEST_FIRST: ReadonlyArray<MatchKeyKind> = [
  * one, and merging those would invent a device nobody owns. Against a
  * MANAGED device the same key is safe, because a key two devices both
  * claim is dropped from the index entirely rather than guessed at.
+ *
+ * "ip" is excluded for exactly the same reason and more sharply: every
+ * branch site in an estate has a `10.0.0.1`, so merging on an address
+ * would fuse one gateway per site into a single node on a project-wide
+ * map. The ambiguity guard makes the same key safe against managed
+ * devices — a key two of them claim is deleted rather than guessed at —
+ * but there is no such guard between two strangers.
  */
 const PEER_IDENTITY_KINDS: ReadonlySet<MatchKeyKind> = new Set<MatchKeyKind>([
   "name",
@@ -241,13 +326,69 @@ interface ResolvedClaim {
 }
 
 /*
+ * One endpoint row recognised as a managed device, and by which evidence.
+ * See planEndpointAdoption.
+ */
+interface AdoptionMatch {
+  device: TopologyDeviceInput;
+  matchedByMac: boolean;
+}
+
+interface AdoptionCandidate {
+  endpoint: TopologyEndpointInput;
+  matchedByMac: boolean;
+}
+
+interface EndpointAdoptionPlan {
+  // Every endpoint that IS a managed device, whether or not it draws.
+  deviceByEndpointId: Map<string, TopologyDeviceInput>;
+  // The one endpoint per device that draws its cable.
+  drawnEndpointIds: Set<string>;
+}
+
+/*
  * Hoisted so the literal is not the object of a member expression, which
  * `wrap-regex` and Prettier cannot agree on.
  */
 const IPV4_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
+/*
+ * Whether a string really is a v4 address, octet bounds included.
+ *
+ * IPV4_PATTERN above is deliberately left as the loose shape check it has
+ * always been — it decides only whether shortening a name to its first
+ * label would be nonsense, and "999.999.999.999" is nonsense to shorten
+ * either way. This is the strict test, used wherever the value is treated
+ * AS an address: as a match key, and as the address the map shows for a
+ * peer and the create form pre-fills a hostname from. A neighbour report is
+ * whatever the far end chose to advertise, so a v6 literal, a hostname or a
+ * malformed quad can all arrive here, and none of them is something a probe
+ * can be pointed at.
+ */
+function isIpv4Address(value: string | undefined): boolean {
+  if (!value || !IPV4_PATTERN.test(value)) {
+    return false;
+  }
+
+  return value.split(".").every((octet: string) => {
+    return parseInt(octet, 10) <= 255;
+  });
+}
+
 // Endpoint nodes rendered per graph; the slice is deterministic (by MAC).
 const ENDPOINT_RENDER_CAP: number = 2000;
+
+/*
+ * The built-in roles that sit at the top of a network, for the parent rule
+ * in drawAdoptedEndpoint when the project has not stamped its own answer.
+ * Mirrors the isCoreLayer flags in DEFAULT_NETWORK_DEVICE_ROLES, which is
+ * the seed every project's role table starts from.
+ */
+const BUILT_IN_CORE_LAYER_ROLES: ReadonlySet<string> = new Set<string>([
+  "router",
+  "firewall",
+  "loadBalancer",
+]);
 
 /*
  * How long an ARP/FDB-learned endpoint keeps its "up" colour after the last
@@ -284,8 +425,18 @@ export default class NetworkTopologyUtil {
     endpoints: Array<TopologyEndpointInput> = [],
     manualLinks: Array<TopologyManualLinkInput> = [],
     suppressedNodeKeys: ReadonlySet<string> = new Set<string>(),
+    deviceRoles: ReadonlyArray<TopologyDeviceRoleInput> = [],
   ): TopologyBuildResult {
     const nodes: Array<NetworkTopologyNode> = [];
+
+    /*
+     * The project's configured roles, indexed by key. Passing none is a
+     * supported case - the nodes then carry no role stamp and every consumer
+     * falls back to the built-in labels, shapes and core set, which is exactly
+     * the map drawn before roles were configurable.
+     */
+    const roleIndex: Map<string, TopologyDeviceRoleInput> =
+      buildDeviceRoleIndex(deviceRoles);
 
     /*
      * Index managed devices by every identifier a neighbor entry could
@@ -334,31 +485,70 @@ export default class NetworkTopologyUtil {
     const isNeighborDiscoveryEnabledById: Map<string, boolean | undefined> =
       new Map<string, boolean | undefined>();
 
+    /*
+     * Managed nodes by id, for the endpoint adoption pass: a device found
+     * in a switch's forwarding table is stamped with what the table knew
+     * about it (MAC, address, VLAN), and the parent rule reads its role.
+     */
+    const deviceNodeById: Map<string, NetworkTopologyNode> = new Map<
+      string,
+      NetworkTopologyNode
+    >();
+
     for (const device of devices) {
       isNeighborDiscoveryEnabledById.set(
         device.id,
         device.isNeighborDiscoveryEnabled,
       );
-      nodes.push({
-        id: device.id,
-        name: device.name,
-        isManaged: true,
-        kind: "device",
-        role: resolveDeviceRole(device.deviceRole, {
+      const deviceRole: NetworkTopologyDeviceRole = resolveDeviceRole(
+        device.deviceRole,
+        {
           sysDescr: device.sysDescr,
           sysObjectId: device.sysObjectId,
           vendor: device.vendor,
           deviceModel: device.deviceModel,
           name: device.name,
           sysName: device.sysName || device.hostname,
-        }),
+        },
+      );
+
+      const deviceNode: NetworkTopologyNode = {
+        id: device.id,
+        name: device.name,
+        isManaged: true,
+        kind: "device",
+        role: deviceRole,
         status: NetworkTopologyUtil.deviceStatus(device, now),
         interfacesUp: device.interfacesUp,
         interfacesDown: device.interfacesDown,
         sysName: device.sysName,
         vendor: device.vendor,
         deviceModel: device.deviceModel,
-      });
+        /*
+         * The declared or learned MAC, whether or not a forwarding table
+         * has found it yet: the drawer shows it, and an operator checking
+         * why a device floats wants to see what the map was looking for.
+         * Normalised so it reads the same as the endpoint rows beside it.
+         */
+        macAddress: normalizeMac(device.macAddress),
+      };
+
+      /*
+       * The configured role, when the project has one for this key. The
+       * assignment is looked up ahead of the classifier's answer, so a device
+       * an operator gave a CUSTOM role ("PoS Terminal") is drawn as that role
+       * even though `role` above can only ever be one of the built-in twelve.
+       */
+      applyRoleStamp(
+        deviceNode,
+        stampForRoleKey(
+          roleKeyForNode(device.deviceRole, deviceRole),
+          roleIndex,
+        ),
+      );
+
+      nodes.push(deviceNode);
+      deviceNodeById.set(device.id, deviceNode);
     }
 
     const edgeByKey: Map<string, NetworkTopologyEdge> = new Map();
@@ -391,24 +581,24 @@ export default class NetworkTopologyUtil {
           }
         }
 
-        if (matched) {
-          if (matched.id === device.id) {
-            // Self-referential neighbor entry; skip.
-            continue;
-          }
-          resolvedClaims.push({
-            device: device,
-            claim: claim,
-            matchedDeviceId: matched.id,
-            peerAliases: [],
-          });
+        if (matched && matched.id === device.id) {
+          // Self-referential neighbor entry; skip.
           continue;
         }
 
+        /*
+         * Recorded on MATCHED claims too, not just unmatched ones.
+         *
+         * They are what says "these two reports are about one box", and
+         * that question is now asked of matched claims as well: a claim can
+         * match by an address its sibling does not carry, and without the
+         * aliases there is nothing to carry the answer back along. See
+         * propagateMatchesAcrossPeerGroups.
+         */
         resolvedClaims.push({
           device: device,
           claim: claim,
-          matchedDeviceId: undefined,
+          matchedDeviceId: matched ? matched.id : undefined,
           peerAliases: candidates.filter((candidate: MatchKey) => {
             return PEER_IDENTITY_KINDS.has(candidate.kind);
           }),
@@ -416,10 +606,17 @@ export default class NetworkTopologyUtil {
       }
     }
 
-    const peerNodeIdByClaim: Map<ResolvedClaim, string> =
-      NetworkTopologyUtil.buildUnmanagedPeerNodes(resolvedClaims, nodes);
+    const settledClaims: Array<ResolvedClaim> =
+      NetworkTopologyUtil.propagateMatchesAcrossPeerGroups(resolvedClaims);
 
-    for (const resolved of resolvedClaims) {
+    const peerNodeIdByClaim: Map<ResolvedClaim, string> =
+      NetworkTopologyUtil.buildUnmanagedPeerNodes(
+        settledClaims,
+        nodes,
+        roleIndex,
+      );
+
+    for (const resolved of settledClaims) {
       const device: TopologyDeviceInput = resolved.device;
       const claim: NeighborClaim = resolved.claim;
       const matchedId: string | undefined = resolved.matchedDeviceId;
@@ -638,7 +835,7 @@ export default class NetworkTopologyUtil {
       Array<string>
     >();
 
-    for (const resolved of resolvedClaims) {
+    for (const resolved of settledClaims) {
       const deviceId: string = resolved.device.id;
       reportedNeighborCountByDeviceId.set(
         deviceId,
@@ -649,8 +846,19 @@ export default class NetworkTopologyUtil {
         continue;
       }
 
+      /*
+       * The address is the last resort, and it is a real answer: a report
+       * that carried nothing but a management address still counts as a
+       * neighbour, and "none of them matched: 10.0.0.42" is something an
+       * operator can act on. Without it such a device reports a neighbour
+       * count with nothing to show for it, and the panel — which needs one
+       * of these two to say anything at all — falls silent on exactly the
+       * isolated device somebody opened the drawer to ask about.
+       */
       const identifier: string | undefined =
-        resolved.claim.displayName || resolved.claim.identifiers[0];
+        resolved.claim.displayName ||
+        resolved.claim.identifiers[0] ||
+        resolved.claim.remoteIpAddress;
       if (!identifier) {
         continue;
       }
@@ -698,6 +906,26 @@ export default class NetworkTopologyUtil {
     let droppedEndpointCount: number = 0;
     let renderedEndpointCount: number = 0;
     let endpointsTruncated: boolean = false;
+    let adoptedEndpointCount: number = 0;
+
+    /*
+     * --- Endpoints that ARE managed devices ---
+     *
+     * A ping-only register, handset or kiosk is a NetworkDevice with a node
+     * of its own, and it is ALSO a MAC some switch learned on an access
+     * port - which until now was drawn as a second, anonymous node hanging
+     * off that switch while the device's own node floated with no link at
+     * all (issue #3489). The index below is what lets the two be recognised
+     * as one box, so the forwarding-table evidence draws the device's cable
+     * instead of a stranger's.
+     */
+    const adoption: EndpointAdoptionPlan =
+      NetworkTopologyUtil.planEndpointAdoption(
+        devices,
+        sortedEndpoints,
+        deviceNodeIds,
+        now,
+      );
 
     for (const endpoint of sortedEndpoints) {
       if (
@@ -706,6 +934,29 @@ export default class NetworkTopologyUtil {
       ) {
         // No attachment in this graph — nothing to hang the node off.
         droppedEndpointCount++;
+        continue;
+      }
+
+      const adoptedDevice: TopologyDeviceInput | undefined =
+        adoption.deviceByEndpointId.get(endpoint.id);
+
+      if (adoptedDevice) {
+        /*
+         * Counted before the render cap, and never against it: an adopted
+         * endpoint mints no node, so it cannot crowd out one that does.
+         */
+        adoptedEndpointCount++;
+
+        if (adoption.drawnEndpointIds.has(endpoint.id)) {
+          NetworkTopologyUtil.drawAdoptedEndpoint({
+            endpoint: endpoint,
+            device: adoptedDevice,
+            deviceNode: deviceNodeById.get(adoptedDevice.id),
+            edgeByKey: edgeByKey,
+            edges: edges,
+            interfaceByDeviceAndIndex: interfaceByDeviceAndIndex,
+          });
+        }
         continue;
       }
 
@@ -721,16 +972,18 @@ export default class NetworkTopologyUtil {
         endpoint.vendor ||
         endpoint.ipAddress ||
         endpoint.macAddress;
-      nodes.push({
+      const endpointRole: NetworkTopologyDeviceRole = classifyEndpointRole({
+        classification: endpoint.classification,
+        vendor: endpoint.vendor,
+        name: endpointName,
+      });
+
+      const endpointNode: NetworkTopologyNode = {
         id: nodeId,
         name: endpointName,
         isManaged: false,
         kind: "endpoint",
-        role: classifyEndpointRole({
-          classification: endpoint.classification,
-          vendor: endpoint.vendor,
-          name: endpointName,
-        }),
+        role: endpointRole,
         status: NetworkTopologyUtil.statusFromLastSeen(
           endpoint.lastSeenAt,
           now,
@@ -740,7 +993,21 @@ export default class NetworkTopologyUtil {
         ipAddress: endpoint.ipAddress,
         classification: endpoint.classification,
         vlanId: endpoint.vlanId,
-      });
+      };
+
+      /*
+       * Endpoints are stamped too, so a project that renamed "IP phone" sees
+       * the new name on the handsets its switches learned. It cannot change
+       * where they sit: the layouts put every endpoint in its switch's group
+       * box before they ever look at a role, so isCoreLayerRole is inert here
+       * by construction rather than by omission.
+       */
+      applyRoleStamp(
+        endpointNode,
+        stampForRoleKey(roleKeyForNode(undefined, endpointRole), roleIndex),
+      );
+
+      nodes.push(endpointNode);
 
       // Port label + interface state on the switch end, when identifiable.
       let switchInterface: TopologyInterfaceInput | undefined = undefined;
@@ -760,6 +1027,7 @@ export default class NetworkTopologyUtil {
         toNodeId: nodeId,
         fromPort: fromPort,
         protocols: ["fdb"],
+        learnedByNodeId: endpoint.attachedNetworkDeviceId,
         fromInterface: switchInterface
           ? {
               interfaceIndex: switchInterface.interfaceIndex,
@@ -790,6 +1058,7 @@ export default class NetworkTopologyUtil {
         edges,
         droppedEndpointCount,
         endpointsTruncated,
+        adoptedEndpointCount,
         suppressedNodeCount: 0,
       };
     }
@@ -815,8 +1084,562 @@ export default class NetworkTopologyUtil {
       }),
       droppedEndpointCount,
       endpointsTruncated,
+      adoptedEndpointCount,
       suppressedNodeCount: nodes.length - visibleNodes.length,
     };
+  }
+
+  /*
+   * Which endpoints are managed devices, and which ONE of them draws the
+   * device's cable.
+   *
+   * A device can match more than one row. The common way is hardware that
+   * was swapped keeping its address: the old unit's MAC is still a row in
+   * the endpoint table (nothing prunes it), stored on the device from the
+   * ARP pass, and the new unit's MAC is a fresher row that matches the
+   * device by address. Drawing both would put the register on two ports
+   * at once, one of them a port nothing has been plugged into for a
+   * month. So every matching row is ADOPTED - none of them is minted as a
+   * stranger - and the most recently seen one draws the link. A MAC match
+   * outranks an address match at equal freshness, and the MAC order the
+   * caller already sorted by settles the rest, so the choice never depends
+   * on query order.
+   *
+   * The price is that a genuinely dual-homed device draws one cable. That
+   * is rare among the devices this exists for, and it is the honest
+   * trade: one current cable beats one current and one stale.
+   */
+  private static planEndpointAdoption(
+    devices: Array<TopologyDeviceInput>,
+    sortedEndpoints: Array<TopologyEndpointInput>,
+    deviceNodeIds: ReadonlySet<string>,
+    now: Date,
+  ): EndpointAdoptionPlan {
+    const index: Map<string, TopologyDeviceInput> =
+      NetworkTopologyUtil.buildEndpointAdoptionIndex(devices);
+
+    const deviceByEndpointId: Map<string, TopologyDeviceInput> = new Map<
+      string,
+      TopologyDeviceInput
+    >();
+    const drawnEndpointIds: Set<string> = new Set<string>();
+
+    if (index.size === 0) {
+      return { deviceByEndpointId, drawnEndpointIds };
+    }
+
+    const candidatesByDeviceId: Map<string, Array<AdoptionCandidate>> = new Map<
+      string,
+      Array<AdoptionCandidate>
+    >();
+
+    for (const endpoint of sortedEndpoints) {
+      if (
+        !endpoint.attachedNetworkDeviceId ||
+        !deviceNodeIds.has(endpoint.attachedNetworkDeviceId)
+      ) {
+        continue;
+      }
+
+      const match: AdoptionMatch | undefined =
+        NetworkTopologyUtil.adoptionMatchForEndpoint(endpoint, index);
+      if (!match) {
+        continue;
+      }
+
+      /*
+       * An address is only evidence while it is current. A MAC names a
+       * box for good, but an address is re-leased: a row the ARP pass
+       * bound months ago may name a laptop that held the register's
+       * address before the register was plugged in. Such a row is left to
+       * be drawn as the stale (down-coloured) endpoint it is, rather than
+       * cabling the device to a stranger's port with a live node's
+       * confidence. The window is the one endpoint nodes age out on.
+       */
+      if (
+        !match.matchedByMac &&
+        !NetworkTopologyUtil.isFreshSighting(endpoint, now)
+      ) {
+        continue;
+      }
+
+      deviceByEndpointId.set(endpoint.id, match.device);
+
+      const bucket: Array<AdoptionCandidate> | undefined =
+        candidatesByDeviceId.get(match.device.id);
+      const candidate: AdoptionCandidate = {
+        endpoint: endpoint,
+        matchedByMac: match.matchedByMac,
+      };
+      if (bucket) {
+        bucket.push(candidate);
+      } else {
+        candidatesByDeviceId.set(match.device.id, [candidate]);
+      }
+    }
+
+    for (const candidates of candidatesByDeviceId.values()) {
+      let chosen: AdoptionCandidate = candidates[0]!;
+      for (const candidate of candidates.slice(1)) {
+        if (NetworkTopologyUtil.isFresherSighting(candidate, chosen)) {
+          chosen = candidate;
+        }
+      }
+      drawnEndpointIds.add(chosen.endpoint.id);
+    }
+
+    return { deviceByEndpointId, drawnEndpointIds };
+  }
+
+  private static isFreshSighting(
+    endpoint: TopologyEndpointInput,
+    now: Date,
+  ): boolean {
+    if (!endpoint.lastSeenAt) {
+      return false;
+    }
+    const ageMs: number =
+      now.getTime() - new Date(endpoint.lastSeenAt).getTime();
+    return ageMs <= ENDPOINT_FRESH_WINDOW_MS;
+  }
+
+  /*
+   * Strictly fresher: later lastSeenAt, then a MAC match over an address
+   * match. Equal on both keeps the incumbent, which is the earlier entry
+   * in MAC order.
+   */
+  private static isFresherSighting(
+    candidate: AdoptionCandidate,
+    incumbent: AdoptionCandidate,
+  ): boolean {
+    const candidateSeen: number = candidate.endpoint.lastSeenAt
+      ? new Date(candidate.endpoint.lastSeenAt).getTime()
+      : Number.NEGATIVE_INFINITY;
+    const incumbentSeen: number = incumbent.endpoint.lastSeenAt
+      ? new Date(incumbent.endpoint.lastSeenAt).getTime()
+      : Number.NEGATIVE_INFINITY;
+
+    if (candidateSeen !== incumbentSeen) {
+      return candidateSeen > incumbentSeen;
+    }
+
+    return candidate.matchedByMac && !incumbent.matchedByMac;
+  }
+
+  /*
+   * Every key an endpoint could be recognised as a managed device by.
+   *
+   * Two kinds, strongest first:
+   *
+   *  "mac" - the device's declared or ARP-learned MAC against the MAC the
+   *          switch learned. A MAC is unique per project among endpoints
+   *          (the endpoint table enforces it), so this needs no scoping.
+   *  "ip"  - the device's hostname, when it is an IPv4 literal, against
+   *          the address a router's ARP table bound the MAC to. Scoped to
+   *          the SITE: every branch has a 10.0.0.5, and an unscoped match
+   *          would cable one register in every store to whichever switch
+   *          happened to learn a MAC that answers at that address. No site
+   *          on either side is a site of its own, so a project that never
+   *          set sites up still matches - project-wide, as it has to.
+   *
+   * The same ambiguity guard as the neighbour matcher: a key two devices
+   * both claim is deleted rather than resolved, because a cable drawn to
+   * the wrong box is worse than one not drawn.
+   *
+   * Interface MACs (TopologyDeviceInput.macAddresses) are deliberately NOT
+   * keys here. A walked switch's interface MACs turn up in its uplink
+   * neighbours' forwarding tables as transit traffic, and adopting those
+   * would redraw every switch-to-switch cable LLDP already reports from a
+   * weaker source. The declared MAC is different in kind: an operator (or
+   * the ARP pass) put it there to say "this is the box".
+   */
+  private static buildEndpointAdoptionIndex(
+    devices: Array<TopologyDeviceInput>,
+  ): Map<string, TopologyDeviceInput> {
+    const index: Map<string, TopologyDeviceInput> = new Map<
+      string,
+      TopologyDeviceInput
+    >();
+    const ambiguous: Set<string> = new Set<string>();
+
+    for (const device of devices) {
+      for (const key of NetworkTopologyUtil.adoptionKeysForDevice(device)) {
+        const existing: TopologyDeviceInput | undefined = index.get(key);
+        if (existing && existing.id !== device.id) {
+          ambiguous.add(key);
+          continue;
+        }
+        index.set(key, device);
+      }
+    }
+
+    /*
+     * A walked device's interface MACs are not adoption keys (see above),
+     * but they ARE evidence about who owns a MAC. A declared MAC that some
+     * walked device reports as one of its own interfaces is a contradiction
+     * - a register registered at a switch's SVI address and stamped with
+     * the switch's MAC, say - and the neighbour matcher already refuses
+     * that key. Refusing it here too keeps the two from disagreeing about
+     * which box a MAC is.
+     */
+    for (const device of devices) {
+      for (const rawMac of device.macAddresses || []) {
+        const mac: string | undefined = normalizeMac(rawMac);
+        if (!mac) {
+          continue;
+        }
+        const key: string = NetworkTopologyUtil.adoptionMacKey(mac);
+        const claimant: TopologyDeviceInput | undefined = index.get(key);
+        if (claimant && claimant.id !== device.id) {
+          ambiguous.add(key);
+        }
+      }
+    }
+
+    for (const key of ambiguous) {
+      index.delete(key);
+    }
+
+    return index;
+  }
+
+  private static adoptionKeysForDevice(
+    device: TopologyDeviceInput,
+  ): Array<string> {
+    const keys: Array<string> = [];
+
+    const mac: string | undefined = normalizeMac(device.macAddress);
+    if (mac) {
+      keys.push(NetworkTopologyUtil.adoptionMacKey(mac));
+    }
+
+    /*
+     * hostname only, never `name`: a name is an operator's label, and one
+     * that happens to be an IP literal is not a claim that the device
+     * answers there - the same line matchKeysForDevice draws.
+     */
+    const hostname: string | undefined = NetworkTopologyUtil.normalizeKey(
+      device.hostname,
+    );
+    if (isIpv4Address(hostname)) {
+      keys.push(NetworkTopologyUtil.adoptionIpKey(device.siteId, hostname!));
+    }
+
+    return keys;
+  }
+
+  /*
+   * The device this endpoint is, if it is one, and by which evidence. MAC
+   * first: it is the stronger claim, and the only one that survives an
+   * address change.
+   */
+  private static adoptionMatchForEndpoint(
+    endpoint: TopologyEndpointInput,
+    index: Map<string, TopologyDeviceInput>,
+  ): AdoptionMatch | undefined {
+    const mac: string | undefined = normalizeMac(endpoint.macAddress);
+    if (mac) {
+      const byMac: TopologyDeviceInput | undefined = index.get(
+        NetworkTopologyUtil.adoptionMacKey(mac),
+      );
+      if (byMac) {
+        return { device: byMac, matchedByMac: true };
+      }
+    }
+
+    const ip: string | undefined = NetworkTopologyUtil.normalizeKey(
+      endpoint.ipAddress,
+    );
+    if (isIpv4Address(ip)) {
+      const byIp: TopologyDeviceInput | undefined = index.get(
+        NetworkTopologyUtil.adoptionIpKey(endpoint.siteId, ip!),
+      );
+      if (byIp) {
+        return { device: byIp, matchedByMac: false };
+      }
+    }
+
+    return undefined;
+  }
+
+  private static adoptionMacKey(normalizedMac: string): string {
+    return `mac\u0000${normalizedMac}`;
+  }
+
+  private static adoptionIpKey(
+    siteId: string | undefined,
+    normalizedIp: string,
+  ): string {
+    /*
+     * null, undefined, "" and whitespace all normalise to the same "no
+     * site" key - the convention NetworkDeviceLinkRuleUtil already uses.
+     */
+    const siteKey: string = (siteId || "").trim();
+    return `ip\u0000${siteKey}\u0000${normalizedIp}`;
+  }
+
+  /*
+   * Draws one adopted endpoint: an "fdb" edge from the switch that learned
+   * the MAC to the device's own node, merged into whatever edge already
+   * joins that pair, plus the identity the tables knew stamped on the node.
+   *
+   * A device found in its OWN tables is a self-reference (its address in
+   * its own ARP cache, say) and draws nothing - an edge from a node to
+   * itself is not a cable. It still counts as adopted: the row is not an
+   * endpoint, and it must not be minted as one.
+   */
+  private static drawAdoptedEndpoint(data: {
+    endpoint: TopologyEndpointInput;
+    device: TopologyDeviceInput;
+    deviceNode: NetworkTopologyNode | undefined;
+    edgeByKey: Map<string, NetworkTopologyEdge>;
+    edges: Array<NetworkTopologyEdge>;
+    interfaceByDeviceAndIndex: Map<string, TopologyInterfaceInput>;
+  }): void {
+    const switchId: string = data.endpoint.attachedNetworkDeviceId!;
+    const deviceId: string = data.device.id;
+
+    if (data.deviceNode) {
+      NetworkTopologyUtil.stampAdoptedIdentity(data.deviceNode, data.endpoint);
+    }
+
+    if (switchId === deviceId) {
+      return;
+    }
+
+    // Port label + interface state on the switch end, when identifiable.
+    let switchInterface: TopologyInterfaceInput | undefined = undefined;
+    if (data.endpoint.attachedInterfaceIndex !== undefined) {
+      switchInterface = data.interfaceByDeviceAndIndex.get(
+        `${switchId}::${data.endpoint.attachedInterfaceIndex}`,
+      );
+    }
+    let switchPort: string | undefined =
+      data.endpoint.attachedPortName || switchInterface?.name;
+    if (!switchPort && data.endpoint.attachedInterfaceIndex !== undefined) {
+      switchPort = `if${data.endpoint.attachedInterfaceIndex}`;
+    }
+    const switchEndpoint: NetworkTopologyEdgeEndpoint | undefined =
+      switchInterface
+        ? {
+            interfaceIndex: switchInterface.interfaceIndex,
+            interfaceName: switchInterface.name,
+            isOperationallyUp: switchInterface.isOperationallyUp,
+            isAdministrativelyUp: switchInterface.isAdministrativelyUp,
+            utilizationPercent: switchInterface.utilizationPercent,
+            inRateMbps: switchInterface.inRateMbps,
+            outRateMbps: switchInterface.outRateMbps,
+            errorsPerSecond: switchInterface.errorsPerSecond,
+          }
+        : undefined;
+
+    /*
+     * Which end is up. A forwarding table is not symmetric the way a
+     * neighbour protocol is: the switch LEARNED this MAC on an access
+     * port, which is a statement that the device hangs off it - for a
+     * register, a phone, a camera, a server. It is no such statement
+     * about a router or a firewall, whose MAC a switch learns on the port
+     * that leads UPSTREAM, nor about another switch, where the table says
+     * nothing about which of the two is nearer the core. Those are left
+     * for the layout to infer, exactly as an LLDP edge is.
+     */
+    const declaredParentId: string | undefined =
+      NetworkTopologyUtil.isLearningSwitchTheParent(data.deviceNode)
+        ? switchId
+        : undefined;
+
+    const edgeKey: string = [switchId, deviceId].sort().join("::");
+    const existing: NetworkTopologyEdge | undefined =
+      data.edgeByKey.get(edgeKey);
+
+    if (!existing) {
+      const edge: NetworkTopologyEdge = {
+        fromNodeId: switchId,
+        toNodeId: deviceId,
+        fromPort: switchPort,
+        protocols: ["fdb"],
+        fromInterface: switchEndpoint,
+        parentNodeId: declaredParentId,
+        learnedByNodeId: switchId,
+      };
+      data.edgeByKey.set(edgeKey, edge);
+      data.edges.push(edge);
+      return;
+    }
+
+    /*
+     * The pair is already joined - by a neighbour protocol, by a link the
+     * operator drew, or by both. Merge rather than double the line.
+     */
+    if (existing.protocols && !existing.protocols.includes("fdb")) {
+      existing.protocols.push("fdb");
+    }
+
+    /*
+     * Which end learned. The existing edge may be stored device→switch,
+     * so this is the only reliable statement of which end the table
+     * belongs to; the freshest sighting draws, so a later one does not
+     * move it.
+     */
+    existing.learnedByNodeId = existing.learnedByNodeId || switchId;
+
+    /*
+     * The switch-end port. Measured beats typed: against a hand-drawn
+     * link the forwarding table's port replaces whatever was typed,
+     * because the operator's port is a best recollection and this is
+     * what the switch actually reports. Against a neighbour protocol both
+     * are measured, and the protocol's is kept - it names the port from
+     * both ends, where the table only knows one.
+     */
+    const isMeasuredAlready: boolean = Boolean(
+      existing.protocols?.some((protocol: NetworkTopologyLinkProtocol) => {
+        return protocol === "lldp" || protocol === "cdp";
+      }),
+    );
+    const switchIsFromEnd: boolean = existing.fromNodeId === switchId;
+    const existingPort: string | undefined = switchIsFromEnd
+      ? existing.fromPort
+      : existing.toPort;
+    const existingInterface: NetworkTopologyEdgeEndpoint | undefined =
+      switchIsFromEnd ? existing.fromInterface : existing.toInterface;
+
+    let mergedPort: string | undefined;
+    let mergedInterface: NetworkTopologyEdgeEndpoint | undefined;
+
+    if (!isMeasuredAlready) {
+      mergedPort = switchPort || existingPort;
+      mergedInterface = NetworkTopologyUtil.mergeEndpoints(
+        switchEndpoint,
+        existingInterface,
+      );
+    } else if (
+      NetworkTopologyUtil.describesSamePort(
+        existingInterface,
+        existingPort,
+        switchEndpoint,
+        switchPort,
+      )
+    ) {
+      /*
+       * Two reports of ONE port: the protocol's fields are kept and the
+       * table fills whatever the protocol's report left blank.
+       */
+      mergedPort = existingPort || switchPort;
+      mergedInterface = NetworkTopologyUtil.mergeEndpoints(
+        existingInterface,
+        switchEndpoint,
+      );
+    } else {
+      /*
+       * Two reports of DIFFERENT ports - the device was re-patched and the
+       * table has caught up before the neighbour protocol, or the other
+       * way round. Splicing the two field by field would label the
+       * protocol's port with the other port's name and paint it with the
+       * other port's state, so the protocol's end is left whole and the
+       * table's port is not shown until the two agree.
+       */
+      mergedPort = existingPort;
+      mergedInterface = existingInterface;
+    }
+
+    if (switchIsFromEnd) {
+      existing.fromPort = mergedPort;
+      existing.fromInterface = mergedInterface;
+    } else {
+      existing.toPort = mergedPort;
+      existing.toInterface = mergedInterface;
+    }
+
+    /*
+     * A hierarchy somebody DECLARED - on the link, or through a rule -
+     * beats the one the table implies. The specific statement beats the
+     * general one, the same precedence the manual-link merge applies.
+     */
+    existing.parentNodeId = existing.parentNodeId || declaredParentId;
+  }
+
+  /*
+   * Whether a neighbour protocol's report of the switch end and the
+   * forwarding table's attachment name the same port. By ifIndex when both
+   * know it; by port label when the protocol's end has no interface row
+   * behind it. Unknown on both sides is not "the same" - it is nothing to
+   * compare, and the protocol's end is kept as it was.
+   */
+  private static describesSamePort(
+    existingInterface: NetworkTopologyEdgeEndpoint | undefined,
+    existingPort: string | undefined,
+    switchEndpoint: NetworkTopologyEdgeEndpoint | undefined,
+    switchPort: string | undefined,
+  ): boolean {
+    if (
+      existingInterface?.interfaceIndex !== undefined &&
+      switchEndpoint?.interfaceIndex !== undefined
+    ) {
+      return existingInterface.interfaceIndex === switchEndpoint.interfaceIndex;
+    }
+
+    const existingLabel: string | undefined = NetworkTopologyUtil.normalizeKey(
+      existingInterface?.interfaceName || existingPort,
+    );
+    const switchLabel: string | undefined = NetworkTopologyUtil.normalizeKey(
+      switchEndpoint?.interfaceName || switchPort,
+    );
+    return (
+      existingLabel !== undefined &&
+      switchLabel !== undefined &&
+      existingLabel === switchLabel
+    );
+  }
+
+  /*
+   * What the tables knew about the device, onto its node, so the detail
+   * drawer can show the MAC, the address and the VLAN it was learned on.
+   * Fills gaps only: a MAC the operator declared is already the one that
+   * matched, and an address the row carries is left as it is.
+   */
+  private static stampAdoptedIdentity(
+    node: NetworkTopologyNode,
+    endpoint: TopologyEndpointInput,
+  ): void {
+    const mac: string | undefined = normalizeMac(endpoint.macAddress);
+    if (mac && !node.macAddress) {
+      node.macAddress = mac;
+    }
+    if (endpoint.ipAddress && !node.ipAddress) {
+      node.ipAddress = endpoint.ipAddress;
+    }
+    if (typeof endpoint.vlanId === "number" && node.vlanId === undefined) {
+      node.vlanId = endpoint.vlanId;
+    }
+  }
+
+  /*
+   * Whether a switch that learned this device's MAC on an access port is
+   * thereby its parent. True for anything that hangs off a switch; false
+   * for a core-layer device (router, firewall, load balancer - or a
+   * custom role the project marked core) and for another switch. The
+   * configured flag wins where the project set one; the built-in core set
+   * is the fallback, as everywhere else the stamp is read.
+   */
+  private static isLearningSwitchTheParent(
+    deviceNode: NetworkTopologyNode | undefined,
+  ): boolean {
+    if (!deviceNode) {
+      return true;
+    }
+
+    const isCore: boolean =
+      deviceNode.isCoreLayerRole !== undefined
+        ? deviceNode.isCoreLayerRole
+        : BUILT_IN_CORE_LAYER_ROLES.has(deviceNode.role || "unknown");
+    if (isCore) {
+      return false;
+    }
+
+    const roleKey: string = (deviceNode.roleKey || deviceNode.role || "")
+      .trim()
+      .toLowerCase();
+    return roleKey !== "switch";
   }
 
   /*
@@ -853,6 +1676,9 @@ export default class NetworkTopologyUtil {
         localInterfaceIndex: neighbor.localInterfaceIndex,
         remotePortId: neighbor.remotePortId,
         remotePlatform: undefined,
+        remoteIpAddress: NetworkTopologyUtil.normalizeKey(
+          neighbor.remoteIpAddress,
+        ),
       });
     }
 
@@ -865,6 +1691,9 @@ export default class NetworkTopologyUtil {
         localInterfaceIndex: neighbor.localInterfaceIndex,
         remotePortId: neighbor.remotePortId,
         remotePlatform: neighbor.remotePlatform,
+        remoteIpAddress: NetworkTopologyUtil.normalizeKey(
+          neighbor.remoteIpAddress,
+        ),
       });
     }
 
@@ -885,22 +1714,38 @@ export default class NetworkTopologyUtil {
     >();
     const seen: Set<string> = new Set<string>();
 
+    const addKey: (key: MatchKey) => void = (key: MatchKey): void => {
+      const keyId: string = NetworkTopologyUtil.matchKeyId(key);
+      if (seen.has(keyId)) {
+        return;
+      }
+      seen.add(keyId);
+      const bucket: Array<MatchKey> | undefined = byKind.get(key.kind);
+      if (bucket) {
+        bucket.push(key);
+      } else {
+        byKind.set(key.kind, [key]);
+      }
+    };
+
     for (const identifier of claim.identifiers) {
       for (const key of NetworkTopologyUtil.candidateKeysForIdentifier(
         identifier,
       )) {
-        const keyId: string = NetworkTopologyUtil.matchKeyId(key);
-        if (seen.has(keyId)) {
-          continue;
-        }
-        seen.add(keyId);
-        const bucket: Array<MatchKey> | undefined = byKind.get(key.kind);
-        if (bucket) {
-          bucket.push(key);
-        } else {
-          byKind.set(key.kind, [key]);
-        }
+        addKey(key);
       }
+    }
+
+    /*
+     * The advertised address, as an address and only as an address. It is
+     * NOT run through candidateKeysForIdentifier: that helper offers a
+     * string as every kind it could be, and an address offered as a "name"
+     * would match any device whose NAME happens to be an IP literal —
+     * which, on an estate imported from subnet sweeps, is a great many of
+     * them, in every site at once.
+     */
+    if (isIpv4Address(claim.remoteIpAddress)) {
+      addKey({ kind: "ip", value: claim.remoteIpAddress! });
     }
 
     const ordered: Array<MatchKey> = [];
@@ -1038,6 +1883,29 @@ export default class NetworkTopologyUtil {
       }
     }
 
+    /*
+     * The address the device answers AT, registered as an address so a
+     * neighbor that advertises a management address and nothing resembling
+     * a name can still find it — the subnet-sweep import shape, where the
+     * responding IP is the hostname and the name is its sysName.
+     *
+     * Read from hostname and sysName only, never from `name`. A name is an
+     * operator's label: one that happens to be an IP literal is not a claim
+     * that the device answers there, and matching on it would draw a cable
+     * to the wrong box — worse, this codebase holds, than drawing none.
+     *
+     * Only a literal counts. A DNS name is not resolved here: a lookup in
+     * the topology builder would be a per-node network call whose answer
+     * changes between rebuilds.
+     */
+    for (const candidate of [device.hostname, device.sysName]) {
+      const normalized: string | undefined =
+        NetworkTopologyUtil.normalizeKey(candidate);
+      if (isIpv4Address(normalized)) {
+        add({ kind: "ip", value: normalized! });
+      }
+    }
+
     const serial: string | undefined = NetworkTopologyUtil.normalizeKey(
       device.serialNumber,
     );
@@ -1052,7 +1920,110 @@ export default class NetworkTopologyUtil {
       }
     }
 
+    /*
+     * The declared MAC too. A ping-only device has no interface walk to
+     * report its MACs from, so this is the only MAC it can answer to when
+     * a neighbour advertises it as an LLDP chassis id.
+     */
+    const declaredMac: string | undefined = normalizeMac(device.macAddress);
+    if (declaredMac) {
+      add({ kind: "mac", value: declaredMac });
+    }
+
     return keys;
+  }
+
+  /*
+   * Carries a managed match along a peer group, and drops what that turns
+   * into a self-reference.
+   *
+   * A match is decided per REPORT, but the identity of the thing being
+   * reported is decided per PEER — and the two can now disagree, because a
+   * report's ADDRESS is a match key its sibling report may not carry. One
+   * switch port, one phone, described twice: the CDP entry knows the
+   * phone's management address and matches the device somebody adopted it
+   * into; the LLDP entry beside it knows only the sysName the operator has
+   * since renamed away from, and matches nothing. Left alone, the map draws
+   * that one phone as a managed node AND as a leftover stranger, on two
+   * lines out of the same port — which is exactly the outcome adopting it
+   * was supposed to end.
+   *
+   * The claims are grouped by the same identity-grade aliases that already
+   * decide "these reports are one box", so this asserts nothing new: it
+   * only lets every report of a box reach the device any one of them found.
+   * A group whose reports matched two DIFFERENT devices is contradictory
+   * evidence and is left exactly as it was — a wrong cable is worse than a
+   * missing one.
+   *
+   * Returns the claims to draw from, which is the input minus any claim the
+   * propagation turned into a device reporting itself.
+   */
+  private static propagateMatchesAcrossPeerGroups(
+    resolvedClaims: Array<ResolvedClaim>,
+  ): Array<ResolvedClaim> {
+    const claimsWithAliases: Array<ResolvedClaim> = resolvedClaims.filter(
+      (resolved: ResolvedClaim) => {
+        return resolved.peerAliases.length > 0;
+      },
+    );
+
+    if (claimsWithAliases.length === 0) {
+      return resolvedClaims;
+    }
+
+    const rootByAliasId: Map<string, string> =
+      NetworkTopologyUtil.groupPeerAliases(claimsWithAliases);
+
+    const claimsByRoot: Map<string, Array<ResolvedClaim>> = new Map<
+      string,
+      Array<ResolvedClaim>
+    >();
+    for (const resolved of claimsWithAliases) {
+      const root: string | undefined = rootByAliasId.get(
+        NetworkTopologyUtil.matchKeyId(resolved.peerAliases[0]!),
+      );
+      if (!root) {
+        continue;
+      }
+      const bucket: Array<ResolvedClaim> | undefined = claimsByRoot.get(root);
+      if (bucket) {
+        bucket.push(resolved);
+      } else {
+        claimsByRoot.set(root, [resolved]);
+      }
+    }
+
+    for (const groupClaims of claimsByRoot.values()) {
+      const matchedIds: Set<string> = new Set<string>();
+      for (const resolved of groupClaims) {
+        if (resolved.matchedDeviceId) {
+          matchedIds.add(resolved.matchedDeviceId);
+        }
+      }
+
+      // Nothing to carry, or two answers and no way to choose between them.
+      if (matchedIds.size !== 1) {
+        continue;
+      }
+
+      const matchedDeviceId: string = Array.from(matchedIds)[0]!;
+      for (const resolved of groupClaims) {
+        if (!resolved.matchedDeviceId) {
+          resolved.matchedDeviceId = matchedDeviceId;
+        }
+      }
+    }
+
+    /*
+     * A device can now find ITSELF at the far end: it reported a neighbour
+     * by a chassis id, and another switch's report of the same box named
+     * this device. That is the same self-referential entry the per-claim
+     * match already drops, and for the same reason — an edge from a node to
+     * itself is not a cable.
+     */
+    return resolvedClaims.filter((resolved: ResolvedClaim) => {
+      return resolved.matchedDeviceId !== resolved.device.id;
+    });
   }
 
   /*
@@ -1067,6 +2038,10 @@ export default class NetworkTopologyUtil {
   private static buildUnmanagedPeerNodes(
     resolvedClaims: Array<ResolvedClaim>,
     nodes: Array<NetworkTopologyNode>,
+    roleIndex: Map<string, TopologyDeviceRoleInput> = new Map<
+      string,
+      TopologyDeviceRoleInput
+    >(),
   ): Map<ResolvedClaim, string> {
     const unmanagedClaims: Array<ResolvedClaim> = resolvedClaims.filter(
       (resolved: ResolvedClaim) => {
@@ -1110,12 +2085,29 @@ export default class NetworkTopologyUtil {
        */
       let displayName: string | undefined = undefined;
       let platform: string | undefined = undefined;
+      /*
+       * The peer's own management address, when any report carried one.
+       * Reports are visited in a stable order and the first address wins,
+       * so a peer two switches describe differently does not change
+       * address between rebuilds.
+       */
+      let ipAddress: string | undefined = undefined;
       for (const resolved of groupClaims) {
         if (!displayName && resolved.claim.hasAdvertisedName) {
           displayName = resolved.claim.displayName;
         }
         if (!platform && resolved.claim.remotePlatform) {
           platform = resolved.claim.remotePlatform;
+        }
+        /*
+         * Gated, unlike the platform and the name beside it: those are
+         * labels and this is an ADDRESS. It is rendered as one in the
+         * drawer and pre-fills a hostname in the create form, so a v6
+         * literal or a malformed quad arriving from a neighbour's agent
+         * would become a device nothing can ever reach.
+         */
+        if (!ipAddress && isIpv4Address(resolved.claim.remoteIpAddress)) {
+          ipAddress = resolved.claim.remoteIpAddress;
         }
       }
       if (!displayName) {
@@ -1145,24 +2137,44 @@ export default class NetworkTopologyUtil {
       usedNodeIds.add(nodeId);
 
       const unmanagedName: string = displayName || "Unknown device";
-      nodes.push({
+      /*
+       * Classified from the whole group rather than from whichever
+       * report happened to be first: the platform string is usually the
+       * only real evidence about a peer, and it may well arrive on the
+       * second report of it.
+       */
+      const unmanagedRole: NetworkTopologyDeviceRole = classifyDeviceRole({
+        platform: platform,
+        name: unmanagedName,
+      });
+      const unmanagedNode: NetworkTopologyNode = {
         id: nodeId,
         name: unmanagedName,
         isManaged: false,
         kind: "unmanaged",
-        /*
-         * Classified from the whole group rather than from whichever
-         * report happened to be first: the platform string is usually the
-         * only real evidence about a peer, and it may well arrive on the
-         * second report of it.
-         */
-        role: classifyDeviceRole({
-          platform: platform,
-          name: unmanagedName,
-        }),
+        role: unmanagedRole,
         status: "unknown",
         deviceModel: platform,
-      });
+        /*
+         * Rendered in the detail drawer, and the field that makes the peer
+         * adoptable: nothing can be monitored without an address, so this
+         * is the difference between a node an operator can act on and one
+         * they can only look at.
+         */
+        ipAddress: ipAddress,
+      };
+
+      /*
+       * Stamped for the adopt-a-neighbour flow above all: isSnmpWalkableRole
+       * is what decides whether adopting this peer opens on SNMP polling or on
+       * a monitor, and a peer is exactly the node an operator adopts.
+       */
+      applyRoleStamp(
+        unmanagedNode,
+        stampForRoleKey(roleKeyForNode(undefined, unmanagedRole), roleIndex),
+      );
+
+      nodes.push(unmanagedNode);
 
       for (const resolved of groupClaims) {
         nodeIdByClaim.set(resolved, nodeId);
@@ -1350,9 +2362,13 @@ export default class NetworkTopologyUtil {
 
   /*
    * The shared reachability rule (DeviceReachabilityUtil), mapped onto the
-   * graph's three node states. "Pending" — never polled — is the graph's
-   * "unknown", which is what keeps a device nothing walks from being drawn
-   * as a failure.
+   * graph's three node states. "Pending" — never polled, or monitor-backed
+   * with nothing reported yet — is the graph's "unknown", which is what
+   * keeps a device nothing walks from being drawn as a failure.
+   *
+   * Only reached with no stamped status (deviceStatus took every stamped
+   * one), so the monitoring method is the one fact left that tells the rule
+   * whether the poll columns are evidence or leftovers.
    */
   private static statusFromPoll(
     device: TopologyDeviceInput,
@@ -1364,6 +2380,7 @@ export default class NetworkTopologyUtil {
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        monitoringMethod: device.monitoringMethod,
       },
       now,
     );

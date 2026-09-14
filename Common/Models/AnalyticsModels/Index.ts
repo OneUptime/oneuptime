@@ -22,6 +22,7 @@ import RumSession from "./RumSession";
 import RumSessionChunk from "./RumSessionChunk";
 import AuditLog from "./AuditLog";
 import ChangeEvent from "./ChangeEvent";
+import ThreatIntelIndicator from "./ThreatIntelIndicator";
 
 const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
@@ -71,6 +72,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   AuditLog,
   SecurityEvent,
   ChangeEvent,
+  ThreatIntelIndicator,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

@@ -2,14 +2,24 @@ import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
+  EnterpriseLicenseInstanceStatusPill,
   LicenseStatusPill,
   SeatUsageMeter,
 } from "../../../Components/EnterpriseLicense/LicenseUtil";
+import {
+  EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
+  getEnterpriseLicenseUsageBoundaryRefreshDelay,
+  isEnterpriseLicenseUsageRequestCurrent,
+} from "../../../Components/EnterpriseLicense/LicenseActivityUtil";
 import Route from "Common/Types/API/Route";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import VersionUtil from "Common/Utils/VersionUtil";
 import Card from "Common/UI/Components/Card/Card";
@@ -22,24 +32,59 @@ import ModelPage from "Common/UI/Components/Page/ModelPage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { APP_API_URL } from "Common/UI/Config";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 
+const fetchEnterpriseLicenseUsageSnapshot: (
+  modelId: string,
+) => Promise<EnterpriseLicenseUsageSnapshot> = async (
+  modelId: string,
+): Promise<EnterpriseLicenseUsageSnapshot> => {
+  const usageResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.get<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        `/enterprise-license/${modelId}/active-usage`,
+      ),
+    });
+
+  if (usageResponse instanceof HTTPErrorResponse) {
+    throw usageResponse;
+  }
+
+  return usageResponse.data as unknown as EnterpriseLicenseUsageSnapshot;
+};
+
+interface TimedEnterpriseLicenseUsageSnapshot {
+  snapshot: EnterpriseLicenseUsageSnapshot;
+  requestStartedAt: number;
+}
+
 const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelIdString: string = modelId.toString();
 
   const [license, setLicense] = useState<EnterpriseLicense | null>(null);
+  const [timedUsageSnapshot, setTimedUsageSnapshot] =
+    useState<TimedEnterpriseLicenseUsageSnapshot | null>(null);
+  const usageSnapshot: EnterpriseLicenseUsageSnapshot | null =
+    timedUsageSnapshot?.snapshot || null;
+  const [instanceTableRefreshCounter, setInstanceTableRefreshCounter] =
+    useState<number>(0);
+  const usageSnapshotRequestIdRef: React.MutableRefObject<number> =
+    useRef<number>(0);
   const [masterAdminEmails, setMasterAdminEmails] = useState<Array<string>>([]);
   const [reminderDays, setReminderDays] = useState<number>(
     EnterpriseLicenseUsageUtil.defaultExpiryReminderDays,
@@ -51,23 +96,57 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
    */
   const [latestReleaseVersion, setLatestReleaseVersion] = useState<string>("");
 
+  const refreshUsageSnapshot: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const requestId: number = ++usageSnapshotRequestIdRef.current;
+      const requestStartedAt: number = performance.now();
+
+      try {
+        const snapshot: EnterpriseLicenseUsageSnapshot =
+          await fetchEnterpriseLicenseUsageSnapshot(modelIdString);
+
+        /* A slower, older request must never replace a newer snapshot. */
+        if (
+          !isEnterpriseLicenseUsageRequestCurrent(
+            requestId,
+            usageSnapshotRequestIdRef.current,
+          )
+        ) {
+          return;
+        }
+
+        setTimedUsageSnapshot({
+          snapshot,
+          requestStartedAt,
+        });
+        setMasterAdminEmails([...snapshot.masterAdminEmails].sort());
+        setUsageError("");
+      } catch (err) {
+        /* A stale failure must not cover a newer successful snapshot. */
+        if (
+          isEnterpriseLicenseUsageRequestCurrent(
+            requestId,
+            usageSnapshotRequestIdRef.current,
+          )
+        ) {
+          setUsageError(API.getFriendlyMessage(err));
+        }
+      }
+    }, [modelIdString]);
+
   useEffect(() => {
     const loadUsage: () => Promise<void> = async (): Promise<void> => {
       try {
         const fetchedLicense: EnterpriseLicense | null =
           await AdminModelAPI.getItem<EnterpriseLicense>({
             modelType: EnterpriseLicense,
-            id: modelId,
+            id: new ObjectID(modelIdString),
             select: {
               companyName: true,
               expiresAt: true,
               userLimit: true,
-              currentUserCount: true,
-              userCountUpdatedAt: true,
             },
           });
-
-        setLicense(fetchedLicense);
 
         const globalConfig: GlobalConfig | null =
           await AdminModelAPI.getItem<GlobalConfig>({
@@ -86,32 +165,8 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
 
         setLatestReleaseVersion(globalConfig?.latestReleaseVersion || "");
 
-        const instances: ListResult<EnterpriseLicenseInstance> =
-          await AdminModelAPI.getList<EnterpriseLicenseInstance>({
-            modelType: EnterpriseLicenseInstance,
-            query: {
-              enterpriseLicenseId: modelId,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-              masterAdminEmails: true,
-            },
-            sort: {},
-          });
-
-        const emails: Set<string> = new Set<string>();
-
-        for (const instance of instances.data) {
-          for (const email of instance.masterAdminEmails || []) {
-            if (email) {
-              emails.add(email.toLowerCase());
-            }
-          }
-        }
-
-        setMasterAdminEmails(Array.from(emails).sort());
-        setUsageError("");
+        await refreshUsageSnapshot();
+        setLicense(fetchedLicense);
       } catch (err) {
         setUsageError(API.getFriendlyMessage(err));
       }
@@ -120,7 +175,52 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
     loadUsage().catch((err: Error) => {
       setUsageError(API.getFriendlyMessage(err));
     });
-  }, []);
+  }, [modelIdString, refreshUsageSnapshot]);
+
+  /*
+   * Reports can arrive while this page stays open. Polling keeps the headline
+   * and row statuses current, while the boundary timer flips the next active
+   * instance at the exact seven-day mark instead of waiting for a poll.
+   */
+  useEffect(() => {
+    const refreshInstanceTable: () => void = (): void => {
+      setInstanceTableRefreshCounter((counter: number): number => {
+        return counter + 1;
+      });
+    };
+    const refreshUsageAndInstanceTable: () => void = (): void => {
+      /* Start both requests together; table latency must not delay the badge. */
+      refreshInstanceTable();
+      refreshUsageSnapshot().catch((err: Error) => {
+        setUsageError(API.getFriendlyMessage(err));
+      });
+    };
+    const interval: ReturnType<typeof setInterval> = setInterval(
+      refreshUsageAndInstanceTable,
+      EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
+    );
+    const elapsedSinceRequestStarted: number = timedUsageSnapshot
+      ? performance.now() - timedUsageSnapshot.requestStartedAt
+      : 0;
+    const boundaryDelay: number | null = timedUsageSnapshot
+      ? getEnterpriseLicenseUsageBoundaryRefreshDelay(
+          timedUsageSnapshot.snapshot,
+          elapsedSinceRequestStarted,
+        )
+      : null;
+    const boundaryTimer: ReturnType<typeof setTimeout> | undefined =
+      boundaryDelay !== null
+        ? setTimeout(refreshUsageAndInstanceTable, boundaryDelay)
+        : undefined;
+
+    return () => {
+      clearInterval(interval);
+
+      if (boundaryTimer !== undefined) {
+        clearTimeout(boundaryTimer);
+      }
+    };
+  }, [refreshUsageSnapshot, timedUsageSnapshot]);
 
   return (
     <ModelPage
@@ -297,7 +397,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 <div className="text-sm text-gray-500">Seats in use</div>
                 <div className="mt-1 text-4xl font-semibold text-gray-900">
                   {license
-                    ? (license.currentUserCount || 0).toLocaleString()
+                    ? (usageSnapshot?.currentUserCount || 0).toLocaleString()
                     : "—"}
                   {license?.userLimit ? (
                     <span className="ml-2 text-lg font-normal text-gray-500">
@@ -311,16 +411,23 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 </div>
                 <div className="mt-3">
                   <SeatUsageMeter
-                    currentUserCount={license?.currentUserCount}
+                    currentUserCount={
+                      usageSnapshot?.currentUserCount ?? undefined
+                    }
                     userLimit={license?.userLimit}
                   />
                 </div>
                 <div className="mt-3 text-sm text-gray-500">
-                  {license?.userCountUpdatedAt
+                  {usageSnapshot?.lastUsageReportedAt
                     ? `Last reported ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                        license.userCountUpdatedAt,
+                        new Date(usageSnapshot.lastUsageReportedAt),
                       )}`
                     : "This license has not reported usage yet."}
+                </div>
+                <div className="mt-1 text-xs text-gray-400">
+                  Only instances active within the past{" "}
+                  {EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days
+                  are included.
                 </div>
                 <div className="mt-2">
                   <LicenseStatusPill
@@ -389,6 +496,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
           isCreateable={false}
           isViewable={false}
           showRefreshButton={true}
+          refreshToggle={instanceTableRefreshCounter.toString()}
+          onFetchSuccess={async () => {
+            /* Keep the rows, status snapshot and headline count together. */
+            await refreshUsageSnapshot();
+          }}
           query={{
             enterpriseLicenseId: modelId,
           }}
@@ -443,6 +555,32 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                   <span className="font-mono text-xs text-gray-600">
                     {item.instanceId || "-"}
                   </span>
+                );
+              },
+            },
+            {
+              field: {
+                _id: true,
+                createdAt: true,
+                lastReportedAt: true,
+              },
+              title: "Status",
+              type: FieldType.Element,
+              getElement: (item: EnterpriseLicenseInstance): ReactElement => {
+                return (
+                  <EnterpriseLicenseInstanceStatusPill
+                    instance={item}
+                    isActive={
+                      usageSnapshot
+                        ? Boolean(
+                            item.id &&
+                              usageSnapshot.activeInstanceIds.includes(
+                                item.id.toString(),
+                              ),
+                          )
+                        : undefined
+                    }
+                  />
                 );
               },
             },
@@ -534,32 +672,47 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                _id: true,
+                createdAt: true,
                 lastReportedAt: true,
               },
-              title: "Last Reported",
+              title: "Last Activity",
               type: FieldType.Element,
               hideOnMobile: true,
               getElement: (item: EnterpriseLicenseInstance): ReactElement => {
-                if (!item.lastReportedAt) {
-                  return <span className="text-gray-400">Never reported</span>;
+                const lastCommunicatedAt: Date | undefined =
+                  EnterpriseLicenseUsageUtil.getInstanceLastCommunicatedAt(
+                    item,
+                  );
+
+                if (!lastCommunicatedAt) {
+                  return (
+                    <span className="text-gray-400">Never communicated</span>
+                  );
                 }
 
-                const isStale: boolean =
-                  !EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
-                    item,
-                    OneUptimeDate.getCurrentDate(),
-                  );
+                const isInactive: boolean = usageSnapshot
+                  ? !(
+                      item.id &&
+                      usageSnapshot.activeInstanceIds.includes(
+                        item.id.toString(),
+                      )
+                    )
+                  : !EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
+                      item,
+                      OneUptimeDate.getCurrentDate(),
+                    );
 
                 return (
                   <div>
                     <div className="text-sm text-gray-700">
                       {OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                        item.lastReportedAt,
+                        lastCommunicatedAt,
                       )}
                     </div>
-                    {isStale ? (
+                    {isInactive ? (
                       <div className="text-xs text-gray-400">
-                        Stale — not counted towards seats
+                        Inactive — not counted towards seats
                       </div>
                     ) : (
                       <></>

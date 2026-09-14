@@ -99,9 +99,25 @@ jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCache", () => {
     __esModule: true,
     default: {
       getPolicy: jest.fn(),
+      resolvePolicy: jest.fn(async (): Promise<unknown> => {
+        return { policy: null, refusal: "application-not-enabled" };
+      }),
       isOriginAllowed: jest.fn().mockReturnValue(true),
       markProjectDisabled: jest.fn(),
       clearCache: jest.fn(),
+    },
+    /*
+     * The gate reads this enum when it decides WHICH counter bucket a
+     * refusal belongs in, so a mock that omits it makes the module throw
+     * rather than answer - the mock has to carry the module's whole
+     * surface, not just the part this file drives.
+     */
+    SessionReplayPolicyRefusal: {
+      ProjectNotAllowed: "project-not-allowed",
+      ApplicationNotEnabled: "application-not-enabled",
+      ApplicationUnknown: "application-unknown",
+      ProjectKilled: "project-killed",
+      IdentifierMissing: "app-identifier-missing",
     },
   };
 });

@@ -32,6 +32,13 @@ export interface MonitorTypeRecipe {
   // true for probeable types that show the extra interval step.
   hasInterval: boolean;
   /*
+   * Which interval to pick on that step. Defaults to the catalog spec's
+   * "Every 5 Minutes"; a spec that has to WAIT for a probe to re-evaluate the
+   * monitor should ask for "Every Minute" instead, so its deadline is several
+   * checks wide rather than exactly one.
+   */
+  intervalLabel?: string | undefined;
+  /*
    * true for monitor types that skip criteria and interval. The always-visible
    * Labels step still follows Monitor Info.
    */
@@ -203,14 +210,21 @@ const clickCreateUntilMonitorView: (data: {
  */
 const selectMonitoringInterval: (data: {
   page: Page;
-}) => Promise<void> = async (data: { page: Page }): Promise<void> => {
+  intervalLabel?: string | undefined;
+}) => Promise<void> = async (data: {
+  page: Page;
+  intervalLabel?: string | undefined;
+}): Promise<void> => {
   const combo: Locator = data.page.getByRole("combobox", {
     name: "Monitoring Interval",
   });
   await combo.waitFor({ state: "visible", timeout: 30000 });
   await combo.click();
   await data.page
-    .getByRole("option", { name: "Every 5 Minutes", exact: true })
+    .getByRole("option", {
+      name: data.intervalLabel || "Every 5 Minutes",
+      exact: true,
+    })
     .click();
 };
 
@@ -331,7 +345,10 @@ export const createMonitor: CreateMonitorFunction = async (data: {
 
     if (data.recipe.hasInterval) {
       // Choose an interval, then advance to the always-final Labels step.
-      await selectMonitoringInterval({ page });
+      await selectMonitoringInterval({
+        page,
+        intervalLabel: data.recipe.intervalLabel,
+      });
       await page.getByTestId(submitButtonTestId).click();
     }
   }
@@ -366,7 +383,10 @@ export const fillDestination: (data: {
 /*
  * Fills the Monaco CodeEditor used by the Synthetic / Custom-JavaScript step
  * forms. Validation only requires the code to be non-empty, so a short comment
- * is enough. keyboard.insertText avoids Monaco's auto-close bracket handling.
+ * is enough - which is the only reason inserting the text is safe here.
+ * keyboard.insertText does NOT bypass Monaco's auto-closing brackets: Monaco
+ * replays inserted text one character at a time through the same interceptors
+ * as typing, so anything with unbalanced brackets or quotes arrives closed.
  */
 export const fillCodeEditor: (data: {
   page: Page;
@@ -405,7 +425,7 @@ export const fillByPlaceholder: (data: {
 
 /*
  * Infrastructure monitor types (Kubernetes / Docker / Host / Podman /
- * Docker Swarm / Proxmox / Ceph / IoT Device) can only be created once an
+ * Docker Swarm / Proxmox / VMware / Ceph / IoT Device) can only be created once an
  * infrastructure entity exists — the criteria step picks it from a dropdown.
  * These entities are normal CRUD models a project owner can create directly,
  * so we seed one via the API (far more reliable than waiting for OTLP-derived
@@ -422,7 +442,8 @@ export interface InfraMonitorRecipe {
   /*
    * Identifier column the model requires in addition to name
    * (clusterIdentifier for Kubernetes, hostIdentifier for Docker/Host/Podman).
-   * Omitted for the name-keyed clusters (Docker Swarm / Proxmox / Ceph / IoT).
+   * Omitted for the name-keyed clusters (Docker Swarm / Proxmox / VMware /
+   * Ceph / IoT).
    */
   identifierField?: string;
   // A Quick Setup template name to select (matched as a substring).

@@ -154,7 +154,7 @@ OneUptimeは一般的なDockerモニタリングシナリオのテンプレー�
 - `resource.container.id` — 完全なコンテナID
 - `resource.container.runtime` — 常に `docker`
 - `attributes["log.iostream"]` — `stdout` または `stderr`
-- `severityText` / `severityNumber` — ストリームから導出：`stderr` → `ERROR`、`stdout` → `INFO`
+- `severityText` / `severityNumber` — 行内のレベルキーワードから読み取り（`app.INFO:`、`{"level":"warn"}`、`[ERROR]`）。認識できるレベルがない行はストリームにフォールバック：`stderr` → `ERROR`、`stdout` → `INFO`
 - `body` — コンテナプロセスが出力した生のログ行
 - `time` — Dockerデーモンがその行に記録したタイムスタンプ
 

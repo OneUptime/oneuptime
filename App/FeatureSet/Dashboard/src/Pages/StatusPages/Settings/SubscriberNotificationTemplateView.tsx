@@ -60,7 +60,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
       }
     };
     fetchTemplate();
-  }, [modelId]);
+  }, [modelId.toString()]);
 
   const getTemplateBodyFieldType: () => FormFieldSchemaType =
     (): FormFieldSchemaType => {
@@ -227,6 +227,15 @@ const SubscriberNotificationTemplateView: FunctionComponent<
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPageSubscriberNotificationTemplate,
           id: "model-detail-template-content",
+          /*
+           * Which rows this card shows depends on notificationMethod, which
+           * the page only learns after the card has already fetched. Select
+           * the subject up front so the Email Subject row has a value the
+           * moment it appears, without refetching.
+           */
+          selectMoreFields: {
+            emailSubject: true,
+          },
           fields:
             notificationMethod === StatusPageSubscriberNotificationMethod.Email
               ? [

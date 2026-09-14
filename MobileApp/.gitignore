@@ -39,3 +39,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Browser UI verification artifacts (review screenshots live in docs/screenshots)
+/dist-ui/
+/test-results/
+/playwright-report/

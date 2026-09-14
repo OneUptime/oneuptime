@@ -152,13 +152,34 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
+    /*
+     * Nothing may re-seed a form the user has already typed into. The guard
+     * above latches once, which is enough on its own, but "the value the user
+     * entered survives" is the one property of a form that must never quietly
+     * regress - so it is asserted directly rather than inferred from the order
+     * two effects happen to run in.
+     */
+    const hasUserEdited: MutableRefObject<boolean> = useRef(false);
+
     const refCurrentValue: React.MutableRefObject<FormValues<T>> = useRef(
       props.initialValues || {},
     );
 
+    const getVisibleFormSteps: () => Array<FormStep<T>> | undefined = () => {
+      return getFormSteps()?.filter((step: FormStep<T>): boolean => {
+        return !step.showIf || step.showIf(refCurrentValue.current);
+      });
+    };
+
     const [currentFormStepId, setCurrentFormStepId] = useState<string | null>(
       null,
     );
+
+    const activeStepIndex: number =
+      formSteps?.findIndex((step: FormStep<T>) => {
+        return step.id === currentFormStepId;
+      }) ?? -1;
+    const activeStep: FormStep<T> | undefined = formSteps?.[activeStepIndex];
 
     const isOnLastFormStep: boolean =
       !currentFormStepId ||
@@ -203,15 +224,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
     useEffect(() => {
-      setFormSteps(
-        getFormSteps()?.filter((step: FormStep<T>) => {
-          if (!step.showIf) {
-            return true;
-          }
-
-          return step.showIf(refCurrentValue.current);
-        }),
-      );
+      setFormSteps(getVisibleFormSteps());
     }, [refCurrentValue.current]);
 
     const [formFields, setFormFields] = useState<Fields<T>>([]);
@@ -255,7 +268,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         setFieldValue,
         submitForm,
       };
-    }, [currentValue, errors, touched, formFields]);
+    }, [
+      currentValue,
+      errors,
+      touched,
+      formFields,
+      currentFormStepId,
+      formSteps,
+    ]);
 
     useAsyncEffect(async () => {
       const fields: Fields<T> = [
@@ -310,6 +330,24 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       setFormFields(fields);
     }, [props.fields, currentFormStepId]);
 
+    /*
+     * A field is only worth disabling while options are being fetched if it is
+     * one of the fields those options belong to. Disabling everything meant a
+     * Text or Email field went read-only because some unrelated dropdown was
+     * refreshing - and Input renders `disabled` as `readOnly`, so it stays
+     * focusable and simply swallows the keystrokes with no visible reason.
+     */
+    type IsDropdownFieldFunction = (field: Field<T>) => boolean;
+
+    const isDropdownField: IsDropdownFieldFunction = (
+      field: Field<T>,
+    ): boolean => {
+      return (
+        field.fieldType === FormFieldSchemaType.Dropdown ||
+        field.fieldType === FormFieldSchemaType.MultiSelectDropdown
+      );
+    };
+
     type GetFieldNameFunction = (field: Field<T>) => string;
 
     const getFieldName: GetFieldNameFunction = (field: Field<T>): string => {
@@ -347,6 +385,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         [fieldName]: value as any,
       };
 
+      hasUserEdited.current = true;
+
       refCurrentValue.current = updatedValue;
 
       setCurrentValue(refCurrentValue.current);
@@ -375,16 +415,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      // if last step then submit.
+      // Use current values because conditional-step state can lag a field edit.
+
+      const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
 
       if (
-        (formSteps &&
-          formSteps.length > 0 &&
-          (
-            (formSteps as Array<FormStep<T>>)[
-              formSteps.length - 1
-            ] as FormStep<T>
-          ).id === currentFormStepId) ||
+        (steps &&
+          steps.length > 0 &&
+          (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
         currentFormStepId === null
       ) {
         const values: FormValues<T> = refCurrentValue.current;
@@ -464,9 +502,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props.onSubmit(values, () => {
           setDidSomethingChange(false);
         });
-      } else if (formSteps && formSteps.length > 0) {
-        const steps: Array<FormStep<T>> = formSteps;
-
+      } else if (steps && steps.length > 0) {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
             return step.id === currentFormStepId;
@@ -484,7 +520,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      if (isInitialValuesSet.current) {
+      if (isInitialValuesSet.current || hasUserEdited.current) {
         return;
       }
 
@@ -601,7 +637,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         if (field.getDefaultValue && (values as any)[fieldName] === undefined) {
           (values as any)[fieldName] = field.getDefaultValue(values);
         }
+      }
 
+      /*
+       * Latch only once the field list has actually arrived. formFields starts
+       * empty and is filled in by an effect, so latching before then would
+       * skip every default value and every dropdown/date normalisation above.
+       * (This used to be written as an assignment inside the loop, which had
+       * the same effect by accident.)
+       */
+      if (formFields.length > 0) {
         isInitialValuesSet.current = true;
       }
 
@@ -668,6 +713,20 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 }`}
                 style={{ flex: "1 1 auto" }}
               >
+                {activeStep && (
+                  <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
+                    <p
+                      className="ml-auto text-right text-sm text-gray-500 lg:hidden"
+                      role="status"
+                    >
+                      {translateString("Step") ?? "Step"} {activeStepIndex + 1}{" "}
+                      {translateString("of") ?? "of"} {formSteps?.length}
+                      <span className="block font-medium text-gray-900">
+                        {translateString(activeStep.title) ?? activeStep.title}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 {props.error && (
                   <div className="mb-3">
                     <Alert title={props.error} type={AlertType.DANGER} />
@@ -747,7 +806,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                       touched={touched[fieldName] || false}
                                       isDisabled={
                                         isLoading ||
-                                        isDropdownOptionsLoading ||
+                                        (isDropdownOptionsLoading &&
+                                          isDropdownField(field)) ||
                                         false
                                       }
                                       currentValues={refCurrentValue.current}
@@ -770,6 +830,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     {field.getFooterElement &&
                                       field.getFooterElement(
                                         refCurrentValue.current,
+                                        touched[fieldName]
+                                          ? errors[fieldName] || undefined
+                                          : undefined,
                                       )}
                                   </div>
                                 </Fragment>

@@ -7,6 +7,7 @@ import KubernetesContainer from "../../../Models/DatabaseModels/KubernetesContai
 import KubernetesResource from "../../../Models/DatabaseModels/KubernetesResource";
 import PodmanResource from "../../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
+import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
 import CephResourceService from "../../../Server/Services/CephResourceService";
 import DockerResourceService from "../../../Server/Services/DockerResourceService";
 import DockerSwarmResourceService from "../../../Server/Services/DockerSwarmResourceService";
@@ -15,6 +16,7 @@ import KubernetesContainerService from "../../../Server/Services/KubernetesConta
 import KubernetesResourceService from "../../../Server/Services/KubernetesResourceService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
+import VMwareResourceService from "../../../Server/Services/VMwareResourceService";
 import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import ObjectID from "../../../Types/ObjectID";
@@ -367,6 +369,40 @@ const CASES: Array<UpsertCase> = [
             onboot: null,
             isBackedUp: null,
             uptimeSeconds: 10,
+            lastSeenAt: OBSERVED_AT,
+          },
+        ],
+      });
+    },
+  },
+  {
+    /*
+     * Ten bounded text columns: nine ShortText plus resourcePoolPath,
+     * which is LongText because vSphere inventory paths nest.
+     */
+    label: "VMwareResourceService.bulkUpsert",
+    service: VMwareResourceService,
+    model: new VMwareResource(),
+    boundedColumnCount: 10,
+    jsonPayloadColumnCount: 0,
+    invoke: async (): Promise<void> => {
+      await VMwareResourceService.bulkUpsert({
+        projectId: PROJECT_ID,
+        vmwareVCenterId: PARENT_ID,
+        resources: [
+          {
+            kind: OVERSIZED,
+            externalId: OVERSIZED,
+            name: OVERSIZED,
+            datacenterName: OVERSIZED,
+            clusterName: OVERSIZED,
+            hostName: OVERSIZED,
+            resourcePoolName: OVERSIZED,
+            resourcePoolPath: OVERSIZED,
+            virtualAppName: OVERSIZED,
+            vmInstanceUuid: OVERSIZED,
+            isTemplate: false,
+            isPoweredOn: true,
             lastSeenAt: OBSERVED_AT,
           },
         ],

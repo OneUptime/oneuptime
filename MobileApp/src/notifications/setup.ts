@@ -123,9 +123,17 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
       projectId,
     });
 
-    logger.info(
-      `[PushNotifications] Successfully obtained push token: ${tokenData.data}`,
-    );
+    /*
+     * The token itself is deliberately NOT in this message. It is the address
+     * that pages this responder's handset, so anything holding it can deliver
+     * a notification that looks exactly like a OneUptime page - and on Android
+     * any app with READ_LOGS on a rooted or developer handset can read the
+     * device log. Logger output also travels: into bug reports the responder
+     * files, and into crash-reporter breadcrumbs. The diagnostic that matters
+     * here is that a token was obtained AT ALL, since the failure this line
+     * helps debug is the empty/absent one; the credential adds nothing to it.
+     */
+    logger.info("[PushNotifications] Successfully obtained push token");
 
     return tokenData.data;
   } catch (error: unknown) {

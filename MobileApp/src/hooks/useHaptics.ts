@@ -8,25 +8,48 @@ interface HapticsResult {
   selectionFeedback: () => Promise<void>;
 }
 
+async function playFeedback(feedback: () => Promise<void>): Promise<void> {
+  try {
+    await feedback();
+  } catch {
+    /*
+     * Optional device feedback must never change the result of an API request
+     * or prevent navigation on devices where haptics are unavailable.
+     */
+  }
+}
+
 export function useHaptics(): HapticsResult {
   const successFeedback: () => Promise<void> = async (): Promise<void> => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await playFeedback(() => {
+      return Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      );
+    });
   };
 
   const errorFeedback: () => Promise<void> = async (): Promise<void> => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    await playFeedback(() => {
+      return Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    });
   };
 
   const lightImpact: () => Promise<void> = async (): Promise<void> => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await playFeedback(() => {
+      return Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
   };
 
   const mediumImpact: () => Promise<void> = async (): Promise<void> => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await playFeedback(() => {
+      return Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    });
   };
 
   const selectionFeedback: () => Promise<void> = async (): Promise<void> => {
-    await Haptics.selectionAsync();
+    await playFeedback(() => {
+      return Haptics.selectionAsync();
+    });
   };
 
   return {

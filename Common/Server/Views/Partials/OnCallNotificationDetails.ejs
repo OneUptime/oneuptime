@@ -1,0 +1,48 @@
+<%
+/*
+ * Context for the resource an on-call notification was raised for, so the
+ * person following an acknowledge link from an SMS at 3am can see what they
+ * are acknowledging before they acknowledge it.
+ * See https://github.com/OneUptime/oneuptime/issues/3457.
+ *
+ * Every local is optional: these pages still render when the resource has been
+ * deleted, and a missing description must never block the acknowledgement.
+ */
+var hasResourceNumber = typeof resourceNumber !== 'undefined' && resourceNumber;
+var hasResourceTitle = typeof resourceTitle !== 'undefined' && resourceTitle;
+var hasResourceDescription = typeof resourceDescription !== 'undefined' && resourceDescription;
+var resourceDetails = (typeof details !== 'undefined' && details) ? details : [];
+var hasAnyContext = hasResourceTitle || hasResourceDescription || resourceDetails.length > 0;
+%>
+<% if (hasAnyContext) { %>
+<div class="mt-6 border-t border-gray-200 pt-6">
+    <% if (hasResourceTitle) { %>
+    <div class="flex flex-wrap items-center">
+        <% if (hasResourceNumber) { %>
+        <span class="mr-2 inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"><%= resourceNumber %></span>
+        <% } %>
+        <h3 class="text-base font-semibold leading-6 text-gray-900"><%= resourceTitle %></h3>
+    </div>
+    <% } %>
+
+    <% if (hasResourceDescription) { %>
+    <p class="mt-2 whitespace-pre-line text-sm text-gray-600"><%= resourceDescription %></p>
+    <% } %>
+
+    <% if (resourceDetails.length > 0) { %>
+    <dl class="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        <% resourceDetails.forEach(function (detail) { %>
+        <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500"><%= detail.label %></dt>
+            <dd class="mt-1 flex items-center text-sm text-gray-900">
+                <% if (detail.color) { %>
+                <span class="mr-2 inline-block h-2.5 w-2.5 flex-none rounded-full" style="background-color: <%= detail.color %>"></span>
+                <% } %>
+                <span><%= detail.value %></span>
+            </dd>
+        </div>
+        <% }); %>
+    </dl>
+    <% } %>
+</div>
+<% } %>

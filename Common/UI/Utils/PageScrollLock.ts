@@ -12,6 +12,8 @@
  * under a dialog that is still open or locked forever with no dialog on screen.
  */
 
+import { useLayoutEffect } from "react";
+
 let openDialogCount: number = 0;
 let bodyOverflowBeforeLock: string = "";
 let bodyPaddingRightBeforeLock: string = "";
@@ -42,15 +44,89 @@ export const lockPageScroll: PageScrollLockFunction = (): void => {
   document.body.style.overflow = "hidden";
 };
 
+/*
+ * Restoring means putting the page back exactly as it was found, and "as it
+ * was found" is usually no inline value at all rather than an empty one. Going
+ * through removeProperty for that case says so directly — and it is also the
+ * only spelling jsdom honours for a longhand like padding-right, so the
+ * restore is assertable in a test instead of being taken on trust.
+ */
+type RestoreBodyStyleFunction = (property: string, value: string) => void;
+
+const restoreBodyStyle: RestoreBodyStyleFunction = (
+  property: string,
+  value: string,
+): void => {
+  if (value === "") {
+    document.body.style.removeProperty(property);
+
+    return;
+  }
+
+  document.body.style.setProperty(property, value);
+};
+
 export const unlockPageScroll: PageScrollLockFunction = (): void => {
-  openDialogCount = Math.max(0, openDialogCount - 1);
+  /*
+   * Nothing is open, so there is nothing of ours on the page to put back. A
+   * stray unlock — one surface releasing twice, a cleanup that outlives the
+   * lock it was paired with — has to be inert rather than paint a snapshot
+   * taken for some earlier dialog over whatever the page is wearing now.
+   */
+  if (openDialogCount === 0) {
+    return;
+  }
+
+  openDialogCount--;
 
   if (openDialogCount > 0 || typeof document === "undefined") {
     return;
   }
 
-  document.body.style.overflow = bodyOverflowBeforeLock;
-  document.body.style.paddingRight = bodyPaddingRightBeforeLock;
+  restoreBodyStyle("overflow", bodyOverflowBeforeLock);
+  restoreBodyStyle("padding-right", bodyPaddingRightBeforeLock);
+};
+
+/*
+ * The declarative form, and the one new surfaces should reach for.
+ *
+ * Every caller of the pair above writes the same effect: acquire on the way
+ * in, release from the cleanup, keyed on whether the surface is up. Written by
+ * hand that is four lines with three ways to get it wrong — release omitted,
+ * the wrong dependency, or the call placed after an early `return` so it stops
+ * running once the surface closes. Issue #3553 is what the first two look like
+ * from the outside: the Ask AI panel declared aria-modal, dimmed the page
+ * behind it, and let that page scroll away under the wheel because nothing
+ * ever took the lock.
+ *
+ * Passing the open flag straight in keeps the invariant to one line, and keeps
+ * it correct for surfaces like AIChatPanel that stay mounted while closed
+ * rather than being unmounted by their parent.
+ *
+ * A layout effect, not an ordinary one, and that is load-bearing for every
+ * caller rather than a detail of one. Hiding the page scrollbar widens the
+ * viewport that a fixed overlay resolves against, so a surface that painted
+ * before the lock landed jumps sideways by the scrollbar's width on any
+ * platform drawing a classic scrollbar — the full width for a panel pinned to
+ * `right: 0`, half of it for a centred dialog. Locking before paint means the
+ * surface is only ever drawn in its final position.
+ */
+export type UsePageScrollLockFunction = (isLocked: boolean) => void;
+
+export const usePageScrollLock: UsePageScrollLockFunction = (
+  isLocked: boolean,
+): void => {
+  useLayoutEffect(() => {
+    if (!isLocked) {
+      return undefined;
+    }
+
+    lockPageScroll();
+
+    return () => {
+      unlockPageScroll();
+    };
+  }, [isLocked]);
 };
 
 /*

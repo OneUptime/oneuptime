@@ -6,6 +6,9 @@ import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class IncomingCallPolicyLabelRuleEngineServiceClass {
   @CaptureSpan()
@@ -27,14 +30,21 @@ class IncomingCallPolicyLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             incomingCallPolicyLabels: { _id: true },
             incomingCallPolicyNamePattern: true,
             incomingCallPolicyDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncomingCallPolicyLabelRule",
+        projectId: policy.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
@@ -127,6 +137,24 @@ class IncomingCallPolicyLabelRuleEngineServiceClass {
   }
 
   private doesPolicyMatchRule(
+    policy: IncomingCallPolicy,
+    rule: IncomingCallPolicyLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "incomingCallPolicyLabels",
+        "incomingCallPolicyNamePattern",
+        "incomingCallPolicyDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IncomingCallPolicyLabelRule): boolean => {
+        return this.doesPolicyMatchLegacyRule(policy, legacyRule);
+      },
+    });
+  }
+
+  private doesPolicyMatchLegacyRule(
     policy: IncomingCallPolicy,
     rule: IncomingCallPolicyLabelRule,
   ): boolean {

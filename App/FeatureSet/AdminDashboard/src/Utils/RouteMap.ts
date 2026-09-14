@@ -27,6 +27,9 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROJECT_SUBSCRIPTION]: new Route(
     `/admin/projects/${RouteParams.ModelID}/subscription`,
   ),
+  [PageMap.PROJECT_SUPPORT]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/support`,
+  ),
   [PageMap.PROJECT_DELETE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/delete`,
   ),

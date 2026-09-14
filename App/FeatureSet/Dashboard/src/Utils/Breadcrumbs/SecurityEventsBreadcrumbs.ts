@@ -26,6 +26,16 @@ export function getSecurityEventsBreadcrumbs(
       "Security Events",
       "Monitors",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_CONNECTIONS, [
+      "Project",
+      "Security Events",
+      "Connections",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_THREAT_INTEL, [
+      "Project",
+      "Security Events",
+      "Threat Intel",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_DOCUMENTATION, [
       "Project",
       "Security Events",

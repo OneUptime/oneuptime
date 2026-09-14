@@ -50,7 +50,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
 })
 @CrudApiEndpoint(new Route("/domain"))
-@SlugifyColumn("name", "slug")
+@SlugifyColumn("domain", "slug")
 @TableMetadata({
   tableName: "Domain",
   singularName: "Domain",

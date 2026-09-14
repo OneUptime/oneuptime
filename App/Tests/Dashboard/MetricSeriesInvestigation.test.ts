@@ -610,6 +610,28 @@ describe("investigation wiring", () => {
     expect(source).toContain("rangeToken: zoomWindow ? undefined :");
   });
 
+  test("the chart widget hands a drag-selection to the DASHBOARD, and only offers a reset while zoomed", () => {
+    const source: string = readSquashedSource(
+      "Components/Dashboard/Components/DashboardChartComponent.tsx",
+    );
+
+    /*
+     * Issue #3530: the drag retimes the whole board. `setZoomWindow` above
+     * is the standalone fallback for hosts that own no range — these pin
+     * the path that actually runs on a dashboard. Behaviour itself is
+     * covered by Common/Tests/App/Dashboard/DashboardWideChartZoom.test.tsx.
+     */
+    expect(source).toContain("onDashboardTimeRangeSelect(startTime, endTime);");
+    expect(source).toContain(
+      "onTimeRangeReset={ canResetChartZoom ? handleChartTimeRangeReset : undefined }",
+    );
+    /*
+     * The reset handler is withheld until there is something to undo — the
+     * chart library delays every plain click while it is present.
+     */
+    expect(source).toContain("props.isDashboardTimeRangeZoomed");
+  });
+
   test("the external Data Source chart widget never offers telemetry pivots", () => {
     const source: string = readSquashedSource(
       "Components/Dashboard/Components/DashboardDataSourceChartComponent.tsx",

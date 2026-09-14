@@ -12,6 +12,7 @@ enum EmailTemplateType {
   PasswordChanged = "PasswordChanged.hbs",
   TwoFactorBackupCodeUsed = "TwoFactorBackupCodeUsed.hbs",
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
+  TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",
@@ -86,6 +87,8 @@ enum EmailTemplateType {
   UserCurrentlyOnOnCallRoster = "UserCurrentlyOnOnCallRoster.hbs",
   UserNextOnOnCallRoster = "UserNextOnOnCallRoster.hbs",
   UserNoLongerActiveOnOnCallRoster = "UserNoLongerActiveOnOnCallRoster.hbs",
+  UserOnCallShiftReminder = "UserOnCallShiftReminder.hbs",
+  UserOnCallShiftReassigned = "UserOnCallShiftReassigned.hbs",
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
@@ -96,6 +99,8 @@ enum EmailTemplateType {
 
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
+
+  NotificationRollup = "NotificationRollup.hbs",
 }
 
 export default EmailTemplateType;

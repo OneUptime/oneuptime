@@ -1,10 +1,12 @@
 /*
  * The dashboard's command palette owns Cmd/Ctrl+K, so the NavBar grew a
- * `disableCommandKShortcut` prop that stops it registering its own document
- * keydown for the products menu. These tests pin the contract in BOTH
- * directions: with the prop the menu must NOT open on Cmd+K (or the palette
- * and the menu would double-fire on one keystroke), and without the prop the
- * legacy shortcut must keep working for every other NavBar consumer.
+ * `disableCommandKShortcut` prop that surrenders the chord to the dashboard
+ * command palette. These tests pin the contract in BOTH directions: with the
+ * prop the menu must NOT open or advertise Cmd+K (or the two surfaces would
+ * claim the same shortcut), and without the prop the legacy shortcut must
+ * keep working for every other NavBar consumer. An already-open products menu
+ * still listens just long enough to close without consuming the palette's
+ * keydown, preventing two modal dialogs from being stacked.
  */
 
 /*
@@ -98,6 +100,10 @@ function pressCommandK(): void {
   fireEvent.keyDown(document, { key: "k", metaKey: true });
 }
 
+function commandKHint(): HTMLElement | null {
+  return screen.queryByText(/^(Command|Control) \+ K$/);
+}
+
 describe("NavBar Cmd/Ctrl+K gating", () => {
   afterEach(() => {
     cleanup();
@@ -110,6 +116,7 @@ describe("NavBar Cmd/Ctrl+K gating", () => {
 
     pressCommandK();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(commandKHint()).toBeInTheDocument();
 
     // And the same chord closes it again — it is a toggle, not just an opener.
     pressCommandK();
@@ -138,7 +145,7 @@ describe("NavBar Cmd/Ctrl+K gating", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  test("with disableCommandKShortcut, the menu still opens from its trigger button", () => {
+  test("with disableCommandKShortcut, the menu still opens from its trigger button without advertising Cmd/Ctrl+K", () => {
     /*
      * Disabling the shortcut must not disable the menu: the button path is the
      * remaining way in, so it has to keep working.
@@ -153,6 +160,94 @@ describe("NavBar Cmd/Ctrl+K gating", () => {
 
     fireEvent.click(screen.getByText("Products"));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(commandKHint()).not.toBeInTheDocument();
+  });
+
+  test("with disableCommandKShortcut, Cmd+K closes an already-open products menu without consuming the palette's event", () => {
+    render(
+      <Navbar
+        items={[homeItem]}
+        moreMenuItems={moreMenuItems}
+        disableCommandKShortcut={true}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Products"));
+    expect(screen.getByRole("dialog", { name: "Products menu" })).toBeVisible();
+
+    const defaultAllowed: boolean = fireEvent.keyDown(document, {
+      key: "k",
+      metaKey: true,
+    });
+
+    expect(defaultAllowed).toBe(true);
+    expect(
+      screen.queryByRole("dialog", { name: "Products menu" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the enabled products shortcut ignores extra modifiers and a chord claimed by an earlier handler", () => {
+    render(<Navbar items={[homeItem]} moreMenuItems={moreMenuItems} />);
+
+    fireEvent.keyDown(document, { key: "k", metaKey: true, shiftKey: true });
+    fireEvent.keyDown(document, { key: "k", ctrlKey: true, altKey: true });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    const claimChord: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", claimChord, { capture: true });
+
+    try {
+      pressCommandK();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    } finally {
+      window.removeEventListener("keydown", claimChord, { capture: true });
+    }
+
+    pressCommandK();
+    expect(screen.getByRole("dialog", { name: "Products menu" })).toBeVisible();
+  });
+
+  test("a NavBar without a products menu leaves Cmd+K untouched", () => {
+    render(<Navbar items={[homeItem]} />);
+
+    const defaultAllowed: boolean = fireEvent.keyDown(document, {
+      key: "k",
+      metaKey: true,
+    });
+
+    expect(defaultAllowed).toBe(true);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("the close-only listener dismisses Products even when the shortcut owner ran first", () => {
+    render(
+      <Navbar
+        items={[homeItem]}
+        moreMenuItems={moreMenuItems}
+        disableCommandKShortcut={true}
+      />,
+    );
+    fireEvent.click(screen.getByText("Products"));
+
+    const claimChord: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", claimChord, { capture: true });
+
+    try {
+      pressCommandK();
+      expect(
+        screen.queryByRole("dialog", { name: "Products menu" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.removeEventListener("keydown", claimChord, { capture: true });
+    }
   });
 
   test("with disableCommandKShortcut, Cmd+K's default is not prevented (the palette may claim it)", () => {
@@ -166,8 +261,8 @@ describe("NavBar Cmd/Ctrl+K gating", () => {
 
     /*
      * fireEvent returns false when some handler called preventDefault. With
-     * the NavBar listener unregistered, nothing here may swallow the chord —
-     * the whole point is leaving it free for the command palette's handler.
+     * Products closed, no close-only listener is needed and nothing here may
+     * swallow the chord — the palette is free to claim it.
      */
     const defaultAllowed: boolean = fireEvent.keyDown(document, {
       key: "k",

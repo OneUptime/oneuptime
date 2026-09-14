@@ -72,7 +72,7 @@ Published advisories are available on the [advisories page](https://github.com/O
 
 If you self-host OneUptime, a few things matter more than anything else:
 
-- **Change every placeholder secret** in `config.env` before your first production start. Anything still set to `please-change-this-to-random-value` — `ONEUPTIME_SECRET`, `ENCRYPTION_SECRET`, `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `REDIS_PASSWORD` — must be replaced with a long random value.
-- **Terminate TLS** in front of OneUptime and keep the public surface limited to the ingress; Postgres, ClickHouse, and Redis should never be reachable from the internet.
+- **Change every placeholder secret** in `config.env` before your first production start. Anything still set to `please-change-this-to-random-value` — `ONEUPTIME_SECRET`, `ENCRYPTION_SECRET`, `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` — must be replaced with a long random value.
+- **Terminate TLS** in front of OneUptime and keep the public surface limited to the ingress; Postgres, ClickHouse, and Valkey should never be reachable from the internet.
 - **Keep up to date** — subscribe to releases so you pick up security fixes promptly.
 - **Back up your data** and test that you can restore it.

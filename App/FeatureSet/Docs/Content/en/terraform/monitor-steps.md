@@ -73,7 +73,23 @@ resource "oneuptime_monitor" "website" {
     monitor_destination_type = "URL"                 # URL | Hostname | IP
     request_type             = "GET"                 # HTTP method for Website/API monitors
 
-    criteria = [ # evaluated in order; first match wins
+    criteria = [ # evaluated in order; first match wins, so alerting first and healthy last
+      {
+        name                  = "Offline"
+        description           = "Check if website is offline"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
       {
         name                  = "Online"
         description           = "Check if website is online"
@@ -92,22 +108,6 @@ resource "oneuptime_monitor" "website" {
             check_on    = "Response Status Code"
             filter_type = "Equal To"
             value       = "200" # comparison values are strings
-          }
-        ]
-      },
-      {
-        name                  = "Offline"
-        description           = "Check if website is offline"
-        filter_condition      = "Any"
-        change_monitor_status = true
-        create_incidents      = false
-        create_alerts         = false
-        monitor_status_id     = oneuptime_monitor_status.offline.id
-
-        filters = [
-          {
-            check_on    = "Is Online"
-            filter_type = "False"
           }
         ]
       }
@@ -143,7 +143,7 @@ Each element of `monitor_steps` is one probe target:
 | `retry_count_on_error` | number | Synthetic | Retries on script error. |
 | `criteria` | list (required) | all | The decision tree — see below. |
 
-Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
+Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
 
 ```hcl
 monitor_steps = [{
@@ -175,7 +175,13 @@ These escape hatches mirror the dashboard's JSON for each monitor type — an es
 
 ## Criteria attributes
 
-Each entry of `criteria` is one rule: *if these filters match, do these things.* Criteria are evaluated in order and the first matching one wins, so put your "healthy" criteria first and your "down" criteria after it.
+Each entry of `criteria` is one rule: *if these filters match, do these things.*
+
+**Order matters, and the order is alerting first.** Criteria are evaluated top to bottom and the first one that matches wins — evaluation stops there, and every criteria below it is never looked at on that check. So list your alerting criteria first, most severe first (critical, then warning), and put the "healthy" / recovery criteria **last**.
+
+Putting a "healthy" criteria first is the most common way to build a monitor that never alerts. A broad healthy rule — `Is Online` is `True`, or a metric value `Greater Than` `0` — matches on almost every check, claims the evaluation, and the "down" criteria underneath it never runs. Ordered the other way round, the down criteria gets its chance first and the healthy criteria only matches when nothing above it did, which is exactly what you want.
+
+**Grouped metric monitors are the one exception to first-match-wins.** When a metric monitor's query is grouped — `groupByAttributeKeys` set inside the escape-hatch JSON, at `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys` — the monitor raises one alert/incident *per group* (per host, per container, per mountpoint) and every criteria is evaluated, so a "critical" and a "warning" criteria can fire on different hosts on the same check. A host that breaches both still pages once, from the first matching criteria, so most-severe-first still applies. See [Metrics Monitor](/docs/monitor/metrics-monitor).
 
 | Attribute | Type | Meaning |
 |-----------|------|---------|
@@ -245,8 +251,9 @@ Common `check_on` values by monitor type:
 | Custom Code / Synthetic | `Result Value`, `Error`, `Execution Time (in ms)` |
 | DNS / Domain / DNSSEC | `DNS Is Online`, `DNS Record Value`, `Domain Is Expired`, `DNSSEC Chain Is Valid` |
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
+| Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
-| Network Device (SNMP) | `SNMP Device Is Online`, `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
+| Network Device (SNMP) | `SNMP Device Is Online` (reachable by ping or SNMP), `SNMP Walk Is Succeeding` (false is reachable-but-not-walkable), `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
 
 Common `filter_type` values:
 

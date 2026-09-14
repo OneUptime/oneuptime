@@ -11,6 +11,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,6 +24,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
+import { getIncomingCallPolicyPhoneNumberText } from "./IncomingCallPolicyPhoneNumberUtil";
 
 // Available phone number from search
 interface AvailablePhoneNumber {
@@ -45,9 +48,8 @@ export interface PhoneNumberPurchaseProps {
   projectId: ObjectID;
   incomingCallPolicyId: ObjectID;
   projectCallSMSConfigId?: ObjectID | undefined;
-  currentPhoneNumber?: string | undefined;
-  onPhoneNumberPurchased?: () => void;
-  onPhoneNumberReleased?: () => void;
+  phoneNumbers: Array<IncomingCallPolicyPhoneNumber>;
+  onPhoneNumbersChanged?: () => void;
   hideCard?: boolean; // If true, renders content without Card wrapper
 }
 
@@ -94,6 +96,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
   const [showReleaseConfirmModal, setShowReleaseConfirmModal] =
     useState<boolean>(false);
+  const [phoneNumberToRelease, setPhoneNumberToRelease] =
+    useState<IncomingCallPolicyPhoneNumber | null>(null);
   const [showPurchaseConfirmModal, setShowPurchaseConfirmModal] =
     useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
@@ -157,6 +161,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             areaCode: values["areaCode"] || undefined,
             contains: values["contains"] || undefined,
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -199,6 +204,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             phoneNumber: selectedNumber.phoneNumber,
             incomingCallPolicyId: props.incomingCallPolicyId.toString(),
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -217,9 +223,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       );
       setShowSuccessModal(true);
 
-      if (props.onPhoneNumberPurchased) {
-        props.onPhoneNumberPurchased();
-      }
+      props.onPhoneNumbersChanged?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
@@ -228,6 +232,16 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   // Release a phone number
   const releasePhoneNumber: () => Promise<void> = async (): Promise<void> => {
+    const selectedPhoneNumber: IncomingCallPolicyPhoneNumber | null =
+      phoneNumberToRelease;
+
+    if (!selectedPhoneNumber) {
+      setError("The selected phone number could not be found.");
+      return;
+    }
+
+    const phoneNumberId: ObjectID | null = selectedPhoneNumber.id;
+
     try {
       setIsLoading(true);
       setError("");
@@ -235,8 +249,11 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.delete({
           url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-            `/phone-number/release/${props.incomingCallPolicyId.toString()}`,
+            `/phone-number/release/${props.incomingCallPolicyId.toString()}${
+              phoneNumberId ? `/${phoneNumberId.toString()}` : ""
+            }`,
           ),
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -247,14 +264,15 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
       setIsLoading(false);
       setShowReleaseConfirmModal(false);
+      const releasedPhoneNumber: string =
+        getIncomingCallPolicyPhoneNumberText(selectedPhoneNumber) ||
+        "The phone number";
+      setPhoneNumberToRelease(null);
       setSuccessMessage(
-        "Phone number has been released back to Twilio. You can reserve a new number.",
+        `${releasedPhoneNumber} has been released back to Twilio.`,
       );
       setShowSuccessModal(true);
-
-      if (props.onPhoneNumberReleased) {
-        props.onPhoneNumberReleased();
-      }
+      props.onPhoneNumbersChanged?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
@@ -277,6 +295,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             projectId: props.projectId.toString(),
             projectCallSMSConfigId: props.projectCallSMSConfigId?.toString(),
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -318,6 +337,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             phoneNumber: selectedOwnedNumber.phoneNumber,
             incomingCallPolicyId: props.incomingCallPolicyId.toString(),
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -336,68 +356,102 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       );
       setShowSuccessModal(true);
 
-      if (props.onPhoneNumberPurchased) {
-        props.onPhoneNumberPurchased();
-      }
+      props.onPhoneNumbersChanged?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
   };
 
-  // Render current phone number section
-  const renderCurrentPhoneNumber: () => ReactElement = (): ReactElement => {
-    if (props.currentPhoneNumber) {
+  const renderPhoneNumbers: () => ReactElement = (): ReactElement => {
+    if (props.phoneNumbers.length === 0) {
       return (
-        <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+        <div
+          className="p-4 bg-yellow-50 rounded-lg border border-yellow-200"
+          data-testid="incoming-call-policy-no-phone-numbers"
+        >
           <div className="flex items-center space-x-3">
             <Icon
-              icon={IconProp.CheckCircle}
-              className="text-green-500 h-6 w-6"
+              icon={IconProp.ExclaimationCircle}
+              className="text-yellow-500 h-6 w-6"
             />
             <div>
               <p className="text-sm font-medium text-gray-900">
-                Current Phone Number
+                No Phone Numbers Configured
               </p>
-              <p className="text-lg font-semibold text-green-700">
-                {props.currentPhoneNumber}
+              <p className="text-sm text-gray-600">
+                Add a phone number to enable incoming call routing.
               </p>
             </div>
           </div>
-          <Button
-            title="Release Number"
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-            icon={IconProp.Trash}
-            onClick={() => {
-              setShowReleaseConfirmModal(true);
-            }}
-          />
         </div>
       );
     }
 
     return (
-      <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-        <div className="flex items-center space-x-3">
-          <Icon
-            icon={IconProp.ExclaimationCircle}
-            className="text-yellow-500 h-6 w-6"
-          />
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              No Phone Number Configured
-            </p>
-            <p className="text-sm text-gray-600">
-              Search and reserve a phone number to enable incoming call routing.
-            </p>
-          </div>
-        </div>
+      <div
+        className="space-y-3"
+        data-testid="incoming-call-policy-phone-number-list"
+      >
+        <p className="text-sm text-gray-600">
+          {props.phoneNumbers.length === 1
+            ? "1 phone number routes calls to this policy."
+            : `${props.phoneNumbers.length} phone numbers route calls to this policy.`}
+        </p>
+        {props.phoneNumbers.map(
+          (
+            phoneNumber: IncomingCallPolicyPhoneNumber,
+            index: number,
+          ): ReactElement => {
+            const phoneNumberText: string =
+              getIncomingCallPolicyPhoneNumberText(phoneNumber);
+
+            return (
+              <div
+                className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200"
+                data-testid="incoming-call-policy-phone-number"
+                key={phoneNumber.id?.toString() || phoneNumberText || index}
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <Icon
+                    icon={IconProp.CheckCircle}
+                    className="text-green-500 h-6 w-6 flex-shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      Phone Number
+                    </p>
+                    <p className="text-lg font-semibold text-green-700 break-all">
+                      {phoneNumberText || "Unknown phone number"}
+                    </p>
+                    {phoneNumber.countryCode ? (
+                      <p className="text-xs text-gray-500">
+                        Country: {phoneNumber.countryCode}
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  title="Release"
+                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  icon={IconProp.Trash}
+                  onClick={() => {
+                    setPhoneNumberToRelease(phoneNumber);
+                    setShowReleaseConfirmModal(true);
+                  }}
+                />
+              </div>
+            );
+          },
+        )}
       </div>
     );
   };
 
   // Check if Twilio config is set
-  if (!props.projectCallSMSConfigId) {
+  if (!props.projectCallSMSConfigId && props.phoneNumbers.length === 0) {
     if (props.hideCard) {
       return (
         <div className="text-gray-500 text-sm">
@@ -527,6 +581,19 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {ownedNumbers.map((number: OwnedPhoneNumber, index: number) => {
                 const isInUse: boolean = Boolean(number.voiceUrl);
+                const isAlreadyAttached: boolean = props.phoneNumbers.some(
+                  (
+                    attachedPhoneNumber: IncomingCallPolicyPhoneNumber,
+                  ): boolean => {
+                    return (
+                      attachedPhoneNumber.callProviderPhoneNumberId ===
+                        number.phoneNumberId ||
+                      getIncomingCallPolicyPhoneNumberText(
+                        attachedPhoneNumber,
+                      ) === number.phoneNumber
+                    );
+                  },
+                );
                 return (
                   <div
                     key={index}
@@ -544,12 +611,23 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                           Currently has a webhook configured
                         </p>
                       )}
+                      {isAlreadyAttached ? (
+                        <p className="text-xs text-green-600 mt-1">
+                          Already attached to this policy
+                        </p>
+                      ) : (
+                        <></>
+                      )}
                     </div>
                     <Button
-                      title="Select"
+                      title={isAlreadyAttached ? "Attached" : "Select"}
                       buttonStyle={ButtonStyleType.SUCCESS}
                       icon={IconProp.Check}
+                      disabled={isAlreadyAttached}
                       onClick={() => {
+                        if (isAlreadyAttached) {
+                          return;
+                        }
                         setSelectedOwnedNumber(number);
                         setShowAssignConfirmModal(true);
                       }}
@@ -652,33 +730,24 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     return <></>;
   };
 
-  // Render buttons inline when hideCard is true
+  // Render the add button inline when hideCard is true.
   const renderButtons: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex space-x-2">
         <Button
-          title="Configure"
+          title="Add Phone Number"
           buttonStyle={ButtonStyleType.PRIMARY}
-          icon={IconProp.Settings}
+          icon={IconProp.Add}
+          disabled={!props.projectCallSMSConfigId}
+          tooltip={
+            props.projectCallSMSConfigId
+              ? undefined
+              : "Link a Twilio configuration before adding another number."
+          }
           onClick={openConfigureModal}
         />
-        {props.currentPhoneNumber && (
-          <Button
-            title="Release"
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-            icon={IconProp.Trash}
-            onClick={() => {
-              setShowReleaseConfirmModal(true);
-            }}
-          />
-        )}
       </div>
     );
-  };
-
-  // Content without card wrapper
-  const renderContent: () => ReactElement = (): ReactElement => {
-    return <>{!props.hideCard && renderCurrentPhoneNumber()}</>;
   };
 
   // Render all modals - shared between card and no-card modes
@@ -690,14 +759,14 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           <Modal
             title={
               configureStep === "choose"
-                ? "Configure Phone Number"
+                ? "Add Phone Number"
                 : configureStep === "existing"
                   ? "Select Existing Phone Number"
                   : "Reserve New Phone Number"
             }
             description={
               configureStep === "choose"
-                ? "Choose how you want to configure the phone number for incoming calls"
+                ? "Choose how you want to add a phone number for incoming calls"
                 : configureStep === "existing"
                   ? "Select a phone number from your Twilio account"
                   : "Search and reserve a new phone number"
@@ -775,12 +844,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showReleaseConfirmModal ? (
           <ConfirmModal
             title="Release Phone Number"
-            description={`Are you sure you want to release the phone number ${props.currentPhoneNumber}? This action will return the number to Twilio and it may not be available to reserve again.`}
+            description={`Are you sure you want to release ${phoneNumberToRelease ? getIncomingCallPolicyPhoneNumberText(phoneNumberToRelease) : "this phone number"}? This action will return the number to Twilio and it may not be available to reserve again.`}
             error={error}
             submitButtonText="Release Number"
             submitButtonType={ButtonStyleType.DANGER}
             onClose={() => {
               setShowReleaseConfirmModal(false);
+              setPhoneNumberToRelease(null);
               setError("");
             }}
             isLoading={isLoading}
@@ -874,8 +944,18 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   if (props.hideCard) {
     return (
       <>
-        {renderButtons()}
-        {renderContent()}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-gray-900">Phone Numbers</p>
+              <p className="text-sm text-gray-500">
+                Add one or more numbers that route calls to this policy.
+              </p>
+            </div>
+            {renderButtons()}
+          </div>
+          {renderPhoneNumbers()}
+        </div>
         {renderModals()}
       </>
     );
@@ -885,18 +965,22 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   return (
     <>
       <Card
-        title="Phone Number"
-        description="Use an existing Twilio phone number or reserve a new one"
+        title="Phone Numbers"
+        description="Add existing Twilio phone numbers or reserve new ones"
         buttons={[
           {
-            title: "Configure Number",
+            title: "Add Phone Number",
             buttonStyle: ButtonStyleType.PRIMARY,
-            icon: IconProp.Settings,
+            icon: IconProp.Add,
+            disabled: !props.projectCallSMSConfigId,
+            tooltip: props.projectCallSMSConfigId
+              ? undefined
+              : "Link a Twilio configuration before adding another number.",
             onClick: openConfigureModal,
           },
         ]}
       >
-        <div className="p-6">{renderCurrentPhoneNumber()}</div>
+        <div className="p-6">{renderPhoneNumbers()}</div>
       </Card>
       {renderModals()}
     </>

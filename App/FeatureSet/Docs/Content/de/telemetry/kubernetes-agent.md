@@ -162,7 +162,7 @@ Kubernetes-Ereignisse können im Agent nicht nach Namespace gefiltert werden. Si
 
 Akzeptiert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behält WARN, ERROR und FATAL und verwirft INFO, DEBUG und TRACE. Der Standardwert (`""`) behält alles. Es gilt in **beiden** Log-Modi — im `daemonset`-Modus über den Collector, im `api`-Modus im Log-Tailer selbst —, sodass die Presets es nicht hinter Ihrem Rücken abschalten können.
 
-Container-Laufzeitumgebungen halten keinen Schweregrad an der Log-Zeile fest, daher parst der Agent selbst einen aus dem Log-Text heraus (`[ERROR]`, `WARN:`, `level=info`, …).
+Container-Laufzeitumgebungen halten keinen Schweregrad an der Log-Zeile fest, daher parst der Agent selbst einen aus dem Log-Text heraus (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Kubernetes-Events und Ressourcen-Spezifikationen werden hiervon niemals gefiltert.** Sie treffen von der Kubernetes-API ohne eigenen Schweregrad ein, sodass ein Schwellenwert den gesamten Feed löschen statt ihn ausdünnen würde — einschließlich der `FailedScheduling`-, `BackOff`- und `OOMKilling`-Warnungen, die Sie am dringendsten brauchen. Sie sind volumenarm und von hohem Wert, daher liefert der Agent sie immer aus. Um sie auszudünnen, verwenden Sie stattdessen die serverseitigen **Protokolle → Einstellungen → Drop-Filter** im Dashboard.
 

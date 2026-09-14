@@ -34,7 +34,12 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
     errorItems.length > 0 || infoItems.length > 0 || successItems.length > 0;
 
   return (
-    <div className="absolute right-0 z-10 mt-2 w-80 rounded-xl bg-white shadow-lg ring-1 ring-gray-200 max-h-96 overflow-y-auto">
+    /*
+     * w-64 below sm: the panel hangs off the bell, which sits a couple of
+     * button widths in from the right edge, so a fixed 20rem runs past the
+     * left edge of a phone screen.
+     */
+    <div className="absolute right-0 z-10 mt-2 w-64 rounded-xl bg-white shadow-lg ring-1 ring-gray-200 max-h-96 overflow-y-auto sm:w-80">
       <div className="py-2">
         <div className="px-4 py-2 border-b border-gray-100">
           <span className="text-sm font-semibold text-gray-900">

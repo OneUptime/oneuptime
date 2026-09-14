@@ -41,6 +41,15 @@ import { getJestSpyOn } from "../../../Spy";
  * key full control of the project; one that dropped it from the master path
  * would break trusted internal automation. Both directions are pinned below.
  *
+ * AuthenticatedRequest sits in the same list but is not a capability in that
+ * sense. It is the marker for "some authenticated principal made this call" -
+ * it has no PermissionProps, never appears in the admin picker, and no
+ * administrator can grant or revoke it (see PermissionCatalogueCoverage.test).
+ * Only File/FileModel name it, so what it widens is bounded by those two
+ * models. It is here so an API key is not mistaken for a bare logged-in user
+ * by TenantPermission.isAccessGrantedOnlyByCurrentUser - see
+ * ApiKeyFileAccess.test for the behaviour that depends on it.
+ *
  * getApiTenantAccessPermission also reshapes the (cached) permission rows into
  * the runtime UserPermission shape (labelIds carried over, block flag
  * preserved). That mapping is where a dropped label would quietly widen a
@@ -62,7 +71,7 @@ const permissionValues: (
 };
 
 describe("APIKeyAccessPermission.getDefaultApiGlobalPermission", () => {
-  it("grants Public, User and CurrentUser for the project", async () => {
+  it("grants Public, User, CurrentUser and AuthenticatedRequest for the project", async () => {
     const perm: UserGlobalAccessPermission =
       await APIKeyAccessPermission.getDefaultApiGlobalPermission(projectId);
 
@@ -72,10 +81,16 @@ describe("APIKeyAccessPermission.getDefaultApiGlobalPermission", () => {
         return p.toString();
       }),
     ).toEqual([projectId.toString()]);
+    /*
+     * Exact equality rather than four toContain calls: this list IS the
+     * privilege boundary, so an addition has to be argued for here rather than
+     * slipping in unnoticed.
+     */
     expect(perm.globalPermissions).toEqual([
       Permission.Public,
       Permission.User,
       Permission.CurrentUser,
+      Permission.AuthenticatedRequest,
     ]);
   });
 
@@ -162,7 +177,7 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
     };
   };
 
-  it("queries the permissions for exactly this api key", async () => {
+  it("queries permissions for exactly this api key and project", async () => {
     spyFindPermissions.mockResolvedValue([] as never);
 
     await APIKeyAccessPermission.getApiTenantAccessPermission(
@@ -171,8 +186,12 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
     );
 
     expect(spyFindPermissions).toHaveBeenCalledTimes(1);
-    const arg: ObjectID = spyFindPermissions.mock.calls[0]![0] as ObjectID;
-    expect(arg.toString()).toBe(apiKeyId.toString());
+    const keyArgument: ObjectID = spyFindPermissions.mock
+      .calls[0]![0] as ObjectID;
+    const projectArgument: ObjectID = spyFindPermissions.mock
+      .calls[0]![1] as ObjectID;
+    expect(keyArgument.toString()).toBe(apiKeyId.toString());
+    expect(projectArgument.toString()).toBe(projectId.toString());
   });
 
   it("returns just the default baseline when the key has no permissions", async () => {

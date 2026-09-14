@@ -14,6 +14,10 @@ import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MonitorType from "../Monitor/MonitorType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
+import {
+  SloWidgetDisplayType,
+  SloWidgetMetric,
+} from "./DashboardComponents/DashboardSloComponent";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -36,11 +40,13 @@ export enum DashboardTemplateType {
   KubernetesCost = "KubernetesCost",
   Host = "Host",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   Ceph = "Ceph",
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
   Rum = "Rum",
   Network = "Network",
+  Slo = "Slo",
 }
 
 /*
@@ -104,6 +110,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     category: DashboardTemplateCategory.Monitoring,
   },
   {
+    type: DashboardTemplateType.Slo,
+    name: "SLO Dashboard",
+    description:
+      "One objective's SLI, error budget remaining and burn rate as tiles and trends, with monitor uptime, latency, incidents and alerts beside it. Pick the SLO on each widget after creating it.",
+    icon: IconProp.Percent,
+    category: DashboardTemplateCategory.Monitoring,
+  },
+  {
     type: DashboardTemplateType.Incident,
     name: "Incident Dashboard",
     description:
@@ -149,6 +163,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
     icon: IconProp.ServerStack,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.VMware,
+    name: "VMware Dashboard",
+    description:
+      "Live ESXi host and virtual machine inventories, host CPU/memory utilization, datastore capacity, CPU ready and memory ballooning trends, and vCenter logs.",
+    icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
   },
   {
@@ -693,6 +715,60 @@ function createProxmoxGuestListComponent(data: {
   };
 }
 
+function createVMwareHostListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.VMwareHostList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createVMwareVirtualMachineListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  powerStateFilter?: string;
+  templateFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      powerStateFilter: data.powerStateFilter,
+      templateFilter: data.templateFilter,
+    },
+  };
+}
+
 function createDockerSwarmNodeListComponent(data: {
   title: string;
   top: number;
@@ -837,6 +913,100 @@ function createNetworkMapComponent(data: {
       viewMode: "map",
       showLabels: data.showLabels ?? true,
       statusFilter: data.statusFilter,
+    },
+  };
+}
+
+/*
+ * An SLO widget names exactly ONE ServiceLevelObjective, by id. A template
+ * cannot know which of a project's SLOs a reader means, so every widget the
+ * SLO template ships leaves `serviceLevelObjectiveId` unset and the renderer
+ * shows its "Click to select an SLO" setup state until the reader picks one
+ * (DashboardSloComponent).
+ *
+ * `widgetTitle` is therefore always set here. Left unset, the renderer titles
+ * a configured widget "<SLO name> · <metric>", which is nicer once an SLO is
+ * chosen but leaves all six unconfigured widgets reading "SLO Widget" in the
+ * template a reader has just created. A self-describing template wins: the
+ * reader can see which tile is the burn rate before anything is configured,
+ * and can rename any of them afterwards.
+ */
+function createSloComponent(data: {
+  title: string;
+  sloMetric: SloWidgetMetric;
+  displayType: SloWidgetDisplayType;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.Slo,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    // Same floor the widget's own default declares (DashboardSloComponentUtil).
+    minHeightInDashboardUnits: 2,
+    minWidthInDashboardUnits: 2,
+    arguments: {
+      widgetTitle: data.title,
+      sloMetric: data.sloMetric,
+      displayType: data.displayType,
+    },
+  };
+}
+
+function createIncidentListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.IncidentList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      viewMode: "list",
+    },
+  };
+}
+
+function createAlertListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.AlertList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      viewMode: "list",
     },
   };
 }
@@ -2776,6 +2946,362 @@ function createRumDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createSloDashboardConfig(): DashboardViewConfig {
+  /*
+   * What this template can and cannot query, which is what its whole shape
+   * follows from:
+   *
+   * - The three SLO numbers (SLI, error budget remaining, burn rate) live in
+   *   Postgres (the columns the evaluation worker maintains) and in the
+   *   SloHistory ClickHouse table. Neither is in the metric store, so a
+   *   Chart / Value / Gauge widget over a metric NAME can never render them.
+   *   The dedicated Slo widget is the only thing that reads them, and it
+   *   names exactly one SLO by id, which is why the six widgets below ship
+   *   unconfigured and the first text row says so.
+   *
+   * - Dashboard variables do not reach the Slo widget at all: it resolves one
+   *   SLO from its stored id and has nothing to interpolate. The Monitor
+   *   variable below therefore scopes only the metric widgets in the second
+   *   half of the dashboard.
+   *
+   * - Those metric widgets query `oneuptime.monitor.online` and
+   *   `oneuptime.monitor.response.time`, which MonitorMetricUtil emits for
+   *   EVERY probeable monitor in the project. Unscoped they describe the
+   *   project, not the objective. That is exactly what the Monitor variable
+   *   is for, and it binds to the bare `monitorName` attribute key those
+   *   series carry (no `resource.` prefix).
+   *
+   *   Two callers write those names, though, and only one stamps
+   *   `monitorName`. NetworkDeviceMetricUtil.saveWalkMetrics writes the same
+   *   `oneuptime.monitor.online` / `.response.time` names off a network
+   *   device poll with `deviceName` and `networkDeviceId` instead, so the
+   *   unscoped view is "every probeable monitor PLUS every network device",
+   *   and device rows drop out the moment a monitor is picked rather than
+   *   being selectable. Nothing here can filter them out — the template
+   *   helpers expose no stored attribute filter — so the widgets are
+   *   labelled for what they are and the Monitor variable is the scope.
+   *
+   * - The Objective Health tiles do NOT follow the dashboard time picker.
+   *   They read the SLO's own state columns, which the evaluation worker
+   *   maintains over the objective's compliance window; only the three Slo
+   *   CHARTS and the monitor widgets honour the selected range.
+   *
+   * - Incident and alert METRICS are deliberately NOT on this dashboard even
+   *   though an error budget is spent by incidents, for two DIFFERENT
+   *   reasons — not one shared one.
+   *
+   *   Incident metrics cannot be scoped at all: IncidentService stamps them
+   *   with `monitorNames` (plural, comma-joined) rather than `monitorName`,
+   *   so picking a monitor would empty every incident tile while the uptime
+   *   tiles beside them stayed populated.
+   *
+   *   Alert metrics CAN be scoped — AlertService writes the singular key —
+   *   but createBurnRateAlert in EvaluateSlos never sets `monitor`, so a
+   *   burn-rate alert carries no `monitorName` and a scoped alert tile would
+   *   hide precisely the alerts this dashboard exists for. (That omission is
+   *   not the uptime-repair problem its incident twin has: resolving an
+   *   Alert never writes MonitorStatusTimeline — only the Incident path
+   *   reaches markMonitorsActiveForMonitoring.)
+   *
+   *   The incident and alert LISTS below read Postgres and ignore telemetry
+   *   variables entirely, so they stay correct under every selection — but
+   *   they are project-wide and honour no time range; see their row.
+   *
+   * - Monitor uptime is a PROXY, not the SLI. An availability SLI is
+   *   computed from MonitorStatusTimeline downtime intervals (honouring
+   *   maintenance windows and the SLO's own downtime statuses); the uptime
+   *   tile is the probe's raw 0/1 series averaged over the window. They will
+   *   disagree, which is why the tile is labelled "Monitor Uptime" rather
+   *   than anything that reads as a second opinion on the SLI.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "SLO Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 1: the one instruction a reader needs on a freshly created SLO
+     * dashboard. No other template carries a guidance row, and none of them
+     * has to: their widgets query immediately. Every Slo widget here is
+     * inert until somebody picks an objective, so saying it once beats six
+     * identical "Click to select an SLO" placeholders explaining themselves.
+     *
+     * It names EDIT deliberately. The widgets' own placeholder says "Click
+     * to select an SLO", but the click only opens the settings panel in
+     * edit mode — and a dashboard created from a template opens in view
+     * mode, where following that instruction does nothing.
+     *
+     * Kept to one short line on purpose: the Text widget scales its font to
+     * the widget's height, so a sentence much past ~70 characters wraps out
+     * of a height-1 row and is clipped. Everything else this dashboard
+     * needs to say is said by the widget titles.
+     */
+    createTextComponent({
+      text: "Edit this dashboard to pick an objective on each SLO widget.",
+      top: 1,
+      left: 0,
+      width: 12,
+      height: 1,
+    }),
+
+    // Row 2: Section header
+    createTextComponent({
+      text: "Objective Health",
+      top: 2,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 3-5: the three numbers an SLO review opens with, in the order
+     * they are read — where the service is (SLI), how much room is left
+     * (error budget), and how fast the room is disappearing (burn rate).
+     * Every tile carries the SLO's status pill; the sublines differ — SLI
+     * shows the target, the budget tile shows time remaining or over
+     * budget, and burn rate has none.
+     */
+    createSloComponent({
+      title: "SLI",
+      sloMetric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 0,
+      width: 4,
+      height: 3,
+    }),
+    createSloComponent({
+      title: "Error Budget Remaining",
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 4,
+      width: 4,
+      height: 3,
+    }),
+    createSloComponent({
+      title: "Burn Rate",
+      sloMetric: SloWidgetMetric.BurnRate,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 8,
+      width: 4,
+      height: 3,
+    }),
+
+    // Row 6: Section header
+    createTextComponent({
+      text: "Error Budget Trends",
+      top: 6,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 7-10: the same three numbers over the dashboard's time range,
+     * read from SloHistory. The SLI chart draws the objective's target as a
+     * reference line, so "are we above the line" is answerable at a glance
+     * rather than by comparing two numbers.
+     */
+    createSloComponent({
+      title: "SLI Over Time",
+      sloMetric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 4,
+    }),
+    createSloComponent({
+      title: "Error Budget Remaining Over Time",
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 4,
+    }),
+
+    /*
+     * Rows 11-14: burn rate beside the incidents. A burn-rate rule declares
+     * an incident when the budget starts going fast, so the spike and the
+     * record of what was done about it belong on one row.
+     *
+     * The list cannot be narrowed to those incidents, though, and says so
+     * in its title. IncidentList has no SLO or fingerprint filter, and —
+     * unlike every chart on this dashboard — it does not read
+     * `dashboardStartAndEndDate` at all. It is the project's latest
+     * incidents, newest first, NOT the incidents inside the window the
+     * chart beside it is drawing. Titled "Latest" rather than "Recent" so
+     * it does not imply the dashboard's time range.
+     */
+    createSloComponent({
+      title: "Burn Rate Over Time",
+      sloMetric: SloWidgetMetric.BurnRate,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 4,
+    }),
+    createIncidentListComponent({
+      title: "Latest Incidents",
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 15: Section header
+    createTextComponent({
+      text: "Monitor Health",
+      top: 15,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 16: the probe's own view of the monitors the SLO is built on.
+     *
+     * IsOnline is emitted as 0/1 with unit "", so Avg is an uptime RATIO in
+     * [0, 1] and not a percent — labelled "(avg)" for the same reason the
+     * Monitor template labels its tile that way. Response time gets both an
+     * average and a max: an SLO that is burning on latency usually shows it
+     * in the tail long before the mean moves.
+     */
+    createValueComponent({
+      title: "Monitor Uptime (avg)",
+      top: 16,
+      left: 0,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Avg Response Time",
+      top: 16,
+      left: 4,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "ms",
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Worst Response Time",
+      top: 16,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Max,
+        legendUnit: "ms",
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Rows 17-19: the same two signals over time.
+    createChartComponent({
+      title: "Monitor Uptime Over Time",
+      chartType: DashboardChartType.Area,
+      top: 17,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Uptime Ratio",
+      },
+    }),
+    createChartComponent({
+      title: "Response Time Over Time",
+      chartType: DashboardChartType.Line,
+      top: 17,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Avg Response Time",
+        legendUnit: "ms",
+      },
+    }),
+
+    /*
+     * Rows 20-23: the monitors themselves, and the alerts a burn-rate rule
+     * raises. Both read Postgres, so neither is affected by the Monitor
+     * variable and neither honours the dashboard time range.
+     *
+     * The monitor list is titled "All Monitors" rather than anything that
+     * implies the objective: MonitorList's only variable binding is
+     * `labelVariableId` against a ProjectLabel variable, which this
+     * template does not ship, so nothing the reader does in the toolbar
+     * narrows it. The section header above was "Monitors Behind the
+     * Objective" and promised exactly the scoping none of these widgets
+     * has on a freshly created dashboard. Scope the list with its own
+     * Labels filter if the project is large.
+     */
+    createMonitorListComponent({
+      title: "All Monitors",
+      top: 20,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createAlertListComponent({
+      title: "Latest Alerts",
+      top: 20,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+  ];
+
+  /*
+   * Monitor metrics are stored with the bare `monitorName` attribute key
+   * rather than the OTel `resource.` prefix — see
+   * MonitorMetricUtil.buildAttributes — so the variable binds to the bare
+   * key. Multi-select because an objective is normally backed by several
+   * monitors, and picking one of them would describe less than the SLO does.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "monitor",
+      label: "Monitor",
+      attributeKey: "monitorName",
+      isMultiSelect: true,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 24),
+  };
+}
+
 function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -3186,6 +3712,255 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
     components,
     variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 15),
+  };
+}
+
+function createVMwareDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - Host / VM counts come from the Postgres inventory list widgets
+   *   (VMwareResource), never from Sum-of-gauge Value widgets. The
+   *   vcenter receiver's count metrics (vcenter.datacenter.host.count,
+   *   vcenter.cluster.vm.count, ...) fan out over status x power_state
+   *   attributes and re-emit every scrape, so summing them across the
+   *   dashboard window multiplies (buckets x scrapes) — the same failure
+   *   the Kubernetes / Proxmox templates document — and template metric
+   *   widgets cannot filter on datapoint attributes to pick one bucket.
+   *   The list-widget headers show the true current counts; the VM list
+   *   hides templates so its header counts real virtual machines.
+   *
+   * - Every metric here is a per-object gauge the receiver already
+   *   reports in its final unit (utilization in %, readiness in %,
+   *   throughput in KiBy/s, ballooned memory in MiBy), so Avg is the
+   *   right aggregation for the temperature tiles and trend charts and
+   *   nothing needs transformAsRate.
+   *
+   * - Ballooned memory is charted with Max rather than Avg: one VM under
+   *   balloon pressure is the signal, and averaging it across a fleet of
+   *   healthy VMs would hide it.
+   *
+   * - Host charts fan out via groupByAttributeKeys on the resource's own
+   *   identity attribute so one line per ESXi host is drawn; identity for
+   *   vcenter metrics lives in RESOURCE attributes, hence the `resource.`
+   *   prefix (same convention as the vCenter variable below).
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "VMware Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createVMwareHostListComponent({
+      title: "Hosts",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createVMwareVirtualMachineListComponent({
+      title: "Virtual Machines",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+      templateFilter: "exclude",
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Utilization",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 6: Fleet-wide temperature tiles. All four are percentages the
+     * receiver reports directly, and all are "higher = worse".
+     */
+    createValueComponent({
+      title: "Host CPU (avg %)",
+      top: 6,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.host.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Host Memory (avg %)",
+      top: 6,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.host.memory.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Datastore Used (avg %)",
+      top: 6,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.datastore.disk.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "VM CPU Ready (avg %)",
+      top: 6,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.cpu.readiness",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Rows 7-9: Per-host CPU and memory trends
+    createChartComponent({
+      title: "Host CPU Utilization",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+    createChartComponent({
+      title: "Host Memory Utilization",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.memory.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Memory %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Capacity & Contention",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 11-13: Datastore capacity and VM CPU contention
+    createChartComponent({
+      title: "Datastore Utilization",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.datastore.disk.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Used %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.datastore.name"],
+      },
+    }),
+    createChartComponent({
+      title: "VM CPU Ready (avg across VMs)",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.cpu.readiness",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU ready %",
+        legendUnit: "%",
+      },
+    }),
+
+    // Rows 14-16: Memory pressure and host network throughput
+    createChartComponent({
+      title: "VM Memory Ballooned (max per VM)",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.memory.ballooned",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Ballooned MiB",
+        legendUnit: "MiB",
+      },
+    }),
+    createChartComponent({
+      title: "Host Network Throughput (avg per host)",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.network.throughput",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "KiB/s",
+        legendUnit: "KiB/s",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+
+    // Rows 17-19: Logs (ESXi syslog forwarded through the agent's syslog receiver)
+    createLogStreamComponent({
+      title: "vCenter Logs",
+      top: 17,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "vcenter",
+      label: "vCenter",
+      attributeKey: "resource.vmware.vcenter.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
   };
 }
 
@@ -3824,6 +4599,8 @@ export function getTemplateConfig(
       return createHostDashboardConfig();
     case DashboardTemplateType.Proxmox:
       return createProxmoxDashboardConfig();
+    case DashboardTemplateType.VMware:
+      return createVMwareDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
     case DashboardTemplateType.DockerSwarm:
@@ -3832,6 +4609,8 @@ export function getTemplateConfig(
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Rum:
       return createRumDashboardConfig();
+    case DashboardTemplateType.Slo:
+      return createSloDashboardConfig();
     case DashboardTemplateType.Network:
       return createNetworkDashboardConfig();
     case DashboardTemplateType.Blank:

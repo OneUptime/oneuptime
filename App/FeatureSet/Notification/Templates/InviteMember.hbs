@@ -16,7 +16,7 @@
 
 {{#ifCond isInvitationAccepted "true"}}
 
-{{> EmailTitle title=(concat "🎉 You've Been Added to " projectName) }}
+{{> EmailTitle title=(concat "You've Been Added to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
 {{> InfoBlock info="You've been added to a project on OneUptime. Create your account to get started - your access is already waiting for you."}}
@@ -25,8 +25,7 @@
 
 {{> VerticalSpace this}}
 
-{{> InfoBlock info="Or copy and paste this link into your browser:"}}
-{{> InfoBlock info=registerLink}}
+{{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
 {{> InfoBlock info="You've been added to a project on OneUptime. Sign in to get started - there is nothing for you to accept."}}
 
@@ -34,13 +33,12 @@
 
 {{> VerticalSpace this}}
 
-{{> InfoBlock info="Or copy and paste this link into your browser:"}}
-{{> InfoBlock info=signInLink}}
+{{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
 {{/ifCond}}
 
 {{else}}
 
-{{> EmailTitle title=(concat "👋 You're Invited to " projectName) }}
+{{> EmailTitle title=(concat "You're Invited to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
 {{> InfoBlock info="You've been invited to join a project on OneUptime. Create your account to get started."}}
@@ -49,8 +47,7 @@
 
 {{> VerticalSpace this}}
 
-{{> InfoBlock info="Or copy and paste this link into your browser:"}}
-{{> InfoBlock info=registerLink}}
+{{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
 {{> InfoBlock info="You've been invited to join a project on OneUptime. Sign in to view and manage your invitations."}}
 
@@ -58,8 +55,7 @@
 
 {{> VerticalSpace this}}
 
-{{> InfoBlock info="Or copy and paste this link into your browser:"}}
-{{> InfoBlock info=signInLink}}
+{{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
 {{/ifCond}}
 
 {{/ifCond}}

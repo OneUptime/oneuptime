@@ -58,11 +58,22 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
     const currentWord: string = extractCurrentWord(props.value);
 
-    // Strip leading "@" — treat it as a trigger character for suggestions
-    const hasAtPrefix: boolean = currentWord.startsWith("@");
-    const normalizedWord: string = hasAtPrefix
+    /*
+     * A leading `-` negates the whole term. It is stripped before the `@`
+     * check so `-@http.method:GET` still reads as an attribute for the
+     * suggestion dropdown, and remembered so Enter can decline to build a
+     * chip out of it.
+     */
+    const isNegatedWord: boolean = currentWord.startsWith("-");
+    const unnegatedWord: string = isNegatedWord
       ? currentWord.substring(1)
       : currentWord;
+
+    // Strip leading "@" — treat it as a trigger character for suggestions
+    const hasAtPrefix: boolean = unnegatedWord.startsWith("@");
+    const normalizedWord: string = hasAtPrefix
+      ? unnegatedWord.substring(1)
+      : unnegatedWord;
 
     // Determine if we're in "field:value" mode or "field name" mode
     const colonIndex: number = normalizedWord.indexOf(":");
@@ -150,9 +161,19 @@ const LogSearchBar: React.ForwardRefExoticComponent<
               return;
             }
 
-            // If in value mode with a typed value, apply as a chip
+            /*
+             * In value mode with a typed value, apply it as a chip — the
+             * chip is compiled with the same search grammar as the raw
+             * query string, so `@platform.team:a*` stays a prefix match.
+             *
+             * A negated token (`-severity:debug`) is the one shape a chip
+             * cannot carry: the chip's key would be the literal
+             * "-severity". Those fall through to a plain submit, where the
+             * parser reads the `-` as the negation it is.
+             */
             if (
               isValueMode &&
+              !isNegatedWord &&
               partialValue.length > 0 &&
               props.onFieldValueSelect
             ) {
@@ -225,6 +246,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
           selectedSuggestionIndex,
           filteredSuggestions,
           isValueMode,
+          isNegatedWord,
           fieldPrefix,
           partialValue,
           props,

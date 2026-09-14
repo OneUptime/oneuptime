@@ -85,6 +85,8 @@ const makeSite: MakeSiteFunction = (
     deviceStats: emptyDeviceHealthCounts(),
     unitStats: { totalUnits: 0, operationalUnits: 0 },
     uptimePercent: null,
+    dailyUptimePercent: null,
+    isUnderMaintenance: false,
     ...overrides,
   };
 };

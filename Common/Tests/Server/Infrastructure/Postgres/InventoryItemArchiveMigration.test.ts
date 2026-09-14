@@ -137,12 +137,53 @@ describe("the custom field table", () => {
     /*
      * Read off the model rather than listed here, so a column added to the
      * model without a migration fails rather than throwing at runtime.
+     *
+     * A column may legitimately arrive in a LATER migration instead of this
+     * CREATE TABLE — this migration has already shipped, and editing it would
+     * do nothing for the databases that have run it while putting them out of
+     * step with fresh ones. So the invariant is "every model column is created
+     * here or added later", which still fails a column that no migration
+     * mentions at all. The end-state schema itself is owned by the Schema
+     * Drift job, which migrates an empty database and diffs it against the
+     * models.
      */
     const createStatement: string = SOURCE.slice(
       SOURCE.indexOf('CREATE TABLE "InventoryItemCustomField"'),
     ).split("`")[0]!;
 
+    const migrationsDirectory: string = path.dirname(MIGRATION_PATH);
+
+    const addedByLaterMigration: Set<string> = new Set<string>();
+
+    for (const fileName of fs.readdirSync(migrationsDirectory)) {
+      if (
+        !fileName.endsWith(".ts") ||
+        fileName === path.basename(MIGRATION_PATH)
+      ) {
+        continue;
+      }
+
+      const migrationSource: string = fs.readFileSync(
+        path.join(migrationsDirectory, fileName),
+        "utf8",
+      );
+
+      const addPattern: RegExp =
+        /ALTER TABLE "InventoryItemCustomField" ADD "([^"]+)"/g;
+
+      let match: RegExpExecArray | null = addPattern.exec(migrationSource);
+
+      while (match) {
+        addedByLaterMigration.add(match[1]!);
+        match = addPattern.exec(migrationSource);
+      }
+    }
+
     for (const column of getDeclaredColumns(InventoryItemCustomField)) {
+      if (addedByLaterMigration.has(column)) {
+        continue;
+      }
+
       expect(createStatement).toContain(`"${column}"`);
     }
   });

@@ -82,6 +82,20 @@ export interface ExtractedEntity {
    * the registry attaches them via the existing project label system.
    */
   labels?: Array<string>;
+  /**
+   * When true this entity contributes its key to `entityKeys` on signals but
+   * must never mint a registry row.
+   *
+   * One OTLP resource describes ONE object of any given type — it is a single
+   * pod, on a single node, in a single cluster — and the rest of the pipeline
+   * relies on that: `scalarEntityKeysFromEntities` keeps the first key per
+   * type, and the heuristic resolvers emit at most one entity per type by
+   * construction. A producer can nonetheless send two `entity_refs` of the
+   * same type on one resource, and promoting both put two rows in Inventory
+   * from a single batch. The extra refs stay queryable as membership keys and
+   * stop there.
+   */
+  membershipOnly?: boolean;
 }
 
 /**
@@ -302,6 +316,12 @@ export default class InventoryItem {
   }): Array<ExtractedEntity> {
     const out: Array<ExtractedEntity> = [];
     const seen: Set<string> = new Set<string>();
+    /*
+     * First usable ref of a type is the one that gets a registry row; any
+     * later ref of that same type is demoted to membership-only. See
+     * `ExtractedEntity.membershipOnly`.
+     */
+    const promotedTypes: Set<EntityType> = new Set<EntityType>();
 
     for (const ref of data.entityRefs) {
       const refType: string =
@@ -381,6 +401,15 @@ export default class InventoryItem {
         }
       }
 
+      const alreadyPromoted: boolean = promotedTypes.has(entityType);
+      if (alreadyPromoted) {
+        logger.debug(
+          `OTLP resource declares more than one entity_ref of type "${refType}"; keeping the first as the entity and the rest as membership keys only.`,
+        );
+      } else {
+        promotedTypes.add(entityType);
+      }
+
       out.push({
         entityType,
         entityKey,
@@ -388,6 +417,7 @@ export default class InventoryItem {
         ...(Object.keys(descriptiveAttributes).length > 0
           ? { descriptiveAttributes }
           : {}),
+        ...(alreadyPromoted ? { membershipOnly: true } : {}),
       });
     }
 
@@ -570,7 +600,32 @@ export default class InventoryItem {
       return { entityType: EntityType.KubernetesNamespace, id };
     },
 
-    // k8s.node — cluster + k8s.node.uid/k8s.node.name.
+    /*
+     * k8s.node — cluster + k8s.node.name, falling back to k8s.node.uid only
+     * when no name is available.
+     *
+     * The name is preferred BECAUSE the uid is not universally reported and
+     * identity must not depend on which optional attributes a particular
+     * producer happens to carry. The shipped Kubernetes agent proves the
+     * point: its Deployment collector's `k8s_cluster` receiver reports node
+     * metrics with uid AND name, while its DaemonSet collector
+     * (kubeletstats / hostmetrics / cAdvisor / filelog) only ever has the
+     * name — the kubelet summary API carries no node uid and `k8sattributes`
+     * is not asked to extract one. A uid-first rule therefore hashed the same
+     * node two ways and put two rows in Inventory, both `discovered`, both
+     * displaying the same node name (`k8s.node.name` is a descriptive
+     * attribute on the uid-keyed row, so the two were indistinguishable in
+     * the list). Neither row aged out, because both pipelines keep reporting.
+     *
+     * Name-keying is also what the rest of OneUptime already assumes: the
+     * chart's own comment at configmap-daemonset.yaml says "OneUptime keys the
+     * k8s.node entity on k8s.cluster.name + k8s.node.name", and cluster and
+     * host identity are name-based for the same reason (see
+     * k8sClusterIdentity and the host resolver above).
+     *
+     * The uid stays available as a descriptive attribute, and remains the
+     * identity for the one resource that genuinely has nothing else.
+     */
     (attrs: EntityAttributes) => {
       const nodeUid: string | null = InventoryItem.str(attrs, "k8s.node.uid");
       const nodeName: string | null = InventoryItem.str(attrs, "k8s.node.name");
@@ -580,15 +635,27 @@ export default class InventoryItem {
       const id: Dictionary<string> = {
         ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
       };
-      if (nodeUid) {
-        id["k8s.node.uid"] = nodeUid;
-      } else if (nodeName) {
+      if (nodeName) {
         id["k8s.node.name"] = nodeName;
+      } else {
+        id["k8s.node.uid"] = nodeUid!;
       }
       return { entityType: EntityType.KubernetesNode, id };
     },
 
-    // k8s.pod — cluster + namespace + k8s.pod.uid/k8s.pod.name.
+    /*
+     * k8s.pod — cluster + namespace + k8s.pod.name, falling back to
+     * k8s.pod.uid only when no name is available. Name-preferring for the
+     * same reason as k8s.node above: a pod observed by one pipeline that
+     * resolves its uid and another that does not is one pod, not two.
+     *
+     * A pod name is unique within a namespace at any instant, so this also
+     * makes a restarted StatefulSet pod (same name, new uid) stay one
+     * inventory row instead of minting a fresh one per incarnation — which
+     * is the behaviour an inventory wants. Incarnations remain separable on
+     * the signals themselves, which still carry `k8s.pod.uid` as a resource
+     * attribute, and the 24h pod TTL still reaps a name that stops reporting.
+     */
     (attrs: EntityAttributes) => {
       const podUid: string | null = InventoryItem.str(attrs, "k8s.pod.uid");
       const podName: string | null = InventoryItem.str(attrs, "k8s.pod.name");
@@ -599,10 +666,10 @@ export default class InventoryItem {
         ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
       };
       InventoryItem.addIfPresent(id, attrs, "k8s.namespace.name");
-      if (podUid) {
-        id["k8s.pod.uid"] = podUid;
-      } else if (podName) {
+      if (podName) {
         id["k8s.pod.name"] = podName;
+      } else {
+        id["k8s.pod.uid"] = podUid!;
       }
       return { entityType: EntityType.KubernetesPod, id };
     },
@@ -687,7 +754,7 @@ export default class InventoryItem {
 
     /*
      * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
-     * proxmox/ceph cluster identity: the typed Postgres row
+     * proxmox/ceph/vmware root identity: the typed Postgres row
      * (DockerSwarmCluster) and the read side
      * (`EntityKey.keyForDockerSwarmCluster`) are name-based, and the agent
      * stamps `docker.swarm.cluster.name` on every signal. Node/Service/Task
@@ -705,6 +772,149 @@ export default class InventoryItem {
             id: { "docker.swarm.cluster.name": name },
           }
         : null;
+    },
+
+    /*
+     * ---- VMware vSphere ------------------------------------------------
+     *
+     * Identity for every vSphere object lives in RESOURCE attributes the
+     * OpenTelemetry Collector `vcenter` receiver emits (one OTLP resource
+     * per datacenter / cluster / host / VM / datastore / resource pool),
+     * plus the OneUptime-defined `vmware.vcenter.name` the agent's
+     * resource processor stamps on all of them. That root attribute is
+     * the only thing that says WHICH vCenter an object belongs to, so every
+     * resolver below requires it and folds it in (see
+     * vmwareVCenterIdentity) — a resource without it resolves to no VMware
+     * entity at all, rather than to a key that would collide across
+     * vCenters. Datacenters and resource pools are tracked as VMwareResource
+     * inventory rows but are deliberately not entities.
+     */
+
+    // vmware.vcenter — vmware.vcenter.name only (see vmwareVCenterIdentity).
+    (attrs: EntityAttributes) => {
+      const id: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      return id ? { entityType: EntityType.VMwareVCenter, id } : null;
+    },
+
+    /*
+     * vmware.cluster — vCenter + vcenter.datacenter.name +
+     * vcenter.cluster.name. Cluster names are unique only within a
+     * datacenter, so the datacenter is part of the identity. Emitted for
+     * every resource that carries a cluster name (a host in a cluster, a VM
+     * on such a host, the cluster's own resource), so the cluster entity is
+     * kept alive by all of them.
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const cluster: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.cluster.name",
+      );
+      if (!vcenter || !datacenter || !cluster) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareCluster,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.cluster.name": cluster,
+        },
+      };
+    },
+
+    /*
+     * vmware.host — vCenter + vcenter.datacenter.name + vcenter.host.name.
+     * The cluster is deliberately NOT identity: moving an ESXi host between
+     * clusters (or out of one into a standalone role) does not change which
+     * host it is, so folding the cluster in would fork the key. It is kept
+     * as a descriptive attribute instead. Emitted for the host's own
+     * resource and for every VM resource (which carries its parent host).
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const host: string | null = InventoryItem.str(attrs, "vcenter.host.name");
+      if (!vcenter || !datacenter || !host) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareHost,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.host.name": host,
+        },
+      };
+    },
+
+    /*
+     * vmware.vm — vCenter + the VM's instance UUID. The receiver reports it
+     * as `vcenter.vm.id` on a virtual machine and as `vcenter.vm_template.id`
+     * on a template; a template IS a VM (converting one to the other keeps
+     * the instance UUID), so both are accepted and stored under the single
+     * identity key `vcenter.vm.id` — the key survives the conversion. The
+     * host name is deliberately NOT identity: a vMotion moves a VM between
+     * ESXi hosts without changing what it is, so folding the host in would
+     * fork the key on every migration. The VM name is not identity either
+     * (a VM can be renamed). Name, host, cluster, datacenter, resource pool
+     * and the template name are descriptive.
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const vmId: string | null =
+        InventoryItem.str(attrs, "vcenter.vm.id") ||
+        InventoryItem.str(attrs, "vcenter.vm_template.id");
+      if (!vcenter || !vmId) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareVirtualMachine,
+        id: {
+          ...vcenter,
+          "vcenter.vm.id": vmId,
+        },
+      };
+    },
+
+    /*
+     * vmware.datastore — vCenter + vcenter.datacenter.name +
+     * vcenter.datastore.name. Datastore names are unique within a
+     * datacenter (a datastore mounted by many hosts is still one object).
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const datastore: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datastore.name",
+      );
+      if (!vcenter || !datacenter || !datastore) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareDatastore,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.datastore.name": datastore,
+        },
+      };
     },
 
     /*
@@ -820,11 +1030,18 @@ export default class InventoryItem {
       "telemetry.sdk.name",
       "telemetry.sdk.version",
     ],
+    /*
+     * The uids are descriptive rather than identifying (see the node / pod
+     * resolvers): keeping them here means the Inventory row still shows the
+     * uid of the object it is currently tracking, without that uid being able
+     * to fork the row's identity.
+     */
     [EntityType.KubernetesNode]: [
       "k8s.node.name",
+      "k8s.node.uid",
       "node.kubernetes.io/instance-type",
     ],
-    [EntityType.KubernetesPod]: ["k8s.pod.name"],
+    [EntityType.KubernetesPod]: ["k8s.pod.name", "k8s.pod.uid"],
     [EntityType.Container]: [
       "container.image.name",
       "container.image.tag",
@@ -832,6 +1049,22 @@ export default class InventoryItem {
     ],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
     [EntityType.CephCluster]: ["ceph.cluster.fsid"],
+    /*
+     * VMware: the cluster an ESXi host sits in and the host / name / pool a
+     * VM currently has are exactly the things vSphere moves or renames
+     * (cluster membership changes, vMotion, rename, convert-to-template), so
+     * they ride along as descriptive metadata and never enter the key — see
+     * the vmware.host / vmware.vm resolvers.
+     */
+    [EntityType.VMwareHost]: ["vcenter.cluster.name"],
+    [EntityType.VMwareVirtualMachine]: [
+      "vcenter.vm.name",
+      "vcenter.vm_template.name",
+      "vcenter.host.name",
+      "vcenter.cluster.name",
+      "vcenter.datacenter.name",
+      "vcenter.resource_pool.name",
+    ],
   };
 
   private static descriptiveAttributesFor(
@@ -950,6 +1183,27 @@ export default class InventoryItem {
     const name: string | null = this.str(attrs, "proxmox.cluster.name");
     if (name) {
       return { "proxmox.cluster.name": name };
+    }
+    return null;
+  }
+
+  /*
+   * VMware vCenter identity — vmware.vcenter.name only, mirroring
+   * proxmoxClusterIdentity above: the typed Postgres row (VMwareVCenter) and
+   * the read side (`EntityKey.keyForVMwareVCenter`) are name-based, and the
+   * attribute is the user-configured join key (`VMWARE_VCENTER_NAME`) the
+   * VMware agent's resource processor stamps on every resource — the
+   * OpenTelemetry Collector `vcenter` receiver itself emits nothing that
+   * names the vCenter it scraped. This identity is folded into every
+   * composite vmware cluster/host/vm/datastore identity, which must stay
+   * name-based with it, and no VMware entity resolves without it.
+   */
+  private static vmwareVCenterIdentity(
+    attrs: EntityAttributes,
+  ): Dictionary<string> | null {
+    const name: string | null = this.str(attrs, "vmware.vcenter.name");
+    if (name) {
+      return { "vmware.vcenter.name": name };
     }
     return null;
   }

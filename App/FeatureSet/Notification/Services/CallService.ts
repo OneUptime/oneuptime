@@ -21,7 +21,7 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -152,7 +152,12 @@ export default class CallService {
         options.customTwilioConfig || (await getTwilioConfig());
 
       if (!twilioConfig) {
-        throw new BadDataException("Twilio Config not found");
+        /*
+         * Nobody has filled in Twilio credentials in Global Settings (or the
+         * caller passed a project-level config that is empty). Failing to place
+         * the call is the correct behaviour, not a defect.
+         */
+        throw new BadDataException("Twilio Config not found").asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -264,7 +269,8 @@ export default class CallService {
         if (!project.enableCallNotifications) {
           callLog.status = CallStatus.Error;
           callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
-          logger.error(callLog.statusMessage);
+          // The project turned calls off. Refusing to dial is the setting working.
+          logger.error(callLog.statusMessage, EXTERNAL_FAULT);
           await CallLogService.create({
             data: callLog,
             props: {
@@ -308,7 +314,8 @@ export default class CallService {
           if (!project.smsOrCallCurrentBalanceInUSDCents) {
             callLog.status = CallStatus.LowBalance;
             callLog.statusMessage = `Project ${options.projectId.toString()} does not have enough Call balance.`;
-            logger.error(callLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(callLog.statusMessage, EXTERNAL_FAULT);
             await CallLogService.create({
               data: callLog,
               props: {
@@ -342,7 +349,8 @@ export default class CallService {
             callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
               project.smsOrCallCurrentBalanceInUSDCents / 100
             } USD. Required balance is ${callCost} USD to make this call.`;
-            logger.error(callLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(callLog.statusMessage, EXTERNAL_FAULT);
             await CallLogService.create({
               data: callLog,
               props: {

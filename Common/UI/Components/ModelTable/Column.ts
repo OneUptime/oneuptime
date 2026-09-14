@@ -45,6 +45,21 @@ export default interface Columns<
    */
   isRemovable?: boolean | undefined;
   contentClassName?: string | undefined;
+  /*
+   * Let this cell's content wrap onto more than one line, instead of forcing
+   * it onto the single `whitespace-nowrap` line every body cell gets by
+   * default. Set it on any column whose cell can hold server- or
+   * operator-authored prose; leave it unset for dates, counts, badges and
+   * ids. See Common/UI/Components/Table/Types/Column.ts for the full
+   * reasoning, including why a `max-w-*` on the rendered element is not a
+   * substitute and in fact makes the overlap worse (OneUptime issue #3585).
+   */
+  wrapContent?: boolean | undefined;
+  /*
+   * Width cap for a wrapping cell, e.g. "max-w-3xl". Read ONLY when
+   * `wrapContent` is set; defaults to "max-w-md" (28rem).
+   */
+  wrapMaxWidthClassName?: string | undefined;
   colSpan?: number | undefined;
   disableSort?: boolean;
   description?: string | undefined;

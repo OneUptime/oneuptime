@@ -254,6 +254,10 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
    *   - name -> POST {crud}/get-list with query {name}, limit 2; exactly one
    *     match required — zero or multiple matches are errors, never silently
    *     empty state or an arbitrary first item
+   *
+   * Both paths post through the client's select-dropping helpers, so a column
+   * the server rejects (permission-gated, or unknown to an older deployment)
+   * costs that one attribute rather than the whole lookup.
    */
   private generateReadMethod(
     dataSource: TerraformDataSource,
@@ -300,7 +304,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
             // limit 2 is enough to detect ambiguity without paging.
             "limit": 2,
         }
-        httpResp, err := d.client.Post(ctx, "${listOperation.path}", listBody)
+        httpResp, err := d.client.PostBodyWithSelect(ctx, "${listOperation.path}", listBody)
         if err != nil {
             resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to list ${dataSource.name}, got error: %s", err))
             return

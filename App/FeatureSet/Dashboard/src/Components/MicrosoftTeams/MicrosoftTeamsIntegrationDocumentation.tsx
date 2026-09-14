@@ -38,6 +38,7 @@ Azure Account - You can create one by going to https://azure.com.
    - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
    - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
    - **Channel.Create** - Required to create new channels for organizing notifications (e.g., separate channels for incidents, alerts)
+   - **TeamsAppInstallation.ReadForTeam.All** - Required for diagnosis. Lets OneUptime read which app package is actually installed in a team and compare it to this deployment's client id. Without it, a failed notification can only list the possible causes; with it, OneUptime tells you which one it is. This is the difference between a one-minute fix and a multi-day investigation, so grant it.
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
    - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
@@ -77,6 +78,19 @@ Please note: Do not copy the secret ID, you need the secret VALUE which is typic
 5. Set the "Messaging endpoint" to \`${window.location.origin}/api/microsoft-bot/messages\`
 6. Save the configuration.
 
+**Verify the endpoint before moving on.** Azure Bot Service calls this URL from the public internet, so test it from outside your network — not from inside the cluster, and not over a VPN that can see this host when Azure cannot.
+
+\`\`\`bash
+curl -sS -i ${window.location.origin}/api/microsoft-bot/messages
+\`\`\`
+
+Use \`-i\` rather than just the status code: on a 404 the **body is the only thing that tells you who produced it**, and that distinction is the whole diagnosis.
+
+- **405** is the correct answer and means you are done here. The endpoint accepts POST only, so a GET is answered "Method Not Allowed", with \`Allow: POST\` and a description of itself. Reaching it at all is what is being tested.
+- **404 with a JSON body of \`{"message":"Page not found - /api/microsoft-bot/messages"}\`** came from OneUptime, so the request *did* arrive — either this deployment predates the 405 response above, or something in front of it is rewriting the path and stripping the \`/api\` prefix before the app sees it.
+- **404 with an HTML error page** from nginx, your ingress or a load balancer means the opposite: the request never reached OneUptime.
+- **A TLS error, timeout or refused connection** means Azure will not reach it either. See Troubleshooting below.
+
 ##### Step 6: Add Microsoft Teams Channel to the Bot
 
 1. In your Azure Bot resource, navigate to "Channels"
@@ -108,7 +122,9 @@ Restart your OneUptime server after adding these environment variables so they t
 
 ##### Step 8: Upload Teams App Manifest
 
-1. Go to project Settings -> Integrations -> Microsoft Teams
+> **Do not install "OneUptime" from the Microsoft Teams store for a self-hosted deployment.** That package's bot belongs to OneUptime Cloud. Teams will install it happily and show it under **Manage team → Apps**, and every notification this deployment sends will then be refused with *"The bot is not part of the conversation roster."* Only the manifest you download below carries your \`MICROSOFT_TEAMS_APP_CLIENT_ID\` as its bot id.
+
+1. Go to project Settings -> Workspace -> Microsoft Teams
 2. Download the Teams app manifest from there
 3. Go to Microsoft Teams, click on "Apps" in the sidebar
 4. At the bottom, click "Manage your apps"
@@ -116,14 +132,61 @@ Restart your OneUptime server after adding these environment variables so they t
 6. Select "Upload for me or my teams"
 7. Upload the manifest zip file you downloaded earlier
 
+##### Step 9: Add the App to Every Team You Want Notifications In
+
+Uploading the manifest is not enough on its own — installation is per team.
+
+1. In Microsoft Teams, click the "..." next to the **team name** (not the channel)
+2. Choose **Manage team → Apps → More apps**, find OneUptime and click **Add**
+3. For a **private** channel, also open the channel → "..." → **Manage channel → Apps → Add an app**. A team-level install does not cover private channels
+4. Microsoft Teams does not allow bots in **shared** channels, so those cannot receive notifications
+
+Connecting the integration grants tenant-wide Graph **read** access, which is why the channel picker can list channels in teams the bot cannot post to. Seeing a channel in OneUptime does not mean OneUptime can post to it.
+
 ##### Troubleshooting
 
-If you encounter issues:
+**"The bot is not part of the conversation roster" / "the OneUptime bot is not a member of that conversation"**
 
-- Ensure your app has the correct permissions granted
+In order of likelihood:
+
+1. **The installed app is a different package.** A tile named "OneUptime" under Manage team → Apps is not enough — what matters is whether its bot id equals this deployment's \`MICROSOFT_TEAMS_APP_CLIENT_ID\`. Remove it and upload your own manifest (Step 8).
+2. **The Azure Bot has no Microsoft Teams channel.** Complete Step 6. Without it the bot is never provisioned into Teams conversations, so it is in no channel's roster — even though the app installs cleanly.
+3. **The app is installed for you, but not in the team.** Complete Step 9.
+4. **The channel is private.** See Step 9.
+
+Grant **TeamsAppInstallation.ReadForTeam.All** (Step 3) and OneUptime will tell you which of these it is instead of listing them.
+
+**Card buttons say "Unable to reach app", and chats never appear**
+
+One failure, not two: **Azure Bot Service cannot reach your messaging endpoint.**
+
+Alert cards keep arriving, which makes the integration look healthy. It is not — the two directions are independent and only one works. OneUptime posts alerts by calling Microsoft, which needs no inbound access. Tapping a button on that card, typing \`help\` to the bot, and registering a chat all travel the other way: Azure Bot Service POSTs to \`${window.location.origin}/api/microsoft-bot/messages\`. A working alert proves your client secret and Graph permissions are fine and says nothing about the bot endpoint.
+
+1. **Look for the POST, not for 404s** — \`grep 'POST /api/microsoft-bot/messages' <access log>\`. No POST lines at all means Azure never got through, and nothing inside OneUptime is at fault. GET lines returning 404 are a different thing entirely (see below).
+2. **Call the endpoint from outside your network** (Step 5), with \`curl -i\` so you can see the body. A 405 proves the route is live and reachable from there. A TLS error, timeout or refused connection is your answer.
+3. **Check the certificate chain.** Azure requires HTTPS with a publicly trusted certificate served with its full chain. A self-signed certificate, an internal CA or a missing intermediate fails the handshake before OneUptime sees the request, so the access log stays empty and looks like Azure never tried.
+4. **Check the host resolves publicly.** Private DNS, a split-horizon record or an internal-only ingress all reach you and your VPN while staying invisible to Azure.
+
+**A 404 on \`GET /api/microsoft-bot/messages\` is not the bug, and it is not evidence Azure could not reach you.** The endpoint has always accepted POST only, so older versions answered a browser GET with OneUptime's generic \`{"message":"Page not found - /api/microsoft-bot/messages"}\`. That reads as a missing route and has sent admins hunting a regression that was not there — but note what it proves: OneUptime generated it, so the request *reached the app*. It is 58 bytes, which is why it appears in an access log as \`"GET /api/microsoft-bot/messages HTTP/1.1" 404 58\`. This version answers a GET with 405 plus a description of itself.
+
+**No chats appear under Microsoft Teams Chats**
+
+Chats register when the bot receives an activity from that chat — the app being installed, the bot being added to the conversation, or any message sent to the bot in it. An empty list means no such activity has ever arrived. Two causes, in order:
+
+1. **The messaging endpoint is unreachable** — see above. This is the more common one, and the giveaway is that alerts still post to channels.
+2. **The installed package points at a different deployment,** so its activities go somewhere else. Verify the installed package (Step 8).
+
+Refresh Chats re-reads what OneUptime already stored — Microsoft does not allow listing chats with application permissions, so it cannot go and fetch them.
+
+**Checking this deployment's bot configuration**
+
+\`curl -sS ${window.location.origin}/api/microsoft-bot/test\` reports the bot id this deployment expects your Teams app package to carry, plus which environment variables are set. It reads local configuration only — it does not call Azure, so it cannot confirm the Azure Bot resource, the Teams channel, the secret's validity, or that Azure can reach you. Its value is the bot id comparison against the app installed in Teams.
+
+**Other checks**
+
+- Ensure your app has the correct permissions granted, including admin consent
 - Check that the redirect URI matches exactly
-- Verify your environment variables are set correctly
-- Make sure the bot is added to the channels you want to post to
+- Verify your environment variables are set correctly, and restart the server after changing them
 
 We would like to improve this integration, so feedback is more than welcome. Please send us any at hello@oneuptime.com
 

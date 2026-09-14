@@ -197,6 +197,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     },
     buildAffectedResourcesFacet<ScheduledMaintenance>({
       parentModelType: ScheduledMaintenance,
+      // Only maintenance events can be attached to a network site.
+      includeNetworkSite: true,
     }),
   ];
 
@@ -637,6 +639,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          vmwareVCenters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           cephClusters: {
             name: true,
             _id: true,
@@ -648,6 +655,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             projectId: true,
           },
           iotFleets: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          networkSites: {
             name: true,
             _id: true,
             projectId: true,
@@ -760,6 +772,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              vmwareVCenters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               cephClusters: {
                 name: true,
                 _id: true,
@@ -771,6 +788,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
               iotFleets: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              networkSites: {
                 name: true,
                 _id: true,
                 projectId: true,
@@ -795,9 +817,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   dockerHosts={item.dockerHosts || []}
                   podmanHosts={item.podmanHosts || []}
                   proxmoxClusters={item.proxmoxClusters || []}
+                  vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
+                  networkSites={item.networkSites || []}
                   services={item.services || []}
                 />
               );

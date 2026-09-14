@@ -36,6 +36,7 @@
     "projectTeams": "Équipes",
     "projectTeam": "Équipe",
     "projectSubscription": "Abonnement",
+    "projectSupport": "Assistance",
     "settings": "Paramètres",
     "authentication": "Authentification",
     "appearance": "Apparence",
@@ -95,6 +96,8 @@
     "teams": "Équipes",
     "billing": "Facturation",
     "subscription": "Abonnement",
+    "support": "Assistance",
+    "customerSupportAccess": "Accès du support client",
     "advanced": "Avancé",
     "overview": "Vue d'ensemble",
     "projects": "Projets",
@@ -336,6 +339,16 @@
       "amountTooLarge": "Le montant ne peut pas dépasser {{max}} USD par ajustement.",
       "amountTooPrecise": "Le montant ne peut pas avoir plus de deux décimales.",
       "reasonRequired": "Veuillez saisir un motif pour cet ajustement."
+    },
+    "projectSupport": {
+      "title": "Accès du support client",
+      "cardTitle": "Accès du support client",
+      "cardDescription": "Indique si le support client OneUptime peut accéder à ce projet à des fins de dépannage. Il s'agit du même interrupteur que celui dont dispose le client dans ses paramètres de projet.",
+      "editButton": "Modifier l'accès du support client",
+      "fieldLabel": "Autoriser le support client à accéder au projet",
+      "fieldDescription": "Lorsque cette option est activée, le support client OneUptime peut ouvrir ce projet pour enquêter sur un problème. Désactivez-la une fois l'enquête terminée.",
+      "consentWarning": "N'activez ceci que si le client a demandé au support d'examiner son projet. Le client peut l'activer et le désactiver lui-même dans les paramètres du projet : demandez-lui de le faire de préférence, et désactivez-le une fois l'enquête terminée.",
+      "billingDisabled": "La facturation n'est pas activée sur cette instance, il n'y a donc aucune équipe de support client OneUptime à qui accorder l'accès. Ce paramètre ne s'applique qu'à l'édition hébergée de OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",
@@ -805,9 +818,9 @@
   "You can find this in your Twilio console.": "Vous pouvez trouver cette information dans votre console Twilio.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Le nom d'utilisateur Telegram de votre bot, sans le @ initial. Les noms d'utilisateur Telegram se terminent par « bot ».",
   "ClickHouse disk": "Disque ClickHouse",
-  "Postgres, ClickHouse, Redis and queue health at a glance.": "État de Postgres, ClickHouse, Redis et de la file d'attente en un coup d'œil.",
+  "Postgres, ClickHouse, Valkey and queue health at a glance.": "État de Postgres, ClickHouse, Valkey et de la file d'attente en un coup d'œil.",
   "Projects, users, monitors and incidents across the instance.": "Projets, utilisateurs, moniteurs et incidents à travers l'instance.",
-  "Redis memory": "Mémoire Redis",
+  "Valkey memory": "Mémoire Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Repérez les arriérés et les échecs de tâches avant qu'ils ne provoquent des incidents.",
   "Track database disk and memory utilization before you run out.": "Suivez l'utilisation du disque et de la mémoire de la base de données avant d'arriver à saturation."
 }

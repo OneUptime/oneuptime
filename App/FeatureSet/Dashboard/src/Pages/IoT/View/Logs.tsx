@@ -94,10 +94,16 @@ const IoTFleetLogs: FunctionComponent<
        * `logQuery.attributes` scopes the logs query to this fleet via the
        * `iot.fleet.name` resource attribute that the IoT agent stamps on every
        * telemetry record, and also drives the histogram / facet scoping.
+       *
+       * The chip value is already the fleet's name, so only the key needs a
+       * label: "Fleet" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`iot-fleet-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.iot.fleet.name": "Fleet",
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found. The IoT agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this fleet's iot.fleet.name resource attribute."

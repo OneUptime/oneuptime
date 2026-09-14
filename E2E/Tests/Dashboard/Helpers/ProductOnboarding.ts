@@ -1,11 +1,56 @@
-import { BASE_URL, IS_BILLING_ENABLED } from "../../../Config";
-import { Page, expect, Response, Locator } from "@playwright/test";
+import {
+  BASE_URL,
+  E2E_SIGNUP_PASSWORD,
+  IS_BILLING_ENABLED,
+} from "../../../Config";
+import {
+  APIResponse,
+  Locator,
+  Page,
+  Response,
+  Route,
+  expect,
+} from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../../Helpers/selectProjectPlan";
+import { addTestPaymentMethod } from "./Billing";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
+const frontendEnvironmentUrlRegex: RegExp =
+  /\/(?:accounts|dashboard)\/env\.js(?:\?.*)?$/;
+
+/*
+ * The frontend runtime is configured by env.js, independently of this test
+ * process. A local run can intentionally override HOST/HTTP_PROTOCOL without
+ * rebuilding the App container, so keep Accounts and Dashboard pointed at the
+ * exact origin Playwright was asked to test. All other server-provided runtime
+ * settings remain untouched.
+ */
+const configureFrontendRuntimeForTestTarget: (
+  page: Page,
+) => Promise<void> = async (page: Page): Promise<void> => {
+  const testTarget: globalThis.URL = new globalThis.URL(BASE_URL.toString());
+  const runtimeOverrides: Record<string, string> = {
+    HOST: testTarget.host,
+    HTTP_PROTOCOL: testTarget.protocol.replace(":", ""),
+  };
+
+  await page.route(
+    frontendEnvironmentUrlRegex,
+    async (route: Route): Promise<void> => {
+      const response: APIResponse = await route.fetch();
+      const originalScript: string = await response.text();
+      const overrideScript: string = `\nObject.assign(window.process.env, ${JSON.stringify(runtimeOverrides)});\n`;
+
+      await route.fulfill({
+        response,
+        body: originalScript + overrideScript,
+      });
+    },
+  );
+};
 
 /*
  * Registers a fresh user, creates a project, and returns the project id.
@@ -16,21 +61,28 @@ const projectDashboardUrlRegex: RegExp =
 type RegisterAndCreateProjectFunction = (data: {
   page: Page;
   projectNamePrefix: string;
+  email?: string | undefined;
   /*
    * Only used when billing is enabled: selects this plan by its visible name
    * (e.g. "Growth") instead of whichever plan happens to unlock submit first.
    * Specs that touch plan-gated features need this.
    */
   preferredPlanName?: string | undefined;
+  // Billing regressions can opt out to exercise a project with no card.
+  enablePaidUsage?: boolean | undefined;
 }) => Promise<string>;
 
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
   async (data: {
     page: Page;
     projectNamePrefix: string;
+    email?: string | undefined;
     preferredPlanName?: string | undefined;
+    enablePaidUsage?: boolean | undefined;
   }): Promise<string> => {
     const page: Page = data.page;
+
+    await configureFrontendRuntimeForTestTarget(page);
 
     let pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString())
@@ -50,7 +102,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       }
     }
 
-    const email: string = Faker.generateEmail().toString();
+    const email: string = data.email || Faker.generateEmail().toString();
 
     await page.getByTestId("email").click();
     await page.getByTestId("email").fill(email);
@@ -65,16 +117,31 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       await page.getByTestId("companyPhoneNumber").press("Tab");
     }
 
-    await page.getByTestId("password").fill("sample");
+    await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
-    await page.getByTestId("confirmPassword").fill("sample");
+    await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("Sign Up").click();
 
-    await page.waitForURL(
-      URL.fromString(BASE_URL.toString())
-        .addRoute("/dashboard/welcome")
-        .toString(),
-    );
+    const welcomeUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/dashboard/welcome")
+      .toString();
+
+    /*
+     * Accounts currently hands a newly registered user to the Dashboard root.
+     * Older deployments redirect that root to /dashboard/welcome themselves,
+     * while newer ones leave the root in place until project selection has
+     * loaded. Accept either hand-off, then make the onboarding destination
+     * explicit so the remainder of the shared helper is deterministic.
+     */
+    await page.waitForURL(/\/dashboard(?:\/welcome)?\/?$/);
+
+    if (page.url() !== welcomeUrl) {
+      await page.goto(welcomeUrl, { waitUntil: "domcontentloaded" });
+    }
+
+    await page
+      .getByTestId("create-new-project-button")
+      .waitFor({ state: "visible" });
 
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
@@ -118,7 +185,15 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       projectDashboardUrlRegex,
     );
     expect(projectIdMatch).not.toBeNull();
-    return projectIdMatch![1]!;
+    const projectId: string = projectIdMatch![1]!;
+
+    if (IS_BILLING_ENABLED && data.enablePaidUsage !== false) {
+      await addTestPaymentMethod({ page, projectId });
+      await page.goto(projectUrl);
+      await expect(page).toHaveURL(projectDashboardUrlRegex);
+    }
+
+    return projectId;
   };
 
 /*
@@ -185,7 +260,7 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
 
 /*
  * Fills and submits the inline "Create Ingestion Key" ModelFormModal used
- * by the Proxmox/Ceph DocumentationCard (form id "create-ingestion-key").
+ * by the Proxmox/VMware/Ceph DocumentationCard (form id "create-ingestion-key").
  * The caller clicks the trigger button first — either the empty-state
  * "Create Ingestion Key" CTA or the "New Key" button next to the dropdown.
  */
@@ -201,34 +276,6 @@ export const submitIngestionKeyModal: SubmitIngestionKeyModalFunction =
       .locator("#create-ingestion-key input[type='text']")
       .first()
       .fill(data.keyName);
-    await acknowledgePayAsYouGoIfPresent({
-      page: data.page,
-      testId: "telemetry-pay-as-you-go-consent",
-    });
     await data.page.getByTestId("modal-footer-submit-button").click();
     await data.page.getByTestId("modal").waitFor({ state: "hidden" });
-  };
-
-/*
- * On a billing-enabled deployment a Free plan project has to acknowledge
- * pay-as-you-go pricing before it can create an ingestion key or a non-Manual
- * monitor; the checkbox is absent on paid plans and when billing is off, which
- * is why this is a presence check rather than an unconditional click.
- */
-type AcknowledgePayAsYouGoFunction = (data: {
-  page: Page;
-  testId: string;
-}) => Promise<void>;
-
-export const acknowledgePayAsYouGoIfPresent: AcknowledgePayAsYouGoFunction =
-  async (data: { page: Page; testId: string }): Promise<void> => {
-    if (!IS_BILLING_ENABLED) {
-      return;
-    }
-
-    const consent: Locator = data.page.getByTestId(data.testId);
-
-    if ((await consent.count()) > 0) {
-      await consent.first().check();
-    }
   };

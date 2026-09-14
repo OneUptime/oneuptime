@@ -162,7 +162,7 @@ podLogs 和 ebpfDiscovery 规则在源头过滤：被排除的日志文件不会
 
 接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。`WARN` 会保留 WARN、ERROR 和 FATAL，并丢弃 INFO、DEBUG 和 TRACE。默认值（`""`）会保留所有内容。它在**两种**日志模式下都适用——在 `daemonset` 模式下通过采集器，在 `api` 模式下则在日志拉取器内部——因此预设无法在你不知情的情况下把它关掉。
 
-容器运行时并不会在日志行上记录严重性，因此代理会自行从日志文本中解析出一个严重性（`[ERROR]`、`WARN:`、`level=info`，……）。
+容器运行时并不会在日志行上记录严重性，因此代理会自行从日志文本中解析出一个严重性（`[ERROR]`、`WARN:`、`"level":"info"`，……）。
 
 > **Kubernetes 事件和资源规格（spec）绝不会被它过滤。** 它们来自 Kubernetes API，本身不带任何严重性，因此阈值会删除整个数据流，而不是把它变稀疏——其中就包括你最想要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它们数据量小而价值高，因此代理始终会发送它们。若要精简它们，请改用仪表板中服务端的 **日志 → 设置 → 丢弃过滤器**。
 

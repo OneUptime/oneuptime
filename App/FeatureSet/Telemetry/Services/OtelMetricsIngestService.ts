@@ -30,7 +30,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import Service from "Common/Models/DatabaseModels/Service";
+import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -63,6 +63,7 @@ import DockerSwarmResourceService, {
   DockerSwarmResourceLatestMetric,
 } from "Common/Server/Services/DockerSwarmResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
   ProxmoxResourceLatestMetric,
@@ -72,6 +73,11 @@ import CephResourceService, {
   CephResourceLatestMetric,
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import VMwareResourceService, {
+  ParsedVMwareResource,
+  VMwareResourceLatestMetric,
+} from "Common/Server/Services/VMwareResourceService";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import IoTDeviceService, {
   ParsedIoTDevice,
@@ -99,6 +105,17 @@ import {
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  VMWARE_SNAPSHOT_METRIC_NAMES,
+  VMwareResourceBufferEntry,
+  VMwareVCenterSnapshotBufferEntry,
+  VMwareVCenterSnapshotExtras,
+  bufferVMwareSnapshotMetric,
+  computeVMwareIsPoweredOn,
+  deriveVMwareResourceLatestMetric,
+  deriveVMwareVCenterSnapshotExtras,
+  toVMwareResourceAttributeMap,
+} from "Common/Server/Utils/Telemetry/VMwareSnapshotScan";
 import {
   IOT_SNAPSHOT_METRIC_NAMES,
   IoTDeviceBufferEntry,
@@ -204,16 +221,87 @@ const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /*
- * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
- * emit container.cpu.utilization / container.memory.usage with
- * service.instance.id identifying the running task / instance. The latest
- * point is mirrored onto the matching CloudResourceInstance row.
+ * How one cloud managed-compute snapshot metric turns into the CPU percent
+ * / memory bytes mirrored onto a CloudResourceInstance row.
+ *
+ *   cpuPercent      — already a percentage, whatever the unit string says
+ *                     (the awsecscontainermetrics receiver's *.cpu.utilized).
+ *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats
+ *                     style container.cpu.utilization; see cpuValueToPercent).
+ *   memoryMegabytes — megabytes (awsecscontainermetrics *.memory.utilized).
+ *   memoryBytes     — bytes.
  */
-const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
-  "container.cpu.utilization",
-  "container.memory.usage",
-  "container.memory.usage.total",
-]);
+type CloudSnapshotMetricKind =
+  | "cpuPercent"
+  | "cpuRatio"
+  | "memoryMegabytes"
+  | "memoryBytes";
+
+interface CloudSnapshotMetricSpec {
+  kind: CloudSnapshotMetricKind;
+  /*
+   * Precedence when several points in one batch describe the same instance.
+   * An ECS task has several containers, and the awsecscontainermetrics
+   * receiver emits a point per container AND a point for the task; since
+   * every one of them resolves to the same instance (the task id — see
+   * CloudInstanceIdentity), the task-level point is the one the Instances
+   * tab must show, whichever order the collector put them in. Higher wins.
+   */
+  rank: number;
+}
+
+const CLOUD_SNAPSHOT_RANK_CONTAINER: number = 0;
+const CLOUD_SNAPSHOT_RANK_TASK: number = 1;
+
+/*
+ * Cloud managed-compute snapshot metrics. ECS tasks report through the
+ * awsecscontainermetrics receiver (ecs.task.* and container.*, the
+ * task-level series duplicating the container ones at a coarser grain);
+ * Cloud Run, Container Apps and docker_stats-style sidecars report
+ * container.cpu.utilization / container.memory.usage.total. The instance
+ * is whichever identity attribute the resource carries first
+ * (CloudInstanceIdentity), and the latest point per instance is mirrored
+ * onto the matching CloudResourceInstance row.
+ */
+const CLOUD_SNAPSHOT_METRICS: ReadonlyMap<string, CloudSnapshotMetricSpec> =
+  new Map<string, CloudSnapshotMetricSpec>([
+    [
+      "ecs.task.cpu.utilized",
+      { kind: "cpuPercent", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "ecs.task.memory.utilized",
+      { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "ecs.task.memory.usage",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "container.cpu.utilized",
+      { kind: "cpuPercent", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.utilized",
+      { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.usage",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.cpu.utilization",
+      { kind: "cpuRatio", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.usage.total",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+  ]);
+
+const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
+  CLOUD_SNAPSHOT_METRICS.keys(),
+);
 
 /*
  * The Proxmox / Ceph snapshot scan (metric-name allow-lists, buffer
@@ -222,6 +310,12 @@ const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
  * Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan.ts — this
  * service only walks the OTLP payload and flushes the folded buffers
  * to the Proxmox/Ceph services below.
+ *
+ * The VMware snapshot scan (vcenter.* allow-list, resource-attribute
+ * identity resolution, the summed-count fold, powered-on inference and
+ * the vCenter-extras derive) is the sibling pure module
+ * Common/Server/Utils/Telemetry/VMwareSnapshotScan.ts, flushed to
+ * VMwareResourceService / VMwareVCenterService the same way.
  */
 
 interface ResourceMetricBufferEntry {
@@ -271,11 +365,23 @@ interface PodmanContainerMetricBufferEntry {
   observedAt: Date;
 }
 
+/*
+ * One folded value for one instance, with what it takes to decide whether
+ * the next point for the same instance replaces it: a higher-ranked point
+ * always wins (task over container), a same-ranked point wins when it is
+ * not older. Tracked per field, so a task-level CPU point never vetoes the
+ * only memory point the batch carried.
+ */
+interface CloudSnapshotSample {
+  value: number;
+  rank: number;
+  observedAt: Date;
+}
+
 interface CloudResourceInstanceMetricBufferEntry {
   instanceName: string;
-  cpuPercent: number | null;
-  memoryBytes: number | null;
-  observedAt: Date;
+  cpu: CloudSnapshotSample | null;
+  memory: CloudSnapshotSample | null;
 }
 
 class MetricStorageFlushError extends Error {
@@ -629,7 +735,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
-      const metricNameServiceNameMap: Dictionary<MetricType> = {};
+      const metricCatalog: MetricCatalog = new MetricCatalog();
+      const metricNameServiceNameMap: Dictionary<MetricType> =
+        metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
@@ -732,6 +840,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         ProxmoxClusterSnapshotBufferEntry
       > = new Map();
+      const vmwareResourceMetricsBuffer: Map<
+        string,
+        Map<string, VMwareResourceBufferEntry>
+      > = new Map();
+      const vmwareVCenterSnapshotBuffer: Map<
+        string,
+        VMwareVCenterSnapshotBufferEntry
+      > = new Map();
       const cephResourceMetricsBuffer: Map<
         string,
         Map<string, CephResourceBufferEntry>
@@ -801,6 +917,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          /*
+           * Canonicalise cloud.platform on the wire shape before the
+           * auto-discovery gates read it and before it is flattened onto
+           * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
+           */
+          this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
             OtelPayloadDecoder.getEntityRefsFromResource(
@@ -809,21 +932,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster and Ceph cluster from resource attributes. The
-           * lookups are independent — they read different attributes
-           * and don't share state — so issue them concurrently to
-           * collapse per-resource latency. autoDiscoverHost still has
-           * to wait below because it consumes the first two ids.
+           * cluster, VMware vCenter and Ceph cluster from resource
+           * attributes. The lookups are independent — they read
+           * different attributes and don't share state — so issue them
+           * concurrently to collapse per-resource latency.
+           * autoDiscoverHost still has to wait below because it
+           * consumes the first two ids.
            */
           const [
             kubernetesClusterId,
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            vmwareVCenterId,
             cephClusterId,
             dockerSwarmClusterId,
             iotFleetId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -848,6 +974,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverVMwareVCenter({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
             this.autoDiscoverCephCluster({
               projectId,
               attributes: resourceAttributes_raw,
@@ -861,6 +991,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
           ]);
+
+          /*
+           * VMware identity lives in the RESOURCE attributes (one OTLP
+           * resource per vSphere object), so resolve the unprefixed
+           * attribute map once per resource block rather than once per
+           * datapoint. null when this block is not a vCenter batch.
+           */
+          const vmwareResourceAttributes: Record<string, unknown> | null =
+            vmwareVCenterId
+              ? toVMwareResourceAttributeMap(resourceAttributes_raw)
+              : null;
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's
@@ -918,6 +1059,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              vmwareVCenterId,
               cephClusterId,
               dockerSwarmClusterId,
               serverlessFunctionId,
@@ -997,41 +1139,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           ) {
             hostHeartbeatHostNames.add(heartbeatHostName);
             const heartbeatMetricName: string = "oneuptime.host.heartbeat";
-            if (!metricNameServiceNameMap[heartbeatMetricName]) {
-              const heartbeatMetricType: MetricType = new MetricType();
-              heartbeatMetricType.name = heartbeatMetricName;
-              heartbeatMetricType.description =
-                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.";
-              heartbeatMetricType.unit = "1";
-              heartbeatMetricType.services = [];
-              metricNameServiceNameMap[heartbeatMetricName] =
-                heartbeatMetricType;
-            }
-            /*
-             * Only associate a real Service row (OpenTelemetry type).
-             * The host heartbeat's primaryEntityId is a Host/DockerHost/
-             * KubernetesCluster id, which has no matching Service row,
-             * so pushing it would fail the MetricType.services FK. The
-             * heartbeat MetricType is still cataloged above without a
-             * service link.
-             */
-            if (
-              serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry &&
-              metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
-                (svc: Service) => {
-                  return (
-                    svc.id?.toString() ===
-                    serviceMetadata.primaryEntityId!.toString()
-                  );
-                },
-              ).length === 0
-            ) {
-              const heartbeatService: Service = new Service();
-              heartbeatService.id = serviceMetadata.primaryEntityId!;
-              metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
-                heartbeatService,
-              );
-            }
+            metricCatalog.addMetric({
+              name: heartbeatMetricName,
+              description:
+                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.",
+              unit: "1",
+              serviceMetadata,
+            });
             /*
              * Stamp the heartbeat with the host's newest datapoint
              * timestamp in this payload, not the ingest wall clock.
@@ -1144,47 +1258,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as string;
                   const metricUnit: string = metric["unit"] as string;
 
-                  if (metricName) {
-                    if (!metricNameServiceNameMap[metricName]) {
-                      metricNameServiceNameMap[metricName] = new MetricType();
-                      metricNameServiceNameMap[metricName]!.name = metricName;
-                      metricNameServiceNameMap[metricName]!.description =
-                        metricDescription;
-                      metricNameServiceNameMap[metricName]!.unit = metricUnit;
-                      metricNameServiceNameMap[metricName]!.services = [];
-                    }
-
-                    /*
-                     * MetricType.services is a ManyToMany to the
-                     * Service table (join keyed on primaryEntityId). Only
-                     * OpenTelemetry-type telemetry has a real Service
-                     * row; associating Host / DockerHost /
-                     * KubernetesCluster / Unknown telemetry here would
-                     * insert a join row whose primaryEntityId has no matching
-                     * Service and fail the FK. The metric name itself is
-                     * still cataloged above (just without a service
-                     * link), and the datapoints carry the primaryEntityId in
-                     * ClickHouse regardless.
-                     */
-                    if (
-                      serviceMetadata.primaryEntityType ===
-                        ServiceType.OpenTelemetry &&
-                      metricNameServiceNameMap[metricName]!.services!.filter(
-                        (service: Service) => {
-                          return (
-                            service.id?.toString() ===
-                            serviceMetadata.primaryEntityId!.toString()
-                          );
-                        },
-                      ).length === 0
-                    ) {
-                      const newService: Service = new Service();
-                      newService.id = serviceMetadata.primaryEntityId!;
-                      metricNameServiceNameMap[metricName]!.services!.push(
-                        newService,
-                      );
-                    }
-                  }
+                  metricCatalog.addMetric({
+                    name: metricName,
+                    description: metricDescription,
+                    unit: metricUnit,
+                    serviceMetadata,
+                  });
 
                   /*
                    * The per-metric invariant attribute base: every datapoint
@@ -1418,6 +1497,36 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         /*
+                         * VMware identity lives in the RESOURCE
+                         * attributes (the vcenter receiver emits one
+                         * resource per vSphere object); the buffer
+                         * function takes the per-block attribute map
+                         * plus the datapoint for its fan-out dimensions.
+                         * Like Proxmox / Ceph this deliberately runs
+                         * BEFORE the pipeline rules: the inventory must
+                         * reflect actual vSphere state regardless of
+                         * long-term storage choices, and the powered-on
+                         * inference reads the complete set of VM series
+                         * in the collection — a Drop rule on
+                         * vcenter.vm.cpu.* would otherwise flip every
+                         * VM to "powered off".
+                         */
+                        if (
+                          vmwareVCenterId &&
+                          vmwareResourceAttributes &&
+                          VMWARE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferVMwareSnapshotMetric({
+                            vcenterIdStr: vmwareVCenterId.toString(),
+                            metricName,
+                            resourceAttributes: vmwareResourceAttributes,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: vmwareResourceMetricsBuffer,
+                            vcenterBuffer: vmwareVCenterSnapshotBuffer,
+                          });
+                        }
+
+                        /*
                          * Build ONLY the fields the pipeline rule engine can
                          * observe: `name`, `attributes`, `attributeKeys`.
                          * MetricPipelineRuleService provably reads and
@@ -1602,6 +1711,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         clusterBuffer: proxmoxClusterSnapshotBuffer,
       });
 
+      await this.flushVMwareSnapshotBuffers({
+        projectId,
+        resourceBuffer: vmwareResourceMetricsBuffer,
+        vcenterBuffer: vmwareVCenterSnapshotBuffer,
+      });
+
       await this.flushCephSnapshotBuffers({
         projectId,
         resourceBuffer: cephResourceMetricsBuffer,
@@ -1632,7 +1747,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * losing it must never fail a batch whose telemetry already landed.
        */
       await TelemetryUtil.indexMetricNameServiceNameMap({
-        metricNameServiceNameMap: metricNameServiceNameMap,
+        metricNameServiceNameMap: metricCatalog.metricNameServiceNameMap,
         projectId: projectId,
       }).catch((err: Error) => {
         logger.error("Error indexing metric name service name map");
@@ -2729,10 +2844,34 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Buffer the latest CPU / memory point for a managed-compute instance
-   * (service.instance.id) so multiple datapoints across a batch collapse
-   * into a single CloudResourceInstance upsert. Best-effort — anything
-   * unparseable is skipped without affecting ClickHouse ingest.
+   * Whether `incoming` should replace `existing` for one field of one
+   * instance. Rank first (task-level beats container-level, whichever
+   * arrived first), then the newer-or-equal timestamp among equals — the
+   * `>=` keeps the last point of a same-timestamp run, exactly as before
+   * ranks existed.
+   */
+  private static shouldReplaceCloudSnapshotSample(
+    existing: CloudSnapshotSample | null,
+    incoming: CloudSnapshotSample,
+  ): boolean {
+    if (!existing) {
+      return true;
+    }
+    if (incoming.rank !== existing.rank) {
+      return incoming.rank > existing.rank;
+    }
+    return incoming.observedAt >= existing.observedAt;
+  }
+
+  /*
+   * Buffer the latest CPU / memory point for a managed-compute instance so
+   * multiple datapoints across a batch collapse into a single
+   * CloudResourceInstance upsert. The instance name is resolved through
+   * the same fallback chain the resource-attribute walk in
+   * OtelIngestBaseService uses (with the `resource.` prefix this merged
+   * attribute map carries), so the point lands on the row that walk
+   * created rather than on a second row nobody links to. Best-effort —
+   * anything unparseable is skipped without affecting ClickHouse ingest.
    */
   private static bufferCloudResourceSnapshotMetric(data: {
     cloudResourceIdStr: string;
@@ -2742,6 +2881,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
   }): void {
+    const spec: CloudSnapshotMetricSpec | undefined =
+      CLOUD_SNAPSHOT_METRICS.get(data.metricName);
+    if (!spec) {
+      return;
+    }
+
     const valueFromInt: number | null = this.toNumberOrNull(
       data.datapoint["asInt"],
     );
@@ -2753,23 +2898,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       return;
     }
 
-    const ts: MetricTimestamp = this.safeParseUnixNano(
-      data.datapoint["timeUnixNano"] as string | number | undefined,
-      "cloud snapshot timeUnixNano",
-    );
-
-    const instanceName: string = this.readSnapshotAttr(
-      data.metricAttributes,
-      "resource.service.instance.id",
+    const instanceName: string | null = resolveCloudInstanceName(
+      (key: string): string | null => {
+        return this.readSnapshotAttr(data.metricAttributes, `resource.${key}`);
+      },
     );
     if (!instanceName) {
       return;
     }
 
-    const isCpu: boolean = data.metricName === "container.cpu.utilization";
-    const isMem: boolean =
-      data.metricName === "container.memory.usage" ||
-      data.metricName === "container.memory.usage.total";
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "cloud snapshot timeUnixNano",
+    );
 
     let perResource:
       | Map<string, CloudResourceInstanceMetricBufferEntry>
@@ -2779,32 +2920,67 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       data.buffer.set(data.cloudResourceIdStr, perResource);
     }
 
-    const cpuPercent: number | null = isCpu
-      ? this.cpuValueToPercent(rawValue, data.metricUnit)
-      : null;
-    const memoryBytes: number | null = isMem
-      ? Math.max(0, Math.trunc(rawValue))
-      : null;
-
-    const existing: CloudResourceInstanceMetricBufferEntry | undefined =
+    let entry: CloudResourceInstanceMetricBufferEntry | undefined =
       perResource.get(instanceName);
-    if (!existing) {
-      perResource.set(instanceName, {
-        instanceName,
-        cpuPercent,
-        memoryBytes,
-        observedAt: ts.date,
-      });
-      return;
+    if (!entry) {
+      entry = { instanceName, cpu: null, memory: null };
+      perResource.set(instanceName, entry);
     }
-    if (cpuPercent !== null && ts.date >= existing.observedAt) {
-      existing.cpuPercent = cpuPercent;
-    }
-    if (memoryBytes !== null && ts.date >= existing.observedAt) {
-      existing.memoryBytes = memoryBytes;
-    }
-    if (ts.date > existing.observedAt) {
-      existing.observedAt = ts.date;
+
+    /*
+     * *.cpu.utilized is a percentage already — the awsecscontainermetrics
+     * receiver labels it "Percent", but the unit is deliberately NOT
+     * consulted, because a collector-side unit rewrite must never turn a
+     * 37 % task into a 3700 % one. *.memory.utilized is megabytes; the
+     * CloudResourceInstance column is bytes, so scale (truncated —
+     * fractional bytes do not exist). Negatives are clamped: a gauge
+     * cannot be below zero, and the column is unsigned in spirit.
+     */
+    switch (spec.kind) {
+      case "cpuPercent": {
+        const sample: CloudSnapshotSample = {
+          value: rawValue,
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.cpu, sample)) {
+          entry.cpu = sample;
+        }
+        return;
+      }
+      case "cpuRatio": {
+        const sample: CloudSnapshotSample = {
+          value: this.cpuValueToPercent(rawValue, data.metricUnit),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.cpu, sample)) {
+          entry.cpu = sample;
+        }
+        return;
+      }
+      case "memoryMegabytes": {
+        const sample: CloudSnapshotSample = {
+          value: Math.max(0, Math.trunc(rawValue * 1024 * 1024)),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.memory, sample)) {
+          entry.memory = sample;
+        }
+        return;
+      }
+      case "memoryBytes": {
+        const sample: CloudSnapshotSample = {
+          value: Math.max(0, Math.trunc(rawValue)),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.memory, sample)) {
+          entry.memory = sample;
+        }
+        return;
+      }
     }
   }
 
@@ -2826,8 +3002,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             projectId: data.projectId,
             cloudResourceId,
             instanceName: e.instanceName,
-            cpuPercent: e.cpuPercent ?? undefined,
-            memoryBytes: e.memoryBytes ?? undefined,
+            cpuPercent: e.cpu ? e.cpu.value : undefined,
+            memoryBytes: e.memory ? e.memory.value : undefined,
           });
         }
       } catch (err) {
@@ -2942,6 +3118,100 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Proxmox snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the VMware buffers: inventory upsert + latest-metric mirror,
+   * then the VMwareVCenter snapshot columns. The count columns are
+   * computed from the SAME buffer the inventory rows were upserted
+   * from — single-source rule, so the vCenter list counts and the
+   * sidebar badges can never drift. Failures are logged and swallowed:
+   * snapshots are best-effort and must never affect ClickHouse ingest.
+   */
+  private static async flushVMwareSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, VMwareResourceBufferEntry>>;
+    vcenterBuffer: Map<string, VMwareVCenterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const vcenterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.vcenterBuffer.keys(),
+    ]);
+
+    for (const vcenterIdStr of vcenterIdStrs) {
+      const byKey: Map<string, VMwareResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(vcenterIdStr);
+      const entries: Array<VMwareResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: VMwareVCenterSnapshotBufferEntry | undefined =
+        data.vcenterBuffer.get(vcenterIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedVMwareResource> = entries.map(
+            (e: VMwareResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                datacenterName: e.datacenterName,
+                clusterName: e.clusterName,
+                hostName: e.hostName,
+                resourcePoolName: e.resourcePoolName,
+                resourcePoolPath: e.resourcePoolPath,
+                virtualAppName: e.virtualAppName,
+                vmInstanceUuid: e.vmInstanceUuid,
+                isTemplate: e.isTemplate,
+                isPoweredOn: computeVMwareIsPoweredOn(e),
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await VMwareResourceService.bulkUpsert({
+            projectId: data.projectId,
+            vmwareVCenterId: new ObjectID(vcenterIdStr),
+            resources,
+          });
+
+          const metrics: Array<VMwareResourceLatestMetric> = entries.map(
+            (e: VMwareResourceBufferEntry) => {
+              return deriveVMwareResourceLatestMetric(e);
+            },
+          );
+          await VMwareResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            vmwareVCenterId: new ObjectID(vcenterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `VMware snapshot writeback (inventory) failed for vCenter ${vcenterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried at least one
+         * resource of that kind — never zero a count on a partial batch
+         * (deriveVMwareVCenterSnapshotExtras owns that contract).
+         */
+        const extras: VMwareVCenterSnapshotExtras =
+          deriveVMwareVCenterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await VMwareVCenterService.updateLastSeen(
+            new ObjectID(vcenterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `VMware snapshot writeback (vCenter) failed for vCenter ${vcenterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

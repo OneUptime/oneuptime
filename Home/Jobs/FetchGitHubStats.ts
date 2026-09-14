@@ -47,7 +47,13 @@ export const formatCount: (count: number) => string = (
   count: number,
 ): string => {
   if (count >= 1000) {
-    const thousands: number = Math.ceil(count / 1000);
+    /*
+     * Round DOWN, like formatStarCount does. The suffix is "+", so the number
+     * in front of it is a floor the real figure is at or above -- rounding up
+     * turns 28,001 commits into the claim "29k+", which is a claim about work
+     * that does not exist. These figures are rendered on the public home page.
+     */
+    const thousands: number = Math.floor(count / 1000);
     return `${thousands}k+`;
   }
   return `${count}+`;

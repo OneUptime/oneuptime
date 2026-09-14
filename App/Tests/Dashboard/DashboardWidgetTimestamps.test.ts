@@ -353,12 +353,34 @@ describe("dashboard widget timestamps", () => {
       "OneUptimeDate.getLocalMinutes",
     ];
 
+    /*
+     * Chart x-axis ticks are the one exception, and only for the whole-string
+     * helper. A tick is a bare clock reading by design - the axis as a whole
+     * says which day is on screen, so there is no date half for a time half to
+     * disagree with - and asking OneUptimeDate for it is precisely what puts
+     * the reading in the configured timezone and on the reader's 12/24-hour
+     * clock. Hand-assembly from getLocalHours/getLocalMinutes stays banned
+     * here too, and anything rendering a date *and* a time still has to go
+     * through DashboardDateTime.
+     */
+    const AXIS_TICK_FORMATTERS: Array<string> = [
+      "LogChartData.ts",
+      "TraceChartData.ts",
+    ];
+
     const offenders: Array<string> = [];
 
     for (const file of widgetFiles) {
       const source: string = withoutComments(file.contents);
 
       for (const helper of rawTimeHelpers) {
+        if (
+          helper === "OneUptimeDate.getLocalTimeString" &&
+          AXIS_TICK_FORMATTERS.includes(file.name)
+        ) {
+          continue;
+        }
+
         if (source.includes(`${helper}(`)) {
           offenders.push(`${file.name}: ${helper}()`);
         }

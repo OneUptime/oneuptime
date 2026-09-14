@@ -12,6 +12,11 @@ import Alert from "Common/Models/DatabaseModels/Alert";
  */
 import ChangeEvent from "../../../../../../../Common/Models/AnalyticsModels/ChangeEvent";
 import Incident from "Common/Models/DatabaseModels/Incident";
+/*
+ * Sibling-relative on purpose, same as ChangeEvent above — the `Common`
+ * specifier can resolve a checkout that predates this branch-new enum.
+ */
+import ChartEventKind from "../../../../../../../Common/UI/Components/Charts/Types/ChartEventKind";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
@@ -41,12 +46,13 @@ export const ALERT_MARKER_COLOR: string = "#fbbf24"; // amber-400
 export const CHANGE_EVENT_MARKER_COLOR: string = "#6366f1"; // indigo-500
 
 /*
- * Marker labels render vertically along the reference line, so an
- * unbounded title would run down the whole plot height. Only the chart
- * label truncates — a marker's click-through target still opens the full
+ * Markers no longer paint their label onto the plot — it reads in the
+ * rail chip's hover card, which is HTML and wraps — but a card listing a
+ * dozen clustered events still has to stay scannable, so titles keep a
+ * generous cap. A marker's click-through target still opens the full
  * record.
  */
-export const EVENT_MARKER_TITLE_MAX_LENGTH: number = 40;
+export const EVENT_MARKER_TITLE_MAX_LENGTH: number = 80;
 
 export function truncateEventMarkerTitle(title: string): string {
   if (title.length <= EVENT_MARKER_TITLE_MAX_LENGTH) {
@@ -83,6 +89,10 @@ export interface EventMarker {
   date: Date;
   label: string;
   color: string;
+  /** What the marker is; drives the chip colour when markers cluster. */
+  kind: ChartEventKind;
+  /** Second line in the marker's hover card (severity, event type). */
+  subtitle?: string | undefined;
   /** Absent for change events — they have no detail page (yet). */
   route?: Route | undefined;
   /** Dashed for change events, solid for incidents/alerts. */
@@ -238,6 +248,10 @@ export default function useEventTimeReferenceLines(input: {
             incident.createdAt as unknown as string,
           ),
           label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
+          kind: ChartEventKind.Incident,
+          subtitle: incident.incidentSeverity?.name
+            ? `Incident · ${incident.incidentSeverity.name}`
+            : "Incident",
           color:
             incident.incidentSeverity?.color?.toString() ||
             INCIDENT_MARKER_COLOR,
@@ -255,6 +269,10 @@ export default function useEventTimeReferenceLines(input: {
         markers.push({
           date: OneUptimeDate.fromString(alert.createdAt as unknown as string),
           label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
+          kind: ChartEventKind.Alert,
+          subtitle: alert.alertSeverity?.name
+            ? `Alert · ${alert.alertSeverity.name}`
+            : "Alert",
           color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
           route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW]!, {
             modelId: alert.id,
@@ -272,6 +290,8 @@ export default function useEventTimeReferenceLines(input: {
             changeEvent.eventType,
             changeEvent.title || "",
           ),
+          kind: ChartEventKind.Change,
+          subtitle: "Change event",
           color: CHANGE_EVENT_MARKER_COLOR,
           strokeDasharray: "4 4",
         });
@@ -298,6 +318,8 @@ export default function useEventTimeReferenceLines(input: {
             date: marker.date,
             label: marker.label,
             color: marker.color,
+            kind: marker.kind,
+            subtitle: marker.subtitle,
             strokeDasharray: marker.strokeDasharray,
             onClick: marker.route
               ? () => {

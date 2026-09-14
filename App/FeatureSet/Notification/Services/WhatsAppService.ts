@@ -19,7 +19,7 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import API from "Common/Utils/API";
@@ -189,7 +189,8 @@ export default class WhatsAppService {
           if (!project.smsOrCallCurrentBalanceInUSDCents) {
             whatsAppLog.status = WhatsAppStatus.LowBalance;
             whatsAppLog.statusMessage = `Project ${options.projectId.toString()} does not have enough balance for WhatsApp messages.`;
-            logger.error(whatsAppLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(whatsAppLog.statusMessage, EXTERNAL_FAULT);
 
             await WhatsAppLogService.create({
               data: whatsAppLog,
@@ -225,7 +226,8 @@ export default class WhatsAppService {
             whatsAppLog.statusMessage = `Project does not have enough balance to send WhatsApp message. Current balance is ${
               project.smsOrCallCurrentBalanceInUSDCents / 100
             } USD. Required balance is ${messageCost} USD.`;
-            logger.error(whatsAppLog.statusMessage);
+            // Tenant billing state, not a defect — the owners get emailed below.
+            logger.error(whatsAppLog.statusMessage, EXTERNAL_FAULT);
 
             await WhatsAppLogService.create({
               data: whatsAppLog,

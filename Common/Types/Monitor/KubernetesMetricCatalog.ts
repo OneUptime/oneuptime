@@ -23,13 +23,14 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Pod Metrics
   {
     id: "pod-cpu-utilization",
-    friendlyName: "Pod CPU Utilization",
-    description: "CPU usage percentage for pods",
+    friendlyName: "Pod CPU Usage",
+    description:
+      "CPU cores in use by the pod. kubeletstats reports this as a cores gauge despite the .utilization name - 0.18 means 0.18 of a core, not 18%. For a percentage, divide by the container CPU limit (k8s.container.cpu_limit) or the node allocatable CPU (k8s.node.allocatable_cpu).",
     metricName: "k8s.pod.cpu.utilization",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Pod,
-    unit: "%",
+    unit: "cores",
   },
   {
     id: "pod-memory-usage",
@@ -43,14 +44,14 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-phase",
-    friendlyName: "Pod Phase",
+    friendlyName: "Pod Phase (Code)",
     description:
-      "Current phase of the pod (Pending, Running, Succeeded, Failed, Unknown)",
+      "The pod's phase as a numeric code (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed, 5 = Unknown). This is a categorical value, not a quantity, so it must never be summed: the gauge re-emits on every scrape and a Sum totals (pods x scrapes). Use Max to catch the worst phase seen, or Min with 'equal to 1' to catch a stuck Pending pod. For a cluster-wide count of pods in a phase, filter by phase and count series instead.",
     metricName: "k8s.pod.phase",
     category: "Pod",
-    defaultAggregation: MetricsAggregationType.Sum,
-    defaultResourceScope: KubernetesResourceScope.Cluster,
-    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Pod,
+    unit: "",
   },
   {
     id: "pod-filesystem-usage",
@@ -63,12 +64,13 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "bytes",
   },
   {
-    id: "pod-network-io-receive",
-    friendlyName: "Pod Network Receive",
-    description: "Network bytes received by pods",
+    id: "pod-network-io",
+    friendlyName: "Pod Network I/O (Cumulative, Both Directions)",
+    description:
+      "Cumulative network bytes for pods. kubeletstats emits one series per (pod, interface, direction) with a `direction` datapoint attribute of receive|transmit, and this entry filters none of them - the value covers BOTH directions. It is a monotonically increasing counter, not a rate, so it is a poor alerting target; for throughput, chart it on the cluster page, which deltas it client-side.",
     metricName: "k8s.pod.network.io",
     category: "Pod",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Pod,
     unit: "bytes",
   },
@@ -76,13 +78,14 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Node Metrics
   {
     id: "node-cpu-utilization",
-    friendlyName: "Node CPU Utilization",
-    description: "CPU usage percentage for nodes",
+    friendlyName: "Node CPU Usage",
+    description:
+      "CPU cores in use by the node. kubeletstats reports this as a cores gauge despite the .utilization name - 1.4 means 1.4 cores, not 1.4%. For a percentage, divide by the node allocatable CPU (k8s.node.allocatable_cpu).",
     metricName: "k8s.node.cpu.utilization",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Node,
-    unit: "%",
+    unit: "cores",
   },
   {
     id: "node-memory-usage",
@@ -116,12 +119,13 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "count",
   },
   {
-    id: "node-disk-io",
-    friendlyName: "Node Disk I/O",
-    description: "Disk I/O operations on nodes",
+    id: "node-filesystem-available",
+    friendlyName: "Node Filesystem Available",
+    description:
+      "Free filesystem bytes remaining on the node. Falling is bad, so alert with a 'less than' threshold, not 'greater than'. For consumption instead, use Node Filesystem Usage.",
     metricName: "k8s.node.filesystem.available",
     category: "Node",
-    defaultAggregation: MetricsAggregationType.Avg,
+    defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Node,
     unit: "bytes",
   },

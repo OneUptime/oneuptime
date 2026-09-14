@@ -18,6 +18,8 @@ import AlertStateService from "../../../../Services/AlertStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import MicrosoftTeamsActionAuthorization from "./Authorization";
 
 export default class MicrosoftTeamsAlertActions {
   @CaptureSpan()
@@ -255,6 +257,7 @@ export default class MicrosoftTeamsAlertActions {
     value: JSONObject;
     projectId: ObjectID;
     oneUptimeUserId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
     turnContext: TurnContext;
   }): Promise<void> {
     const {
@@ -263,6 +266,7 @@ export default class MicrosoftTeamsAlertActions {
       value,
       projectId,
       oneUptimeUserId,
+      databaseProps,
       turnContext,
     } = data;
 
@@ -274,10 +278,15 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      await AlertService.acknowledgeAlert(
-        new ObjectID(actionValue),
-        oneUptimeUserId,
-      );
+      const alertId: ObjectID = new ObjectID(actionValue);
+
+      await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
+        alertId: alertId,
+        projectId: projectId,
+        props: databaseProps,
+      });
+
+      await AlertService.acknowledgeAlert(alertId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert acknowledged.");
       return;
     }
@@ -288,10 +297,15 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      await AlertService.resolveAlert(
-        new ObjectID(actionValue),
-        oneUptimeUserId,
-      );
+      const alertId: ObjectID = new ObjectID(actionValue);
+
+      await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
+        alertId: alertId,
+        projectId: projectId,
+        props: databaseProps,
+      });
+
+      await AlertService.resolveAlert(alertId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert resolved.");
       return;
     }
@@ -506,9 +520,7 @@ export default class MicrosoftTeamsAlertActions {
           data: {
             currentAlertStateId: new ObjectID(alertStateId.toString()),
           },
-          props: {
-            isRoot: true,
-          },
+          props: databaseProps,
         });
 
         await turnContext.sendActivity("✅ Alert state changed successfully.");

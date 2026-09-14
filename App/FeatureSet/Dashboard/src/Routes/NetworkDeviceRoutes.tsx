@@ -1,5 +1,4 @@
 import ComponentProps from "../Pages/PageComponentProps";
-import NetworkDeviceLayout from "../Pages/NetworkDevice/Layout";
 import NetworkDeviceViewLayout from "../Pages/NetworkDevice/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, NetworkDeviceRoutePath } from "../Utils/RouteMap";
@@ -27,6 +26,10 @@ import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/Own
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
 import NetworkDeviceSettingsLinkRules from "../Pages/NetworkDevice/Settings/LinkRules";
 import NetworkDeviceSettingsAutoImportRules from "../Pages/NetworkDevice/Settings/AutoImportRules";
+import NetworkDeviceSettingsOidTemplates from "../Pages/NetworkDevice/Settings/OidCollectionTemplates";
+import NetworkDeviceSettingsDeviceRoles from "../Pages/NetworkDevice/Settings/DeviceRoles";
+import NetworkDeviceSettingsSnmpCredentialProfiles from "../Pages/NetworkDevice/Settings/SnmpCredentialProfiles";
+import NetworkDeviceSettingsAlertPolicies from "../Pages/NetworkDevice/Settings/AlertPolicies";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 
@@ -35,7 +38,7 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute path="/" element={<NetworkDeviceLayout {...props} />}>
+      <PageRoute path="/">
         <PageRoute
           path=""
           element={
@@ -111,6 +114,71 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsOidTemplates
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsDeviceRoles
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsSnmpCredentialProfiles
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsAlertPolicies
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES
                 ] as Route
               }
             />

@@ -126,6 +126,20 @@ interface OpenAIRequestAdaptation {
   unsupportedParams: Set<string>;
 }
 
+/*
+ * Structural fields of an Ollama /api/chat request. additionalParams is
+ * operator-supplied tuning, so it must never be able to replace the
+ * conversation, silence the tool belt, or flip the request to streaming —
+ * the same fail-closed posture PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST
+ * applies on the OpenAI wire.
+ */
+const OLLAMA_RESERVED_REQUEST_KEYS: Set<string> = new Set([
+  "model",
+  "messages",
+  "tools",
+  "stream",
+]);
+
 export default class LLMService {
   /*
    * How many times a provider call is attempted before it is reported as a
@@ -1543,6 +1557,70 @@ export default class LLMService {
 
     if (request.tools && request.tools.length > 0) {
       requestData["tools"] = this.toOpenAITools(request.tools);
+    }
+
+    /*
+     * Provider-configured tuning. The model column and the settings UI both
+     * promise additionalParams is sent to the provider, but only the
+     * OpenAI-wire branch honoured it — so on Ollama the operator had no lever
+     * at all, and in particular no way to raise `num_ctx`. That matters here
+     * more than on any hosted provider: Ollama silently truncates anything
+     * past the server's default context (2048/4096 on common builds), and the
+     * chat agent's tool belt alone is several thousand tokens. A truncated
+     * request loses the tool definitions with no error, and the model then
+     * answers that it has no tool for the question.
+     *
+     * Ollama nests generation settings under `options`, so an `options`
+     * object in additionalParams is merged INTO the defaults above rather
+     * than replacing them; every other key is applied at the top level.
+     */
+    if (request.additionalParams) {
+      const additionalOptions: JSONObject | undefined = request
+        .additionalParams["options"] as JSONObject | undefined;
+
+      for (const key of Object.keys(request.additionalParams)) {
+        if (key === "options" || OLLAMA_RESERVED_REQUEST_KEYS.has(key)) {
+          continue;
+        }
+
+        if (
+          request.protectRequestParameters &&
+          !this.PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST.has(key)
+        ) {
+          continue;
+        }
+
+        requestData[key] = request.additionalParams[key];
+      }
+
+      if (
+        additionalOptions &&
+        typeof additionalOptions === "object" &&
+        !Array.isArray(additionalOptions)
+      ) {
+        Object.assign(requestData["options"] as JSONObject, additionalOptions);
+
+        /*
+         * Ollama's generation knobs live inside `options`, so merging it is
+         * how an operator raises num_ctx — but it is also how they would
+         * overwrite the caller's own temperature and output cap. A protected
+         * caller owns those two, exactly as it does on the OpenAI wire (where
+         * the protected branch re-asserts temperature and max_tokens after
+         * the merge), so re-assert them here rather than filtering the merge
+         * and losing the tuning the operator legitimately configured.
+         */
+        if (request.protectRequestParameters) {
+          const protectedOptions: JSONObject = requestData[
+            "options"
+          ] as JSONObject;
+
+          protectedOptions["temperature"] = request.temperature ?? 0.7;
+
+          if (request.maxTokens) {
+            protectedOptions["num_predict"] = request.maxTokens;
+          }
+        }
+      }
     }
 
     const ollamaRequestUrl: string = `${config.baseUrl}/api/chat`;

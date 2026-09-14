@@ -17,10 +17,9 @@ import {
  * WHAT THIS FILE GUARDS
  *
  * The Review Discovered Devices dialog decides what is still importable from
- * `isAlreadyRegistered`, and that flag is computed server-side when the probe
- * uploads its results and then FROZEN into the scan's jsonb column. Nothing
- * recomputes it on read. So a host imported sixty seconds ago still reports
- * false: the dialog re-offers it, pre-checked, and the next press of Import
+ * `isAlreadyRegistered`, refreshed server-side when the dialog opens. A host
+ * imported after that read still reports false in the dialog's snapshot:
+ * without the overlay it is re-offered, pre-checked, and the next Import
  * creates a SECOND Network Device for the same address. That was survivable
  * when one press imported everything and closed the dialog; importing group by
  * group is the intended flow since #3322, so coming back to a list that still

@@ -113,6 +113,7 @@ describe("MonitorStep.getDefaultMonitorStep telemetry sub-config seeding", () =>
       MonitorType.SyntheticMonitor,
       MonitorType.CustomJavaScriptCode,
       MonitorType.SQLQuery,
+      MonitorType.Database,
       MonitorType.Manual,
       MonitorType.Profiles,
       MonitorType.Kubernetes,
@@ -121,6 +122,7 @@ describe("MonitorStep.getDefaultMonitorStep telemetry sub-config seeding", () =>
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
     ];

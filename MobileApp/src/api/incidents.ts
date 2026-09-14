@@ -85,7 +85,7 @@ export async function fetchAllIncidents(
 export async function fetchIncidentById(
   projectId: string,
   incidentId: string,
-): Promise<IncidentItem> {
+): Promise<IncidentItem | null> {
   const response: AxiosResponse = await apiClient.post(
     "/api/incident/get-list?skip=0&limit=1",
     {
@@ -109,7 +109,20 @@ export async function fetchIncidentById(
       headers: { tenantid: projectId },
     },
   );
-  return response.data.data[0];
+
+  /*
+   * `null` for a row that is not there, and never `undefined`.
+   *
+   * A deleted incident, or one in a project this responder no longer belongs
+   * to, comes back as an empty list from a request that SUCCEEDED, so
+   * `data[0]` is `undefined`. React Query v5 will not cache `undefined` - it
+   * rejects the query with a synthetic `<queryHash> data is undefined` error -
+   * which would hand the detail screen a missing incident disguised as a
+   * network failure. `null` caches, so the miss stays settled data and
+   * `isError` keeps its plain meaning. `undefined` here is a trap, not a style
+   * choice.
+   */
+  return response.data.data[0] ?? null;
 }
 
 export async function fetchIncidentStates(

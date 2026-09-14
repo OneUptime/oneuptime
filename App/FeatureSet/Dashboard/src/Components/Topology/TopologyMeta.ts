@@ -36,6 +36,21 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   [EntityType.ProxmoxCluster]: { label: "Proxmox Cluster", color: "#ea580c" },
   [EntityType.ProxmoxNode]: { label: "Proxmox Node", color: "#f97316" },
   [EntityType.ProxmoxGuest]: { label: "Proxmox Guest", color: "#fb923c" },
+  /*
+   * VMware family in sky blues — distinct from the Kubernetes royal blues and
+   * the Proxmox oranges next to it.
+   */
+  [EntityType.VMwareVCenter]: { label: "vCenter", color: "#0369a1" },
+  [EntityType.VMwareCluster]: { label: "vSphere Cluster", color: "#0284c7" },
+  [EntityType.VMwareHost]: { label: "ESXi Host", color: "#0ea5e9" },
+  [EntityType.VMwareVirtualMachine]: {
+    label: "VMware VM",
+    color: "#38bdf8",
+  },
+  [EntityType.VMwareDatastore]: {
+    label: "VMware Datastore",
+    color: "#7dd3fc",
+  },
   [EntityType.CephCluster]: { label: "Ceph Cluster", color: "#dc2626" },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",

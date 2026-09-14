@@ -8,7 +8,7 @@ import KeyboardKey, {
 } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
+import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import {
   PaletteCommand,
   PaletteSearchProvider,
@@ -194,13 +194,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
   }, []);
 
   // The page behind the palette must not scroll while it is open.
-  useEffect(() => {
-    lockPageScroll();
-
-    return () => {
-      unlockPageScroll();
-    };
-  }, []);
+  usePageScrollLock(true);
 
   useEffect(() => {
     inputRef.current?.focus();

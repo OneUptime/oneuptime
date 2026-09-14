@@ -5,6 +5,7 @@ import { AIStepConfig, RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import AIService, {
   AILogRequest,
+  AI_DISABLED_MESSAGE,
   AUTONOMOUS_AI_FEATURES,
   RUNBOOK_AI_STEP_FEATURE,
 } from "Common/Server/Services/AIService";
@@ -675,6 +676,12 @@ describe("runAiStep", () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    /*
+     * The step reads the project's enableAi kill switch before it builds any
+     * context. Every case here is about the step itself, so the switch is on;
+     * the off case is asserted separately below.
+     */
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -688,6 +695,32 @@ describe("runAiStep", () => {
     );
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain("no prompt configured");
+  });
+
+  /*
+   * A member can run a runbook containing an AI step by hand, which the
+   * automated triggers' own gating never covers — the daily autonomous budget
+   * bounds this feature, but a ceiling on spend is not consent to spend. The
+   * step fails with the reason on it, rather than the step's caller learning
+   * nothing.
+   */
+  test("refuses when AI is switched off for the project, before any context is built", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+    const buildContext: jest.SpyInstance = jest.spyOn(
+      IncidentAIContextBuilder,
+      "buildIncidentContext",
+    );
+    const execute: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "executeWithLogging",
+    );
+
+    const result: StepRunResult = await runAiStep(makeAiStep(), makeCtx());
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(AI_DISABLED_MESSAGE);
+    expect(buildContext).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   test("a malformed config fails the step with the friendly message, not a TypeError", async () => {
@@ -880,6 +913,7 @@ describe("runAiStep — LLM provider pinning", () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
   });
 
   afterEach(() => {

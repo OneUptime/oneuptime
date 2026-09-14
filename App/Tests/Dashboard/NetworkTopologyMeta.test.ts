@@ -136,6 +136,14 @@ describe("isolationReasonForNode", () => {
       false,
     );
     expect(reason).toContain("reported no LLDP or CDP neighbours");
+    /*
+     * The learned route comes first: a device that only answers ping can
+     * still be placed from its switch's forwarding table once its MAC is
+     * known, and that is cheaper than drawing every register by hand.
+     */
+    expect(reason).toContain("set its MAC address on the device");
+    expect(reason).toContain("collects endpoints");
+    expect(reason).toContain("forwarding table");
     expect(reason).toContain("Device Links");
   });
 

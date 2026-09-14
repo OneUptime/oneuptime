@@ -20,14 +20,13 @@
 
 {{> ButtonBlock buttonUrl=invoicePdfUrl buttonText="View Invoice PDF"}}
 
-{{> InfoBlock info="Or copy and paste this link:"}}
-{{> InfoBlock info=invoicePdfUrl}}
+{{> LinkBlock linkUrl=invoicePdfUrl linkLabel="Or copy and paste this link:"}}
 {{/if}}
 
 {{#if dashboardLink}}
 {{> InfoBlock info="You can also view all your invoices in your dashboard:"}}
 
-{{> ButtonBlock buttonUrl=dashboardLink buttonText="View Billing Dashboard"}}
+{{> ButtonBlock buttonUrl=dashboardLink buttonText="View Billing Dashboard" secondary=true}}
 {{/if}}
 
 {{> InfoBlock info="You have received this email because you are subscribed to receive invoice notifications for this project."}}

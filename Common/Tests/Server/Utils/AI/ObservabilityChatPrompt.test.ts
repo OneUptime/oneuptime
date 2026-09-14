@@ -4,8 +4,25 @@ import {
 } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
 import AIChatPageContextType, {
   AIChatPageContext,
+  AIChatPageContextHelper,
 } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+/*
+ * Toolbox/Index MUST be imported before any individual tool module. The
+ * toolbox sits in an import cycle (tool -> service -> ... -> AIToolbox), so
+ * entering through a tool module first re-enters Index before its tools array
+ * is assigned and leaves undefined holes in it. Production always enters
+ * through Index, which is the order reproduced here.
+ */
+import AIToolbox from "../../../../Server/Utils/AI/Toolbox/Index";
+import {
+  QueryIncidentsTool,
+  SearchIncidentsTool,
+} from "../../../../Server/Utils/AI/Toolbox/IncidentTools";
+import { QueryAlertsTool } from "../../../../Server/Utils/AI/Toolbox/AlertTools";
+import { QueryMonitorsTool } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
+import { ObservabilityTool } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
+import { JSONObject } from "../../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 const ENTITY_ID: string = "0f10509d-6656-4a08-b957-235fd4e8c52e";
@@ -102,6 +119,58 @@ describe("buildPageContextSection", () => {
     },
   );
 
+  /*
+   * Regression for #3552. The incidents list ships a suggested prompt card
+   * asking "which incidents are currently active or unresolved, and what
+   * state is each in?" — and the model replied that it had no tool for that
+   * and could only act on one incident once given an incidentId. It was not
+   * hallucinating: this guidance summarised the tool as "query_incidents
+   * (recent incidents, or one by incidentId)", a NARROWER capability claim
+   * than query_incidents' own schema, injected on that exact page. The model
+   * paraphrased the parenthetical back as a denial. Page guidance must name
+   * the affordance the page's own suggested prompts depend on.
+   */
+  test('incidents list guidance offers state="active" for unresolved incidents', () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.IncidentsList,
+    });
+
+    expect(section).toContain('state="active"');
+    expect(section).toContain("unresolved");
+    // The exact phrasing the model quoted back as "I have no such tool".
+    expect(section).not.toContain("(recent incidents, or one by incidentId)");
+  });
+
+  /*
+   * The alerts list carries the same "what is firing right now?" suggested
+   * prompt, and query_alerts has the same state="active" affordance. Its
+   * guidance used to stop dead at the tool name ("answered with
+   * query_alerts."), which is the same under-claim one page over.
+   */
+  test('alerts list guidance offers state="active" for unresolved alerts', () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.AlertsList,
+    });
+
+    expect(section).toContain('state="active"');
+    expect(section).toContain("unresolved");
+    expect(section).not.toContain("answered with query_alerts.");
+  });
+
+  /*
+   * "What is down right now?" on the monitors list is query_monitors'
+   * problemsOnly flag. Naming only the tool left the model to guess that a
+   * plain listing was the best it could do.
+   */
+  test("monitors list guidance offers problemsOnly for what is down now", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.MonitorsList,
+    });
+
+    expect(section).toContain("problemsOnly");
+    expect(section).not.toContain("answered with query_monitors.");
+  });
+
   test("every section reminds the model that context is not evidence", () => {
     const section: string = buildPageContextSection({
       type: AIChatPageContextType.Incident,
@@ -167,6 +236,26 @@ describe("buildObservabilityChatSystemPrompt with page context", () => {
     // The binding trust rules survive untouched.
     expect(prompt).toContain("## Hard rules");
     expect(prompt).toContain("Cite your sources.");
+  });
+
+  /*
+   * buildPageContextSection passing is worthless if the section never makes
+   * it into the prompt: the assembled string is what actually reaches the
+   * model. #3552 was reported by a user sitting on the incidents list, so
+   * that context is asserted end to end.
+   */
+  test('an incidents list context carries state="active" into the prompt', () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+      pageContext: {
+        type: AIChatPageContextType.IncidentsList,
+      },
+    });
+
+    expect(prompt).toContain("## Current page context");
+    expect(prompt).toContain('state="active"');
+    expect(prompt).not.toContain("(recent incidents, or one by incidentId)");
   });
 });
 
@@ -341,6 +430,170 @@ describe("buildObservabilityChatSystemPrompt — action guidance per mode", () =
       expect(prompt).toContain(
         "post_incident_status_update is the public counterpart",
       );
+    },
+  );
+});
+
+/*
+ * The page guidance is a SUMMARY of tools the model also receives in full.
+ * When the summary claims LESS than the schema, the model believes the
+ * summary — that is #3552. These tests assert both halves at once: that the
+ * tool really does take the argument, and that the page whose suggested
+ * prompts depend on it says so. Adding an area page means adding a row here,
+ * or deciding explicitly that the page has no "what is wrong right now?"
+ * affordance to advertise.
+ *
+ * A type alias rather than an interface on purpose: jest's object-form
+ * test.each is typed against Record<string, unknown>, which an interface does
+ * not satisfy (it has no implicit index signature).
+ */
+type AreaAffordanceCase = {
+  type: AIChatPageContextType;
+  tool: ObservabilityTool;
+  // The tool argument that answers "what is wrong RIGHT NOW?" on this page.
+  argument: string;
+  // The enum value the model must pass, or null when the argument is a flag.
+  enumValue: string | null;
+  // The literal text the page guidance must use to name the affordance.
+  guidancePhrase: string;
+};
+
+function getSchemaProperty(
+  tool: ObservabilityTool,
+  argument: string,
+): JSONObject | undefined {
+  const properties: JSONObject =
+    (tool.inputSchema["properties"] as JSONObject | undefined) || {};
+
+  return properties[argument] as JSONObject | undefined;
+}
+
+describe("page guidance stays in sync with the tool schemas it summarises", () => {
+  test.each<AreaAffordanceCase>([
+    {
+      type: AIChatPageContextType.IncidentsList,
+      tool: QueryIncidentsTool,
+      argument: "state",
+      enumValue: "active",
+      guidancePhrase: 'state="active"',
+    },
+    {
+      type: AIChatPageContextType.AlertsList,
+      tool: QueryAlertsTool,
+      argument: "state",
+      enumValue: "active",
+      guidancePhrase: 'state="active"',
+    },
+    {
+      type: AIChatPageContextType.MonitorsList,
+      tool: QueryMonitorsTool,
+      argument: "problemsOnly",
+      enumValue: null,
+      guidancePhrase: "problemsOnly",
+    },
+  ])(
+    "$type guidance names the $argument affordance its tool really has",
+    (testCase: AreaAffordanceCase) => {
+      // Half one: the tool's own schema documents the affordance.
+      const property: JSONObject | undefined = getSchemaProperty(
+        testCase.tool,
+        testCase.argument,
+      );
+
+      expect(property).toBeDefined();
+
+      if (testCase.enumValue) {
+        const allowedValues: Array<string> =
+          (property?.["enum"] as Array<string> | undefined) || [];
+
+        expect(allowedValues).toContain(testCase.enumValue);
+      }
+
+      // Half two: the page the user is standing on is told about it.
+      const section: string = buildPageContextSection({ type: testCase.type });
+
+      expect(section).toContain(testCase.tool.name);
+      expect(section).toContain(testCase.guidancePhrase);
+    },
+  );
+
+  /*
+   * The incidents list owns the historical question too, and search_incidents
+   * is the only tool that searches incident text. Dropping it here would push
+   * "have we seen this before?" onto query_incidents, which cannot search at
+   * all. This one is a drift guard: it holds before and after the fix.
+   */
+  test("the incidents list still routes free-text history to search_incidents", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.IncidentsList,
+    });
+
+    expect(getSchemaProperty(SearchIncidentsTool, "searchText")).toBeDefined();
+    expect(section).toContain(SearchIncidentsTool.name);
+  });
+});
+
+/*
+ * The other direction of the same drift: guidance naming a tool the model was
+ * never given. Extracting tool names from prose is safe here because this
+ * prompt keeps a strict convention — tool names are snake_case, tool
+ * ARGUMENTS are camelCase (incidentId, problemsOnly, createdWithinHours), and
+ * everything else is plain English or a UUID. So a snake_case token in the
+ * guidance is always a capability claim, and every one of them is checked
+ * against the toolbox the runner actually offers. A fresh regex per call
+ * keeps the global flag's lastIndex out of the picture.
+ */
+function extractToolNameTokens(text: string): Array<string> {
+  const tokens: Array<string> =
+    text.match(/[a-z][a-z0-9]*(?:_[a-z0-9]+)+/g) || [];
+
+  return Array.from(new Set(tokens));
+}
+
+const TOOLBOX_TOOL_NAMES: Set<string> = new Set(
+  AIToolbox.getTools().map((tool: ObservabilityTool): string => {
+    return tool.name;
+  }),
+);
+
+function buildSectionForType(type: AIChatPageContextType): string {
+  if (!AIChatPageContextHelper.isEntityType(type)) {
+    return buildPageContextSection({ type: type });
+  }
+
+  return buildPageContextSection({
+    type: type,
+    entityId: type === AIChatPageContextType.Trace ? TRACE_ID : ENTITY_ID,
+  });
+}
+
+describe("page guidance only names tools that exist in the toolbox", () => {
+  /*
+   * Driven off the enum rather than a hand-written list, so a new page type
+   * fails here until someone decides what it routes to.
+   */
+  test.each<[AIChatPageContextType]>(
+    Object.values(AIChatPageContextType).map(
+      (type: AIChatPageContextType): [AIChatPageContextType] => {
+        return [type];
+      },
+    ),
+  )(
+    "%s names at least one tool and every tool it names is real",
+    (type: AIChatPageContextType) => {
+      const section: string = buildSectionForType(type);
+      const mentionedTools: Array<string> = extractToolNameTokens(section);
+
+      // Guidance that routes the model nowhere is guidance it cannot use.
+      expect(mentionedTools.length).toBeGreaterThan(0);
+
+      const notInToolbox: Array<string> = mentionedTools.filter(
+        (name: string): boolean => {
+          return !TOOLBOX_TOOL_NAMES.has(name);
+        },
+      );
+
+      expect(notInToolbox).toEqual([]);
     },
   );
 });

@@ -31,8 +31,26 @@
     "errorOnSignUp": "Complete el desafío captcha antes de registrarse."
   },
   "login": {
+    "passkey": {
+      "signIn": "Iniciar sesión con una clave de acceso",
+      "description": "Usa tu huella, tu rostro o el PIN de tu dispositivo.",
+      "passwordAlternative": "o inicia sesión con una contraseña",
+      "inProgress": "Completa o cancela el inicio de sesión con clave de acceso antes de usar tu contraseña.",
+      "title": "Usar una clave de acceso guardada",
+      "helpTitle": "¿No conoces las claves de acceso?",
+      "help": "Inicia sesión con tu contraseña o SSO y abre Perfil de usuario → Claves de acceso y autenticación de dos factores para crear tu primera clave de acceso.",
+      "preparing": "Preparando tu clave de acceso…",
+      "waiting": "Revisa tu dispositivo",
+      "waitingDescription": "Sigue las indicaciones de tu navegador o gestor de contraseñas.",
+      "verifying": "Iniciando sesión…",
+      "cancelled": "Se canceló el inicio de sesión con clave de acceso. Inténtalo de nuevo o usa tu contraseña.",
+      "notCompleted": "El inicio de sesión con clave de acceso se canceló o expiró. Inténtalo de nuevo o inicia sesión con tu contraseña.",
+      "unsupported": "Las claves de acceso no están disponibles en este navegador. Puedes seguir iniciando sesión con tu contraseña o SSO.",
+      "insecure": "Las claves de acceso necesitan una conexión segura (HTTPS). Puedes seguir iniciando sesión con tu contraseña o SSO.",
+      "tryAgain": "Volver a intentar con clave de acceso"
+    },
     "title": "Inicie sesión en su cuenta",
-    "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
+    "subtitle": "Usa una clave de acceso, una contraseña o el SSO de tu organización.",
     "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
     "useSso": "Usar inicio de sesión único (SSO) en su lugar",
@@ -47,10 +65,16 @@
       "securityKeyInstructions": "Por favor, siga las instrucciones en su dispositivo de llave de seguridad.",
       "codeFieldDescription": "Ingrese el código de su aplicación de autenticación",
       "selectDifferentMethod": "Seleccione un método de autenticación de dos factores diferente",
-      "useBackupCode": "Usar un código de respaldo en su lugar",
       "backupCodeInstruction": "Ingrese uno de los códigos de respaldo que guardó al configurar la autenticación de dos factores. Cada código solo funciona una vez.",
       "backupCodeFieldTitle": "Código de respaldo",
-      "backupCodeFieldDescription": "Los códigos de respaldo se ven así: ABCDE-12345. No importan las mayúsculas ni el guion."
+      "backupCodeFieldDescription": "Los códigos de respaldo se ven así: ABCDE-12345. No importan las mayúsculas ni el guion.",
+      "confirmSubtitle": "Confirme que es usted para terminar de iniciar sesión.",
+      "recoverySubtitle": "Use un código de respaldo o descubra cómo recuperar el acceso si no tiene ninguno.",
+      "lostAccess": "¿Perdió el acceso a su aplicación de autenticación?",
+      "noBackupCodesStrong": "No tiene códigos de respaldo.",
+      "noBackupCodes": "No hay ningún código que pueda ingresar aquí, porque esta cuenta nunca recibió un conjunto de códigos.",
+      "noBackupCodesInstruction": "Pida a un administrador de esta instancia de OneUptime que restablezca la autenticación de dos factores en su cuenta. Después podrá iniciar sesión con su contraseña y configurar una nueva aplicación de autenticación, y al mismo tiempo se crearán códigos de respaldo para usted.",
+      "lostAccessSecurityKey": "¿Perdió el acceso a su llave de seguridad?"
     },
     "twoFactorEnrolment": {
       "title": "Configurar la autenticación de dos factores",
@@ -59,6 +83,24 @@
       "codeFieldDescription": "Introduzca el código de seis dígitos que muestra su aplicación de autenticación.",
       "submitButton": "Verificar e iniciar sesión",
       "backToSignIn": "Inicie sesión como otro usuario"
+    },
+    "backupCodes": {
+      "title": "Guarde sus códigos de respaldo",
+      "subtitle": "Use uno de estos códigos para iniciar sesión si alguna vez pierde el acceso a su aplicación de autenticación o a su llave de seguridad.",
+      "showOnceStrong": "Esta es la única vez que se mostrarán estos códigos.",
+      "showOnce": "Guárdelos en un lugar distinto del dispositivo que genera sus códigos. Cada código solo se puede usar una vez.",
+      "download": "Descargar como archivo de texto",
+      "savedConfirmation": "He guardado estos códigos en un lugar seguro.",
+      "continue": "Continuar al panel",
+      "fileHeading": "Códigos de respaldo de autenticación de dos factores de OneUptime",
+      "fileInstruction": "Cada código solo se puede usar una vez. Guarde este archivo en un lugar seguro y separado del dispositivo en el que se ejecuta su aplicación de autenticación.",
+      "setUpTitle": "Configure sus códigos de respaldo",
+      "setUpSubtitle": "Una última cosa antes de continuar.",
+      "noneStrong": "No tiene códigos de respaldo.",
+      "none": "Si pierde su aplicación de autenticación o su llave de seguridad, un administrador tendrá que restablecer la autenticación de dos factores antes de que pueda volver a iniciar sesión.",
+      "generate": "Generar códigos de respaldo",
+      "skip": "Omitir por ahora",
+      "generateFailed": "No se devolvió ningún código de respaldo. Vuelva a intentarlo desde Perfil de usuario > Autenticación de dos factores."
     }
   },
   "register": {
@@ -122,5 +164,36 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Iniciar sesión en OneUptime On-Call",
+    "description": "Usa una clave de acceso guardada para este servidor de OneUptime.",
+    "returnDescription": "Después de confirmar, volverás a la aplicación móvil.",
+    "invalid": "Inicia sesión desde la aplicación móvil de OneUptime. Esta solicitud no existe o no es válida.",
+    "insecure": "Las claves de acceso requieren HTTPS. Vuelve a la aplicación y comprueba la dirección del servidor.",
+    "failed": "No se pudo completar el inicio de sesión. Vuelve a la aplicación e inténtalo de nuevo.",
+    "complete": "Se ha verificado tu clave de acceso. Vuelve a la aplicación para completar el inicio de sesión.",
+    "returnToApp": "Volver a la aplicación",
+    "cancel": "Cancelar y volver a la aplicación",
+    "setup": "Crea una clave de acceso en Perfil de usuario → Claves de acceso y autenticación de dos factores en el panel web."
+  },
+  "Use at least {{minimum}} characters.": "Usa al menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Prueba con varias palabras sin relación entre sí.",
+  "Password meets requirements": "La contraseña cumple los requisitos",
+  "Password must be at least 15 characters.": "La contraseña debe tener al menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "La contraseña no puede tener más de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Elige una contraseña menos predecible. Prueba con varias palabras sin relación entre sí.",
+  "Password cannot be blank.": "La contraseña no puede contener solo espacios.",
+  "Password is required.": "La contraseña es obligatoria.",
+  "Password must be a string.": "La contraseña debe ser una cadena de texto.",
+  "Account details": "Datos de la cuenta",
+  "Secure your account": "Protege tu cuenta",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} y {{maximum}} caracteres",
+  "Avoid common or repeated patterns": "Evita patrones comunes o repetidos",
+  "Password length": "Longitud de la contraseña",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} caracteres como mínimo",
+  "Complete:": "Cumplido:",
+  "Incomplete:": "No cumplido:",
+  "Special character included (optional)": "Carácter especial incluido (opcional)",
+  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $."
 }

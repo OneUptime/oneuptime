@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 /*
  * Critical alerts on iOS require Apple's critical-alerts entitlement, granted
@@ -28,6 +30,40 @@ const appConfig: {
 } = require("../../app.config.js");
 
 const ENTITLEMENT: string = appConfig.IOS_CRITICAL_ALERTS_ENTITLEMENT;
+
+interface SplashDefinition {
+  backgroundColor: string;
+  image: string;
+  imageWidth?: number;
+  ios?: SplashDefinition;
+  android?: SplashDefinition;
+}
+
+const staticApp: {
+  userInterfaceStyle: string;
+  ios: { bundleIdentifier: string; icon: string };
+  android: {
+    package: string;
+    adaptiveIcon: { foregroundImage: string; backgroundColor: string };
+  };
+  icon: string;
+  scheme: string;
+  plugins: Array<string | [string, Record<string, unknown>]>;
+  extra: { eas: { projectId: string } };
+} = require("../../app.json").expo;
+
+function splashPluginOptions(): SplashDefinition {
+  const plugin: string | [string, Record<string, unknown>] | undefined =
+    staticApp.plugins.find(
+      (item: string | [string, Record<string, unknown>]): boolean => {
+        return Array.isArray(item) && item[0] === "expo-splash-screen";
+      },
+    );
+  if (!Array.isArray(plugin)) {
+    throw new Error("expo-splash-screen plugin is not configured");
+  }
+  return plugin[1] as unknown as SplashDefinition;
+}
 
 function baseConfig(): Record<string, unknown> {
   return {
@@ -160,5 +196,60 @@ describe("The entitlement is applied when explicitly switched on", () => {
     appConfig.withCriticalAlertsEntitlement(config, env);
 
     expect(iosEntitlements(config)).toBeUndefined();
+  });
+});
+
+describe("The native launch screen matches the light app", () => {
+  test("every iOS and Android splash declaration uses the same light canvas and wordmark", () => {
+    const options: SplashDefinition = splashPluginOptions();
+    expect(staticApp.userInterfaceStyle).toBe("light");
+    for (const splash of [options, options.ios, options.android]) {
+      expect(splash).toMatchObject({
+        backgroundColor: "#F6F7F9",
+        image: "./assets/splash-light.png",
+      });
+    }
+    expect(options.imageWidth).toBe(200);
+    expect(options.ios?.imageWidth).toBe(200);
+    expect(options.android?.imageWidth).toBe(200);
+  });
+
+  test("uses the Expo 57 plugin schema instead of removed legacy fields", () => {
+    expect("newArchEnabled" in staticApp).toBe(false);
+    expect("splash" in staticApp).toBe(false);
+    expect("splash" in staticApp.ios).toBe(false);
+    expect("edgeToEdgeEnabled" in staticApp.android).toBe(false);
+  });
+
+  test("the checked-in launch artwork is a transparent-capable PNG at the wordmark's aspect ratio", () => {
+    const options: SplashDefinition = splashPluginOptions();
+    const artwork: Buffer = readFileSync(
+      path.resolve(__dirname, "../..", options.image),
+    );
+    expect(artwork.subarray(0, 8)).toEqual(
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+    expect(artwork.readUInt32BE(16)).toBe(1000);
+    expect(artwork.readUInt32BE(20)).toBe(200);
+    expect(artwork[25]).toBe(6); // PNG color type 6 is RGBA, not an opaque launch tile.
+  });
+
+  test("the redesign preserves installed app identity, launcher icons, and notifications", () => {
+    expect(staticApp.scheme).toBe("oneuptime");
+    expect(staticApp.ios.bundleIdentifier).toBe("com.oneuptime.oncall");
+    expect(staticApp.android.package).toBe("com.oneuptime.oncall");
+    expect(staticApp.extra.eas.projectId).toBe(
+      "d9f87edc-1c3e-466f-b032-1ced7621aa8a",
+    );
+    expect(staticApp.icon).toBe("./assets/icon.png");
+    expect(staticApp.ios.icon).toBe("./assets/icon.png");
+    expect(staticApp.android.adaptiveIcon).toEqual({
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#000000",
+    });
+    expect(staticApp.plugins).toContainEqual([
+      "expo-notifications",
+      { color: "#58A6FF" },
+    ]);
   });
 });

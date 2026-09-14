@@ -70,6 +70,7 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import Team from "../../../Models/DatabaseModels/Team";
 import Log from "../../../Models/AnalyticsModels/Log";
 import IconProp from "../../../Types/Icon/IconProp";
 import Permission from "../../../Types/Permission";
@@ -294,6 +295,83 @@ describe("PermissionGate", () => {
 
       expect(denied.isAllowed).toBe(false);
       expect(denied.disabledReason).toBeTruthy();
+    });
+  });
+
+  /*
+   * The server widens a model's declared ACL with the matching
+   * *AllOperationalResources wildcard for anything marked @OperationalResource
+   * (TablePermission.getEffectiveModelPermissions). The gate has to do the
+   * same, or it is stricter than the endpoint it stands in front of: somebody
+   * granted "Edit All Operational Resources" and nothing else was told by every
+   * edit button in the product that they could not edit, while the API would
+   * have accepted the write.
+   */
+  describe("operational resource wildcards", () => {
+    test("a wildcard grants the operation on an operational resource", () => {
+      permissionsForTest = [Permission.EditAllOperationalResources];
+
+      const result: PermissionGateResult = PermissionGate.check(
+        new Monitor(),
+        ModelAction.Update,
+      );
+
+      expect(result.isAllowed).toBe(true);
+      expect(result.disabledReason).toBeUndefined();
+    });
+
+    test("each wildcard only covers its own operation", () => {
+      permissionsForTest = [Permission.ReadAllOperationalResources];
+
+      const monitor: Monitor = new Monitor();
+
+      expect(PermissionGate.check(monitor, ModelAction.Read).isAllowed).toBe(
+        true,
+      );
+      expect(PermissionGate.check(monitor, ModelAction.Update).isAllowed).toBe(
+        false,
+      );
+      expect(PermissionGate.check(monitor, ModelAction.Create).isAllowed).toBe(
+        false,
+      );
+      expect(PermissionGate.check(monitor, ModelAction.Delete).isAllowed).toBe(
+        false,
+      );
+    });
+
+    test("a wildcard does not cover a model that is not an operational resource", () => {
+      permissionsForTest = [Permission.EditAllOperationalResources];
+
+      /*
+       * Team is a settings model - deliberately outside the wildcard, so that
+       * "edit every operational resource" never quietly becomes "administer
+       * the project".
+       */
+      const result: PermissionGateResult = PermissionGate.check(
+        new Team(),
+        ModelAction.Update,
+      );
+
+      expect(result.isAllowed).toBe(false);
+    });
+
+    /*
+     * The wildcard widens the decision, not the explanation. The server names
+     * only the model's own permissions when it refuses, and telling a viewer
+     * they need "Edit All Operational Resources" would point them at a
+     * project-wide grant instead of the one permission they actually want.
+     */
+    test("the wildcard is not named in the reason the operation is refused", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const result: PermissionGateResult = PermissionGate.check(
+        new Monitor(),
+        ModelAction.Update,
+      );
+
+      expect(result.isAllowed).toBe(false);
+      expect(result.disabledReason).toContain("Edit Monitor");
+      expect(result.disabledReason).not.toContain("Operational Resources");
     });
   });
 

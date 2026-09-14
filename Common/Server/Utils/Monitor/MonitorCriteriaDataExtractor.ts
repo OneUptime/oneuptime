@@ -9,6 +9,7 @@ import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMo
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
+import DatabaseMonitorResponse from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
@@ -137,6 +138,19 @@ export default class MonitorCriteriaDataExtractor {
 
     if (probeResponse?.sslResponse) {
       return probeResponse.sslResponse;
+    }
+
+    return null;
+  }
+
+  public static getDatabaseMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): DatabaseMonitorResponse | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(dataToProcess);
+
+    if (probeResponse?.databaseMonitorResponse) {
+      return probeResponse.databaseMonitorResponse;
     }
 
     return null;

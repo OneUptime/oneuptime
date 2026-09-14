@@ -61,6 +61,10 @@ import NetworkDeviceOwnerUserService from "./NetworkDeviceOwnerUserService";
 import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
+import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
+import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
+import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
+import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
@@ -94,6 +98,12 @@ import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserSer
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
 import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
+import VMwareVCenterService from "./VMwareVCenterService";
+import VMwareResourceService from "./VMwareResourceService";
+import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
+import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
+import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
+import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
@@ -135,6 +145,16 @@ import AIInsightService from "./AIInsightService";
 // Monitors
 import MonitorService from "./MonitorService";
 import MonitorFeedService from "./MonitorFeedService";
+import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import DockerHostFeedService from "./DockerHostFeedService";
+import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
+import CephClusterFeedService from "./CephClusterFeedService";
+import PodmanHostFeedService from "./PodmanHostFeedService";
+import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
+import HostFeedService from "./HostFeedService";
+import CloudResourceFeedService from "./CloudResourceFeedService";
+import ServiceFeedService from "./ServiceFeedService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -157,6 +177,12 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "./OnCallDutyPolicySchedule
 import OnCallDutyPolicyScheduleLabelRuleService from "./OnCallDutyPolicyScheduleLabelRuleService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+// On-call calendar feeds and shift reminders
+import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
+import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
+import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
+import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
@@ -283,6 +309,7 @@ import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
+import TelemetrySourceMapService from "./TelemetrySourceMapService";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
@@ -307,6 +334,9 @@ import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
+import GoogleSecOpsConnectionRunService from "./GoogleSecOpsConnectionRunService";
+import ThreatIntelFeedService from "./ThreatIntelFeedService";
+import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -385,6 +415,7 @@ import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
@@ -405,6 +436,9 @@ import IoTFleetLabelRuleService from "./IoTFleetLabelRuleService";
 import IoTFleetOwnerRuleService from "./IoTFleetOwnerRuleService";
 import IoTFleetOwnerTeamService from "./IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "./IoTFleetOwnerUserService";
+import UserNotificationEmailRollupItemService from "./UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupBatchService from "./UserNotificationEmailRollupBatchService";
+import UserNotificationEmailRollupSettingService from "./UserNotificationEmailRollupSettingService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -488,6 +522,10 @@ const services: Array<BaseService> = [
   NetworkDeviceOwnerRuleService,
   NetworkDeviceLabelRuleService,
   NetworkDeviceAutoImportRuleService,
+  NetworkDeviceOidTemplateService,
+  NetworkDeviceRoleService,
+  NetworkAlertPolicyService,
+  NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
   NetworkSiteService,
@@ -522,6 +560,12 @@ const services: Array<BaseService> = [
   CephClusterOwnerRuleService,
   CephClusterOwnerTeamService,
   CephClusterOwnerUserService,
+  VMwareVCenterService,
+  VMwareResourceService,
+  VMwareVCenterLabelRuleService,
+  VMwareVCenterOwnerRuleService,
+  VMwareVCenterOwnerTeamService,
+  VMwareVCenterOwnerUserService,
   LlmProviderService,
   DataSourceService,
 
@@ -545,6 +589,16 @@ const services: Array<BaseService> = [
   RunbookSecretService,
   AIInsightService,
   MonitorFeedService,
+  KubernetesClusterFeedService,
+  DockerHostFeedService,
+  DockerSwarmClusterFeedService,
+  CephClusterFeedService,
+  PodmanHostFeedService,
+  ProxmoxClusterFeedService,
+  VMwareVCenterFeedService,
+  HostFeedService,
+  CloudResourceFeedService,
+  ServiceFeedService,
 
   NotificationService,
 
@@ -667,6 +721,12 @@ const services: Array<BaseService> = [
   OnCallDutyPolicyScheduleOwnerTeamService,
   OnCallDutyPolicyScheduleLabelRuleService,
   OnCallDutyPolicyScheduleLayerUserService,
+  // On-call calendar feeds and shift reminders
+  UserOnCallCalendarFeedService,
+  OnCallDutyPolicyScheduleCalendarFeedService,
+  ProjectOnCallCalendarFeedService,
+  UserOnCallShiftReminderService,
+  UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
   OnCallDutyPolicyEscalationRuleScheduleService,
 
@@ -681,6 +741,7 @@ const services: Array<BaseService> = [
   ServiceOwnerUserService,
 
   TelemetryExceptionService,
+  TelemetrySourceMapService,
   InventoryItemService,
   InventoryItemCustomFieldService,
   InventoryItemRelationshipService,
@@ -704,6 +765,8 @@ const services: Array<BaseService> = [
   AlertSeverityService,
   DetectionRuleService,
   GoogleSecOpsConnectionService,
+  GoogleSecOpsConnectionRunService,
+  ThreatIntelFeedService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -792,6 +855,7 @@ const services: Array<BaseService> = [
   HostOwnerTeamService,
   HostOwnerUserService,
   IncomingCallPolicyService,
+  IncomingCallPolicyPhoneNumberService,
   IncomingCallPolicyEscalationRuleService,
   IncomingCallPolicyLabelRuleService,
   IncomingCallPolicyOwnerRuleService,
@@ -809,6 +873,9 @@ const services: Array<BaseService> = [
   ServerlessFunctionOwnerTeamService,
   ServerlessFunctionOwnerUserService,
   WebhookLogService,
+  UserNotificationEmailRollupItemService,
+  UserNotificationEmailRollupBatchService,
+  UserNotificationEmailRollupSettingService,
 ];
 
 export const AnalyticsServices: Array<
@@ -851,6 +918,7 @@ export const AnalyticsServices: Array<
   RumSessionChunkService,
   AuditLogService,
   SecurityEventService,
+  ThreatIntelIndicatorService,
   ChangeEventService,
 ];
 

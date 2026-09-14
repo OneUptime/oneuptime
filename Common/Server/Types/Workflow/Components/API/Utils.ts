@@ -146,9 +146,18 @@ export class ApiComponentUtils {
      * Validate the RAW string, before URL.fromString - that parser defaults an
      * unrecognized scheme to https, so "file:///etc/passwd" would reach the
      * check already rewritten as host "file".
+     *
+     * A self-hosted install may legitimately point a workflow at an internal
+     * service (issue #3424), so this URL is eligible for the instance's
+     * private-network exception: a workflow is authored by a member of the
+     * project it runs in, not by a passing visitor. Whether that eligibility
+     * grants anything is decided by the instance configuration, which is off
+     * on every SaaS deployment and off by default everywhere else.
      */
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string);
+      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string, {
+        allowPrivateNetworkTargets: true,
+      });
     } catch (err) {
       throw options.onError(
         new BadDataException(

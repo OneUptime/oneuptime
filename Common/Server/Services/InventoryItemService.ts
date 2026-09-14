@@ -57,6 +57,27 @@ export class InventoryItemService extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     const data: Model = createBy.data;
 
+    /*
+     * Who is calling decides this, not what they sent.
+     *
+     * The two machine writers — the ingest reconciler and the inventory
+     * mirror — construct the model themselves and create it with
+     * `props: { isRoot: true }`. Everything else is a person or an API
+     * client. Keying the branch on "did the payload include an entityKey"
+     * instead let any caller opt out of every check below simply by sending
+     * one: the manual-type restriction, the required display name, the
+     * canonicalize-then-hash identity derivation and the firstSeenAt /
+     * lastSeenAt stamp were all skipped, and a hand-supplied
+     * `source: "discovered"` was taken at face value — putting a row in
+     * Inventory that claims to have been discovered from telemetry, of a type
+     * only ingest is supposed to create, which the prune sweep then treats as
+     * TTL-reapable.
+     */
+    if (createBy.props.isRoot !== true) {
+      delete data.entityKey;
+      data.source = EntitySource.Manual;
+    }
+
     if (!data.entityKey) {
       data.source = EntitySource.Manual;
     }
@@ -150,7 +171,16 @@ export class InventoryItemService extends DatabaseService<Model> {
     const countByType: Map<EntityType, number> = new Map<EntityType, number>();
 
     for (const entity of data.entities) {
-      if (!REGISTRY_PROMOTED_TYPES.has(entity.entityType)) {
+      /*
+       * Both promotion gates, repeated at the write boundary. The caller
+       * applies them too, but this method is public and the cost of a missed
+       * gate here is a registry row that should never have existed — see
+       * `ExtractedEntity.membershipOnly` for what the per-entity flag means.
+       */
+      if (
+        entity.membershipOnly ||
+        !REGISTRY_PROMOTED_TYPES.has(entity.entityType)
+      ) {
         continue;
       }
       try {

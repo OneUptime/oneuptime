@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -20,6 +25,15 @@ import LogFilterConfig from "../FilterQueryBuilder/LogFilterConfig";
 import SeverityMappingRow, { SeverityMapping } from "./SeverityMappingRow";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import API from "Common/UI/Utils/API/API";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
+import {
+  CompiledGrokPattern,
+  GrokValue,
+  compileGrokPattern,
+  matchGrokPattern,
+} from "Common/Utils/Grok/Grok";
+import { getGrokPatternNames } from "Common/Utils/Grok/GrokPatterns";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -28,12 +42,19 @@ export interface ComponentProps {
 }
 
 type ProcessorType =
+  | "GrokParser"
   | "SeverityRemapper"
   | "AttributeRemapper"
   | "CategoryProcessor"
   | "";
 
 const processorTypeOptions: Array<DropdownOption> = [
+  {
+    value: "GrokParser",
+    label: "Grok Parser",
+    description:
+      "Pulls structured fields out of an unstructured log line (e.g. an nginx access line) and stores them as log attributes",
+  },
   {
     value: "SeverityRemapper",
     label: "Severity Remapper",
@@ -59,6 +80,38 @@ interface CategoryRule {
   filterQuery: string;
 }
 
+interface GrokTestResult {
+  /** The pattern compiles, but there is no sample line to run it on yet. */
+  compiledOnly?: boolean;
+  error?: string;
+  matched?: boolean;
+  fields?: Record<string, GrokValue>;
+}
+
+/*
+ * A prefix names a namespace, so the separator is implied unless the
+ * user typed one. Mirrors LogPipelineService.normalizeGrokTargetPrefix -
+ * this is only used to render the preview of the resulting keys.
+ */
+function previewAttributeKey(targetPrefix: string, fieldName: string): string {
+  const prefix: string = targetPrefix.trim();
+
+  if (!prefix) {
+    return fieldName;
+  }
+
+  if (
+    prefix.endsWith(".") ||
+    prefix.endsWith("_") ||
+    prefix.endsWith("-") ||
+    prefix.endsWith(":")
+  ) {
+    return `${prefix}${fieldName}`;
+  }
+
+  return `${prefix}.${fieldName}`;
+}
+
 const ProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -66,6 +119,14 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   const [name, setName] = useState<string>("");
   const [processorType, setProcessorType] = useState<ProcessorType>("");
   const [isEnabled, setIsEnabled] = useState<boolean>(true);
+
+  // Grok Parser fields
+  const [grokSource, setGrokSource] = useState<string>("body");
+  const [grokPattern, setGrokPattern] = useState<string>("");
+  const [grokTargetPrefix, setGrokTargetPrefix] = useState<string>("");
+  const [grokSample, setGrokSample] = useState<string>("");
+  const [showGrokPatternList, setShowGrokPatternList] =
+    useState<boolean>(false);
 
   // Severity Remapper fields
   const [severitySourceKey, setSeveritySourceKey] = useState<string>("level");
@@ -89,8 +150,55 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  /*
+   * Live pattern tester. The same compiler the ingest pipeline uses runs
+   * here on whatever sample line the user pastes, so "does my pattern
+   * actually pull these fields out?" is answered before the processor is
+   * saved rather than after logs have flowed past it.
+   */
+  const grokTestResult: GrokTestResult | null = useMemo(() => {
+    if (processorType !== "GrokParser") {
+      return null;
+    }
+
+    if (!grokPattern.trim()) {
+      return null;
+    }
+
+    let compiled: CompiledGrokPattern;
+
+    try {
+      compiled = compileGrokPattern(grokPattern.trim());
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    if (!grokSample) {
+      return { compiledOnly: true };
+    }
+
+    const fields: Record<string, GrokValue> | null = matchGrokPattern(
+      compiled,
+      grokSample,
+    );
+
+    if (!fields) {
+      return { matched: false };
+    }
+
+    return { matched: true, fields: fields };
+  }, [processorType, grokPattern, grokSample]);
+
   const buildConfiguration: () => JSONObject = (): JSONObject => {
     switch (processorType) {
+      case "GrokParser":
+        return {
+          source: grokSource.trim() || "body",
+          pattern: grokPattern.trim(),
+          targetPrefix: grokTargetPrefix.trim(),
+        };
       case "SeverityRemapper":
         return {
           sourceKey: severitySourceKey,
@@ -126,6 +234,26 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
     }
 
     switch (processorType) {
+      case "GrokParser": {
+        if (!grokSource.trim()) {
+          return "Source field is required.";
+        }
+        if (!grokPattern.trim()) {
+          return "Grok pattern is required.";
+        }
+
+        /*
+         * Compile before saving. The API rejects an uncompilable pattern
+         * too, but the message reads better next to the field that
+         * produced it.
+         */
+        try {
+          compileGrokPattern(grokPattern.trim());
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+        break;
+      }
       case "SeverityRemapper": {
         if (!severitySourceKey.trim()) {
           return "Source key is required for Severity Remapper.";
@@ -192,8 +320,14 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
       });
 
       props.onProcessorCreated();
-    } catch {
-      setError("Failed to create processor. Please try again.");
+    } catch (err) {
+      /*
+       * The API validates the grok pattern too, and ModelAPI throws an
+       * HTTPErrorResponse rather than an Error - getFriendlyMessage
+       * reads both. "Unknown grok pattern %{IPV44}" is worth showing;
+       * "please try again" is not.
+       */
+      setError(API.getFriendlyMessage(err));
     } finally {
       setIsSaving(false);
     }
@@ -258,6 +392,242 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
+
+        {/* === Grok Parser Configuration === */}
+        {processorType === "GrokParser" && (
+          <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">
+              Grok Parser Configuration
+            </h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Extracts structured fields out of an unstructured log line and
+              stores them in the log&apos;s{" "}
+              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                attributes
+              </code>{" "}
+              object, so you can search and filter on them. A grok pattern is
+              regex with names:{" "}
+              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                %&#123;IPV4:client_ip&#125;
+              </code>{" "}
+              means &quot;match an IPv4 address and store it as client_ip&quot;.
+            </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">
+                How it works
+              </p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>
+                  1. Reads the text from the Source Field (usually the log{" "}
+                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                    body
+                  </code>
+                  ).
+                </p>
+                <p>
+                  2. Runs your pattern against it. The pattern does not have to
+                  match the whole line.
+                </p>
+                <p>
+                  3. Every named capture becomes a log attribute. Add{" "}
+                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                    :int
+                  </code>{" "}
+                  or{" "}
+                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                    :float
+                  </code>{" "}
+                  to a capture to store it as a number.
+                </p>
+                <p>
+                  4. If the line does not match, the log passes through
+                  unchanged.
+                </p>
+              </div>
+              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
+                <span className="text-gray-500">// Log body</span>
+                <br />
+                <span className="text-sky-400">10.0.1.5 - GET /health 200</span>
+                <br />
+                <span className="text-gray-500">// Pattern</span>
+                <br />
+                <span className="text-emerald-400">
+                  %&#123;IPV4:client_ip&#125; - %&#123;WORD:method&#125;
+                  %&#123;NOTSPACE:path&#125; %&#123;NUMBER:status:int&#125;
+                </span>
+                <br />
+                <span className="text-gray-500">// Attributes added</span>
+                <br />
+                <span className="text-amber-400">client_ip</span>:{" "}
+                <span className="text-sky-400">&quot;10.0.1.5&quot;</span>,{" "}
+                <span className="text-amber-400">method</span>:{" "}
+                <span className="text-sky-400">&quot;GET&quot;</span>,{" "}
+                <span className="text-amber-400">path</span>:{" "}
+                <span className="text-sky-400">&quot;/health&quot;</span>,{" "}
+                <span className="text-amber-400">status</span>:{" "}
+                <span className="text-sky-400">200</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <FieldLabelElement
+                  title="Source Field"
+                  description="The field to parse. Use 'body' for the log message, or an attribute key like 'attributes.raw_line'."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="body"
+                    value={grokSource}
+                    onChange={setGrokSource}
+                  />
+                </div>
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Target Prefix (optional)"
+                  description="Namespace for the extracted attributes. 'http' stores status as http.status."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="e.g. http"
+                    value={grokTargetPrefix}
+                    onChange={setGrokTargetPrefix}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <FieldLabelElement
+                title="Grok Pattern"
+                description="Named patterns like %{IPV4:client_ip}, mixed with any literal text or regex."
+              />
+              <div className="mt-1">
+                <TextArea
+                  placeholder={
+                    '%{IPV4:client_ip} %{USER:ident} %{USER:auth} [%{HTTPDATE:timestamp}] "%{WORD:verb} %{NOTSPACE:request} HTTP/%{NUMBER:http_version}" %{NUMBER:status:int} %{NUMBER:bytes:int}'
+                  }
+                  value={grokPattern}
+                  onChange={setGrokPattern}
+                  disableSpellCheck={true}
+                  className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs font-mono placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-24"
+                />
+              </div>
+              <div className="mt-2">
+                <Button
+                  title={
+                    showGrokPatternList
+                      ? "Hide available patterns"
+                      : "Show available patterns"
+                  }
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    setShowGrokPatternList(!showGrokPatternList);
+                  }}
+                />
+              </div>
+              {showGrokPatternList && (
+                <div className="mt-2 max-h-40 overflow-y-auto p-2 bg-white rounded-md border border-indigo-100">
+                  <div className="flex flex-wrap gap-1">
+                    {getGrokPatternNames().map((patternName: string) => {
+                      return (
+                        <code
+                          key={patternName}
+                          className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]"
+                        >
+                          {`%{${patternName}}`}
+                        </code>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pattern tester */}
+            <div>
+              <FieldLabelElement
+                title="Test Your Pattern"
+                description="Paste a real log line here to see exactly which attributes this processor would add."
+              />
+              <div className="mt-1">
+                <TextArea
+                  placeholder='10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] "GET /health HTTP/1.1" 200 1234'
+                  value={grokSample}
+                  onChange={setGrokSample}
+                  disableSpellCheck={true}
+                  className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs font-mono placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
+                />
+              </div>
+
+              {grokTestResult?.error && (
+                <div className="mt-2 p-2 rounded-md border border-red-200 bg-red-50 text-xs text-red-700">
+                  {grokTestResult.error}
+                </div>
+              )}
+
+              {grokTestResult?.compiledOnly && (
+                <div className="mt-2 p-2 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-500">
+                  Pattern is valid. Paste a sample log line above to see what it
+                  extracts.
+                </div>
+              )}
+
+              {grokTestResult?.matched === false && (
+                <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-700">
+                  This pattern does not match the sample line. Logs that do not
+                  match are left unchanged.
+                </div>
+              )}
+
+              {grokTestResult?.matched === true && (
+                <div className="mt-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
+                  {Object.keys(grokTestResult.fields || {}).length === 0 ? (
+                    <p className="text-xs text-emerald-700">
+                      Matches, but captures nothing. Name your captures like
+                      %&#123;WORD:my_field&#125; to store them.
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-emerald-700">
+                        Attributes this processor would add
+                      </p>
+                      {Object.entries(grokTestResult.fields || {}).map(
+                        ([fieldName, fieldValue]: [string, GrokValue]) => {
+                          return (
+                            <div
+                              key={fieldName}
+                              className="text-[11px] font-mono text-gray-700"
+                            >
+                              <span className="text-indigo-700">
+                                {previewAttributeKey(
+                                  grokTargetPrefix,
+                                  fieldName,
+                                )}
+                              </span>
+                              {": "}
+                              <span className="text-gray-600">
+                                {typeof fieldValue === "string"
+                                  ? `"${fieldValue}"`
+                                  : String(fieldValue)}
+                              </span>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* === Severity Remapper Configuration === */}
         {processorType === "SeverityRemapper" && (

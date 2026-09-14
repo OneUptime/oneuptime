@@ -13,6 +13,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
+import Project from "../../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -266,6 +267,18 @@ function victimProvider(): LlmProvider {
   return provider;
 }
 
+/*
+ * The provider listing also reports the project's AI kill switch, so the chat
+ * surfaces can say why they are unavailable before a question is typed. The
+ * default row here has AI on, which is what every authorization case above
+ * assumes; AIChatProvidersAIEnabled.test.ts owns the switch itself.
+ */
+function projectWithAI(enableAi: boolean): Project {
+  const project: Project = new Project(PROJECT_B_ID);
+  project.enableAi = enableAi;
+  return project;
+}
+
 function stubProviderLookups(): void {
   jest
     .spyOn(LlmProviderService, "getSelectableProvidersForProject")
@@ -273,6 +286,9 @@ function stubProviderLookups(): void {
   jest
     .spyOn(LlmProviderService, "getLLMProviderForProject")
     .mockResolvedValue(victimProvider());
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue(projectWithAI(true));
 }
 
 function providerLookupsRan(): boolean {
@@ -280,8 +296,21 @@ function providerLookupsRan(): boolean {
     LlmProviderService.getSelectableProvidersForProject as unknown as jest.Mock;
   const forProject: jest.Mock =
     LlmProviderService.getLLMProviderForProject as unknown as jest.Mock;
+  /*
+   * The project read that reports the AI kill switch sits in the same
+   * Promise.all as the two provider reads, and it is root-privileged on the
+   * header's project id — exactly the shape the advisory was about. It counts
+   * as a lookup, so "nothing was queried for the victim project" keeps meaning
+   * what it says.
+   */
+  const projectRead: jest.Mock =
+    ProjectService.findOneById as unknown as jest.Mock;
 
-  return selectable.mock.calls.length > 0 || forProject.mock.calls.length > 0;
+  return (
+    selectable.mock.calls.length > 0 ||
+    forProject.mock.calls.length > 0 ||
+    projectRead.mock.calls.length > 0
+  );
 }
 
 beforeEach(() => {

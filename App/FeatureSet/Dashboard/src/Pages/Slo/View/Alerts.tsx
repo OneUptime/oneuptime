@@ -18,12 +18,14 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * raised them, and the SLO itself had no record that it had ever paged
  * anyone.
  *
- * They are found by the fingerprint the worker stamps on every alert it
- * creates, `slo:<sloId>:burn-rule:<ruleId>` (see
- * ServiceLevelObjectiveBurnRateRuleService.getBurnRateAlertFingerprint) —
- * a StartsWith on the SLO-scoped prefix therefore matches every rule of
- * this SLO and nothing else. `seriesFingerprint` is indexed, so this stays
- * a cheap query.
+ * They are found by the fingerprint the worker stamps on everything it
+ * declares, `slo:<sloId>:burn-rule:<ruleId>` (see
+ * ServiceLevelObjectiveBurnRateRuleService.getBurnRateFingerprint) — a
+ * StartsWith on the SLO-scoped prefix therefore matches every rule of this
+ * SLO and nothing else. `seriesFingerprint` is indexed, so this stays a
+ * cheap query.
+ *
+ * The Incidents tab is the twin of this one, over the same fingerprint.
  */
 const SloAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -41,7 +43,7 @@ const SloAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <AlertsTable
         query={query}
         title="Alerts"
-        description="Alerts raised by this SLO's burn rate rules. They are ordinary alerts, so they carry severity, on-call escalation and the usual state timeline."
+        description="Alerts raised by this SLO's burn rate rules. They are ordinary alerts, so they carry severity, on-call escalation and the usual state timeline. A rule that declares incidents instead shows them on the Incidents tab."
         noItemsMessage="This SLO has not raised any alerts. Burn rate rules create one when the error budget starts burning too fast."
         /*
          * An alert here only means something if a rule raised it — a

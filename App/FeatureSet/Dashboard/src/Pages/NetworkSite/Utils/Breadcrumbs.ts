@@ -41,6 +41,10 @@ export function getNetworkSiteBreadcrumbs(
       "View Site",
       "Status Timeline",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Network", "View Site", "Scheduled Maintenance"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_SETTINGS, [
       "Project",
       "Network",
@@ -56,17 +60,26 @@ export function getNetworkSiteBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_MAP, [
       "Project",
       "Network",
+      "Topology",
       "Network Map",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_ASSIGNMENT_RULES, [
       "Project",
       "Network",
+      "Rules",
       "Site Assignment Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_LINKS, [
       "Project",
       "Network",
+      "Topology",
       "Site Links",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, [
+      "Project",
+      "Network",
+      "Settings",
+      "Site Types",
     ]),
   };
   return breadcrumpLinksMap[path];

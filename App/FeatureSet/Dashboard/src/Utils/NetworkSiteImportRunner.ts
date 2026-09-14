@@ -1,4 +1,5 @@
 import {
+  NetworkSiteTypeOption,
   ParsedSiteRow,
   SiteImportPlan,
   SkippedSiteRow,
@@ -64,6 +65,17 @@ export interface RunSiteImportOptions {
    * works on its own copy.
    */
   existingSiteIdByName: Map<string, string>;
+  /*
+   * The existing sites' type ids, loaded alongside their ids. Supplied
+   * together with `siteTypes`, they let the planner reject a placement the
+   * server would refuse before createSite is called for any row.
+   */
+  existingSiteTypeIdByName?: Map<string, string | null> | undefined;
+  /*
+   * The project's configured site types. The placement rule is an ancestry
+   * question, so the planner needs the whole catalog, not one type at a time.
+   */
+  siteTypes?: Array<NetworkSiteTypeOption> | undefined;
   createSite: CreateSiteFunction;
   // Called after the skip pass and after every attempted row.
   onProgress?: ((progress: SiteImportProgress) => void) | undefined;
@@ -117,6 +129,8 @@ export async function runSiteImport(
   const plan: SiteImportPlan = planSiteImport(
     options.rows,
     Array.from(siteIdByName.keys()),
+    options.existingSiteTypeIdByName,
+    options.siteTypes,
   );
 
   const results: Array<SiteImportRowResult> = [];

@@ -3,6 +3,10 @@ import http from "http";
 import https from "https";
 import net from "net";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import EgressGuardException, {
+  EgressFailureReason,
+} from "../../../Types/Exception/EgressGuardException";
+import logger from "../Logger";
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -67,6 +71,34 @@ export interface EgressGuardOptions {
    * to "Data source".
    */
   targetLabel?: string | undefined;
+  /*
+   * Optional operator guidance appended only when a PRIVATE-tier address is
+   * refused. It is deliberately omitted for loopback/link-local/reserved
+   * ranges because those cannot be opened by the private-network switch.
+   */
+  privateNetworkHint?: string | undefined;
+  /*
+   * Detailed DNS failures and address-policy reasons are useful to operators,
+   * but tenant-facing callers can compare them to enumerate internal names.
+   * Defaults to true for backwards compatibility; shared-probe monitor
+   * requests set it to false and receive one indistinguishable failure.
+   */
+  includeResolvedAddressInError?: boolean | undefined;
+  /*
+   * TOTAL wall-clock budget for name resolution, across every attempt. It is a
+   * safety net against a wedged resolver, not a latency policy: callers with
+   * their own deadline (probe monitors have an execution-context timeout) pass
+   * a value above the resolver's own configured budget so the resolver's
+   * nameserver failover is allowed to finish, and let their deadline do the
+   * real bounding. Defaults to DEFAULT_DNS_RESOLVE_BUDGET_IN_MS.
+   */
+  resolveTimeoutInMs?: number | undefined;
+  /*
+   * How many getaddrinfo attempts to make inside the budget above. Retrying
+   * absorbs the transient resolver failures (EAI_AGAIN, a nameserver
+   * restarting) that otherwise surface as a hard "target is down".
+   */
+  resolveAttempts?: number | undefined;
 }
 
 export interface PinnedAgents {
@@ -96,9 +128,26 @@ const DEFAULT_TARGET_LABEL: string = "Data source";
 export interface AddressVerdict {
   blocked: boolean;
   reason?: string | undefined;
+  isPrivateNetwork?: boolean | undefined;
 }
 
-const DNS_LOOKUP_TIMEOUT_IN_MS: number = 5000;
+/*
+ * Total resolution budget. Chosen so existing callers see no change in
+ * worst-case latency versus the single 5s lookup this replaced — the retries
+ * below fit INSIDE the same budget rather than extending it.
+ */
+export const DEFAULT_DNS_RESOLVE_BUDGET_IN_MS: number = 5000;
+
+/*
+ * getaddrinfo fails transiently far more often than a host actually
+ * disappears — EAI_AGAIN under resolver load is the classic case, and it is
+ * why the Helm chart ships fallback nameservers. One shot at it turned every
+ * such blip into a monitor-down incident.
+ */
+export const DEFAULT_DNS_RESOLVE_ATTEMPTS: number = 3;
+
+// Short enough that three attempts still fit comfortably in a 5s budget.
+const DNS_RESOLVE_RETRY_DELAY_IN_MS: number = 150;
 
 interface Ipv4Range {
   base: number;
@@ -111,6 +160,9 @@ type RangeSpec = [string, number, string];
 const ALWAYS_BLOCKED_IPV4_RANGE_SPECS: Array<RangeSpec> = [
   ["127.0.0.0", 8, "loopback address"],
   ["169.254.0.0", 16, "link-local address (cloud metadata range)"],
+  ["100.100.100.200", 32, "cloud metadata address"],
+  ["168.63.129.16", 32, "cloud platform metadata address"],
+  ["192.0.0.192", 32, "cloud metadata address"],
   ["0.0.0.0", 8, "unspecified address"],
   ["224.0.0.0", 4, "multicast address"],
   ["240.0.0.0", 4, "reserved address"],
@@ -195,7 +247,11 @@ export default class DataSourceEgressGuard {
     if (blockPrivateAddresses) {
       for (const range of this.buildRanges(PRIVATE_IPV4_RANGE_SPECS)) {
         if (this.isInRange(ipAsInt, range)) {
-          return { blocked: true, reason: range.reason };
+          return {
+            blocked: true,
+            reason: range.reason,
+            isPrivateNetwork: true,
+          };
         }
       }
     }
@@ -309,6 +365,80 @@ export default class DataSourceEgressGuard {
       return { blocked: true, reason: "loopback address" };
     }
 
+    const groups: Array<number> = expanded.split(":").map((group: string) => {
+      return parseInt(group, 16);
+    });
+
+    /*
+     * These cloud-local IPv6 endpoints expose instance metadata or workload
+     * credentials. They remain forbidden even when a self-hosted operator
+     * explicitly enables ordinary private-network monitor targets.
+     */
+    if (groups[0] === 0xfd00 && groups[1] === 0x0ec2) {
+      return { blocked: true, reason: "cloud metadata address" };
+    }
+    if (expanded === "fd20:00ce:0000:0000:0000:0000:0000:0254") {
+      return { blocked: true, reason: "cloud metadata address" };
+    }
+
+    /*
+     * RFC 8215 reserves 64:ff9b:1::/48 for locally assigned IPv4/IPv6
+     * translation. Its IPv4 layout is operator-defined, so it cannot be
+     * decoded safely here and the special-use prefix is refused wholesale.
+     * RFC 2765's legacy IPv4-translated prefix receives the same treatment.
+     */
+    if (
+      expanded.startsWith("0064:ff9b:0001:") ||
+      expanded.startsWith("0000:0000:0000:0000:ffff:0000:")
+    ) {
+      return { blocked: true, reason: "IPv4 translation address" };
+    }
+
+    const embeddedIpv4: (highGroupIndex: number, invert?: boolean) => string = (
+      highGroupIndex: number,
+      invert: boolean = false,
+    ): string => {
+      let high: number = groups[highGroupIndex]!;
+      let low: number = groups[highGroupIndex + 1]!;
+
+      if (invert) {
+        high ^= 0xffff;
+        low ^= 0xffff;
+      }
+
+      return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
+    };
+
+    /*
+     * Deprecated IPv4-compatible ::/96 addresses are still understood by
+     * network stacks. Classify the IPv4 destination they carry rather than
+     * accepting the globally-looking IPv6 wrapper.
+     */
+    if (
+      groups.slice(0, 6).every((group: number) => {
+        return group === 0;
+      })
+    ) {
+      return this.checkIpv4(embeddedIpv4(6), blockPrivateAddresses);
+    }
+
+    // 6to4 (2002::/16) stores its IPv4 gateway in the next 32 bits.
+    if (groups[0] === 0x2002) {
+      return this.checkIpv4(embeddedIpv4(1), blockPrivateAddresses);
+    }
+
+    /*
+     * Teredo (2001:0000::/32) carries both a server IPv4 address and a
+     * bitwise-inverted client IPv4 address. Either endpoint being forbidden
+     * is enough to reject the route.
+     */
+    if (groups[0] === 0x2001 && groups[1] === 0) {
+      return this.getStrictestVerdict(
+        this.checkIpv4(embeddedIpv4(2), blockPrivateAddresses),
+        this.checkIpv4(embeddedIpv4(6, true), blockPrivateAddresses),
+      );
+    }
+
     const firstGroup: number = parseInt(expanded.substring(0, 4), 16);
     // fe80::/10 link-local.
     if ((firstGroup & 0xffc0) === 0xfe80) {
@@ -322,14 +452,49 @@ export default class DataSourceEgressGuard {
     if (blockPrivateAddresses) {
       // fc00::/7 unique-local.
       if ((firstGroup & 0xfe00) === 0xfc00) {
-        return { blocked: true, reason: "private network address" };
+        return {
+          blocked: true,
+          reason: "private network address",
+          isPrivateNetwork: true,
+        };
+      }
+      // fec0::/10 deprecated site-local addresses are still routed in places.
+      if ((firstGroup & 0xffc0) === 0xfec0) {
+        return {
+          blocked: true,
+          reason: "private network address",
+          isPrivateNetwork: true,
+        };
       }
       // 2001:db8::/32 documentation.
       if (expanded.startsWith("2001:0db8:")) {
-        return { blocked: true, reason: "documentation address" };
+        return {
+          blocked: true,
+          reason: "documentation address",
+          isPrivateNetwork: true,
+        };
       }
     }
 
+    return { blocked: false };
+  }
+
+  private static getStrictestVerdict(
+    left: AddressVerdict,
+    right: AddressVerdict,
+  ): AddressVerdict {
+    if (left.blocked && !left.isPrivateNetwork) {
+      return left;
+    }
+    if (right.blocked && !right.isPrivateNetwork) {
+      return right;
+    }
+    if (left.blocked) {
+      return left;
+    }
+    if (right.blocked) {
+      return right;
+    }
     return { blocked: false };
   }
 
@@ -355,8 +520,9 @@ export default class DataSourceEgressGuard {
     return { blocked: true, reason: "not a valid IP address" };
   }
 
-  private static async defaultResolve(
+  private static async lookupOnce(
     hostname: string,
+    timeoutInMs: number,
   ): Promise<Array<ResolvedAddress>> {
     /*
      * dns.lookup (getaddrinfo) rather than dns.resolve so /etc/hosts and
@@ -376,7 +542,7 @@ export default class DataSourceEgressGuard {
       (_resolve: (value: never) => void, reject: (error: Error) => void) => {
         timeoutHandle = setTimeout(() => {
           reject(new BadDataException(`DNS lookup timed out for ${hostname}`));
-        }, DNS_LOOKUP_TIMEOUT_IN_MS);
+        }, timeoutInMs);
       },
     );
 
@@ -387,6 +553,77 @@ export default class DataSourceEgressGuard {
         clearTimeout(timeoutHandle);
       }
     }
+  }
+
+  /*
+   * Resolve with a bounded number of retries inside ONE total budget.
+   *
+   * A resolver that answers "no" instantly (NXDOMAIN, SERVFAIL, EAI_AGAIN) is
+   * retried within milliseconds, which is exactly the case that used to turn a
+   * momentary blip into an incident. A resolver that HANGS consumes the budget
+   * on its first attempt and is not retried, so the worst case is unchanged
+   * from the single lookup this replaced.
+   */
+  private static async defaultResolve(
+    hostname: string,
+    options?: EgressGuardOptions,
+  ): Promise<Array<ResolvedAddress>> {
+    const budgetInMs: number = Math.max(
+      1,
+      options?.resolveTimeoutInMs ?? DEFAULT_DNS_RESOLVE_BUDGET_IN_MS,
+    );
+    const maxAttempts: number = Math.max(
+      1,
+      options?.resolveAttempts ?? DEFAULT_DNS_RESOLVE_ATTEMPTS,
+    );
+
+    const startedAt: number = Date.now();
+
+    /*
+     * Keep the FIRST failure, not the last. Attempt one gets the whole budget,
+     * so its error is either the real resolver errno or a genuine full-budget
+     * timeout; a later attempt runs on whatever is left and can time out
+     * generically, burying the diagnosis. That errno is the entire value here
+     * — for detail-permitted callers it IS the user-facing message, and for a
+     * probe it is all the operator log has to go on.
+     */
+    let firstError: unknown = undefined;
+
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const remainingInMs: number = budgetInMs - (Date.now() - startedAt);
+
+      if (remainingInMs <= 0) {
+        break;
+      }
+
+      try {
+        return await this.lookupOnce(hostname, remainingInMs);
+      } catch (error) {
+        if (firstError === undefined) {
+          firstError = error;
+        }
+      }
+
+      /*
+       * Only sleep when another attempt can still start AND finish inside the
+       * budget; otherwise the delay is pure added latency on a failure.
+       */
+      const budgetLeftInMs: number = budgetInMs - (Date.now() - startedAt);
+      if (
+        attempt >= maxAttempts ||
+        budgetLeftInMs <= DNS_RESOLVE_RETRY_DELAY_IN_MS
+      ) {
+        break;
+      }
+
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, DNS_RESOLVE_RETRY_DELAY_IN_MS);
+      });
+    }
+
+    throw (
+      firstError ?? new BadDataException(`DNS lookup timed out for ${hostname}`)
+    );
   }
 
   /*
@@ -403,7 +640,10 @@ export default class DataSourceEgressGuard {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
 
     if (!hostname) {
-      throw new BadDataException(`${label} host is required.`);
+      throw new EgressGuardException(
+        `${label} host is required.`,
+        EgressFailureReason.InvalidTarget,
+      );
     }
 
     // Literal [::1] style hosts arrive with brackets from URL parsing.
@@ -412,8 +652,15 @@ export default class DataSourceEgressGuard {
     if (net.isIP(bareHostname) !== 0) {
       const verdict: AddressVerdict = this.checkAddress(bareHostname, options);
       if (verdict.blocked) {
-        throw new BadDataException(
-          `${label} host ${bareHostname} is not allowed: ${verdict.reason}.`,
+        /*
+         * A literal IP is echoed back with full detail on purpose: it tells
+         * the caller only what the caller itself typed.
+         */
+        throw new EgressGuardException(
+          `${label} host ${bareHostname} is not allowed: ${verdict.reason}.${
+            verdict.isPrivateNetwork ? options?.privateNetworkHint || "" : ""
+          }`,
+          EgressFailureReason.AddressBlocked,
         );
       }
       return [{ address: bareHostname, family: net.isIP(bareHostname) }];
@@ -422,23 +669,48 @@ export default class DataSourceEgressGuard {
     const resolveFunction: EgressResolveFunction =
       options?.resolveFunction ||
       ((host: string) => {
-        return this.defaultResolve(host);
+        return this.defaultResolve(host, options);
       });
 
     let addresses: Array<ResolvedAddress> = [];
     try {
       addresses = await resolveFunction(bareHostname);
     } catch (error) {
-      throw new BadDataException(
+      if (options?.includeResolvedAddressInError === false) {
+        /*
+         * The cause is destroyed for the caller by design, so log it here:
+         * this is the only place an operator can still learn whether a
+         * monitor failed on DNS or on address policy.
+         */
+        logger.debug(
+          `EgressGuard: could not resolve ${bareHostname} - ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        throw new EgressGuardException(
+          `${label} host ${bareHostname} could not be reached.`,
+          EgressFailureReason.Unreachable,
+        );
+      }
+      throw new EgressGuardException(
         `Could not resolve ${label.toLowerCase()} host ${bareHostname}: ${
           error instanceof Error ? error.message : String(error)
         }`,
+        EgressFailureReason.ResolutionFailed,
       );
     }
 
     if (addresses.length === 0) {
-      throw new BadDataException(
+      if (options?.includeResolvedAddressInError === false) {
+        logger.debug(`EgressGuard: ${bareHostname} resolved to no addresses.`);
+        throw new EgressGuardException(
+          `${label} host ${bareHostname} could not be reached.`,
+          EgressFailureReason.Unreachable,
+        );
+      }
+      throw new EgressGuardException(
         `Could not resolve ${label.toLowerCase()} host ${bareHostname}.`,
+        EgressFailureReason.ResolutionFailed,
       );
     }
 
@@ -448,8 +720,25 @@ export default class DataSourceEgressGuard {
         options,
       );
       if (verdict.blocked) {
-        throw new BadDataException(
-          `${label} host ${bareHostname} resolves to ${resolved.address}, which is not allowed: ${verdict.reason}.`,
+        if (options?.includeResolvedAddressInError === false) {
+          logger.debug(
+            `EgressGuard: ${bareHostname} resolved to a blocked address - ${verdict.reason}.`,
+          );
+          /*
+           * Reported as Unreachable, NOT AddressBlocked. Sharing one reason
+           * with the DNS branches above is what stops a tenant on a shared
+           * probe from using the difference to enumerate internal names.
+           */
+          throw new EgressGuardException(
+            `${label} host ${bareHostname} could not be reached.`,
+            EgressFailureReason.Unreachable,
+          );
+        }
+        throw new EgressGuardException(
+          `${label} host ${bareHostname} resolves to ${resolved.address}, which is not allowed: ${verdict.reason}.${
+            verdict.isPrivateNetwork ? options?.privateNetworkHint || "" : ""
+          }`,
+          EgressFailureReason.AddressBlocked,
         );
       }
     }
@@ -469,24 +758,29 @@ export default class DataSourceEgressGuard {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
 
     if (!urlString) {
-      throw new BadDataException(`${label} URL is required.`);
+      throw new EgressGuardException(
+        `${label} URL is required.`,
+        EgressFailureReason.InvalidTarget,
+      );
     }
 
     let url: URL;
     try {
       url = new URL(urlString);
     } catch {
-      throw new BadDataException(
+      throw new EgressGuardException(
         `Invalid ${label.toLowerCase()} URL: ${urlString}`,
+        EgressFailureReason.InvalidTarget,
       );
     }
 
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new BadDataException(
+      throw new EgressGuardException(
         `${label} URL must use http or https (got ${url.protocol.replace(
           ":",
           "",
         )}).`,
+        EgressFailureReason.InvalidTarget,
       );
     }
 
@@ -510,20 +804,40 @@ export default class DataSourceEgressGuard {
   ): EgressLookupFunction {
     return (
       _hostname: string,
-      lookupOptions: { all?: boolean | undefined },
+      lookupOptions: {
+        all?: boolean | undefined;
+        family?: number | undefined;
+      },
       callback: EgressLookupCallback,
     ): void => {
+      const wantedFamily: number | undefined = lookupOptions?.family;
+      const usableAddresses: Array<ResolvedAddress> =
+        wantedFamily === 4 || wantedFamily === 6
+          ? addresses.filter((resolved: ResolvedAddress) => {
+              return resolved.family === wantedFamily;
+            })
+          : addresses;
+
+      if (usableAddresses.length === 0) {
+        const error: NodeJS.ErrnoException = new Error(
+          `No IPv${wantedFamily} address is available for the validated host.`,
+        );
+        error.code = "ENOTFOUND";
+        callback(error, "");
+        return;
+      }
+
       if (lookupOptions && lookupOptions.all) {
         callback(
           null,
-          addresses.map((resolved: ResolvedAddress) => {
+          usableAddresses.map((resolved: ResolvedAddress) => {
             return { address: resolved.address, family: resolved.family };
           }),
         );
         return;
       }
 
-      const first: ResolvedAddress = addresses[0]!;
+      const first: ResolvedAddress = usableAddresses[0]!;
       callback(null, first.address, first.family);
     };
   }

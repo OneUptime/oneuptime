@@ -14,7 +14,8 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { ChromePicker, ColorResult } from "react-color";
+import ChromePicker from "react-color/lib/components/chrome/Chrome";
+import type { ColorResult } from "react-color";
 
 // ChromePicker renders at a fixed intrinsic width.
 const COLOR_PICKER_POPUP_WIDTH_PX: number = 225;

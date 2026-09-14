@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import {
+  CalendarFeedProbe,
   CustomFieldProbe,
   DeliverableSettingsProbe,
   IncomingCallProbe,
@@ -1308,5 +1309,77 @@ describe("setup checklist - shape and progress", () => {
 
     expect(pagingOf(responder).description).toContain("You are on call");
     expect(pagingOf(notResponder).description).toContain("not on an on-call");
+  });
+});
+
+/*
+ * The calendar-feed step. It is the one optional step whose probe may be
+ * ABSENT (an older API has no calendar feeds), and the model must then emit
+ * no step at all rather than a task nobody can finish.
+ */
+describe("calendar feed step", () => {
+  type StepFinder = (checklist: SetupChecklist) => SetupStep | undefined;
+
+  const calendarStep: StepFinder = (
+    checklist: SetupChecklist,
+  ): SetupStep | undefined => {
+    return allSteps(checklist).find((step: SetupStep): boolean => {
+      return step.key === "calendar-feed";
+    });
+  };
+
+  test("an absent probe (older API, older fixtures) produces no step", () => {
+    const checklist: SetupChecklist = buildSetupChecklist(makeInput());
+
+    expect(calendarStep(checklist)).toBeUndefined();
+  });
+
+  test("an unknown probe produces no step either", () => {
+    const probe: CalendarFeedProbe = { isKnown: false, hasEnabledLink: false };
+    const checklist: SetupChecklist = buildSetupChecklist(
+      makeInput({ calendarFeed: probe }),
+    );
+
+    expect(calendarStep(checklist)).toBeUndefined();
+  });
+
+  test("a known project without a link is an incomplete optional step that opens the page", () => {
+    const probe: CalendarFeedProbe = { isKnown: true, hasEnabledLink: false };
+    const step: SetupStep | undefined = calendarStep(
+      buildSetupChecklist(makeInput({ calendarFeed: probe })),
+    );
+
+    expect(step).toBeDefined();
+    expect(step!.status).toBe(SetupStepStatus.Incomplete);
+    expect(step!.importance).toBe(SetupStepImportance.Optional);
+    expect(step!.pageMap).toBe(PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED);
+    expect(step!.actionTitle).toBe("Generate a calendar link");
+    expect(step!.detail).toBe(
+      "You have not generated a calendar link for this project yet.",
+    );
+  });
+
+  test("an enabled link completes the step", () => {
+    const probe: CalendarFeedProbe = { isKnown: true, hasEnabledLink: true };
+    const step: SetupStep | undefined = calendarStep(
+      buildSetupChecklist(makeInput({ calendarFeed: probe })),
+    );
+
+    expect(step).toBeDefined();
+    expect(step!.status).toBe(SetupStepStatus.Complete);
+    expect(step!.detail).toBe("");
+  });
+
+  test("being optional, the step never changes the headline verdict", () => {
+    const withoutLink: SetupChecklist = buildSetupChecklist(
+      makeInput({ calendarFeed: { isKnown: true, hasEnabledLink: false } }),
+    );
+    const withLink: SetupChecklist = buildSetupChecklist(
+      makeInput({ calendarFeed: { isKnown: true, hasEnabledLink: true } }),
+    );
+    const absent: SetupChecklist = buildSetupChecklist(makeInput());
+
+    expect(withoutLink.headlineStatus).toBe(absent.headlineStatus);
+    expect(withLink.headlineStatus).toBe(absent.headlineStatus);
   });
 });

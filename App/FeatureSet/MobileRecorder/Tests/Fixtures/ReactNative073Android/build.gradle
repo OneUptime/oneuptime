@@ -1,0 +1,28 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.2.1"
+    }
+}
+
+ext {
+    compileSdkVersion = 34
+    minSdkVersion = 23
+    targetSdkVersion = 34
+}
+
+allprojects {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == "com.facebook.react"
+                && details.requested.name == "react-android"
+                && !details.requested.version) {
+                details.useVersion(rootProject.property("reactNativeCompatibilityVersion"))
+                details.because("compile the published package against its oldest supported RN minor")
+            }
+        }
+    }
+}

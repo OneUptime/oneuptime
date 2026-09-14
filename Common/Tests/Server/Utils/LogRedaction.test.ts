@@ -58,6 +58,12 @@ describe("isSensitiveLogKey", () => {
       "userHandle",
       "rawId",
       "signature",
+      "parameters",
+      "parameterValues",
+      "bindParameters",
+      "codeVerifier",
+      "code_verifier",
+      "CODE-VERIFIER",
     ]) {
       expect(isSensitiveLogKey(key)).toBe(true);
     }
@@ -329,6 +335,28 @@ describe("redactLogString", () => {
     ).not.toContain("hunter2");
   });
 
+  it("redacts Telegram bot credentials embedded in request paths", () => {
+    const botToken: string = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+    const url: string = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    const output: string = redactLogString(
+      `Request to ${url} failed with ECONNRESET`,
+    );
+
+    expect(output).not.toContain(botToken);
+    expect(output).toContain(`/bot${REDACTED}/sendMessage`);
+    expect(output).toContain("ECONNRESET");
+  });
+
+  it("redacts a Telegram bot URL nested inside an Error", () => {
+    const botToken: string = "9876543210:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+    const error: Error = new Error(
+      `POST https://api.telegram.org/bot${botToken}/sendMessage failed`,
+    );
+
+    expect(serialize(error)).not.toContain(botToken);
+  });
+
   it("leaves ordinary log lines untouched", () => {
     for (const message of [
       "Slack token exchange completed. ok: true",
@@ -339,6 +367,7 @@ describe("redactLogString", () => {
       "User logged in: user@example.com",
       "Monitor probe finished in 42ms",
       "GET https://oneuptime.com/api/status-page/1234 -> 200",
+      "GET https://api.telegram.org/bot/status -> 200",
     ]) {
       expect(redactLogString(message)).toBe(message);
     }
@@ -412,4 +441,34 @@ describe("redactLogValue - safety properties", () => {
     expect(output).not.toContain(SENTINEL);
     expect(output).toContain("[Truncated]");
   });
+});
+
+describe("mobile passkey PKCE exchange redaction", () => {
+  it("redacts both the authorization code and the verifier in a structured body", () => {
+    const output: string = serialize({
+      code: SENTINEL,
+      codeVerifier: SENTINEL,
+      state: "public-correlation-value",
+    });
+    expect(output).not.toContain(SENTINEL);
+    expect(JSON.parse(output)).toEqual({
+      code: REDACTED,
+      codeVerifier: REDACTED,
+      state: "public-correlation-value",
+    });
+  });
+
+  it.each(["codeVerifier", "code_verifier", "code-verifier"])(
+    "redacts %s after a request body or URL has already been stringified",
+    (key: string) => {
+      for (const value of [
+        JSON.stringify({ [key]: SENTINEL }),
+        `${key}=${SENTINEL}&state=public`,
+        `https://example.com/identity/mobile-passkey-exchange?${key}=${SENTINEL}`,
+      ]) {
+        expect(redactLogString(value)).not.toContain(SENTINEL);
+        expect(redactLogString(value)).toContain(REDACTED);
+      }
+    },
+  );
 });

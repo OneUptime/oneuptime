@@ -21,6 +21,7 @@ export const REFRESH_SIDEBAR_COUNT_EVENT: string = "REFRESH_SIDEBAR_COUNTS";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   link: Link;
+  activeRoute?: Link["to"] | undefined;
   modelType?: { new (): TBaseModel } | undefined;
   badgeType?: BadgeType | undefined;
   countQuery?: Query<TBaseModel> | undefined;
@@ -136,6 +137,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
   return (
     <SideMenuItem
       link={props.link}
+      activeRoute={props.activeRoute}
       badge={!isLoading && !error ? count : undefined}
       badgeType={props.badgeType}
       icon={props.icon}

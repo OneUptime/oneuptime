@@ -982,6 +982,16 @@ export class Service extends DatabaseService<Model> {
           rootCause: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
+          /*
+           * AcknowledgeIncident.hbs asks for a Resources Affected row and
+           * the generator had nothing to build it from, so the row was
+           * silently dropped — the same `{{#if}}` swallow that hid the
+           * alert's Root Cause.
+           */
+          monitors: {
+            _id: true,
+            name: true,
+          },
         },
       });
     }
@@ -1012,6 +1022,20 @@ export class Service extends DatabaseService<Model> {
           },
           alertNumber: true,
           alertNumberWithPrefix: true,
+          /*
+           * AcknowledgeAlert.hbs has always asked for a Root Cause row, but
+           * this select never loaded the column and the template's
+           * `{{#if text}}` guard silently dropped the row — so the one
+           * person being woken up for the alert was the only one who could
+           * not see why it fired. The other three on-call templates already
+           * select it.
+           */
+          rootCause: true,
+          // Same story for the template's Resources Affected row.
+          monitor: {
+            _id: true,
+            name: true,
+          },
         },
       });
     }
@@ -4589,6 +4613,11 @@ export class Service extends DatabaseService<Model> {
         MarkdownContentType.Email,
       ),
       alertSeverity: alert.alertSeverity!.name!,
+      resourcesAffected: alert.monitor?.name || "No resources identified",
+      rootCause: await Markdown.convertToHTML(
+        alert.rootCause || "No root cause identified for this alert",
+        MarkdownContentType.Email,
+      ),
       alertViewLink: (
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
@@ -4634,8 +4663,19 @@ export class Service extends DatabaseService<Model> {
         MarkdownContentType.Email,
       ),
       incidentSeverity: incident.incidentSeverity!.name!,
-      rootCause:
+      resourcesAffected:
+        (incident.monitors || [])
+          .map((monitor: Monitor): string => {
+            return monitor.name || "";
+          })
+          .filter((name: string): boolean => {
+            return name.length > 0;
+          })
+          .join(", ") || "No resources identified",
+      rootCause: await Markdown.convertToHTML(
         incident.rootCause || "No root cause identified for this incident",
+        MarkdownContentType.Email,
+      ),
       incidentViewLink: (
         await IncidentService.getIncidentLinkInDashboard(
           incident.projectId!,
@@ -4738,7 +4778,9 @@ export class Service extends DatabaseService<Model> {
     if (alerts.length > 0) {
       const alertRows: string[] = [];
       for (const alert of alerts) {
-        const alertTitle: string = alert.title || "Untitled Alert";
+        const alertTitle: string = Markdown.escapeHtml(
+          alert.title || "Untitled Alert",
+        );
         const alertNumber: string =
           alert.alertNumberWithPrefix ||
           (alert.alertNumber ? `#${alert.alertNumber}` : "");
@@ -4748,20 +4790,22 @@ export class Service extends DatabaseService<Model> {
             alert.id!,
           )
         ).toString();
-        const monitorName: string = alert.monitor?.name || "";
+        const monitorName: string = Markdown.escapeHtml(
+          alert.monitor?.name || "",
+        );
 
         alertRows.push(`
             <tr>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
-                      <a href="${alertLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${alertTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                      <span style="display: inline-block; background-color: #f1f5f9; color: #111111; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
+                      <a href="${alertLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
-                    <td style="text-align: right; vertical-align: middle;">
-                      <a href="${alertLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
+                      <a href="${alertLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>
@@ -4771,7 +4815,7 @@ export class Service extends DatabaseService<Model> {
       }
       if (alertRows.length > 0) {
         alertsListHtml = `
-          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <tbody>
               ${alertRows.join("")}
             </tbody>
@@ -4795,9 +4839,11 @@ export class Service extends DatabaseService<Model> {
       ),
       alertEpisodeSeverity: alertEpisode.alertSeverity!.name!,
       resourcesAffected: resourcesAffected,
-      rootCause:
+      rootCause: await Markdown.convertToHTML(
         alertEpisode.rootCause ||
-        "No root cause identified for this alert episode",
+          "No root cause identified for this alert episode",
+        MarkdownContentType.Email,
+      ),
       alertsList: alertsListHtml,
       alertsCount: alerts.length.toString(),
       alertEpisodeViewLink: (
@@ -4908,7 +4954,9 @@ export class Service extends DatabaseService<Model> {
     if (incidents.length > 0) {
       const incidentRows: string[] = [];
       for (const incident of incidents) {
-        const incidentTitle: string = incident.title || "Untitled Incident";
+        const incidentTitle: string = Markdown.escapeHtml(
+          incident.title || "Untitled Incident",
+        );
         const incidentNumber: string =
           incident.incidentNumberWithPrefix ||
           (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
@@ -4918,7 +4966,7 @@ export class Service extends DatabaseService<Model> {
             incident.id!,
           )
         ).toString();
-        const monitorName: string =
+        const monitorName: string = Markdown.escapeHtml(
           (incident.monitors || [])
             .map((monitor: Monitor): string => {
               return monitor.name || "";
@@ -4926,20 +4974,21 @@ export class Service extends DatabaseService<Model> {
             .filter((name: string): boolean => {
               return name.length > 0;
             })
-            .join(", ") || "";
+            .join(", ") || "",
+        );
 
         incidentRows.push(`
             <tr>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
                       <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
-                      <a href="${incidentLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${incidentTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                      <a href="${incidentLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
-                    <td style="text-align: right; vertical-align: middle;">
-                      <a href="${incidentLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
+                      <a href="${incidentLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>
@@ -4949,7 +4998,7 @@ export class Service extends DatabaseService<Model> {
       }
       if (incidentRows.length > 0) {
         incidentsListHtml = `
-          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <tbody>
               ${incidentRows.join("")}
             </tbody>
@@ -4975,9 +5024,11 @@ export class Service extends DatabaseService<Model> {
       ),
       incidentEpisodeSeverity: incidentEpisode.incidentSeverity!.name!,
       resourcesAffected: resourcesAffected,
-      rootCause:
+      rootCause: await Markdown.convertToHTML(
         incidentEpisode.rootCause ||
-        "No root cause identified for this incident episode",
+          "No root cause identified for this incident episode",
+        MarkdownContentType.Email,
+      ),
       incidentsList: incidentsListHtml,
       incidentsCount: incidents.length.toString(),
       incidentEpisodeViewLink: (

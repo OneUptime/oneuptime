@@ -17,7 +17,7 @@ export interface ComponentProps {
   onError: (error: string) => void;
 }
 
-const ResetObjectID: (props: ComponentProps) => ReactElement = (
+const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -87,7 +87,7 @@ const ResetObjectID: (props: ComponentProps) => ReactElement = (
 
       {showModal ? (
         <ConfirmModal
-          description={`Are you sure you want to reset remove this user?`}
+          description={`Are you sure you want to remove this user from the project? They will immediately lose access to it, and to every team in it.`}
           title={`Remove User`}
           onSubmit={async () => {
             await removeUserFromProject();
@@ -121,4 +121,4 @@ const ResetObjectID: (props: ComponentProps) => ReactElement = (
   );
 };
 
-export default ResetObjectID;
+export default RemoveUserFromProject;

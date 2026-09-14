@@ -4,6 +4,7 @@ import IP from "Common/Types/IP/IP";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
+import NumberUtil from "Common/Utils/Number";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -22,6 +23,14 @@ import SnmpPrivProtocol, {
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import {
+  CDP_CACHE_ADDRESS_COLUMNS,
+  LLDP_REM_MAN_ADDR_COLUMNS,
+  LLDP_REM_MAN_ADDR_TABLE_OID,
+  cdpAddressFromRow,
+  lldpNeighborJoinKey,
+  parseLldpManagementAddresses,
+} from "../../Snmp/NeighborAddressParsers";
 import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
 import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
@@ -147,10 +156,18 @@ const LLDP_REM_COLUMNS: {
  */
 const CDP_CACHE_TABLE_OID: string = "1.3.6.1.4.1.9.9.23.1.2.1";
 const CDP_CACHE_COLUMNS: {
+  cdpCacheAddressType: number;
+  cdpCacheAddress: number;
   cdpCacheDeviceId: number;
   cdpCacheDevicePort: number;
   cdpCachePlatform: number;
 } = {
+  /*
+   * The two address columns come from the shared parser so the column
+   * numbers and the code that decodes them cannot drift apart.
+   */
+  cdpCacheAddressType: CDP_CACHE_ADDRESS_COLUMNS.cdpCacheAddressType,
+  cdpCacheAddress: CDP_CACHE_ADDRESS_COLUMNS.cdpCacheAddress,
   cdpCacheDeviceId: 6,
   cdpCacheDevicePort: 7,
   cdpCachePlatform: 8,
@@ -436,7 +453,12 @@ export default class SnmpMonitor {
   public static async probeSystemInfo(
     config: MonitorStepSnmpMonitor,
     onError?: ((error: unknown) => void) | undefined,
+    scanSignal?: AbortSignal,
   ): Promise<SnmpSystemInfo | null> {
+    const signal: AbortSignal | undefined = scanSignal
+      ? AbortSignal.any([scanSignal])
+      : undefined;
+    signal?.throwIfAborted();
     let session: snmp.Session;
 
     try {
@@ -452,12 +474,49 @@ export default class SnmpMonitor {
       return null;
     }
 
+    /*
+     * SNMP v3 may exchange discovery/time-sync PDUs before the GET. A
+     * per-PDU timeout alone cannot bound a session repeatedly receiving
+     * Reports; give the whole operation room for those three exchanges.
+     */
+    const timeoutInMs: number =
+      (config.timeout || 5000) *
+        (config.snmpVersion === SnmpVersion.V3 ? 3 : 1) +
+      500;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    const deadline: Promise<never> = new Promise<never>(
+      (_resolve: (value: never) => void, reject: (error: unknown) => void) => {
+        timer = setTimeout(() => {
+          reject(new Error("SNMP discovery probe timed out"));
+        }, timeoutInMs);
+        onAbort = (): void => {
+          reject(signal?.reason || new Error("Discovery scan aborted"));
+        };
+        signal?.addEventListener("abort", onAbort, { once: true });
+        if (signal?.aborted) {
+          onAbort();
+        }
+      },
+    );
+
     try {
-      return await SnmpMonitor.readSystemInfo(session);
+      signal?.throwIfAborted();
+      return await Promise.race([
+        SnmpMonitor.readSystemInfo(session),
+        deadline,
+      ]);
     } catch (err) {
+      signal?.throwIfAborted();
       onError?.(err);
       return null;
     } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      if (onAbort) {
+        signal?.removeEventListener("abort", onAbort);
+      }
       session.close();
     }
   }
@@ -995,6 +1054,12 @@ export default class SnmpMonitor {
         remotePlatform: SnmpMonitor.toDisplayString(
           row[CDP_CACHE_COLUMNS.cdpCachePlatform.toString()],
         ),
+        /*
+         * NOT toDisplayString: cdpCacheAddress is four raw bytes, which
+         * that helper would render as a MAC ("0a:00:00:05") because it is
+         * not printable text. The address parser knows it is an address.
+         */
+        remoteIpAddress: cdpAddressFromRow(row),
       });
     }
 
@@ -1009,6 +1074,17 @@ export default class SnmpMonitor {
       LLDP_REM_TABLE_OID,
       Object.values(LLDP_REM_COLUMNS),
     );
+
+    /*
+     * Only worth a second table walk once we know there is a neighbour to
+     * decorate. A device with LLDP enabled and nothing plugged into it is
+     * the common case across a fleet, and this walk would otherwise cost
+     * one wasted round trip per device per poll for an empty answer.
+     */
+    const addressByJoinKey: Map<string, string> =
+      Object.keys(table).length > 0
+        ? await SnmpMonitor.walkLldpManagementAddresses(session)
+        : new Map<string, string>();
 
     const neighbors: Array<LldpNeighbor> = [];
 
@@ -1026,6 +1102,8 @@ export default class SnmpMonitor {
         ? parseInt(localPortPart, 10)
         : undefined;
 
+      const joinKey: string | undefined = lldpNeighborJoinKey(rowKey);
+
       neighbors.push({
         localInterfaceIndex:
           localInterfaceIndex !== undefined && !isNaN(localInterfaceIndex)
@@ -1040,10 +1118,39 @@ export default class SnmpMonitor {
         remoteSysName: SnmpMonitor.toDisplayString(
           row[LLDP_REM_COLUMNS.lldpRemSysName.toString()],
         ),
+        remoteIpAddress: joinKey ? addressByJoinKey.get(joinKey) : undefined,
       });
     }
 
     return neighbors;
+  }
+
+  /*
+   * The neighbors' management addresses, keyed for the join above.
+   *
+   * Its own walk because lldpRemManAddrTable is its own table, and its own
+   * try/catch because it is the OPTIONAL half of LLDP: agents that do not
+   * implement it return noSuchObject, and a neighbour list is worth far
+   * more than the addresses decorating it. Failing here would take the
+   * whole LLDP walk down with it and empty the device's topology.
+   */
+  private static async walkLldpManagementAddresses(
+    session: snmp.Session,
+  ): Promise<Map<string, string>> {
+    try {
+      const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
+        session,
+        LLDP_REM_MAN_ADDR_TABLE_OID,
+        Object.values(LLDP_REM_MAN_ADDR_COLUMNS),
+      );
+
+      return parseLldpManagementAddresses(table);
+    } catch (err) {
+      logger.debug(
+        `SNMP LLDP management-address walk failed (device may not implement lldpRemManAddrTable): ${err}`,
+      );
+      return new Map<string, string>();
+    }
   }
 
   private static getOids(
@@ -1333,83 +1440,214 @@ export default class SnmpMonitor {
     });
   }
 
-  private static async executeSnmpQuery(
-    config: MonitorStepSnmpMonitor,
-    options: SnmpQueryOptions,
-  ): Promise<Array<SnmpOidResponse>> {
+  /*
+   * How many OIDs go into one SNMP GET.
+   *
+   * Every configured OID used to go into a SINGLE get, i.e. a single UDP
+   * datagram. At ~40 bytes per varbind a hundred OIDs is ~4 KB, past a
+   * 1500-byte MTU and past most agents' maximum message size, so the agent
+   * answers tooBig (or nothing at all), the whole GET is rejected, the outer
+   * retry loop burns three attempts, and the device is reported OFFLINE.
+   * Configuring more health OIDs did not collect more data - it took the
+   * router down. That is the defect behind issue #3507, where the reporter
+   * was asked to add "100+ items" per device.
+   *
+   * Twenty varbinds is ~800 bytes plus header, comfortably inside an Ethernet
+   * MTU and inside what every agent in practice accepts. It is deliberately
+   * NOT sized to the 484-byte minimum an SNMPv1 agent is only required to
+   * accept - meeting that would mean chunks of about ten and twice the
+   * round-trips for every long list, to serve agents that would also have
+   * failed on the unbounded GET this replaces. PROBE_SNMP_GET_CHUNK_SIZE
+   * lowers it for one that genuinely needs it.
+   *
+   * A device with a short list still gets exactly one GET, so nothing changes
+   * for anyone who is not affected.
+   */
+  private static readonly snmpGetChunkSize: number =
+    NumberUtil.parseNumberWithDefault({
+      value: process.env["PROBE_SNMP_GET_CHUNK_SIZE"],
+      defaultValue: 20,
+      min: 1,
+    });
+
+  /*
+   * One SNMP GET for one slice of the configured OIDs.
+   *
+   * `offset` is the slice's start in `config.oids`, and it is load-bearing:
+   * net-snmp answers positionally, so the varbind at index i in this response
+   * describes `config.oids[offset + i]`. Pairing against `config.oids[i]`
+   * instead would attach the wrong name to every OID past the first chunk -
+   * and it would fail silently, as correct-looking metrics under wrong
+   * labels.
+   */
+  private static getOidChunk(data: {
+    session: snmp.Session;
+    config: MonitorStepSnmpMonitor;
+    offset: number;
+    oids: Array<string>;
+  }): Promise<Array<SnmpOidResponse>> {
     return new Promise(
       (
         resolve: (value: Array<SnmpOidResponse>) => void,
         reject: (reason?: Error) => void,
       ) => {
-        let session: snmp.Session | undefined;
-
         try {
-          session = SnmpMonitor.createSnmpSession(config, options);
-
-          const oids: Array<string> = config.oids.map((oid: SnmpOid) => {
-            return oid.oid;
-          });
-
-          if (oids.length === 0) {
-            session.close();
-            reject(new Error("No OIDs configured for SNMP monitor"));
-            return;
-          }
-
-          session.get(
-            oids,
+          data.session.get(
+            data.oids,
             (
               error: Error | null,
               varbinds: Array<snmp.Varbind> | undefined,
             ) => {
-              if (error || !varbinds) {
-                session!.close();
-                reject(error || new Error("No varbinds returned"));
-                return;
-              }
-
-              const oidResponses: Array<SnmpOidResponse> = [];
-
-              for (let i: number = 0; i < varbinds.length; i++) {
-                const varbind: snmp.Varbind = varbinds[i]!;
-                const configOid: SnmpOid | undefined = config.oids[i];
-
-                if (snmp.isVarbindError(varbind)) {
-                  oidResponses.push({
-                    oid: varbind.oid,
-                    name: configOid?.name,
-                    value: null,
-                    type: SnmpMonitor.mapSnmpErrorType(varbind.type),
-                  });
-                } else {
-                  oidResponses.push({
-                    oid: varbind.oid,
-                    name: configOid?.name,
-                    value: SnmpMonitor.parseVarbindValue(varbind),
-                    type: SnmpMonitor.mapSnmpDataType(varbind.type),
-                  });
+              /*
+               * This callback runs outside the caller's try block, so it owns
+               * its own failure handling: an unhandled throw here would leave
+               * the outer promise pending forever and hang the whole walk.
+               */
+              try {
+                if (error || !varbinds) {
+                  reject(error || new Error("No varbinds returned"));
+                  return;
                 }
-              }
 
-              session!.close();
-              resolve(oidResponses);
+                const chunkResponses: Array<SnmpOidResponse> = [];
+
+                for (let i: number = 0; i < varbinds.length; i++) {
+                  const varbind: snmp.Varbind = varbinds[i]!;
+                  const configOid: SnmpOid | undefined =
+                    data.config.oids[data.offset + i];
+
+                  if (snmp.isVarbindError(varbind)) {
+                    chunkResponses.push({
+                      oid: varbind.oid,
+                      name: configOid?.name,
+                      value: null,
+                      type: SnmpMonitor.mapSnmpErrorType(varbind.type),
+                    });
+                  } else {
+                    chunkResponses.push({
+                      oid: varbind.oid,
+                      name: configOid?.name,
+                      value: SnmpMonitor.parseVarbindValue(varbind),
+                      type: SnmpMonitor.mapSnmpDataType(varbind.type),
+                    });
+                  }
+                }
+
+                resolve(chunkResponses);
+              } catch (callbackError) {
+                reject(callbackError as Error);
+              }
             },
           );
-        } catch (err) {
-          /*
-           * Close the session if it was created before the throw (e.g. a
-           * synchronous throw from session.get) so we don't leak the socket.
-           */
-          try {
-            session?.close();
-          } catch {
-            // ignore close errors on an already-broken session
-          }
-          reject(err as Error);
+        } catch (dispatchError) {
+          // A synchronous throw from session.get on a broken session.
+          reject(dispatchError as Error);
         }
       },
     );
+  }
+
+  private static async executeSnmpQuery(
+    config: MonitorStepSnmpMonitor,
+    options: SnmpQueryOptions,
+  ): Promise<Array<SnmpOidResponse>> {
+    if (config.oids.length === 0) {
+      throw new Error("No OIDs configured for SNMP monitor");
+    }
+
+    let session: snmp.Session | undefined;
+
+    try {
+      session = SnmpMonitor.createSnmpSession(config, options);
+
+      const oidResponses: Array<SnmpOidResponse> = [];
+
+      /*
+       * Whether this query is split at all decides whether the in-place retry
+       * below applies - see the comment there.
+       */
+      const isSplitAcrossChunks: boolean =
+        config.oids.length > SnmpMonitor.snmpGetChunkSize;
+
+      for (
+        let offset: number = 0;
+        offset < config.oids.length;
+        offset += SnmpMonitor.snmpGetChunkSize
+      ) {
+        const chunkOids: Array<string> = config.oids
+          .slice(offset, offset + SnmpMonitor.snmpGetChunkSize)
+          .map((oid: SnmpOid) => {
+            return oid.oid;
+          });
+
+        /*
+         * Retry the failing CHUNK once, but ONLY when the query is actually
+         * split.
+         *
+         * The session is created with retries: 0 because retries live at the
+         * whole-query level, which was right when a query was one datagram.
+         * Splitting a long list into ten sequential GETs multiplies the
+         * per-attempt exposure to a single dropped UDP packet by ten, and the
+         * outer retry re-issues every chunk from scratch, so one in-place
+         * retry puts that back roughly where it was.
+         *
+         * None of that reasoning applies to a single-chunk query: there is no
+         * multiplication to compensate for, the outer loop already retries it,
+         * and retrying here would simply DOUBLE the time an unreachable device
+         * takes to be reported down - for every SNMP device in the product,
+         * including every one this feature never touches.
+         */
+        try {
+          oidResponses.push(
+            ...(await SnmpMonitor.getOidChunk({
+              session: session,
+              config: config,
+              offset: offset,
+              oids: chunkOids,
+            })),
+          );
+        } catch (chunkError) {
+          if (!isSplitAcrossChunks) {
+            throw chunkError as Error;
+          }
+
+          logger.debug(
+            `SNMP GET chunk at offset ${offset} failed for ${config.hostname}, retrying once: ${chunkError}`,
+          );
+
+          /*
+           * A persistent chunk error still rejects the whole query, which
+           * keeps today's isOnline contract exactly: a device whose health
+           * OIDs cannot be read is reported down, as it always was. Note it
+           * rejects on the FIRST failing chunk rather than working through the
+           * rest, so a down device costs at most two round-trips here, not one
+           * per chunk.
+           */
+          oidResponses.push(
+            ...(await SnmpMonitor.getOidChunk({
+              session: session,
+              config: config,
+              offset: offset,
+              oids: chunkOids,
+            })),
+          );
+        }
+      }
+
+      session.close();
+      return oidResponses;
+    } catch (err) {
+      /*
+       * Close the session if it was created before the throw so we don't leak
+       * the socket - including when a chunk failed halfway through a list.
+       */
+      try {
+        session?.close();
+      } catch {
+        // ignore close errors on an already-broken session
+      }
+      throw err as Error;
+    }
   }
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {

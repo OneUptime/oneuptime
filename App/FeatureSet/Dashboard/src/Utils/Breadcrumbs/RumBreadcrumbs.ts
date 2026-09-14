@@ -14,6 +14,12 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       "Real User Monitoring",
       "View Application",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_APPLICATION_VIEW_SETTINGS, [
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
       [
@@ -56,6 +62,14 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ["Project", "Real User Monitoring", "View Application", "Replay Users"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+      ["Project", "Real User Monitoring", "View Application", "Replay Health"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
       [
         "Project",
@@ -81,6 +95,15 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
         "Real User Monitoring",
         "View Application",
         "Session Replay Settings",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Session Replay Documentation",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_SESSION_REPLAY, [

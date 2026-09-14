@@ -91,6 +91,7 @@
     "FAQ & Troubleshooting": "FAQ et dépannage",
     "IP Addresses": "Adresses IP",
     "SMTP": "SMTP",
+    "Notification Rollup": "Regroupement des notifications",
     "SSO": "SSO",
     "SCIM": "SCIM",
     "Users, Teams & Permissions": "Utilisateurs, équipes et autorisations",
@@ -139,6 +140,7 @@
     "Incident & Alert Templating": "Modèles d'incident et d'alerte",
     "Monitor Secrets": "Secrets de surveillance",
     "AI SRE": "AI SRE",
+    "Calendar Feeds": "Flux de calendrier",
     "Incoming Call Policy": "Politique d'appels entrants",
     "Phone Number Whitelist": "Liste blanche de numéros",
     "Runbooks Overview": "Vue d'ensemble des Runbooks",
@@ -169,6 +171,7 @@
     "PagerDuty": "PagerDuty",
     "Opsgenie": "Opsgenie",
     "ServiceNow": "ServiceNow",
+    "Microsoft Dynamics 365": "Microsoft Dynamics 365",
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
@@ -188,6 +191,7 @@
     "Docker Agent": "Agent Docker",
     "IoT Devices": "Appareils IoT",
     "Fix Tasks": "Fix Tasks",
+    "GitHub App": "GitHub App",
     "LLM Providers": "Fournisseurs LLM",
     "MCP Server": "Serveur MCP",
     "OneUptime API Reference": "Référence de l'API OneUptime",
@@ -196,6 +200,7 @@
     "GitHub Integration": "Intégration GitHub",
     "Push Notifications": "Notifications push",
     "SendGrid Inbound Email": "E-mail entrant SendGrid",
+    "Private Network Access": "Accès au réseau privé",
     "Architecture": "Architecture",
     "Custom Fields": "Champs personnalisés",
     "Exporting to a CMDB": "Exporter vers une CMDB",
@@ -207,6 +212,7 @@
     "Status Pages Overview": "Vue d'ensemble des pages de statut",
     "Status Page Resources & Groups": "Ressources et groupes de la page de statut",
     "Status Page Branding & Domains": "Personnalisation et domaines de la page de statut",
-    "Subscribers & Announcements": "Abonnés et annonces"
+    "Subscribers & Announcements": "Abonnés et annonces",
+    "Twilio Integration": "Intégration Twilio"
   }
 }

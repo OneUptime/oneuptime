@@ -4,6 +4,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import EnterpriseLicenseUserCountSource from "../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -199,4 +200,59 @@ export default class EnterpriseLicense extends BaseModel {
     type: ColumnType.Date,
   })
   public userCountUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "User Count Source",
+    description:
+      "Whether the current user count came from per-instance usage or a legacy license-wide report.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public userCountSource?: EnterpriseLicenseUserCountSource = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Legacy User Count",
+    description:
+      "Most recent license-wide user count from an older installation that cannot identify its instance.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public legacyUserCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Legacy User Count Updated At",
+    description:
+      "Timestamp of the most recent license-wide user count report from an older installation.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public legacyUserCountUpdatedAt?: Date = undefined;
 }

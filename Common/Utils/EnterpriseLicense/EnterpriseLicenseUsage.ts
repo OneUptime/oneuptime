@@ -1,4 +1,4 @@
-import OneUptimeDate from "../../Types/Date";
+import EnterpriseLicenseUserCountSource from "../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 
 /*
  * Usage reported by one self-hosted instance of an enterprise license.
@@ -7,9 +7,35 @@ import OneUptimeDate from "../../Types/Date";
  * on staging, production and gov-cloud consumes a single seat.
  */
 export interface EnterpriseLicenseInstanceUsage {
+  /*
+   * Registration is the initial communication until the instance sends its
+   * first usage report.
+   */
+  createdAt?: Date | undefined;
   userCount?: number | undefined;
   userEmailHashes?: Array<string> | undefined;
   lastReportedAt?: Date | undefined;
+}
+
+export interface EffectiveEnterpriseLicenseUserCountOptions {
+  instances: Array<EnterpriseLicenseInstanceUsage>;
+  storedUserCount?: number | null | undefined;
+  storedUserCountUpdatedAt?: Date | undefined;
+  storedUserCountSource?: EnterpriseLicenseUserCountSource | undefined;
+  legacyUserCount?: number | null | undefined;
+  legacyUserCountUpdatedAt?: Date | undefined;
+  /*
+   * Callers that just replaced/deleted modern rows know the stored aggregate
+   * came from those rows. They can suppress the one-time compatibility path
+   * for license records created before dedicated legacy fields existed.
+   */
+  allowStoredUserCountAsLegacyFallback?: boolean | undefined;
+  now: Date;
+}
+
+export interface EffectiveEnterpriseLicenseUserCount {
+  userCount: number | null;
+  source: EnterpriseLicenseUserCountSource | null;
 }
 
 export default class EnterpriseLicenseUsageUtil {
@@ -41,11 +67,11 @@ export default class EnterpriseLicenseUsageUtil {
     )}`;
   }
   /*
-   * Instances that stopped reporting (for example a decommissioned staging
-   * environment) stop counting towards the seat total after this many days,
-   * but are still listed so the customer can see them.
+   * An instance is inactive once it has gone this many complete days without
+   * communicating with oneuptime.com. Inactive instances stay visible, but
+   * their users no longer consume seats.
    */
-  public static readonly InstanceUsageFreshnessInDays: number = 30;
+  public static readonly InstanceUsageFreshnessInDays: number = 7;
 
   // SHA-256 hex digest.
   private static readonly emailHashRegex: RegExp = /^[a-f0-9]{64}$/;
@@ -136,17 +162,171 @@ export default class EnterpriseLicenseUsageUtil {
     instance: EnterpriseLicenseInstanceUsage,
     now: Date,
   ): boolean {
-    if (!instance.lastReportedAt) {
-      // Registered (license key validated) but never reported usage yet.
+    const lastCommunicatedAt: Date | undefined =
+      this.getInstanceLastCommunicatedAt(instance);
+
+    if (!lastCommunicatedAt) {
       return false;
     }
 
-    const staleBefore: Date = OneUptimeDate.addRemoveDays(
-      now,
-      -this.InstanceUsageFreshnessInDays,
-    );
+    const inactiveAfterInMilliseconds: number =
+      this.InstanceUsageFreshnessInDays * 24 * 60 * 60 * 1000;
+    const staleBefore: number = now.getTime() - inactiveAfterInMilliseconds;
 
-    return instance.lastReportedAt.getTime() >= staleBefore.getTime();
+    /*
+     * Strictly greater than: at the exact seven-day boundary the instance has
+     * gone a full week without communicating and must already be inactive.
+     * Elapsed milliseconds are intentional; a daylight-saving transition
+     * must not shorten or extend the week.
+     */
+    return lastCommunicatedAt.getTime() > staleBefore;
+  }
+
+  public static getInstanceLastCommunicatedAt(
+    instance: EnterpriseLicenseInstanceUsage,
+  ): Date | undefined {
+    return instance.lastReportedAt || instance.createdAt;
+  }
+
+  /* A registration is active, but only a real report is modern seat data. */
+  public static hasActiveReportedInstanceUsage(
+    instances: Array<EnterpriseLicenseInstanceUsage>,
+    now: Date,
+  ): boolean {
+    return instances.some(
+      (instance: EnterpriseLicenseInstanceUsage): boolean => {
+        return (
+          Boolean(instance.lastReportedAt) &&
+          this.isInstanceCountedTowardsUsage(instance, now)
+        );
+      },
+    );
+  }
+
+  public static isTimestampWithinUsageWindow(
+    timestamp: Date | undefined,
+    now: Date,
+  ): boolean {
+    return timestamp
+      ? this.isInstanceCountedTowardsUsage({ lastReportedAt: timestamp }, now)
+      : false;
+  }
+
+  public static hasReportedInstanceUsage(
+    instances: Array<EnterpriseLicenseInstanceUsage>,
+  ): boolean {
+    return instances.some(
+      (instance: EnterpriseLicenseInstanceUsage): boolean => {
+        return Boolean(instance.lastReportedAt);
+      },
+    );
+  }
+
+  /*
+   * Choose between modern per-instance reports and a separately persisted
+   * legacy license-wide heartbeat. The stored count fallback exists only for
+   * records written before those dedicated legacy columns were introduced;
+   * seeing any historical modern report proves that aggregate is not legacy.
+   * Once every authoritative communication timestamp is a week old, usage is
+   * zero.
+   */
+  public static getEffectiveUserCount(
+    options: EffectiveEnterpriseLicenseUserCountOptions,
+  ): number | null {
+    return this.getEffectiveUserCountAndSource(options).userCount;
+  }
+
+  public static getEffectiveUserCountAndSource(
+    options: EffectiveEnterpriseLicenseUserCountOptions,
+  ): EffectiveEnterpriseLicenseUserCount {
+    if (this.hasActiveReportedInstanceUsage(options.instances, options.now)) {
+      return {
+        userCount: this.getUniqueUserCount(options.instances, options.now),
+        source: EnterpriseLicenseUserCountSource.Instance,
+      };
+    }
+
+    if (
+      this.isTimestampWithinUsageWindow(
+        options.legacyUserCountUpdatedAt,
+        options.now,
+      )
+    ) {
+      return {
+        userCount: options.legacyUserCount ?? null,
+        source: EnterpriseLicenseUserCountSource.Legacy,
+      };
+    }
+
+    const hasRecentRegistration: boolean = options.instances.some(
+      (instance: EnterpriseLicenseInstanceUsage): boolean => {
+        return (
+          !instance.lastReportedAt &&
+          this.isInstanceCountedTowardsUsage(instance, options.now)
+        );
+      },
+    );
+    const hasRecentLegacyReport: boolean = options.storedUserCountUpdatedAt
+      ? this.isTimestampWithinUsageWindow(
+          options.storedUserCountUpdatedAt,
+          options.now,
+        )
+      : false;
+    const isExplicitLegacyFallback: boolean =
+      options.storedUserCountSource ===
+        EnterpriseLicenseUserCountSource.Legacy &&
+      !options.legacyUserCountUpdatedAt &&
+      hasRecentLegacyReport;
+    const canUseCompatibilityFallback: boolean =
+      options.allowStoredUserCountAsLegacyFallback !== false &&
+      options.storedUserCountSource !==
+        EnterpriseLicenseUserCountSource.Instance &&
+      !options.legacyUserCountUpdatedAt &&
+      !this.hasReportedInstanceUsage(options.instances);
+
+    if (
+      isExplicitLegacyFallback ||
+      (canUseCompatibilityFallback &&
+        (hasRecentRegistration || hasRecentLegacyReport))
+    ) {
+      return {
+        userCount: options.storedUserCount ?? null,
+        source: EnterpriseLicenseUserCountSource.Legacy,
+      };
+    }
+
+    if (
+      options.instances.length === 0 &&
+      (options.storedUserCount === undefined ||
+        options.storedUserCount === null) &&
+      !options.storedUserCountUpdatedAt &&
+      (options.legacyUserCount === undefined ||
+        options.legacyUserCount === null) &&
+      !options.legacyUserCountUpdatedAt &&
+      !options.storedUserCountSource
+    ) {
+      return {
+        userCount: null,
+        source: null,
+      };
+    }
+
+    let inactiveUsageSource: EnterpriseLicenseUserCountSource | null =
+      options.storedUserCountSource || null;
+
+    if (
+      !inactiveUsageSource &&
+      this.hasReportedInstanceUsage(options.instances)
+    ) {
+      inactiveUsageSource = EnterpriseLicenseUserCountSource.Instance;
+    } else if (!inactiveUsageSource && options.legacyUserCountUpdatedAt) {
+      inactiveUsageSource = EnterpriseLicenseUserCountSource.Legacy;
+    }
+
+    return {
+      userCount: 0,
+      source: inactiveUsageSource,
+    };
   }
 
   /*

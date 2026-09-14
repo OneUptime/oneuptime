@@ -4,16 +4,16 @@
 x-common-depends-on: &common-depends-on
   postgres:
     condition: service_healthy
-  redis:
+  valkey:
     condition: service_healthy
   clickhouse:
     condition: service_healthy
 
 services:
-  redis:
+  valkey:
     extends:
       file: ./docker-compose.base.yml
-      service: redis
+      service: valkey
 
   clickhouse:
     extends:

@@ -6,9 +6,29 @@ OneUptimeの **受信メールモニター** を使用すると、モニター�
 
 ## 前提条件
 
-- SendGridアカウント（無料プランで可）
+- Inbound Parse にアクセスできる SendGrid アカウント
 - 管理権限を持つドメイン（DNSの設定変更可能なもの）
-- OneUptimeインスタンスが公開アクセス可能であること（SendGridがWebhookを送信するため）
+- SendGrid Webhook を OneUptime に転送する公開 HTTPS エンドポイント
+
+## ネットワークアクセス
+
+Inbound Parse では SendGrid から OneUptime への接続が必要です。OneUptime からインターネットへのアウトバウンド通信だけでは動作しません。
+
+| 方向 | 宛先 | プロトコル / ポート | 用途 |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | 解析済みメールを multipart POST で配信します。 |
+| 送信元メールサーバー → SendGrid | 受信ドメインの公開 MX レコードで指定した `mx.sendgrid.net` | SMTP / TCP 25 | SendGrid でメールを受信します。OneUptime サーバーへの接続ではありません。 |
+| OneUptime → SendGrid（メール送信を別途設定した場合のみ） | `api.sendgrid.com` | HTTPS / TCP 443 | Mail Send API で通知メールを送信します。 |
+
+Webhook のホスト名に公開 DNS を設定し、公開クライアントが信頼する証明書を使用してください。プライベート環境では、OneUptime に内部接続できる公開リバースプロキシやゲートウェイを通じて Webhook パスだけを公開できます。パス、シークレット、コンテンツタイプ、multipart 本文を保持し、対話的ログインやブラウザー検証なしで POST を許可します。OneUptime に受信用 SMTP リスナーは不要です。[SendGrid の設定手順](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)を参照してください。
+
+`INBOUND_EMAIL_WEBHOOK_SECRET` に強力なランダム値を設定し、`YOUR_SECRET` をその値に置き換えます。最後のパス要素は必須です。OneUptime は設定済みシークレットと比較し、変数が空の場合は検証を無効にします。完全な URL とモニターのメールアドレスはプロキシログも含めて秘密にしてください。OneUptime は現在 SendGrid の Inbound Parse 署名ヘッダーや OAuth トークンを検証しません。必要な場合は、[SendGrid のセキュリティ文書](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)に従ってゲートウェイで検証してから転送します。
+
+SendGrid は Inbound Parse 送信元の信頼できる固定 IP リストを提供していません。メール送信 IP や `mx.sendgrid.net` の DNS 解決結果を Webhook の許可リストに使用しないでください。[SendGrid のファイアウォール指針](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)を参照してください。
+
+Inbound Parse とメール送信は別機能です。受信のために OneUptime が SendGrid API を呼び出す必要はありません。SendGrid で通知も送信する場合は DNS と `api.sendgrid.com` へのアウトバウンド HTTPS を許可します。[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send)への送信にインバウンドコールバックは不要です。SMTP の場合は OneUptime に設定したサーバーとポートを許可します。
+
+公開 MX を確認し、テストモニターにメールを送り、Webhook の受信と該当アラートの作成または解決を確認してください。空の POST や送信メールのテスト成功だけでは Inbound Parse の一連の処理を検証できません。
 
 ## 仕組み
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **注意：** DNSの変更は伝播に最大48時間かかる場合がありますが、通常は数時間で完了します。
 
-### ステップ3：SendGridでのドメイン認証（オプション、推奨）
+### ステップ3：SendGrid でドメインを認証する
 
-配信性を向上させ、メールがスパムとしてマークされるのを防ぐために：
+受信ドメインは、[SendGrid で認証済みのドメイン](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse)に属する必要があります。
 
 1. [SendGridダッシュボード](https://app.sendgrid.com) にログインします
 2. **設定** > **送信者認証** に移動します
@@ -81,7 +101,7 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 # インバウンドメール設定
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # オプション：追加セキュリティのため
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### KubernetesとHelm
@@ -92,10 +112,10 @@ INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # オプション
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**重要：** これらの環境変数を追加した後、OneUptimeサーバーを再起動してください。
+ステップ4の送信先 URL と同じシークレットを設定し、変更後に OneUptime を再起動してください。
 
 ### ステップ6：受信メールモニターの作成
 
@@ -127,7 +147,7 @@ inboundEmail:
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------ | ------ | ---------- |
 | `INBOUND_EMAIL_PROVIDER`       | 使用するインバウンドメールプロバイダー                                                                       | はい   | -          |
 | `INBOUND_EMAIL_DOMAIN`         | インバウンドメール用に設定したサブドメイン                                                                   | はい   | -          |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | WebhookリクエストN検証用シークレット。設定した場合、WebhookURLに追加：`/incoming-email/sendgrid/YOUR_SECRET` | いいえ | -          |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `/incoming-email/sendgrid/YOUR_SECRET` の最後のパス要素と比較します。公開エンドポイントでは設定してください。空値は検証を無効にします。 | 推奨 | - |
 
 ## サポートされるメール条件
 
@@ -184,23 +204,14 @@ inboundEmail:
    - ドメインとWebhookURLが正しいことを確認
 
 3. **OneUptimeのログを確認：**
-   - ProbeIngestサービスのログでWebhookリクエストを確認
+   - OneUptime のアプリケーションログ（Telemetry / ProbeIngest）で受信メール Webhook を確認します。
    - エラーメッセージがないか確認
 
 ### Webhookが失敗する場合
 
-1. **OneUptimeが公開アクセス可能であることを確認：**
-
-   - WebhookURLがインターネットから到達可能でなければなりません
-   - テスト：`curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **ファイアウォールルールを確認：**
-
-   - SendGridのIP範囲からの受信HTTPSトラフィックを許可する
-
-3. **SSL証明書を確認：**
-   - SendGridは有効なSSL証明書を必要とします
-   - 自己署名証明書は問題を引き起こす場合があります
+- シークレットを含む完全な HTTPS URL にインターネットから到達できる必要があります。最後のパス要素がない URL はルートに一致しません。
+- ログインへのリダイレクトやブラウザー検証を要求せず POST を許可してください。SendGrid のメール送信 IP は Webhook 送信元の許可リストではありません。
+- 公開クライアントが信頼する証明書と完全な証明書チェーンを使用し、「ネットワークアクセス」の手順で配信を確認してください。
 
 ### モニターがアラートを作成しない場合
 

@@ -75,6 +75,15 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "onetimecode",
   "logincode",
   "resetcode",
+  "codeverifier",
+  /*
+   * A DSN carries the password inline, so the key name is the only signal
+   * we get before the value is already in the log line.
+   */
+  "connectionstring",
+  "connectionuri",
+  "dsn",
+  "sslkey",
 ];
 
 /*
@@ -131,6 +140,15 @@ const SENSITIVE_EXACT_KEYS: Set<string> = new Set<string>([
   "userhandle",
   "challenge",
   "twofactorsecret",
+  /*
+   * Database drivers attach bind values to QueryFailedError as enumerable
+   * arrays. The values have no reliable self-identifying shape, so the whole
+   * field must be treated as secret rather than logged positionally.
+   */
+  "parameters",
+  "parametervalues",
+  "bindparameters",
+  "bindvalues",
 ]);
 
 export type NormalizeLogKeyFunction = (key: string) => string;
@@ -215,7 +233,7 @@ export const isSensitiveLogKey: IsSensitiveLogKeyFunction = (
  * are too short to match safely against free-form prose.
  */
 const TEXT_SECRET_WORDS: string =
-  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret";
+  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";
@@ -330,6 +348,16 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: REDACTED,
   },
   {
+    /*
+     * Telegram puts the bot credential in the request path rather than a
+     * header. Network clients commonly copy that URL into exception messages,
+     * so structural key redaction cannot see it.
+     */
+    name: "telegram-bot-token-path",
+    regex: /(\/bot)[0-9]{5,}:[A-Za-z0-9_-]{20,}/g,
+    replacement: `$1${REDACTED}`,
+  },
+  {
     name: "private-key-block",
     regex:
       /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
@@ -369,6 +397,7 @@ const SENSITIVE_TEXT_HINT_REGEX: RegExp = new RegExp(
     "github_pat_",
     "AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA",
     "AIza",
+    "/bot[0-9]{5,}:",
     "-----BEGIN",
     "://",
   ].join("|"),

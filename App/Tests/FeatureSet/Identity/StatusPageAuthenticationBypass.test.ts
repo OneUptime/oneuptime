@@ -134,6 +134,11 @@ jest.mock("Common/Server/Services/StatusPageService", () => {
 });
 
 const createSession: jest.Mock = jest.fn();
+const exchangeLoginCode: jest.Mock = jest.fn();
+const findActiveSessionByRefreshToken: jest.Mock = jest.fn();
+const isLoginCodeSession: jest.Mock = jest.fn();
+const revokeSessionById: jest.Mock = jest.fn();
+const renewSessionWithNewRefreshToken: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
   return {
@@ -147,10 +152,22 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
           refreshTokenExpiresAt: new Date(),
         });
       },
-      findActiveSessionByRefreshToken: jest.fn(),
-      revokeSessionById: jest.fn(),
+      findActiveSessionByRefreshToken: (...args: Array<unknown>): unknown => {
+        return findActiveSessionByRefreshToken(...args);
+      },
+      isLoginCodeSession: (...args: Array<unknown>): unknown => {
+        return isLoginCodeSession(...args);
+      },
+      exchangeLoginCode: (...args: Array<unknown>): unknown => {
+        return exchangeLoginCode(...args);
+      },
+      revokeSessionById: (...args: Array<unknown>): unknown => {
+        return revokeSessionById(...args);
+      },
       revokeSessionByRefreshToken: jest.fn(),
-      renewSessionWithNewRefreshToken: jest.fn(),
+      renewSessionWithNewRefreshToken: (...args: Array<unknown>): unknown => {
+        return renewSessionWithNewRefreshToken(...args);
+      },
     },
   };
 });
@@ -203,6 +220,8 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 });
 
 const setStatusPagePrivateUserCookie: jest.Mock = jest.fn();
+const getRefreshTokenFromExpressRequest: jest.Mock = jest.fn();
+const removeCookie: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Cookie", () => {
   return {
@@ -214,10 +233,14 @@ jest.mock("Common/Server/Utils/Cookie", () => {
       },
       setUserCookie: jest.fn(),
       removeAllCookies: jest.fn(),
-      removeCookie: jest.fn(),
+      removeCookie: (...args: Array<unknown>): unknown => {
+        return removeCookie(...args);
+      },
       removeStatusPageMasterPasswordCookie: jest.fn(),
       getCookieFromExpressRequest: jest.fn(),
-      getRefreshTokenFromExpressRequest: jest.fn(),
+      getRefreshTokenFromExpressRequest: (...args: Array<unknown>): unknown => {
+        return getRefreshTokenFromExpressRequest(...args);
+      },
       getUserTokenKey: jest.fn(),
       getRefreshTokenKey: jest.fn(),
       getStatusPageMasterPasswordKey: jest.fn(),
@@ -273,6 +296,7 @@ jest.mock("Common/Server/Utils/Response", () => {
         return sendEntityResponse(...args);
       },
       sendJsonObjectResponse: jest.fn(),
+      setNoCacheHeaders: jest.fn(),
     },
   };
 });
@@ -287,14 +311,20 @@ type InvokeResult = {
   nextError: Exception | null;
 };
 
-type InvokeFunction = (uri: string, body: unknown) => Promise<InvokeResult>;
+type InvokeFunction = (
+  uri: string,
+  body: unknown,
+  params?: Record<string, string>,
+) => Promise<InvokeResult>;
 
 const invoke: InvokeFunction = async (
   uri: string,
   body: unknown,
+  params?: Record<string, string>,
 ): Promise<InvokeResult> => {
   const handler: RouteHandler = mockRouter.match("post", uri);
   const req: ExpressRequest = buildRequest(body);
+  req.params = params || {};
   const res: ExpressResponse = buildResponse();
 
   let nextError: Exception | null = null;
@@ -542,6 +572,206 @@ describe("Status page /login - private user login bypass", () => {
     expect(privateUserFindOneBy).toHaveBeenCalledTimes(1);
     expect(createSession).not.toHaveBeenCalled();
     expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+  });
+});
+
+describe("Status page login-code exchange", () => {
+  const statusPageId: ObjectID = new ObjectID(PUBLIC_STATUS_PAGE_ID);
+  const projectId: ObjectID = new ObjectID(
+    "11111111-1111-4111-8111-111111111111",
+  );
+  const privateUserId: ObjectID = new ObjectID(
+    "22222222-2222-4222-8222-222222222222",
+  );
+  const sessionId: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const validLoginCode: string = "55555555-5555-4555-8555-555555555555";
+
+  const successfulExchange: () => Record<string, unknown> = () => {
+    return {
+      session: {
+        id: sessionId,
+        _id: sessionId.toString(),
+        projectId,
+        statusPageId,
+        statusPagePrivateUserId: privateUserId,
+      },
+      refreshToken: "rotated-refresh-token",
+      refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+    };
+  };
+
+  const matchingUser: () => Record<string, unknown> = () => {
+    return {
+      id: privateUserId,
+      _id: privateUserId.toString(),
+      email: "status-page-user@example.com",
+      statusPageId,
+      projectId,
+    };
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("rejects a missing status page id before looking up the code", async () => {
+    const result: InvokeResult = await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+    );
+
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect(exchangeLoginCode).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+  });
+
+  it.each(["not-a-uuid", "a".repeat(100)])(
+    "rejects a malformed status page id: %p",
+    async (statusPageIdParam: string) => {
+      const result: InvokeResult = await invoke(
+        "/exchange-login-code/:statuspageid",
+        { loginCode: validLoginCode },
+        { statuspageid: statusPageIdParam },
+      );
+
+      expect(result.nextError).toBeInstanceOf(BadDataException);
+      expect(exchangeLoginCode).not.toHaveBeenCalled();
+      expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, null, "", "   ", 123, "not-a-uuid", "a".repeat(100)])(
+    "rejects a missing or malformed login code: %p",
+    async (loginCode: unknown) => {
+      const result: InvokeResult = await invoke(
+        "/exchange-login-code/:statuspageid",
+        { loginCode },
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(result.nextError).toBeInstanceOf(BadDataException);
+      expect(exchangeLoginCode).not.toHaveBeenCalled();
+      expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an unknown, expired, or already-consumed code", async () => {
+    exchangeLoginCode.mockResolvedValue(null);
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(exchangeLoginCode).toHaveBeenCalledWith(
+      validLoginCode,
+      expect.objectContaining({ statusPageId }),
+    );
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(privateUserFindOneById).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    expect(sendEntityResponse).not.toHaveBeenCalled();
+  });
+
+  it("rejects a consumed code whose user no longer matches its session", async () => {
+    exchangeLoginCode.mockResolvedValue(successfulExchange());
+    privateUserFindOneById.mockResolvedValue({
+      ...matchingUser(),
+      statusPageId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+    });
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(revokeSessionById).toHaveBeenCalledWith(sessionId, {
+      reason: "Login code user no longer matches the session",
+    });
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    expect(sendEntityResponse).not.toHaveBeenCalled();
+  });
+
+  it("sets rotated HttpOnly credentials and returns only the verified user", async () => {
+    const exchange: Record<string, unknown> = successfulExchange();
+    const user: Record<string, unknown> = matchingUser();
+    exchangeLoginCode.mockResolvedValue(exchange);
+    privateUserFindOneById.mockResolvedValue(user);
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusPageId,
+        sessionId,
+        refreshToken: "rotated-refresh-token",
+        user,
+      }),
+    );
+    expect(setStatusPagePrivateUserCookie.mock.calls[0]![0]).not.toHaveProperty(
+      "loginCode",
+    );
+    expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+    expect(sendEntityResponse.mock.calls[0]).toHaveLength(4);
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+  });
+
+  it("allows a login code to produce credentials only once", async () => {
+    exchangeLoginCode
+      .mockResolvedValueOnce(successfulExchange())
+      .mockResolvedValueOnce(null);
+    privateUserFindOneById.mockResolvedValue(matchingUser());
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(exchangeLoginCode).toHaveBeenCalledTimes(2);
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("cannot redeem a login code through the ordinary refresh endpoint", async () => {
+    const codeSession: Record<string, unknown> = {
+      id: sessionId,
+      _id: sessionId.toString(),
+      statusPageId,
+      statusPagePrivateUserId: privateUserId,
+    };
+
+    getRefreshTokenFromExpressRequest.mockReturnValue(validLoginCode);
+    findActiveSessionByRefreshToken.mockResolvedValue(codeSession);
+    isLoginCodeSession.mockReturnValue(true);
+
+    await invoke(
+      "/refresh-token/:statuspageid",
+      {},
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(isLoginCodeSession).toHaveBeenCalledWith(codeSession);
+    expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    expect(removeCookie).toHaveBeenCalledTimes(2);
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
   });
 });
 

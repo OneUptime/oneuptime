@@ -154,7 +154,7 @@ Udover metrikker skraber Docker Agent alle containeres `*-json.log`-filer via Op
 - `resource.container.id` – Det fulde container-ID
 - `resource.container.runtime` – altid `docker`
 - `attributes["log.iostream"]` – `stdout` eller `stderr`
-- `severityText` / `severityNumber` – Afledt fra strømmen: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` – Læses fra et niveau-nøgleord i linjen (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); linjer uden et genkendeligt niveau falder tilbage til strømmen: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` – Den rå loglinje udsendt af containerprocessen
 - `time` – Docker-dæmonens tidsstempel for linjen
 

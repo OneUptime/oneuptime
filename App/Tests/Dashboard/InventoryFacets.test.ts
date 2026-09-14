@@ -3,6 +3,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
 import {
   INVENTORY_ARCHIVED_TABLE_ID,
   INVENTORY_BASE_FACETS,
@@ -11,6 +12,8 @@ import {
   INVENTORY_LAST_SEEN_FACET_KEY,
   INVENTORY_SOURCE_FACET_KEY,
   INVENTORY_SOURCE_FACET_OPTIONS,
+  INVENTORY_STATUS_FACET_KEY,
+  INVENTORY_STATUS_FACET_OPTIONS,
   INVENTORY_TYPE_FACET_KEY,
   INVENTORY_TYPE_FACET_OPTIONS,
   InventoryFacetLockedQuery,
@@ -63,6 +66,7 @@ describe("Inventory facet identity", () => {
   test("facet keys are stable saved-view vocabulary", () => {
     expect(INVENTORY_TYPE_FACET_KEY).toBe("inventoryType");
     expect(INVENTORY_SOURCE_FACET_KEY).toBe("inventorySource");
+    expect(INVENTORY_STATUS_FACET_KEY).toBe("inventoryStatus");
     expect(INVENTORY_LAST_SEEN_FACET_KEY).toBe("inventoryLastSeen");
   });
 
@@ -89,6 +93,9 @@ describe("Inventory facet identity", () => {
     );
     expect(facet(INVENTORY_SOURCE_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.source,
+    );
+    expect(facet(INVENTORY_STATUS_FACET_KEY).queryField).toBe(
+      INVENTORY_FACET_QUERY_FIELDS.status,
     );
     expect(facet(INVENTORY_LAST_SEEN_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.lastSeen,
@@ -232,6 +239,75 @@ describe("Source facet", () => {
   });
 });
 
+describe("Status facet", () => {
+  const statusFacet: ResourceFacet = facet(INVENTORY_STATUS_FACET_KEY);
+
+  test("offers every liveness state once in display order", () => {
+    expect(
+      INVENTORY_STATUS_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.value;
+        },
+      ),
+    ).toEqual(Object.values(InventoryLiveness));
+    expect(
+      INVENTORY_STATUS_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.label;
+        },
+      ),
+    ).toEqual(["Live", "Recent", "Stale", "Never seen", "Not tracked"]);
+    for (const option of INVENTORY_STATUS_FACET_OPTIONS) {
+      expect(option.sublabel).toBeTruthy();
+    }
+  });
+
+  test("supports multi-select inclusion and exclusion without date/source collisions", () => {
+    expect(statusFacet.isMultiSelect).toBe(true);
+    expect(statusFacet.supportedOperators).toEqual(["is", "is_not"]);
+    expect(statusFacet.queryField).toBe("inventoryStatus");
+    expect(statusFacet.exclusiveWith).toBeUndefined();
+    expect(statusFacet.computeMatchingResourceIds).toBeUndefined();
+  });
+
+  test.each(Object.values(InventoryLiveness))(
+    "filters %s using the server's computed status",
+    (status: InventoryLiveness) => {
+      const query: unknown = statusFacet.toQueryValue!([status], "is");
+      expect(query).toBeInstanceOf(Includes);
+      expect((query as Includes).values).toEqual([status]);
+    },
+  );
+
+  test("multiple states use OR within the status dimension", () => {
+    const values: Array<string> = [
+      InventoryLiveness.Stale,
+      InventoryLiveness.Never,
+    ];
+    const query: unknown = statusFacet.toQueryValue!(values, "is");
+    expect(query).toBeInstanceOf(Includes);
+    expect((query as Includes).values).toEqual(values);
+  });
+
+  test("exclusion can include untracked and never-seen states", () => {
+    const values: Array<string> = [
+      InventoryLiveness.NotTracked,
+      InventoryLiveness.Never,
+    ];
+    const query: unknown = statusFacet.toQueryValue!(values, "is_not");
+    expect(query).toBeInstanceOf(IncludesNone);
+    expect((query as IncludesNone).values).toEqual(values);
+  });
+
+  test("clearing or supplying a date operator removes the constraint", () => {
+    expect(statusFacet.toQueryValue!([], "is")).toBeUndefined();
+    expect(statusFacet.toQueryValue!([], "is_not")).toBeUndefined();
+    expect(
+      statusFacet.toQueryValue!([InventoryLiveness.Live], "before"),
+    ).toBeUndefined();
+  });
+});
+
 describe("Last Seen facet", () => {
   const lastSeenFacet: ResourceFacet = facet(INVENTORY_LAST_SEEN_FACET_KEY);
 
@@ -257,6 +333,7 @@ describe("scoped list protection", () => {
     ["entityType", INVENTORY_TYPE_FACET_KEY],
     ["source", INVENTORY_SOURCE_FACET_KEY],
     ["lastSeenAt", INVENTORY_LAST_SEEN_FACET_KEY],
+    ["inventoryStatus", INVENTORY_STATUS_FACET_KEY],
   ])(
     "a page-owned %s constraint removes only the colliding facet",
     (queryField: string, removedFacetKey: string) => {
@@ -270,11 +347,12 @@ describe("scoped list protection", () => {
     },
   );
 
-  test("all three locked fields leave no built-in chip able to replace them", () => {
+  test("all locked fields leave no built-in chip able to replace them", () => {
     const query: InventoryFacetLockedQuery = {
       entityType: EntityType.Service,
       source: EntitySource.Discovered,
       lastSeenAt: "cutoff",
+      inventoryStatus: InventoryLiveness.Stale,
     };
 
     expect(buildInventoryFacets(query)).toEqual([]);

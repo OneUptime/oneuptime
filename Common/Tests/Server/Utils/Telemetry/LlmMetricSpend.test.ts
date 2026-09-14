@@ -5,6 +5,7 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   LlmCostMetricNames,
+  LlmMicroUsdCostMetricNames,
   LlmTokenTypeAttributeKeys,
   LlmTokenUsageMetricNames,
 } from "../../../../Types/Telemetry/LlmMetricConventions";
@@ -111,6 +112,65 @@ describe("LlmMetricSpend", () => {
     });
   });
 
+  /*
+   * The micro-USD aggregate. It exists as a SECOND query for one reason: the
+   * recognized cost metrics come in two units, and a single Sum over both
+   * would add millionths of a dollar to dollars with no way to recover the
+   * unit afterwards. A $3 Codex turn would reach a budget as $3,000,000.
+   */
+  describe("buildMicroUsdCostAggregateBy", () => {
+    test("selects the micro-USD metric names", () => {
+      const query: Record<string, unknown> =
+        LlmMetricSpend.buildMicroUsdCostAggregateBy(scope())
+          .query as unknown as Record<string, unknown>;
+
+      expect((query["name"] as Includes).values).toEqual(
+        LlmMicroUsdCostMetricNames,
+      );
+    });
+
+    test("never selects a USD cost metric name", () => {
+      const query: Record<string, unknown> =
+        LlmMetricSpend.buildMicroUsdCostAggregateBy(scope())
+          .query as unknown as Record<string, unknown>;
+
+      const names: Array<string> = (query["name"] as Includes)
+        .values as Array<string>;
+
+      for (const name of names) {
+        expect(LlmCostMetricNames).not.toContain(name);
+      }
+    });
+
+    test("sums the value column over the whole window, like the USD query", () => {
+      const aggregate: AggregateBy<Metric> =
+        LlmMetricSpend.buildMicroUsdCostAggregateBy(scope());
+
+      expect(aggregate.aggregationType).toBe(AggregationType.Sum);
+      expect(aggregate.aggregateColumnName).toBe("value");
+      expect(aggregate.aggregationInterval).toBe(AggregationInterval.Total);
+      expect(aggregate.startTimestamp).toBe(START);
+      expect(aggregate.endTimestamp).toBe(END);
+    });
+
+    test("fails loud on query timeout", () => {
+      expect(
+        LlmMetricSpend.buildMicroUsdCostAggregateBy(scope())
+          .timeoutOverflowMode,
+      ).toBe("throw");
+    });
+
+    test("carries the caller's scoping into the query", () => {
+      const query: Record<string, unknown> =
+        LlmMetricSpend.buildMicroUsdCostAggregateBy(
+          scope({ serviceId: SERVICE_ID, llmSystem: "openai" }),
+        ).query as unknown as Record<string, unknown>;
+
+      expect(query["primaryEntityId"]).toBe(SERVICE_ID);
+      expect(query["attributes"]).toEqual({ "gen_ai.system": "openai" });
+    });
+  });
+
   describe("buildTokenAggregateBy", () => {
     test("selects the token usage metric names", () => {
       const query: Record<string, unknown> =
@@ -185,12 +245,93 @@ describe("LlmMetricSpend", () => {
       );
     });
 
-    test("issues exactly one aggregate", async () => {
+    /*
+     * TWO aggregates, not one — this count changed deliberately when the
+     * micro-USD emitters (the Codex CLI) were recognized. The two name lists
+     * carry different UNITS, so they cannot share a Sum; see
+     * buildMicroUsdCostAggregateBy above.
+     */
+    test("issues one aggregate per cost unit", async () => {
       mockedMetricService.aggregateBy.mockResolvedValue({ data: [] });
 
       await LlmMetricSpend.getCostInUSD(scope());
 
-      expect(mockedMetricService.aggregateBy).toHaveBeenCalledTimes(1);
+      expect(mockedMetricService.aggregateBy).toHaveBeenCalledTimes(2);
+    });
+
+    test("the two cost aggregates select disjoint metric names", async () => {
+      mockedMetricService.aggregateBy.mockResolvedValue({ data: [] });
+
+      await LlmMetricSpend.getCostInUSD(scope());
+
+      const selected: Array<Array<string>> =
+        mockedMetricService.aggregateBy.mock.calls.map(
+          (call: Array<unknown>): Array<string> => {
+            const aggregate: AggregateBy<Metric> =
+              call[0] as AggregateBy<Metric>;
+            const query: Record<string, unknown> =
+              aggregate.query as unknown as Record<string, unknown>;
+
+            return (query["name"] as Includes).values as Array<string>;
+          },
+        );
+
+      expect(selected).toHaveLength(2);
+      expect(selected[0]).toEqual(LlmCostMetricNames);
+      expect(selected[1]).toEqual(LlmMicroUsdCostMetricNames);
+
+      const overlap: Array<string> = selected[0]!.filter((name: string) => {
+        return selected[1]!.includes(name);
+      });
+
+      expect(overlap).toEqual([]);
+    });
+
+    /*
+     * The million-fold regression, end to end: a Codex turn reported as
+     * 1,500,000 micro-USD must reach a budget as $1.50, not $1,500,000.
+     */
+    test("scales micro-USD spend by 1e-6 before adding it to USD spend", async () => {
+      mockedMetricService.aggregateBy
+        .mockResolvedValueOnce({ data: [{ timestamp: START, value: 0.5 }] })
+        .mockResolvedValueOnce({
+          data: [{ timestamp: START, value: 1_500_000 }],
+        });
+
+      await expect(LlmMetricSpend.getCostInUSD(scope())).resolves.toBeCloseTo(
+        2,
+        10,
+      );
+    });
+
+    test("micro-USD-only spend is still reported rather than lost", async () => {
+      // The metrics-only Codex fleet: no USD cost metric exists at all.
+      mockedMetricService.aggregateBy
+        .mockResolvedValueOnce({ data: [] })
+        .mockResolvedValueOnce({
+          data: [{ timestamp: START, value: 2_250_000 }],
+        });
+
+      await expect(LlmMetricSpend.getCostInUSD(scope())).resolves.toBeCloseTo(
+        2.25,
+        10,
+      );
+    });
+
+    test("a micro-USD query failure is not swallowed into a low total", async () => {
+      /*
+       * Both aggregates run in parallel; a failure in EITHER must propagate.
+       * Silently treating the failed one as zero would understate spend and
+       * suppress a real budget breach — the same reasoning as the
+       * timeoutOverflowMode: "throw" above.
+       */
+      mockedMetricService.aggregateBy
+        .mockResolvedValueOnce({ data: [{ timestamp: START, value: 1 }] })
+        .mockRejectedValueOnce(new Error("clickhouse timeout"));
+
+      await expect(LlmMetricSpend.getCostInUSD(scope())).rejects.toThrow(
+        "clickhouse timeout",
+      );
     });
   });
 

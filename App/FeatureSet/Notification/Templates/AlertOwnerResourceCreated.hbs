@@ -1,36 +1,60 @@
 {{> Start this}}
 
-
+{{!--
+  PREHEADER - the line the inbox list shows next to the subject, and the only
+  part of this email a flapping monitor's notifications will ever have read.
+  Built from the same facts as the first card row, in plain text (no client
+  renders markup here), and hidden from the body. Without it every row in the
+  inbox showed the same sentence: "A new alert has been created in the
+  project". Same pattern as StatusPageSubscriberReport.hbs.
+--}}
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
 
-{{> InfoBlock info=(concat "A new alert has been created in the project - " projectName)}}
+{{!--
+  Severity is the "how bad is this" signal and used to render as one more grey
+  row indistinguishable from "Declared By". `{{#if}}`, not
+  `{{#ifNotCond ... ""}}`: ifNotCond is a strict !== so an ABSENT var would
+  pass it and render an empty badge.
+--}}
+{{#if severityBadgeText}}
+{{> SeverityBadge badgeText=severityBadgeText badgeColor=severityColor }}
+{{/if}}
 
-{{> InfoBlock info="Here are the details: "}}
+{{#if flapWarning}}
+{{> WarningBanner text=flapWarning }}
+{{/if}}
 
+{{!--
+  ORDER ANSWERS, IN THIS SEQUENCE: what broke, why, how bad, is it new, what
+  do I do, and only then the fixed per-criteria prose.
+
+  Root Cause used to be seventh and Description eighth, behind five rows that
+  are identical in every email this monitor sends - so the only two
+  instance-specific lines were the two a reader never reached. "Alert Title:"
+  is gone because the 24px headline three lines above it is the same string.
+--}}
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Alert Title:" text=alertTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Alert Declared By: " text=declaredBy  }}
-{{> DetailBoxField title="Alert Declared At: " text=declaredAt  }}
-{{> DetailBoxField title="Severity: " text=alertSeverity  }}
-{{> DetailBoxField title="Root Cause: " text=rootCause  }}
-{{> DetailBoxField title="Description: " text=alertDescription  }}
+{{> DetailBoxField title="Affected Resource: " plainText=resourcesAffected }}
+{{> DetailBoxField title="Root Cause: " blockText=rootCause }}
+{{> DetailBoxField title="Severity: " plainText=alertSeverity }}
+{{> DetailBoxField title="Current State: " plainText=currentState }}
+{{> DetailBoxField title="Declared At: " text=declaredAt }}
+{{#if monitorName}}
+{{> DetailBoxField title="Monitor: " plainText=monitorName }}
+{{/if}}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxField title="Declared By: " plainText=declaredBy }}
 {{#ifNotCond remediationNotes ""}}
-{{> DetailBoxField title="Remediation Notes: " text=remediationNotes  }}
+{{> DetailBoxField title="Remediation Notes: " blockText=remediationNotes }}
 {{/ifNotCond}}
+{{> DetailBoxField title="Description: " blockText=alertDescription }}
 {{> DetailBoxEnd this }}
 
 
-{{> InfoBlock info="You can view this alert by clicking on the button below - "}}
-
 {{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=alertViewLink}}
-
-{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}

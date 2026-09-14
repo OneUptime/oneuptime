@@ -1,6 +1,10 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import DayUptimeGraph, { BarChartRule, Event } from "../Graphs/DayUptimeGraph";
+import DayUptimeGraph, {
+  BarChartRule,
+  Event,
+  UptimeBarDaySummary,
+} from "../Graphs/DayUptimeGraph";
 import UptimeUtil from "./UptimeUtil";
 import Color from "../../../Types/Color";
 import CommonMonitorEvent from "../../../Utils/Uptime/MonitorEvent";
@@ -8,12 +12,8 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type MonitorEvent = CommonMonitorEvent;
 
@@ -29,36 +29,37 @@ export interface ComponentProps {
   downtimeMonitorStatuses: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
-  onBarClick?: (date: Date, incidents: Array<UptimeBarTooltipIncident>) => void;
+  onBarClick?: (
+    date: Date,
+    incidents: Array<UptimeBarTooltipIncident>,
+    summary: UptimeBarDaySummary,
+  ) => void;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /* Wording for the strip's accessible names. Defaults to English. */
+  labels?: UptimeHistoryLabels | undefined;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [events, setEvents] = useState<Array<Event>>([]);
-
-  const [barColorRules, setBarColorRules] = useState<BarChartRule[]>([]);
-
-  useEffect(() => {
-    const eventList: Array<Event> = UptimeUtil.getNonOverlappingMonitorEvents(
-      props.items,
-    );
-    setEvents(eventList);
+  /*
+   * A search can reveal many histories at once. Derive their data before the
+   * first paint instead of painting empty bars and rebuilding them in effects.
+   */
+  const events: Array<Event> = useMemo(() => {
+    return UptimeUtil.getNonOverlappingMonitorEvents(props.items);
   }, [props.items]);
 
-  useEffect(() => {
-    if (props.barColorRules) {
-      setBarColorRules(
-        props.barColorRules.map((rule: StatusPageHistoryChartBarColorRule) => {
-          return {
-            barColor: rule.barColor!,
-            uptimePercentGreaterThanOrEqualTo:
-              rule.uptimePercentGreaterThanOrEqualTo!,
-          };
-        }),
-      );
-    }
+  const barColorRules: Array<BarChartRule> = useMemo(() => {
+    return (props.barColorRules || []).map(
+      (rule: StatusPageHistoryChartBarColorRule): BarChartRule => {
+        return {
+          barColor: rule.barColor!,
+          uptimePercentGreaterThanOrEqualTo:
+            rule.uptimePercentGreaterThanOrEqualTo!,
+        };
+      },
+    );
   }, [props.barColorRules]);
 
   if (props.isLoading) {
@@ -90,6 +91,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
       incidents={props.incidents}
       onBarClick={props.onBarClick}
       onIncidentClick={props.onIncidentClick}
+      labels={props.labels}
     />
   );
 };

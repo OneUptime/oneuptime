@@ -3,6 +3,8 @@ import * as grpc from "@grpc/grpc-js";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
 import {
@@ -41,6 +43,7 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
     default: {
+      getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
       findOneBy: jest.fn(),
     },
@@ -61,7 +64,31 @@ type SpyLike = {
 type MockedFn = jest.Mock;
 
 const getCachedResolverMock: () => MockedFn = (): MockedFn => {
-  return TelemetryIngestionKeyService.getProjectIdFromSecretKey as unknown as MockedFn;
+  return TelemetryIngestionKeyService.getPolicyFromSecretKey as unknown as MockedFn;
+};
+
+/*
+ * The cached resolver now hands back the whole key policy rather than a bare
+ * projectId, because a project id alone cannot answer "may this key still
+ * write, and may it write over gRPC?". This helper builds the shape a healthy
+ * Server key resolves to, so each test below can keep asserting on the one
+ * thing it cares about.
+ */
+type MakePolicyFunction = (projectId: ObjectID) => TelemetryIngestionKeyPolicy;
+
+const makeServerKeyPolicy: MakePolicyFunction = (
+  projectId: ObjectID,
+): TelemetryIngestionKeyPolicy => {
+  return {
+    ingestionKeyId: ObjectID.generate(),
+    projectId: projectId,
+    keyType: TelemetryIngestionKeyType.Server,
+    allowedOrigins: [],
+    pinnedServiceName: null,
+    isEnabled: true,
+    expiresAt: null,
+    requestsPerMinuteLimit: null,
+  };
 };
 
 const getFindOneByMock: () => MockedFn = (): MockedFn => {
@@ -98,7 +125,7 @@ describe("GrpcServer authenticateRequest", () => {
   test("valid token resolves projectId through the cached resolver — never through a direct findOneBy", async () => {
     const projectId: ObjectID = ObjectID.generate();
     const token: string = ObjectID.generate().toString();
-    getCachedResolverMock().mockResolvedValue(projectId);
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
 
     const result: ObjectID | null = await authenticateRequest(
       makeMetadata({ "x-oneuptime-token": token }),
@@ -113,7 +140,7 @@ describe("GrpcServer authenticateRequest", () => {
 
   test("falls back to x-oneuptime-service-token and x-oneuptime-ingestion-key, in that order", async () => {
     const projectId: ObjectID = ObjectID.generate();
-    getCachedResolverMock().mockResolvedValue(projectId);
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
 
     await authenticateRequest(
       makeMetadata({ "x-oneuptime-service-token": "service-token-value" }),
@@ -178,7 +205,7 @@ describe("GrpcServer authenticateRequest", () => {
   test("repeated authentications keep going through the cached resolver, never the DB accessor", async () => {
     const projectId: ObjectID = ObjectID.generate();
     const token: string = ObjectID.generate().toString();
-    getCachedResolverMock().mockResolvedValue(projectId);
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
 
     for (let i: number = 0; i < 5; i++) {
       const result: ObjectID | null = await authenticateRequest(

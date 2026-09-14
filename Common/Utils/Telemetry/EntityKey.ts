@@ -203,6 +203,25 @@ export function keyForDockerSwarmCluster(
   });
 }
 
+/**
+ * `vmware.vcenter.name` is the vCenter identity (matches the VMwareVCenter
+ * row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only — see
+ * `InventoryItem.vmwareVCenterIdentity`). The attribute is stamped by the
+ * VMware agent's collector config (`VMWARE_VCENTER_NAME`), not by vSphere.
+ * Pass `VMwareVCenter.name`.
+ */
+export function keyForVMwareVCenter(
+  projectId: string,
+  vcenterName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.VMwareVCenter,
+    identifyingAttributes: { "vmware.vcenter.name": vcenterName },
+  });
+}
+
 /*
  * ---- Rows without telemetry ----------------------------------------------
  *

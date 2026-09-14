@@ -154,7 +154,7 @@ Zusätzlich zu Metriken liest der Docker Agent die `*-json.log`-Datei jedes Cont
 - `resource.container.id` — die vollständige Container-ID
 - `resource.container.runtime` — immer `docker`
 - `attributes["log.iostream"]` — `stdout` oder `stderr`
-- `severityText` / `severityNumber` — abgeleitet aus dem Stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — aus einem Level-Schlüsselwort in der Zeile gelesen (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); Zeilen ohne erkennbares Level greifen auf den Stream zurück: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — die rohe vom Container-Prozess ausgegebene Log-Zeile
 - `time` — der Zeitstempel des Docker-Daemons für die Zeile
 

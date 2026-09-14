@@ -1,4 +1,7 @@
 import { BASE_URL } from "../../../Config";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import { APIResponse, Cookie, Page, expect } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import { ApiResult, sendWithRetry } from "./ApiRequest";
@@ -324,55 +327,60 @@ export const getSessionUser: GetSessionUserFunction = async (data: {
   return { userId, email };
 };
 
-// The app's own status endpoint. Always answers 200 while the stack is up.
-export const HEALTHY_URL: string = buildUrl("/status");
-
-type DownUrlFunction = (data: { label: string; unique: string }) => string;
-
-/*
- * A URL that reliably does NOT answer 200, for the offline criteria.
- *
- * It has to live under `/api` rather than being any old unrouted path: on a
- * self-hosted server (billing disabled) the app registers a catch-all that
- * renders the dashboard SPA with HTTP 200 for unknown paths on the primary
- * host (App/FeatureSet/Frontend/Index.ts, registerDashboardFallbackForPrimaryHost).
- * `/api` is in that catch-all's skip list and nginx proxies it to the app in
- * every compose mode, so it falls through to the API's own 404 handler.
- *
- * assertMonitorTargetsAreUsable() below turns a regression here into an
- * immediate, self-explaining failure instead of a seven-minute timeout.
- */
-export const downUrl: DownUrlFunction = (data: {
-  label: string;
-  unique: string;
-}): string => {
-  return buildUrl(`/api/e2e-monitor-down-${data.label}-${data.unique}`);
-};
-
-type AssertMonitorTargetsAreUsableFunction = (data: {
-  page: Page;
-  sampleDownUrl: string;
-}) => Promise<void>;
+type AssertTargetRefusedUnderEveryProbePolicyFunction = (
+  url: string,
+) => Promise<string>;
 
 /*
- * Preconditions the whole spec rests on. The e2e container runs with
- * network_mode: host, exactly like the probes, so what it sees here is what a
- * probe will see.
+ * Assert that a probe is refused this target under EVERY probe policy, and
+ * return the refusal in the guard's own words.
+ *
+ * Reachability and permission are different questions. A probe applies
+ * DataSourceEgressGuard to the RESOLVED address before it opens a socket, and
+ * the always-blocked tier (loopback, link-local, reserved, multicast) is
+ * refused whatever blockPrivateAddresses is set to - so this checks both
+ * values and requires both to throw. That tier-independence is the property
+ * worth pinning: a target refused only under the strict policy would quietly
+ * start being reachable on a deployment that opted into private networks.
+ *
+ * The REAL guard is called rather than a copy of its rules, so this answer
+ * cannot drift from the one the probe will give. It is a pure function and
+ * needs no stack.
  */
-export const assertMonitorTargetsAreUsable: AssertMonitorTargetsAreUsableFunction =
-  async (data: { page: Page; sampleDownUrl: string }): Promise<void> => {
-    const healthy: APIResponse = await data.page.request.get(HEALTHY_URL);
-    expect(
-      healthy.status(),
-      `${HEALTHY_URL} must answer 200, otherwise the online criteria can never match and no monitor can recover.`,
-    ).toBe(200);
+export const assertTargetRefusedUnderEveryProbePolicy: AssertTargetRefusedUnderEveryProbePolicyFunction =
+  async (url: string): Promise<string> => {
+    const messages: Array<string> = [];
 
-    const down: APIResponse = await data.page.request.get(data.sampleDownUrl);
+    for (const blockPrivateAddresses of [true, false]) {
+      let refusal: string | null = null;
+
+      try {
+        await DataSourceEgressGuard.assertUrlAllowed(url, {
+          blockPrivateAddresses: blockPrivateAddresses,
+          targetLabel: "Monitor target",
+          includeResolvedAddressInError: false,
+        });
+      } catch (error) {
+        refusal = (error as Error).message;
+      }
+
+      expect(
+        refusal,
+        `${url} must be refused with blockPrivateAddresses=${blockPrivateAddresses}. ` +
+          `A target that is only refused under the strict policy is not in the ` +
+          `always-blocked tier, and this assertion would stop meaning anything on a ` +
+          `deployment that allows private networks.`,
+      ).not.toBeNull();
+
+      messages.push(refusal as string);
+    }
+
     expect(
-      down.status(),
-      `${data.sampleDownUrl} must NOT answer 200, otherwise no monitor can ever go offline. ` +
-        `Got ${down.status()}. Check DashboardFallbackRoutePrefixesToSkip in App/FeatureSet/Frontend/Index.ts.`,
-    ).not.toBe(200);
+      messages[0],
+      "The refusal must not depend on the private-network policy.",
+    ).toBe(messages[1]);
+
+    return messages[0] as string;
   };
 
 type AssertMonitorHasProbesFunction = (data: {
@@ -699,132 +707,7 @@ export const newMonitorStepIds: NewMonitorStepIdsFunction =
     };
   };
 
-export interface HttpMonitorStepsOptions {
-  ids: MonitorStepIds;
-  destinationUrl: string;
-  monitorName: string;
-  defaults: ProjectDefaults;
-  onCallPolicyIds: Array<string>;
-  requestType?: string | undefined;
-  requestBody?: string | undefined;
-  requestHeaders?: JSONish | undefined;
-}
-
-type BuildHttpMonitorStepsFunction = (
-  options: HttpMonitorStepsOptions,
-) => JSONish;
-
-/*
- * Builds the monitorSteps payload for a Website / API monitor with the same
- * two criteria the dashboard's create-monitor form generates, in the same
- * order (offline first — criteria are evaluated in array order and the first
- * match wins):
- *
- *   - offline: Is Online = false OR Response Status Code != 200
- *              -> monitor goes Offline, declares an incident, and runs the
- *                 given on-call duty policies. autoResolveIncident makes the
- *                 incident resolve itself when the monitor recovers.
- *   - online:  Is Online = true AND Response Status Code = 200
- *              -> monitor goes Operational.
- *
- * retryCount and requestTimeoutInMs are deliberately left at the product
- * defaults (3 retries, 60s). Both targets answer immediately in both
- * directions, so retries cost a couple of seconds at most, and they are what
- * stops a single transient blip against the healthy URL from flipping the
- * monitor offline and derailing the recovery leg. A shorter request timeout
- * would only add that risk back.
- */
-export const buildHttpMonitorSteps: BuildHttpMonitorStepsFunction = (
-  options: HttpMonitorStepsOptions,
-): JSONish => {
-  return {
-    _type: "MonitorSteps",
-    value: {
-      monitorStepsInstanceArray: [
-        {
-          _type: "MonitorStep",
-          value: {
-            id: options.ids.stepId,
-            monitorDestination: {
-              _type: "URL",
-              value: options.destinationUrl,
-            },
-            requestType: options.requestType || "GET",
-            requestHeaders: options.requestHeaders || {},
-            requestBody: options.requestBody || "",
-            monitorCriteria: {
-              _type: "MonitorCriteria",
-              value: {
-                monitorCriteriaInstanceArray: [
-                  {
-                    _type: "MonitorCriteriaInstance",
-                    value: {
-                      id: options.ids.offlineCriteriaId,
-                      monitorStatusId: options.defaults.offlineMonitorStatusId,
-                      filterCondition: "Any",
-                      filters: [
-                        { checkOn: "Is Online", filterType: "False" },
-                        {
-                          checkOn: "Response Status Code",
-                          filterType: "Not Equal To",
-                          value: 200,
-                        },
-                      ],
-                      incidents: [
-                        {
-                          id: options.ids.incidentTemplateId,
-                          title: `${options.monitorName} is offline`,
-                          description: `${options.monitorName} is currently offline.`,
-                          incidentSeverityId:
-                            options.defaults.incidentSeverityId,
-                          autoResolveIncident: true,
-                          onCallPolicyIds: options.onCallPolicyIds,
-                        },
-                      ],
-                      alerts: [],
-                      createAlerts: false,
-                      createIncidents: true,
-                      changeMonitorStatus: true,
-                      name: `Check if ${options.monitorName} is offline`,
-                      description: `This criteria checks if ${options.monitorName} is offline`,
-                    },
-                  },
-                  {
-                    _type: "MonitorCriteriaInstance",
-                    value: {
-                      id: options.ids.onlineCriteriaId,
-                      monitorStatusId:
-                        options.defaults.operationalMonitorStatusId,
-                      filterCondition: "All",
-                      filters: [
-                        { checkOn: "Is Online", filterType: "True" },
-                        {
-                          checkOn: "Response Status Code",
-                          filterType: "Equal To",
-                          value: 200,
-                        },
-                      ],
-                      incidents: [],
-                      alerts: [],
-                      createAlerts: false,
-                      createIncidents: false,
-                      changeMonitorStatus: true,
-                      name: `Check if ${options.monitorName} is online`,
-                      description: `This criteria checks if ${options.monitorName} is online`,
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      ],
-      defaultMonitorStatusId: options.defaults.operationalMonitorStatusId,
-    },
-  };
-};
-
-type WaitForMonitorStatusFunction = (data: {
+export type WaitForMonitorStatusFunction = (data: {
   page: Page;
   projectId: string;
   monitorId: string;
@@ -1172,3 +1055,398 @@ export const waitForIncidentState: WaitForIncidentStateFunction = async (data: {
     },
   });
 };
+
+/* ---- Incoming Request (heartbeat) monitors ---- */
+
+/*
+ * The elapsed-silence threshold, in minutes, and the floor rather than a
+ * choice: NotRecievedInMinutes rejects 0 and getDifferenceInMinutes truncates,
+ * so a heartbeat monitor cannot be declared offline in under 120 seconds.
+ */
+const HEARTBEAT_SILENCE_MINUTES: number = 1;
+
+/*
+ * The alerting spec drives its pipeline with a heartbeat monitor rather than
+ * a probed one, and these are the pieces that make that work. Why a heartbeat:
+ * since 78b19735bd every address that reaches this stack is loopback or
+ * RFC1918, and a probe holding a REGISTER_PROBE_KEY refuses both - so a probed
+ * monitor here can only ever report a refusal, which is indistinguishable from
+ * an outage. Everything downstream of MonitorResourceUtil.monitorResource is
+ * monitor-type agnostic, so a heartbeat exercises the identical incident ->
+ * on-call -> escalation -> notification -> auto-resolve path with no egress at
+ * all. The probe's own execution path is covered by ProbeExecution.spec.ts.
+ */
+
+interface HeartbeatMonitorStepsOptions {
+  ids: MonitorStepIds;
+  monitorName: string;
+  defaults: ProjectDefaults;
+  onCallPolicyIds: Array<string>;
+}
+
+type BuildHeartbeatMonitorStepsFunction = (
+  options: HeartbeatMonitorStepsOptions,
+) => JSONish;
+
+/*
+ * Two criteria over the arrival clock, offline first (criteria are evaluated
+ * in array order and the first match wins):
+ *
+ *   - offline: heartbeat NOT received in 1 minute -> Offline, declare an
+ *              incident, run the on-call policies. autoResolveIncident closes
+ *              it again when the heartbeat comes back.
+ *   - online:  heartbeat received in 1 minute -> Operational.
+ *
+ * The pair is exhaustive and mutually exclusive - RecievedInMinutes fires on
+ * `diff <= value`, NotRecievedInMinutes on `diff > value` - so the
+ * no-criteria-met default-status branch is unreachable and the monitor cannot
+ * flap between them.
+ *
+ * The 1-minute value is the floor, not a choice: NotRecievedInMinutes rejects
+ * 0, and getDifferenceInMinutes truncates, so the transition cannot fire
+ * before 120s of silence. That number is what MONITOR_STATUS_TIMEOUT_MS is
+ * sized from.
+ *
+ * Enum members, never string literals: the product spells these "Not Recieved
+ * In Minutes" / "Recieved In Minutes", and a literal would turn a rename into
+ * a 40-minute CI cycle instead of a compile error.
+ */
+export const buildHeartbeatMonitorSteps: BuildHeartbeatMonitorStepsFunction = (
+  options: HeartbeatMonitorStepsOptions,
+): JSONish => {
+  return {
+    _type: "MonitorSteps",
+    value: {
+      monitorStepsInstanceArray: [
+        {
+          _type: "MonitorStep",
+          value: {
+            id: options.ids.stepId,
+            monitorCriteria: {
+              _type: "MonitorCriteria",
+              value: {
+                monitorCriteriaInstanceArray: [
+                  {
+                    _type: "MonitorCriteriaInstance",
+                    value: {
+                      id: options.ids.offlineCriteriaId,
+                      monitorStatusId: options.defaults.offlineMonitorStatusId,
+                      filterCondition: FilterCondition.All,
+                      filters: [
+                        {
+                          checkOn: CheckOn.IncomingRequest,
+                          filterType: FilterType.NotRecievedInMinutes,
+                          value: HEARTBEAT_SILENCE_MINUTES,
+                        },
+                      ],
+                      incidents: [
+                        {
+                          id: options.ids.incidentTemplateId,
+                          title: `${options.monitorName} is offline`,
+                          description: `${options.monitorName} is currently offline.`,
+                          incidentSeverityId:
+                            options.defaults.incidentSeverityId,
+                          autoResolveIncident: true,
+                          onCallPolicyIds: options.onCallPolicyIds,
+                        },
+                      ],
+                      alerts: [],
+                      createAlerts: false,
+                      createIncidents: true,
+                      changeMonitorStatus: true,
+                      name: `Check if ${options.monitorName} is offline`,
+                      description: `This criteria checks if ${options.monitorName} is offline`,
+                    },
+                  },
+                  {
+                    _type: "MonitorCriteriaInstance",
+                    value: {
+                      id: options.ids.onlineCriteriaId,
+                      monitorStatusId:
+                        options.defaults.operationalMonitorStatusId,
+                      filterCondition: FilterCondition.All,
+                      filters: [
+                        {
+                          checkOn: CheckOn.IncomingRequest,
+                          filterType: FilterType.RecievedInMinutes,
+                          value: HEARTBEAT_SILENCE_MINUTES,
+                        },
+                      ],
+                      incidents: [],
+                      alerts: [],
+                      createAlerts: false,
+                      createIncidents: false,
+                      changeMonitorStatus: true,
+                      name: `Check if ${options.monitorName} is online`,
+                      description: `This criteria checks if ${options.monitorName} is online`,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+      defaultMonitorStatusId: options.defaults.operationalMonitorStatusId,
+    },
+  };
+};
+
+interface InertIncomingRequestStepsOptions {
+  ids: MonitorStepIds;
+  monitorName: string;
+  defaults: ProjectDefaults;
+}
+
+type BuildInertIncomingRequestStepsFunction = (
+  options: InertIncomingRequestStepsOptions,
+) => JSONish;
+
+/*
+ * A heartbeat monitor that cannot change state, used between "monitor
+ * created" and "on-call policy attached".
+ *
+ * CheckHeartbeat.shouldProcessRequest only selects monitors carrying at least
+ * one Incoming Request filter, so a monitor whose only criteria checks the
+ * request BODY is skipped by the sweep entirely. That matters because the
+ * elapsed-silence clock falls back to monitor.createdAt when no heartbeat has
+ * arrived yet: created with the real criteria, a 120s fuse starts burning at
+ * creation, and if create -> policy -> update overran it an incident would
+ * open with no on-call policy attached and every downstream assertion would
+ * fail for a non-reason.
+ */
+export const buildInertIncomingRequestSteps: BuildInertIncomingRequestStepsFunction =
+  (options: InertIncomingRequestStepsOptions): JSONish => {
+    return {
+      _type: "MonitorSteps",
+      value: {
+        monitorStepsInstanceArray: [
+          {
+            _type: "MonitorStep",
+            value: {
+              id: options.ids.stepId,
+              monitorCriteria: {
+                _type: "MonitorCriteria",
+                value: {
+                  monitorCriteriaInstanceArray: [
+                    {
+                      _type: "MonitorCriteriaInstance",
+                      value: {
+                        id: options.ids.offlineCriteriaId,
+                        monitorStatusId:
+                          options.defaults.operationalMonitorStatusId,
+                        filterCondition: FilterCondition.All,
+                        filters: [
+                          {
+                            checkOn: CheckOn.RequestBody,
+                            filterType: FilterType.Contains,
+                            value: "__e2e_never_matches__",
+                          },
+                        ],
+                        incidents: [],
+                        alerts: [],
+                        createAlerts: false,
+                        createIncidents: false,
+                        changeMonitorStatus: false,
+                        name: `Placeholder criteria for ${options.monitorName}`,
+                        description: `Holds ${options.monitorName} inert until the real criteria land`,
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        defaultMonitorStatusId: options.defaults.operationalMonitorStatusId,
+      },
+    };
+  };
+
+type HeartbeatUrlFunction = (secretKey: string) => string;
+
+/*
+ * /heartbeat/<secretKey> is its own nginx location that rewrites to
+ * /incoming-request, inside the same vhost the host-networked e2e container
+ * already reaches over http://localhost. Only `location /` carries the
+ * billing redirect, so this path behaves identically in both compose modes.
+ */
+export const heartbeatUrl: HeartbeatUrlFunction = (
+  secretKey: string,
+): string => {
+  return buildUrl(`/heartbeat/${secretKey}`);
+};
+
+type SendHeartbeatFunction = (data: {
+  page: Page;
+  secretKey: string;
+  body?: JSONish | undefined;
+  headers?: Record<string, string> | undefined;
+}) => Promise<void>;
+
+/*
+ * One heartbeat.
+ *
+ * A 2xx proves nginx routed the request and NOTHING more: the ingest sends
+ * its success response before enqueueing the job, and the arrival timestamp
+ * is stamped later, in the worker. Liveness is proven by reading
+ * incomingMonitorRequest.incomingRequestReceivedAt back - see
+ * assertHeartbeatIngestIsLive - never by this status code.
+ */
+export const sendHeartbeat: SendHeartbeatFunction = async (data: {
+  page: Page;
+  secretKey: string;
+  body?: JSONish | undefined;
+  headers?: Record<string, string> | undefined;
+}): Promise<void> => {
+  const response: APIResponse = await data.page.request.post(
+    heartbeatUrl(data.secretKey),
+    {
+      headers: { "content-type": "application/json", ...(data.headers || {}) },
+      data: data.body ?? {},
+    },
+  );
+
+  expect(
+    response.ok(),
+    `Heartbeat POST for secret key ${data.secretKey} was not accepted: ${response.status()}`,
+  ).toBe(true);
+};
+
+type ReadHeartbeatReceivedAtFunction = (data: {
+  page: Page;
+  projectId: string;
+  monitorId: string;
+}) => Promise<string>;
+
+/* The timestamp the WORKER stamped, which is the only real liveness signal. */
+const readHeartbeatReceivedAt: ReadHeartbeatReceivedAtFunction = async (data: {
+  page: Page;
+  projectId: string;
+  monitorId: string;
+}): Promise<string> => {
+  const monitors: Array<JSONish> = await listItems({
+    page: data.page,
+    projectId: data.projectId,
+    path: "/api/monitor",
+    query: { _id: data.monitorId },
+    select: { _id: true, incomingMonitorRequest: true },
+    limit: 1,
+  });
+
+  const request: JSONish | undefined = monitors[0]?.[
+    "incomingMonitorRequest"
+  ] as JSONish | undefined;
+
+  const receivedAt: unknown = request
+    ? (request as Record<string, unknown>)["incomingRequestReceivedAt"]
+    : undefined;
+
+  return receivedAt ? String(receivedAt) : "";
+};
+
+type AssertHeartbeatIngestIsLiveFunction = (data: {
+  page: Page;
+  projectId: string;
+  monitorId: string;
+  secretKey: string;
+  timeoutMs: number;
+}) => Promise<void>;
+
+/*
+ * The flow's fail-fast gate, and the thing that makes the elapsed-silence
+ * clock meaningful.
+ *
+ * It proves nginx -> /incoming-request/:secretkey -> queue ->
+ * processIncomingRequestFromQueue -> MonitorResourceUtil.monitorResource -> DB
+ * in one bounded check, and it leaves the monitor with a real, fresh arrival
+ * timestamp - so the silence that follows is measured from a heartbeat this
+ * spec sent, not from monitor.createdAt.
+ */
+export const assertHeartbeatIngestIsLive: AssertHeartbeatIngestIsLiveFunction =
+  async (data: {
+    page: Page;
+    projectId: string;
+    monitorId: string;
+    secretKey: string;
+    timeoutMs: number;
+  }): Promise<void> => {
+    await pollUntil<boolean>({
+      page: data.page,
+      description: `the heartbeat ingest to record an arrival for monitor ${data.monitorId}`,
+      timeoutMs: data.timeoutMs,
+      intervalMs: 3000,
+      check: async (): Promise<boolean | null> => {
+        await sendHeartbeat({ page: data.page, secretKey: data.secretKey });
+
+        const receivedAt: string = await readHeartbeatReceivedAt({
+          page: data.page,
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+        });
+
+        return receivedAt ? true : null;
+      },
+    });
+  };
+
+type WaitForMonitorStatusWhilePingingFunction = (data: {
+  page: Page;
+  projectId: string;
+  monitorId: string;
+  secretKey: string;
+  expectedMonitorStatusId: string;
+  description: string;
+  timeoutMs: number;
+}) => Promise<void>;
+
+/*
+ * waitForMonitorStatus, but sending a heartbeat before each read. Used only on
+ * the recovery leg.
+ *
+ * A CheckHeartbeat tick landing between the recovery POST returning 200 and
+ * the worker persisting its timestamp would re-assert Offline; pinging on
+ * every poll makes the very next evaluation converge. The interval is
+ * deliberately slower than the default - each heartbeat runs a full
+ * monitorResource() pass (per-monitor Redis mutex, MonitorLog write, metric
+ * write) on the shared telemetry queue, and hammering it would cost more than
+ * it buys.
+ */
+export const waitForMonitorStatusWhilePinging: WaitForMonitorStatusWhilePingingFunction =
+  async (data: {
+    page: Page;
+    projectId: string;
+    monitorId: string;
+    secretKey: string;
+    expectedMonitorStatusId: string;
+    description: string;
+    timeoutMs: number;
+  }): Promise<void> => {
+    await pollUntil<boolean>({
+      page: data.page,
+      description: data.description,
+      timeoutMs: data.timeoutMs,
+      intervalMs: 5000,
+      check: async (): Promise<boolean | null> => {
+        await sendHeartbeat({ page: data.page, secretKey: data.secretKey });
+
+        const monitors: Array<JSONish> = await listItems({
+          page: data.page,
+          projectId: data.projectId,
+          path: "/api/monitor",
+          query: { _id: data.monitorId },
+          select: { _id: true, currentMonitorStatusId: true },
+          limit: 1,
+        });
+
+        if (monitors.length === 0) {
+          return null;
+        }
+
+        return toId(monitors[0]!["currentMonitorStatusId"]) ===
+          data.expectedMonitorStatusId
+          ? true
+          : null;
+      },
+    });
+  };

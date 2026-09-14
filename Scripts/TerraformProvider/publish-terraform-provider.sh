@@ -692,6 +692,41 @@ push_repository_changes() {
     print_success "Code and tag pushed to terraform-provider-oneuptime repository"
 }
 
+# Function to look up the tag of the most recent existing release in the
+# provider repo — the release this one actually follows. Used for the
+# "Full Changelog" compare link; deriving the previous tag arithmetically
+# (patch - 1) produces v13.0.-1 on a x.y.0 release and simply points at the
+# wrong tag after any minor or major bump.
+#
+# Prints the tag on stdout, or nothing when there is no previous release.
+# Deliberately never fails: the changelog link is cosmetic, so a lookup error,
+# a gh too old for --json, or a repo with no releases yet all degrade to an
+# empty result (and the caller omits the line) instead of aborting a release
+# that has already pushed its tag.
+get_previous_release_tag() {
+    local tags=""
+
+    # Drafts are skipped: a draft from an earlier --test-release run is not
+    # something a compare link should point at. `|| true` keeps `set -e` out
+    # of it if gh errors or the repo has no releases.
+    tags=$(gh release list \
+        --repo "$GITHUB_ORG/$PROVIDER_REPO" \
+        --limit 10 \
+        --json tagName,isDraft \
+        --jq '.[] | select(.isDraft | not) | .tagName' 2>/dev/null) || true
+
+    local tag
+    while IFS= read -r tag; do
+        # Skip blanks and the release being created right now — a re-run can
+        # see its own tag if a previous attempt got as far as the release.
+        [[ -n "$tag" && "$tag" != "v$VERSION" ]] || continue
+        printf '%s\n' "$tag"
+        return 0
+    done <<< "$tags"
+
+    return 0
+}
+
 # Function to create GitHub release (gh CLI)
 create_github_release() {
     if [[ "$DRY_RUN" == true ]]; then
@@ -755,9 +790,20 @@ terraform {
 \`\`\`
 
 For detailed documentation and examples, visit: https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs
-
-**Full Changelog**: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/compare/v$(echo $VERSION | awk -F. '{print $1"."$2"."($3-1)}')...v$VERSION
 EOF
+
+    # Append the "Full Changelog" compare link only when there is a real
+    # previous release to compare against. No previous release (or a failed
+    # lookup) means no line, rather than a link to a tag that does not exist.
+    local previous_tag
+    previous_tag=$(get_previous_release_tag)
+    if [[ -n "$previous_tag" ]]; then
+        print_status "Full Changelog will compare $previous_tag...v$VERSION"
+        printf '\n**Full Changelog**: https://github.com/%s/%s/compare/%s...v%s\n' \
+            "$GITHUB_ORG" "$PROVIDER_REPO" "$previous_tag" "$VERSION" >> "$release_notes_file"
+    else
+        print_warning "No previous release found in $GITHUB_ORG/$PROVIDER_REPO - omitting the Full Changelog link"
+    fi
 
     # Create the release. The tag was already pushed, so the release attaches
     # to the exact tagged commit.

@@ -12,6 +12,7 @@ import IP from "Common/Types/IP/IP";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
+import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
@@ -19,6 +20,7 @@ import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { ProxmoxResourceScope } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -225,6 +227,27 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           maxRows: 100,
         },
       });
+    case MonitorType.Database:
+      return buildStep({
+        databaseMonitor: {
+          databaseType: SqlDatabaseType.MySQL,
+          host: "replica.example.com",
+          port: 3306,
+          databaseName: "warehouse",
+          username: "oneuptime_monitor",
+          password: "super-secret-database-password",
+          useWindowsIntegratedAuthentication: false,
+          useSsl: true,
+          rejectUnauthorizedSsl: true,
+          connectionTimeoutInMs: 10000,
+          statementTimeoutInMs: 5000,
+          enabledMetricGroups: [
+            DatabaseMetricGroup.Connections,
+            DatabaseMetricGroup.Throughput,
+            DatabaseMetricGroup.Locks,
+          ],
+        },
+      });
     case MonitorType.ExternalStatusPage:
       return buildStep({
         externalStatusPageMonitor: {
@@ -361,6 +384,19 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           },
           metricViewConfig: METRIC_VIEW_CONFIG,
           rollingTime: RollingTime.Past1Hour,
+        },
+      });
+    case MonitorType.VMware:
+      return buildStep({
+        vmwareMonitor: {
+          vcenterIdentifier: "vcsa-prod",
+          resourceFilters: {
+            clusterName: "Prod-Cluster",
+            hostName: "esxi-01.example.com",
+            vmName: "web-01",
+          },
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past30Minutes,
         },
       });
     case MonitorType.DockerSwarm:
@@ -616,7 +652,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
   });
 });
 
-describe("MonitorStepViewModel.getRows — DNS, domain and SQL monitors", () => {
+describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", () => {
   it("shows the DNS query, record type and resolver, which used to render nothing", () => {
     expect(getRow(MonitorType.DNS, "queryName")?.value).toBe("example.com");
     expect(getRow(MonitorType.DNS, "recordType")?.value).toBe(DnsRecordType.A);
@@ -695,6 +731,44 @@ describe("MonitorStepViewModel.getRows — DNS, domain and SQL monitors", () => 
     expect(JSON.stringify(getRows(MonitorType.SQLQuery))).not.toContain(
       "super-secret-password",
     );
+  });
+
+  it("summarizes the database connection and the groups it collects", () => {
+    expect(getRow(MonitorType.Database, "databaseConnection")?.value).toBe(
+      "MySQL · replica.example.com:3306/warehouse",
+    );
+    expect(getRow(MonitorType.Database, "databaseUsername")?.value).toBe(
+      "oneuptime_monitor",
+    );
+    expect(getRow(MonitorType.Database, "databaseMetricGroups")?.value).toEqual(
+      [
+        DatabaseMetricGroup.Connections,
+        DatabaseMetricGroup.Throughput,
+        DatabaseMetricGroup.Locks,
+      ],
+    );
+    expect(
+      getRow(MonitorType.Database, "databaseStatementTimeoutInMs")?.value,
+    ).toBe("5000 ms");
+  });
+
+  /*
+   * The credential never reaches this page in any form. There is not even a
+   * masked row for it: a row titled "Password" whose value is dots still
+   * tells a reader the field is set, and a step often holds a
+   * {{monitorSecrets.name}} reference there, which names the secret.
+   */
+  it("never exposes the database password", () => {
+    const rows: Array<MonitorStepViewRow> = getRows(MonitorType.Database);
+
+    expect(JSON.stringify(rows)).not.toContain(
+      "super-secret-database-password",
+    );
+
+    for (const row of rows) {
+      expect(row.key.toLowerCase()).not.toContain("password");
+      expect(row.title.toLowerCase()).not.toContain("password");
+    }
   });
 
   it("shows the external status page URL, provider and component filters", () => {
@@ -940,6 +1014,18 @@ const ATTRIBUTE_OPERATOR_CASES: Array<AttributeOperatorCase> = [
     rendersAs: "ends with web",
   },
   {
+    label: "matches",
+    operator: DictionaryFilterOperator.Matches,
+    rawValue: "web-*",
+    rendersAs: "matches web-*",
+  },
+  {
+    label: "does not match",
+    operator: DictionaryFilterOperator.NotMatches,
+    rawValue: "web-*",
+    rendersAs: "does not match web-*",
+  },
+  {
     label: "greater than",
     operator: DictionaryFilterOperator.GreaterThan,
     rawValue: "500",
@@ -1134,6 +1220,7 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     MonitorType.Podman,
     MonitorType.Host,
     MonitorType.Proxmox,
+    MonitorType.VMware,
     MonitorType.DockerSwarm,
     MonitorType.Ceph,
     MonitorType.IoTDevice,
@@ -1242,6 +1329,60 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     );
     expect(getRow(MonitorType.Proxmox, "proxmoxGuestId")?.value).toBe(
       "qemu/100",
+    );
+  });
+
+  it("shows the VMware vCenter and every resource filter that is set", () => {
+    expect(getRow(MonitorType.VMware, "vcenterIdentifier")?.value).toBe(
+      "vcsa-prod",
+    );
+    expect(getRowTitles(MonitorType.VMware)).toContain("vCenter");
+    expect(getRow(MonitorType.VMware, "vmwareClusterName")?.value).toBe(
+      "Prod-Cluster",
+    );
+    expect(getRow(MonitorType.VMware, "vmwareHostName")?.value).toBe(
+      "esxi-01.example.com",
+    );
+    expect(getRow(MonitorType.VMware, "vmwareVmName")?.value).toBe("web-01");
+
+    // Filters that were not set are dropped rather than shown as blanks.
+    expect(getRow(MonitorType.VMware, "vmwareDatacenterName")).toBeUndefined();
+    expect(getRow(MonitorType.VMware, "vmwareDatastoreName")).toBeUndefined();
+    expect(
+      getRow(MonitorType.VMware, "vmwareResourcePoolPath"),
+    ).toBeUndefined();
+  });
+
+  it("shows every VMware resource filter key when all six are set", () => {
+    const vmwareMonitor: MonitorStepVMwareMonitor = {
+      vcenterIdentifier: "vcsa-prod",
+      resourceFilters: {
+        datacenterName: "DC-East",
+        clusterName: "Prod-Cluster",
+        hostName: "esxi-01.example.com",
+        vmName: "web-01",
+        datastoreName: "vsanDatastore",
+        resourcePoolPath: "/DC-East/host/Prod-Cluster/Resources/web-tier",
+      },
+      metricViewConfig: METRIC_VIEW_CONFIG,
+      rollingTime: RollingTime.Past5Minutes,
+    };
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({ vmwareMonitor }),
+      monitorType: MonitorType.VMware,
+    });
+    const byKey: Dictionary<MonitorStepViewRow> = {};
+    for (const row of rows) {
+      byKey[row.key] = row;
+    }
+
+    expect(byKey["vmwareDatacenterName"]?.value).toBe("DC-East");
+    expect(byKey["vmwareClusterName"]?.value).toBe("Prod-Cluster");
+    expect(byKey["vmwareHostName"]?.value).toBe("esxi-01.example.com");
+    expect(byKey["vmwareVmName"]?.value).toBe("web-01");
+    expect(byKey["vmwareDatastoreName"]?.value).toBe("vsanDatastore");
+    expect(byKey["vmwareResourcePoolPath"]?.value).toBe(
+      "/DC-East/host/Prod-Cluster/Resources/web-tier",
     );
   });
 
@@ -1385,6 +1526,12 @@ describe("MonitorStepViewModel metric helpers", () => {
 
     expect(
       MonitorStepViewModel.getRollingTime(
+        buildStepForMonitorType(MonitorType.VMware),
+      ),
+    ).toBe(RollingTime.Past30Minutes);
+
+    expect(
+      MonitorStepViewModel.getRollingTime(
         buildStepForMonitorType(MonitorType.API),
       ),
     ).toBeUndefined();
@@ -1400,6 +1547,7 @@ describe("MonitorStepViewModel metric helpers", () => {
       MonitorType.Podman,
       MonitorType.Host,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
