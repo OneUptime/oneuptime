@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Both columns are nullable with no default, so an installation that never
  * opens the Appearance page keeps the built-in appearance exactly.
  */
-export class AddProjectColor1789600000000 implements MigrationInterface {
-  public name: string = "AddProjectColor1789600000000";
+export class AddProjectColor1792800000000 implements MigrationInterface {
+  public name: string = "AddProjectColor1792800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
