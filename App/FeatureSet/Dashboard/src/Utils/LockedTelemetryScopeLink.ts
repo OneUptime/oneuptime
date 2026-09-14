@@ -78,6 +78,7 @@ const NOT_CARRIED_LABELS: Dictionary<string> = {
   hasException: "exception flag",
   name: "span name",
   statusMessage: "status message",
+  exceptionScope: "exception",
 };
 
 type NotCarriedLabelFunction = (facetKey: string) => string;

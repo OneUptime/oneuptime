@@ -12,6 +12,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import { parseExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
@@ -941,6 +942,30 @@ function parseAttributeFilterRecord(
 }
 
 /*
+ * An exception scope that is present but malformed is a client bug, and
+ * dropping it would silently chart every span in the project under an
+ * exception's heading — so it is refused instead.
+ */
+function parseTraceExceptionScope(
+  raw: unknown,
+): TraceFilters["exceptionScope"] {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  const scope: TraceFilters["exceptionScope"] | null =
+    parseExceptionSpanScope(raw);
+
+  if (!scope) {
+    throw new BadDataException(
+      "exceptionScope must have a fingerprint and, optionally, a primaryEntityId UUID.",
+    );
+  }
+
+  return scope;
+}
+
+/*
  * Shared body parsing for every trace aggregation endpoint (histogram,
  * facets, analytics). Defensive about shapes: arrays are validated and
  * filtered to strings, booleans/numbers use strict typeof checks (JSON null
@@ -1037,6 +1062,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
       typeof body["hasException"] === "boolean"
         ? (body["hasException"] as boolean)
         : undefined,
+    exceptionScope: parseTraceExceptionScope(body["exceptionScope"]),
     minDurationNano:
       typeof body["minDurationNano"] === "number"
         ? (body["minDurationNano"] as number)

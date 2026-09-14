@@ -54,6 +54,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+  ExceptionSpanScope,
+} from "Common/Types/Telemetry/ExceptionSpanScope";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -150,6 +154,7 @@ import {
 } from "./TracesEntityDisplay";
 import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
+  LOCKED_FILTER_SOURCE_PAGE,
   buildLockedScopeCopyText,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
@@ -567,6 +572,14 @@ interface Props {
   limit?: number | undefined;
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
+  /*
+   * Only the spans one exception group's occurrences were raised in — the
+   * exception detail page's span list. Applied to the list, the histogram and
+   * the facets alike, and shown as a locked "Exception" chip labelled with
+   * `exceptionScopeLabel`.
+   */
+  exceptionScope?: ExceptionSpanScope | undefined;
+  exceptionScopeLabel?: string | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -1196,12 +1209,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["entityScope"] = props.entityScope;
     }
 
+    // Compiled by StatementGenerator to a (traceId, spanId) GLOBAL IN subquery.
+    if (props.exceptionScope) {
+      (query as Record<string, unknown>)[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
+        props.exceptionScope;
+    }
+
     return query;
   }, [
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
     props.entityScope,
+    props.exceptionScope,
     spanScope,
     timeRange,
     activeFilters,
@@ -1764,6 +1784,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       payload["nameSearchText"] = freeText;
     }
 
+    // The same spans the list is scoped to, so the chart and facets agree.
+    if (props.exceptionScope) {
+      payload[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
+        props.exceptionScope as unknown as JSONObject;
+    }
+
     return payload;
   }, [
     timeRange,
@@ -1772,6 +1798,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    props.exceptionScope,
     spanScope,
     rootOnly,
   ]);
@@ -2366,6 +2393,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const lockedChips: Array<ActiveFilter> = useMemo(() => {
     const base: Array<ActiveFilter> = [];
+    if (props.exceptionScope) {
+      base.push({
+        facetKey: EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+        value: props.exceptionScope.fingerprint,
+        displayKey: "Exception",
+        displayValue:
+          props.exceptionScopeLabel ||
+          props.exceptionScope.fingerprint.slice(0, 12),
+        readOnly: true,
+        lockedDetail: {
+          source: LOCKED_FILTER_SOURCE_PAGE,
+          summary: "Only spans in which this exception was raised are shown.",
+          predicates: [
+            {
+              label: "Exception",
+              expression: `fingerprint = ${JSON.stringify(
+                props.exceptionScope.fingerprint,
+              )}`,
+              note: "Matched through the exception's recorded occurrences.",
+            },
+          ],
+          combinator: "all",
+          searchTokenUnavailableReason:
+            "The traces search cannot filter spans by exception.",
+        },
+      });
+    }
     if (props.primaryEntityId) {
       const entityId: string = props.primaryEntityId.toString();
       /*
@@ -2498,6 +2552,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     return base;
   }, [
+    props.exceptionScope,
+    props.exceptionScopeLabel,
     props.primaryEntityId,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
@@ -3016,10 +3072,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            * they would open the logs / metrics explorer project-wide under a
            * button that promises "scoped like this view". The snapshot card
            * already offers correctly-scoped Logs and Metrics tabs of its own.
+           * Hidden for an exception scope for the same reason: neither
+           * explorer can narrow to one exception's spans, and the exception
+           * page has its own Logs page.
            */}
           <div
             className={`items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm ${
-              props.spanQuery ? "hidden" : "inline-flex"
+              props.spanQuery || props.exceptionScope ? "hidden" : "inline-flex"
             }`}
             aria-label="Related telemetry signals"
           >

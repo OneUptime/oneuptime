@@ -1,41 +1,35 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
-import ExceptionDetail from "./ExceptionDetail";
-import StackFrameViewer from "./StackFrameViewer";
-import BreadcrumbTimeline, { BreadcrumbEvent } from "./BreadcrumbTimeline";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import Span, { SpanEvent } from "Common/Models/AnalyticsModels/Span";
-import ObjectID from "Common/Types/ObjectID";
+import Span from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
 import API from "Common/UI/Utils/API/API";
-import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
-import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
-import {
-  AIFixReadiness,
-  AIFixReadinessCheck,
-  AIFixReadinessCheckId,
-} from "Common/Types/AI/AIFixReadiness";
-import ActionCard from "Common/UI/Components/ActionCard/ActionCard";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import User from "Common/UI/Utils/User";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import OccouranceTable from "./OccuranceTable";
-import ReplayCard from "../SessionReplay/ReplayCard";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Icon from "Common/UI/Components/Icon/Icon";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -43,406 +37,59 @@ import {
   MinifiedStackFrame,
   ResolvedStackFrame,
 } from "Common/Types/Telemetry/SourceMap";
-import { parseFramesJson } from "../../Utils/SourceMapFrames";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
-import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
-import Card from "Common/UI/Components/Card/Card";
-import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Query from "Common/Types/BaseDatabase/Query";
-import Log from "Common/Models/AnalyticsModels/Log";
-import DashboardLogsViewer from "../Logs/LogsViewer";
-import {
-  ExceptionLogsScopePlan,
-  OccurrenceContextLogRow,
-  buildOccurrenceLogsContextRequest,
-  getExceptionLogsScopePlan,
-  parseLogsContextResponse,
-} from "../../Utils/ExceptionCorrelation";
+import { parseFramesJson } from "../../Utils/SourceMapFrames";
+import ReplayCard from "../SessionReplay/ReplayCard";
+import ExceptionDetail from "./ExceptionDetail";
+import StackFrameViewer from "./StackFrameViewer";
+import BreadcrumbTimeline, { BreadcrumbEvent } from "./BreadcrumbTimeline";
+import ExceptionOccurrences from "./ExceptionOccurrences";
 import ExceptionDetailSection from "./ExceptionDetailSection";
 import ExceptionSummary from "./ExceptionSummary";
+import ExceptionTriageActions, {
+  ExceptionTriageActionId,
+} from "./ExceptionTriageActions";
+import ExceptionOccurrenceTrend from "./ExceptionOccurrenceTrend";
+import ExceptionLatestOccurrence from "./ExceptionLatestOccurrence";
+import ExceptionLogs from "./ExceptionLogs";
+import ExceptionAIAssistance from "./ExceptionAIAssistance";
+import ExceptionSettings from "./ExceptionSettings";
 import {
+  buildBreadcrumbEventsFromSpans,
   buildExceptionOccurrenceQuery,
   ExceptionDetailDataPlan,
   getExceptionDetailDataPlan,
 } from "../../Utils/ExceptionDetailData";
-
-/*
- * The exception's latest AI attempt per task type. AI tasks are CodeFix
- * AIRuns now, so `status` carries AIRunStatus strings (Queued / Running /
- * WaitingForApproval / Completed / Error / Cancelled / Stale); the endpoint
- * keeps its legacy JSON keys and adds `taskType` per task.
- */
-interface AIAgentTaskInfo {
-  _id: string;
-  status: AIRunStatus;
-  statusMessage: string | undefined;
-  statusTitle: string;
-  statusDescription: string;
-  createdAt: Date;
-  taskType: string;
-}
-
-// The task types this page can start (FixException is the legacy default).
-type ExceptionAITaskType =
-  | CodeFixTaskType.FixException
-  | CodeFixTaskType.WriteRegressionTest
-  | CodeFixTaskType.ImproveExceptionHandling;
-
-/*
- * Wording for one task type's card group (active / unsuccessful / completed /
- * start). "Unsuccessful" covers both a failed attempt and one that ran fine
- * but found no fix — they share a card, and differ in wording and severity.
- */
-interface AITaskPresentation {
-  taskType: ExceptionAITaskType;
-  activeCardTitle: string;
-  activeCardDescription: string;
-  failedCardTitle: string;
-  failedCardDescription: string;
-  noFixCardTitle: string;
-  noFixCardDescription: string;
-  retryActionName: string;
-  completedStrongTitle: string;
-  completedTitle: string;
-  startCardTitle: string;
-  startCardDescription: string;
-  startActionName: string;
-  startActionIcon: IconProp;
-}
-
-const AI_TASK_PRESENTATION: {
-  [key in ExceptionAITaskType]: AITaskPresentation;
-} = {
-  [CodeFixTaskType.FixException]: {
-    taskType: CodeFixTaskType.FixException,
-    activeCardTitle: "AI Fix Task Status",
-    activeCardDescription: "AI is working on fixing this exception.",
-    failedCardTitle: "AI fix attempt failed",
-    failedCardDescription:
-      "The last AI fix task for this exception did not complete.",
-    noFixCardTitle: "AI did not find a fix",
-    noFixCardDescription:
-      "The last AI fix task reviewed this exception and had no fix to propose.",
-    retryActionName: "Retry Fix",
-    completedStrongTitle: "Previous AI fix completed",
-    completedTitle:
-      "AI has already completed a fix task for this exception. Click to view the completed task.",
-    startCardTitle: "Fix this exception with AI",
-    startCardDescription:
-      "AI will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository.",
-    startActionName: "Fix with AI",
-    startActionIcon: IconProp.Bolt,
-  },
-  [CodeFixTaskType.WriteRegressionTest]: {
-    taskType: CodeFixTaskType.WriteRegressionTest,
-    activeCardTitle: "Regression Test Task Status",
-    activeCardDescription:
-      "AI is writing a failing regression test that reproduces this exception.",
-    failedCardTitle: "Regression test attempt failed",
-    failedCardDescription:
-      "The last regression test task for this exception did not complete.",
-    noFixCardTitle: "AI did not write a regression test",
-    noFixCardDescription:
-      "The last regression test task reviewed this exception and had no test to propose.",
-    retryActionName: "Retry Regression Test",
-    completedStrongTitle: "Regression test completed",
-    completedTitle:
-      "AI has already completed a regression test task for this exception. Click to view the completed task.",
-    startCardTitle: "Generate Regression Test",
-    startCardDescription:
-      "AI will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
-    startActionName: "Generate Regression Test",
-    startActionIcon: IconProp.Beaker,
-  },
-  [CodeFixTaskType.ImproveExceptionHandling]: {
-    taskType: CodeFixTaskType.ImproveExceptionHandling,
-    activeCardTitle: "Error Handling Task Status",
-    activeCardDescription:
-      "AI is improving how the code handles and reports this error.",
-    failedCardTitle: "Error handling attempt failed",
-    failedCardDescription:
-      "The last error-handling task for this exception did not complete.",
-    noFixCardTitle: "AI proposed no handling changes",
-    noFixCardDescription:
-      "The last error-handling task reviewed this exception and had no improvement to propose.",
-    retryActionName: "Retry Error Handling",
-    completedStrongTitle: "Error handling improvement completed",
-    completedTitle:
-      "AI has already completed an error-handling task for this exception. Click to view the completed task.",
-    startCardTitle: "Improve Error Handling",
-    startCardDescription:
-      "For expected errors (invalid user input, intentional denials): AI will open a Pull Request that parameterizes messages leaking user data, validates input earlier with an actionable error, and marks the error as handled in telemetry — without changing behavior.",
-    startActionName: "Improve Error Handling",
-    startActionIcon: IconProp.ShieldCheck,
-  },
-};
-
-// A task still making progress (not in a terminal status).
-function isAITaskActive(task: AIAgentTaskInfo): boolean {
-  return !AIRunStatusHelper.isTerminalStatus(task.status);
-}
-
-/*
- * Failed attempts (agent errored, or stopped reporting progress and went
- * Stale) stay visible with a retry.
- */
-function isAITaskFailed(task: AIAgentTaskInfo): boolean {
-  return (
-    !isAITaskActive(task) &&
-    (task.status === AIRunStatus.Error || task.status === AIRunStatus.Stale)
-  );
-}
-
-/*
- * The attempt ran to completion but proposed nothing. Not a failure, but it
- * shares the failure card's shape: it stays visible, and offers a retry —
- * a repeat run can succeed where one before it found nothing.
- */
-function isAITaskNoFixFound(task: AIAgentTaskInfo): boolean {
-  return !isAITaskActive(task) && task.status === AIRunStatus.NoFixFound;
-}
-
-/*
- * Any terminal attempt that produced no pull request. These share one card;
- * isAITaskFailed decides whether it reads as an error or as a plain result.
- */
-function isAITaskUnsuccessful(task: AIAgentTaskInfo): boolean {
-  return isAITaskFailed(task) || isAITaskNoFixFound(task);
-}
-
-function isAITaskCompleted(task: AIAgentTaskInfo): boolean {
-  return !isAITaskActive(task) && task.status === AIRunStatus.Completed;
-}
-
-function getAIAgentTaskAlertType(task: AIAgentTaskInfo): AlertType {
-  switch (task.status) {
-    case AIRunStatus.Queued:
-      return AlertType.INFO;
-    case AIRunStatus.Running:
-      return AlertType.INFO;
-    case AIRunStatus.WaitingForApproval:
-      return AlertType.INFO;
-    case AIRunStatus.Completed:
-      return AlertType.SUCCESS;
-    // Nothing went wrong — the agent just had nothing to propose.
-    case AIRunStatus.NoFixFound:
-      return AlertType.INFO;
-    case AIRunStatus.Error:
-      return AlertType.DANGER;
-    case AIRunStatus.Stale:
-      return AlertType.DANGER;
-    default:
-      return AlertType.INFO;
-  }
-}
-
-// A deep link that takes the user to the page where a failing check is fixed.
-interface ReadinessCheckLink {
-  title: string;
-  route: Route;
-}
+import { ExceptionTriageAction } from "../../Utils/ExceptionDetailPresentation";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
   section: ExceptionDetailSection;
 }
 
-interface ExceptionOccurrenceLogsProps {
-  instance: ExceptionInstance;
+interface EmptySectionProps {
+  title: string;
+  description: string;
+  icon: IconProp;
+  message: string;
+  testId: string;
 }
 
-/*
- * Lazy-mounted "Logs" section for the exception detail page. Collapsed by
- * default so opening an exception costs no extra queries; expanding embeds
- * the trace-scoped logs viewer pinned to a ±5 minute window around the
- * latest occurrence (the incident-embed pattern: an explicit `time` window
- * on logQuery pins the picker, and URL sync stays off so the host page's
- * params are untouched). When the occurrence carries no trace, a compact
- * read-only context list from POST /telemetry/logs/context — the service's
- * logs immediately before and after the occurrence — stands in.
- */
-const ExceptionOccurrenceLogs: FunctionComponent<
-  ExceptionOccurrenceLogsProps
-> = (props: ExceptionOccurrenceLogsProps): ReactElement => {
-  const [isOpen, setIsOpen] = React.useState<boolean>(false);
-  const [contextRows, setContextRows] = React.useState<
-    Array<OccurrenceContextLogRow>
-  >([]);
-  const [hasLoadedContext, setHasLoadedContext] =
-    React.useState<boolean>(false);
-  const [isContextLoading, setIsContextLoading] =
-    React.useState<boolean>(false);
-  const [contextError, setContextError] = React.useState<string | undefined>(
-    undefined,
-  );
-
-  const plan: ExceptionLogsScopePlan = React.useMemo(() => {
-    return getExceptionLogsScopePlan({
-      traceId: props.instance.traceId?.toString(),
-      primaryEntityId: props.instance.primaryEntityId?.toString(),
-      time: props.instance.time,
-    });
-  }, [props.instance]);
-
-  useEffect(() => {
-    // The fallback fetch only runs once the section is actually expanded.
-    if (!isOpen || plan.mode !== "service-window" || hasLoadedContext) {
-      return;
-    }
-
-    const loadContextLogs: PromiseVoidFunction = async (): Promise<void> => {
-      const request: JSONObject | null = buildOccurrenceLogsContextRequest({
-        primaryEntityId: plan.primaryEntityId,
-        time: plan.anchorTime,
-        sessionId: props.instance.sessionId,
-      });
-
-      if (!request) {
-        setHasLoadedContext(true);
-        return;
-      }
-
-      try {
-        setIsContextLoading(true);
-        setContextError(undefined);
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/logs/context",
-            ),
-            data: request,
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        setContextRows(parseLogsContextResponse(response.data));
-        setHasLoadedContext(true);
-      } catch (err) {
-        // Inline — a failed aside must not blank the exception page.
-        setContextError(API.getFriendlyMessage(err));
-      }
-
-      setIsContextLoading(false);
-    };
-
-    void loadContextLogs();
-  }, [isOpen, plan, hasLoadedContext, props.instance]);
-
-  if (plan.mode === "none") {
-    return <></>;
-  }
-
-  // The section always states which scope it is showing.
-  const scopeDescription: string =
-    plan.mode === "trace"
-      ? plan.window
-        ? "Showing logs from the latest occurrence's trace, pinned to a ±5 minute window around the occurrence."
-        : "Showing logs from the latest occurrence's trace. The occurrence time could not be read, so the default time range applies."
-      : "The latest occurrence has no trace, so this shows the service's logs immediately before and after the occurrence.";
-
-  type RenderContextRowsFunction = () => ReactElement;
-
-  const renderContextRows: RenderContextRowsFunction = (): ReactElement => {
-    if (isContextLoading) {
-      return <ComponentLoader />;
-    }
-
-    if (contextError) {
-      return <ErrorMessage message={contextError} />;
-    }
-
-    if (contextRows.length === 0) {
-      return (
-        <p className="text-sm text-gray-500">
-          No logs were found around this occurrence.
-        </p>
-      );
-    }
-
-    const beforeCount: number = contextRows.filter(
-      (row: OccurrenceContextLogRow): boolean => {
-        return row.section === "before";
-      },
-    ).length;
-
-    return (
-      <div className="space-y-1">
-        {contextRows.map(
-          (row: OccurrenceContextLogRow, index: number): ReactElement => {
-            return (
-              <React.Fragment key={index}>
-                {index === beforeCount && (
-                  <div className="py-1 text-xs font-medium text-amber-700">
-                    — exception occurred here —
-                  </div>
-                )}
-                <div className="flex items-start space-x-2 font-mono text-xs">
-                  <span className="whitespace-nowrap text-gray-500">
-                    {row.time
-                      ? OneUptimeDate.getDateAsLocalFormattedString(row.time)
-                      : "-"}
-                  </span>
-                  <span className="w-20 shrink-0 text-gray-500">
-                    {row.severityText || "-"}
-                  </span>
-                  <span className="break-all text-gray-900">{row.body}</span>
-                </div>
-              </React.Fragment>
-            );
-          },
-        )}
-      </div>
-    );
-  };
-
+const EmptySection: FunctionComponent<EmptySectionProps> = (
+  props: EmptySectionProps,
+): ReactElement => {
   return (
-    <Card
-      title="Logs"
-      description={scopeDescription}
-      rightElement={
-        <Button
-          title={isOpen ? "Hide Logs" : "Show Logs"}
-          icon={isOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
-          buttonStyle={ButtonStyleType.NORMAL}
-          onClick={() => {
-            setIsOpen(!isOpen);
-          }}
-        />
-      }
-    >
-      {isOpen ? (
-        plan.mode === "trace" ? (
-          <DashboardLogsViewer
-            id="exception-occurrence-logs"
-            traceIds={[plan.traceId as string]}
-            {...(plan.window
-              ? {
-                  logQuery: {
-                    time: new InBetween<Date>(
-                      plan.window.startTime,
-                      plan.window.endTime,
-                    ),
-                  } as Query<Log>,
-                }
-              : {})}
-            limit={10}
-            noLogsMessage="No logs found for this trace in the pinned window."
-          />
-        ) : (
-          renderContextRows()
-        )
-      ) : (
-        <></>
-      )}
+    <Card title={props.title} description={props.description}>
+      <div
+        className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 px-6 py-10 text-center"
+        data-testid={props.testId}
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+          <Icon icon={props.icon} className="h-5 w-5 text-gray-400" />
+        </div>
+        <p className="mt-3 max-w-md text-sm text-gray-600">{props.message}</p>
+      </div>
     </Card>
   );
 };
@@ -453,57 +100,33 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const dataPlan: ExceptionDetailDataPlan = getExceptionDetailDataPlan(
     props.section,
   );
-  const [telemetryException, setTelemetryException] = React.useState<
+  const [telemetryException, setTelemetryException] = useState<
     TelemetryException | undefined
   >(undefined);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [isArchiveLoading, setIsArchiveLoading] =
-    React.useState<boolean>(false);
-  const [isResolveUnresolveLoading, setIsResolveUnresolveLoading] =
-    React.useState<boolean>(false);
-  const [isArchived, setIsArchived] = React.useState<boolean>(false);
-  const [isResolved, setIsResolved] = React.useState<boolean>(false);
-  /*
-   * Which task type a create request is in flight for (undefined = none).
-   * Drives the per-button loading spinners — only one create runs at a time.
-   */
-  const [creatingTaskType, setCreatingTaskType] = React.useState<
-    ExceptionAITaskType | undefined
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [services, setServices] = useState<Array<Service>>([]);
+  const [pendingActionId, setPendingActionId] = useState<
+    ExceptionTriageActionId | undefined
   >(undefined);
-  /*
-   * The get-ai-agent-task endpoint returns the LATEST task per task type,
-   * any status (terminal tasks included, so failed attempts stay visible).
-   * Whether a task is still active is derived from its status.
-   */
-  const [aiAgentTasks, setAIAgentTasks] = React.useState<
-    Array<AIAgentTaskInfo>
-  >([]);
-  const [isAIAgentTaskLoading, setIsAIAgentTaskLoading] =
-    React.useState<boolean>(false);
-  const [aiFixReadiness, setAIFixReadiness] = React.useState<
-    AIFixReadiness | undefined
-  >(undefined);
-  /*
-   * Errors from AI-task actions render inline in the AI card area. The
-   * page-level `error` state is reserved for page-load failures only —
-   * a failed button click must not blank the whole page.
-   */
-  const [aiTaskError, setAITaskError] = React.useState<string | undefined>(
-    undefined,
-  );
-  // Same idea for resolve/archive actions: inline alert, not a page takeover.
-  const [actionError, setActionError] = React.useState<string | undefined>(
-    undefined,
-  );
-  const [latestInstance, setLatestInstance] = React.useState<
+  // Resolve/archive failures render inline — never a page takeover.
+  const [actionError, setActionError] = useState<string | undefined>(undefined);
+  const [latestInstance, setLatestInstance] = useState<
     ExceptionInstance | undefined
   >(undefined);
-  const [resolvedFrames, setResolvedFrames] = React.useState<
+  /*
+   * True until the latest occurrence (and, per page, its resolved frames or
+   * breadcrumbs) has been read. Only the pages that use it wait on it.
+   */
+  const [isOccurrenceLoading, setIsOccurrenceLoading] = useState<boolean>(
+    dataPlan.loadLatestOccurrence,
+  );
+  const [resolvedFrames, setResolvedFrames] = useState<
     Array<ResolvedStackFrame> | undefined
   >(undefined);
-  const [breadcrumbEvents, setBreadcrumbEvents] = React.useState<
-    BreadcrumbEvent[]
+  const [skippedSourceMapCount, setSkippedSourceMapCount] = useState<number>(0);
+  const [breadcrumbEvents, setBreadcrumbEvents] = useState<
+    Array<BreadcrumbEvent>
   >([]);
 
   /*
@@ -511,19 +134,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
    * source maps uploaded for its (service, release). Best-effort: any
    * failure just leaves the minified frames on screen.
    */
-  type ResolveStackFramesFunction = (
+  const resolveStackFrames: (
     instance: ExceptionInstance,
-  ) => Promise<void>;
-
-  const resolveStackFrames: ResolveStackFramesFunction = async (
-    instance: ExceptionInstance,
-  ): Promise<void> => {
-    /*
-     * Drop any previous overlay first: on a refresh (or when this
-     * component is reused for a different exception) the old resolution
-     * belongs to the old instance's frames, and every early return below
-     * would otherwise leave it applied to the new ones.
-     */
+  ) => Promise<void> = async (instance: ExceptionInstance): Promise<void> => {
     setResolvedFrames(undefined);
 
     try {
@@ -567,63 +180,69 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           responseFrames as unknown as Array<ResolvedStackFrame>,
         );
       }
+
+      const skipped: unknown = (response.data as JSONObject)[
+        "sourceMapsSkippedForSize"
+      ];
+      setSkippedSourceMapCount(
+        typeof skipped === "number" && skipped > 0 ? skipped : 0,
+      );
     } catch {
       // Best-effort — the minified stack trace still renders.
       setResolvedFrames(undefined);
+      setSkippedSourceMapCount(0);
     }
   };
 
-  const [services, setServices] = React.useState<Array<Service>>([]);
+  const loadTraceBreadcrumbs: (traceId: string) => Promise<void> = async (
+    traceId: string,
+  ): Promise<void> => {
+    try {
+      const spanResult: ListResult<Span> =
+        await AnalyticsModelAPI.getList<Span>({
+          modelType: Span,
+          query: {
+            traceId: traceId,
+          },
+          limit: 50,
+          skip: 0,
+          select: {
+            events: true,
+            name: true,
+            startTime: true,
+          },
+          sort: {
+            startTime: SortOrder.Descending,
+          },
+        });
 
-  type RefeshExceptionItemFunction = () => Promise<TelemetryException>;
-
-  const refreshExceptionItem: RefeshExceptionItemFunction = async () => {
-    const updatedTelemetryException: TelemetryException | null =
-      await ModelAPI.getItem<TelemetryException>({
-        id: props.telemetryExceptionId,
-        modelType: TelemetryException,
-        select: {
-          _id: true,
-          exceptionType: true,
-          message: true,
-          ...(dataPlan.loadStackTrace ? { stackTrace: true } : {}),
-          fingerprint: true,
-          firstSeenAt: true,
-          lastSeenAt: true,
-          occuranceCount: true,
-          isArchived: true,
-          isResolved: true,
-          firstSeenInRelease: true,
-          lastSeenInRelease: true,
-          environment: true,
-          primaryEntityId: true,
-          primaryEntityType: true,
-        },
-      });
-
-    if (!updatedTelemetryException) {
-      throw new Error("Exception not found");
+      setBreadcrumbEvents(buildBreadcrumbEventsFromSpans(spanResult.data));
+    } catch {
+      // Supplementary: the Context page still shows logs and replay.
+      setBreadcrumbEvents([]);
     }
+  };
 
-    setTelemetryException(updatedTelemetryException);
-    setIsArchived(updatedTelemetryException.isArchived || false);
-    setIsResolved(updatedTelemetryException.isResolved || false);
-
+  /*
+   * Everything below the header is page-specific and loads behind its own
+   * loader, so the exception itself paints as soon as the group is read.
+   */
+  const loadSupplementaryData: (exception: TelemetryException) => void = (
+    exception: TelemetryException,
+  ): void => {
     /*
      * A group references at most one OpenTelemetry Service. Resolve that
-     * single row in the background instead of loading every Service in the
-     * project before the overview can paint. Infrastructure resource types
-     * are rendered from their discriminator and need no database lookup.
+     * single row instead of loading every Service in the project.
+     * Infrastructure resource types render from their discriminator.
      */
     if (
       dataPlan.loadServices &&
-      updatedTelemetryException.primaryEntityId &&
-      (!updatedTelemetryException.primaryEntityType ||
-        updatedTelemetryException.primaryEntityType ===
-          ServiceType.OpenTelemetry)
+      exception.primaryEntityId &&
+      (!exception.primaryEntityType ||
+        exception.primaryEntityType === ServiceType.OpenTelemetry)
     ) {
       void ModelAPI.getItem<Service>({
-        id: updatedTelemetryException.primaryEntityId,
+        id: exception.primaryEntityId,
         modelType: Service,
         select: { _id: true, name: true, serviceColor: true },
       })
@@ -631,266 +250,180 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           setServices(service ? [service] : []);
         })
         .catch((): void => {
-          // Non-fatal: the metadata card can still show the resource type.
+          // Non-fatal: the header falls back to "Not recorded".
           setServices([]);
         });
     }
 
-    /*
-     * Supplementary analytics are page-specific. Loading them on Overview,
-     * Occurrences, AI Assistance, and Settings previously delayed first paint
-     * even though those pages never displayed the data.
-     */
-    if (
-      updatedTelemetryException.fingerprint &&
-      dataPlan.loadLatestOccurrence
-    ) {
+    if (!dataPlan.loadLatestOccurrence) {
+      return;
+    }
+
+    if (!exception.fingerprint) {
+      setIsOccurrenceLoading(false);
+      return;
+    }
+
+    const loadOccurrence: () => Promise<void> = async (): Promise<void> => {
       try {
         const instanceResult: ListResult<ExceptionInstance> =
           await AnalyticsModelAPI.getList<ExceptionInstance>({
             modelType: ExceptionInstance,
             query: buildExceptionOccurrenceQuery({
               projectId: ProjectUtil.getCurrentProjectId()!,
-              fingerprint: updatedTelemetryException.fingerprint,
-              primaryEntityId: updatedTelemetryException.primaryEntityId,
+              fingerprint: exception.fingerprint!,
+              primaryEntityId: exception.primaryEntityId,
             }),
             limit: 1,
             skip: 0,
             select: {
               /* The occurrence id becomes the replay link's ?signal=exc:<id>. */
               _id: true,
-              parsedFrames: true,
+              ...(dataPlan.resolveStackFrames ? { parsedFrames: true } : {}),
               release: true,
               environment: true,
               traceId: true,
               spanId: true,
+              spanName: true,
+              escaped: true,
               sessionId: true,
               primaryEntityId: true,
               time: true,
-            },
+            } as Select<ExceptionInstance>,
             sort: {
               time: SortOrder.Descending,
             },
           });
 
-        if (instanceResult.data.length > 0) {
-          setLatestInstance(instanceResult.data[0]!);
+        const instance: ExceptionInstance | undefined = instanceResult.data[0];
+
+        if (instance) {
+          setLatestInstance(instance);
 
           if (dataPlan.resolveStackFrames) {
-            // Resolve minified frames through uploaded source maps (best-effort)
-            await resolveStackFrames(instanceResult.data[0]!);
+            await resolveStackFrames(instance);
           }
 
-          // Fetch span events only for the Context page's breadcrumb timeline.
-          const instance: ExceptionInstance = instanceResult.data[0]!;
           if (dataPlan.loadTraceBreadcrumbs && instance.traceId) {
-            try {
-              const spanResult: ListResult<Span> =
-                await AnalyticsModelAPI.getList<Span>({
-                  modelType: Span,
-                  query: {
-                    traceId: instance.traceId,
-                  },
-                  limit: 50,
-                  skip: 0,
-                  select: {
-                    events: true,
-                    name: true,
-                    startTime: true,
-                  },
-                  sort: {
-                    startTime: SortOrder.Descending,
-                  },
-                });
-
-              // Extract span events as breadcrumbs
-              const events: BreadcrumbEvent[] = [];
-              for (const span of spanResult.data) {
-                if (span.events && Array.isArray(span.events)) {
-                  for (const event of span.events) {
-                    const spanEvent: SpanEvent = event as SpanEvent;
-                    events.push({
-                      name: spanEvent.name || "",
-                      time:
-                        spanEvent.time instanceof Date
-                          ? spanEvent.time
-                          : new Date(
-                              spanEvent.time || new Date().toISOString(),
-                            ),
-                      timeUnixNano: spanEvent.timeUnixNano || 0,
-                      attributes: (spanEvent.attributes as JSONObject) || {},
-                    });
-                  }
-                }
-              }
-
-              setBreadcrumbEvents(events);
-            } catch {
-              // Silently fail breadcrumb fetch
-              setBreadcrumbEvents([]);
-            }
+            await loadTraceBreadcrumbs(instance.traceId.toString());
           }
         }
       } catch {
-        // Silently fail instance fetch - it's supplementary data
-      }
-    }
-
-    return updatedTelemetryException;
-  };
-
-  type ParseAIAgentTaskFunction = (taskData: JSONObject) => AIAgentTaskInfo;
-
-  const parseAIAgentTask: ParseAIAgentTaskFunction = (
-    taskData: JSONObject,
-  ): AIAgentTaskInfo => {
-    return {
-      _id: taskData["_id"] as string,
-      status: taskData["status"] as AIRunStatus,
-      statusMessage: taskData["statusMessage"] as string | undefined,
-      statusTitle: taskData["statusTitle"] as string,
-      statusDescription: taskData["statusDescription"] as string,
-      createdAt: new Date(taskData["createdAt"] as string),
-      // Older servers omit taskType — every task they know about is a fix.
-      taskType:
-        (taskData["taskType"] as string) || CodeFixTaskType.FixException,
-    };
-  };
-
-  type FetchAIAgentTaskFunction = () => Promise<void>;
-
-  const fetchAIAgentTask: FetchAIAgentTaskFunction =
-    async (): Promise<void> => {
-      try {
-        setIsAIAgentTaskLoading(true);
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/telemetry-exception/get-ai-agent-task/${props.telemetryExceptionId.toString()}`,
-            ),
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        /*
-         * The endpoint returns the LATEST task per task type, of ANY status
-         * — keep terminal (Completed / Error) tasks in state so failed
-         * attempts stay visible instead of silently vanishing behind the
-         * start buttons.
-         */
-        const tasksJson: JSONArray =
-          (response.data?.["aiAgentTasks"] as JSONArray) || [];
-
-        if (tasksJson.length > 0) {
-          setAIAgentTasks(tasksJson.map(parseAIAgentTask));
-        } else if (response.data?.["aiAgentTask"]) {
-          /*
-           * Older servers only send the single latest task (aiAgentTask) —
-           * implicitly a fix task.
-           */
-          setAIAgentTasks([
-            parseAIAgentTask(response.data["aiAgentTask"] as JSONObject),
-          ]);
-        } else {
-          setAIAgentTasks([]);
-        }
-      } catch {
-        // Silently fail - don't show error for AI task fetch
-        setAIAgentTasks([]);
+        // Supplementary: each page shows its own empty state instead.
       }
 
-      setIsAIAgentTaskLoading(false);
+      setIsOccurrenceLoading(false);
     };
 
-  type FetchAIFixReadinessFunction = () => Promise<void>;
+    void loadOccurrence();
+  };
 
-  const fetchAIFixReadiness: FetchAIFixReadinessFunction =
-    async (): Promise<void> => {
-      try {
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/telemetry-exception/ai-fix-readiness/${props.telemetryExceptionId.toString()}`,
-            ),
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const checksJson: JSONArray =
-          (response.data?.["checks"] as JSONArray) || [];
-
-        setAIFixReadiness({
-          ready: Boolean(response.data?.["ready"]),
-          checks: checksJson.map((check: JSONObject): AIFixReadinessCheck => {
-            return {
-              id: check["id"] as AIFixReadinessCheckId,
-              ok: Boolean(check["ok"]),
-              title: (check["title"] as string) || "",
-              detail: (check["detail"] as string) || "",
-            };
-          }),
+  const loadException: () => Promise<TelemetryException> =
+    async (): Promise<TelemetryException> => {
+      const exception: TelemetryException | null =
+        await ModelAPI.getItem<TelemetryException>({
+          id: props.telemetryExceptionId,
+          modelType: TelemetryException,
+          select: {
+            _id: true,
+            exceptionType: true,
+            message: true,
+            ...(dataPlan.loadStackTrace ? { stackTrace: true } : {}),
+            fingerprint: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
+            occuranceCount: true,
+            isArchived: true,
+            isResolved: true,
+            firstSeenInRelease: true,
+            lastSeenInRelease: true,
+            environment: true,
+            primaryEntityId: true,
+            primaryEntityType: true,
+            unhandled: true,
+            errorClass: true,
+            ...(dataPlan.loadTriageHistory
+              ? {
+                  markedAsResolvedAt: true,
+                  markedAsArchivedAt: true,
+                  markedAsResolvedByUser: { name: true, email: true },
+                  markedAsArchivedByUser: { name: true, email: true },
+                }
+              : {}),
+          } as Select<TelemetryException>,
         });
-      } catch {
-        /*
-         * Fail open: without readiness data, fall back to the plain
-         * "Fix with AI Agent" card — the server re-checks on create anyway.
-         */
-        setAIFixReadiness(undefined);
+
+      if (!exception) {
+        throw new Error("Exception not found");
       }
+
+      setTelemetryException(exception);
+
+      return exception;
     };
-
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const exceptionItem: TelemetryException = await refreshExceptionItem();
-
-      if (dataPlan.loadAIAssistance) {
-        // Readiness only matters while the exception is unresolved.
-        if (!exceptionItem.isResolved) {
-          await fetchAIFixReadiness();
-        }
-
-        await fetchAIAgentTask();
-      }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
 
   useEffect(() => {
-    fetchItems().catch((err: Error) => {
-      return setError(API.getFriendlyMessage(err));
-    });
+    const load: () => Promise<void> = async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const exception: TelemetryException = await loadException();
+        loadSupplementaryData(exception);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    };
+
+    void load();
   }, []);
 
-  const hasAnyActiveAITask: boolean = aiAgentTasks.some(isAITaskActive);
+  const onTriageAction: (action: ExceptionTriageAction) => void = useCallback(
+    (action: ExceptionTriageAction): void => {
+      const run: () => Promise<void> = async (): Promise<void> => {
+        setPendingActionId(action.id);
+        setActionError(undefined);
 
-  // Poll for AI agent task status updates every 5 seconds while EITHER task is active
-  useEffect(() => {
-    // Terminal tasks (Completed / Error) never change again — don't poll them.
-    if (!dataPlan.loadAIAssistance || !hasAnyActiveAITask) {
-      return;
-    }
+        try {
+          const isResolveChange: boolean =
+            action.id === "resolve" || action.id === "unresolve";
 
-    const interval: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchAIAgentTask().catch(() => {
-        // Silently fail
-      });
-    }, 5000);
+          await ModelAPI.updateById<TelemetryException>({
+            id: props.telemetryExceptionId,
+            modelType: TelemetryException,
+            data: isResolveChange
+              ? {
+                  isResolved: action.nextState.isResolved,
+                  markedAsResolvedAt: action.nextState.isResolved
+                    ? OneUptimeDate.getCurrentDate()
+                    : null,
+                  markedAsResolvedByUserId: action.nextState.isResolved
+                    ? User.getUserId() || null
+                    : null,
+                }
+              : {
+                  isArchived: action.nextState.isArchived,
+                  markedAsArchivedAt: action.nextState.isArchived
+                    ? OneUptimeDate.getCurrentDate()
+                    : null,
+                  markedAsArchivedByUserId: action.nextState.isArchived
+                    ? User.getUserId() || null
+                    : null,
+                },
+          });
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [aiAgentTasks]);
+          await loadException();
+        } catch (err) {
+          setActionError(API.getFriendlyMessage(err));
+        }
+
+        setPendingActionId(undefined);
+      };
+
+      void run();
+    },
+    [props.telemetryExceptionId],
+  );
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -904,402 +437,131 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message="Exception not found" />;
   }
 
-  type MarkAsResolvedUnresolvedFunction = (
-    isResolved: boolean,
-  ) => Promise<void>;
+  const isResolved: boolean = Boolean(telemetryException.isResolved);
+  const isArchived: boolean = Boolean(telemetryException.isArchived);
 
-  const markAsResolvedUnresolved: MarkAsResolvedUnresolvedFunction = async (
-    isResolved: boolean,
-  ): Promise<void> => {
-    try {
-      setIsResolveUnresolveLoading(true);
-      setActionError(undefined);
-
-      await ModelAPI.updateById<TelemetryException>({
-        id: props.telemetryExceptionId,
-        modelType: TelemetryException,
-        data: {
-          isResolved: isResolved,
-          markedAsResolvedAt: isResolved
-            ? OneUptimeDate.getCurrentDate()
-            : null,
-          markedAsResolvedByUserId: isResolved
-            ? User.getUserId() || null
-            : null,
-        },
-      });
-
-      await refreshExceptionItem();
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setIsResolveUnresolveLoading(false);
+  const getExceptionRoute: (pageMap: PageMap) => Route = (
+    pageMap: PageMap,
+  ): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+      modelId: props.telemetryExceptionId,
+    });
   };
 
-  type ArchiveUnarchiveExceptionFunction = (
-    isArchive: boolean,
-  ) => Promise<void>;
+  const errorTimeUnixMs: number | undefined = latestInstance?.time
+    ? new Date(latestInstance.time).getTime()
+    : telemetryException.lastSeenAt
+      ? new Date(telemetryException.lastSeenAt).getTime()
+      : undefined;
 
-  const archiveUnarchiveException: ArchiveUnarchiveExceptionFunction = async (
-    isArchive: boolean,
-  ): Promise<void> => {
-    try {
-      setIsArchiveLoading(true);
-      setActionError(undefined);
-
-      await ModelAPI.updateById<TelemetryException>({
-        id: props.telemetryExceptionId,
-        modelType: TelemetryException,
-        data: {
-          isArchived: isArchive,
-          markedAsArchivedAt: isArchive ? OneUptimeDate.getCurrentDate() : null,
-          markedAsArchivedByUserId: isArchive ? User.getUserId() || null : null,
-        },
-      });
-
-      await refreshExceptionItem();
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setIsArchiveLoading(false);
-  };
-
-  type NavigateToAIAgentTaskFunction = (aiAgentTaskId: string) => void;
-
-  const navigateToAIAgentTask: NavigateToAIAgentTaskFunction = (
-    aiAgentTaskId: string,
-  ): void => {
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-        {
-          modelId: aiAgentTaskId,
-        },
-      ),
-    );
-  };
-
-  type CreateAIAgentTaskFunction = (
-    taskType: ExceptionAITaskType,
-  ) => Promise<void>;
-
-  const createAIAgentTask: CreateAIAgentTaskFunction = async (
-    taskType: ExceptionAITaskType,
-  ): Promise<void> => {
-    try {
-      setCreatingTaskType(taskType);
-      setAITaskError(undefined);
-
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/telemetry-exception/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
-          ),
-          /*
-           * taskType is optional on the wire and FixException is the
-           * server's default — send {} for fixes so older servers (which
-           * predate the field) keep working unchanged.
-           */
-          data: taskType === CodeFixTaskType.FixException ? {} : { taskType },
-          headers: ModelAPI.getCommonHeaders(),
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
-      }
-
-      const aiAgentTaskId: string | undefined = response.data?.[
-        "aiAgentTaskId"
-      ] as string | undefined;
-
-      if (aiAgentTaskId) {
-        // Navigate to the AI Agent Task view page
-        navigateToAIAgentTask(aiAgentTaskId);
-      }
-    } catch (err) {
-      // Inline — a failed create must not replace the page with an error.
-      setAITaskError(API.getFriendlyMessage(err));
-
-      /*
-       * The server re-checks prerequisites on create, so a failure here
-       * often means the setup regressed — refresh the checklist to show
-       * exactly what is missing. Never throws (fails open internally).
-       */
-      await fetchAIFixReadiness();
-    }
-
-    setCreatingTaskType(undefined);
-  };
-
-  type GetReadinessCheckLinkFunction = (
-    checkId: AIFixReadinessCheckId,
-  ) => ReadinessCheckLink | null;
-
-  // Where the user fixes a failing readiness check.
-  const getReadinessCheckLink: GetReadinessCheckLinkFunction = (
-    checkId: AIFixReadinessCheckId,
-  ): ReadinessCheckLink | null => {
-    if (checkId === "llmProvider") {
-      return {
-        title: "Configure LLM Providers",
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
-        ),
-      };
-    }
-
-    if (checkId === "repositoryResolved") {
-      return {
-        title: "View Code Repositories",
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.CODE_REPOSITORY] as Route,
-        ),
-      };
-    }
-
-    if (checkId === "agentAvailable") {
-      return {
-        title: "View Runners",
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
-        ),
-      };
-    }
-
-    return null;
-  };
-
-  // The latest task per type (the endpoint returns at most one of each).
-  const fixTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
-    (task: AIAgentTaskInfo) => {
-      return task.taskType === CodeFixTaskType.FixException;
-    },
-  );
-
-  const regressionTestTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
-    (task: AIAgentTaskInfo) => {
-      return task.taskType === CodeFixTaskType.WriteRegressionTest;
-    },
-  );
-
-  const improveHandlingTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
-    (task: AIAgentTaskInfo) => {
-      return task.taskType === CodeFixTaskType.ImproveExceptionHandling;
-    },
-  );
-
-  type CanStartAITaskFunction = (task: AIAgentTaskInfo | undefined) => boolean;
-
-  /*
-   * A new AI task of a type can be started when there is no task of that
-   * type, or the latest one is terminal (the server allows creating a new
-   * task after Completed / Error).
-   */
-  const canStartAITask: CanStartAITaskFunction = (
-    task: AIAgentTaskInfo | undefined,
-  ): boolean => {
-    // The server rejects resolved AND archived exceptions — mirror both.
-    return (
-      !isResolved &&
-      !isArchived &&
-      !isAIAgentTaskLoading &&
-      (!task || !isAITaskActive(task))
-    );
-  };
-
-  const isAIFixBlockedBySetup: boolean = Boolean(
-    aiFixReadiness && !aiFixReadiness.ready,
-  );
-
-  type RenderAITaskCardsFunction = (
-    task: AIAgentTaskInfo | undefined,
-    presentation: AITaskPresentation,
-  ) => ReactElement;
-
-  /*
-   * One task type's card group: active status card, failure card with a
-   * retry, or completed note — mirrors the original fix-only treatment for
-   * both task types.
-   */
-  const renderAITaskCards: RenderAITaskCardsFunction = (
-    task: AIAgentTaskInfo | undefined,
-    presentation: AITaskPresentation,
+  const renderSectionLoader: (title: string) => ReactElement = (
+    title: string,
   ): ReactElement => {
-    // Retry buttons in the failure cards hit the same server gates.
-    if (!task || isResolved || isArchived) {
-      return <></>;
-    }
-
     return (
-      <>
-        {/** A task of this type is scheduled or in progress */}
-
-        {isAITaskActive(task) && (
-          <Card
-            title={presentation.activeCardTitle}
-            description={presentation.activeCardDescription}
-          >
-            <div className="space-y-3">
-              <Alert
-                type={getAIAgentTaskAlertType(task)}
-                strongTitle={task.statusTitle}
-                title={task.statusDescription}
-              />
-              {task.statusMessage && (
-                <p className="text-sm text-gray-600">{task.statusMessage}</p>
-              )}
-              <div className="flex items-center space-x-4">
-                <Button
-                  title="View Task Details"
-                  icon={IconProp.Bolt}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  onClick={() => {
-                    navigateToAIAgentTask(task._id);
-                  }}
-                />
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/**
-         * Latest attempt produced no pull request — keep it visible and offer
-         * a retry. A run that failed reads as an error; one that simply found
-         * no fix reads as a neutral result.
-         */}
-
-        {isAITaskUnsuccessful(task) && (
-          <Card
-            title={
-              isAITaskFailed(task)
-                ? presentation.failedCardTitle
-                : presentation.noFixCardTitle
-            }
-            description={
-              isAITaskFailed(task)
-                ? presentation.failedCardDescription
-                : presentation.noFixCardDescription
-            }
-          >
-            <div className="space-y-3">
-              <Alert
-                type={getAIAgentTaskAlertType(task)}
-                strongTitle={task.statusTitle}
-                title={task.statusMessage || task.statusDescription}
-              />
-              <div className="flex items-center space-x-4">
-                <Button
-                  title={presentation.retryActionName}
-                  icon={IconProp.Bolt}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  isLoading={creatingTaskType === presentation.taskType}
-                  onClick={() => {
-                    createAIAgentTask(presentation.taskType).catch(() => {
-                      // Errors surface via aiTaskError.
-                    });
-                  }}
-                />
-                <Button
-                  title="View Task Details"
-                  icon={IconProp.ExternalLink}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  onClick={() => {
-                    navigateToAIAgentTask(task._id);
-                  }}
-                />
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/** Latest attempt completed — small note linking to the finished task. */}
-
-        {isAITaskCompleted(task) && (
-          <Alert
-            type={AlertType.SUCCESS}
-            strongTitle={presentation.completedStrongTitle}
-            title={presentation.completedTitle}
-            onClick={() => {
-              navigateToAIAgentTask(task._id);
-            }}
-          />
-        )}
-      </>
-    );
-  };
-
-  type RenderStartAITaskCardFunction = (
-    task: AIAgentTaskInfo | undefined,
-    presentation: AITaskPresentation,
-  ) => ReactElement;
-
-  /*
-   * The "start a task" ActionCard for one task type — shown when a new task
-   * can be started, setup is complete, and the latest attempt produced a
-   * pull request (retry after an error or a fruitless run lives in that
-   * attempt's own card, so showing this too would double up the button).
-   */
-  const renderStartAITaskCard: RenderStartAITaskCardFunction = (
-    task: AIAgentTaskInfo | undefined,
-    presentation: AITaskPresentation,
-  ): ReactElement => {
-    if (
-      !canStartAITask(task) ||
-      isAIFixBlockedBySetup ||
-      (task && isAITaskUnsuccessful(task))
-    ) {
-      return <></>;
-    }
-
-    return (
-      <ActionCard
-        title={presentation.startCardTitle}
-        description={presentation.startCardDescription}
-        actions={[
-          {
-            actionName: presentation.startActionName,
-            actionIcon: presentation.startActionIcon,
-            actionButtonStyle: ButtonStyleType.PRIMARY,
-            isLoading: creatingTaskType === presentation.taskType,
-            onConfirmAction: async () => {
-              await createAIAgentTask(presentation.taskType);
-            },
-          },
-        ]}
-      />
+      <Card title={title}>
+        <div className="flex h-32 items-center justify-center">
+          <ComponentLoader />
+        </div>
+      </Card>
     );
   };
 
   return (
-    <div className="mb-10 space-y-4">
-      <ExceptionSummary exception={telemetryException} />
+    <div className="mb-10 space-y-5">
+      <ExceptionSummary
+        exception={telemetryException}
+        services={services}
+        {...(dataPlan.showHeaderActions
+          ? {
+              actions: (
+                <ExceptionTriageActions
+                  isResolved={isResolved}
+                  isArchived={isArchived}
+                  pendingActionId={pendingActionId}
+                  onAction={onTriageAction}
+                />
+              ),
+            }
+          : {})}
+      />
+
+      {actionError && dataPlan.showHeaderActions && (
+        <div
+          className="flex items-start gap-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-inset ring-red-600/10"
+          role="alert"
+          data-testid="exception-triage-error"
+        >
+          <Icon
+            icon={IconProp.Alert}
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+          />
+          <p className="min-w-0 flex-1">
+            <span className="font-medium">
+              Could not update this exception.
+            </span>{" "}
+            {actionError}
+          </p>
+          <button
+            type="button"
+            className="text-xs font-medium text-red-700 hover:text-red-900"
+            onClick={() => {
+              setActionError(undefined);
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {props.section === ExceptionDetailSection.Overview && (
-        <ExceptionDetail {...telemetryException} services={services} />
+        <>
+          <ExceptionOccurrenceTrend
+            fingerprint={telemetryException.fingerprint}
+            primaryEntityId={telemetryException.primaryEntityId}
+          />
+          <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2">
+            <ExceptionDetail {...telemetryException} services={services} />
+            <ExceptionLatestOccurrence
+              instance={latestInstance}
+              isLoading={isOccurrenceLoading}
+              links={[
+                {
+                  title: "View stack trace",
+                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_STACK_TRACE),
+                  icon: IconProp.Code,
+                },
+                {
+                  title: "All occurrences",
+                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_OCCURRENCES),
+                  icon: IconProp.List,
+                },
+              ]}
+            />
+          </div>
+        </>
       )}
 
       {props.section === ExceptionDetailSection.StackTrace && (
         <>
-          {telemetryException.stackTrace ? (
+          {!telemetryException.stackTrace ? (
+            <EmptySection
+              title="Stack Trace"
+              description="No stack trace was recorded for this exception."
+              icon={IconProp.Code}
+              message="Future occurrences will show their stack trace here when the telemetry source sends one."
+              testId="exception-stack-trace-empty"
+            />
+          ) : isOccurrenceLoading ? (
+            renderSectionLoader("Stack Trace")
+          ) : (
             <StackFrameViewer
               stackTrace={telemetryException.stackTrace}
               {...(latestInstance?.parsedFrames
                 ? { parsedFrames: latestInstance.parsedFrames }
                 : {})}
               {...(resolvedFrames ? { resolvedFrames: resolvedFrames } : {})}
+              skippedSourceMapCount={skippedSourceMapCount}
             />
-          ) : (
-            <Card
-              title="Stack Trace"
-              description="No stack trace was recorded for this exception."
-            >
-              <p className="text-sm text-gray-600">
-                Future occurrences will appear here when the telemetry source
-                sends a stack trace.
-              </p>
-            </Card>
           )}
         </>
       )}
@@ -1307,26 +569,44 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {props.section === ExceptionDetailSection.Occurrences && (
         <>
           {telemetryException.fingerprint ? (
-            <OccouranceTable
-              exceptionFingerprint={telemetryException.fingerprint}
-              primaryEntityId={telemetryException.primaryEntityId}
+            <ExceptionOccurrences
+              exception={telemetryException}
+              fingerprint={telemetryException.fingerprint}
             />
           ) : (
-            <Card
-              title="Exception Occurrences"
+            <EmptySection
+              title="Occurrences"
               description="No fingerprint is available to group occurrences for this exception."
-            >
-              <p className="text-sm text-gray-600">
-                Occurrences will appear after the telemetry source supplies a
-                stable exception fingerprint.
-              </p>
-            </Card>
+              icon={IconProp.List}
+              message="Occurrences will appear after the telemetry source supplies a stable exception fingerprint."
+              testId="exception-occurrences-empty"
+            />
           )}
         </>
       )}
 
       {props.section === ExceptionDetailSection.Context && (
         <>
+          {(latestInstance || isOccurrenceLoading) && (
+            <ExceptionLatestOccurrence
+              instance={latestInstance}
+              isLoading={isOccurrenceLoading}
+              description="The session replay and breadcrumbs below come from this occurrence."
+              links={[
+                {
+                  title: "View logs",
+                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_LOGS),
+                  icon: IconProp.Logs,
+                },
+                {
+                  title: "View stack trace",
+                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_STACK_TRACE),
+                  icon: IconProp.Code,
+                },
+              ]}
+            />
+          )}
+
           {telemetryException.fingerprint && (
             <ReplayCard
               fingerprint={telemetryException.fingerprint}
@@ -1342,15 +622,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               {...(latestInstance?.id
                 ? { exceptionInstanceId: latestInstance.id.toString() }
                 : {})}
-              {...(latestInstance?.time
-                ? { errorTimeUnixMs: new Date(latestInstance.time).getTime() }
-                : telemetryException.lastSeenAt
-                  ? {
-                      errorTimeUnixMs: new Date(
-                        telemetryException.lastSeenAt,
-                      ).getTime(),
-                    }
-                  : {})}
+              {...(errorTimeUnixMs !== undefined ? { errorTimeUnixMs } : {})}
             />
           )}
 
@@ -1365,224 +637,45 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             />
           )}
 
-          {latestInstance && (
-            <ExceptionOccurrenceLogs instance={latestInstance} />
-          )}
-
-          {!latestInstance && (
-            <Card
+          {!latestInstance && !isOccurrenceLoading && (
+            <EmptySection
               title="No Recent Occurrence Context"
-              description="No recent trace, breadcrumb, or log data is available for this exception."
-            >
-              <p className="text-sm text-gray-600">
-                A session replay can still appear above when a matching
-                recording is available. New context will appear when another
-                occurrence includes a trace, application session, or correlated
-                logs.
-              </p>
-            </Card>
+              description="No recent trace or breadcrumb data is available for this exception."
+              icon={IconProp.Activity}
+              message="A session replay can still appear above when a matching recording is available. New context will appear when another occurrence includes a trace or an application session."
+              testId="exception-context-empty"
+            />
           )}
         </>
+      )}
+
+      {props.section === ExceptionDetailSection.Logs && (
+        <ExceptionLogs
+          instance={latestInstance}
+          isLoading={isOccurrenceLoading}
+          primaryEntityType={telemetryException.primaryEntityType}
+        />
       )}
 
       {props.section === ExceptionDetailSection.AIAssistance && (
-        <>
-          {(isResolved || isArchived) && (
-            <Alert
-              type={AlertType.INFO}
-              strongTitle="AI assistance is paused"
-              title="Mark this exception as unresolved and unarchive it before starting a new AI task."
-            />
-          )}
-
-          {renderAITaskCards(
-            fixTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.FixException],
-          )}
-          {renderAITaskCards(
-            regressionTestTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
-          )}
-          {renderAITaskCards(
-            improveHandlingTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling],
-          )}
-
-          {aiTaskError && !isResolved && (
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle="Could not start AI task"
-              title={aiTaskError}
-              onClose={() => {
-                setAITaskError(undefined);
-              }}
-            />
-          )}
-
-          {(canStartAITask(fixTask) ||
-            canStartAITask(regressionTestTask) ||
-            canStartAITask(improveHandlingTask)) &&
-            isAIFixBlockedBySetup &&
-            aiFixReadiness && (
-              <Card
-                title="Set up AI for this exception"
-                description="AI can analyze this exception and submit a pull request. Complete these prerequisites first."
-              >
-                <div className="mt-4 space-y-3">
-                  {aiFixReadiness.checks.map(
-                    (check: AIFixReadinessCheck): ReactElement => {
-                      const checkLink: ReadinessCheckLink | null = check.ok
-                        ? null
-                        : getReadinessCheckLink(check.id);
-
-                      return (
-                        <div className="flex items-start" key={check.id}>
-                          <Icon
-                            icon={
-                              check.ok
-                                ? IconProp.CheckCircle
-                                : IconProp.CircleClose
-                            }
-                            className={`mr-3 mt-0.5 h-5 w-5 flex-shrink-0 ${
-                              check.ok ? "text-green-500" : "text-red-500"
-                            }`}
-                          />
-                          <div>
-                            <span className="font-medium">{check.title}</span>
-                            {!check.ok && check.detail && (
-                              <p className="text-sm text-gray-500">
-                                {check.detail}
-                              </p>
-                            )}
-                            {checkLink && (
-                              <Link
-                                to={checkLink.route}
-                                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                              >
-                                {checkLink.title}
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
-              </Card>
-            )}
-
-          {renderStartAITaskCard(
-            fixTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.FixException],
-          )}
-          {renderStartAITaskCard(
-            regressionTestTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
-          )}
-          {renderStartAITaskCard(
-            improveHandlingTask,
-            AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling],
-          )}
-        </>
+        <ExceptionAIAssistance
+          telemetryExceptionId={props.telemetryExceptionId}
+          isResolved={isResolved}
+          isArchived={isArchived}
+        />
       )}
 
       {props.section === ExceptionDetailSection.Settings && (
-        <>
-          {actionError && (
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle="Action failed"
-              title={actionError}
-              onClose={() => {
-                setActionError(undefined);
-              }}
-            />
-          )}
-
-          {!isResolved && (
-            <ActionCard
-              title="Mark as Resolved"
-              description="Use this when the underlying issue has been fixed."
-              actions={[
-                {
-                  actionName: "Mark as Resolved",
-                  actionIcon: IconProp.Check,
-                  actionButtonStyle: ButtonStyleType.SUCCESS_OUTLINE,
-                  isLoading: isResolveUnresolveLoading,
-                  onConfirmAction: async () => {
-                    await markAsResolvedUnresolved(true);
-                  },
-                },
-              ]}
-            />
-          )}
-
-          {isResolved && (
-            <ActionCard
-              title="Mark as Unresolved"
-              description="Reopen this exception if it is still occurring."
-              actions={[
-                {
-                  actionName: "Mark as Unresolved",
-                  actionIcon: IconProp.Close,
-                  actionButtonStyle: ButtonStyleType.NORMAL,
-                  isLoading: isResolveUnresolveLoading,
-                  onConfirmAction: async () => {
-                    await markAsResolvedUnresolved(false);
-                  },
-                },
-              ]}
-            />
-          )}
-
-          {!isArchived && (
-            <ActionCard
-              title="Archive Exception"
-              description="Stop notifications for future occurrences without deleting historical data."
-              actions={[
-                {
-                  actionName: "Archive",
-                  actionIcon: IconProp.Archive,
-                  actionButtonStyle: ButtonStyleType.NORMAL,
-                  isLoading: isArchiveLoading,
-                  onConfirmAction: async () => {
-                    await archiveUnarchiveException(true);
-                  },
-                },
-              ]}
-            />
-          )}
-
-          {isArchived && (
-            <ActionCard
-              title="Unarchive Exception"
-              description="Resume normal handling and notifications for future occurrences."
-              actions={[
-                {
-                  actionName: "Unarchive",
-                  actionIcon: IconProp.Unarchive,
-                  actionButtonStyle: ButtonStyleType.NORMAL,
-                  isLoading: isArchiveLoading,
-                  onConfirmAction: async () => {
-                    await archiveUnarchiveException(false);
-                  },
-                },
-              ]}
-            />
-          )}
-
-          <ModelDelete
-            modelType={TelemetryException}
-            modelId={props.telemetryExceptionId}
-            onDeleteSuccess={() => {
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.EXCEPTIONS] as Route,
-                ),
-              );
-            }}
-          />
-        </>
+        <ExceptionSettings
+          exception={telemetryException}
+          telemetryExceptionId={props.telemetryExceptionId}
+          pendingActionId={pendingActionId}
+          actionError={actionError}
+          onDismissActionError={() => {
+            setActionError(undefined);
+          }}
+          onAction={onTriageAction}
+        />
       )}
     </div>
   );

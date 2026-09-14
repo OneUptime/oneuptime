@@ -1,4 +1,7 @@
 import SpanStatusElement from "../Span/SpanStatusElement";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -16,7 +19,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import TraceElement from "../Traces/TraceElement";
 import ReplayLink from "../SessionReplay/ReplayLink";
 import AppLink from "../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -33,6 +35,18 @@ import {
 } from "../../Utils/RumSessionLookup";
 import { makeExceptionSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 import { buildExceptionOccurrenceQuery } from "../../Utils/ExceptionDetailData";
+import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
+
+function toOccurrenceDate(value: unknown): Date | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const date: Date =
+    value instanceof Date ? value : new Date(value as unknown as string);
+
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
 
 export interface ComponentProps {
   exceptionFingerprint: string;
@@ -116,20 +130,24 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <div className="rounded">
         <AnalyticsModelTable<ExceptionInstance>
-          userPreferencesKey="exception-instance-table"
+          /*
+           * The columns were reworked (time first, one Related column), so
+           * layouts saved under the old key would hide the new columns.
+           */
+          userPreferencesKey="exception-occurrences-table"
           modelType={ExceptionInstance}
-          id="traces-table"
+          id="exception-occurrences-table"
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
-          singularName="Exception"
-          pluralName="Exceptions"
-          name="Exception"
+          singularName="Occurrence"
+          pluralName="Occurrences"
+          name="Occurrence"
           isViewable={false}
           cardProps={{
-            title: "Exception Occurrences",
+            title: "Occurrences",
             description:
-              "View all the traces that are related to this exception.",
+              "Every recorded occurrence of this exception, newest first. Open the trace, the logs around it, or a session replay of the moment it happened.",
           }}
           query={buildExceptionOccurrenceQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -140,7 +158,9 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
             void resolveSessionAnchors(data);
           }}
           showViewIdButton={true}
-          noItemsMessage={"No exception found."}
+          noItemsMessage={
+            "No occurrences match these filters. Occurrences older than the telemetry retention period are removed."
+          }
           showRefreshButton={true}
           sortBy="time"
           sortOrder={SortOrder.Descending}
@@ -190,44 +210,46 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
           ]}
           selectMoreFields={{
             spanStatusCode: true,
+            spanId: true,
             sessionId: true,
+            time: true,
+            environment: true,
           }}
           columns={[
             {
               field: {
-                spanId: true,
+                time: true,
               },
-              title: "Span ID",
+              title: "Time",
               type: FieldType.Element,
               getElement: (
                 exceptionInstance: ExceptionInstance,
               ): ReactElement => {
-                return (
-                  <Fragment>
-                    <SpanStatusElement
-                      traceId={exceptionInstance.traceId?.toString()}
-                      spanStatusCode={exceptionInstance.spanStatusCode!}
-                      title={exceptionInstance.spanId?.toString()}
-                    />
-                  </Fragment>
+                const occurredAt: Date | undefined = toOccurrenceDate(
+                  exceptionInstance.time,
                 );
-              },
-            },
-            {
-              field: {
-                traceId: true,
-              },
-              title: "Trace ID",
-              type: FieldType.Element,
-              getElement: (
-                exceptionInstance: ExceptionInstance,
-              ): ReactElement => {
+
+                if (!occurredAt) {
+                  return <span className="text-gray-400">Unknown</span>;
+                }
+
                 return (
-                  <Fragment>
-                    <TraceElement
-                      traceId={exceptionInstance.traceId?.toString()}
-                    />
-                  </Fragment>
+                  <div
+                    className="whitespace-nowrap"
+                    title={OneUptimeDate.getDateAsLocalFormattedString(
+                      occurredAt,
+                    )}
+                    data-testid="occurrence-time"
+                  >
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatRelativeTime(occurredAt)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {OneUptimeDate.getDateAsLocalShortDateTimeString(
+                        occurredAt,
+                      )}
+                    </div>
+                  </div>
                 );
               },
             },
@@ -235,60 +257,108 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
               field: {
                 spanName: true,
               },
-              title: "Span Name",
-              type: FieldType.Text,
+              title: "Span",
+              type: FieldType.Element,
+              getElement: (
+                exceptionInstance: ExceptionInstance,
+              ): ReactElement => {
+                return (
+                  <div className="min-w-0" data-testid="occurrence-span">
+                    <SpanStatusElement
+                      traceId={exceptionInstance.traceId?.toString()}
+                      spanStatusCode={exceptionInstance.spanStatusCode!}
+                      title={
+                        exceptionInstance.spanName ||
+                        exceptionInstance.spanId?.toString()
+                      }
+                      titleClassName="font-mono text-[13px] text-gray-900"
+                    />
+                    {exceptionInstance.spanName && exceptionInstance.spanId && (
+                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">
+                        {exceptionInstance.spanId.toString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              field: {
+                escaped: true,
+              },
+              title: "Handling",
+              type: FieldType.Element,
+              getElement: (
+                exceptionInstance: ExceptionInstance,
+              ): ReactElement => {
+                return exceptionInstance.escaped ? (
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                    Unhandled
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                    Handled
+                  </span>
+                );
+              },
             },
             {
               field: {
                 release: true,
               },
               title: "Release",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                environment: true,
+              type: FieldType.Element,
+              getElement: (
+                exceptionInstance: ExceptionInstance,
+              ): ReactElement => {
+                return (
+                  <div className="min-w-0" data-testid="occurrence-release">
+                    {exceptionInstance.release ? (
+                      <div className="font-mono text-[13px] text-gray-700">
+                        {exceptionInstance.release}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400">No release</div>
+                    )}
+                    {exceptionInstance.environment && (
+                      <div className="mt-0.5 text-xs text-gray-500">
+                        {exceptionInstance.environment}
+                      </div>
+                    )}
+                  </div>
+                );
               },
-              title: "Environment",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                time: true,
-              },
-              title: "Time of Occurrence",
-              type: FieldType.DateTime,
             },
             {
               field: {
                 traceId: true,
               },
-              title: "Logs",
+              title: "Trace",
               type: FieldType.Element,
               getElement: (
                 exceptionInstance: ExceptionInstance,
               ): ReactElement => {
-                const link: OccurrenceLogsLink | null =
-                  buildOccurrenceLogsExplorerLink({
-                    logsRoute,
-                    traceId: exceptionInstance.traceId?.toString(),
-                    time: exceptionInstance.time,
-                  });
+                const traceId: string =
+                  exceptionInstance.traceId?.toString().trim() || "";
 
-                if (!link) {
-                  return <></>;
+                if (!traceId) {
+                  return <span className="text-gray-400">-</span>;
                 }
 
-                const droppedHint: string = formatDroppedScopeHint(
-                  link.dropped,
-                );
-
                 return (
-                  <span {...(droppedHint ? { title: droppedHint } : {})}>
-                    <AppLink to={link.route} className="hover:underline">
-                      <p>View Logs</p>
-                    </AppLink>
-                  </span>
+                  <AppLink
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.TRACE_VIEW] as Route,
+                      { modelId: traceId },
+                    )}
+                    className="font-mono text-[13px] text-indigo-600 hover:text-indigo-500 hover:underline"
+                  >
+                    <span title={traceId}>
+                      {traceId.length > 16
+                        ? `${traceId.slice(0, 16)}…`
+                        : traceId}
+                    </span>
+                  </AppLink>
                 );
               },
             },
@@ -296,20 +366,26 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
               field: {
                 sessionId: true,
               },
-              title: "Session Replay",
+              title: "Related",
               type: FieldType.Element,
               getElement: (
                 exceptionInstance: ExceptionInstance,
               ): ReactElement => {
+                const logsLink: OccurrenceLogsLink | null =
+                  buildOccurrenceLogsExplorerLink({
+                    logsRoute,
+                    traceId: exceptionInstance.traceId?.toString(),
+                    time: exceptionInstance.time,
+                  });
+
+                const droppedHint: string = logsLink
+                  ? formatDroppedScopeHint(logsLink.dropped)
+                  : "";
+
                 const sessionId: string =
                   exceptionInstance.sessionId?.toString() || "";
                 const anchor: RumSessionLookupResult | undefined =
                   sessionAnchors.get(sessionId);
-
-                if (!sessionId || !anchor) {
-                  // ReplayLink renders nothing without both ids anyway.
-                  return <></>;
-                }
 
                 /*
                  * The occurrence's own timestamp travels as ?at=; the
@@ -317,28 +393,42 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                  * offset arithmetic (and no clock-skew guess) happens here.
                  * The instance id selects the row in the errors rail.
                  */
-                const occurredAt: Date | undefined =
-                  exceptionInstance.time instanceof Date
-                    ? exceptionInstance.time
-                    : exceptionInstance.time
-                      ? new Date(exceptionInstance.time as unknown as string)
-                      : undefined;
+                const occurredAt: Date | undefined = toOccurrenceDate(
+                  exceptionInstance.time,
+                );
                 const instanceId: string =
                   exceptionInstance.id?.toString() || "";
 
+                if (!logsLink && !(sessionId && anchor)) {
+                  return <span className="text-gray-400">-</span>;
+                }
+
                 return (
-                  <ReplayLink
-                    rumApplicationId={anchor.rumApplicationId}
-                    sessionId={sessionId}
-                    {...(occurredAt && !Number.isNaN(occurredAt.getTime())
-                      ? { atTime: occurredAt }
-                      : {})}
-                    {...(instanceId
-                      ? { signal: makeExceptionSignalId(instanceId) }
-                      : {})}
-                    rail="errors"
-                    label="Watch replay"
-                  />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 whitespace-nowrap text-sm">
+                    {logsLink && (
+                      <span {...(droppedHint ? { title: droppedHint } : {})}>
+                        <AppLink
+                          to={logsLink.route}
+                          className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
+                        >
+                          <Icon icon={IconProp.Logs} className="h-4 w-4" />
+                          <span>Logs</span>
+                        </AppLink>
+                      </span>
+                    )}
+                    {sessionId && anchor && (
+                      <ReplayLink
+                        rumApplicationId={anchor.rumApplicationId}
+                        sessionId={sessionId}
+                        {...(occurredAt ? { atTime: occurredAt } : {})}
+                        {...(instanceId
+                          ? { signal: makeExceptionSignalId(instanceId) }
+                          : {})}
+                        rail="errors"
+                        label="Watch replay"
+                      />
+                    )}
+                  </div>
                 );
               },
             },

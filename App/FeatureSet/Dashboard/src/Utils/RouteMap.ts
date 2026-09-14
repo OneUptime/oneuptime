@@ -625,6 +625,7 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_VIEW_STACK_TRACE]: `${RouteParams.ModelID}/stack-trace`,
   [PageMap.EXCEPTIONS_VIEW_OCCURRENCES]: `${RouteParams.ModelID}/occurrences`,
   [PageMap.EXCEPTIONS_VIEW_CONTEXT]: `${RouteParams.ModelID}/context`,
+  [PageMap.EXCEPTIONS_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
   [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
@@ -6281,6 +6282,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_VIEW_CONTEXT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_CONTEXT]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_LOGS]
     }`,
   ),
 
