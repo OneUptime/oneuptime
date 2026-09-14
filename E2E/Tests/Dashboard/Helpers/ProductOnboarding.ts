@@ -72,27 +72,6 @@ type RegisterAndCreateProjectFunction = (data: {
   enablePaidUsage?: boolean | undefined;
 }) => Promise<string>;
 
-type WaitForOnboardingWelcomeFunction = (data: {
-  page: Page;
-  welcomeUrl: string;
-}) => Promise<void>;
-
-/*
- * Accounts hands a newly registered user to /dashboard. The Dashboard Init
- * page owns the next step: once its project request confirms that the account
- * has no projects, it navigates to /dashboard/welcome. Wait for that final
- * route instead of issuing a second navigation from the intermediate route.
- * Competing with Init's navigation makes Firefox reject the losing goto() with
- * NS_BINDING_ABORTED and turns unrelated product specs into onboarding flakes.
- */
-export const waitForOnboardingWelcome: WaitForOnboardingWelcomeFunction =
-  async (data: { page: Page; welcomeUrl: string }): Promise<void> => {
-    await data.page.waitForURL(data.welcomeUrl);
-    await data.page
-      .getByTestId("create-new-project-button")
-      .waitFor({ state: "visible" });
-  };
-
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
   async (data: {
     page: Page;
@@ -147,7 +126,22 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       .addRoute("/dashboard/welcome")
       .toString();
 
-    await waitForOnboardingWelcome({ page, welcomeUrl });
+    /*
+     * Accounts currently hands a newly registered user to the Dashboard root.
+     * Older deployments redirect that root to /dashboard/welcome themselves,
+     * while newer ones leave the root in place until project selection has
+     * loaded. Accept either hand-off, then make the onboarding destination
+     * explicit so the remainder of the shared helper is deterministic.
+     */
+    await page.waitForURL(/\/dashboard(?:\/welcome)?\/?$/);
+
+    if (page.url() !== welcomeUrl) {
+      await page.goto(welcomeUrl, { waitUntil: "domcontentloaded" });
+    }
+
+    await page
+      .getByTestId("create-new-project-button")
+      .waitFor({ state: "visible" });
 
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });

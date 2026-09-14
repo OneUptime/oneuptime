@@ -1,6 +1,0 @@
-# Test-only host access for fixtures that write directly to ClickHouse.
-# Bind to loopback so this does not expose the database beyond the CI runner.
-services:
-  clickhouse:
-    ports:
-      - "127.0.0.1:8189:8123"

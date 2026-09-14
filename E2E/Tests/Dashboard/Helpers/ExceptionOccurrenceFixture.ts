@@ -30,19 +30,9 @@ export interface ExceptionOccurrenceFixtureData {
   entityKeys: Array<string>;
 }
 
-export interface ClickHouseFixtureLocation {
+interface ClickHouseFixtureLocation {
   database: string;
   endpoint: globalThis.URL;
-}
-
-export interface ClickHouseFixtureLocationInput {
-  database: string;
-  explicitUrl: string;
-  configuredHost: string;
-  browserTarget: string;
-  explicitPort: string;
-  configuredPort: string;
-  isHttps: boolean;
 }
 
 const requireIdentifier: (value: string, description: string) => string = (
@@ -73,62 +63,50 @@ const requireUuid: (value: string, description: string) => string = (
  * Docker's published HTTP port. CI or custom environments can state their
  * endpoint explicitly with E2E_CLICKHOUSE_URL (or the host/port overrides).
  */
-export const resolveClickHouseFixtureLocation: (
-  data: ClickHouseFixtureLocationInput,
-) => ClickHouseFixtureLocation = (
-  data: ClickHouseFixtureLocationInput,
-): ClickHouseFixtureLocation => {
-  const database: string = requireIdentifier(data.database, "database");
-  const explicitUrl: string = data.explicitUrl.trim();
-
-  if (explicitUrl) {
-    const endpoint: globalThis.URL = new globalThis.URL(explicitUrl);
-    if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") {
-      throw new Error("E2E_CLICKHOUSE_URL must use http or https.");
-    }
-    return { database, endpoint };
-  }
-
-  const browserTarget: globalThis.URL = new globalThis.URL(data.browserTarget);
-  const browserRunsOnLocalhost: boolean = [
-    "localhost",
-    "127.0.0.1",
-    "::1",
-  ].includes(browserTarget.hostname);
-  const composeNetworkHost: boolean = data.configuredHost === "clickhouse";
-  const usePublishedLocalPort: boolean =
-    browserRunsOnLocalhost && composeNetworkHost;
-  const host: string = usePublishedLocalPort
-    ? "127.0.0.1"
-    : data.configuredHost;
-  const port: string =
-    data.explicitPort ||
-    (usePublishedLocalPort
-      ? LOCAL_CLICKHOUSE_HTTP_PORT
-      : data.configuredPort || "8123");
-  const protocol: string = data.isHttps ? "https" : "http";
-
-  return {
-    database,
-    endpoint: new globalThis.URL(`${protocol}://${host}:${port}`),
-  };
-};
-
 const clickHouseFixtureLocation: () => ClickHouseFixtureLocation =
   (): ClickHouseFixtureLocation => {
-    return resolveClickHouseFixtureLocation({
-      database:
-        env("E2E_CLICKHOUSE_DATABASE") ||
+    const database: string = requireIdentifier(
+      env("E2E_CLICKHOUSE_DATABASE") ||
         env("CLICKHOUSE_DATABASE") ||
         DEFAULT_CLICKHOUSE_DATABASE,
-      explicitUrl: env("E2E_CLICKHOUSE_URL"),
-      configuredHost:
-        env("E2E_CLICKHOUSE_HOST") || env("CLICKHOUSE_HOST") || "127.0.0.1",
-      browserTarget: BASE_URL.toString(),
-      explicitPort: env("E2E_CLICKHOUSE_PORT"),
-      configuredPort: env("CLICKHOUSE_PORT"),
-      isHttps: env("CLICKHOUSE_IS_HOST_HTTPS") === "true",
-    });
+      "database",
+    );
+    const explicitUrl: string = env("E2E_CLICKHOUSE_URL").trim();
+
+    if (explicitUrl) {
+      const endpoint: globalThis.URL = new globalThis.URL(explicitUrl);
+      if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") {
+        throw new Error("E2E_CLICKHOUSE_URL must use http or https.");
+      }
+      return { database, endpoint };
+    }
+
+    const configuredHost: string =
+      env("E2E_CLICKHOUSE_HOST") || env("CLICKHOUSE_HOST") || "127.0.0.1";
+    const browserTarget: globalThis.URL = new globalThis.URL(
+      BASE_URL.toString(),
+    );
+    const browserRunsOnLocalhost: boolean = [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+    ].includes(browserTarget.hostname);
+    const composeNetworkHost: boolean = configuredHost === "clickhouse";
+    const usePublishedLocalPort: boolean =
+      browserRunsOnLocalhost && composeNetworkHost;
+    const host: string = usePublishedLocalPort ? "127.0.0.1" : configuredHost;
+    const port: string =
+      env("E2E_CLICKHOUSE_PORT") ||
+      (usePublishedLocalPort
+        ? LOCAL_CLICKHOUSE_HTTP_PORT
+        : env("CLICKHOUSE_PORT") || "8123");
+    const protocol: string =
+      env("CLICKHOUSE_IS_HOST_HTTPS") === "true" ? "https" : "http";
+
+    return {
+      database,
+      endpoint: new globalThis.URL(`${protocol}://${host}:${port}`),
+    };
   };
 
 const executeClickHouseRequest: (data: {
