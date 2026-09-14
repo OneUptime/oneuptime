@@ -352,14 +352,17 @@ describe("TracesViewer hosts a stored span query", () => {
     );
   });
 
-  test("the cross-signal pivots are hidden on a hosted snapshot", () => {
+  test("the cross-signal pivots are hidden on a hosted snapshot and under an exception scope", () => {
     /*
      * They carry the chips and the window, not the host's stored scope, so
      * from an incident card they would open the logs explorer project-wide
-     * under a button promising "scoped like this view".
+     * under a button promising "scoped like this view". An exception scope
+     * has the same problem: neither explorer can narrow to one exception's
+     * spans, so the exception Occurrences page hides them too. Both halves
+     * are pinned — nothing renders this toolbar group in a test.
      */
     expect(TRACES_VIEWER).toContain(
-      'props.spanQuery ? "hidden" : "inline-flex"',
+      'props.spanQuery || props.exceptionScope ? "hidden" : "inline-flex"',
     );
   });
 

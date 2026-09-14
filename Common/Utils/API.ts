@@ -1020,7 +1020,14 @@ export default class API {
     throw new APIException(`Request failed to ${url}. ${errorMessage}`, error);
   }
 
-  public static getFriendlyErrorMessage(error: AxiosError | Error): string {
+  /*
+   * HTTPErrorResponse is accepted because it is what gets caught: ModelAPI and
+   * the Dashboard's request helpers throw the error response itself, and its
+   * `message` getter reads the server's error body.
+   */
+  public static getFriendlyErrorMessage(
+    error: AxiosError | Error | HTTPErrorResponse,
+  ): string {
     let errorString: string = error.message || error.toString();
 
     if (error instanceof APIException) {

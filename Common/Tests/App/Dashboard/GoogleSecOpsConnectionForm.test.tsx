@@ -20,7 +20,6 @@ import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import GoogleSecOpsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/GoogleSecOpsConnections";
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import Route from "../../../Types/API/Route";

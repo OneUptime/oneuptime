@@ -131,7 +131,8 @@ function findIdentifierColumn(
  * ever declares (see EntityType).
  *
  * Docker Swarm / Proxmox / vCenter / Ceph clusters are root entities whose
- * identity is their name alone (`<type>.name`, see TelemetryEntity), and
+ * identity is their name alone (`<type>.name`, see the root identities in
+ * Utils/Telemetry/TelemetryEntity.ts), and
  * that name is the Postgres row's `name` — the join key ingest writes with
  * `findOrCreateByName`. Keys canonicalize (trim + lowercase) on both sides,
  * so a row whose casing differs from the stamped attribute still matches

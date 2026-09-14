@@ -73,14 +73,21 @@ export interface ConnectorSchedulerEntry {
   next?: number | null | undefined;
 }
 
+/*
+ * The optional accessors may be absent or present-but-undefined: the probes
+ * only call what `typeof` reports as a function, and a queue missing one
+ * leaves that value unknown.
+ */
 interface QueueLike {
-  getWorkersCount?: () => Promise<number>;
-  getWorkers?: () => Promise<Array<unknown>>;
-  getJobSchedulers?: (
-    start?: number,
-    end?: number,
-    asc?: boolean,
-  ) => Promise<Array<ConnectorSchedulerEntry | null | undefined>>;
+  getWorkersCount?: (() => Promise<number>) | undefined;
+  getWorkers?: (() => Promise<Array<unknown>>) | undefined;
+  getJobSchedulers?:
+    | ((
+        start?: number,
+        end?: number,
+        asc?: boolean,
+      ) => Promise<Array<ConnectorSchedulerEntry | null | undefined>>)
+    | undefined;
   getWaitingCount: () => Promise<number>;
   getFailedCount: () => Promise<number>;
 }

@@ -221,7 +221,10 @@ interface Spy {
   mockImplementation: (implementation: (...args: Array<any>) => any) => unknown;
 }
 
-function spyOn(target: object, method: string): Spy {
+function spyOn<K extends string, T extends Record<K, unknown>>(
+  target: T,
+  method: K,
+): Spy {
   return jest.spyOn(target as never, method as never) as unknown as Spy;
 }
 
@@ -323,7 +326,7 @@ describe("telemetry facet endpoints (list first)", () => {
    * count. Keys listed in `failing` reject.
    */
   function stubPerFacetCounts(
-    service: object,
+    service: { getFacetValues: unknown },
     values: Record<string, Array<{ value: string; count: number }>>,
     failing: Array<string> = [],
   ): { counted: Array<string>; requests: Array<JSONObject> } {

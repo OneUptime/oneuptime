@@ -104,6 +104,9 @@ describe("native style pipeline", () => {
 
   test("no source file relies on className styling", () => {
     const offenders: string[] = [];
+    const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+    const TEST_FILE: RegExp = /\.test\.tsx?$/;
+    const CLASS_NAME_PROP: RegExp = /\bclassName=/;
 
     function walk(directory: string): void {
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -111,9 +114,9 @@ describe("native style pipeline", () => {
         if (entry.isDirectory()) {
           walk(fullPath);
         } else if (
-          (/\.tsx?$/).test(entry.name) &&
-          !(/\.test\.tsx?$/).test(entry.name) &&
-          (/\bclassName=/).test(fs.readFileSync(fullPath, "utf8"))
+          TYPESCRIPT_FILE.test(entry.name) &&
+          !TEST_FILE.test(entry.name) &&
+          CLASS_NAME_PROP.test(fs.readFileSync(fullPath, "utf8"))
         ) {
           offenders.push(path.relative(appRoot, fullPath));
         }

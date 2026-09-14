@@ -13,6 +13,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import { getJestSpyOn } from "../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { createHash } from "crypto";
+import type { Mock } from "jest-mock";
 
 /*
  * The platform checks are the half of "Test connection" that looks at
@@ -116,6 +117,52 @@ interface BullmqRepeatInternals {
 }
 
 /*
+ * jest.requireActual returns unknown, so each module is checked for the
+ * members this suite drives before they are used. A BullMQ upgrade that
+ * moves or renames one then fails with a message naming it, not with
+ * "cannot read properties of undefined" halfway through a test.
+ */
+function hasPrototypeMethods(value: unknown, methods: Array<string>): boolean {
+  if (typeof value !== "function") {
+    return false;
+  }
+
+  const prototype: unknown = value.prototype;
+
+  return methods.every((method: string): boolean => {
+    return (
+      typeof prototype === "object" &&
+      prototype !== null &&
+      typeof Reflect.get(prototype, method) === "function"
+    );
+  });
+}
+
+function isBullmqRepeatModule(
+  value: unknown,
+): value is Pick<BullmqRepeatInternals, "getNextMillis" | "Repeat"> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "getNextMillis" in value &&
+    typeof value.getNextMillis === "function" &&
+    "Repeat" in value &&
+    hasPrototypeMethods(value.Repeat, ["hash", "updateRepeatableJob"])
+  );
+}
+
+function isBullmqJobSchedulerModule(
+  value: unknown,
+): value is Pick<BullmqRepeatInternals, "JobScheduler"> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "JobScheduler" in value &&
+    hasPrototypeMethods(value.JobScheduler, ["transformSchedulerData"])
+  );
+}
+
+/*
  * Loaded from BullMQ's CommonJS build because the "bullmq" import is mapped
  * to a stub in this suite. This test environment resolves msgpackr, which
  * BullMQ's script runner instantiates at load time, to its ES module build
@@ -126,7 +173,7 @@ function loadBullmqRepeatInternals(): BullmqRepeatInternals {
   const loaded: Array<BullmqRepeatInternals> = [];
 
   jest.isolateModules((): void => {
-    jest.doMock("msgpackr", (): object => {
+    jest.doMock("msgpackr", (): Record<string, unknown> => {
       return {
         Packr: class {
           public pack(): Buffer {
@@ -135,14 +182,25 @@ function loadBullmqRepeatInternals(): BullmqRepeatInternals {
         },
       };
     });
-    const repeat: Pick<BullmqRepeatInternals, "getNextMillis" | "Repeat"> =
-      jest.requireActual<
-        Pick<BullmqRepeatInternals, "getNextMillis" | "Repeat">
-      >("bullmq/dist/cjs/classes/repeat");
-    const jobScheduler: Pick<BullmqRepeatInternals, "JobScheduler"> =
-      jest.requireActual<Pick<BullmqRepeatInternals, "JobScheduler">>(
-        "bullmq/dist/cjs/classes/job-scheduler",
+    const repeat: unknown = jest.requireActual(
+      "bullmq/dist/cjs/classes/repeat",
+    );
+    const jobScheduler: unknown = jest.requireActual(
+      "bullmq/dist/cjs/classes/job-scheduler",
+    );
+
+    if (!isBullmqRepeatModule(repeat)) {
+      throw new Error(
+        "bullmq/dist/cjs/classes/repeat no longer exports getNextMillis and a Repeat class with hash and updateRepeatableJob.",
       );
+    }
+
+    if (!isBullmqJobSchedulerModule(jobScheduler)) {
+      throw new Error(
+        "bullmq/dist/cjs/classes/job-scheduler no longer exports a JobScheduler class with transformSchedulerData.",
+      );
+    }
+
     loaded.push({
       getNextMillis: repeat.getNextMillis,
       Repeat: repeat.Repeat,
@@ -241,7 +299,7 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
   });
 
   test("asks for the first thousand schedulers in ascending order", async () => {
-    const getJobSchedulers: jest.Mock<
+    const getJobSchedulers: Mock<
       (
         start?: number,
         end?: number,
@@ -326,7 +384,7 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
      */
     const bullmq: BullmqRepeatInternals = loadBullmqRepeatInternals();
     const storedCalls: Array<{ key: string; opts: JSONObject }> = [];
-    const repeatContext: object = {
+    const repeatContext: Record<string, unknown> = {
       repeatStrategy: bullmq.getNextMillis,
       repeatKeyHashAlgorithm: "md5",
       hash: bullmq.Repeat.prototype.hash,

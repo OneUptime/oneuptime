@@ -268,7 +268,15 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       if (!navigator.clipboard?.writeText) {
         throw new Error("Clipboard unavailable");
       }
-      await Clipboard.copyToClipboard(generatedCodes.join("\n"));
+      /*
+       * copyToClipboard reports a refused write as `false` rather than
+       * rejecting, so the result has to be checked: acknowledging codes that
+       * never reached the clipboard would hide the download fallback from
+       * exactly the user who needs it.
+       */
+      if (!(await Clipboard.copyToClipboard(generatedCodes.join("\n")))) {
+        throw new Error("Clipboard write refused");
+      }
       setHasCopiedCodes(true);
       if (copyFeedbackTimeout.current) {
         clearTimeout(copyFeedbackTimeout.current);

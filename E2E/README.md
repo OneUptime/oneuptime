@@ -46,6 +46,23 @@ It refuses payment setup unless the dashboard's publishable key starts with
 `pk_test_`. Billing tests can pass `enablePaidUsage: false` to
 `registerAndCreateProject` to exercise the initial state without a card.
 
+### ClickHouse access for exception fixtures
+
+`Tests/Dashboard/ExceptionDetailPages.spec.ts` seeds an exception occurrence by
+writing straight to ClickHouse over HTTP, using `CLICKHOUSE_USER`,
+`CLICKHOUSE_PASSWORD`, `CLICKHOUSE_DATABASE` and `CLICKHOUSE_HOST` from
+config.env. With `HOST=localhost` and `CLICKHOUSE_HOST=clickhouse` it connects to
+`127.0.0.1:8189`, which `docker-compose.dev.yml` publishes. `docker-compose.yml`
+and `docker-compose.billing.yml` publish no ClickHouse port, so start those
+stacks with the test-only loopback overlay, as CI does:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.e2e-clickhouse.yml up -d
+```
+
+Set `E2E_CLICKHOUSE_URL` (for example `http://127.0.0.1:8189`) to point the
+fixture anywhere else.
+
 ## Running Tests
 
 ### Run all tests
