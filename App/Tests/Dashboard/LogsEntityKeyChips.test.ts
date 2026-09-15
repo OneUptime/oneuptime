@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import type { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
+import { buildSearchTokenForFilter } from "Common/Utils/Telemetry/LockedFilterSearch";
 /*
  * STATIC imports, on purpose: the chip builder, its describer and the
  * Inventory display map are all imported by the logs viewer's chip memo and
@@ -13,12 +14,11 @@ import {
   normalizeLockedEntityKeys,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
-  CANNOT_TRAVEL_REASON,
   DEFAULT_ENTITY_KEY_DISPLAY_KEY,
   ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   LOCKED_FILTER_SOURCE_PAGE,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
-  buildLockedScopeCopyText,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import { buildInventoryEntityKeyDisplays } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryTelemetryScope";
@@ -26,18 +26,16 @@ import { buildInventoryEntityKeyDisplays } from "../../FeatureSet/Dashboard/src/
 /*
  * The locked chips the logs viewer builds for an entity-key scope — what an
  * Inventory item's Logs page shows above its list. Only the `logs` rows noun
- * is exercised here; the viewer's glue (dispatch, decoration, Copy / Open in
- * Logs) is pinned in LogsLockedScope.test.ts and the wiring in
- * LogsLockedScopeWiring.test.ts. The explanation's wording is owned by
- * LockedTelemetryScope.test.ts: here each chip is compared to the describer,
- * with the logs sentence spelled out.
+ * is exercised here; the viewer's glue (dispatch, decoration) is pinned in
+ * LogsLockedScope.test.ts and the wiring in LogsLockedScopeWiring.test.ts.
+ * The explanation's wording is owned by LockedTelemetryScope.test.ts: here
+ * each chip is compared to the describer, with the logs sentence spelled out.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
 const NODE_KEY: string = "aaaaaaaaaaaaaaaa";
 
-const NO_TRAVEL: string =
-  "This filter cannot be copied or carried to the explorer.";
+const NO_ATTRIBUTES: string = ENTITY_KEY_NO_ATTRIBUTES_REASON;
 
 type ChipTextFunction = (chip: ActiveFilter) => string;
 
@@ -81,12 +79,15 @@ describe("buildLockedEntityKeyChips for logs", () => {
     );
     expect(chips[0]!.facetKey).toBe(ENTITY_KEYS_FACET_KEY);
     expect(chips[0]!.lockedDetail!.source).toBe(LOCKED_FILTER_SOURCE_PAGE);
-    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
-      CANNOT_TRAVEL_REASON,
-    );
-    // A locked chip: no remove button, no open-link, no search token.
+    /*
+     * A locked chip has no open route; and with no identifying attributes
+     * handed over, the item has nothing to spell a search token with.
+     */
     expect(chips[0]!.openRoute).toBeUndefined();
     expect(chips[0]!.lockedDetail!.searchToken).toBeUndefined();
+    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      NO_ATTRIBUTES,
+    );
   });
 
   test('without a display map the chip still renders, as "Resource: <key>" — never an empty chip bar', () => {
@@ -225,7 +226,9 @@ describe("buildLockedEntityKeyChips for logs", () => {
       expect(chip.readOnly).toBe(true);
       expect(chip.facetKey).toBe("entityKeys");
       expect(chip.lockedDetail!.searchToken).toBeUndefined();
-      expect(chip.lockedDetail!.searchTokenUnavailableReason).toBe(NO_TRAVEL);
+      expect(chip.lockedDetail!.searchTokenUnavailableReason).toBe(
+        NO_ATTRIBUTES,
+      );
     }
   });
 
@@ -342,24 +345,52 @@ describe("buildLockedEntityKeyChips for logs", () => {
   });
 });
 
-describe("Copy filter for entity-key chips", () => {
-  test("an entity-key-only scope copies nothing — the logs grammar has no entity-key token", () => {
+describe("search syntax for entity-key chips on logs", () => {
+  test("without the entity's attributes no chip carries a token — the logs grammar has no entity-key token", () => {
+    const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY, NODE_KEY],
+    });
+
+    expect(chips).toHaveLength(2);
+
+    for (const chip of chips) {
+      expect(chip.lockedDetail!.searchToken).toBeUndefined();
+      expect(chip.lockedDetail!.searchTokenUnavailableReason).toBe(
+        NO_ATTRIBUTES,
+      );
+    }
+
+    // Nor could the key itself be spelled: the column has no field token.
     expect(
-      buildLockedScopeCopyText(
-        "logs",
-        buildLockedEntityKeyChips({
-          rows: "logs",
-          entityKeys: [POD_KEY, NODE_KEY],
-        }),
-      ),
-    ).toBe("");
+      buildSearchTokenForFilter("logs", ENTITY_KEYS_FACET_KEY, POD_KEY),
+    ).toBeNull();
   });
 
-  test("a bare chip with no explanation copies nothing either", () => {
+  test("an Inventory item's identifying attributes spell the logs chip's token; the key never appears in it", () => {
+    const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY],
+      displays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: "checkout-7d9f",
+        identifyingAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": "checkout-7d9f",
+        },
+      }),
+    });
+
+    expect(chips.map(chipText)).toEqual(["Kubernetes Pod: checkout-7d9f"]);
+    expect(chips[0]!.value).toBe(POD_KEY);
+    expect(chips[0]!.lockedDetail!.searchToken).toBe(
+      "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+    );
+    expect(chips[0]!.lockedDetail!.searchToken).not.toContain(POD_KEY);
     expect(
-      buildLockedScopeCopyText("logs", [
-        { facetKey: "entityKeys", value: POD_KEY },
-      ]),
-    ).toBe("");
+      chips[0]!.lockedDetail!.searchTokenUnavailableReason,
+    ).toBeUndefined();
   });
 });

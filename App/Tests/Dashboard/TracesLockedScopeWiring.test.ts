@@ -4,9 +4,9 @@ import path from "path";
 
 /*
  * The traces explorer's locked chips — a service page's entity, a
- * snapshot's stored query, a resource page's attribute filters — carry a
- * LockedFilterDetail that the shared chip renders as its tooltip, and the
- * "Copy filter" / "Open in Traces" actions are built from those chips.
+ * snapshot's stored query, a resource page's attribute filters, an Inventory
+ * item's entity key — carry a LockedFilterDetail whose search syntax the
+ * shared chip shows as its tooltip.
  *
  * The describers and builders are unit-tested in LockedTelemetryScope.test.ts
  * and TracesEntityDisplay.test.ts. What this suite pins is the WIRING in
@@ -125,7 +125,7 @@ const TRACES_ENTITY_DISPLAY: string = readSource(
 );
 
 describe("TracesViewer imports the locked-scope helpers", () => {
-  test("describers come from the pure utility, the Copy / Open actions from the route-aware link module, and the stored-query dispatcher from the display module", () => {
+  test("describers come from the pure utility and the stored-query dispatcher from the display module", () => {
     const pureImports: string = importListFrom(
       TRACES_VIEWER,
       "../../Utils/LockedTelemetryScope",
@@ -137,10 +137,6 @@ describe("TracesViewer imports the locked-scope helpers", () => {
     ]) {
       expect(pureImports).toContain(name);
     }
-
-    expect(
-      importListFrom(TRACES_VIEWER, "../../Utils/LockedTelemetryScopeLink"),
-    ).toContain("buildLockedScopeFilterActions");
 
     const displayImports: string = importListFrom(
       TRACES_VIEWER,
@@ -171,16 +167,28 @@ describe("TracesViewer imports the locked-scope helpers", () => {
     expect(sharedImports).toContain("LockedEntityKeyDisplayMap");
   });
 
-  test("the renderer-free display module never loads the explorer link builder — it reads `window` at load", () => {
+  test("the renderer-free display module takes its describers from the pure utility and never loads the route map", () => {
     /*
-     * TracesEntityDisplay.test.ts runs in plain Node. The link builder pulls
-     * RouteMap → Common/UI/Config, which throws "window is not defined"
-     * before a single test runs; the describers are pure and may be imported.
+     * TracesEntityDisplay.test.ts runs in plain Node. RouteMap pulls
+     * Common/UI/Config, which throws "window is not defined" before a single
+     * test runs; the describers are pure and may be imported.
      */
-    expect(TRACES_ENTITY_DISPLAY).not.toContain("LockedTelemetryScopeLink");
+    expect(TRACES_ENTITY_DISPLAY).not.toContain("RouteMap");
     expect(TRACES_ENTITY_DISPLAY).toContain(
       'from "../../Utils/LockedTelemetryScope"',
     );
+  });
+
+  test("the viewer imports neither the removed locked-filter actions nor their link builder", () => {
+    for (const removed of [
+      "LockedFilterActions",
+      "LockedFilterActionOptions",
+      "LockedTelemetryScopeLink",
+      "buildLockedScopeFilterActions",
+      "buildLogsLockedFilterActions",
+    ]) {
+      expect(TRACES_VIEWER).not.toContain(removed);
+    }
   });
 });
 
@@ -281,48 +289,15 @@ describe("every locked chip carries its explanation", () => {
   });
 });
 
-describe("Copy filter / Open in Traces", () => {
-  const actionsMemo: string = blockAfter(
-    TRACES_VIEWER,
-    "const lockedFilterActions: LockedFilterActionOptions | undefined =",
-    "{",
-    "}",
-  );
-
-  test("are built by the shared builder from the LOCKED chips alone, plus the current window", () => {
-    /*
-     * The builder's own rules (locked chips only, no link that carries none
-     * of the scope, copy text kept when the route cannot resolve) run on
-     * real chips in TracesEntityKeyLockedScope.test.ts and
-     * LockedTelemetryScopeLink.test.ts; this pins what the viewer hands it.
-     */
-    const call: string = blockAfter(
-      actionsMemo,
-      "buildLockedScopeFilterActions(",
-      "{",
-      "}",
-    );
-
-    expect(call).toContain('signal: "traces"');
-    expect(call).toContain("chips: lockedChips");
-    expect(call).toContain("timeRange");
-
-    const dependencies: string = dependenciesOf(
-      TRACES_VIEWER,
-      "const lockedFilterActions: LockedFilterActionOptions | undefined =",
-    );
-
-    expect(dependencies).toContain("lockedChips");
-    expect(dependencies).toContain("timeRange");
-  });
-
-  test("reach the shared viewer under the traces signal", () => {
+describe("the locked chips reach the shared viewer under the traces signal", () => {
+  test("the signal names the explorer the tooltip's search syntax is for", () => {
     /*
      * The JSX element cannot be sliced by brace balancing (its props hold
-     * arrow functions and nested elements), so the check is positional: each
+     * arrow functions and nested elements), so the check is positional: the
      * prop appears exactly once, after the element opens and before the
      * component returns.
      */
+    const prop: string = 'lockedFilterSignal="traces"';
     const elementStart: number = TRACES_VIEWER.indexOf("<TelemetryViewer");
     const componentEnd: number = TRACES_VIEWER.lastIndexOf(
       "export default TracesViewer;",
@@ -330,17 +305,22 @@ describe("Copy filter / Open in Traces", () => {
 
     expect(elementStart).toBeGreaterThanOrEqual(0);
     expect(componentEnd).toBeGreaterThan(elementStart);
+    expect(TRACES_VIEWER.split(prop).length - 1).toBe(1);
 
-    for (const prop of [
-      'lockedFilterSignal="traces"',
-      "lockedFilterActions={lockedFilterActions}",
+    const propIndex: number = TRACES_VIEWER.indexOf(prop);
+
+    expect(propIndex).toBeGreaterThan(elementStart);
+    expect(propIndex).toBeLessThan(componentEnd);
+  });
+
+  test("the viewer builds no actions, link or copy text from the locked chips, and hands none to the shared viewer", () => {
+    for (const removed of [
+      "lockedFilterActions",
+      "buildLockedScopeExplorerLink",
+      "buildLockedScopeCopyText",
+      "buildSearchTextForFilters",
     ]) {
-      expect(TRACES_VIEWER.split(prop).length - 1).toBe(1);
-
-      const propIndex: number = TRACES_VIEWER.indexOf(prop);
-
-      expect(propIndex).toBeGreaterThan(elementStart);
-      expect(propIndex).toBeLessThan(componentEnd);
+      expect(TRACES_VIEWER).not.toContain(removed);
     }
   });
 });
@@ -497,22 +477,18 @@ describe("an entity-key scope (an Inventory item's Traces tab) gets its locked c
     }
   });
 
-  test("display only: nothing but the chip bar and its Copy / Open actions reads the locked chips", () => {
+  test("display only: nothing but the chip bar reads the locked chips", () => {
     /*
      * The list query, the chart payload, URL state and saved views are all
      * built from props, `spanScope` and the user's own `activeFilters`. A
      * new reader of `lockedChips` is a place the new chip could leak into a
-     * query, so it has to be one of these three.
+     * query, so it has to be one of these two.
      */
     const regions: Array<[number, number]> = [
       hookRegion(TRACES_VIEWER, LOCKED_CHIPS_MARKER),
       hookRegion(
         TRACES_VIEWER,
         "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
-      ),
-      hookRegion(
-        TRACES_VIEWER,
-        "const lockedFilterActions: LockedFilterActionOptions | undefined =",
       ),
     ];
 
@@ -557,23 +533,6 @@ describe("the Logs / Metrics pivots know the entity scope is carried by its attr
     // The legacy flag is still passed, so an entityKeys-only scope is still reported.
     expect(pivotCall).toContain("hasEntityScope: Boolean(");
     expect(pivotCall).toContain("props.entityKeysFilter");
-  });
-});
-
-/*
- * An Inventory item's entity-key scope is one no explorer URL can spell, so
- * the only link the link builder can make for it is the window alone — every
- * span in the project under "Open in Traces". buildLockedScopeFilterActions
- * withholds that link (on real chips in TracesEntityKeyLockedScope.test.ts);
- * this pins that the viewer has no second path around it.
- */
-describe("Open in Traces is withheld when the link carries none of the locked scope", () => {
-  test("the viewer builds neither a link nor copy text of its own, so the shared builder decides both", () => {
-    expect(TRACES_VIEWER).not.toContain("buildLockedScopeExplorerLink(");
-    expect(TRACES_VIEWER).not.toContain("buildLockedScopeCopyText(");
-    expect(TRACES_VIEWER).toContain(
-      "lockedFilterActions={lockedFilterActions}",
-    );
   });
 });
 

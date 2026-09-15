@@ -28,11 +28,7 @@ import {
   preserveBaseAttributesInTypedFilter,
   serializeTypedLogFilter,
 } from "./LogsHistogramRequest";
-import {
-  LOGS_SIGNAL,
-  attachLogsLockedFilterDetails,
-  buildLogsLockedFilterActions,
-} from "./LogsLockedScope";
+import { LOGS_SIGNAL, attachLogsLockedFilterDetails } from "./LogsLockedScope";
 import {
   LockedEntityKeyDisplayMap,
   buildLockedEntityKeyChips,
@@ -41,7 +37,6 @@ import {
   LOCKED_FILTER_SOURCE_PAGE,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
 } from "../../Utils/LockedTelemetryScope";
-import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
@@ -2274,6 +2269,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       logQueryAttributes,
       entityScope: props.entityScope,
       entityKeysSource,
+      entityKeyDisplays: props.entityKeyDisplays,
     });
   }, [
     props.serviceIds,
@@ -2291,19 +2287,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props.attributeFilterDisplayValues,
     entityNameMap,
   ]);
-
-  /*
-   * "Copy filter" / "Open in Logs" for the whole locked scope. Undefined on
-   * the main explorer (nothing is locked there), so nothing renders.
-   */
-  const lockedFilterActions: LockedFilterActionOptions | undefined =
-    useMemo(() => {
-      return buildLogsLockedFilterActions({
-        chips: baseActiveFilters,
-        logQueryAttributes,
-        timeRange,
-      });
-    }, [baseActiveFilters, logQueryAttributes, timeRange]);
 
   /*
    * Names the server already resolved for the entity facet. Derived once per
@@ -2558,7 +2541,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           getSessionRoute={getSessionRoute}
           signalPivotActions={signalPivotActions}
           lockedFilterSignal="logs"
-          lockedFilterActions={lockedFilterActions}
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}

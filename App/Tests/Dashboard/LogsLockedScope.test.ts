@@ -1,93 +1,34 @@
-import { beforeAll, describe, expect, test } from "@jest/globals";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { describe, expect, test } from "@jest/globals";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
-import TimeRange from "Common/Types/Time/TimeRange";
-import type RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import type { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
-import type { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import type { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 /*
- * Pure modules, imported statically: neither reaches `window`, and the chips
+ * Pure modules, imported statically: none reaches `window`, and the chips
  * the viewer builds come from here, so the glue is exercised on real chips.
  */
+import * as Scope from "../../FeatureSet/Dashboard/src/Components/Logs/LogsLockedScope";
 import {
   LockedEntityKeyDisplayMap,
   buildLockedEntityKeyChips,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
-  CANNOT_TRAVEL_REASON,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   LOCKED_FILTER_SOURCE_PAGE,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
+  SESSION_NO_SYNTAX_REASON,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 
 /*
  * The logs viewer's glue for the locked-filter explainer: which describer
- * each locked chip gets (by the column it filters), that the page's pinned
- * raw values and entity scope reach the attribute describer, and that the
- * "Copy filter" / "Open in Logs" actions are built from the locked chips
- * alone — and degrade to copy-only when the explorer route cannot be
- * resolved. The wording and URL grammar themselves are pinned in
+ * each locked chip gets (by the column it filters), and that what the page
+ * pinned — raw attribute values, its entity scope, who pinned its entity
+ * keys and the attributes that name them — reaches the describers, so every
+ * chip carries the search syntax (or the reason there is none) its tooltip
+ * shows. The wording and the search grammar themselves are pinned in
  * LockedTelemetryScope.test.ts; this suite pins the dispatch.
  */
-
-type ScopeModule =
-  typeof import("../../FeatureSet/Dashboard/src/Components/Logs/LogsLockedScope");
-
-let Scope: ScopeModule;
-
-const PROJECT_ID: string = "2d1a3f6e-0f7b-4c1d-9a2e-8b3c4d5e6f70";
-const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/kubernetes/abc123/logs`;
-
-const PAST_ONE_HOUR: RangeStartAndEndDateTime = {
-  range: TimeRange.PAST_ONE_HOUR,
-};
-
-/*
- * The link builder reads the current URL through Navigation, and
- * Common/UI/Config reads `window` the moment it loads — the browser stub has
- * to exist before the module is imported (same approach as
- * LockedTelemetryScope.test.ts).
- */
-beforeAll(async () => {
-  (globalThis as Record<string, unknown>)["window"] = {
-    location: {
-      pathname: PAGE_PATH,
-      search: "",
-      hash: "",
-      href: `https://app.example.com${PAGE_PATH}`,
-    },
-    history: {
-      state: null,
-      replaceState: (): void => {
-        // no-op; these tests never navigate.
-      },
-    },
-  };
-
-  for (const storageName of ["sessionStorage", "localStorage"]) {
-    Object.defineProperty(globalThis, storageName, {
-      value: {
-        getItem: (): null => {
-          return null;
-        },
-        setItem: (): void => {
-          // no-op
-        },
-        removeItem: (): void => {
-          // no-op
-        },
-      },
-      configurable: true,
-      writable: true,
-    });
-  }
-
-  Scope = await import(
-    "../../FeatureSet/Dashboard/src/Components/Logs/LogsLockedScope"
-  );
-});
 
 function chip(overrides: Partial<ActiveFilter>): ActiveFilter {
   return {
@@ -100,12 +41,10 @@ function chip(overrides: Partial<ActiveFilter>): ActiveFilter {
   };
 }
 
-function filtersOf(actions: LockedFilterActionOptions | undefined): unknown {
-  const raw: string | null = new globalThis.URL(
-    actions!.openExplorerRoute!.toString(),
-  ).searchParams.get("filters");
-
-  return raw === null ? null : JSON.parse(raw);
+function tokensOf(chips: Array<ActiveFilter>): Array<string | undefined> {
+  return chips.map((each: ActiveFilter): string | undefined => {
+    return each.lockedDetail?.searchToken;
+  });
 }
 
 describe("describeLogsLockedChip", () => {
@@ -249,7 +188,9 @@ describe("describeLogsLockedChip", () => {
         {},
       );
     expect(session!.searchToken).toBeUndefined();
-    expect(session!.searchTokenUnavailableReason).toContain("Open in Logs");
+    expect(session!.searchTokenUnavailableReason).toBe(
+      SESSION_NO_SYNTAX_REASON,
+    );
   });
 
   test("a column with no describer keeps a plain chip", () => {
@@ -296,24 +237,17 @@ describe("attachLogsLockedFilterDetails", () => {
   });
 });
 
-describe("buildLogsLockedFilterActions", () => {
-  test("nothing locked → nothing to offer", () => {
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: [
-          chip({
-            facetKey: "severityText",
-            value: "Error",
-            readOnly: false,
-          }),
-        ],
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toBeUndefined();
-  });
+describe("attachLogsLockedFilterDetails — every locked chip carries its own search syntax", () => {
+  test("each locked attribute chip is spelled on its own; the removable chip gets nothing", () => {
+    const removable: ActiveFilter = chip({
+      facetKey: "severityText",
+      value: "Error",
+      displayKey: "Severity",
+      displayValue: "Error",
+      readOnly: false,
+    });
 
-  test("copy text and the explorer link cover every locked chip, removable chips excluded", () => {
-    const locked: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
+    const decorated: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
       [
         chip({}),
         chip({
@@ -322,13 +256,7 @@ describe("buildLogsLockedFilterActions", () => {
           displayKey: "Runtime",
           displayValue: "docker",
         }),
-        chip({
-          facetKey: "severityText",
-          value: "Error",
-          displayKey: "Severity",
-          displayValue: "Error",
-          readOnly: false,
-        }),
+        removable,
       ],
       {
         logQueryAttributes: {
@@ -338,41 +266,21 @@ describe("buildLogsLockedFilterActions", () => {
       },
     );
 
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips: locked,
-        logQueryAttributes: {
-          "resource.k8s.cluster.name": "prod-eks-01",
-          "resource.container.runtime": "docker",
-        },
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    expect(actions!.copyText).toBe(
-      "@resource.k8s.cluster.name:prod-eks-01 @resource.container.runtime:docker",
-    );
-    expect(actions!.openExplorerRoute).toBeDefined();
-    expect(
-      new globalThis.URL(actions!.openExplorerRoute!.toString()).pathname,
-    ).toBe(`/dashboard/${PROJECT_ID}/logs`);
-    expect(filtersOf(actions)).toEqual([
-      ["attributes.resource.k8s.cluster.name", ["prod-eks-01"]],
-      ["attributes.resource.container.runtime", ["docker"]],
+    expect(tokensOf(decorated)).toEqual([
+      "@resource.k8s.cluster.name:prod-eks-01",
+      "@resource.container.runtime:docker",
+      undefined,
     ]);
-    expect(
-      new globalThis.URL(
-        actions!.openExplorerRoute!.toString(),
-      ).searchParams.get("range"),
-    ).toBe(TimeRange.PAST_ONE_HOUR);
-    expect(actions!.notCarried).toEqual([]);
+    expect(decorated[2]).toBe(removable);
   });
 
-  test("an operator-valued pinned attribute is spelled in the copy text (the grammar has it) but the URL chip cannot carry it, and says so", () => {
+  test("an operator-valued pinned attribute is spelled from the operator, beside a plain one", () => {
     const attributes: Record<string, unknown> = {
       "resource.host.name": "web-01",
       "k8s.namespace.name": new Search("pay"),
     };
-    const locked: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
+
+    const decorated: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
       [
         chip({
           facetKey: "attributes.resource.host.name",
@@ -390,100 +298,17 @@ describe("buildLogsLockedFilterActions", () => {
       { logQueryAttributes: attributes as never },
     );
 
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips: locked,
-        logQueryAttributes: attributes as never,
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    /*
-     * The search bar can say "contains"; a URL chip is an exact value
-     * re-parsed as grammar and cannot, so the link reports it instead.
-     */
-    expect(actions!.copyText).toBe(
-      "@resource.host.name:web-01 @k8s.namespace.name:~pay",
-    );
-    expect(filtersOf(actions)).toEqual([
-      ["attributes.resource.host.name", ["web-01"]],
+    // The search bar can say "contains"; the chip's display text cannot.
+    expect(tokensOf(decorated)).toEqual([
+      "@resource.host.name:web-01",
+      "@k8s.namespace.name:~pay",
     ]);
-    expect(actions!.notCarried).toEqual(["attribute k8s.namespace.name"]);
-  });
 
-  test("a session chip travels in the link (as the sessionId chip the explorer compiles) but has no copy text", () => {
-    const locked: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
-      [chip({ facetKey: "sessionId", value: "sess-1", displayKey: "Session" })],
-      {},
-    );
-
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips: locked,
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    expect(actions!.copyText).toBeUndefined();
-    expect(actions!.openExplorerRoute).toBeDefined();
-    expect(filtersOf(actions)).toEqual([["sessionId", ["sess-1"]]]);
-    expect(actions!.notCarried).toEqual([]);
-    /*
-     * ...which is what the chip's own tooltip promised: the two affordances
-     * must agree, or the reader is sent to a link that drops the session.
-     */
-    expect(locked[0]!.lockedDetail!.searchTokenUnavailableReason).toContain(
-      "use Open in Logs instead",
-    );
-  });
-
-  test("without a resolvable explorer route the copy affordance survives alone", () => {
-    const previousWindow: unknown = (globalThis as Record<string, unknown>)[
-      "window"
-    ];
-    // No project id in the path: the route cannot be populated.
-    (globalThis as Record<string, unknown>)["window"] = {
-      ...(previousWindow as Record<string, unknown>),
-      location: {
-        pathname: "/",
-        search: "",
-        hash: "",
-        href: "https://app.example.com/",
-      },
-    };
-
-    try {
-      const actions: LockedFilterActionOptions | undefined =
-        Scope.buildLogsLockedFilterActions({
-          chips: Scope.attachLogsLockedFilterDetails([chip({})], {}),
-          timeRange: PAST_ONE_HOUR,
-        });
-
-      /*
-       * The link builder throws when it cannot resolve a project (a link to
-       * the literal `/dashboard/:projectId/logs` template would be worse
-       * than none); the catch keeps the copy affordance and drops the rest.
-       */
-      expect(actions).toBeDefined();
-      expect(actions!.copyText).toBe("@resource.k8s.cluster.name:prod-eks-01");
-      expect(actions!.openExplorerRoute).toBeUndefined();
-      expect(actions!.notCarried).toBeUndefined();
-    } finally {
-      (globalThis as Record<string, unknown>)["window"] = previousWindow;
+    for (const decoratedChip of decorated) {
+      expect(
+        decoratedChip.lockedDetail!.searchTokenUnavailableReason,
+      ).toBeUndefined();
     }
-  });
-
-  test("with a resolvable route the link names the current project, never the :projectId template", () => {
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips: Scope.attachLogsLockedFilterDetails([chip({})], {}),
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    const pathname: string = new globalThis.URL(
-      actions!.openExplorerRoute!.toString(),
-    ).pathname;
-
-    expect(pathname).toBe(`/dashboard/${PROJECT_ID}/logs`);
-    expect(pathname).not.toContain(":projectId");
   });
 });
 
@@ -492,13 +317,31 @@ describe("buildLogsLockedFilterActions", () => {
  * come from the shared builder with an explanation already attached; the
  * viewer then runs every locked chip through attachLogsLockedFilterDetails,
  * which must describe the entity-key column itself — and must not trade the
- * builder's multi-key wording (or its source) for the single-key sentence on
- * the way. The wording itself is owned by LockedTelemetryScope.test.ts.
+ * builder's multi-key wording (its source, or the search syntax spelled from
+ * the item's identifying attributes) for the single-key sentence on the way.
+ * The wording itself is owned by LockedTelemetryScope.test.ts.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
 const NODE_KEY: string = "aaaaaaaaaaaaaaaa";
 const DISK_KEY: string = "bbbbbbbbbbbbbbbb";
+
+// The pod's identifying resource attributes, keys without `resource.`.
+const POD_SEARCH_ATTRIBUTES: Record<string, string> = {
+  "k8s.cluster.name": "prod",
+  "k8s.namespace.name": "shop",
+  "k8s.pod.name": "checkout-7d9f",
+};
+const POD_SEARCH_TOKEN: string =
+  "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
+
+const POD_DISPLAYS_WITH_ATTRIBUTES: LockedEntityKeyDisplayMap = {
+  [POD_KEY]: {
+    displayKey: "Kubernetes Pod",
+    displayValue: "checkout-7d9f",
+    searchAttributes: POD_SEARCH_ATTRIBUTES,
+  },
+};
 
 function entityKeyChip(overrides: Partial<ActiveFilter>): ActiveFilter {
   return chip({
@@ -517,7 +360,7 @@ function detailsOf(chips: Array<ActiveFilter>): Array<unknown> {
 }
 
 describe("describeLogsLockedChip — entity-key chips", () => {
-  test("an entityKeys chip is explained as a membership named by the chip's key, and says it cannot travel", () => {
+  test("an entityKeys chip is explained as a membership named by the chip's key, and has no search syntax when the page names no attributes", () => {
     const detail: LockedFilterDetail | undefined = Scope.describeLogsLockedChip(
       entityKeyChip({}),
       {},
@@ -534,9 +377,44 @@ describe("describeLogsLockedChip — entity-key chips", () => {
       "Only logs linked to this Kubernetes Pod are shown.",
     );
     expect(detail!.source).toBe(LOCKED_FILTER_SOURCE_PAGE);
-    expect(detail!.searchTokenUnavailableReason).toBe(CANNOT_TRAVEL_REASON);
-    // No token at all — "Copy filter" must not invent one.
+    expect(detail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+    // No token at all — the key itself must never be spelled as one.
     expect(detail!.searchToken).toBeUndefined();
+  });
+
+  test("the page's display map reaches the describer: the chip is spelled with the attributes named for ITS key", () => {
+    const detail: LockedFilterDetail | undefined = Scope.describeLogsLockedChip(
+      entityKeyChip({}),
+      { entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES },
+    );
+
+    expect(detail).toEqual(
+      describeLockedEntityKeyFilter({
+        rows: "logs",
+        entityKey: POD_KEY,
+        entityTypeLabel: "Kubernetes Pod",
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      }),
+    );
+    expect(detail!.searchToken).toBe(POD_SEARCH_TOKEN);
+    expect(detail!.searchTokenUnavailableReason).toBeUndefined();
+    // The attributes change the syntax only, never what the chip says.
+    expect(detail!.summary).toBe(
+      Scope.describeLogsLockedChip(entityKeyChip({}), {})!.summary,
+    );
+
+    // Attributes named for another key do not spell this chip.
+    const other: LockedFilterDetail | undefined = Scope.describeLogsLockedChip(
+      entityKeyChip({ value: NODE_KEY, displayKey: "Resource" }),
+      { entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES },
+    );
+
+    expect(other!.searchToken).toBeUndefined();
+    expect(other!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
   });
 
   test('the builder\'s "Resource" fallback key reads as "this resource", in any case', () => {
@@ -579,7 +457,9 @@ describe("describeLogsLockedChip — entity-key chips", () => {
     );
     expect(detail!.combinator).toBe("all");
     expect(detail!.searchToken).toBeUndefined();
-    expect(detail!.searchTokenUnavailableReason).toBe(CANNOT_TRAVEL_REASON);
+    expect(detail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
   });
 
   test('one other key is "1 other resource", singular', () => {
@@ -703,12 +583,13 @@ describe("attachLogsLockedFilterDetails — entity-key chips", () => {
     ]);
   });
 
-  test("parity holds without a display map, with an empty one, and with blank or padded display strings", () => {
+  test("parity holds without a display map, with an empty one, with blank or padded display strings, and with search attributes", () => {
     const displayVariants: Array<LockedEntityKeyDisplayMap | undefined> = [
       undefined,
       {},
       { [POD_KEY]: { displayKey: "   ", displayValue: "" } },
       { [POD_KEY]: { displayKey: "  Host  ", displayValue: "  web-01 " } },
+      POD_DISPLAYS_WITH_ATTRIBUTES,
     ];
     const keyVariants: Array<Array<string>> = [
       [POD_KEY],
@@ -724,11 +605,47 @@ describe("attachLogsLockedFilterDetails — entity-key chips", () => {
           displays,
         });
 
+        // The viewer hands the decoration the same map it built the chips with.
         expect(
-          detailsOf(Scope.attachLogsLockedFilterDetails(built, {})),
+          detailsOf(
+            Scope.attachLogsLockedFilterDetails(built, {
+              entityKeyDisplays: displays,
+            }),
+          ),
         ).toEqual(detailsOf(built));
       }
     }
+  });
+
+  test("the item's search syntax survives the decoration only when the display map is passed — which is why the viewer passes it", () => {
+    const built: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY, NODE_KEY],
+      displays: POD_DISPLAYS_WITH_ATTRIBUTES,
+    });
+
+    expect(tokensOf(built)).toEqual([POD_SEARCH_TOKEN, undefined]);
+
+    const decorated: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
+      built,
+      { entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES },
+    );
+
+    expect(detailsOf(decorated)).toEqual(detailsOf(built));
+    // The key the page named no attributes for still has no syntax.
+    expect(decorated[1]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+
+    const withoutMap: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
+      built,
+      {},
+    );
+
+    expect(tokensOf(withoutMap)).toEqual([undefined, undefined]);
+    expect(withoutMap[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
   });
 
   test("a bare entityKeys chip (no detail attached upstream) still gets its explanation, multi-key wording included", () => {
@@ -904,7 +821,7 @@ describe("attachLogsLockedFilterDetails — entity-key chips", () => {
   });
 });
 
-describe("buildLogsLockedFilterActions — entity-key scopes", () => {
+describe("attachLogsLockedFilterDetails — the search syntax of an entity-key scope", () => {
   function inventoryChips(entityKeys: Array<string>): Array<ActiveFilter> {
     return Scope.attachLogsLockedFilterDetails(
       buildLockedEntityKeyChips({
@@ -921,79 +838,39 @@ describe("buildLogsLockedFilterActions — entity-key scopes", () => {
     );
   }
 
-  test("an entity-key-only scope offers no actions at all: nothing to copy, and no Open in Logs link that would drop the scope", () => {
+  test("an entity-key-only scope whose page names no attributes has no search syntax on any chip, and every chip says why", () => {
     /*
-     * No copy text: the logs grammar has no entity-key token. No link: the
-     * only URL the link builder can make for this scope is the window alone
-     * (carriedFilterCount 0, pinned in LockedTelemetryScopeLink.test.ts),
-     * which would open the Logs explorer UNFILTERED under "Open in Logs" —
-     * a "not carried over: resource" caveat does not make that link useful.
-     * With neither, undefined keeps the actions group from mounting at all;
-     * the chip's own tooltip already says the filter cannot travel.
-     *
-     * Deliberately changed from the earlier expectation of a window-only
-     * link carrying that caveat.
+     * The logs grammar has no entity-key token, and without the item's
+     * identifying attributes there is nothing else to spell the scope with.
+     * More keys are not more to spell.
      */
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: inventoryChips([POD_KEY]),
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toBeUndefined();
+    for (const entityKeys of [[POD_KEY], [POD_KEY, NODE_KEY, DISK_KEY]]) {
+      const chips: Array<ActiveFilter> = inventoryChips(entityKeys);
+
+      expect(chips).toHaveLength(entityKeys.length);
+
+      for (const inventoryChip of chips) {
+        expect(inventoryChip.lockedDetail!.searchToken).toBeUndefined();
+        expect(inventoryChip.lockedDetail!.searchTokenUnavailableReason).toBe(
+          ENTITY_KEY_NO_ATTRIBUTES_REASON,
+        );
+      }
+    }
   });
 
-  test("a Custom window does not bring the link back — the window was never the problem", () => {
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: inventoryChips([POD_KEY]),
-        timeRange: {
-          range: TimeRange.CUSTOM,
-          startAndEndDate: new InBetween<Date>(
-            new Date("2026-08-10T10:00:00.000Z"),
-            new Date("2026-08-10T11:00:00.000Z"),
-          ),
-        },
-      }),
-    ).toBeUndefined();
-  });
-
-  test("the chip's tooltip and the actions agree: it can neither be copied nor carried", () => {
-    const chips: Array<ActiveFilter> = inventoryChips([POD_KEY]);
-
-    expect(chips[0]!.lockedDetail!.searchToken).toBeUndefined();
-    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
-      "This filter cannot be copied or carried to the explorer.",
+  test("a bare entityKeys chip with no detail gets the same reason — never a token spelled from the key", () => {
+    const decorated: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
+      [entityKeyChip({ displayKey: "Resource", displayValue: POD_KEY })],
+      {},
     );
-    // Never "use Open in Logs instead" — that link would drop the scope.
-    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).not.toContain(
-      "Open in Logs",
+
+    expect(tokensOf(decorated)).toEqual([undefined]);
+    expect(decorated[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
   });
 
-  test("several entity keys still offer nothing — more keys are not more to carry", () => {
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: inventoryChips([POD_KEY, NODE_KEY, DISK_KEY]),
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("a bare entityKeys chip with no detail offers nothing either — no entity-key search token, and no entity-key URL chip", () => {
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: [
-          entityKeyChip({ displayKey: "Resource", displayValue: POD_KEY }),
-        ],
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("a mixed scope copies and carries the attribute, and reports only the resource as left behind", () => {
-    const attributes: Record<string, unknown> = {
-      "resource.k8s.cluster.name": "prod-eks-01",
-    };
+  test("a mixed scope: the attribute chip keeps its token, the entity-key chip has none, the user's chip is left alone", () => {
     const chips: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
       [
         ...buildLockedEntityKeyChips({
@@ -1009,26 +886,23 @@ describe("buildLogsLockedFilterActions — entity-key scopes", () => {
           readOnly: false,
         }),
       ],
-      { logQueryAttributes: attributes as never },
+      {
+        logQueryAttributes: { "resource.k8s.cluster.name": "prod-eks-01" },
+      },
     );
 
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips,
-        logQueryAttributes: attributes as never,
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    expect(actions!.copyText).toBe("@resource.k8s.cluster.name:prod-eks-01");
-    // The attribute rides, so the link is offered — with the resource caveat.
-    expect(actions!.openExplorerRoute).toBeDefined();
-    expect(filtersOf(actions)).toEqual([
-      ["attributes.resource.k8s.cluster.name", ["prod-eks-01"]],
+    expect(tokensOf(chips)).toEqual([
+      undefined,
+      "@resource.k8s.cluster.name:prod-eks-01",
+      undefined,
     ]);
-    expect(actions!.notCarried).toEqual(["resource"]);
+    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+    expect(chips[2]!.lockedDetail).toBeUndefined();
   });
 
-  test("an entity key plus a session: the session travels, the resource is reported, neither copies", () => {
+  test("an entity key plus a session: neither has search syntax, and each gives its own reason", () => {
     const chips: Array<ActiveFilter> = Scope.attachLogsLockedFilterDetails(
       [
         ...buildLockedEntityKeyChips({ rows: "logs", entityKeys: [POD_KEY] }),
@@ -1037,18 +911,15 @@ describe("buildLogsLockedFilterActions — entity-key scopes", () => {
       {},
     );
 
-    const actions: LockedFilterActionOptions | undefined =
-      Scope.buildLogsLockedFilterActions({
-        chips,
-        timeRange: PAST_ONE_HOUR,
-      });
-
-    expect(actions!.copyText).toBeUndefined();
-    expect(filtersOf(actions)).toEqual([["sessionId", ["sess-1"]]]);
-    expect(actions!.notCarried).toEqual(["resource"]);
+    expect(tokensOf(chips)).toEqual([undefined, undefined]);
+    expect(
+      chips.map((each: ActiveFilter): string | undefined => {
+        return each.lockedDetail!.searchTokenUnavailableReason;
+      }),
+    ).toEqual([ENTITY_KEY_NO_ATTRIBUTES_REASON, SESSION_NO_SYNTAX_REASON]);
   });
 
-  test("the rule is what the URL carries, not entity keys: an operator-valued attribute alone keeps Copy and gets no link", () => {
+  test("an operator-valued attribute keeps its token alone and beside an entity key", () => {
     const attributes: Record<string, unknown> = {
       "k8s.namespace.name": new Search("pay"),
     };
@@ -1059,25 +930,17 @@ describe("buildLogsLockedFilterActions — entity-key scopes", () => {
       displayValue: "contains pay",
     });
 
-    /*
-     * The search grammar can say "contains", so the copy text survives; a
-     * URL chip is an exact value and cannot, so the only link would have
-     * opened every log in the project.
-     */
     expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: Scope.attachLogsLockedFilterDetails([operatorChip], {
+      tokensOf(
+        Scope.attachLogsLockedFilterDetails([operatorChip], {
           logQueryAttributes: attributes as never,
         }),
-        logQueryAttributes: attributes as never,
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toEqual({ copyText: "@k8s.namespace.name:~pay" });
+      ),
+    ).toEqual(["@k8s.namespace.name:~pay"]);
 
-    // Beside an entity key it is still copy only: two locked filters, none carried.
     expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: Scope.attachLogsLockedFilterDetails(
+      tokensOf(
+        Scope.attachLogsLockedFilterDetails(
           [
             ...buildLockedEntityKeyChips({
               rows: "logs",
@@ -1087,71 +950,7 @@ describe("buildLogsLockedFilterActions — entity-key scopes", () => {
           ],
           { logQueryAttributes: attributes as never },
         ),
-        logQueryAttributes: attributes as never,
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toEqual({ copyText: "@k8s.namespace.name:~pay" });
-  });
-
-  test("a user's removable entityKeys chip is not part of the locked scope the actions describe", () => {
-    expect(
-      Scope.buildLogsLockedFilterActions({
-        chips: [
-          entityKeyChip({
-            displayKey: "Resource",
-            displayValue: POD_KEY,
-            readOnly: false,
-          }),
-        ],
-        timeRange: PAST_ONE_HOUR,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("an entity-key-only scope with no resolvable explorer route offers nothing — never an empty Copy button", () => {
-    const previousWindow: unknown = (globalThis as Record<string, unknown>)[
-      "window"
-    ];
-    (globalThis as Record<string, unknown>)["window"] = {
-      ...(previousWindow as Record<string, unknown>),
-      location: {
-        pathname: "/",
-        search: "",
-        hash: "",
-        href: "https://app.example.com/",
-      },
-    };
-
-    try {
-      /*
-       * No copy text and no link leaves nothing to render; undefined keeps
-       * the actions group from mounting at all.
-       */
-      expect(
-        Scope.buildLogsLockedFilterActions({
-          chips: inventoryChips([POD_KEY]),
-          timeRange: PAST_ONE_HOUR,
-        }),
-      ).toBeUndefined();
-
-      // A mixed scope in the same spot keeps its copy text, alone.
-      expect(
-        Scope.buildLogsLockedFilterActions({
-          chips: Scope.attachLogsLockedFilterDetails(
-            [
-              ...buildLockedEntityKeyChips({
-                rows: "logs",
-                entityKeys: [POD_KEY],
-              }),
-              chip({}),
-            ],
-            {},
-          ),
-          timeRange: PAST_ONE_HOUR,
-        }),
-      ).toEqual({ copyText: "@resource.k8s.cluster.name:prod-eks-01" });
-    } finally {
-      (globalThis as Record<string, unknown>)["window"] = previousWindow;
-    }
+      ),
+    ).toEqual([undefined, "@k8s.namespace.name:~pay"]);
   });
 });

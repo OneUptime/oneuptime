@@ -61,7 +61,8 @@ import {
   resolveMetricsChipDisplay,
 } from "../../FeatureSet/Dashboard/src/Utils/MetricsEntityChipDisplay";
 import {
-  buildLockedScopeCopyText,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
+  METRICS_SERVICE_NO_SYNTAX_REASON,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import {
@@ -1145,7 +1146,7 @@ describe("locked metrics chips carry their explanation", () => {
     expect(chips[1]!.lockedDetail).toBeUndefined();
   });
 
-  test("a scope chip is explained by entity id, with the metrics-specific copy note, and names the resolved entity", () => {
+  test("a scope chip is explained by entity id, with the metrics-specific search-syntax reason, and names the resolved entity", () => {
     const before: Array<ActiveFilter> = buildMetricsLockedScopeChips({
       scopeIds: [new ObjectID(RUM_APP_ID)],
       scopeEntityType: ServiceType.RealUserMonitor,
@@ -1166,8 +1167,8 @@ describe("locked metrics chips carry their explanation", () => {
     ]);
     // The Metrics search bar matches services by NAME, so no token is offered.
     expect(unresolved.searchToken).toBeUndefined();
-    expect(unresolved.searchTokenUnavailableReason).toContain(
-      "use Open in Metrics",
+    expect(unresolved.searchTokenUnavailableReason).toBe(
+      METRICS_SERVICE_NO_SYNTAX_REASON,
     );
 
     const after: Array<ActiveFilter> = buildMetricsLockedScopeChips({
@@ -1694,8 +1695,6 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
   const THIRD_KEY: string = "bbbbbbbbbbbbbbbb";
 
   const PAGE_SOURCE: string = "Pinned by this page";
-  const CANNOT_TRAVEL: string =
-    "This filter cannot be copied or carried to the explorer.";
 
   const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
     [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: "checkout-7d9f" },
@@ -1790,8 +1789,13 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(detailOf(chips[0]).summary).toBe(
       "Only metrics linked to this Kubernetes Pod are shown.",
     );
-    expect(detailOf(chips[0]).searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
-    // No search grammar has an entity-key token, so none is offered.
+    expect(detailOf(chips[0]).searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+    /*
+     * No search grammar has an entity-key token, and this display map names
+     * no identifying attributes to spell one with, so none is offered.
+     */
     expect(detailOf(chips[0]).searchToken).toBeUndefined();
   });
 
@@ -2104,7 +2108,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     ).toEqual(chips);
   });
 
-  test("every entity-key chip is locked and explained, none offers a search token, and an entity-key-only scope copies nothing", () => {
+  test("every entity-key chip is locked and explained, and none offers a search token without the entity's identifying attributes", () => {
     const chips: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY, OTHER_KEY],
       entityKeyDisplays: POD_DISPLAYS,
@@ -2121,16 +2125,16 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       expect(detail.source).toBe(PAGE_SOURCE);
       expect(detail.combinator).toBe("all");
       expect(detail.searchToken).toBeUndefined();
-      expect(detail.searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
+      expect(detail.searchTokenUnavailableReason).toBe(
+        ENTITY_KEY_NO_ATTRIBUTES_REASON,
+      );
     }
 
     /*
-     * "Copy filter" trusts each locked chip's own token. With none, the text
-     * is empty, and LockedFilterActions renders no Copy button for a blank
-     * text rather than one that copies nothing.
+     * Each locked chip carries its own search syntax. Beside a locked
+     * attribute, the attribute chip keeps its token while the entity-key
+     * chip, named without attributes, still has none.
      */
-    expect(buildLockedScopeCopyText("metrics", chips)).toBe("");
-
     const withAttribute: Array<ActiveFilter> = buildMetricsActiveFilterChips({
       scopeIds: undefined,
       scopeEntityType: undefined,
@@ -2142,9 +2146,26 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       nameMap: {},
     });
 
-    expect(buildLockedScopeCopyText("metrics", withAttribute)).toBe(
-      "@resource.host.name:ip-10-0-0-12",
-    );
+    expect(
+      withAttribute.map(
+        (
+          chip: ActiveFilter,
+        ): [string, string | undefined, string | undefined] => {
+          return [
+            chip.facetKey,
+            detailOf(chip).searchToken,
+            detailOf(chip).searchTokenUnavailableReason,
+          ];
+        },
+      ),
+    ).toEqual([
+      ["entityKeys", undefined, ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      [
+        "attributes.resource.host.name",
+        "@resource.host.name:ip-10-0-0-12",
+        undefined,
+      ],
+    ]);
   });
 
   test("does not mutate the page's entity keys or display map", () => {
@@ -2193,6 +2214,38 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(detailOf(named[0]).summary).toBe(
       "Only metrics linked to this Kubernetes Pod are shown.",
     );
+    // An item whose identifying attributes were not loaded has no syntax.
+    expect(detailOf(named[0]).searchToken).toBeUndefined();
+    expect(detailOf(named[0]).searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+
+    /*
+     * With them, the metrics chip reads the same and its search syntax is
+     * spelled with those attributes, never with the key.
+     */
+    const withAttributes: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: "checkout-7d9f",
+        identifyingAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": "checkout-7d9f",
+        },
+      }),
+    });
+
+    expect(rowsOf(withAttributes)).toEqual(rowsOf(named));
+    expect(detailOf(withAttributes[0]).searchToken).toBe(
+      "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+    );
+    expect(
+      detailOf(withAttributes[0]).searchTokenUnavailableReason,
+    ).toBeUndefined();
+    expect(detailOf(withAttributes[0]).searchToken).not.toContain(POD_KEY);
 
     // An unnamed item reads as its key, still under its type.
     const unnamed: Array<ActiveFilter> = inventoryChips({

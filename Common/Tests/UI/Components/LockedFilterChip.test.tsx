@@ -20,15 +20,16 @@ import LockedFilterChip, {
   COPIED_SEARCH_SYNTAX_ANNOUNCEMENT,
   COPY_FAILED_ANNOUNCEMENT,
   LockedFilterTooltipContent,
+  NO_SEARCH_SYNTAX_REASON,
   getLockedFilterChipAriaLabel,
 } from "../../../UI/Components/TelemetryViewer/components/LockedFilterChip";
 import { LockedFilterDetail } from "../../../Types/Telemetry/LockedFilterDetail";
 
 /*
- * The grey lock chip on a resource page's telemetry tab. It used to say only
- * "(applied filter)"; with a LockedFilterDetail it explains what the filter
- * matches, why it is locked, and hands over the search syntax — from the
- * keyboard too, since the tooltip's own Copy button sits in a popover Tab
+ * The grey lock chip on a resource page's telemetry tab. With a
+ * LockedFilterDetail its tooltip shows the search syntax that reproduces the
+ * filter on the explorer — and nothing else — and hands that syntax over from
+ * the keyboard too, since the tooltip's own Copy button sits in a popover Tab
  * never reaches. Without a detail it must look and behave exactly as before:
  * a plain pill that is not a tab stop.
  */
@@ -241,7 +242,7 @@ describe("LockedFilterChip with a detail", () => {
     expect(control).not.toContainElement(link);
   });
 
-  test("hover opens the explanation", async () => {
+  test("hover opens the search syntax and nothing else", async () => {
     render(
       <LockedFilterChip
         displayKey="Cluster"
@@ -255,18 +256,25 @@ describe("LockedFilterChip with a detail", () => {
 
     const tooltip: HTMLElement = screen.getByRole("tooltip");
 
-    expect(tooltip).toHaveTextContent("Locked filter");
+    expect(tooltip).toHaveTextContent("Search syntax");
+    expect(tooltip).toHaveTextContent("@resource.k8s.cluster.name:prod-eks-01");
     expect(tooltip).toHaveTextContent(
+      "Paste into the Logs explorer search bar.",
+    );
+    // The explanation that used to sit above the syntax is gone.
+    expect(tooltip).not.toHaveTextContent("Locked filter");
+    expect(tooltip).not.toHaveTextContent(
       "Only logs from this Kubernetes cluster are shown.",
     );
-    expect(tooltip).toHaveTextContent("Pinned by this page");
-    expect(tooltip).toHaveTextContent(
+    expect(tooltip).not.toHaveTextContent("Pinned by this page");
+    expect(tooltip).not.toHaveTextContent("How rows are matched");
+    expect(tooltip).not.toHaveTextContent(
       'resource.k8s.cluster.name = "prod-eks-01"',
     );
-    expect(tooltip).toHaveTextContent("@resource.k8s.cluster.name:prod-eks-01");
+    expect(tooltip).not.toHaveTextContent("entityKeys has 3f9a1b2c4d5e6f70");
   });
 
-  test("keyboard focus opens the explanation too", async () => {
+  test("keyboard focus opens the search syntax too", async () => {
     render(
       <LockedFilterChip
         displayKey="Cluster"
@@ -287,7 +295,9 @@ describe("LockedFilterChip with a detail", () => {
       jest.advanceTimersByTime(150);
     });
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Locked filter");
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "@resource.k8s.cluster.name:prod-eks-01",
+    );
   });
 
   test("activating the chip copies its search syntax, shows the tick and announces it", async () => {
@@ -419,11 +429,9 @@ describe("LockedFilterChip with a detail", () => {
 });
 
 describe("LockedFilterTooltipContent", () => {
-  test("shows the chip, the summary, the source and every predicate", () => {
+  test("shows only the search syntax: no header, chip, summary, source or predicates", () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
         lockedDetail={clusterDetail()}
         signal="logs"
       />,
@@ -431,91 +439,73 @@ describe("LockedFilterTooltipContent", () => {
 
     const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
 
-    expect(content).toHaveTextContent("Cluster: production");
-    expect(content).toHaveTextContent(
+    expect(screen.getByText("Search syntax")).toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-search-token")).toHaveTextContent(
+      "@resource.k8s.cluster.name:prod-eks-01",
+    );
+    expect(
+      screen.getByRole("button", { name: "Copy search syntax" }),
+    ).toBeInTheDocument();
+
+    expect(content).not.toHaveTextContent("Locked filter");
+    expect(content).not.toHaveTextContent("Cluster: production");
+    expect(content).not.toHaveTextContent(
       "Only logs from this Kubernetes cluster are shown.",
     );
-    expect(content).toHaveTextContent("Pinned by this page");
-    expect(screen.getByText("Attribute")).toBeInTheDocument();
+    expect(content).not.toHaveTextContent("Pinned by this page");
+    expect(content).not.toHaveTextContent(/How rows are matched/);
+    expect(content).not.toHaveTextContent(/any of|all of/);
+    expect(screen.queryByText("Attribute")).not.toBeInTheDocument();
+    expect(screen.queryByText("Entity key")).not.toBeInTheDocument();
     expect(
-      screen.getByText('resource.k8s.cluster.name = "prod-eks-01"'),
-    ).toBeInTheDocument();
+      screen.queryByText('resource.k8s.cluster.name = "prod-eks-01"'),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.queryByText(
         "Rows ingested before entity keys existed match on this attribute.",
       ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Entity key")).toBeInTheDocument();
-    expect(
-      screen.getByText("entityKeys has 3f9a1b2c4d5e6f70"),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
   });
 
-  test("says (any of) for OR-ed predicates and (all of) otherwise", () => {
-    const { unmount } = render(
+  test("the only code block and the only button belong to the search syntax", () => {
+    render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
-        lockedDetail={clusterDetail({ combinator: "any" })}
+        lockedDetail={clusterDetail()}
+        signal="logs"
       />,
     );
 
-    expect(
-      screen.getByText("How rows are matched (any of)"),
-    ).toBeInTheDocument();
+    const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
 
-    unmount();
-
-    render(
-      <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
-        lockedDetail={clusterDetail({ combinator: "all" })}
-      />,
-    );
-
-    expect(
-      screen.getByText("How rows are matched (all of)"),
-    ).toBeInTheDocument();
+    expect(content.querySelectorAll("code")).toHaveLength(1);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
-  test("names no combinator for a single predicate", () => {
+  test("ignores whatever explanation the detail carries", () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
         lockedDetail={clusterDetail({
+          summary: "A summary nobody should see.",
+          source: "A source nobody should see.",
           predicates: [
-            {
-              label: "Attribute",
-              expression: 'resource.k8s.cluster.name = "prod-eks-01"',
-            },
+            { label: "Hidden label", expression: "hidden = expression" },
           ],
         })}
+        signal="metrics"
       />,
     );
 
-    expect(screen.getByText("How rows are matched")).toBeInTheDocument();
-    expect(screen.queryByText(/any of|all of/)).not.toBeInTheDocument();
-  });
+    const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
 
-  test("omits the matching section when there are no predicates", () => {
-    render(
-      <LockedFilterTooltipContent
-        displayKey="Session"
-        displayValue="s-1"
-        lockedDetail={clusterDetail({ predicates: [] })}
-      />,
-    );
-
-    expect(screen.queryByText(/How rows are matched/)).not.toBeInTheDocument();
+    expect(content).not.toHaveTextContent("A summary nobody should see.");
+    expect(content).not.toHaveTextContent("A source nobody should see.");
+    expect(content).not.toHaveTextContent("Hidden label");
+    expect(content).not.toHaveTextContent("hidden = expression");
   });
 
   test("names the explorer the search syntax is for", () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
         lockedDetail={clusterDetail()}
         signal="traces"
       />,
@@ -529,11 +519,17 @@ describe("LockedFilterTooltipContent", () => {
     ).toBeInTheDocument();
   });
 
+  test("names no explorer without a signal", () => {
+    render(<LockedFilterTooltipContent lockedDetail={clusterDetail()} />);
+
+    expect(
+      screen.getByText("Paste into the explorer search bar."),
+    ).toBeInTheDocument();
+  });
+
   test("the copy button writes the token to the clipboard and says Copied! for a moment", async () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
         lockedDetail={clusterDetail()}
         signal="logs"
       />,
@@ -566,8 +562,6 @@ describe("LockedFilterTooltipContent", () => {
 
     render(
       <LockedFilterTooltipContent
-        displayKey="Cluster"
-        displayValue="production"
         lockedDetail={clusterDetail()}
         signal="logs"
       />,
@@ -595,11 +589,7 @@ describe("LockedFilterTooltipContent", () => {
 
     render(
       <div onClick={onClick}>
-        <LockedFilterTooltipContent
-          displayKey="Cluster"
-          displayValue="production"
-          lockedDetail={clusterDetail()}
-        />
+        <LockedFilterTooltipContent lockedDetail={clusterDetail()} />
       </div>,
     );
 
@@ -611,8 +601,6 @@ describe("LockedFilterTooltipContent", () => {
   test("shows the reason instead of the syntax when the filter has none", () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="logtype"
-        displayValue="is any of web, api"
         lockedDetail={clusterDetail({
           searchToken: undefined,
           searchTokenUnavailableReason:
@@ -632,13 +620,14 @@ describe("LockedFilterTooltipContent", () => {
     expect(
       screen.queryByRole("button", { name: "Copy search syntax" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Only logs from this Kubernetes cluster are shown."),
+    ).not.toBeInTheDocument();
   });
 
-  test("omits the syntax section entirely when there is neither a token nor a reason", () => {
+  test("says the filter has no search syntax when the detail names neither a token nor a reason", () => {
     render(
       <LockedFilterTooltipContent
-        displayKey="Session"
-        displayValue="s-1"
         lockedDetail={clusterDetail({
           searchToken: undefined,
           searchTokenUnavailableReason: undefined,
@@ -646,6 +635,8 @@ describe("LockedFilterTooltipContent", () => {
       />,
     );
 
-    expect(screen.queryByText("Search syntax")).not.toBeInTheDocument();
+    expect(screen.getByText("Search syntax")).toBeInTheDocument();
+    expect(screen.getByText(NO_SEARCH_SYNTAX_REASON)).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

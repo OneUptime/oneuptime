@@ -27,6 +27,13 @@ export interface LockedEntityKeyDisplay {
   displayKey: string;
   /** The chip's value: its name, e.g. "checkout-7d9f". */
   displayValue: string;
+  /*
+   * The OpenTelemetry resource attributes that identify the entity, keys
+   * without the `resource.` prefix — `{ "k8s.pod.name": "checkout-7d9f", ... }`.
+   * The chip's search syntax is spelled with these, since no search bar
+   * understands an entity key. Absent when the page does not know them.
+   */
+  searchAttributes?: Record<string, string> | undefined;
 }
 
 /** Per entity key, how its chip reads. A key without an entry falls back. */
@@ -90,6 +97,24 @@ const displayFor: DisplayForFunction = (
   return displays[entityKey];
 };
 
+type GetLockedEntityKeySearchAttributesFunction = (
+  displays: LockedEntityKeyDisplayMap | undefined,
+  entityKey: string,
+) => Record<string, string> | undefined;
+
+/**
+ * The identifying resource attributes the page handed over for one entity
+ * key, for a describer that re-explains an entity-key chip after it was
+ * built (the logs viewer does).
+ */
+export const getLockedEntityKeySearchAttributes: GetLockedEntityKeySearchAttributesFunction =
+  (
+    displays: LockedEntityKeyDisplayMap | undefined,
+    entityKey: string,
+  ): Record<string, string> | undefined => {
+    return displayFor(displays, entityKey)?.searchAttributes;
+  };
+
 export interface BuildLockedEntityKeyChipsInput {
   rows: EntityKeyScopedRows;
   /** The entity keys the page scopes the viewer by. */
@@ -117,8 +142,9 @@ type BuildLockedEntityKeyChipsFunction = (
 /**
  * One read-only chip per entity key, named by the page when it can
  * ("Kubernetes Pod: checkout-7d9f") and by the raw key otherwise
- * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its explanation. The filter
- * itself is the host's: nothing here reaches the query.
+ * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its explanation and — when
+ * the page named the entity's identifying attributes — its search syntax.
+ * The filter itself is the host's: nothing here reaches the query.
  */
 export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
   input: BuildLockedEntityKeyChipsInput,
@@ -154,6 +180,7 @@ export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
         entityKeys,
         entityTypeLabel: displayKey || undefined,
         source: input.source,
+        searchAttributes: display?.searchAttributes,
       }),
     });
   }

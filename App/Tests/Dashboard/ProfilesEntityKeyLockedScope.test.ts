@@ -26,9 +26,9 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
 import {
-  CANNOT_TRAVEL_REASON,
   DEFAULT_ENTITY_KEY_DISPLAY_KEY,
   ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   ENTITY_KEY_NO_SYNTAX_REASON,
   LOCKED_FILTER_SOURCE_PAGE,
   describeLockedEntityKeyFilter,
@@ -473,15 +473,43 @@ describe("every profiles pill is locked and carries nothing to copy", () => {
     }
   });
 
-  test("profiles have no explorer, so the reason never talks about carrying the filter to one", () => {
+  test("profiles have no search bar, so the reason is the entity-key one — never the explorers' missing-attributes one", () => {
     expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).not.toBe(
-      CANNOT_TRAVEL_REASON,
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
-    // The same scope on a logs explorer does talk about the explorer.
+    // The same scope on the logs explorer gives the explorers' reason instead.
     expect(
       buildLockedEntityKeyChips({ rows: "logs", entityKeys: [POD_KEY] })[0]!
         .lockedDetail!.searchTokenUnavailableReason,
-    ).toBe(CANNOT_TRAVEL_REASON);
+    ).toBe(ENTITY_KEY_NO_ATTRIBUTES_REASON);
+  });
+
+  test("an item that names its identifying attributes still gets no search syntax on the profiles pill", () => {
+    const displays: LockedEntityKeyDisplayMap = {
+      [POD_KEY]: {
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout-7d9f",
+        searchAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": "checkout-7d9f",
+        },
+      },
+    };
+
+    const detail: LockedFilterDetail = profileChips([POD_KEY], displays)[0]!
+      .lockedDetail!;
+
+    expect(Object.prototype.hasOwnProperty.call(detail, "searchToken")).toBe(
+      false,
+    );
+    expect(detail.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_SYNTAX_REASON,
+    );
+    // The attributes change nothing else the pill says.
+    expect(detail).toEqual(
+      profileChips([POD_KEY], POD_DISPLAYS)[0]!.lockedDetail,
+    );
   });
 
   test("the sentence speaks of profiles, never of another signal", () => {

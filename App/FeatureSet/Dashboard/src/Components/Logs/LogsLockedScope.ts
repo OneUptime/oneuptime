@@ -1,14 +1,11 @@
 import Dictionary from "Common/Types/Dictionary";
-import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
-import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { TelemetrySignal } from "Common/Utils/Telemetry/LockedFilterSearch";
 import {
   ENTITY_KEYS_FACET_KEY,
   LockedEntityScope,
-  buildLockedScopeCopyText,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
   describeLockedEntityKeyFilter,
@@ -17,22 +14,14 @@ import {
   describeLockedTraceFilter,
 } from "../../Utils/LockedTelemetryScope";
 import {
-  LockedScopeExplorerLink,
-  LockedScopeLinkFilter,
-  buildLockedScopeExplorerLink,
-} from "../../Utils/LockedTelemetryScopeLink";
+  LockedEntityKeyDisplayMap,
+  getLockedEntityKeySearchAttributes,
+} from "../../Utils/LockedEntityKeyChips";
 import { ATTRIBUTE_FACET_PREFIX } from "./LogsHistogramRequest";
 
 /*
  * The logs viewer's half of the locked-filter explainer: give every locked
- * (page-pinned) chip its explanation, and turn the whole locked scope into
- * the "Copy filter" text and the "Open in Logs" link.
- *
- * Kept out of LogsAttributeFilterChips.ts on purpose. That builder is pure
- * text-shaping and its suite runs without a browser stub; the describers
- * live next to the explorer-link builder, which reaches the current URL
- * through Navigation, and importing them there would drag `window` into a
- * module whose only job is naming a chip.
+ * (page-pinned) chip its explanation and search syntax.
  */
 
 export const LOGS_SIGNAL: TelemetrySignal = "logs";
@@ -66,6 +55,13 @@ export interface AttachLogsLockedFilterDetailsInput {
    * with "Pinned by this page".
    */
   entityKeysSource?: string | undefined;
+  /*
+   * How the page names its entity keys — an Inventory item's pages hand over
+   * the item's identifying resource attributes here. This step re-describes
+   * every entity-key chip, so without them the chip would lose the search
+   * syntax the chip builder spelled from those attributes.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
 }
 
 type RawAttributeValueFunction = (
@@ -162,6 +158,10 @@ export const describeLogsLockedChip: DescribeLogsLockedChipFunction = (
         entityKeys: input.entityKeys,
         entityTypeLabel: chip.displayKey,
         source: input.entityKeysSource,
+        searchAttributes: getLockedEntityKeySearchAttributes(
+          input.entityKeyDisplays,
+          chip.value,
+        ),
       });
     default:
       return undefined;
@@ -236,97 +236,4 @@ export const attachLogsLockedFilterDetails: AttachLogsLockedFilterDetailsFunctio
 
       return { ...chip, lockedDetail };
     });
-  };
-
-export interface BuildLogsLockedFilterActionsInput {
-  /** The viewer's base chips (already carrying their details). */
-  chips: Array<ActiveFilter>;
-  logQueryAttributes?: Dictionary<DictionaryEntryValue> | undefined;
-  /** The viewer's current window, carried to the explorer as-is. */
-  timeRange: RangeStartAndEndDateTime;
-}
-
-type BuildLogsLockedFilterActionsFunction = (
-  input: BuildLogsLockedFilterActionsInput,
-) => LockedFilterActionOptions | undefined;
-
-/**
- * "Copy filter" and "Open in Logs" for the whole locked scope, or undefined
- * when there is nothing locked (the main explorer, an unscoped embed).
- *
- * The link needs the current project's route; a viewer rendered somewhere
- * that route cannot be resolved keeps the copy affordance and loses only
- * the link, rather than taking the chip row down with it.
- */
-export const buildLogsLockedFilterActions: BuildLogsLockedFilterActionsFunction =
-  (
-    input: BuildLogsLockedFilterActionsInput,
-  ): LockedFilterActionOptions | undefined => {
-    const lockedChips: Array<ActiveFilter> = input.chips.filter(
-      (chip: ActiveFilter): boolean => {
-        return Boolean(chip.readOnly);
-      },
-    );
-
-    if (lockedChips.length === 0) {
-      return undefined;
-    }
-
-    const actions: LockedFilterActionOptions = {};
-
-    const copyText: string = buildLockedScopeCopyText(LOGS_SIGNAL, lockedChips);
-
-    if (copyText.length > 0) {
-      actions.copyText = copyText;
-    }
-
-    try {
-      const link: LockedScopeExplorerLink = buildLockedScopeExplorerLink({
-        signal: LOGS_SIGNAL,
-        filters: lockedChips.map(
-          (chip: ActiveFilter): LockedScopeLinkFilter => {
-            const filter: LockedScopeLinkFilter = {
-              facetKey: chip.facetKey,
-              value: chip.value,
-            };
-
-            if (chip.facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
-              const attributeKey: string = chip.facetKey.substring(
-                ATTRIBUTE_FACET_PREFIX.length,
-              );
-
-              filter.rawValue = rawAttributeValue(
-                attributeKey,
-                chip,
-                input.logQueryAttributes,
-              );
-            }
-
-            return filter;
-          },
-        ),
-        timeRange: input.timeRange,
-      });
-
-      /*
-       * Offered only when at least one locked filter made it into the URL.
-       * With none (an Inventory item's entity-key scope: no explorer grammar
-       * can spell an entity key) the link would open the UNFILTERED Logs
-       * explorer under a label promising this page's scope, and a "not
-       * carried over: resource" caveat does not make that link useful. A
-       * mixed scope keeps its link, and the caveat names what stayed behind.
-       */
-      if (link.carriedFilterCount > 0) {
-        actions.openExplorerRoute = link.url;
-        actions.notCarried = link.notCarried;
-      }
-    } catch {
-      // No resolvable explorer route here — copy still works.
-    }
-
-    if (Object.keys(actions).length === 0) {
-      return undefined;
-    }
-
-    return actions;
   };

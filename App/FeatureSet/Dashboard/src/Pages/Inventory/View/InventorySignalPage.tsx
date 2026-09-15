@@ -44,15 +44,23 @@ const InventorySignalPage: FunctionComponent<ComponentProps> = (
   /*
    * Memoised on the fields it reads: the viewers list the map in their chip
    * memos, and a fresh object on every render would rebuild the chips for
-   * nothing.
+   * nothing. The identifying attributes spell the pill's search syntax.
    */
   const entityKeyDisplays: LockedEntityKeyDisplayMap = useMemo(() => {
     return buildInventoryEntityKeyDisplays({
       entityKey: item?.entityKey,
       entityType: item?.entityType,
       displayName: item?.displayName,
+      identifyingAttributes: item?.identifyingAttributes,
+      descriptiveAttributes: item?.descriptiveAttributes,
     });
-  }, [item?.entityKey, item?.entityType, item?.displayName]);
+  }, [
+    item?.entityKey,
+    item?.entityType,
+    item?.displayName,
+    item?.identifyingAttributes,
+    item?.descriptiveAttributes,
+  ]);
 
   if (isLoading) {
     return <ComponentLoader />;

@@ -43,9 +43,10 @@ import {
 import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import { parseTraceSearch } from "../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
 import {
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   LOCKED_FILTER_SOURCE_PAGE,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
-  buildLockedScopeCopyText,
+  NO_SEARCH_SYNTAX_REASON,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
@@ -699,12 +700,10 @@ describe("entityScopeForAttributeKey", () => {
 });
 
 describe("buildLockedAttributeChip", () => {
-  test("is label only — the explanation is the viewer's to attach, so this module never loads the explorer link builder", () => {
+  test("is label only — the explanation is the viewer's to attach", () => {
     /*
-     * Utils/LockedTelemetryScopeLink reaches Common/UI/Config through
-     * RouteMap, and that reads `window` at load. This suite runs in plain
-     * Node; the builder staying label-only (the viewer attaches the detail
-     * next to the entity scope it alone knows) keeps this module free of it.
+     * The viewer attaches the detail next to the entity scope it alone
+     * knows (entityScopeForAttributeKey), so a chip built here carries none.
      */
     expect(
       buildLockedAttributeChip({
@@ -1557,7 +1556,7 @@ describe("describeStoredQueryChip", () => {
     expect(noContext.predicates[0]!.expression).toBe('name = "checkout"');
   });
 
-  test("an entity-keys chip can neither be copied nor carried, and is told so", () => {
+  test("an entity-keys chip has no search syntax, and is told so", () => {
     const detail: LockedFilterDetail = describeStoredQueryChip(
       storedChip({
         facetKey: "entityKeys",
@@ -1571,9 +1570,7 @@ describe("describeStoredQueryChip", () => {
       "entityKeys has 3f9a1b2c4d5e6f70",
     );
     expect(detail.searchToken).toBeUndefined();
-    expect(detail.searchTokenUnavailableReason).toBe(
-      "This filter cannot be copied or carried to the explorer.",
-    );
+    expect(detail.searchTokenUnavailableReason).toBe(NO_SEARCH_SYNTAX_REASON);
   });
 });
 
@@ -1606,9 +1603,9 @@ describe("stored-query search tokens round-trip through the traces search parser
  * explain it: their exact wording, the fallbacks when the page cannot name
  * the item, and the rule that one key never renders twice when a stored span
  * query pins it too. The viewer's wiring is pinned in
- * TracesLockedScopeWiring.test.ts, and Copy filter / Open in Traces for these
- * chips in TracesEntityKeyLockedScope.test.ts. The explanation's wording is
- * owned by LockedTelemetryScope.test.ts: a chip's detail is compared to the
+ * TracesLockedScopeWiring.test.ts, and an Inventory item's chips end to end
+ * in TracesEntityKeyLockedScope.test.ts. The explanation's wording is owned
+ * by LockedTelemetryScope.test.ts: a chip's detail is compared to the
  * describer here, with the traces sentence spelled out.
  */
 
@@ -1619,9 +1616,6 @@ const CLUSTER_KEY: string = "0a1b2c3d4e5f6a7b";
 const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
   [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: "checkout-7d9f" },
 };
-
-const CANNOT_TRAVEL: string =
-  "This filter cannot be copied or carried to the explorer.";
 
 function entityKeyValues(chips: Array<ActiveFilter>): Array<string> {
   return chips
@@ -1882,20 +1876,53 @@ describe("buildTracesLockedEntityKeyChips", () => {
     ).toEqual([POD_KEY, NODE_KEY]);
   });
 
-  test("no chip carries a search token, so Copy filter gets nothing from an entity-key scope", () => {
+  test("without the entity's resource attributes no chip carries a search token, and each says why", () => {
     const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY],
       displays: POD_DISPLAYS,
     });
 
+    expect(chips).toHaveLength(2);
+
     for (const candidate of chips) {
       expect(Object.keys(candidate.lockedDetail!)).not.toContain("searchToken");
       expect(candidate.lockedDetail!.searchTokenUnavailableReason).toBe(
-        CANNOT_TRAVEL,
+        ENTITY_KEY_NO_ATTRIBUTES_REASON,
       );
     }
+  });
 
-    expect(buildLockedScopeCopyText("traces", chips)).toBe("");
+  test("a key the page names with its resource attributes is spelled with them; a key it does not stays without syntax", () => {
+    /*
+     * The display map is how the page hands its attributes over, so the
+     * builder must pass them to the describer per key and never lend one
+     * key's attributes to another.
+     */
+    const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
+      entityKeysFilter: [POD_KEY, NODE_KEY],
+      displays: {
+        [POD_KEY]: {
+          displayKey: "Kubernetes Pod",
+          displayValue: "checkout-7d9f",
+          searchAttributes: {
+            "k8s.pod.name": "checkout-7d9f",
+            "k8s.cluster.name": "prod",
+          },
+        },
+      },
+    });
+
+    expect(chips[0]!.lockedDetail!.searchToken).toBe(
+      "@resource.k8s.cluster.name:prod @resource.k8s.pod.name:checkout-7d9f",
+    );
+    expect(chips[0]!.lockedDetail).not.toHaveProperty(
+      "searchTokenUnavailableReason",
+    );
+
+    expect(chips[1]!.lockedDetail!.searchToken).toBeUndefined();
+    expect(chips[1]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
   });
 });
 

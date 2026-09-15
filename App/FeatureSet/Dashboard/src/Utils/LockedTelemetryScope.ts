@@ -3,10 +3,7 @@ import {
   LockedFilterPredicate,
 } from "Common/Types/Telemetry/LockedFilterDetail";
 import {
-  SearchableLockedFilter,
-  TELEMETRY_EXPLORER_LABELS,
   TelemetrySignal,
-  buildSearchTextForFilters,
   buildSearchTokenForFilter,
   buildSearchTokenForOperatorValue,
   isSearchTokenSafeKey,
@@ -20,7 +17,8 @@ import {
 
 /*
  * What the locked chips of an embedded telemetry explorer say about
- * themselves, and how the whole locked scope travels to the main explorer.
+ * themselves: above all, the search syntax that reproduces each one on the
+ * main explorer.
  *
  * A resource page (a Kubernetes cluster, a Docker host, a RUM application,
  * an incident's stored query, ...) pins the Logs / Traces / Metrics viewer it
@@ -28,16 +26,12 @@ import {
  * chips with a lock icon and nothing more, so a reader cannot tell whether
  * the match is by OTel resource attribute, by entity membership or by
  * service id — nor how to reproduce it on the main explorer page. The
- * describers here fill a LockedFilterDetail per chip (rendered as a rich
- * tooltip by the shared chip component) and build the "Copy filter" text.
+ * describers here fill a LockedFilterDetail per chip, whose search token (or
+ * the reason there is none) the shared chip component shows as its tooltip.
  *
  * This module is deliberately PURE: no route map, no navigation, nothing
  * that touches the browser at load. The chip builders of all three viewers
- * (renderer-free modules with plain-node tests) import the describers, and
- * the route map's import chain reads `window` the moment it loads — which is
- * why the explorer LINK builder lives next door in LockedTelemetryScopeLink.
- * The tables that say which chips that link can carry live HERE, so a
- * describer can tell a reader "use Open in Logs" only when that is true.
+ * (renderer-free modules with plain-node tests) import the describers.
  */
 
 /*
@@ -98,83 +92,6 @@ export const LOCKED_FILTER_SOURCE_STORED_QUERY: string =
 export const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 
 /*
- * Which chips the explorer LINK (LockedTelemetryScopeLink) can carry, by the
- * facet key of the chip. Kept in the pure module because the describers
- * consult it: a chip is told "use Open in Logs instead" only when that link
- * would actually carry it. The link builder imports these — never the other
- * way round.
- *
- * `serviceId` is the pre-rename alias of `primaryEntityId`; the link folds
- * it into `primaryEntityId` on the way out.
- */
-export const SERVICE_FACET_KEYS: ReadonlySet<string> = new Set<string>([
-  "primaryEntityId",
-  "serviceId",
-]);
-
-export const RESOURCE_ENTITY_FACET_KEYS: ReadonlyArray<string> = [
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
-];
-
-/*
- * Per explorer, the top-level columns its URL `filters` grammar compiles
- * into a predicate (readInitialUrlState + the facet compile of each viewer).
- * A `sessionId` chip is a plain top-level column on both the logs and the
- * traces explorer, and the logs aggregate requests take it from the list
- * query, so it rides on both.
- */
-export const CARRIED_FACET_KEYS_BY_SIGNAL: Readonly<
-  Record<TelemetrySignal, ReadonlySet<string>>
-> = {
-  logs: new Set<string>([
-    "traceId",
-    "spanId",
-    "sessionId",
-    "severityText",
-    ...RESOURCE_ENTITY_FACET_KEYS,
-  ]),
-  traces: new Set<string>([
-    "traceId",
-    "spanId",
-    "sessionId",
-    "statusCode",
-    "kind",
-    "hasException",
-    "name",
-    "statusMessage",
-    ...RESOURCE_ENTITY_FACET_KEYS,
-  ]),
-  metrics: new Set<string>([]),
-};
-
-type IsFilterCarriedByExplorerLinkFunction = (
-  signal: TelemetrySignal,
-  facetKey: string,
-) => boolean;
-
-/**
- * Whether the explorer link for `signal` carries a chip of this facet key.
- * Attribute chips ride on every explorer (an operator-valued one does not,
- * but that is a property of the value, decided by the caller); entity ids
- * ride everywhere; everything else is per the table above.
- */
-export const isFilterCarriedByExplorerLink: IsFilterCarriedByExplorerLinkFunction =
-  (signal: TelemetrySignal, facetKey: string): boolean => {
-    if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
-      return true;
-    }
-
-    if (SERVICE_FACET_KEYS.has(facetKey)) {
-      return true;
-    }
-
-    return CARRIED_FACET_KEYS_BY_SIGNAL[signal].has(facetKey);
-  };
-
-/*
  * The predicate notes. Entity keys are an implementation detail most readers
  * have never met, so the note says what they are for rather than what they
  * are — and, since the attribute filter always applies alongside, that the
@@ -191,40 +108,16 @@ const UNSAFE_KEY_NO_SYNTAX_REASON: string =
   "This attribute key cannot be typed into the search bar.";
 const EMPTY_VALUE_NO_SYNTAX_REASON: string =
   "This filter has no value to copy.";
-export const CANNOT_TRAVEL_REASON: string =
-  "This filter cannot be copied or carried to the explorer.";
-
-type ExplorerLabelFunction = (signal: TelemetrySignal) => string;
-
-const explorerLabel: ExplorerLabelFunction = (
-  signal: TelemetrySignal,
-): string => {
-  return TELEMETRY_EXPLORER_LABELS[signal];
-};
-
-type NoSyntaxReasonFunction = (
-  signal: TelemetrySignal,
-  facetKey: string,
-) => string;
-
-/*
- * "Use Open in <Explorer> instead" is only honest when that link carries the
- * chip; otherwise the reader is told plainly that the filter cannot travel.
- */
-const noSyntaxReason: NoSyntaxReasonFunction = (
-  signal: TelemetrySignal,
-  facetKey: string,
-): string => {
-  if (isFilterCarriedByExplorerLink(signal, facetKey)) {
-    return `This filter has no search syntax; use Open in ${explorerLabel(signal)} instead.`;
-  }
-
-  return CANNOT_TRAVEL_REASON;
-};
+export const NO_SEARCH_SYNTAX_REASON: string =
+  "This filter has no search syntax.";
+export const SESSION_NO_SYNTAX_REASON: string =
+  "Session filters have no search syntax.";
+export const METRICS_SERVICE_NO_SYNTAX_REASON: string =
+  "The Metrics search bar matches services by name, not by id.";
 
 type IsScalarFunction = (value: unknown) => value is string | number | boolean;
 
-export const isScalar: IsScalarFunction = (
+const isScalar: IsScalarFunction = (
   value: unknown,
 ): value is string | number | boolean => {
   return (
@@ -420,8 +313,8 @@ type DescribeLockedEntityFilterFunction = (
 /**
  * The explanation of a `primaryEntityId` chip — a Service or RUM application
  * page's scope. Logs and traces accept the id verbatim after `service:`;
- * the Metrics search bar matches services by NAME, so there the only faithful
- * way over is the explorer link (which carries entity ids on every explorer).
+ * the Metrics search bar matches services by NAME, so an id has no spelling
+ * there.
  */
 export const describeLockedEntityFilter: DescribeLockedEntityFilterFunction = (
   input: DescribeLockedEntityFilterInput,
@@ -448,8 +341,7 @@ export const describeLockedEntityFilter: DescribeLockedEntityFilterFunction = (
   if (searchToken) {
     detail.searchToken = searchToken;
   } else if (input.signal === "metrics") {
-    detail.searchTokenUnavailableReason =
-      "The Metrics search bar matches services by name, not by id — use Open in Metrics instead.";
+    detail.searchTokenUnavailableReason = METRICS_SERVICE_NO_SYNTAX_REASON;
   } else {
     detail.searchTokenUnavailableReason = EMPTY_VALUE_NO_SYNTAX_REASON;
   }
@@ -500,10 +392,7 @@ const describeLockedIdFilter: DescribeLockedIdFilterFunction = (input: {
   if (searchToken) {
     detail.searchToken = searchToken;
   } else {
-    detail.searchTokenUnavailableReason = noSyntaxReason(
-      input.signal,
-      input.facetKey,
-    );
+    detail.searchTokenUnavailableReason = NO_SEARCH_SYNTAX_REASON;
   }
 
   return detail;
@@ -566,10 +455,8 @@ type DescribeLockedSessionFilterFunction = (
 ) => LockedFilterDetail;
 
 /**
- * A RUM session chip. No explorer has a `session:` token; the logs and
- * traces explorers do accept the session as a URL chip, which is what the
- * explorer link carries (see CARRIED_FACET_KEYS_BY_SIGNAL). Metrics have no
- * session dimension at all.
+ * A RUM session chip. No explorer has a `session:` token, and metrics have
+ * no session dimension at all.
  */
 export const describeLockedSessionFilter: DescribeLockedSessionFilterFunction =
   (input: DescribeLockedSessionFilterInput): LockedFilterDetail => {
@@ -586,11 +473,7 @@ export const describeLockedSessionFilter: DescribeLockedSessionFilterFunction =
       searchTokenUnavailableReason:
         input.signal === "metrics"
           ? "Sessions are not a metrics dimension."
-          : isFilterCarriedByExplorerLink(input.signal, "sessionId")
-            ? `Session filters have no search syntax; use Open in ${explorerLabel(
-                input.signal,
-              )} instead.`
-            : CANNOT_TRAVEL_REASON,
+          : SESSION_NO_SYNTAX_REASON,
     };
   };
 
@@ -665,10 +548,7 @@ export const describeLockedStoredQueryFilter: DescribeLockedStoredQueryFilterFun
     if (searchToken) {
       detail.searchToken = searchToken;
     } else {
-      detail.searchTokenUnavailableReason = noSyntaxReason(
-        input.signal,
-        input.facetKey,
-      );
+      detail.searchTokenUnavailableReason = NO_SEARCH_SYNTAX_REASON;
     }
 
     return detail;
@@ -691,7 +571,7 @@ export const DEFAULT_ENTITY_KEY_DISPLAY_KEY: string = "Resource";
 /*
  * What an entity-key scope narrows: the rows of one of the three explorers,
  * or of the exceptions and profiles lists, which scope the same way but have
- * no explorer link to hand the filter to.
+ * no search bar to paste a filter into.
  */
 export type EntityKeyScopedRows = TelemetrySignal | "exceptions" | "profiles";
 
@@ -708,6 +588,72 @@ const ENTITY_KEY_ANY_OF_PREDICATE_NOTE: string =
   "A row carrying any one of these keys is shown.";
 export const ENTITY_KEY_NO_SYNTAX_REASON: string =
   "Entity keys have no search syntax.";
+export const ENTITY_KEY_NO_ATTRIBUTES_REASON: string =
+  "This resource has no telemetry attributes to search by.";
+
+/*
+ * Resource attributes land in every signal's `attributes` map under this
+ * prefix at ingest, which is how the explorers' `@key:value` tokens reach
+ * them.
+ */
+export const RESOURCE_ATTRIBUTE_PREFIX: string = "resource.";
+
+type BuildEntitySearchTokenFunction = (
+  signal: TelemetrySignal,
+  searchAttributes: Readonly<Record<string, string>> | undefined,
+) => string | null;
+
+/**
+ * The search syntax for one entity, spelled with the OpenTelemetry resource
+ * attributes that identify it — `@resource.k8s.cluster.name:prod
+ * @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f` for
+ * a pod — rather than with its entity key, which no search bar understands.
+ * One token per attribute, in key order, AND-ed by the search bar the way the
+ * attributes jointly identify the entity.
+ *
+ * Null when there is nothing to spell, or when ANY attribute cannot be
+ * spelled (an unsafe key, an empty value): dropping it would widen the
+ * search past the entity rather than reproduce it.
+ */
+export const buildEntitySearchToken: BuildEntitySearchTokenFunction = (
+  signal: TelemetrySignal,
+  searchAttributes: Readonly<Record<string, string>> | undefined,
+): string | null => {
+  if (
+    !searchAttributes ||
+    typeof searchAttributes !== "object" ||
+    Array.isArray(searchAttributes)
+  ) {
+    return null;
+  }
+
+  const attributeKeys: Array<string> = Object.keys(searchAttributes).sort();
+
+  if (attributeKeys.length === 0) {
+    return null;
+  }
+
+  const tokens: Array<string> = [];
+
+  for (const attributeKey of attributeKeys) {
+    const rawValue: unknown = searchAttributes[attributeKey];
+    const value: string = typeof rawValue === "string" ? rawValue.trim() : "";
+
+    const token: string | null = buildSearchTokenForFilter(
+      signal,
+      `${ATTRIBUTE_FACET_PREFIX}${RESOURCE_ATTRIBUTE_PREFIX}${attributeKey.trim()}`,
+      value,
+    );
+
+    if (!token) {
+      return null;
+    }
+
+    tokens.push(token);
+  }
+
+  return tokens.join(" ");
+};
 
 type IsTelemetrySignalFunction = (
   rows: EntityKeyScopedRows,
@@ -745,6 +691,13 @@ export interface DescribeLockedEntityKeyFilterInput {
    * stored query's keys are never said to be pinned by the page.
    */
   source?: string | undefined;
+  /*
+   * The resource attributes that identify THIS entity (keys without the
+   * `resource.` prefix), when the page knows them — an Inventory item does.
+   * They are what the chip's search syntax is spelled with; without them an
+   * entity key has no syntax at all.
+   */
+  searchAttributes?: Readonly<Record<string, string>> | undefined;
 }
 
 type DescribeLockedEntityKeyFilterFunction = (
@@ -754,9 +707,10 @@ type DescribeLockedEntityKeyFilterFunction = (
 /**
  * The explanation of an `entityKeys` chip — an Inventory item's scope, which
  * the server compiles to `hasAny(entityKeys, [...])` with no attribute
- * alongside it. No explorer's search grammar has a token for the column and
- * no explorer link carries it, so the reader is told plainly that it cannot
- * travel (and why the list may hold rows owned by some other resource).
+ * alongside it. No explorer's search grammar has a token for the column, so
+ * the search syntax is spelled with the entity's identifying resource
+ * attributes when the page hands them over; otherwise the reader is told
+ * plainly that there is none.
  */
 export const describeLockedEntityKeyFilter: DescribeLockedEntityKeyFilterFunction =
   (input: DescribeLockedEntityKeyFilterInput): LockedFilterDetail => {
@@ -831,30 +785,29 @@ export const describeLockedEntityKeyFilter: DescribeLockedEntityKeyFilterFunctio
             otherEntityKeys.length === 1 ? "resource" : "resources"
           } ${pinnedBy}.`;
 
-    return {
+    const detail: LockedFilterDetail = {
       source,
       summary,
       predicates: [predicate],
       combinator: "all",
-      searchTokenUnavailableReason: isTelemetrySignal(input.rows)
-        ? noSyntaxReason(input.rows, ENTITY_KEYS_FACET_KEY)
-        : ENTITY_KEY_NO_SYNTAX_REASON,
     };
+
+    if (!isTelemetrySignal(input.rows)) {
+      // The exceptions and profiles lists have no search bar to paste into.
+      detail.searchTokenUnavailableReason = ENTITY_KEY_NO_SYNTAX_REASON;
+      return detail;
+    }
+
+    const searchToken: string | null = buildEntitySearchToken(
+      input.rows,
+      input.searchAttributes,
+    );
+
+    if (searchToken) {
+      detail.searchToken = searchToken;
+    } else {
+      detail.searchTokenUnavailableReason = ENTITY_KEY_NO_ATTRIBUTES_REASON;
+    }
+
+    return detail;
   };
-
-type BuildLockedScopeCopyTextFunction = (
-  signal: TelemetrySignal,
-  filters: Array<SearchableLockedFilter>,
-) => string;
-
-/**
- * The search-bar text that reproduces every locked chip on the main
- * explorer — the "Copy filter" affordance. Delegates to the shared builder
- * so the per-chip syntax in the tooltip and the copied text never disagree.
- */
-export const buildLockedScopeCopyText: BuildLockedScopeCopyTextFunction = (
-  signal: TelemetrySignal,
-  filters: Array<SearchableLockedFilter>,
-): string => {
-  return buildSearchTextForFilters(signal, filters);
-};

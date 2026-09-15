@@ -10,8 +10,9 @@ import path from "path";
  *
  *  - every base chip is decorated with its explanation, and the page's
  *    entity scope reaches the decorator;
- *  - the "Copy filter" / "Open in Logs" actions are built from those chips
- *    and handed to the Common viewer together with the signal name;
+ *  - the Common viewer is told the signal name, and nothing else about the
+ *    locked scope: each chip's own tooltip is the only place its search
+ *    syntax is offered;
  *  - the typed search reaches the histogram and the facets requests through
  *    a value-keyed slice of the list query, the page's pinned attributes
  *    survive a typed attribute search, and the applied chips win over it;
@@ -158,7 +159,7 @@ describe("locked chips are explained", () => {
     const glue: Array<string> = importedNames(LOGS_VIEWER, "./LogsLockedScope");
 
     expect(glue).toContain("attachLogsLockedFilterDetails");
-    expect(glue).toContain("buildLogsLockedFilterActions");
+    expect(glue).not.toContain("buildLogsLockedFilterActions");
 
     const helpers: Array<string> = importedNames(
       LOGS_VIEWER,
@@ -194,33 +195,24 @@ describe("locked chips are explained", () => {
   });
 });
 
-describe("the whole locked scope travels together", () => {
-  test("the actions are built from the base chips and the current window", () => {
-    const memo: string = blockAfter(
-      LOGS_VIEWER,
-      "const lockedFilterActions: LockedFilterActionOptions | undefined = useMemo(",
-      "(",
-      ")",
-    );
-    const build: string = blockAfter(
-      memo,
-      "return buildLogsLockedFilterActions(",
-      "(",
-      ")",
-    );
-
-    expect(build).toContain("chips: baseActiveFilters");
-    expect(build).toContain("logQueryAttributes");
-    expect(build).toContain("timeRange");
-
-    const deps: string = dependencyList(memo);
-
-    expect(deps).toContain("baseActiveFilters");
-    expect(deps).toContain("logQueryAttributes");
-    expect(deps).toContain("timeRange");
+describe("the locked scope is explained chip by chip, with no scope-wide actions", () => {
+  test("the viewer builds no actions for the whole locked scope, and imports nothing that would", () => {
+    for (const removed of [
+      "lockedFilterActions",
+      "LockedFilterActions",
+      "LockedFilterActionOptions",
+      "buildLogsLockedFilterActions",
+      "buildLockedScopeFilterActions",
+      "LockedTelemetryScopeLink",
+    ]) {
+      expect({ removed, present: LOGS_VIEWER.includes(removed) }).toEqual({
+        removed,
+        present: false,
+      });
+    }
   });
 
-  test("the Common viewer receives the signal and the actions", () => {
+  test("the Common viewer receives the signal the chips' tooltips name, and no actions", () => {
     /*
      * The JSX props of the one <LogsViewer …/> mount. Angle brackets are not
      * balanced inside props (`=>` in every callback), so the slice runs to
@@ -235,7 +227,7 @@ describe("the whole locked scope travels together", () => {
     const mount: string = LOGS_VIEWER.slice(mountAt, mountEnd);
 
     expect(mount).toContain('lockedFilterSignal="logs"');
-    expect(mount).toContain("lockedFilterActions={lockedFilterActions}");
+    expect(mount).not.toContain("lockedFilterActions");
   });
 });
 
@@ -599,6 +591,30 @@ describe("an entity-key scope has a locked chip", () => {
       blockAfter(memo, "return attachLogsLockedFilterDetails(", "(", ")"),
     ).toContain("entityKeysSource");
     expect(dependencyList(memo)).toContain("props.entityKeysPinnedByPage");
+  });
+
+  test("the decoration step is handed the same display map as the builder, so an item's search syntax survives it", () => {
+    /*
+     * The display map carries the identifying resource attributes the chip's
+     * search syntax is spelled with. attachLogsLockedFilterDetails
+     * re-describes every entity-key chip, so without the map it drops the
+     * syntax the builder spelled. The pass-through is pinned in
+     * LogsLockedScope.test.ts.
+     */
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+
+    expect(blockAfter(memo, "buildLockedEntityKeyChips(", "(", ")")).toContain(
+      "displays: props.entityKeyDisplays",
+    );
+    expect(
+      blockAfter(memo, "return attachLogsLockedFilterDetails(", "(", ")"),
+    ).toContain("entityKeyDisplays: props.entityKeyDisplays");
+    expect(dependencyList(memo)).toContain("props.entityKeyDisplays");
   });
 });
 

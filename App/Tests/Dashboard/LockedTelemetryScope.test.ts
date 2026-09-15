@@ -12,10 +12,7 @@ import {
   DictionaryFilterOperator,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import type {
-  SearchableLockedFilter,
-  TelemetrySignal,
-} from "Common/Utils/Telemetry/LockedFilterSearch";
+import type { TelemetrySignal } from "Common/Utils/Telemetry/LockedFilterSearch";
 import type {
   DescribeLockedAttributeFilterInput,
   DescribeLockedEntityKeyFilterInput,
@@ -33,11 +30,41 @@ import * as Scope from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScop
 /*
  * The renderer-free half of the locked-filter explainer: what each locked
  * chip says about itself (source, summary, the predicates the server
- * evaluates, the search syntax that reproduces it) and the "Copy filter"
- * text. The chip component only renders what these return, so every wording
- * rule is pinned here. The explorer link is pinned in
- * LockedTelemetryScopeLink.test.ts.
+ * evaluates, the search syntax that reproduces it, or the reason there is
+ * none). The chip component only renders what these return — its tooltip is
+ * the search syntax or that reason — so every wording rule is pinned here.
  */
+
+describe("the reasons a chip has no search syntax", () => {
+  test("are pinned verbatim, and none sends the reader anywhere but the search bar", () => {
+    /*
+     * The tooltip shows the reason in place of a token, so it is the whole
+     * of what a reader learns about a filter they cannot paste.
+     */
+    const reasons: Array<[string, string]> = [
+      [Scope.NO_SEARCH_SYNTAX_REASON, "This filter has no search syntax."],
+      [
+        Scope.SESSION_NO_SYNTAX_REASON,
+        "Session filters have no search syntax.",
+      ],
+      [
+        Scope.METRICS_SERVICE_NO_SYNTAX_REASON,
+        "The Metrics search bar matches services by name, not by id.",
+      ],
+      [
+        Scope.ENTITY_KEY_NO_ATTRIBUTES_REASON,
+        "This resource has no telemetry attributes to search by.",
+      ],
+      [Scope.ENTITY_KEY_NO_SYNTAX_REASON, "Entity keys have no search syntax."],
+    ];
+
+    for (const [reason, words] of reasons) {
+      expect(reason).toBe(words);
+      expect(reason).not.toContain("Open in");
+      expect(reason).not.toContain("explorer");
+    }
+  });
+});
 
 describe("getScopeNounForAttributeKey", () => {
   test("names every resource attribute a page scopes by", () => {
@@ -199,7 +226,11 @@ describe("describeLockedAttributeFilter", () => {
     expect(detail.predicates[1]!.note).toBe(
       "Newer rows are also stamped with a stable entity key at ingest; because the attribute filter applies too, only rows carrying the attribute are shown.",
     );
-    // The syntax reproduces the attribute half, which is what the copy needs.
+    /*
+     * The syntax reproduces the attribute half: the AND-ed entity scope can
+     * never admit a row the attribute rejects, so the attribute alone
+     * reproduces the list on the main explorer.
+     */
     expect(detail.searchToken).toBe("@resource.k8s.cluster.name:prod-eks-01");
   });
 
@@ -438,7 +469,7 @@ describe("describeLockedEntityFilter", () => {
 
     expect(detail.searchToken).toBeUndefined();
     expect(detail.searchTokenUnavailableReason).toBe(
-      "The Metrics search bar matches services by name, not by id — use Open in Metrics instead.",
+      Scope.METRICS_SERVICE_NO_SYNTAX_REASON,
     );
   });
 
@@ -491,25 +522,29 @@ describe("describeLockedTraceFilter / describeLockedSpanFilter", () => {
     }
   });
 
-  test("metrics has neither token, and — since the metrics link carries neither column — says the filter cannot travel", () => {
+  test("metrics has neither token, and says the filter has no search syntax", () => {
     const trace: LockedFilterDetail = Scope.describeLockedTraceFilter({
       signal: "metrics",
       traceId: "abc123",
     });
     expect(trace.searchToken).toBeUndefined();
-    expect(trace.searchTokenUnavailableReason).toBe(Scope.CANNOT_TRAVEL_REASON);
+    expect(trace.searchTokenUnavailableReason).toBe(
+      Scope.NO_SEARCH_SYNTAX_REASON,
+    );
 
     const span: LockedFilterDetail = Scope.describeLockedSpanFilter({
       signal: "metrics",
       spanId: "span-9",
     });
     expect(span.searchToken).toBeUndefined();
-    expect(span.searchTokenUnavailableReason).toBe(Scope.CANNOT_TRAVEL_REASON);
+    expect(span.searchTokenUnavailableReason).toBe(
+      Scope.NO_SEARCH_SYNTAX_REASON,
+    );
   });
 });
 
 describe("describeLockedSessionFilter", () => {
-  test("logs / traces: sessionId predicate, no syntax, points at the explorer link", () => {
+  test("logs / traces: sessionId predicate, no syntax, and says so", () => {
     const logs: LockedFilterDetail = Scope.describeLockedSessionFilter({
       signal: "logs",
       sessionId: "sess-1",
@@ -522,15 +557,19 @@ describe("describeLockedSessionFilter", () => {
     ]);
     expect(logs.searchToken).toBeUndefined();
     expect(logs.searchTokenUnavailableReason).toBe(
-      "Session filters have no search syntax; use Open in Logs instead.",
+      Scope.SESSION_NO_SYNTAX_REASON,
     );
 
     const traces: LockedFilterDetail = Scope.describeLockedSessionFilter({
       signal: "traces",
       sessionId: "sess-1",
     });
+    expect(traces.summary).toBe(
+      "Only traces recorded during this session are shown.",
+    );
+    expect(traces.searchToken).toBeUndefined();
     expect(traces.searchTokenUnavailableReason).toBe(
-      "Session filters have no search syntax; use Open in Traces instead.",
+      Scope.SESSION_NO_SYNTAX_REASON,
     );
   });
 
@@ -632,26 +671,35 @@ describe("describeLockedStoredQueryFilter", () => {
     expect(exact.searchToken).toBe("statusmessage:boom");
   });
 
-  test("an entityKeys chip reads as a membership, not an equality, and can neither be copied nor carried", () => {
-    const detail: LockedFilterDetail = Scope.describeLockedStoredQueryFilter({
-      signal: "traces",
-      facetKey: "entityKeys",
-      value: "3f9a1b2c4d5e6f70",
-      displayKey: "Resource",
-      displayValue: "3f9a1b2c4d5e6f70",
-    });
-
-    expect(detail.predicates).toEqual([
-      { label: "Entity key", expression: "entityKeys has 3f9a1b2c4d5e6f70" },
-    ]);
-    expect(detail.searchToken).toBeUndefined();
+  test("an entityKeys chip reads as a membership, not an equality, and has no search syntax on any explorer", () => {
     /*
-     * The explorer link does not carry an entity-keys chip either, so the
-     * reader must not be sent to "Open in Traces" for it.
+     * A stored query holds only the key, never the resource attributes the
+     * key was hashed from, and no explorer's grammar has an entity-key token.
      */
-    expect(detail.searchTokenUnavailableReason).toBe(
-      Scope.CANNOT_TRAVEL_REASON,
-    );
+    for (const signal of [
+      "logs",
+      "traces",
+      "metrics",
+    ] as Array<TelemetrySignal>) {
+      const detail: LockedFilterDetail = Scope.describeLockedStoredQueryFilter({
+        signal,
+        facetKey: "entityKeys",
+        value: "3f9a1b2c4d5e6f70",
+        displayKey: "Resource",
+        displayValue: "3f9a1b2c4d5e6f70",
+      });
+
+      expect(detail.predicates).toEqual([
+        {
+          label: "Entity key",
+          expression: "entityKeys has 3f9a1b2c4d5e6f70",
+        },
+      ]);
+      expect(detail.searchToken).toBeUndefined();
+      expect(detail.searchTokenUnavailableReason).toBe(
+        Scope.NO_SEARCH_SYNTAX_REASON,
+      );
+    }
   });
 
   test("trace, span and service chips get their field tokens", () => {
@@ -704,9 +752,20 @@ describe("describeLockedEntityKeyFilter", () => {
     "Rows are stamped at ingest with the key of every resource they describe, so rows primarily owned by another resource (a service running on it, say) can appear here too.";
   const ANY_OF_NOTE: string =
     "A row carrying any one of these keys is shown. Rows are stamped at ingest with the key of every resource they describe, so rows primarily owned by another resource (a service running on it, say) can appear here too.";
-  const CANNOT_TRAVEL: string =
-    "This filter cannot be copied or carried to the explorer.";
-  const NO_SYNTAX: string = "Entity keys have no search syntax.";
+  const NO_ATTRIBUTES: string = Scope.ENTITY_KEY_NO_ATTRIBUTES_REASON;
+  const NO_SYNTAX: string = Scope.ENTITY_KEY_NO_SYNTAX_REASON;
+
+  /*
+   * A pod's identifying resource attributes, keys without the `resource.`
+   * prefix and deliberately out of order: the token lists them sorted.
+   */
+  const POD_SEARCH_ATTRIBUTES: Record<string, string> = {
+    "k8s.pod.name": "checkout-7d9f",
+    "k8s.cluster.name": "prod",
+    "k8s.namespace.name": "shop",
+  };
+  const POD_SEARCH_TOKEN: string =
+    "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
 
   const ALL_ROWS: Array<EntityKeyScopedRows> = [
     "logs",
@@ -726,20 +785,19 @@ describe("describeLockedEntityKeyFilter", () => {
     });
   }
 
-  test("the vocabulary the viewers and the link builder share", () => {
+  test("the vocabulary the viewers share", () => {
     expect(Scope.ENTITY_KEYS_FACET_KEY).toBe("entityKeys");
     expect(Scope.DEFAULT_ENTITY_KEY_DISPLAY_KEY).toBe("Resource");
-    expect(Scope.ENTITY_KEY_NO_SYNTAX_REASON).toBe(NO_SYNTAX);
-    expect(Scope.CANNOT_TRAVEL_REASON).toBe(CANNOT_TRAVEL);
+    expect(Scope.RESOURCE_ATTRIBUTE_PREFIX).toBe("resource.");
   });
 
   const SINGLE_KEY_CASES: Array<[EntityKeyScopedRows, string, string]> = [
-    ["logs", "Only logs linked to this resource are shown.", CANNOT_TRAVEL],
-    ["traces", "Only traces linked to this resource are shown.", CANNOT_TRAVEL],
+    ["logs", "Only logs linked to this resource are shown.", NO_ATTRIBUTES],
+    ["traces", "Only traces linked to this resource are shown.", NO_ATTRIBUTES],
     [
       "metrics",
       "Only metrics linked to this resource are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "exceptions",
@@ -773,22 +831,65 @@ describe("describeLockedEntityKeyFilter", () => {
     },
   );
 
-  test("telemetry rows are told the filter cannot travel, because the explorer link does not carry the column either", () => {
+  test("telemetry rows with no search attributes — absent or empty — are told the resource has none to search by", () => {
     for (const signal of [
       "logs",
       "traces",
       "metrics",
     ] as Array<TelemetrySignal>) {
+      for (const searchAttributes of [undefined, {}]) {
+        const detail: LockedFilterDetail = entityKeyChip({
+          rows: signal,
+          searchAttributes,
+        });
+
+        expect(detail.searchToken).toBeUndefined();
+        expect(detail.searchTokenUnavailableReason).toBe(NO_ATTRIBUTES);
+      }
+    }
+  });
+
+  test("search attributes spell the token on every explorer and change nothing else about the chip", () => {
+    for (const signal of [
+      "logs",
+      "traces",
+      "metrics",
+    ] as Array<TelemetrySignal>) {
+      const bare: LockedFilterDetail = entityKeyChip({
+        rows: signal,
+        entityKeys: [POD_KEY, NODE_KEY],
+        entityTypeLabel: "Kubernetes Pod",
+      });
+
       expect(
-        Scope.isFilterCarriedByExplorerLink(
-          signal,
-          Scope.ENTITY_KEYS_FACET_KEY,
-        ),
-      ).toBe(false);
-      // Never "use Open in Logs instead" — that link would drop the scope.
+        entityKeyChip({
+          rows: signal,
+          entityKeys: [POD_KEY, NODE_KEY],
+          entityTypeLabel: "Kubernetes Pod",
+          searchAttributes: POD_SEARCH_ATTRIBUTES,
+        }),
+      ).toStrictEqual({
+        source: bare.source,
+        summary: bare.summary,
+        predicates: bare.predicates,
+        combinator: bare.combinator,
+        searchToken: POD_SEARCH_TOKEN,
+      });
+    }
+  });
+
+  test("the exceptions and profiles lists have no search bar, so search attributes give them no token", () => {
+    for (const rows of [
+      "exceptions",
+      "profiles",
+    ] as Array<EntityKeyScopedRows>) {
       expect(
-        entityKeyChip({ rows: signal }).searchTokenUnavailableReason,
-      ).not.toContain("Open in");
+        entityKeyChip({ rows, searchAttributes: POD_SEARCH_ATTRIBUTES }),
+      ).toStrictEqual(entityKeyChip({ rows }));
+      expect(
+        entityKeyChip({ rows, searchAttributes: POD_SEARCH_ATTRIBUTES })
+          .searchTokenUnavailableReason,
+      ).toBe(NO_SYNTAX);
     }
   });
 
@@ -882,7 +983,7 @@ describe("describeLockedEntityKeyFilter", () => {
         },
       ],
       combinator: "all",
-      searchTokenUnavailableReason: CANNOT_TRAVEL,
+      searchTokenUnavailableReason: NO_ATTRIBUTES,
     });
 
     expect(
@@ -934,7 +1035,7 @@ describe("describeLockedEntityKeyFilter", () => {
         },
       ],
       combinator: "all",
-      searchTokenUnavailableReason: CANNOT_TRAVEL,
+      searchTokenUnavailableReason: NO_ATTRIBUTES,
     });
   });
 
@@ -942,17 +1043,17 @@ describe("describeLockedEntityKeyFilter", () => {
     [
       "logs",
       "Logs linked to this resource are shown, along with logs linked to the 2 other resources this page pins.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "traces",
       "Traces linked to this resource are shown, along with traces linked to the 2 other resources this page pins.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "metrics",
       "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "exceptions",
@@ -1071,7 +1172,7 @@ describe("describeLockedEntityKeyFilter", () => {
     }
   });
 
-  test("no combination of surface, label or key count ever offers a search token", () => {
+  test("without search attributes, no combination of surface, label or key count offers a search token", () => {
     for (const rows of ALL_ROWS) {
       for (const entityTypeLabel of [undefined, "Kubernetes Pod"]) {
         for (const entityKeys of [undefined, [POD_KEY], [POD_KEY, NODE_KEY]]) {
@@ -1088,7 +1189,7 @@ describe("describeLockedEntityKeyFilter", () => {
           expect(detail.searchTokenUnavailableReason).toBe(
             rows === "exceptions" || rows === "profiles"
               ? NO_SYNTAX
-              : CANNOT_TRAVEL,
+              : NO_ATTRIBUTES,
           );
           expect(detail.combinator).toBe("all");
           expect(detail.predicates).toHaveLength(1);
@@ -1098,7 +1199,7 @@ describe("describeLockedEntityKeyFilter", () => {
     }
   });
 
-  test("reads the same as the traces viewer's stored-query entity-key chip; only the source differs", () => {
+  test("reads the same predicate as the traces viewer's stored-query entity-key chip; neither has search syntax without attributes", () => {
     const pageDetail: LockedFilterDetail = entityKeyChip({ rows: "traces" });
     const storedDetail: LockedFilterDetail =
       Scope.describeLockedStoredQueryFilter({
@@ -1115,8 +1216,15 @@ describe("describeLockedEntityKeyFilter", () => {
     expect(pageDetail.predicates[0]!.expression).toBe(
       storedDetail.predicates[0]!.expression,
     );
-    expect(pageDetail.searchTokenUnavailableReason).toBe(
-      storedDetail.searchTokenUnavailableReason,
+    expect(pageDetail.searchToken).toBeUndefined();
+    expect(storedDetail.searchToken).toBeUndefined();
+    /*
+     * The page chip could be spelled had the page named the entity's
+     * attributes; a stored query only ever holds the key.
+     */
+    expect(pageDetail.searchTokenUnavailableReason).toBe(NO_ATTRIBUTES);
+    expect(storedDetail.searchTokenUnavailableReason).toBe(
+      Scope.NO_SEARCH_SYNTAX_REASON,
     );
     expect(pageDetail.source).toBe(Scope.LOCKED_FILTER_SOURCE_PAGE);
     expect(storedDetail.source).toBe(Scope.LOCKED_FILTER_SOURCE_STORED_QUERY);
@@ -1133,210 +1241,6 @@ describe("describeLockedEntityKeyFilter", () => {
 
     expect(second.predicates[0]!.expression).toBe(
       "entityKeys has 3f9a1b2c4d5e6f70",
-    );
-  });
-});
-
-describe("buildLockedScopeCopyText", () => {
-  test("joins the chips' own search tokens and trusts a chip that says it has none", () => {
-    const text: string = Scope.buildLockedScopeCopyText("logs", [
-      {
-        facetKey: "attributes.resource.k8s.cluster.name",
-        value: "prod-eks-01",
-        lockedDetail: Scope.describeLockedAttributeFilter({
-          signal: "logs",
-          attributeKey: "resource.k8s.cluster.name",
-          rawValue: "prod-eks-01",
-          displayKey: "Cluster",
-          displayValue: "production",
-        }),
-      },
-      {
-        // An operator the grammar can spell rides along, from its PINNED value.
-        facetKey: "attributes.k8s.namespace.name",
-        value: "is any of a, b",
-        lockedDetail: Scope.describeLockedAttributeFilter({
-          signal: "logs",
-          attributeKey: "k8s.namespace.name",
-          rawValue: new Includes(["a", "b"]),
-          displayKey: "Namespace",
-          displayValue: "a, b",
-        }),
-      },
-      {
-        // One it cannot (a list entry the list grammar would split) is left out.
-        facetKey: "attributes.deploy.note",
-        value: "is any of x,y, z",
-        lockedDetail: Scope.describeLockedAttributeFilter({
-          signal: "logs",
-          attributeKey: "deploy.note",
-          rawValue: new Includes(["x,y", "z"]),
-          displayKey: "deploy.note",
-          displayValue: "x,y, z",
-        }),
-      },
-      { facetKey: "traceId", value: "t-1" },
-    ]);
-
-    expect(text).toBe(
-      "@resource.k8s.cluster.name:prod-eks-01 @k8s.namespace.name:(a OR b) trace:t-1",
-    );
-  });
-
-  test("on metrics an entity chip contributes nothing, so the text is only the attributes", () => {
-    const text: string = Scope.buildLockedScopeCopyText("metrics", [
-      { facetKey: "primaryEntityId", value: "651a000000000000000000aa" },
-      { facetKey: "attributes.resource.host.name", value: "web-01" },
-    ]);
-
-    expect(text).toBe("@resource.host.name:web-01");
-  });
-
-  test("an entity-key chip contributes nothing, so a scope of entity keys alone copies as empty text on every explorer", () => {
-    /*
-     * The Copy button trims this and hides itself when nothing is left
-     * (LockedFilterActions), so an Inventory item's pages never offer to
-     * copy an empty filter.
-     */
-    for (const signal of [
-      "logs",
-      "traces",
-      "metrics",
-    ] as Array<TelemetrySignal>) {
-      const entityKeys: Array<string> = [
-        "3f9a1b2c4d5e6f70",
-        "aaaaaaaaaaaaaaaa",
-      ];
-      const chips: Array<SearchableLockedFilter> = entityKeys.map(
-        (entityKey: string): SearchableLockedFilter => {
-          return {
-            facetKey: "entityKeys",
-            value: entityKey,
-            lockedDetail: Scope.describeLockedEntityKeyFilter({
-              rows: signal,
-              entityKey,
-              entityKeys,
-              entityTypeLabel: "Kubernetes Pod",
-            }),
-          };
-        },
-      );
-
-      expect(Scope.buildLockedScopeCopyText(signal, chips)).toBe("");
-
-      // Nor does a bare one: the column has no field token on any explorer.
-      expect(
-        Scope.buildLockedScopeCopyText(signal, [
-          { facetKey: "entityKeys", value: "3f9a1b2c4d5e6f70" },
-        ]),
-      ).toBe("");
-    }
-  });
-
-  test("beside an attribute chip only the attribute is copied, whichever chip comes first", () => {
-    for (const signal of [
-      "logs",
-      "traces",
-      "metrics",
-    ] as Array<TelemetrySignal>) {
-      const attributeChip: SearchableLockedFilter = {
-        facetKey: "attributes.resource.k8s.cluster.name",
-        value: "prod-eks-01",
-        lockedDetail: Scope.describeLockedAttributeFilter({
-          signal,
-          attributeKey: "resource.k8s.cluster.name",
-          rawValue: "prod-eks-01",
-          displayKey: "Cluster",
-          displayValue: "production",
-        }),
-      };
-      const entityKeysChip: SearchableLockedFilter = {
-        facetKey: "entityKeys",
-        value: "3f9a1b2c4d5e6f70",
-        lockedDetail: Scope.describeLockedEntityKeyFilter({
-          rows: signal,
-          entityKey: "3f9a1b2c4d5e6f70",
-          entityTypeLabel: "Kubernetes Pod",
-        }),
-      };
-
-      expect(
-        Scope.buildLockedScopeCopyText(signal, [entityKeysChip, attributeChip]),
-      ).toBe("@resource.k8s.cluster.name:prod-eks-01");
-      expect(
-        Scope.buildLockedScopeCopyText(signal, [attributeChip, entityKeysChip]),
-      ).toBe("@resource.k8s.cluster.name:prod-eks-01");
-    }
-  });
-
-  test("no chips means empty text", () => {
-    expect(Scope.buildLockedScopeCopyText("traces", [])).toBe("");
-  });
-});
-
-describe("what the explorer link can carry (consulted by the describers)", () => {
-  test("logs and traces carry sessions; only traces carries the span columns; metrics carries nothing beyond attributes and entity ids", () => {
-    expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.logs.has("sessionId")).toBe(true);
-    expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.traces.has("sessionId")).toBe(
-      true,
-    );
-    expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.metrics.size).toBe(0);
-
-    for (const column of ["statusCode", "kind", "hasException", "name"]) {
-      expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.traces.has(column)).toBe(true);
-      expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.logs.has(column)).toBe(false);
-    }
-
-    for (const facetKey of Scope.RESOURCE_ENTITY_FACET_KEYS) {
-      expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.logs.has(facetKey)).toBe(true);
-      expect(Scope.CARRIED_FACET_KEYS_BY_SIGNAL.traces.has(facetKey)).toBe(
-        true,
-      );
-    }
-  });
-
-  test("isFilterCarriedByExplorerLink: attributes and entity ids everywhere, the rest per signal, entityKeys nowhere", () => {
-    for (const signal of [
-      "logs",
-      "traces",
-      "metrics",
-    ] as Array<TelemetrySignal>) {
-      expect(
-        Scope.isFilterCarriedByExplorerLink(signal, "attributes.http.method"),
-      ).toBe(true);
-      expect(
-        Scope.isFilterCarriedByExplorerLink(signal, "primaryEntityId"),
-      ).toBe(true);
-      expect(Scope.isFilterCarriedByExplorerLink(signal, "serviceId")).toBe(
-        true,
-      );
-      expect(Scope.isFilterCarriedByExplorerLink(signal, "entityKeys")).toBe(
-        false,
-      );
-    }
-
-    expect(Scope.isFilterCarriedByExplorerLink("logs", "sessionId")).toBe(true);
-    expect(Scope.isFilterCarriedByExplorerLink("metrics", "sessionId")).toBe(
-      false,
-    );
-    expect(Scope.isFilterCarriedByExplorerLink("traces", "severityText")).toBe(
-      false,
-    );
-    expect(Scope.isFilterCarriedByExplorerLink("logs", "severityText")).toBe(
-      true,
-    );
-  });
-
-  test("the session describer points at the explorer link only where the link carries the session", () => {
-    expect(
-      Scope.describeLockedSessionFilter({ signal: "logs", sessionId: "s-1" })
-        .searchTokenUnavailableReason,
-    ).toBe("Session filters have no search syntax; use Open in Logs instead.");
-    expect(
-      Scope.describeLockedSessionFilter({ signal: "traces", sessionId: "s-1" })
-        .searchTokenUnavailableReason,
-    ).toBe(
-      "Session filters have no search syntax; use Open in Traces instead.",
     );
   });
 });

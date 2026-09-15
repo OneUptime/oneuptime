@@ -3,17 +3,17 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The metrics explorer's locked chips explain themselves and can be copied
- * or opened on the main /metrics page. The explanation text is owned by
- * LockedTelemetryScope.test.ts and the chip builders' behaviour by
- * MetricsEntityChipDisplay.test.ts; what is left is structural — that the
- * viewer hands its entity scope to the builders, that the actions are
- * derived from the LOCKED chips only, and that both reach the shared
- * TelemetryViewer under the prop names the Common layer reads. None of that
- * is observable from a unit test of a helper, and each of them silently
- * degrades the feature (a chip with no tooltip, an actions group that
- * copies the user's own chips) rather than failing, so this suite reads
- * the source and pins the arrangement.
+ * The metrics explorer's locked chips explain themselves, each with the
+ * search syntax that reproduces it on the main /metrics page. The
+ * explanation text is owned by LockedTelemetryScope.test.ts and the chip
+ * builders' behaviour by MetricsEntityChipDisplay.test.ts; what is left is
+ * structural — that the viewer hands its entity scope to the builders, that
+ * the chips reach the shared TelemetryViewer with the signal the Common
+ * layer reads to word their tooltip, and that the viewer builds no
+ * locked-filter actions of its own. None of that is observable from a unit
+ * test of a helper, and each of them silently degrades the feature (a chip
+ * with no tooltip, a tooltip pointing at the wrong explorer) rather than
+ * failing, so this suite reads the source and pins the arrangement.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -154,61 +154,14 @@ describe("MetricsViewer explains its locked chips", () => {
   });
 });
 
-describe("MetricsViewer offers Copy filter / Open in Metrics for the locked scope", () => {
-  const actions: string = blockAfter(
-    METRICS_VIEWER,
-    "const lockedFilterActions: LockedFilterActionOptions | undefined =",
-    "(",
-    ")",
-  );
-
-  test("imports the actions builder from the route-aware link module", () => {
+describe("MetricsViewer hands its locked chips to the shared viewer and builds no locked-filter actions", () => {
+  test("the chips and the metrics signal reach the shared viewer under the prop names the Common layer reads", () => {
     /*
-     * Membership, not the exact import statement: another feature adding a
-     * name to the list must not read as this wiring having been undone.
-     */
-    const fromIndex: number = METRICS_VIEWER.indexOf(
-      'from "../../Utils/LockedTelemetryScopeLink"',
-    );
-
-    expect(fromIndex).toBeGreaterThanOrEqual(0);
-    expect(
-      METRICS_VIEWER.slice(
-        METRICS_VIEWER.lastIndexOf("import", fromIndex),
-        fromIndex,
-      ),
-    ).toContain("buildLockedScopeFilterActions");
-  });
-
-  test("hands the shared builder the chip bar and the current window, for the metrics signal", () => {
-    /*
-     * The builder keeps the locked chips only, withholds a link that carries
-     * none of them and keeps the copy text when the route cannot resolve.
-     * Those rules run on real chips in MetricsEntityKeyLockedActions.test.ts
-     * and LockedTelemetryScopeLink.test.ts; this pins what the viewer hands it.
-     */
-    const call: string = blockAfter(
-      actions,
-      "buildLockedScopeFilterActions(",
-      "{",
-      "}",
-    );
-
-    expect(call).toContain('signal: "metrics"');
-    expect(call).toContain("chips: mergedActiveFilters");
-    expect(call).toContain("timeRange");
-  });
-
-  test("recomputes when the locked chips or the window change", () => {
-    expect(METRICS_VIEWER).toContain("}, [mergedActiveFilters, timeRange]);");
-  });
-
-  test("both reach the shared viewer under the prop names the Common layer reads", () => {
-    /*
-     * The JSX element cannot be sliced by brace balancing (its props hold
-     * arrow functions and nested elements), so the check is positional: the
-     * two props appear exactly once each, after the element opens and before
-     * the component returns.
+     * The chip tooltip reads the signal to say which explorer's search bar
+     * the syntax is pasted into. The JSX element cannot be sliced by brace
+     * balancing (its props hold arrow functions and nested elements), so the
+     * check is positional: each prop appears exactly once, after the element
+     * opens and before the component returns.
      */
     const elementStart: number = METRICS_VIEWER.indexOf(
       "<TelemetryViewer<MetricType>",
@@ -221,8 +174,8 @@ describe("MetricsViewer offers Copy filter / Open in Metrics for the locked scop
     expect(componentEnd).toBeGreaterThan(elementStart);
 
     for (const prop of [
+      "activeFilters={mergedActiveFilters}",
       'lockedFilterSignal="metrics"',
-      "lockedFilterActions={lockedFilterActions}",
     ]) {
       expect(METRICS_VIEWER.split(prop).length - 1).toBe(1);
 
@@ -232,14 +185,33 @@ describe("MetricsViewer offers Copy filter / Open in Metrics for the locked scop
       expect(propIndex).toBeLessThan(componentEnd);
     }
   });
+
+  test("the viewer builds no locked-filter actions, explorer link or scope-wide copy text", () => {
+    /*
+     * Each locked chip's search syntax lives on the chip itself, so nothing
+     * here derives a second, scope-wide affordance from the chip bar.
+     */
+    for (const removed of [
+      "lockedFilterActions",
+      "LockedFilterActions",
+      "LockedFilterActionOptions",
+      "buildLockedScopeFilterActions",
+      "buildLockedScopeExplorerLink",
+      "buildLockedScopeCopyText",
+      "buildLogsLockedFilterActions",
+      "LockedTelemetryScopeLink",
+    ]) {
+      expect(METRICS_VIEWER).not.toContain(removed);
+    }
+  });
 });
 
 /*
  * An Inventory item's Metrics page scopes the list by entity key alone, and
- * the chip bar used to stay empty. The chip itself is unit-tested in
- * MetricsEntityChipDisplay.test.ts and its actions in
- * MetricsEntityKeyLockedActions.test.ts; what is left is what only the
- * source can show — that the viewer accepts the page's names, hands the
+ * the chip bar used to stay empty. The chip itself, its explanation and its
+ * search syntax are unit-tested in MetricsEntityChipDisplay.test.ts; what is
+ * left is what only the source can show — that the viewer accepts the
+ * page's names, hands the
  * bare entity-key scope (and never the entityScope's keys) to the builder,
  * recomputes when either changes, and that the chip array stays display
  * only: nothing that builds a query, the URL or a saved view reads it.
@@ -397,16 +369,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     expect(outsideTheChipMemo).toEqual([]);
   });
 
-  test("the chip array is display only: it reaches the chip bar and the locked actions, and nothing that builds a query, the URL or a saved view", () => {
-    const actionsMarker: string =
-      "const lockedFilterActions: LockedFilterActionOptions | undefined =";
-    const actions: string = blockAfter(METRICS_VIEWER, actionsMarker, "(", ")");
-    const actionsStart: number = METRICS_VIEWER.indexOf(
-      actions,
-      METRICS_VIEWER.indexOf(actionsMarker),
-    );
-    const actionsEnd: number = actionsStart + actions.length;
-
+  test("the chip array is display only: it reaches the chip bar, and nothing that builds a query, the URL or a saved view", () => {
     const chipBarPropIndex: number = METRICS_VIEWER.indexOf(
       "activeFilters={mergedActiveFilters}",
     );
@@ -417,11 +380,11 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
       chipBarPropIndex + "activeFilters={".length;
 
     /*
-     * Every read of the chip array is one of: its own memo, the actions memo
-     * (which keeps the locked chips only), or the chip bar prop. The metric
-     * list query, the metric-name and sparkline loads, the URL mirror, the
-     * saved-view capture, the facet include and the row click all read the
-     * `activeFilters` state instead — which the locked chips never enter.
+     * Every read of the chip array is either its own memo or the chip bar
+     * prop. The metric list query, the metric-name and sparkline loads, the
+     * URL mirror, the saved-view capture, the facet include and the row
+     * click all read the `activeFilters` state instead — which the locked
+     * chips never enter.
      */
     const unexpectedReads: Array<string> = indexesOf(
       METRICS_VIEWER,
@@ -429,9 +392,8 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     )
       .filter((index: number): boolean => {
         const inChipMemo: boolean = index >= memoStart && index < memoEnd;
-        const inActions: boolean = index >= actionsStart && index < actionsEnd;
 
-        return !inChipMemo && !inActions && index !== chipBarReference;
+        return !inChipMemo && index !== chipBarReference;
       })
       .map((index: number): string => {
         return contextAt(METRICS_VIEWER, index);
@@ -636,22 +598,5 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
 
     expect(toolbar).toContain("isScoped");
     expect(toolbar).toContain("<TelemetrySavedViewsControl");
-  });
-});
-
-/*
- * The same entity-key scope has no explorer URL chip, so the only link the
- * link builder can make for it is the window alone — every metric in the
- * project under "Open in Metrics". buildLockedScopeFilterActions withholds
- * that link (on real chips in MetricsEntityKeyLockedActions.test.ts); this
- * pins that the viewer has no second path around it.
- */
-describe("Open in Metrics is withheld when the link carries none of the locked scope", () => {
-  test("the viewer builds neither a link nor copy text of its own, so the shared builder decides both", () => {
-    expect(METRICS_VIEWER).not.toContain("buildLockedScopeExplorerLink(");
-    expect(METRICS_VIEWER).not.toContain("buildLockedScopeCopyText(");
-    expect(METRICS_VIEWER).toContain(
-      "lockedFilterActions={lockedFilterActions}",
-    );
   });
 });

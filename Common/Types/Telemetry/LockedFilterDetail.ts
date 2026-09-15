@@ -9,8 +9,8 @@
  * or by something else, nor how to reproduce it on the main explorer page.
  *
  * The chip builders in the Dashboard fill one of these per locked chip; the
- * shared chip renderer turns it into a rich tooltip and into the
- * "Copy filter" affordance. Display-only: nothing here changes the query.
+ * shared chip renderer shows its search syntax (or the reason there is none)
+ * in the chip's tooltip. Display-only: nothing here changes the query.
  */
 
 /** One predicate the server evaluates for the locked filter. */

@@ -63,6 +63,7 @@ import {
 import {
   DEFAULT_ENTITY_KEY_DISPLAY_KEY,
   ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   ENTITY_KEY_NO_SYNTAX_REASON,
   LOCKED_FILTER_SOURCE_PAGE,
   describeLockedEntityKeyFilter,
@@ -200,13 +201,47 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
     expect(detail.searchTokenUnavailableReason).toBe(
       "Entity keys have no search syntax.",
     );
+    // Not the explorers' reason: exceptions have no search bar at all.
     expect(detail.searchTokenUnavailableReason).not.toBe(
-      "This filter cannot be copied or carried to the explorer.",
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
     expect(detail.combinator).toBe("all");
     expect(detail.predicates).toEqual(
       describeLockedEntityKeyFilter({ rows: "exceptions", entityKey: POD_KEY })
         .predicates,
+    );
+  });
+
+  test("an item that names its identifying attributes still gets no search syntax on the exceptions pill", () => {
+    /*
+     * The same display map spells the pill on the Logs, Traces and Metrics
+     * tabs; the exceptions list has nowhere to paste it.
+     */
+    const detail: LockedFilterDetail = detailOf(
+      onlyChip(
+        buildExceptionLockedEntityKeyChips({
+          entityKeysFilter: [POD_KEY],
+          entityKeyDisplays: {
+            [POD_KEY]: {
+              displayKey: "Kubernetes Pod",
+              displayValue: "checkout-7d9f",
+              searchAttributes: {
+                "k8s.cluster.name": "prod",
+                "k8s.namespace.name": "shop",
+                "k8s.pod.name": "checkout-7d9f",
+              },
+            },
+          },
+        }),
+      ),
+    );
+
+    expect(detail).not.toHaveProperty("searchToken");
+    expect(detail.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_SYNTAX_REASON,
+    );
+    expect(detail.summary).toBe(
+      "Only exceptions linked to this Kubernetes Pod are shown.",
     );
   });
 

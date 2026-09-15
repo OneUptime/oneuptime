@@ -18,16 +18,12 @@ import React from "react";
 import TelemetryActiveFilterChips from "../../../UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips";
 import { ActiveFilter } from "../../../UI/Components/TelemetryViewer/types";
 import { getLockedFilterChipAriaLabel } from "../../../UI/Components/TelemetryViewer/components/LockedFilterChip";
-import {
-  getCopyLockedFiltersAriaLabel,
-  getOpenExplorerAriaLabel,
-} from "../../../UI/Components/TelemetryViewer/components/LockedFilterActions";
-import Route from "../../../Types/API/Route";
 
 /*
  * The traces / metrics chip list, now that its read-only chips are
  * LockedFilterChips. Same contract as the logs list, minus the logs-only
- * open-route affordance and the operator-value backstop.
+ * open-route affordance and the operator-value backstop. The locked group is
+ * followed by nothing: no "Copy filter" / "Open in …" actions.
  */
 
 beforeEach(() => {
@@ -120,7 +116,7 @@ describe("TelemetryActiveFilterChips — locked chips", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  test("hovering the locked chip explains the filter and names the explorer", async () => {
+  test("hovering the locked chip shows only its search syntax and names the explorer", async () => {
     render(
       <TelemetryActiveFilterChips
         filters={[lockedHostChip()]}
@@ -138,11 +134,16 @@ describe("TelemetryActiveFilterChips — locked chips", () => {
 
     const tooltip: HTMLElement = screen.getByRole("tooltip");
 
-    expect(tooltip).toHaveTextContent("Only traces from this host are shown.");
+    expect(tooltip).toHaveTextContent("Search syntax");
     expect(tooltip).toHaveTextContent("@resource.host.name:web-01");
     expect(tooltip).toHaveTextContent(
       "Paste into the Traces explorer search bar.",
     );
+    expect(tooltip).not.toHaveTextContent(
+      "Only traces from this host are shown.",
+    );
+    expect(tooltip).not.toHaveTextContent("Pinned by this page");
+    expect(tooltip).not.toHaveTextContent('resource.host.name = "web-01"');
   });
 
   test("a read-only chip without a detail keeps the plain title", () => {
@@ -160,89 +161,45 @@ describe("TelemetryActiveFilterChips — locked chips", () => {
   });
 });
 
-describe("TelemetryActiveFilterChips — locked filter actions", () => {
-  test("renders the actions after the locked chips and before the removable ones", () => {
+describe("TelemetryActiveFilterChips — no locked filter actions", () => {
+  test("renders no Copy filter or Open in … actions next to the locked chips", () => {
+    render(
+      <TelemetryActiveFilterChips
+        filters={[lockedHostChip(), removableChip()]}
+        onRemove={() => {}}
+        onClearAll={() => {}}
+        signal="traces"
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("locked-filter-actions"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Locked filter actions" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Copy filter")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Open in /)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Copy locked filters/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  test("locked chips are followed directly by the removable ones", () => {
     render(
       <TelemetryActiveFilterChips
         filters={[removableChip(), lockedHostChip()]}
         onRemove={() => {}}
         onClearAll={() => {}}
         signal="metrics"
-        lockedFilterActions={{
-          copyText: "@resource.host.name:web-01",
-          openExplorerRoute: new Route("/dashboard/p1/metrics?filters=x"),
-        }}
       />,
     );
 
-    const locked: HTMLElement = screen.getByRole("button", {
-      name: getLockedFilterChipAriaLabel("Host", "web-01", true),
-    });
-    const actions: HTMLElement = screen.getByTestId("locked-filter-actions");
+    const pill: HTMLElement = screen.getByTestId("locked-filter-chip");
     const remove: HTMLElement = screen.getByTitle("Remove Status: Error");
 
-    expect(
-      locked.compareDocumentPosition(actions) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      actions.compareDocumentPosition(remove) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", {
-        name: getCopyLockedFiltersAriaLabel("Metrics"),
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: getOpenExplorerAriaLabel("Metrics") }),
-    ).toHaveAttribute("href", "/dashboard/p1/metrics?filters=x");
-  });
-
-  test("renders no actions without a signal — the group cannot name its explorer", () => {
-    render(
-      <TelemetryActiveFilterChips
-        filters={[lockedHostChip()]}
-        onRemove={() => {}}
-        onClearAll={() => {}}
-        lockedFilterActions={{ copyText: "@k:v" }}
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("locked-filter-actions"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("renders no actions when there is no locked chip", () => {
-    render(
-      <TelemetryActiveFilterChips
-        filters={[removableChip()]}
-        onRemove={() => {}}
-        onClearAll={() => {}}
-        signal="traces"
-        lockedFilterActions={{ copyText: "@k:v" }}
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("locked-filter-actions"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("renders no actions when the host offers none", () => {
-    render(
-      <TelemetryActiveFilterChips
-        filters={[lockedHostChip()]}
-        onRemove={() => {}}
-        onClearAll={() => {}}
-        signal="traces"
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("locked-filter-actions"),
-    ).not.toBeInTheDocument();
+    expect(pill.nextElementSibling).toContainElement(remove);
   });
 });
 
@@ -265,7 +222,6 @@ describe("TelemetryActiveFilterChips — unchanged behaviour", () => {
           cleared += 1;
         }}
         signal="traces"
-        lockedFilterActions={{ copyText: "@k:v" }}
       />,
     );
 
@@ -295,7 +251,6 @@ describe("TelemetryActiveFilterChips — unchanged behaviour", () => {
         onRemove={() => {}}
         onClearAll={() => {}}
         signal="traces"
-        lockedFilterActions={{ copyText: "@k:v" }}
       />,
     );
 

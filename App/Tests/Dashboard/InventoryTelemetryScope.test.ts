@@ -18,6 +18,8 @@ import {
   buildLockedEntityKeyChips,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
+  ENTITY_KEY_NO_SYNTAX_REASON,
   EntityKeyScopedRows,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
@@ -33,6 +35,10 @@ import {
  * leaking onto the pill, a blank name rendering as "Kubernetes Pod: ", or a
  * map keyed differently from the scope, which drops the pill back to the raw
  * hash with nothing crashing.
+ *
+ * Which identifying attributes become the pill's search syntax is pinned in
+ * InventoryEntitySearchSyntax.test.ts; the pills here are built without
+ * them, so each says it has no attributes to search by.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
@@ -41,9 +47,8 @@ const POD_NAME: string = "checkout-7d9f";
 
 const ALL_ENTITY_TYPES: Array<EntityType> = Object.values(EntityType);
 
-const CANNOT_TRAVEL: string =
-  "This filter cannot be copied or carried to the explorer.";
-const NO_SYNTAX: string = "Entity keys have no search syntax.";
+const NO_ATTRIBUTES: string = ENTITY_KEY_NO_ATTRIBUTES_REASON;
+const NO_SYNTAX: string = ENTITY_KEY_NO_SYNTAX_REASON;
 
 type PillTextFunction = (chip: ActiveFilter) => string;
 
@@ -305,6 +310,39 @@ describe("buildInventoryEntityKeyDisplays", () => {
     );
   });
 
+  test("identifying attributes ride along as the display's search attributes, leaving the pill's words alone", () => {
+    const displays: LockedEntityKeyDisplayMap = buildInventoryEntityKeyDisplays(
+      {
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: POD_NAME,
+        identifyingAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": POD_NAME,
+        },
+      },
+    );
+
+    expect(displays).toStrictEqual({
+      [POD_KEY]: {
+        displayKey: "Kubernetes Pod",
+        displayValue: POD_NAME,
+        searchAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": POD_NAME,
+        },
+      },
+    });
+
+    // Without them the entry holds the pill's two strings and nothing else.
+    expect(Object.keys(POD_DISPLAYS[POD_KEY]!).sort()).toEqual([
+      "displayKey",
+      "displayValue",
+    ]);
+  });
+
   test("every call builds a fresh map, and the item is only read", () => {
     const item: Readonly<{
       entityKey: string;
@@ -332,7 +370,7 @@ describe("buildInventoryEntityKeyDisplays", () => {
 });
 
 describe("the Inventory item's pill, end to end", () => {
-  test("a Kubernetes pod's Logs page: 'Kubernetes Pod: checkout-7d9f', read-only, explained, no search token", () => {
+  test("a Kubernetes pod's Logs page without identifying attributes: 'Kubernetes Pod: checkout-7d9f', read-only, explained, no search token", () => {
     const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
       rows: "logs",
       entityKeys: [POD_KEY],
@@ -358,8 +396,9 @@ describe("the Inventory item's pill, end to end", () => {
     expect(chips[0]!.lockedDetail?.summary).toBe(
       "Only logs linked to this Kubernetes Pod are shown.",
     );
+    expect(chips[0]!.lockedDetail?.searchToken).toBeUndefined();
     expect(chips[0]!.lockedDetail?.searchTokenUnavailableReason).toBe(
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     );
   });
 
@@ -367,17 +406,17 @@ describe("the Inventory item's pill, end to end", () => {
     [
       "logs",
       "Only logs linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "traces",
       "Only traces linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "metrics",
       "Only metrics linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "exceptions",
@@ -515,7 +554,7 @@ describe("the Inventory item's pill, end to end", () => {
     expect(chip.value).toBe(POD_KEY);
   });
 
-  test("the name is display only: the facet and value — what a query or an explorer link reads — are the key", () => {
+  test("the name is display only: the facet and value — what the query reads — are the key", () => {
     const chip: ActiveFilter = onlyChip("logs", [POD_KEY], POD_DISPLAYS);
 
     expect(chip.facetKey).toBe("entityKeys");

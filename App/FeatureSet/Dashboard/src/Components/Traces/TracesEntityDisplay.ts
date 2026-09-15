@@ -40,11 +40,6 @@ import {
 } from "./TracesSearchCompile";
 import { getAttributeDisplayName } from "../Logs/LogsAttributeFilterChips";
 import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
-/*
- * The PURE describers only. Their route-aware sibling
- * (Utils/LockedTelemetryScopeLink) reads `window` at load through RouteMap
- * and must never be imported here: this module's suite runs in plain Node.
- */
 import {
   ENTITY_KEYS_FACET_KEY,
   LOCKED_FILTER_SOURCE_STORED_QUERY,

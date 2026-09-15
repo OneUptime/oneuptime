@@ -153,13 +153,11 @@ import {
   getSpanEntity,
   resolveTraceChipDisplay,
 } from "./TracesEntityDisplay";
-import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   LOCKED_FILTER_SOURCE_PAGE,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
-import { buildLockedScopeFilterActions } from "../../Utils/LockedTelemetryScopeLink";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 
 const DEFAULT_PAGE_SIZE: number = 50;
@@ -2395,11 +2393,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   /*
    * Read-only chips for prop-level scoping (a service page's entity, a
    * snapshot's stored query, an Inventory item's entity key, a resource
-   * page's attribute filters). Each carries a LockedFilterDetail — what it
-   * matches and why it is locked — which the chip renders as its tooltip and
-   * the "Copy filter" / "Open in Traces" actions below are built from. Kept
-   * apart from the user's chips
-   * so those actions describe the pinned scope alone.
+   * page's attribute filters). Each carries a LockedFilterDetail whose search
+   * syntax the chip shows in its tooltip. Kept apart from the user's chips.
    */
   const lockedChips: Array<ActiveFilter> = useMemo(() => {
     const base: Array<ActiveFilter> = [];
@@ -2624,26 +2619,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ...spanTypeChip,
     ];
   }, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);
-
-  /*
-   * How the pinned scope travels to the main Traces explorer: every locked
-   * chip as search syntax to paste into its search bar, and a link that
-   * opens it with the same chips and window already applied. Built from the
-   * locked chips alone — the user's own chips are theirs to carry. The link
-   * builder reads the current URL for the project route; a host without one
-   * (a preview outside the dashboard shell) keeps the copy affordance only
-   * rather than losing the chip bar to a thrown error. That fallback, and the
-   * rule that a link carrying none of the scope is not offered, live in the
-   * shared builder, where they are exercised on real chips.
-   */
-  const lockedFilterActions: LockedFilterActionOptions | undefined =
-    useMemo(() => {
-      return buildLockedScopeFilterActions({
-        signal: "traces",
-        chips: lockedChips,
-        timeRange,
-      });
-    }, [lockedChips, timeRange]);
 
   /*
    * "Create metric…" from the analytics view — prefill a Trace Recording
@@ -3330,7 +3305,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
-      lockedFilterActions={lockedFilterActions}
       // Histogram
       showHistogram={true}
       histogramBuckets={histogramBuckets}

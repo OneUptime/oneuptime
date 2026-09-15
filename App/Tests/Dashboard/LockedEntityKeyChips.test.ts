@@ -13,15 +13,17 @@ import type { TelemetrySignal } from "Common/Utils/Telemetry/LockedFilterSearch"
 import {
   LockedEntityKeyDisplayMap,
   buildLockedEntityKeyChips,
+  getLockedEntityKeySearchAttributes,
   normalizeLockedEntityKeys,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
   DEFAULT_ENTITY_KEY_DISPLAY_KEY,
   ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
+  ENTITY_KEY_NO_SYNTAX_REASON,
   EntityKeyScopedRows,
   LOCKED_FILTER_SOURCE_PAGE,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
-  buildLockedScopeCopyText,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import {
@@ -64,12 +66,18 @@ const ALL_ROWS: Array<EntityKeyScopedRows> = [
   "profiles",
 ];
 
-const CANNOT_TRAVEL: string =
-  "This filter cannot be copied or carried to the explorer.";
-const NO_SYNTAX: string = "Entity keys have no search syntax.";
+const NO_ATTRIBUTES: string = ENTITY_KEY_NO_ATTRIBUTES_REASON;
+const NO_SYNTAX: string = ENTITY_KEY_NO_SYNTAX_REASON;
 
 const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
   [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: POD_NAME },
+};
+
+// The pod's identifying resource attributes, keys without `resource.`.
+const POD_SEARCH_ATTRIBUTES: Record<string, string> = {
+  "k8s.cluster.name": "prod",
+  "k8s.namespace.name": "shop",
+  "k8s.pod.name": POD_NAME,
 };
 
 type PillTextFunction = (chip: ActiveFilter) => string;
@@ -185,7 +193,7 @@ describe("buildLockedEntityKeyChips", () => {
       "Only logs linked to this Kubernetes Pod are shown.",
     );
     expect(chips[0]!.lockedDetail?.searchTokenUnavailableReason).toBe(
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     );
   });
 
@@ -644,17 +652,17 @@ describe("buildLockedEntityKeyChips", () => {
     [
       "logs",
       "Only logs linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "traces",
       "Only traces linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "metrics",
       "Only metrics linked to this Kubernetes Pod are shown.",
-      CANNOT_TRAVEL,
+      NO_ATTRIBUTES,
     ],
     [
       "exceptions",
@@ -711,7 +719,7 @@ describe("buildLockedEntityKeyChips", () => {
     },
   );
 
-  test("every chip is read-only, on the entityKeys facet, valued by its key, with no search token and no link", () => {
+  test("every chip is read-only, on the entityKeys facet, valued by its key, with no search token while the page names no search attributes", () => {
     for (const rows of ALL_ROWS) {
       for (const displays of [undefined, POD_DISPLAYS]) {
         for (const chip of buildLockedEntityKeyChips({
@@ -734,14 +742,14 @@ describe("buildLockedEntityKeyChips", () => {
           expect(chip.lockedDetail?.searchTokenUnavailableReason).toBe(
             rows === "exceptions" || rows === "profiles"
               ? NO_SYNTAX
-              : CANNOT_TRAVEL,
+              : NO_ATTRIBUTES,
           );
         }
       }
     }
   });
 
-  test("the name is display only: the value — what a query or an explorer link reads — is always the key", () => {
+  test("the name is display only: the value — what the query reads — is always the key", () => {
     const chip: ActiveFilter = buildLockedEntityKeyChips({
       rows: "logs",
       entityKeys: [POD_KEY],
@@ -785,22 +793,60 @@ describe("buildLockedEntityKeyChips", () => {
     ).toBe(LOCKED_FILTER_SOURCE_PAGE);
   });
 
-  test("copied as search syntax, entity-key chips are empty text on every explorer", () => {
+  test("a display's search attributes reach its own chip's describer only, and change nothing on the pill", () => {
+    const displays: LockedEntityKeyDisplayMap = {
+      [POD_KEY]: {
+        displayKey: "Kubernetes Pod",
+        displayValue: POD_NAME,
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      },
+    };
+
+    for (const rows of ALL_ROWS) {
+      const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+        rows,
+        entityKeys: [POD_KEY, NODE_KEY],
+        displays,
+      });
+
+      expect(pillTexts(chips)).toEqual([
+        "Kubernetes Pod: checkout-7d9f",
+        "Resource: aaaaaaaaaaaaaaaa",
+      ]);
+      expect(chips[0]!.lockedDetail).toStrictEqual(
+        describeLockedEntityKeyFilter({
+          rows,
+          entityKey: POD_KEY,
+          entityKeys: [POD_KEY, NODE_KEY],
+          entityTypeLabel: "Kubernetes Pod",
+          searchAttributes: POD_SEARCH_ATTRIBUTES,
+        }),
+      );
+      // The neighbour the page did not name has nothing to be spelled with.
+      expect(chips[1]!.lockedDetail).toStrictEqual(
+        describeLockedEntityKeyFilter({
+          rows,
+          entityKey: NODE_KEY,
+          entityKeys: [POD_KEY, NODE_KEY],
+        }),
+      );
+      expect(chips[1]!.lockedDetail?.searchToken).toBeUndefined();
+    }
+
     for (const signal of [
       "logs",
       "traces",
       "metrics",
     ] as Array<TelemetrySignal>) {
       expect(
-        buildLockedScopeCopyText(
-          signal,
-          buildLockedEntityKeyChips({
-            rows: signal,
-            entityKeys: [POD_KEY, NODE_KEY],
-            displays: POD_DISPLAYS,
-          }),
-        ),
-      ).toBe("");
+        buildLockedEntityKeyChips({
+          rows: signal,
+          entityKeys: [POD_KEY],
+          displays,
+        })[0]!.lockedDetail?.searchToken,
+      ).toBe(
+        "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+      );
     }
   });
 
@@ -879,5 +925,48 @@ describe("buildLockedEntityKeyChips", () => {
         }),
       ),
     ).toEqual(["Kubernetes Pod: checkout-7d9f", "Resource: aaaaaaaaaaaaaaaa"]);
+  });
+});
+
+describe("getLockedEntityKeySearchAttributes", () => {
+  test("hands back the attributes of the key's own entry, by the same lookup the chip builder uses", () => {
+    const displays: LockedEntityKeyDisplayMap = {
+      [POD_KEY]: {
+        displayKey: "Kubernetes Pod",
+        displayValue: POD_NAME,
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      },
+    };
+
+    expect(getLockedEntityKeySearchAttributes(displays, POD_KEY)).toBe(
+      POD_SEARCH_ATTRIBUTES,
+    );
+  });
+
+  test("no map, an unknown key, an entry without attributes or an inherited entry is undefined", () => {
+    const inherited: LockedEntityKeyDisplayMap = Object.create({
+      [POD_KEY]: {
+        displayKey: "Inherited",
+        displayValue: "leak",
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      },
+    }) as LockedEntityKeyDisplayMap;
+
+    expect(
+      getLockedEntityKeySearchAttributes(undefined, POD_KEY),
+    ).toBeUndefined();
+    expect(getLockedEntityKeySearchAttributes({}, POD_KEY)).toBeUndefined();
+    expect(
+      getLockedEntityKeySearchAttributes(POD_DISPLAYS, NODE_KEY),
+    ).toBeUndefined();
+    expect(
+      getLockedEntityKeySearchAttributes(POD_DISPLAYS, POD_KEY),
+    ).toBeUndefined();
+    expect(
+      getLockedEntityKeySearchAttributes(inherited, POD_KEY),
+    ).toBeUndefined();
+    expect(
+      getLockedEntityKeySearchAttributes(POD_DISPLAYS, "constructor"),
+    ).toBeUndefined();
   });
 });

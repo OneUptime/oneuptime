@@ -325,15 +325,24 @@ describe("ProfileTable shows the locked chips as grey pills", () => {
     }
   });
 
-  test("profiles are not an explorer signal: the pill names none and the table offers no Copy filter / Open in action", () => {
+  test("profiles are not an explorer signal: the pill names none, and the table builds no actions for the locked scope", () => {
     /*
-     * An entity-key chip has no search token, so a "Copy filter" button
-     * would copy nothing and an "Open in" link would drop the scope.
+     * A profiles pill has no search token (the profiles list has no search
+     * bar), so its tooltip gives the reason and names no explorer.
      */
     expect(LOCKED_CHIP_MAP).not.toContain("signal=");
-    expect(PROFILE_TABLE).not.toContain("LockedFilterActions");
-    expect(PROFILE_TABLE).not.toContain("buildLockedScopeCopyText");
-    expect(PROFILE_TABLE).not.toContain("buildLockedScopeExplorerLink");
+
+    for (const removed of [
+      "lockedFilterActions",
+      "LockedFilterActions",
+      "buildLockedScopeFilterActions",
+      "LockedTelemetryScopeLink",
+    ]) {
+      expect({ removed, present: PROFILE_TABLE.includes(removed) }).toEqual({
+        removed,
+        present: false,
+      });
+    }
   });
 });
 
