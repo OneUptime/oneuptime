@@ -116,6 +116,7 @@ import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
+import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
@@ -5575,6 +5576,8 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkRuleRunAPI().getRouter(),
     );
+    // "Run now" for label, owner, privacy and status page monitor rules.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new RuleRunAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),

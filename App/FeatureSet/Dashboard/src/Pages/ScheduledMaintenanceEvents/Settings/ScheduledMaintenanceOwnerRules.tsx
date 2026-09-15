@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -43,12 +45,25 @@ Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (def
 `;
 
 const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
     <Fragment>
-      <ModelTable<ScheduledMaintenanceOwnerRule>
+      <RuleTable<ScheduledMaintenanceOwnerRule>
         modelType={ScheduledMaintenanceOwnerRule}
+        viewRuleId={RuleViewPageUtil.getViewRuleId(
+          props,
+          ScheduledMaintenanceOwnerRule,
+        )}
+        listRoute={RuleViewPageUtil.getListRoute(
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES,
+        )}
+        getRuleViewRoute={(rule: ScheduledMaintenanceOwnerRule): Route => {
+          return RuleViewPageUtil.getRuleViewRoute(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULE_VIEW,
+            rule,
+          );
+        }}
         id="scheduled-maintenance-owner-rules-table"
         name="Settings > Scheduled Maintenance Owner Rules"
         userPreferencesKey="scheduled-maintenance-owner-rules-table"
@@ -101,7 +116,6 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
             },
           },
         ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },

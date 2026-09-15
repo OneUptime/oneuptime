@@ -77,6 +77,12 @@ import IncomingCallPolicyViewAuditLogs from "../Pages/OnCallDuty/IncomingCallPol
 import IncomingCallPolicyViewSettings from "../Pages/OnCallDuty/IncomingCallPolicy/Settings";
 
 import IncomingCallPolicyViewDocs from "../Pages/OnCallDuty/IncomingCallPolicy/Docs";
+import OnCallDutyPolicyLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyLabelRule";
+import OnCallDutyPolicyScheduleLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
+import IncomingCallPolicyLabelRule from "Common/Models/DatabaseModels/IncomingCallPolicyLabelRule";
+import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerRule";
+import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
+import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
 
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -246,6 +252,59 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={OnCallDutyPolicyLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={OnCallDutyPolicyScheduleLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={IncomingCallPolicyLabelRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -257,6 +316,59 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={OnCallDutyPolicyOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={OnCallDutyPolicyScheduleOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <OnCallDutySettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={IncomingCallPolicyOwnerRule}
             />
           }
         />

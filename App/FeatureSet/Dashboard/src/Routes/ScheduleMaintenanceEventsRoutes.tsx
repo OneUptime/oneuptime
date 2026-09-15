@@ -64,6 +64,8 @@ import ScheduledMaintenanceSettingsReminderRules from "../Pages/ScheduledMainten
 import ScheduledMaintenanceSettingsMeasurements from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements";
 
 import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
+import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
+import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -295,6 +297,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={ScheduledMaintenanceOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -328,6 +348,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                   PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
                 ] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={ScheduledMaintenanceLabelRule}
             />
           }
         />

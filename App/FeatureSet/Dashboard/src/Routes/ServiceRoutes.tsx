@@ -45,6 +45,8 @@ import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
 
 import ServiceArchived from "../Pages/Service/Archived";
+import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
+import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
 
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -73,6 +75,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={
+            ServiceRoutePath[PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW] || ""
+          }
+          element={
+            <ServiceSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServiceOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES] || ""}
           element={
             <ServiceSettingsLabelRules
@@ -80,6 +96,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW] || ""
+          }
+          element={
+            <ServiceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServiceLabelRule}
             />
           }
         />

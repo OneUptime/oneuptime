@@ -10,14 +10,47 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class AlertEpisodeLabelRuleEngineServiceClass {
+class AlertEpisodeLabelRuleEngineServiceClass
+  implements RuleRunEngine<AlertEpisode, AlertEpisodeLabelRule>
+{
+  public readonly ruleSelect: Select<AlertEpisodeLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    alertSeverities: { _id: true },
+    episodeLabels: { _id: true },
+    episodeTitlePattern: true,
+    episodeDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  /*
+   * Evaluation matches on these straight off the episode it is handed - only
+   * the existing-label check re-reads it - so a run has to carry every one.
+   */
+  public readonly resourceSelectForRuleRun: Select<AlertEpisode> = {
+    _id: true,
+    projectId: true,
+    title: true,
+    description: true,
+    alertSeverityId: true,
+    labels: { _id: true },
+  };
+
   /**
    * Evaluates AlertEpisodeLabelRule rows for the given episode and attaches
    * matched labels via the AlertEpisodeLabel join table. The union is
@@ -38,16 +71,7 @@ class AlertEpisodeLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            alertSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -62,72 +86,119 @@ class AlertEpisodeLabelRuleEngineServiceClass {
         return;
       }
 
-      const labelIdsToAdd: Set<string> = new Set();
-      const matchedRules: Array<AlertEpisodeLabelRule> = [];
-
-      for (const rule of rules) {
-        if (!this.doesEpisodeMatchRule(episode, rule)) {
-          continue;
-        }
-        matchedRules.push(rule);
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const episodeWithLabels: AlertEpisode | null =
-        await AlertEpisodeService.findOneById({
-          id: episode.id,
-          select: { labels: { _id: true } },
-          props: { isRoot: true },
-        });
-      const existingLabelIds: Set<string> = new Set(
-        (episodeWithLabels?.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await AlertEpisodeService.getRepository()
-        .createQueryBuilder()
-        .relation(AlertEpisode, "labels")
-        .of(episode.id.toString())
-        .add(newLabelIds);
-
-      logger.debug(
-        `AlertEpisodeLabelRuleEngine attached ${newLabelIds.length} labels to episode ${episode.id}`,
-        { projectId: episode.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({
-        episode,
-        matchedRules,
-        addedLabelIds: newLabelIds,
-      });
+      await this.applyRules({ episode: episode, rules: rules });
     } catch (error) {
       logger.error(`Error applying alert episode label rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         alertEpisodeId: episode.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an episode that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<AlertEpisode, AlertEpisodeLabelRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        episode: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running alert episode label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        alertEpisodeId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    episode: AlertEpisode;
+    rules: Array<AlertEpisodeLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { episode, rules } = data;
+
+    if (!episode.id || !episode.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    const matchedRules: Array<AlertEpisodeLabelRule> = [];
+
+    for (const rule of rules) {
+      if (!this.doesEpisodeMatchRule(episode, rule)) {
+        continue;
+      }
+      matchedRules.push(rule);
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const episodeWithLabels: AlertEpisode | null =
+      await AlertEpisodeService.findOneById({
+        id: episode.id,
+        select: { labels: { _id: true } },
+        props: { isRoot: true },
+      });
+
+    if (!episodeWithLabels) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (episodeWithLabels.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await AlertEpisodeService.getRepository()
+      .createQueryBuilder()
+      .relation(AlertEpisode, "labels")
+      .of(episode.id.toString())
+      .add(newLabelIds);
+
+    logger.debug(
+      `AlertEpisodeLabelRuleEngine attached ${newLabelIds.length} labels to episode ${episode.id}`,
+      { projectId: episode.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({
+      episode,
+      matchedRules,
+      addedLabelIds: newLabelIds,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   @CaptureSpan()

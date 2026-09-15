@@ -130,11 +130,25 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Proxmox",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_SETTINGS_LABEL_RULES, [
       "Project",
       "Proxmox",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Proxmox",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
   };
   return breadcrumpLinksMap[path];

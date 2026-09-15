@@ -30,6 +30,8 @@ import DockerHostDocumentation from "../Pages/Docker/View/Documentation";
 import DockerSettingsOwnerRules from "../Pages/Docker/Settings/OwnerRules";
 import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
 import DockerArchived from "../Pages/Docker/Archived";
+import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
+import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
 
 const DockerRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -65,11 +67,35 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <DockerSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DockerHostOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES] || ""}
           element={
             <DockerSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <DockerSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DockerHostLabelRule}
             />
           }
         />

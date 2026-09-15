@@ -7,13 +7,46 @@ import IncidentEpisodePrivacyRuleService from "./IncidentEpisodePrivacyRuleServi
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Red500 } from "../../Types/BrandColors";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class IncidentEpisodePrivacyRuleEngineServiceClass {
+class IncidentEpisodePrivacyRuleEngineServiceClass
+  implements RuleRunEngine<IncidentEpisode, IncidentEpisodePrivacyRule>
+{
+  public readonly ruleSelect: Select<IncidentEpisodePrivacyRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    incidentSeverities: { _id: true },
+    episodeLabels: { _id: true },
+    episodeTitlePattern: true,
+    episodeDescriptionPattern: true,
+  };
+
+  /*
+   * Evaluation reads these straight off the episode it is handed, and a run
+   * must see isPrivate to report an episode that is already private.
+   */
+  public readonly resourceSelectForRuleRun: Select<IncidentEpisode> = {
+    _id: true,
+    projectId: true,
+    isPrivate: true,
+    title: true,
+    description: true,
+    incidentSeverityId: true,
+    labels: { _id: true },
+  };
+
   /**
    * Evaluates IncidentEpisodePrivacyRule rows for the given episode. If any
    * enabled rule matches, the episode is marked private (isPrivate=true) and
@@ -38,15 +71,7 @@ class IncidentEpisodePrivacyRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            incidentSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -61,33 +86,12 @@ class IncidentEpisodePrivacyRuleEngineServiceClass {
         return false;
       }
 
-      const matchedRules: Array<IncidentEpisodePrivacyRule> = [];
-      for (const rule of rules) {
-        if (this.doesEpisodeMatchRule(episode, rule)) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return false;
-      }
-
-      await IncidentEpisodeService.updateOneById({
-        id: episode.id,
-        data: { isPrivate: true },
-        props: { isRoot: true },
+      const result: RuleApplicationResult = await this.applyRules({
+        episode: episode,
+        rules: rules,
       });
 
-      episode.isPrivate = true;
-
-      logger.debug(
-        `IncidentEpisodePrivacyRuleEngine marked episode ${episode.id} private`,
-        { projectId: episode.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({ episode, matchedRules });
-
-      return true;
+      return result.updated;
     } catch (error) {
       logger.error(`Error applying incident episode privacy rules: ${error}`, {
         projectId: episode.projectId?.toString(),
@@ -95,6 +99,79 @@ class IncidentEpisodePrivacyRuleEngineServiceClass {
       } as LogAttributes);
       return false;
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an episode that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      IncidentEpisode,
+      IncidentEpisodePrivacyRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        episode: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running incident episode privacy rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        incidentEpisodeId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    episode: IncidentEpisode;
+    rules: Array<IncidentEpisodePrivacyRule>;
+  }): Promise<RuleApplicationResult> {
+    const { episode, rules } = data;
+
+    if (!episode.id || !episode.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const matchedRules: Array<IncidentEpisodePrivacyRule> = [];
+    for (const rule of rules) {
+      if (this.doesEpisodeMatchRule(episode, rule)) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    /*
+     * The create hook returns before evaluating an already-private episode; a
+     * run evaluates it anyway so it can report the rule as already applied.
+     */
+    if (episode.isPrivate === true) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await IncidentEpisodeService.updateOneById({
+      id: episode.id,
+      data: { isPrivate: true },
+      props: { isRoot: true },
+    });
+
+    episode.isPrivate = true;
+
+    logger.debug(
+      `IncidentEpisodePrivacyRuleEngine marked episode ${episode.id} private`,
+      { projectId: episode.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({ episode, matchedRules });
+
+    return RuleApplicationResultUtil.updated(1);
   }
 
   @CaptureSpan()

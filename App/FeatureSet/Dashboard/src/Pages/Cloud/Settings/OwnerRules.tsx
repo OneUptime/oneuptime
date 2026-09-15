@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -14,12 +16,22 @@ import Team from "Common/Models/DatabaseModels/Team";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const CloudResourceOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<CloudResourceOwnerRule>
+    <RuleTable<CloudResourceOwnerRule>
       modelType={CloudResourceOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, CloudResourceOwnerRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.CLOUD_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: CloudResourceOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="cloud-resource-owner-rules-table"
       name="Settings > Cloud Resource Owner Rules"
       userPreferencesKey="cloud-resource-owner-rules-table"
@@ -63,7 +75,6 @@ const CloudResourceOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

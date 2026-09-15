@@ -11,13 +11,43 @@ import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
 import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import OwnerRuleAssignment, {
+  OwnersToAssign,
+} from "../Utils/Rules/OwnerRuleAssignment";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class VMwareVCenterOwnerRuleEngineServiceClass {
+class VMwareVCenterOwnerRuleEngineServiceClass
+  implements RuleRunEngine<VMwareVCenter, VMwareVCenterOwnerRule>
+{
+  public readonly ruleSelect: Select<VMwareVCenterOwnerRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    notifyOwners: true,
+    vmwareVCenterLabels: { _id: true },
+    vmwareVCenterNamePattern: true,
+    vmwareVCenterDescriptionPattern: true,
+    ownerUsers: { _id: true },
+    ownerTeams: { _id: true },
+  };
+
+  // Evaluation re-reads the vCenter, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<VMwareVCenter> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates VMwareVCenterOwnerRule rows for the given vCenter and adds
    * matched owner users / teams via VMwareVCenterOwnerUserService /
@@ -40,17 +70,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            notifyOwners: true,
-            vmwareVCenterLabels: { _id: true },
-            vmwareVCenterNamePattern: true,
-            vmwareVCenterDescriptionPattern: true,
-            ownerUsers: { _id: true },
-            ownerTeams: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -65,116 +85,10 @@ class VMwareVCenterOwnerRuleEngineServiceClass {
         return;
       }
 
-      const vmwareVCenterWithDetails: VMwareVCenter | null =
-        await VMwareVCenterService.findOneById({
-          id: vmwareVCenter.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!vmwareVCenterWithDetails) {
-        return;
-      }
-
-      const usersByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-      const teamsByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-
-      const matchedRules: Array<VMwareVCenterOwnerRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesVMwareVCenterMatchRule(
-          vmwareVCenterWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        let ruleAddedAny: boolean = false;
-        const notify: boolean = rule.notifyOwners !== false;
-        for (const user of rule.ownerUsers || []) {
-          if (user.id) {
-            usersByNotify.get(notify)!.add(user.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        for (const team of rule.ownerTeams || []) {
-          if (team.id) {
-            teamsByNotify.get(notify)!.add(team.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        if (ruleAddedAny) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return;
-      }
-
-      for (const notify of [true, false]) {
-        const userIds: Set<string> = usersByNotify.get(notify)!;
-        const teamIds: Set<string> = teamsByNotify.get(notify)!;
-
-        for (const userId of userIds) {
-          const owner: VMwareVCenterOwnerUser = new VMwareVCenterOwnerUser();
-          owner.vmwareVCenterId = vmwareVCenter.id;
-          owner.projectId = vmwareVCenter.projectId;
-          owner.userId = new ObjectID(userId);
-          owner.isOwnerNotified = !notify;
-          await VMwareVCenterOwnerUserService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-
-        for (const teamId of teamIds) {
-          const owner: VMwareVCenterOwnerTeam = new VMwareVCenterOwnerTeam();
-          owner.vmwareVCenterId = vmwareVCenter.id;
-          owner.projectId = vmwareVCenter.projectId;
-          owner.teamId = new ObjectID(teamId);
-          owner.isOwnerNotified = !notify;
-          await VMwareVCenterOwnerTeamService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-      }
-
-      logger.debug(
-        `VMwareVCenterOwnerRuleEngine added owners to vCenter ${vmwareVCenter.id}`,
-        { projectId: vmwareVCenter.projectId.toString() } as LogAttributes,
-      );
-      /*
-       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
-       * this one says which rule is responsible, which is what somebody asking
-       * "why am I on the hook for this?" actually needs.
-       */
-      await VMwareVCenterFeedService.createVMwareVCenterFeedItem({
-        vmwareVCenterId: vmwareVCenter.id,
-        projectId: vmwareVCenter.projectId,
-        vmwareVCenterFeedEventType:
-          VMwareVCenterFeedEventType.OwnerRuleExecuted,
-        displayColor: Purple500,
-        feedInfoInMarkdown: `👥 Owners were added to ${await VMwareVCenterService.getVMwareVCenterMarkdownLink(
-          vmwareVCenter.projectId,
-          vmwareVCenter.id,
-        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-          .map((rule: VMwareVCenterOwnerRule) => {
-            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-          })
-          .join(", ")}`,
+      await this.applyRules({
+        vmwareVCenter: vmwareVCenter,
+        rules: rules,
+        allowOwnerNotification: true,
       });
     } catch (error) {
       logger.error(`Error applying vCenter owner rules: ${error}`, {
@@ -182,6 +96,214 @@ class VMwareVCenterOwnerRuleEngineServiceClass {
         vmwareVCenterId: vmwareVCenter.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a vCenter that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      VMwareVCenter,
+      VMwareVCenterOwnerRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        vmwareVCenter: data.resource,
+        rules: data.rules,
+        allowOwnerNotification: data.allowOwnerNotification,
+      });
+    } catch (error) {
+      logger.error(`Error running vCenter owner rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        vmwareVCenterId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    vmwareVCenter: VMwareVCenter;
+    rules: Array<VMwareVCenterOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): Promise<RuleApplicationResult> {
+    const { vmwareVCenter, rules } = data;
+
+    if (!vmwareVCenter.id || !vmwareVCenter.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const vmwareVCenterWithDetails: VMwareVCenter | null =
+      await VMwareVCenterService.findOneById({
+        id: vmwareVCenter.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!vmwareVCenterWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const usersByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+    const teamsByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+
+    const matchedRules: Array<VMwareVCenterOwnerRule> = [];
+    const allUserIds: Set<string> = new Set();
+    const allTeamIds: Set<string> = new Set();
+    let anyRuleMatched: boolean = false;
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesVMwareVCenterMatchRule(
+        vmwareVCenterWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      anyRuleMatched = true;
+      let ruleAddedAny: boolean = false;
+      const notify: boolean =
+        rule.notifyOwners !== false && data.allowOwnerNotification;
+      for (const user of rule.ownerUsers || []) {
+        if (user.id) {
+          usersByNotify.get(notify)!.add(user.id.toString());
+          allUserIds.add(user.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      for (const team of rule.ownerTeams || []) {
+        if (team.id) {
+          teamsByNotify.get(notify)!.add(team.id.toString());
+          allTeamIds.add(team.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      if (ruleAddedAny) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (!anyRuleMatched) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (
+      matchedRules.length === 0 ||
+      (allUserIds.size === 0 && allTeamIds.size === 0)
+    ) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    // Owners already on the vCenter are skipped rather than duplicated.
+    const notYetAssigned: OwnersToAssign =
+      await OwnerRuleAssignment.getOwnersNotYetAssigned({
+        ownerUserService: VMwareVCenterOwnerUserService,
+        ownerTeamService: VMwareVCenterOwnerTeamService,
+        resourceIdColumn: "vmwareVCenterId",
+        resourceId: vmwareVCenter.id,
+        userIds: Array.from(allUserIds),
+        teamIds: Array.from(allTeamIds),
+      });
+
+    const userIdsToAdd: Set<string> = new Set(
+      notYetAssigned.userIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+    const teamIdsToAdd: Set<string> = new Set(
+      notYetAssigned.teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    let ownersAdded: number = 0;
+
+    /*
+     * The notifying set goes first, so an owner two matching rules disagree
+     * about is added once, and notified.
+     */
+    for (const notify of [true, false]) {
+      const userIds: Array<string> = Array.from(
+        usersByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return userIdsToAdd.delete(id);
+      });
+      const teamIds: Array<string> = Array.from(
+        teamsByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return teamIdsToAdd.delete(id);
+      });
+
+      for (const userId of userIds) {
+        const owner: VMwareVCenterOwnerUser = new VMwareVCenterOwnerUser();
+        owner.vmwareVCenterId = vmwareVCenter.id;
+        owner.projectId = vmwareVCenter.projectId;
+        owner.userId = new ObjectID(userId);
+        owner.isOwnerNotified = !notify;
+        await VMwareVCenterOwnerUserService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+
+      for (const teamId of teamIds) {
+        const owner: VMwareVCenterOwnerTeam = new VMwareVCenterOwnerTeam();
+        owner.vmwareVCenterId = vmwareVCenter.id;
+        owner.projectId = vmwareVCenter.projectId;
+        owner.teamId = new ObjectID(teamId);
+        owner.isOwnerNotified = !notify;
+        await VMwareVCenterOwnerTeamService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+    }
+
+    if (ownersAdded === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    logger.debug(
+      `VMwareVCenterOwnerRuleEngine added owners to vCenter ${vmwareVCenter.id}`,
+      { projectId: vmwareVCenter.projectId.toString() } as LogAttributes,
+    );
+    /*
+     * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+     * this one says which rule is responsible, which is what somebody asking
+     * "why am I on the hook for this?" actually needs.
+     */
+    await VMwareVCenterFeedService.createVMwareVCenterFeedItem({
+      vmwareVCenterId: vmwareVCenter.id,
+      projectId: vmwareVCenter.projectId,
+      vmwareVCenterFeedEventType: VMwareVCenterFeedEventType.OwnerRuleExecuted,
+      displayColor: Purple500,
+      feedInfoInMarkdown: `👥 Owners were added to ${await VMwareVCenterService.getVMwareVCenterMarkdownLink(
+        vmwareVCenter.projectId,
+        vmwareVCenter.id,
+      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+        .map((rule: VMwareVCenterOwnerRule) => {
+          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+        })
+        .join(", ")}`,
+    });
+
+    return RuleApplicationResultUtil.updated(ownersAdded);
   }
 
   private doesVMwareVCenterMatchRule(

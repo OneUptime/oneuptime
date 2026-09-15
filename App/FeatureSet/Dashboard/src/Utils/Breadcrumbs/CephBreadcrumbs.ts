@@ -136,11 +136,25 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Ceph",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_SETTINGS_LABEL_RULES, [
       "Project",
       "Ceph",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Ceph",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
   };
   return breadcrumpLinksMap[path];

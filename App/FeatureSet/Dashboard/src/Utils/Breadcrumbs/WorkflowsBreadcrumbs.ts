@@ -66,12 +66,20 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.WORKFLOWS_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Workflows", "Settings", "Owner Rules", "View Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOWS_SETTINGS_LABEL_RULES, [
       "Project",
       "Workflows",
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Workflows", "Settings", "Label Rules", "View Rule"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

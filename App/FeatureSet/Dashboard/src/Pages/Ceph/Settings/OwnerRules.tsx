@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -31,12 +33,22 @@ A rule matches a Ceph cluster only when **all** specified criteria pass. Empty c
 When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
 
-const CephClusterOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<CephClusterOwnerRule>
+    <RuleTable<CephClusterOwnerRule>
       modelType={CephClusterOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, CephClusterOwnerRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.CEPH_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: CephClusterOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.CEPH_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="cephCluster-owner-rules-table"
       name="Settings > Ceph Cluster Owner Rules"
       userPreferencesKey="cephCluster-owner-rules-table"
@@ -89,7 +101,6 @@ const CephClusterOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

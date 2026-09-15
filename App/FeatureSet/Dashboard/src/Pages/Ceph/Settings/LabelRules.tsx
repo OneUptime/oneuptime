@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a Ceph cluster only when **all** specified criteria pass. Empty c
 When a rule matches, every label listed in \`Labels to Add\` is attached to the Ceph cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const CephClusterLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const CephClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<CephClusterLabelRule>
       modelType={CephClusterLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, CephClusterLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.CEPH_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: CephClusterLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="cephCluster-label-rules-table"
       name="Settings > Ceph Cluster Label Rules"
       userPreferencesKey="cephCluster-label-rules-table"
@@ -85,7 +97,6 @@ const CephClusterLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

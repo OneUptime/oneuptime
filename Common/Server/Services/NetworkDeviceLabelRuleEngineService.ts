@@ -13,6 +13,13 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import Select from "../Types/Database/Select";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
 /*
  * Bounds on one manual "Run now" of a label rule. The automatic path only
@@ -38,7 +45,25 @@ function chunk<T>(items: Array<T>, size: number): Array<Array<T>> {
   return chunks;
 }
 
-class NetworkDeviceLabelRuleEngineServiceClass {
+class NetworkDeviceLabelRuleEngineServiceClass
+  implements RuleRunEngine<NetworkDevice, NetworkDeviceLabelRule>
+{
+  public readonly ruleSelect: Select<NetworkDeviceLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    networkDeviceLabels: { _id: true },
+    networkDeviceNamePattern: true,
+    networkDeviceDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  // Evaluation re-reads the network device, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<NetworkDevice> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates NetworkDeviceLabelRule rows for the given network device and attaches matched
    * labels to it. The union is deduped against labels already on the network device
@@ -60,15 +85,7 @@ class NetworkDeviceLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            networkDeviceLabels: { _id: true },
-            networkDeviceNamePattern: true,
-            networkDeviceDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -83,91 +100,138 @@ class NetworkDeviceLabelRuleEngineServiceClass {
         return;
       }
 
-      const networkDeviceWithDetails: NetworkDevice | null =
-        await NetworkDeviceService.findOneById({
-          id: networkDevice.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!networkDeviceWithDetails) {
-        return;
-      }
-
-      const labelIdsToAdd: Set<string> = new Set();
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesNetworkDeviceMatchRule(
-          networkDeviceWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const existingLabelIds: Set<string> = new Set(
-        (networkDeviceWithDetails.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await NetworkDeviceService.getRepository()
-        .createQueryBuilder()
-        .relation(NetworkDevice, "labels")
-        .of(networkDevice.id.toString())
-        .add(newLabelIds);
-
-      /*
-       * Sync in-memory networkDevice.labels so a downstream owner-rule engine in
-       * the same onCreateSuccess chain can match on rule-added labels.
-       */
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      networkDevice.labels = Array.from(mergedLabelIds).map((id: string) => {
-        const label: Label = new Label();
-        label.id = new ObjectID(id);
-        return label;
-      });
-
-      logger.debug(
-        `NetworkDeviceLabelRuleEngine attached ${newLabelIds.length} labels to network device ${networkDevice.id}`,
-        { projectId: networkDevice.projectId.toString() } as LogAttributes,
-      );
+      await this.applyRules({ networkDevice: networkDevice, rules: rules });
     } catch (error) {
       logger.error(`Error applying network device label rules: ${error}`, {
         projectId: networkDevice.projectId?.toString(),
         networkDeviceId: networkDevice.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a network device that already exists
+   * and only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      NetworkDevice,
+      NetworkDeviceLabelRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        networkDevice: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running network device label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        networkDeviceId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    networkDevice: NetworkDevice;
+    rules: Array<NetworkDeviceLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { networkDevice, rules } = data;
+
+    if (!networkDevice.id || !networkDevice.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const networkDeviceWithDetails: NetworkDevice | null =
+      await NetworkDeviceService.findOneById({
+        id: networkDevice.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!networkDeviceWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let matchedAnyRule: boolean = false;
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesNetworkDeviceMatchRule(
+        networkDeviceWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      matchedAnyRule = true;
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (!matchedAnyRule) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (networkDeviceWithDetails.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await NetworkDeviceService.getRepository()
+      .createQueryBuilder()
+      .relation(NetworkDevice, "labels")
+      .of(networkDevice.id.toString())
+      .add(newLabelIds);
+
+    /*
+     * Sync in-memory networkDevice.labels so a downstream owner-rule engine in
+     * the same onCreateSuccess chain can match on rule-added labels.
+     */
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    networkDevice.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+
+    logger.debug(
+      `NetworkDeviceLabelRuleEngine attached ${newLabelIds.length} labels to network device ${networkDevice.id}`,
+      { projectId: networkDevice.projectId.toString() } as LogAttributes,
+    );
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   /*

@@ -8,14 +8,53 @@ import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentService from "./IncidentService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Red500 } from "../../Types/BrandColors";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class IncidentPrivacyRuleEngineServiceClass {
+class IncidentPrivacyRuleEngineServiceClass
+  implements RuleRunEngine<Incident, IncidentPrivacyRule>
+{
+  public readonly ruleSelect: Select<IncidentPrivacyRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    incidentSeverities: { _id: true },
+    incidentLabels: { _id: true },
+    monitorLabels: { _id: true },
+    incidentTitlePattern: true,
+    incidentDescriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+  };
+
+  /*
+   * Evaluation reads these straight off the incident it is handed (monitor
+   * names, descriptions and labels are then re-read per monitor id), and a
+   * run must see isPrivate to report an incident that is already private.
+   */
+  public readonly resourceSelectForRuleRun: Select<Incident> = {
+    _id: true,
+    projectId: true,
+    isPrivate: true,
+    title: true,
+    description: true,
+    incidentSeverityId: true,
+    monitors: { _id: true },
+    labels: { _id: true },
+  };
+
   /**
    * Evaluates IncidentPrivacyRule rows for the given incident. If any enabled
    * rule matches, the incident is marked private (isPrivate=true) and the
@@ -43,19 +82,7 @@ class IncidentPrivacyRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitors: { _id: true },
-            incidentSeverities: { _id: true },
-            incidentLabels: { _id: true },
-            monitorLabels: { _id: true },
-            incidentTitlePattern: true,
-            incidentDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -70,38 +97,12 @@ class IncidentPrivacyRuleEngineServiceClass {
         return false;
       }
 
-      const matchedRules: Array<IncidentPrivacyRule> = [];
-      for (const rule of rules) {
-        const matches: boolean = await this.doesIncidentMatchRule(
-          incident,
-          rule,
-        );
-        if (matches) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return false;
-      }
-
-      await IncidentService.updateOneById({
-        id: incident.id,
-        data: { isPrivate: true },
-        props: { isRoot: true },
+      const result: RuleApplicationResult = await this.applyRules({
+        incident: incident,
+        rules: rules,
       });
 
-      // Mirror in memory so downstream onCreateSuccess steps see the change.
-      incident.isPrivate = true;
-
-      logger.debug(
-        `IncidentPrivacyRuleEngine marked incident ${incident.id} private`,
-        { projectId: incident.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({ incident, matchedRules });
-
-      return true;
+      return result.updated;
     } catch (error) {
       logger.error(`Error applying incident privacy rules: ${error}`, {
         projectId: incident.projectId?.toString(),
@@ -109,6 +110,78 @@ class IncidentPrivacyRuleEngineServiceClass {
       } as LogAttributes);
       return false;
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an incident that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<Incident, IncidentPrivacyRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        incident: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running incident privacy rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        incidentId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    incident: Incident;
+    rules: Array<IncidentPrivacyRule>;
+  }): Promise<RuleApplicationResult> {
+    const { incident, rules } = data;
+
+    if (!incident.id || !incident.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const matchedRules: Array<IncidentPrivacyRule> = [];
+    for (const rule of rules) {
+      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
+      if (matches) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    /*
+     * The create hook returns before evaluating an already-private incident;
+     * a run evaluates it anyway so it can report the rule as already applied.
+     */
+    if (incident.isPrivate === true) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await IncidentService.updateOneById({
+      id: incident.id,
+      data: { isPrivate: true },
+      props: { isRoot: true },
+    });
+
+    // Mirror in memory so downstream onCreateSuccess steps see the change.
+    incident.isPrivate = true;
+
+    logger.debug(
+      `IncidentPrivacyRuleEngine marked incident ${incident.id} private`,
+      { projectId: incident.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({ incident, matchedRules });
+
+    return RuleApplicationResultUtil.updated(1);
   }
 
   @CaptureSpan()

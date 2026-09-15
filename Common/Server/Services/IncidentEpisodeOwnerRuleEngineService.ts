@@ -6,25 +6,68 @@ import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import IncidentEpisodeOwnerRuleService from "./IncidentEpisodeOwnerRuleService";
+import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
+import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import OwnerRuleAssignment, {
+  OwnersToAssign,
+} from "../Utils/Rules/OwnerRuleAssignment";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class IncidentEpisodeOwnerRuleEngineServiceClass {
+class IncidentEpisodeOwnerRuleEngineServiceClass
+  implements RuleRunEngine<IncidentEpisode, IncidentEpisodeOwnerRule>
+{
+  public readonly ruleSelect: Select<IncidentEpisodeOwnerRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    notifyOwners: true,
+    incidentSeverities: { _id: true },
+    episodeLabels: { _id: true },
+    episodeTitlePattern: true,
+    episodeDescriptionPattern: true,
+    ownerUsers: { _id: true },
+    ownerTeams: { _id: true },
+  };
+
+  /*
+   * Evaluation matches on the episode it is handed rather than re-reading it,
+   * so a run has to load every field matching looks at.
+   */
+  public readonly resourceSelectForRuleRun: Select<IncidentEpisode> = {
+    _id: true,
+    projectId: true,
+    title: true,
+    description: true,
+    incidentSeverityId: true,
+    labels: { _id: true },
+  };
+
   /**
    * Evaluates IncidentEpisodeOwnerRule rows for the given episode and adds
-   * matched owner users / teams via IncidentEpisodeService.addOwners.
-   * The episode service's addOwners dedupes against existing owners.
+   * matched owner users / teams. Owners from rules with notifyOwners set are
+   * added via IncidentEpisodeService.addOwners and notified; owners from
+   * rules with notifyOwners off are added silently.
    */
   @CaptureSpan()
   public async applyRulesToEpisode(episode: IncidentEpisode): Promise<void> {
@@ -40,18 +83,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            notifyOwners: true,
-            incidentSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            ownerUsers: { _id: true },
-            ownerTeams: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -66,72 +98,240 @@ class IncidentEpisodeOwnerRuleEngineServiceClass {
         return;
       }
 
-      const userIds: Set<string> = new Set();
-      const teamIds: Set<string> = new Set();
-      const matchedRules: Array<IncidentEpisodeOwnerRule> = [];
-
-      /*
-       * Episode addOwners doesn't take a notify flag — it always adds silently
-       * and lets downstream notification code decide. We still respect the
-       * per-rule notifyOwners as advisory metadata for future use, but for
-       * now we just add owners regardless.
-       */
-      for (const rule of rules) {
-        if (!this.doesEpisodeMatchRule(episode, rule)) {
-          continue;
-        }
-        let ruleAddedAny: boolean = false;
-        for (const user of rule.ownerUsers || []) {
-          if (user.id) {
-            userIds.add(user.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        for (const team of rule.ownerTeams || []) {
-          if (team.id) {
-            teamIds.add(team.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        if (ruleAddedAny) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (
-        matchedRules.length === 0 ||
-        (userIds.size === 0 && teamIds.size === 0)
-      ) {
-        return;
-      }
-
-      await IncidentEpisodeService.addOwners({
-        episodeId: episode.id,
-        projectId: episode.projectId,
-        userIds: Array.from(userIds).map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds: Array.from(teamIds).map((id: string) => {
-          return new ObjectID(id);
-        }),
-      });
-
-      logger.debug(
-        `IncidentEpisodeOwnerRuleEngine added owners to episode ${episode.id}`,
-        { projectId: episode.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({
-        episode,
-        matchedRules,
-        userIds: Array.from(userIds),
-        teamIds: Array.from(teamIds),
+      await this.applyRules({
+        episode: episode,
+        rules: rules,
+        allowOwnerNotification: true,
       });
     } catch (error) {
       logger.error(`Error applying incident episode owner rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         incidentEpisodeId: episode.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an episode that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      IncidentEpisode,
+      IncidentEpisodeOwnerRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        episode: data.resource,
+        rules: data.rules,
+        allowOwnerNotification: data.allowOwnerNotification,
+      });
+    } catch (error) {
+      logger.error(`Error running incident episode owner rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        incidentEpisodeId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    episode: IncidentEpisode;
+    rules: Array<IncidentEpisodeOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): Promise<RuleApplicationResult> {
+    const { episode, rules } = data;
+
+    if (!episode.id || !episode.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const usersByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+    const teamsByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+    const matchedRules: Array<IncidentEpisodeOwnerRule> = [];
+    const allUserIds: Set<string> = new Set();
+    const allTeamIds: Set<string> = new Set();
+    let anyRuleMatched: boolean = false;
+
+    for (const rule of rules) {
+      if (!this.doesEpisodeMatchRule(episode, rule)) {
+        continue;
+      }
+      anyRuleMatched = true;
+      let ruleAddedAny: boolean = false;
+      const notify: boolean =
+        rule.notifyOwners !== false && data.allowOwnerNotification;
+      for (const user of rule.ownerUsers || []) {
+        if (user.id) {
+          usersByNotify.get(notify)!.add(user.id.toString());
+          allUserIds.add(user.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      for (const team of rule.ownerTeams || []) {
+        if (team.id) {
+          teamsByNotify.get(notify)!.add(team.id.toString());
+          allTeamIds.add(team.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      if (ruleAddedAny) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (!anyRuleMatched) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (
+      matchedRules.length === 0 ||
+      (allUserIds.size === 0 && allTeamIds.size === 0)
+    ) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    /*
+     * IncidentEpisodeService.addOwners skips existing owners itself, but only
+     * silently - filtering first is what lets a run tell "added" from
+     * "already there".
+     */
+    const notYetAssigned: OwnersToAssign =
+      await OwnerRuleAssignment.getOwnersNotYetAssigned({
+        ownerUserService: IncidentEpisodeOwnerUserService,
+        ownerTeamService: IncidentEpisodeOwnerTeamService,
+        resourceIdColumn: "incidentEpisodeId",
+        resourceId: episode.id,
+        userIds: Array.from(allUserIds),
+        teamIds: Array.from(allTeamIds),
+      });
+
+    const userIdsToAdd: Set<string> = new Set(
+      notYetAssigned.userIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+    const teamIdsToAdd: Set<string> = new Set(
+      notYetAssigned.teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    const addedUserIds: Array<string> = [];
+    const addedTeamIds: Array<string> = [];
+
+    /*
+     * The notifying set goes first, so an owner two matching rules disagree
+     * about is added once, and notified.
+     */
+    for (const notify of [true, false]) {
+      const userIds: Array<string> = Array.from(
+        usersByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return userIdsToAdd.delete(id);
+      });
+      const teamIds: Array<string> = Array.from(
+        teamsByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return teamIdsToAdd.delete(id);
+      });
+
+      if (userIds.length === 0 && teamIds.length === 0) {
+        continue;
+      }
+
+      if (notify) {
+        await IncidentEpisodeService.addOwners({
+          episodeId: episode.id,
+          projectId: episode.projectId,
+          userIds: userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds: teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+        });
+      } else {
+        await this.addOwnersSilently({
+          episodeId: episode.id,
+          projectId: episode.projectId,
+          userIds: userIds,
+          teamIds: teamIds,
+        });
+      }
+
+      addedUserIds.push(...userIds);
+      addedTeamIds.push(...teamIds);
+    }
+
+    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
+
+    if (ownersAdded === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    logger.debug(
+      `IncidentEpisodeOwnerRuleEngine added owners to episode ${episode.id}`,
+      { projectId: episode.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({
+      episode,
+      matchedRules,
+      userIds: addedUserIds,
+      teamIds: addedTeamIds,
+    });
+
+    return RuleApplicationResultUtil.updated(ownersAdded);
+  }
+
+  /*
+   * IncidentEpisodeService.addOwners has no notify flag. It leaves each owner
+   * row's isOwnerNotified at the column default (false), and the
+   * IncidentEpisodeOwner:SendOwnerAddedEmail job notifies every owner row
+   * still at false, then flips it. So an owner added through addOwners is
+   * always notified. A silent owner is instead written already marked
+   * notified, which that job never picks up. The feed items and workspace
+   * channel invites the owner services post on create still happen, exactly
+   * as they do for addOwners.
+   */
+  private async addOwnersSilently(data: {
+    episodeId: ObjectID;
+    projectId: ObjectID;
+    userIds: Array<string>;
+    teamIds: Array<string>;
+  }): Promise<void> {
+    for (const userId of data.userIds) {
+      const owner: IncidentEpisodeOwnerUser = new IncidentEpisodeOwnerUser();
+      owner.incidentEpisodeId = data.episodeId;
+      owner.projectId = data.projectId;
+      owner.userId = new ObjectID(userId);
+      owner.isOwnerNotified = true;
+      await IncidentEpisodeOwnerUserService.create({
+        data: owner,
+        props: { isRoot: true },
+      });
+    }
+
+    for (const teamId of data.teamIds) {
+      const owner: IncidentEpisodeOwnerTeam = new IncidentEpisodeOwnerTeam();
+      owner.incidentEpisodeId = data.episodeId;
+      owner.projectId = data.projectId;
+      owner.teamId = new ObjectID(teamId);
+      owner.isOwnerNotified = true;
+      await IncidentEpisodeOwnerTeamService.create({
+        data: owner,
+        props: { isRoot: true },
+      });
     }
   }
 

@@ -9,14 +9,39 @@ import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class MonitorLabelRuleEngineServiceClass {
+class MonitorLabelRuleEngineServiceClass
+  implements RuleRunEngine<Monitor, MonitorLabelRule>
+{
+  public readonly ruleSelect: Select<MonitorLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitorLabels: { _id: true },
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  // Evaluation re-reads the monitor, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<Monitor> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates MonitorLabelRule rows for the given monitor and attaches matched
    * labels to it. The union is deduped against labels already on the monitor
@@ -36,15 +61,7 @@ class MonitorLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitorLabels: { _id: true },
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -59,100 +76,143 @@ class MonitorLabelRuleEngineServiceClass {
         return;
       }
 
-      const monitorWithDetails: Monitor | null =
-        await MonitorService.findOneById({
-          id: monitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!monitorWithDetails) {
-        return;
-      }
-
-      const labelIdsToAdd: Set<string> = new Set();
-      const matchedRules: Array<MonitorLabelRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesMonitorMatchRule(
-          monitorWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        matchedRules.push(rule);
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const existingLabelIds: Set<string> = new Set(
-        (monitorWithDetails.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await MonitorService.getRepository()
-        .createQueryBuilder()
-        .relation(Monitor, "labels")
-        .of(monitor.id.toString())
-        .add(newLabelIds);
-
-      /*
-       * Sync in-memory monitor.labels with the now-persisted set so a downstream
-       * owner-rule engine in the same onCreateSuccess chain can match on
-       * rule-added labels.
-       */
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      monitor.labels = Array.from(mergedLabelIds).map((id: string) => {
-        const label: Label = new Label();
-        label.id = new ObjectID(id);
-        return label;
-      });
-
-      logger.debug(
-        `MonitorLabelRuleEngine attached ${newLabelIds.length} labels to monitor ${monitor.id}`,
-        { projectId: monitor.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({
-        monitor,
-        matchedRules,
-        addedLabelIds: newLabelIds,
-      });
+      await this.applyRules({ monitor: monitor, rules: rules });
     } catch (error) {
       logger.error(`Error applying monitor label rules: ${error}`, {
         projectId: monitor.projectId?.toString(),
         monitorId: monitor.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a monitor that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<Monitor, MonitorLabelRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        monitor: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running monitor label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        monitorId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    monitor: Monitor;
+    rules: Array<MonitorLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { monitor, rules } = data;
+
+    if (!monitor.id || !monitor.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const monitorWithDetails: Monitor | null = await MonitorService.findOneById(
+      {
+        id: monitor.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      },
+    );
+
+    if (!monitorWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    const matchedRules: Array<MonitorLabelRule> = [];
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesMonitorMatchRule(
+        monitorWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      matchedRules.push(rule);
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (monitorWithDetails.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await MonitorService.getRepository()
+      .createQueryBuilder()
+      .relation(Monitor, "labels")
+      .of(monitor.id.toString())
+      .add(newLabelIds);
+
+    /*
+     * Sync in-memory monitor.labels with the now-persisted set so a downstream
+     * owner-rule engine in the same onCreateSuccess chain can match on
+     * rule-added labels.
+     */
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    monitor.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+
+    logger.debug(
+      `MonitorLabelRuleEngine attached ${newLabelIds.length} labels to monitor ${monitor.id}`,
+      { projectId: monitor.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({
+      monitor,
+      matchedRules,
+      addedLabelIds: newLabelIds,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   @CaptureSpan()

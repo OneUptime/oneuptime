@@ -65,6 +65,8 @@ import MonitorSettingsLabelRules from "../Pages/Monitor/Settings/MonitorLabelRul
 import MonitorSettingsProbes from "../Pages/Monitor/Settings/MonitorProbes";
 
 import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView";
+import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
+import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
 
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -226,6 +228,20 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           />
         }
       />
+      <PageRoute
+        path={
+          MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULE_VIEW] || ""
+        }
+        element={
+          <MonitorSettingsOwnerRules
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULE_VIEW] as Route
+            }
+            ruleViewModelType={MonitorOwnerRule}
+          />
+        }
+      />
 
       <PageRoute
         path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES] || ""}
@@ -233,6 +249,20 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorSettingsLabelRules
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route}
+          />
+        }
+      />
+      <PageRoute
+        path={
+          MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW] || ""
+        }
+        element={
+          <MonitorSettingsLabelRules
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW] as Route
+            }
+            ruleViewModelType={MonitorLabelRule}
           />
         }
       />

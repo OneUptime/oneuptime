@@ -28,6 +28,8 @@ import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
 import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
 import RumArchived from "../Pages/Rum/Archived";
+import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplicationLabelRule";
+import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,6 +56,18 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <RumLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={RumApplicationLabelRule}
+            />
+          }
+        />
+        <PageRoute
           path={RumRoutePath[PageMap.RUM_ARCHIVED] || ""}
           element={
             <RumArchived
@@ -68,6 +82,18 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumOwnerRules
               {...props}
               pageRoute={RouteMap[PageMap.RUM_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <RumOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={RumApplicationOwnerRule}
             />
           }
         />

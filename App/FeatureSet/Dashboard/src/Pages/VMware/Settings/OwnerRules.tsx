@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -31,12 +33,22 @@ A rule matches a vCenter only when **all** specified criteria pass. Empty criter
 When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
 
-const VMwareVCenterOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const VMwareVCenterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<VMwareVCenterOwnerRule>
+    <RuleTable<VMwareVCenterOwnerRule>
       modelType={VMwareVCenterOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, VMwareVCenterOwnerRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.VMWARE_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: VMwareVCenterOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="vmwareVCenter-owner-rules-table"
       name="Settings > vCenter Owner Rules"
       userPreferencesKey="vmwareVCenter-owner-rules-table"
@@ -88,7 +100,6 @@ const VMwareVCenterOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
