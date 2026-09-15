@@ -1,3 +1,4 @@
+import fs from "fs";
 import {
   Browser,
   BrowserContext,
@@ -19,6 +20,35 @@ import { SyntheticMonitorWorkerConfig } from "./SyntheticMonitorWorkerTypes";
  * profile on close.
  */
 export const SYNTHETIC_BROWSER_CLOSE_TIMEOUT_IN_MS: number = 5_000;
+
+/*
+ * Preloaded into Firefox so that fsync() and fdatasync() return without
+ * flushing. The probe image builds it from Native/synthetic-no-sync.c.
+ *
+ * An ephemeral context does not keep Firefox off the disk. It still creates a
+ * whole profile -- the permission, cookie, certificate and key databases,
+ * Places, QuotaManager and IndexedDB metadata -- and syncs every transaction,
+ * the certificate databases and Places on the browser's main thread. Each
+ * sync makes the browser wait until the device has written what it was
+ * given, so on a probe whose disk is slow to acknowledge writes the
+ * controller bootstrap waits on the disk after all: at 20 write IOPS with four
+ * concurrent Firefox checks, every first bootstrap attempt timed out and a
+ * check took 63-70 s; at 5 write IOPS a single check took 57 s, or failed all
+ * three bootstrap attempts and needed a second worker. Without the syncs the
+ * writes stay in the page cache -- most never reach the disk, because the run
+ * directory is deleted first -- and the same checks bootstrapped on the first
+ * attempt in 8-10 s.
+ *
+ * The syncs buy nothing: the profile is new for every check and deleted after
+ * it, and nothing a page can observe depends on them. The files are still
+ * written, so the disk watchdog still counts them. Firefox only; Chromium's
+ * ephemeral context does not wait on its profile.
+ *
+ * Where the library is absent -- a development machine -- Firefox launches
+ * exactly as it did without it.
+ */
+export const FIREFOX_NO_SYNC_LIBRARY_PATH: string =
+  "/usr/lib/oneuptime-probe/libsynthetic-no-sync.so";
 
 export interface SyntheticBrowserSession {
   browser: Browser;
@@ -150,7 +180,28 @@ export default class SyntheticBrowser {
         : {}),
       ...(config.browserType === BrowserType.Chromium
         ? { chromiumSandbox: config.chromiumSandboxEnabled }
-        : {}),
+        : this.getFirefoxEnvironmentOptions()),
     };
+  }
+
+  /*
+   * Playwright gives the browser this environment instead of the worker's, so
+   * it is the worker's own -- already reduced to an allowlist by ProcessRunner
+   * -- plus the preload.
+   */
+  private static getFirefoxEnvironmentOptions(): Pick<LaunchOptions, "env"> {
+    if (!fs.existsSync(FIREFOX_NO_SYNC_LIBRARY_PATH)) {
+      return {};
+    }
+
+    const env: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (typeof value === "string") {
+        env[key] = value;
+      }
+    }
+    env["LD_PRELOAD"] = FIREFOX_NO_SYNC_LIBRARY_PATH;
+
+    return { env };
   }
 }

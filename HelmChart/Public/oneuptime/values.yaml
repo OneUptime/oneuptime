@@ -1206,11 +1206,14 @@ dashboard:
 # browser-worker boundaries, but not the additional per-execution UID boundary.
 #
 # Kubernetes RuntimeDefault is available without provisioning files on every
-# node, so it is the operational default. Some runtimes block the user-namespace
-# syscalls used by Chromium's OS sandbox in RuntimeDefault. To use the
-# Chromium sandbox, install a CRI/OCI-compatible profile derived from your
-# runtime default with `clone`, `setns`, and `unshare` enabled in the kubelet
-# seccomp directory on every Probe node, then override a probe with:
+# node, so it is the operational default. RuntimeDefault blocks the
+# user-namespace syscalls both browsers' OS sandboxes use; Firefox then falls
+# back to its seccomp-only sandbox and Chromium's must stay disabled. To use
+# the full sandboxes, install a CRI/OCI-compatible profile derived from your
+# runtime default with `clone`, `setns`, `unshare` AND `chroot` allowed in the
+# kubelet seccomp directory on every Probe node (both browsers chroot inside
+# the namespace they create; without `chroot` every Firefox and Chromium
+# launch crashes), then override a probe with:
 #
 # Do not install `Probe/seccomp_profile.json` verbatim in Kubernetes: that file
 # uses Moby-specific `includes`/`excludes` fields for Docker Compose.

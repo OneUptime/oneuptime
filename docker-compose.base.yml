@@ -408,8 +408,17 @@ services:
       - SETUID
     security_opt:
       - no-new-privileges:true
-      # Vendored unchanged from Playwright's official Docker profile:
-      # https://github.com/microsoft/playwright/blob/main/utils/docker/seccomp_profile.json
+      # Playwright's official Docker profile
+      # (https://github.com/microsoft/playwright/blob/main/utils/docker/seccomp_profile.json)
+      # with one change: chroot is allowed next to clone/setns/unshare.
+      # Firefox and Chromium both sandbox their child processes by creating
+      # a user namespace and calling chroot inside it, which needs no
+      # capability. Upstream allows chroot only to a container holding
+      # CAP_SYS_CHROOT, which cap_drop ALL removes, and that crashed every
+      # Firefox content process and the Chromium zygote at launch. Allowing
+      # the syscall in the profile, rather than adding the capability back,
+      # keeps chroot(2) unusable for the root supervisor itself.
+      # Probe/Tests/Build/ProbeContainerBrowserSandbox.test.ts pins this.
       - seccomp=./Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
@@ -422,9 +431,9 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_CONCURRENCY}
       PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES:-1610612736}
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
-      # Compose installs the bundled Playwright seccomp profile above, so the
-      # Chromium user-namespace sandbox can be required instead of silently
-      # falling back to --no-sandbox.
+      # Compose installs the bundled seccomp profile above, which allows the
+      # user namespace and the chroot inside it, so the Chromium sandbox can
+      # be required instead of silently falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
       # Bundled probes auto-register as global probes, so the process ignores

@@ -1,3 +1,4 @@
+import fs from "fs";
 import {
   Browser,
   BrowserContext,
@@ -10,6 +11,7 @@ import {
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticBrowser, {
+  FIREFOX_NO_SYNC_LIBRARY_PATH,
   SYNTHETIC_BROWSER_CLOSE_TIMEOUT_IN_MS,
   SyntheticBrowserSession,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticBrowser";
@@ -198,6 +200,15 @@ describe("SyntheticBrowser.start", () => {
     jest.restoreAllMocks();
   });
 
+  beforeEach(() => {
+    /*
+     * The no-sync library exists only inside the probe image. Every test
+     * starts without it, so no launch option depends on the machine running
+     * the suite; the tests about the preload opt in.
+     */
+    jest.spyOn(fs, "existsSync").mockReturnValue(false);
+  });
+
   test.each([true, false])(
     "launches Chromium with launch() and chromiumSandbox %s, never on a persistent profile",
     async (chromiumSandboxEnabled: boolean) => {
@@ -237,6 +248,101 @@ describe("SyntheticBrowser.start", () => {
     expect(mockFirefox.launchPersistentContext).not.toHaveBeenCalled();
     expect(mockChromium.launch).not.toHaveBeenCalled();
     expect(mockChromium.launchPersistentContext).not.toHaveBeenCalled();
+  });
+
+  describe("no-sync library", () => {
+    const firefoxConfig: () => SyntheticMonitorWorkerConfig =
+      (): SyntheticMonitorWorkerConfig => {
+        return createConfig({
+          browserType: BrowserType.Firefox,
+          executablePath: FIREFOX_EXECUTABLE_PATH,
+        });
+      };
+
+    function provideLibrary(): jest.SpyInstance {
+      return jest
+        .spyOn(fs, "existsSync")
+        .mockImplementation((file: fs.PathLike): boolean => {
+          return file === FIREFOX_NO_SYNC_LIBRARY_PATH;
+        });
+    }
+
+    test("preloads it into Firefox when the image provides it", async () => {
+      provideLibrary();
+      mockFirefox.launch.mockResolvedValue(createFakeBrowser().browser);
+
+      await SyntheticBrowser.start({ config: firefoxConfig() });
+
+      const options: LaunchOptions = launchOptionsOf(mockFirefox);
+      expect(Object.keys(options).sort()).toEqual(["env", "executablePath"]);
+      expect(options.env?.["LD_PRELOAD"]).toBe(FIREFOX_NO_SYNC_LIBRARY_PATH);
+    });
+
+    test("hands Firefox the worker's own environment alongside the preload", async () => {
+      /*
+       * Playwright gives the browser this environment instead of the
+       * worker's, so anything ProcessRunner allowed through -- PATH, proxy
+       * settings, CA bundles -- must still reach it.
+       */
+      provideLibrary();
+      mockFirefox.launch.mockResolvedValue(createFakeBrowser().browser);
+      const previous: string | undefined = process.env["NODE_EXTRA_CA_CERTS"];
+      process.env["NODE_EXTRA_CA_CERTS"] = "/etc/ssl/probe/extra.pem";
+
+      try {
+        await SyntheticBrowser.start({ config: firefoxConfig() });
+      } finally {
+        if (previous === undefined) {
+          delete process.env["NODE_EXTRA_CA_CERTS"];
+        } else {
+          process.env["NODE_EXTRA_CA_CERTS"] = previous;
+        }
+      }
+
+      const env: LaunchOptions["env"] = launchOptionsOf(mockFirefox).env;
+      expect(env?.["NODE_EXTRA_CA_CERTS"]).toBe("/etc/ssl/probe/extra.pem");
+      expect(env?.["PATH"]).toBe(process.env["PATH"]);
+    });
+
+    test("replaces any preload already in the worker's environment", async () => {
+      provideLibrary();
+      mockFirefox.launch.mockResolvedValue(createFakeBrowser().browser);
+      process.env["LD_PRELOAD"] = "/tmp/not-ours.so";
+
+      try {
+        await SyntheticBrowser.start({ config: firefoxConfig() });
+      } finally {
+        delete process.env["LD_PRELOAD"];
+      }
+
+      expect(launchOptionsOf(mockFirefox).env?.["LD_PRELOAD"]).toBe(
+        FIREFOX_NO_SYNC_LIBRARY_PATH,
+      );
+    });
+
+    test("launches Firefox exactly as before when the library is absent", async () => {
+      mockFirefox.launch.mockResolvedValue(createFakeBrowser().browser);
+
+      await SyntheticBrowser.start({ config: firefoxConfig() });
+
+      expect(launchOptionsOf(mockFirefox)).not.toHaveProperty("env");
+      expect(fs.existsSync).toHaveBeenCalledWith(FIREFOX_NO_SYNC_LIBRARY_PATH);
+    });
+
+    test.each([true, false])(
+      "is never preloaded into Chromium (chromiumSandbox %s)",
+      async (chromiumSandboxEnabled: boolean) => {
+        const existsSync: jest.SpyInstance = provideLibrary();
+        mockChromium.launch.mockResolvedValue(createFakeBrowser().browser);
+
+        await SyntheticBrowser.start({
+          config: createConfig({ chromiumSandboxEnabled }),
+        });
+
+        expect(launchOptionsOf(mockChromium)).not.toHaveProperty("env");
+        expect(existsSync).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe("proxy", () => {

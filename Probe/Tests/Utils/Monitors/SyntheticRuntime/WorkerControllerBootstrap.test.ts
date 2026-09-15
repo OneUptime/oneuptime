@@ -71,6 +71,7 @@ interface FakePageBehaviour {
   exposeBinding?: StepHook | undefined;
   goto?: GotoHook | undefined;
   close?: StepHook | undefined;
+  runtimeProbe?: StepHook | undefined;
   startWorker?: StepHook | undefined;
   stopWorker?: StepHook | undefined;
 }
@@ -190,6 +191,12 @@ const RETRY_DELAY_IN_MS: number = 250;
  * rather than waiting this out.
  */
 const DEFAULT_TEARDOWN_TIMEOUT_IN_MS: number = 5_000;
+/*
+ * How long a bootstrap attempt waits for a loaded controller document's
+ * JavaScript to answer before it gives up on the page, when the attempt has
+ * that much budget left.
+ */
+const RUNTIME_PROBE_TIMEOUT_IN_MS: number = 5_000;
 
 /*
  * The teardown bound every stalling test passes in: long enough that nothing
@@ -267,6 +274,8 @@ const LAST_ERROR_SEPARATOR: string = "\nLast error: ";
 
 class FakePage {
   public closeCount: number = 0;
+  public runtimeProbeCount: number = 0;
+  public startWorkerCount: number = 0;
   public stopWorkerCount: number = 0;
   public deliveredAtInMs: number | undefined = undefined;
   public startInput: unknown = undefined;
@@ -382,10 +391,18 @@ class FakePage {
     argument?: unknown,
   ): Promise<unknown> {
     /*
-     * WorkerController drives the page with exactly two evaluate calls: one to
-     * start the sandbox (an object payload) and one to stop it (the control
-     * key, a bare string).
+     * WorkerController drives the page with exactly three evaluate calls: one
+     * to check that the controller document's JavaScript answers (no
+     * argument), one to start the sandbox (an object payload) and one to stop
+     * it (the control key, a bare string).
      */
+    if (argument === undefined) {
+      this.markCalled("runtimeProbe");
+      this.runtimeProbeCount++;
+      await this.behaviour.runtimeProbe?.(this);
+      return true;
+    }
+
     if (typeof argument === "string") {
       this.stopWorkerCount++;
       await this.behaviour.stopWorker?.(this);
@@ -393,6 +410,7 @@ class FakePage {
     }
 
     this.startInput = argument;
+    this.startWorkerCount++;
     await this.behaviour.startWorker?.(this);
 
     if (this.context.onStartWorker) {
@@ -544,6 +562,25 @@ function never(): Promise<never> {
   return new Promise<never>((): void => {
     // Deliberately never settles: this is the stall.
   });
+}
+
+/*
+ * What Firefox was seen to do after the controller document's process switch:
+ * the navigation completes -- the request is served, the document commits and
+ * reaches DOMContentLoaded -- but Playwright never learns the document's
+ * main-world JavaScript context, so every evaluate on the page waits forever.
+ */
+function lostJavaScriptContext(): FakePageBehaviour {
+  return {
+    goto: async (page: FakePage, url: string): Promise<void> => {
+      await interceptRequest({ page, url });
+      commitMainFrame(page);
+      fireDomContentLoaded(page);
+    },
+    runtimeProbe: never,
+    startWorker: never,
+    stopWorker: never,
+  };
 }
 
 function sleep(delayInMs: number): Promise<void> {
@@ -2216,6 +2253,270 @@ describe("SyntheticRuntime WorkerController bootstrap diagnostics", () => {
         expect(page.listenerCount("framenavigated")).toBe(0);
         expect(page.listenerCount("domcontentloaded")).toBe(0);
       }
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+});
+
+describe("SyntheticRuntime WorkerController controller page JavaScript context", () => {
+  const PROBE_TIMEOUT_PATTERN: RegExp =
+    /^Timed out after (\d+) ms waiting to reach the controller page's JavaScript context\.$/;
+
+  test(
+    "retries on a fresh page when the controller document loads but its JavaScript never answers",
+    async () => {
+      /*
+       * Nothing used to notice a page in this state until the sandbox start
+       * waited on it too, so the check spent the whole 30-second sandbox
+       * start-up budget and then a second worker -- while a fresh page in the
+       * same browser would have worked at once.
+       */
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (pageIndex: number): FakePageBehaviour => {
+        return pageIndex === 0 ? lostJavaScriptContext() : {};
+      };
+      const startedAtInMs: number = Date.now();
+
+      const result: SandboxExecutionResult = await execute(context);
+
+      expect(result.returnValue).toEqual({ data: { ok: true } });
+      expect(Date.now() - startedAtInMs).toBeLessThan(
+        500 + RETRY_DELAY_IN_MS + SCHEDULING_SLACK_IN_MS,
+      );
+      expect(context.requestedPages).toHaveLength(2);
+
+      const silentPage: FakePage = context.requestedPages[0]!;
+      expect(silentPage.gotoUrls).toHaveLength(1);
+      expect(silentPage.runtimeProbeCount).toBe(1);
+      // The sandbox is never started on a page that cannot run it...
+      expect(silentPage.startWorkerCount).toBe(0);
+      expect(silentPage.closeCount).toBe(1);
+
+      // ...and is started exactly once, on the page that answered.
+      expect(context.requestedPages[1]!.runtimeProbeCount).toBe(1);
+      expect(context.requestedPages[1]!.startWorkerCount).toBe(1);
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "gives up on a silent controller page after a few seconds, however much of the attempt's budget is left",
+    async () => {
+      /*
+       * A context that was never reported does not arrive late, so the check
+       * does not wait out the attempt's budget -- 20 seconds in production --
+       * before moving on to a page that works.
+       */
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (pageIndex: number): FakePageBehaviour => {
+        return pageIndex === 0 ? lostJavaScriptContext() : {};
+      };
+
+      const result: SandboxExecutionResult = await execute(context, {
+        bootstrapTimeoutInMs: 20_000,
+      });
+
+      expect(result.returnValue).toEqual({ data: { ok: true } });
+      expect(context.requestedPages).toHaveLength(2);
+      const waitedInMs: number =
+        context.requestedPages[1]!.calledAtInMs("newPage") -
+        context.requestedPages[0]!.calledAtInMs("runtimeProbe");
+      expect(waitedInMs).toBeGreaterThanOrEqual(
+        RUNTIME_PROBE_TIMEOUT_IN_MS - CLOCK_TOLERANCE_IN_MS,
+      );
+      expect(waitedInMs).toBeLessThan(
+        RUNTIME_PROBE_TIMEOUT_IN_MS +
+          RETRY_DELAY_IN_MS +
+          SCHEDULING_SLACK_IN_MS,
+      );
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "reports a runtime fault that names the JavaScript check when no controller page ever answers",
+    async () => {
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (): FakePageBehaviour => {
+        return lostJavaScriptContext();
+      };
+
+      const failure: ExecutionFailure = await executeExpectingFailure(context, {
+        bootstrapTimeoutInMs: STALL_BUDGET_IN_MS,
+      });
+
+      expect(failure.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+      expect(failure.error.message).toBe(
+        tenantBootstrapMessage(3, STALL_BUDGET_IN_MS),
+      );
+      // Inside the bootstrap's own budget, never the sandbox's start-up wait.
+      expect(failure.elapsedInMs).toBeLessThan(
+        3 * STALL_BUDGET_IN_MS + 2 * RETRY_DELAY_IN_MS + SCHEDULING_SLACK_IN_MS,
+      );
+
+      const detail: BootstrapDetail = parseBootstrapDetail(
+        failure.internalDetail,
+      );
+      expect(detail.reports).toHaveLength(3);
+      for (const report of detail.reports) {
+        // The logs say the document loaded and then said nothing.
+        expect(report.reached).toEqual([
+          ...MARKS_BEFORE_NAVIGATION,
+          ...NAVIGATION_MARKS,
+        ]);
+        expect(report.error).toMatch(PROBE_TIMEOUT_PATTERN);
+      }
+      for (const page of context.requestedPages) {
+        expect(page.runtimeProbeCount).toBe(1);
+        expect(page.startWorkerCount).toBe(0);
+        expect(page.closeCount).toBe(1);
+      }
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "gives the JavaScript check only what the navigation left of the attempt's budget",
+    async () => {
+      const budgetInMs: number = 1_000;
+      const navigationDelayInMs: number = 400;
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (): FakePageBehaviour => {
+        return {
+          ...lostJavaScriptContext(),
+          goto: async (): Promise<void> => {
+            await sleep(navigationDelayInMs);
+          },
+        };
+      };
+
+      const failure: ExecutionFailure = await executeExpectingFailure(context, {
+        bootstrapAttempts: 1,
+        bootstrapTimeoutInMs: budgetInMs,
+      });
+
+      expect(failure.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+      expect(failure.elapsedInMs).toBeLessThan(
+        budgetInMs + SCHEDULING_SLACK_IN_MS,
+      );
+      const detail: BootstrapDetail = parseBootstrapDetail(
+        failure.internalDetail,
+      );
+      expect(detail.reports).toHaveLength(1);
+      const match: RegExpExecArray | null = PROBE_TIMEOUT_PATTERN.exec(
+        detail.reports[0]!.error,
+      );
+      expect(match).not.toBeNull();
+      expect(Number(match![1])).toBeLessThanOrEqual(
+        budgetInMs - navigationDelayInMs + CLOCK_TOLERANCE_IN_MS,
+      );
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
+  test("checks the controller document's JavaScript after the navigation and before starting the sandbox", async () => {
+    const steps: string[] = [];
+    const context: FakeBrowserContext = new FakeBrowserContext(0);
+    context.behaviourFor = (): FakePageBehaviour => {
+      return {
+        goto: async (): Promise<void> => {
+          steps.push("navigation started");
+          await sleep(20);
+          steps.push("navigation finished");
+        },
+        runtimeProbe: async (): Promise<void> => {
+          steps.push("JavaScript checked");
+        },
+        startWorker: async (): Promise<void> => {
+          steps.push("sandbox started");
+        },
+      };
+    };
+
+    const result: SandboxExecutionResult = await execute(context);
+
+    expect(result.returnValue).toEqual({ data: { ok: true } });
+    expect(steps).toEqual([
+      "navigation started",
+      "navigation finished",
+      "JavaScript checked",
+      "sandbox started",
+    ]);
+  });
+
+  test("retries on a fresh page when checking the controller document's JavaScript fails outright", async () => {
+    const contextDestroyed: Error = playwrightError({
+      lines: [
+        "page.evaluate: Execution context was destroyed, most likely because of a navigation",
+      ],
+    });
+    const context: FakeBrowserContext = new FakeBrowserContext(0);
+    context.behaviourFor = (pageIndex: number): FakePageBehaviour => {
+      return pageIndex === 0
+        ? {
+            runtimeProbe: async (): Promise<void> => {
+              throw contextDestroyed;
+            },
+          }
+        : {};
+    };
+
+    const result: SandboxExecutionResult = await execute(context);
+
+    expect(result.returnValue).toEqual({ data: { ok: true } });
+    expect(context.requestedPages).toHaveLength(2);
+    expect(context.requestedPages[0]!.startWorkerCount).toBe(0);
+    expect(context.requestedPages[0]!.closeCount).toBe(1);
+    expect(context.requestedPages[1]!.startWorkerCount).toBe(1);
+  });
+
+  test(
+    "refuses RPC through the binding of a controller page given up on because its JavaScript never answered",
+    async () => {
+      /*
+       * The silent page is closed within a bound, and a close that runs out
+       * leaves it alive on the sentinel URL with its binding. From then on
+       * that binding must refuse calls -- from its own page and main frame
+       * too -- while the live page's binding still reaches the broker.
+       */
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (pageIndex: number): FakePageBehaviour => {
+        return pageIndex === 0
+          ? { ...lostJavaScriptContext(), close: never }
+          : {};
+      };
+      const outcomes: BindingOutcome[] = [];
+
+      context.onStartWorker = async (livePage: FakePage): Promise<void> => {
+        const silentPage: FakePage = context.requestedPages[0]!;
+        const worker: StartedWorker = startedWorkerOn(livePage);
+        outcomes.push(
+          await callBinding({
+            bindingPage: silentPage,
+            sourcePage: silentPage,
+            worker,
+          }),
+          await callBinding({
+            bindingPage: livePage,
+            sourcePage: livePage,
+            worker,
+          }),
+        );
+      };
+
+      const result: SandboxExecutionResult = await execute(context, {
+        bootstrapTimeoutInMs: STALL_BUDGET_IN_MS,
+        teardownTimeoutInMs: TEST_TEARDOWN_TIMEOUT_IN_MS,
+      });
+
+      expect(result.returnValue).toEqual({ data: { ok: true } });
+      expect(context.requestedPages).toHaveLength(2);
+      expect(context.requestedPages[0]!.isClosed()).toBe(false);
+      expect(outcomes).toHaveLength(2);
+      expect(outcomes[0]!.rejection).toBe(REJECTED_RPC_SOURCE);
+      expect(outcomes[0]!.response).toBeUndefined();
+      expect(outcomes[1]!.rejection).toBeUndefined();
+      expect(outcomes[1]!.response?.ok).toBe(true);
     },
     BOUNDED_TEST_TIMEOUT_IN_MS,
   );

@@ -67,6 +67,22 @@ const CONTROLLER_BOOTSTRAP_TOTAL_BUDGET_IN_MS: number = Math.floor(
  * swallowed while the worker waits for the supervisor to kill it.
  */
 const CONTROLLER_TEARDOWN_TIMEOUT_IN_MS: number = 5_000;
+/*
+ * How long a bootstrap attempt waits, once the controller document has
+ * loaded, for that document's JavaScript to answer. An idle probe answers in
+ * milliseconds.
+ *
+ * Firefox sometimes never tells Playwright about the new document's
+ * main-world context after the controller document's process switch. The
+ * navigation still completes, but every evaluate on that page then waits
+ * forever -- starting the sandbox included -- so the check used to spend the
+ * whole sandbox start-up budget and then a second worker. A page in that state
+ * never recovers, and a fresh page in the same browser does not inherit it, so
+ * it is treated like any other stall confined to one page: the attempt fails
+ * and the retry opens a new page. The cap keeps that detour to seconds even
+ * when the attempt still has most of its budget left.
+ */
+const CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS: number = 5_000;
 
 /*
  * How far one bootstrap attempt got, for the probe's logs.
@@ -630,6 +646,17 @@ export default class WorkerController {
       await page.goto(data.controllerUrl, {
         waitUntil: "domcontentloaded",
         timeout: getRemainingInMs(),
+      });
+
+      await this.withinDeadline({
+        operation: page.evaluate((): boolean => {
+          return true;
+        }),
+        timeoutInMs: Math.min(
+          getRemainingInMs(),
+          CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS,
+        ),
+        step: "reach the controller page's JavaScript context",
       });
 
       return page;
