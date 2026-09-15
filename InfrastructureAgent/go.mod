@@ -7,6 +7,7 @@ require (
 	github.com/gookit/config/v2 v2.2.5
 	github.com/kardianos/service v1.2.2
 	github.com/shirou/gopsutil/v3 v3.24.5
+	golang.org/x/sys v0.44.0
 )
 
 replace gopkg.in/alecthomas/kingpin.v2 v2.4.0 => github.com/alecthomas/kingpin/v2 v2.4.0
@@ -29,7 +30,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )
