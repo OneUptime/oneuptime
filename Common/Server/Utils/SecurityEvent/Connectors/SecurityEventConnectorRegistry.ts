@@ -8,6 +8,7 @@ import SplunkConnector from "./Splunk/SplunkConnector";
 import ElasticSecurityConnector from "./ElasticSecurity/ElasticSecurityConnector";
 import AwsSecurityHubConnector from "./AwsSecurityHub/AwsSecurityHubConnector";
 import OktaConnector from "./Okta/OktaConnector";
+import GoogleSecOpsConnector from "./GoogleSecOps/GoogleSecOpsConnector";
 
 /*
  * One connector instance per provider. Connectors are stateless (every
@@ -23,6 +24,7 @@ export default class SecurityEventConnectorRegistry {
     new ElasticSecurityConnector(),
     new AwsSecurityHubConnector(),
     new OktaConnector(),
+    new GoogleSecOpsConnector(),
   ];
 
   public static getConnector(

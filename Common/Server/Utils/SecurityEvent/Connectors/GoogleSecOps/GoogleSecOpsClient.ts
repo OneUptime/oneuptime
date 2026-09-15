@@ -875,8 +875,13 @@ export default class GoogleSecOpsClient {
     try {
       parsed = new URL(tokenUri);
     } catch {
+      /*
+       * Every service-account rejection opens with "Service account JSON",
+       * the connection form's field title, so the person reading it knows
+       * which field to fix; the key inside it is named after that.
+       */
       throw new BadDataException(
-        "Service account token_uri must be an absolute https URL.",
+        "Service account JSON token_uri must be an absolute https URL.",
       );
     }
 
@@ -886,7 +891,7 @@ export default class GoogleSecOpsClient {
 
     if (parsed.protocol !== "https:" || !isGoogleHost || parsed.username) {
       throw new BadDataException(
-        "Service account token_uri must be an https URL on a Google host such as https://oauth2.googleapis.com/token.",
+        "Service account JSON token_uri must be an https URL on a Google host such as https://oauth2.googleapis.com/token.",
       );
     }
   }
@@ -902,12 +907,16 @@ export default class GoogleSecOpsClient {
       createPrivateKey(privateKey);
     } catch {
       throw new BadDataException(
-        "Service account private_key is not a readable PEM private key. Check that newlines are real newlines and the key is not encrypted.",
+        "Service account JSON private_key is not a readable PEM private key. Check that newlines are real newlines and the key is not encrypted.",
       );
     }
   }
 
-  private static validateRegionMatchesInstance(
+  /*
+   * Public so GoogleSecOpsConnector.validateSettings can run every
+   * constructor rule at save time, without building a client.
+   */
+  public static validateRegionMatchesInstance(
     region: string,
     instanceResourceName: string,
   ): void {
