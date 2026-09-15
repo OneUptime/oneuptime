@@ -195,6 +195,8 @@ describe("runScan — a successful sweep", () => {
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       /*
        * A scan row carrying no method column is an SNMP scan — every scan
@@ -527,6 +529,8 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
       snmpConfigs: [],
@@ -646,6 +650,8 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [legacyResolvedConfig],

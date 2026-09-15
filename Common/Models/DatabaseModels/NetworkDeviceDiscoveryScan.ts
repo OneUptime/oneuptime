@@ -56,6 +56,21 @@ export interface DiscoveredNetworkDevice {
    * screen or a name column.
    */
   dnsHostname?: string | undefined;
+  /*
+   * The host's NetBIOS name, lower-cased, from a node status (NBSTAT) query
+   * the probe sent to UDP 137 (OneUptime issue #3677).
+   *
+   * Present only on scans with `isNetbiosLookupEnabled`, only for hosts that
+   * had neither a sysName nor a dnsHostname, only for private addresses and
+   * never from a global probe. Absent otherwise, and on every row stored
+   * before this field existed.
+   *
+   * SELF-REPORTED AND UNTRUSTED — more so than dnsHostname: it is whatever the
+   * machine at that address chose to answer, not even a record someone
+   * published. It is stored here verbatim in jsonb, so never render or store
+   * it without NetbiosNameUtil.normalizeNetbiosName.
+   */
+  netbiosName?: string | undefined;
   isAlreadyRegistered?: boolean | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
@@ -1100,6 +1115,76 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     length: ColumnLength.LongText,
   })
   public statusMessage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
+  /*
+   * Whether the probe asks hosts that are still unnamed after the sweep — no
+   * SNMP sysName, no reverse-DNS record — for their NetBIOS name (OneUptime
+   * issue #3677). This is what names the Windows machines that otherwise sit
+   * in the Review dialog as bare addresses.
+   *
+   * OPT-IN, NOT NULL DEFAULT false, because turning it on SENDS TRAFFIC: one
+   * UDP datagram to port 137 of each such host, plus one retry. NBSTAT sweeps
+   * are a textbook reconnaissance signature that IDS rules on PCI and other
+   * regulated networks alert on, so existing recurring scans must never start
+   * doing it on an upgrade, and an absent value (a probe polling a server too
+   * old to select this column) is read as off — the probe checks `=== true`.
+   *
+   * Guarded on the probe regardless of this value: queries go only to
+   * private and CGNAT IPv4 addresses (never public, loopback or link-local),
+   * and a global probe — one registered with REGISTER_PROBE_KEY — never sends
+   * them at all.
+   *
+   * Access control identical to isSnmpEnabled: it is the same kind of "what
+   * the scan asks of each host" choice, made by the same people.
+   *
+   * NOT a sweep column. It changes what is learned ABOUT hosts after the sweep,
+   * not which hosts are found, so toggling it must not retire a run's results
+   * the way changing the target or the SNMP setting does.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Look Up NetBIOS Names",
+    description:
+      "Whether hosts with no SNMP name and no reverse DNS record are asked for their NetBIOS name over UDP 137. Best-effort: Windows/Samba hosts that allow UDP 137 from the probe. Private addresses only; never done by global probes.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isNetbiosLookupEnabled?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
