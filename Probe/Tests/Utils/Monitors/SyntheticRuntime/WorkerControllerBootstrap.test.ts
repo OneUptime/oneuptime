@@ -2414,6 +2414,84 @@ describe("SyntheticRuntime WorkerController controller page JavaScript context",
     BOUNDED_TEST_TIMEOUT_IN_MS,
   );
 
+  /*
+   * The least the JavaScript check is given, mirrored from WorkerController:
+   * a navigation that lands at the very end of its attempt still leaves the
+   * page this long to answer.
+   */
+  const RUNTIME_PROBE_MINIMUM_IN_MS: number = 500;
+
+  test(
+    "still gives a page whose navigation used up the attempt a moment to answer",
+    async () => {
+      /*
+       * Without a floor the check would get the one millisecond the
+       * navigation left, and a working page -- here answering in 100 ms --
+       * would fail the attempt, and with it the whole bootstrap.
+       */
+      const budgetInMs: number = 1_000;
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (): FakePageBehaviour => {
+        return {
+          goto: async (): Promise<void> => {
+            await sleep(budgetInMs + 50);
+          },
+          runtimeProbe: async (): Promise<void> => {
+            await sleep(100);
+          },
+        };
+      };
+
+      const result: SandboxExecutionResult = await execute(context, {
+        bootstrapAttempts: 1,
+        bootstrapTimeoutInMs: budgetInMs,
+      });
+
+      expect(result.returnValue).toEqual({ data: { ok: true } });
+      expect(context.requestedPages).toHaveLength(1);
+      expect(context.requestedPages[0]!.runtimeProbeCount).toBe(1);
+      expect(context.requestedPages[0]!.startWorkerCount).toBe(1);
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "gives up on a silent page whose navigation used up the attempt after that moment",
+    async () => {
+      const budgetInMs: number = 1_000;
+      const context: FakeBrowserContext = new FakeBrowserContext(0);
+      context.behaviourFor = (): FakePageBehaviour => {
+        return {
+          ...lostJavaScriptContext(),
+          goto: async (): Promise<void> => {
+            await sleep(budgetInMs + 50);
+          },
+        };
+      };
+
+      const failure: ExecutionFailure = await executeExpectingFailure(context, {
+        bootstrapAttempts: 1,
+        bootstrapTimeoutInMs: budgetInMs,
+      });
+
+      expect(failure.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+      const detail: BootstrapDetail = parseBootstrapDetail(
+        failure.internalDetail,
+      );
+      expect(detail.reports).toHaveLength(1);
+      const match: RegExpExecArray | null = PROBE_TIMEOUT_PATTERN.exec(
+        detail.reports[0]!.error,
+      );
+      expect(match).not.toBeNull();
+      expect(Number(match![1])).toBe(RUNTIME_PROBE_MINIMUM_IN_MS);
+      // The attempt overran its budget by that moment, and not by more.
+      expect(failure.elapsedInMs).toBeLessThan(
+        budgetInMs + 50 + RUNTIME_PROBE_MINIMUM_IN_MS + SCHEDULING_SLACK_IN_MS,
+      );
+    },
+    BOUNDED_TEST_TIMEOUT_IN_MS,
+  );
+
   test("checks the controller document's JavaScript after the navigation and before starting the sandbox", async () => {
     const steps: string[] = [];
     const context: FakeBrowserContext = new FakeBrowserContext(0);

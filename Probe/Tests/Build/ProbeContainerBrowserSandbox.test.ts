@@ -301,10 +301,11 @@ describe("probe container policy and the browser sandboxes", () => {
 
     test("never let RuntimeDefault allow a user namespace that chroot cannot be used in", () => {
       /*
-       * The runtimes' generated RuntimeDefault profiles (containerd, CRI-O,
-       * Docker) allow namespace-creating clone/unshare only with CAP_SYS_ADMIN
-       * and chroot only with CAP_SYS_CHROOT. Granting the first without the
-       * second recreates the compose failure under RuntimeDefault.
+       * Docker's, containerd's and CRI-O's (1.29 and later) generated
+       * RuntimeDefault profiles allow namespace-creating clone/unshare only
+       * with CAP_SYS_ADMIN, and chroot only with CAP_SYS_CHROOT; CRI-O 1.24-1.28
+       * gates only unshare. Granting the first capability without the second
+       * recreates the compose failure under RuntimeDefault.
        */
       expect(values.probeContainerSecurityContext.seccompProfile.type).toBe(
         "RuntimeDefault",

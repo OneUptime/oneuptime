@@ -108,17 +108,26 @@ describe("SyntheticRuntime WorkerController with a controller page whose JavaScr
     "recovers on a fresh controller page in %s instead of waiting out the sandbox start-up",
     async (browserName: "Chromium" | "Firefox", browserType: BrowserType) => {
       const browser: Browser = await browserType.launch({ headless: true });
-      const browserContext: BrowserContext = await browser.newContext();
-      const page: Page = await browserContext.newPage();
-      const controllerPages: Page[] = [];
-      browserContext.on("page", (opened: Page): void => {
-        controllerPages.push(opened);
-      });
-      const injection: LostContextInjection =
-        loseFirstControllerDocumentMainWorld({ browserType, anyPage: page });
-      const startedAtInMs: number = Date.now();
+      /*
+       * Everything after the launch sits inside the try, the injection
+       * included: its setup asserts on Playwright internals, and a Playwright
+       * upgrade that fails those assertions must not leave a browser behind.
+       */
+      let injection: LostContextInjection | undefined;
 
       try {
+        const browserContext: BrowserContext = await browser.newContext();
+        const page: Page = await browserContext.newPage();
+        const controllerPages: Page[] = [];
+        browserContext.on("page", (opened: Page): void => {
+          controllerPages.push(opened);
+        });
+        injection = loseFirstControllerDocumentMainWorld({
+          browserType,
+          anyPage: page,
+        });
+        const startedAtInMs: number = Date.now();
+
         const result: SandboxExecutionResult = await WorkerController.execute({
           browserContext,
           page,
@@ -142,8 +151,8 @@ describe("SyntheticRuntime WorkerController with a controller page whose JavaScr
          */
         expect(Date.now() - startedAtInMs).toBeLessThan(20_000);
       } finally {
-        injection.restore();
-        await browserContext.close();
+        injection?.restore();
+        // Closing the browser closes its context too.
         await browser.close();
       }
     },

@@ -83,6 +83,14 @@ const CONTROLLER_TEARDOWN_TIMEOUT_IN_MS: number = 5_000;
  * when the attempt still has most of its budget left.
  */
 const CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS: number = 5_000;
+/*
+ * The least the check gets, even when the navigation finished at the very end
+ * of its attempt. A healthy document answers in tens of milliseconds -- the
+ * slowest measured, four Firefox browsers sharing one CPU, took 732 ms -- so
+ * this is enough for a working page without letting a silent one hold the
+ * attempt noticeably past its budget.
+ */
+const CONTROLLER_RUNTIME_PROBE_MINIMUM_IN_MS: number = 500;
 
 /*
  * How far one bootstrap attempt got, for the probe's logs.
@@ -648,13 +656,19 @@ export default class WorkerController {
         timeout: getRemainingInMs(),
       });
 
+      /*
+       * Never less than a moment, even when the navigation used up the
+       * attempt: a document that loaded in the budget's last milliseconds must
+       * not fail an attempt only because no time was left to ask it anything.
+       * The attempt can overrun its budget by at most that moment.
+       */
       await this.withinDeadline({
         operation: page.evaluate((): boolean => {
           return true;
         }),
         timeoutInMs: Math.min(
-          getRemainingInMs(),
           CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS,
+          Math.max(getRemainingInMs(), CONTROLLER_RUNTIME_PROBE_MINIMUM_IN_MS),
         ),
         step: "reach the controller page's JavaScript context",
       });
