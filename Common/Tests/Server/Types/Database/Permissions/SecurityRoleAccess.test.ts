@@ -3,8 +3,8 @@ import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import AlertSeverity from "../../../../../Models/DatabaseModels/AlertSeverity";
 import DetectionRule from "../../../../../Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "../../../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectionRun from "../../../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import TableView from "../../../../../Models/DatabaseModels/TableView";
@@ -139,8 +139,8 @@ const readableColumns: ReadableColumnsFunction = (
 const SIEM_MODELS: Array<[string, ModelType]> = [
   ["DetectionRule", DetectionRule],
   ["ThreatIntelFeed", ThreatIntelFeed],
-  ["GoogleSecOpsConnection", GoogleSecOpsConnection],
   ["SecurityEventConnection", SecurityEventConnection],
+  ["SecurityEventConnectionRun", SecurityEventConnectionRun],
 ];
 
 describe("Security roles reach the SIEM", () => {
@@ -228,40 +228,11 @@ describe("Security roles reach the SIEM", () => {
   });
 
   /*
-   * Connecting the project to someone's Chronicle instance, and storing the
-   * service-account key that reads it, is administration of the SIEM. A Member
-   * uses the SIEM; they do not get to repoint it at another source.
-   */
-  test("Security Member cannot configure the SecOps connector", () => {
-    expect(canRead(GoogleSecOpsConnection, securityMember)).toBe(true);
-
-    for (const requestType of [
-      DatabaseRequestType.Create,
-      DatabaseRequestType.Update,
-      DatabaseRequestType.Delete,
-    ]) {
-      expect(can(GoogleSecOpsConnection, securityMember, requestType)).toBe(
-        false,
-      );
-    }
-  });
-
-  test("Security Admin can configure the SecOps connector", () => {
-    for (const requestType of [
-      DatabaseRequestType.Create,
-      DatabaseRequestType.Update,
-      DatabaseRequestType.Delete,
-    ]) {
-      expect(can(GoogleSecOpsConnection, securityAdmin, requestType)).toBe(
-        true,
-      );
-    }
-  });
-
-  /*
-   * The same split for every other managed source. A SecurityEventConnection
-   * row holds the credential that reads a Sentinel workspace, a Falcon tenant
-   * or a Splunk search head; configuring one is SIEM administration.
+   * Connecting the project to a security product - a Chronicle instance, a
+   * Sentinel workspace, a Falcon tenant or a Splunk search head - and storing
+   * the credential that reads it, is administration of the SIEM. A Member uses
+   * the SIEM; they do not get to repoint it at another source. Google SecOps
+   * is one of these connections, so this split is its split too.
    */
   test("Security Member cannot configure security event connections", () => {
     expect(canRead(SecurityEventConnection, securityMember)).toBe(true);
@@ -286,6 +257,25 @@ describe("Security roles reach the SIEM", () => {
       expect(can(SecurityEventConnection, securityAdmin, requestType)).toBe(
         true,
       );
+    }
+  });
+
+  /*
+   * Run history is the record of what a connection actually did. The worker
+   * and the connection operations API write it as root; through the CRUD API
+   * nobody may, or a client could forge a successful poll.
+   */
+  test("every Security tier reads connection run history and none writes it", () => {
+    for (const props of [securityViewer, securityMember, securityAdmin]) {
+      expect(canRead(SecurityEventConnectionRun, props)).toBe(true);
+
+      for (const requestType of [
+        DatabaseRequestType.Create,
+        DatabaseRequestType.Update,
+        DatabaseRequestType.Delete,
+      ]) {
+        expect(can(SecurityEventConnectionRun, props, requestType)).toBe(false);
+      }
     }
   });
 
@@ -441,6 +431,6 @@ describe("Nobody else reaches the SIEM", () => {
 
     expect(canRead(DetectionRule, detectionRuleReader)).toBe(true);
     expect(canRead(ThreatIntelFeed, detectionRuleReader)).toBe(false);
-    expect(canRead(GoogleSecOpsConnection, detectionRuleReader)).toBe(false);
+    expect(canRead(SecurityEventConnection, detectionRuleReader)).toBe(false);
   });
 });

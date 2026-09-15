@@ -3,12 +3,13 @@ import fs from "fs";
 import path from "path";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { WidenSecurityEventLastErrorColumns1789800000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1789800000000-WidenSecurityEventLastErrorColumns";
+import { AddSecurityEventConnections1792700000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1792700000000-AddSecurityEventConnections";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DetectionRuleService from "../../../Server/Services/DetectionRuleService";
-import GoogleSecOpsConnectionService from "../../../Server/Services/GoogleSecOpsConnectionService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import { REDACTED, redactLogString } from "../../../Server/Utils/LogRedaction";
 import ConnectorErrorMessage, {
   MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
@@ -28,7 +29,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
 import { beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
- * GoogleSecOpsConnection.lastError and DetectionRule.lastError must stay
+ * SecurityEventConnection.lastError and DetectionRule.lastError must stay
  * unbounded text. This file exists because narrowing either of them back
  * is not a cosmetic regression — it silently stops the connector polling
  * loops altogether.
@@ -48,6 +49,14 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * DetectionRuleEvaluator had the identical pattern on DetectionRule
  * .lastError, where ClickHouse errors echo the whole compiled query.
  *
+ * The connection that outage hit, GoogleSecOpsConnection, has since moved
+ * into SecurityEventConnection, whose lastError carries the same contract,
+ * so the connection half of every assertion below runs against it. The
+ * migration assertions still name the legacy table, because that is the
+ * table 1789800000000 widened, and SecurityEventConnection is pinned to
+ * have been created with lastError as text, so the errors copied into it
+ * fit.
+ *
  * THE CURRENT CONTRACT — and why the old cap is gone. GoogleSecOpsClient
  * used to clip every echoed body with `.slice(0, BODY_ECHO_LIMIT)`, and an
  * earlier version of this file leaned on that cap as its bound: read the
@@ -56,7 +65,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * now run the body through the client's own redactErrorBody() (which
  * decodes nested JSON before handing it to redactLogString /
  * redactLogValue), which strips credentials but truncates nothing — an
- * operator gets the WHOLE redacted diagnostic. GoogleSecOpsPoller stores it
+ * operator gets the WHOLE redacted diagnostic. The connection poller stores it
  * with ConnectorErrorMessage.toMessage(error, { truncate: false }), opting
  * out of the connector clamp entirely, which is only safe because
  * lastError is unbounded `text`. So the property that makes echoing a
@@ -260,7 +269,7 @@ async function thrownClientError(
 }
 
 /*
- * Exactly what GoogleSecOpsPoller.ts writes into lastError: the connector
+ * Exactly what the connection poller writes into lastError: the connector
  * clamp explicitly disabled, then one more redaction pass. Both halves are
  * reproduced here rather than approximated, because "the value the poller
  * stores fits the column" is the whole claim of this file.
@@ -276,6 +285,14 @@ interface LastErrorColumn {
   table: string;
   target: unknown;
   propertyName: string;
+  /*
+   * The table WidenSecurityEventLastErrorColumns1789800000000 widened for
+   * this column. SecurityEventConnection did not exist then: its lastError is
+   * where the widened GoogleSecOpsConnection.lastError values are copied
+   * (MoveGoogleSecOpsConnectionsToSecurityEventConnections), so it answers
+   * for that table here.
+   */
+  widenedTable: string;
   newInstance: () => DatabaseBaseModel;
   /*
    * Runs the real DatabaseService length check over a row whose lastError
@@ -294,23 +311,24 @@ interface LastErrorColumn {
 
 const LAST_ERROR_COLUMNS: Array<LastErrorColumn> = [
   {
-    label: "GoogleSecOpsConnection.lastError",
-    table: "GoogleSecOpsConnection",
-    target: GoogleSecOpsConnection,
+    label: "SecurityEventConnection.lastError",
+    table: "SecurityEventConnection",
+    target: SecurityEventConnection,
     propertyName: "lastError",
+    widenedTable: "GoogleSecOpsConnection",
     newInstance: (): DatabaseBaseModel => {
-      return new GoogleSecOpsConnection();
+      return new SecurityEventConnection();
     },
     checkLastError: (value: string): void => {
-      const connection: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+      const connection: SecurityEventConnection = new SecurityEventConnection();
       connection.lastError = value;
-      GoogleSecOpsConnectionService["checkMaxLengthOfFields"](connection);
+      SecurityEventConnectionService["checkMaxLengthOfFields"](connection);
     },
     longTextSibling: "cursor",
     checkLongTextSibling: (value: string): void => {
-      const connection: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+      const connection: SecurityEventConnection = new SecurityEventConnection();
       connection.cursor = value;
-      GoogleSecOpsConnectionService["checkMaxLengthOfFields"](connection);
+      SecurityEventConnectionService["checkMaxLengthOfFields"](connection);
     },
   },
   {
@@ -318,6 +336,7 @@ const LAST_ERROR_COLUMNS: Array<LastErrorColumn> = [
     table: "DetectionRule",
     target: DetectionRule,
     propertyName: "lastError",
+    widenedTable: "DetectionRule",
     newInstance: (): DatabaseBaseModel => {
       return new DetectionRule();
     },
@@ -528,7 +547,7 @@ describe("the widest error the producers can emit is storable", () => {
 
   test("the poller's { truncate: false } stores the widest client error whole", () => {
     /*
-     * GoogleSecOpsPoller writes ConnectorErrorMessage.toMessage(error,
+     * The connection poller writes ConnectorErrorMessage.toMessage(error,
      * { truncate: false }). The operator is meant to get the complete
      * redacted diagnostic, so the returned value must be the message
      * unchanged — no clamp, and specifically no "... (truncated)" marker,
@@ -568,7 +587,7 @@ describe("the widest error the producers can emit is storable", () => {
     (column: LastErrorColumn) => {
       /*
        * The end-to-end guard: the same value the poller would store —
-       * untruncated and redacted, exactly as GoogleSecOpsPoller builds it
+       * untruncated and redacted, exactly as the connection poller builds it
        * — run through the same DatabaseService validation that used to
        * throw. Pre-fix (LongText/varchar(500)) this raised
        * BadDataException, the throw escaped pollAllDueConnections, and the
@@ -877,7 +896,7 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
 
     for (const column of LAST_ERROR_COLUMNS) {
       expect(statements).toContain(
-        `ALTER TABLE "${column.table}" ALTER COLUMN "${column.propertyName}" TYPE text`,
+        `ALTER TABLE "${column.widenedTable}" ALTER COLUMN "${column.propertyName}" TYPE text`,
       );
     }
   });
@@ -917,7 +936,7 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
 
     expect(altered).toEqual(
       LAST_ERROR_COLUMNS.map((column: LastErrorColumn) => {
-        return `${column.table}.${column.propertyName}`;
+        return `${column.widenedTable}.${column.propertyName}`;
       }).sort(),
     );
   });
@@ -935,7 +954,7 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
     for (const column of LAST_ERROR_COLUMNS) {
       expect(columnArgs(column).options.type).toBe(ColumnType.VeryLongText);
       expect(statements).toContain(
-        `ALTER TABLE "${column.table}" ALTER COLUMN "${column.propertyName}" TYPE ${ColumnType.VeryLongText}`,
+        `ALTER TABLE "${column.widenedTable}" ALTER COLUMN "${column.propertyName}" TYPE ${ColumnType.VeryLongText}`,
       );
     }
   });
@@ -954,13 +973,13 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
     for (const column of LAST_ERROR_COLUMNS) {
       const clipIndex: number = statements.findIndex((sql: string) => {
         return (
-          sql.startsWith(`UPDATE "${column.table}"`) &&
+          sql.startsWith(`UPDATE "${column.widenedTable}"`) &&
           sql.includes(`SET "${column.propertyName}" = LEFT(`) &&
           sql.includes(String(ColumnLength.LongText))
         );
       });
       const narrowIndex: number = statements.indexOf(
-        `ALTER TABLE "${column.table}" ALTER COLUMN "${column.propertyName}" TYPE character varying(${ColumnLength.LongText})`,
+        `ALTER TABLE "${column.widenedTable}" ALTER COLUMN "${column.propertyName}" TYPE character varying(${ColumnLength.LongText})`,
       );
 
       expect(clipIndex).toBeGreaterThanOrEqual(0);
@@ -990,7 +1009,7 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
       const declaringStatement: string | undefined = createStatements.find(
         (sql: string) => {
           return (
-            sql.startsWith(`CREATE TABLE "${column.table}" (`) &&
+            sql.startsWith(`CREATE TABLE "${column.widenedTable}" (`) &&
             sql.includes(
               `"${column.propertyName}" character varying(${ColumnLength.LongText})`,
             )
@@ -1002,7 +1021,7 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
       expect(declaringStatement).toBeDefined();
 
       expect(downStatements).toContain(
-        `ALTER TABLE "${column.table}" ALTER COLUMN "${column.propertyName}" TYPE character varying(${ColumnLength.LongText})`,
+        `ALTER TABLE "${column.widenedTable}" ALTER COLUMN "${column.propertyName}" TYPE character varying(${ColumnLength.LongText})`,
       );
     }
   });
@@ -1112,5 +1131,40 @@ describe("WidenSecurityEventLastErrorColumns1789800000000 registration", () => {
     );
 
     expect(collisions).toHaveLength(0);
+  });
+});
+
+describe("where the widened Google SecOps errors live now", () => {
+  /*
+   * GoogleSecOpsConnection rows, lastError included, are copied into
+   * SecurityEventConnection by a data migration. A text value copied into a
+   * narrower column would fail that row's copy, so the table it lands in has
+   * to have been created with lastError as text from the start.
+   */
+  test("SecurityEventConnection was created with lastError as text", async () => {
+    const { runner, query } = makeQueryRunner();
+    await new AddSecurityEventConnections1792700000000().up(runner);
+
+    const createStatement: string | undefined = executedSql(query).find(
+      (sql: string) => {
+        return sql.startsWith('CREATE TABLE "SecurityEventConnection" (');
+      },
+    );
+
+    expect(createStatement).toBeDefined();
+    expect(createStatement).toContain('"lastError" text');
+    expect(createStatement).not.toContain('"lastError" character varying');
+  });
+
+  test("the widened legacy column answers through an entity that declares text", () => {
+    const successor: LastErrorColumn | undefined = LAST_ERROR_COLUMNS.find(
+      (column: LastErrorColumn) => {
+        return column.widenedTable === "GoogleSecOpsConnection";
+      },
+    );
+
+    expect(successor?.table).toBe("SecurityEventConnection");
+    expect(columnArgs(successor!).options.type).toBe(ColumnType.VeryLongText);
+    expect(metadataFor(successor!).type).toBe(TableColumnType.VeryLongText);
   });
 });

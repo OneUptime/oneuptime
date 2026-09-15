@@ -1,4 +1,5 @@
 import RemoveLegacyAIAgentTaskCrons from "./RemoveLegacyAIAgentTaskCrons";
+import RemoveLegacyGoogleSecOpsCrons from "./RemoveLegacyGoogleSecOpsCrons";
 import RemoveLegacySentinelInsightCron from "./RemoveLegacySentinelInsightCron";
 import SeedGlobalLlmProviderFromEnv from "./SeedGlobalLlmProviderFromEnv";
 import StartupMigrationBase from "./StartupMigrationBase";
@@ -11,6 +12,7 @@ const StartupMigrations: Array<StartupMigrationBase> = [
   new SeedGlobalLlmProviderFromEnv(),
   new RemoveLegacySentinelInsightCron(),
   new RemoveLegacyAIAgentTaskCrons(),
+  new RemoveLegacyGoogleSecOpsCrons(),
 ];
 
 export default StartupMigrations;

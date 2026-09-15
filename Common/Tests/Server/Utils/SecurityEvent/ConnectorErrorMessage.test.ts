@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from "crypto";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
 import logger from "../../../../Server/Utils/Logger";
 import ConnectorErrorMessage, {
   MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
@@ -811,16 +811,16 @@ describe("ConnectorErrorMessage.recordFailure", () => {
 });
 
 describe("the lastError columns the clamp writes into", () => {
-  test("GoogleSecOpsConnection.lastError is unbounded text", () => {
+  test("SecurityEventConnection.lastError is unbounded text", () => {
     const metadata: TableColumnMetadata =
-      new GoogleSecOpsConnection().getTableColumnMetadata("lastError");
+      new SecurityEventConnection().getTableColumnMetadata("lastError");
 
     expect(metadata.type).toBe(TableColumnType.VeryLongText);
   });
 
-  test("GoogleSecOpsConnection.lastError has no max length, so a clamped message cannot be rejected", () => {
+  test("SecurityEventConnection.lastError has no max length, so a clamped message cannot be rejected", () => {
     const metadata: TableColumnMetadata =
-      new GoogleSecOpsConnection().getTableColumnMetadata("lastError");
+      new SecurityEventConnection().getTableColumnMetadata("lastError");
 
     /*
      * checkMaxLengthOfFields only length-checks a column when
@@ -867,7 +867,7 @@ describe("the lastError columns the clamp writes into", () => {
       new Error(repeatToLength("clickhouse query fragment ", 50000)),
     );
 
-    for (const model of [new GoogleSecOpsConnection(), new DetectionRule()]) {
+    for (const model of [new SecurityEventConnection(), new DetectionRule()]) {
       const metadata: TableColumnMetadata =
         model.getTableColumnMetadata("lastError");
       const maxLength: number | undefined = getMaxLengthFromTableColumnType(
@@ -884,7 +884,7 @@ describe("the lastError columns the clamp writes into", () => {
 
   test("both columns stay nullable and optional, so a successful run can clear them", () => {
     const connectionMetadata: TableColumnMetadata =
-      new GoogleSecOpsConnection().getTableColumnMetadata("lastError");
+      new SecurityEventConnection().getTableColumnMetadata("lastError");
     const ruleMetadata: TableColumnMetadata =
       new DetectionRule().getTableColumnMetadata("lastError");
 

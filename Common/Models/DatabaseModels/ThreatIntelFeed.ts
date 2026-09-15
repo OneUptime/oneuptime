@@ -601,7 +601,7 @@ export default class ThreatIntelFeed extends BaseModel {
      * Unbounded text, not LongText's varchar(500): a TAXII server failure
      * is a prefix plus up to 500 characters of echoed response body,
      * which overflows 500 — the exact failure mode documented on
-     * GoogleSecOpsConnection.lastError. The poller still clamps what it
+     * SecurityEventConnection.lastError. The poller still clamps what it
      * stores.
      */
     type: TableColumnType.VeryLongText,

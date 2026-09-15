@@ -20,10 +20,11 @@ import { ComponentProps as CodeEditorProps } from "../../../../UI/Components/Cod
  *    '["https://a.example.com"]' and the column holds a list, so the string
  *    has to become a list before it is sent - it did not on update, and the
  *    server refused every edit to a browser key's allowlist.
- *  - GoogleSecOpsConnection.serviceAccountJson is VeryLongText. It is edited
- *    as JSON because that is what a customer pastes out of Google Cloud, and
- *    stored as the text they pasted: the server decrypts it and parses it
- *    itself. Parsing it here would hand it an object instead.
+ *  - SecurityEventConnection.secrets is VeryLongText. It holds JSON, stored
+ *    as one string: the server parses it, re-serializes it and encrypts that
+ *    single string, the way the retired Google SecOps connection stored the
+ *    service account key a customer pasted. Parsing it here would hand the
+ *    server an object instead of the text.
  *
  * Both are real models with real column metadata, so the rule is exercised
  * against the same declarations production reads.
@@ -135,11 +136,11 @@ import ModelForm, { FormType } from "../../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import TelemetryIngestionKey from "../../../../Models/DatabaseModels/TelemetryIngestionKey";
-import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
 
 const ORIGINS: string = '["https://app.example.com", "https://*.example.org"]';
-const SERVICE_ACCOUNT: string =
-  '{"type":"service_account","project_id":"acme","private_key":"key"}';
+const CREDENTIALS: string =
+  '{"serviceAccountJson":"pasted key text","apiToken":"token-value"}';
 
 async function renderIngestionKeyForm(): Promise<void> {
   const fields: Fields<TelemetryIngestionKey> = [
@@ -176,7 +177,7 @@ async function renderIngestionKeyForm(): Promise<void> {
 }
 
 async function renderConnectionForm(): Promise<void> {
-  const fields: Fields<GoogleSecOpsConnection> = [
+  const fields: Fields<SecurityEventConnection> = [
     {
       field: { name: true },
       title: "Name",
@@ -185,8 +186,8 @@ async function renderConnectionForm(): Promise<void> {
       placeholder: "Connection name",
     },
     {
-      field: { serviceAccountJson: true },
-      title: "Service Account JSON",
+      field: { secrets: true },
+      title: "Credentials JSON",
       fieldType: FormFieldSchemaType.JSON,
       required: false,
     },
@@ -194,8 +195,8 @@ async function renderConnectionForm(): Promise<void> {
 
   await act(async (): Promise<void> => {
     render(
-      <ModelForm<GoogleSecOpsConnection>
-        modelType={GoogleSecOpsConnection}
+      <ModelForm<SecurityEventConnection>
+        modelType={SecurityEventConnection}
         id="connection-form"
         name="Connection"
         fields={fields}
@@ -210,7 +211,7 @@ async function renderConnectionForm(): Promise<void> {
 }
 
 function editor(): HTMLElement {
-  return screen.getByRole("textbox", { name: /Origins|Service Account/ });
+  return screen.getByRole("textbox", { name: /Origins|Credentials/ });
 }
 
 async function submit(): Promise<void> {
@@ -269,10 +270,10 @@ describe("ModelForm: a JSON editor over a JSON column", () => {
 
 describe("ModelForm: a JSON editor over a text column", () => {
   /*
-   * The regression this guards. A service account key is edited as JSON
-   * because that is the shape the customer pastes, but the column is
-   * VeryLongText and the server decrypts and parses the text itself -
-   * so what goes over the wire has to still be the text they pasted.
+   * The regression this guards. Credentials are edited as JSON because that
+   * is their shape, but the column is VeryLongText and the server parses and
+   * encrypts the text itself - so what goes over the wire has to still be
+   * the text that was typed.
    */
   test("sends the pasted text unchanged", async () => {
     await renderConnectionForm();
@@ -280,11 +281,11 @@ describe("ModelForm: a JSON editor over a text column", () => {
     fireEvent.change(screen.getByPlaceholderText("Connection name"), {
       target: { value: "Chronicle" },
     });
-    fireEvent.change(editor(), { target: { value: SERVICE_ACCOUNT } });
+    fireEvent.change(editor(), { target: { value: CREDENTIALS } });
 
     await submit();
 
-    expect(typeof capturedModel?.["serviceAccountJson"]).toBe("string");
-    expect(capturedModel?.["serviceAccountJson"]).toBe(SERVICE_ACCOUNT);
+    expect(typeof capturedModel?.["secrets"]).toBe("string");
+    expect(capturedModel?.["secrets"]).toBe(CREDENTIALS);
   });
 });

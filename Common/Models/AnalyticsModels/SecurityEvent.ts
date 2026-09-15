@@ -55,10 +55,10 @@ const readPermissions: Array<Permission> = [
 ];
 
 /*
- * Rows normally arrive through the SecOps poller, the detection-rule evaluator
- * and the threat-intel matcher, all of which insert as root and never reach
- * this list. It gates the CRUD API only, which is why it stops at the tiers
- * that administer the SIEM.
+ * Rows normally arrive through the security event connection poller, the
+ * detection-rule evaluator and the threat-intel matcher, all of which insert
+ * as root and never reach this list. It gates the CRUD API only, which is why
+ * it stops at the tiers that administer the SIEM.
  */
 const createPermissions: Array<Permission> = [
   Permission.ProjectOwner,
