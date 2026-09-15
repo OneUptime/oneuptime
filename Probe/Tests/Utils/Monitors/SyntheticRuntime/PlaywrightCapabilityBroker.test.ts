@@ -7,6 +7,7 @@ import {
   CapabilityDescriptor,
   PlaywrightRpcRequest,
   PlaywrightRpcResponse,
+  RuntimeStateSnapshot,
   SYNTHETIC_RUNTIME_PROTOCOL_VERSION,
   ScreenshotDescriptor,
 } from "../../../../Utils/Monitors/SyntheticRuntime/RpcProtocol";
@@ -412,5 +413,191 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
     expect(typeof response.error).toBe("string");
     expect(response.error).not.toMatch(/[\r\n\t]/);
     expect(Object.getPrototypeOf(response)).toBe(Object.prototype);
+  });
+
+  /*
+   * Internal pages are the pages the runtime opened for itself besides the
+   * controller page: bootstrap attempts WorkerController gave up on, whose
+   * bounded close may not have finished. They live in the tenant's context but
+   * are not the tenant's. Each of these tests uses a context of its own,
+   * because the broker built in beforeEach watches targetContext and would
+   * close the extra pages as excess.
+   */
+  function createBroker(
+    options: ConstructorParameters<typeof PlaywrightCapabilityBroker>[0],
+  ): PlaywrightCapabilityBroker {
+    return new PlaywrightCapabilityBroker(options);
+  }
+
+  async function openPages(
+    context: BrowserContext,
+    count: number,
+  ): Promise<Page[]> {
+    const pages: Page[] = [];
+    for (let index: number = 0; index < count; index++) {
+      pages.push(await context.newPage());
+    }
+    return pages;
+  }
+
+  function descriptorIds(descriptors: unknown): string[] {
+    return ((descriptors as CapabilityDescriptor[] | undefined) || []).map(
+      (descriptor: CapabilityDescriptor): string => {
+        return descriptor.id;
+      },
+    );
+  }
+
+  test("hides internal pages from the pages reported to the sandbox", async () => {
+    const context: BrowserContext = await browser.newContext();
+
+    try {
+      const tenantPage: Page = await context.newPage();
+      const runtimePage: Page = await context.newPage();
+      const internalPages: Page[] = await openPages(context, 2);
+      const internalBroker: PlaywrightCapabilityBroker = createBroker({
+        executionId,
+        page: tenantPage,
+        browserContext: context,
+        controllerPage: runtimePage,
+        internalPages: new Set<Page>(internalPages),
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+      });
+      const capabilities: ReturnType<
+        PlaywrightCapabilityBroker["getBootstrapCapabilities"]
+      > = internalBroker.getBootstrapCapabilities();
+
+      // The internal pages really are open in the context the tenant shares.
+      expect(context.pages()).toHaveLength(4);
+
+      // The context snapshot the sandbox bootstraps its page list from.
+      expect(
+        descriptorIds(capabilities.browserContext.snapshot?.["pages"]),
+      ).toEqual([capabilities.page.id]);
+
+      // The live page list every RPC response refreshes.
+      const title: PlaywrightRpcResponse = await internalBroker.dispatch(
+        request("title", [], capabilities.page),
+      );
+      expect(title.ok).toBe(true);
+      expect(descriptorIds(title.state?.pages)).toEqual([capabilities.page.id]);
+
+      // A page the tenant opens is listed next to its own, and only those.
+      const opened: PlaywrightRpcResponse = await internalBroker.dispatch(
+        request("newPage", [], capabilities.browserContext),
+      );
+      expect(opened.ok).toBe(true);
+      expect(descriptorIds(opened.state?.pages)).toEqual([
+        capabilities.page.id,
+        (opened.value as CapabilityDescriptor).id,
+      ]);
+      expect(
+        internalPages.filter((internalPage: Page): boolean => {
+          return internalPage.isClosed();
+        }),
+      ).toHaveLength(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("does not count internal pages toward the browser page limit", async () => {
+    const context: BrowserContext = await browser.newContext();
+
+    try {
+      const tenantPage: Page = await context.newPage();
+      const runtimePage: Page = await context.newPage();
+      // As many internal pages as the tenant's whole allowance of eight.
+      const internalPages: Page[] = await openPages(context, 8);
+      const internalBroker: PlaywrightCapabilityBroker = createBroker({
+        executionId,
+        page: tenantPage,
+        browserContext: context,
+        controllerPage: runtimePage,
+        internalPages: new Set<Page>(internalPages),
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+      });
+      const contextCapability: CapabilityDescriptor =
+        internalBroker.getBootstrapCapabilities().browserContext;
+
+      // The tenant's own page plus seven more is exactly its limit.
+      let lastState: RuntimeStateSnapshot | undefined;
+      for (let index: number = 1; index < 8; index++) {
+        const response: PlaywrightRpcResponse = await internalBroker.dispatch(
+          request("newPage", [], contextCapability),
+        );
+        expect(response.error).toBeUndefined();
+        expect(response.ok).toBe(true);
+        lastState = response.state;
+      }
+      expect(lastState?.pages).toHaveLength(8);
+
+      const excessPage: PlaywrightRpcResponse = await internalBroker.dispatch(
+        request("newPage", [], contextCapability),
+      );
+      expect(excessPage.ok).toBe(false);
+      expect(excessPage.error).toContain("page limit");
+
+      /*
+       * The broker also closes pages that push the tenant past its limit as
+       * they appear. That guard counts the same way, so it closed nothing:
+       * not the tenant's eight pages, and not the internal ones. The close it
+       * would issue is not awaited, hence the pause before looking.
+       */
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 250);
+      });
+      expect(context.pages()).toHaveLength(1 + 1 + 8 + 7);
+      expect(
+        internalPages.filter((internalPage: Page): boolean => {
+          return internalPage.isClosed();
+        }),
+      ).toHaveLength(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("without internal pages, every page but the controller page is the tenant's", async () => {
+    const context: BrowserContext = await browser.newContext();
+
+    try {
+      const tenantPage: Page = await context.newPage();
+      const runtimePage: Page = await context.newPage();
+      await openPages(context, 7);
+      const plainBroker: PlaywrightCapabilityBroker = createBroker({
+        executionId,
+        page: tenantPage,
+        browserContext: context,
+        controllerPage: runtimePage,
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+      });
+      const capabilities: ReturnType<
+        PlaywrightCapabilityBroker["getBootstrapCapabilities"]
+      > = plainBroker.getBootstrapCapabilities();
+
+      // The tenant's page and the seven others; the controller page is not.
+      expect(
+        descriptorIds(capabilities.browserContext.snapshot?.["pages"]),
+      ).toHaveLength(8);
+      const title: PlaywrightRpcResponse = await plainBroker.dispatch(
+        request("title", [], capabilities.page),
+      );
+      expect(title.ok).toBe(true);
+      expect(descriptorIds(title.state?.pages)).toHaveLength(8);
+      expect(descriptorIds(title.state?.pages)[0]).toBe(capabilities.page.id);
+
+      // Those seven count toward the limit, so the tenant can open no more.
+      const excessPage: PlaywrightRpcResponse = await plainBroker.dispatch(
+        request("newPage", [], capabilities.browserContext),
+      );
+      expect(excessPage.ok).toBe(false);
+      expect(excessPage.error).toContain("page limit");
+    } finally {
+      await context.close();
+    }
   });
 });

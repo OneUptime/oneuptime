@@ -28,4 +28,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Probe && npm install
       - run: cd Probe && npx playwright install --with-deps chromium firefox
+      # SyntheticBrowserSlowStorage.test.ts runs Chromium under strace to make
+      # its storage slow; on CI it fails rather than skips without strace.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends strace
       - run: cd Probe && npm run test

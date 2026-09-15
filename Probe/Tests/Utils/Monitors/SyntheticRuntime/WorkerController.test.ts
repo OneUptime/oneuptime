@@ -22,6 +22,17 @@ interface RunOptions {
   timeoutInMs?: number | undefined;
 }
 
+interface AbandonedBindingCall {
+  bindingNames: string[];
+  outcome: "missing" | "resolved" | "rejected";
+  detail: string;
+}
+
+interface AbandonedPageInspection extends AbandonedBindingCall {
+  isClosed: boolean;
+  url: string;
+}
+
 const TARGET_URL: string = "https://synthetic-target.invalid/";
 
 describe("SyntheticRuntime WorkerController", () => {
@@ -1115,6 +1126,254 @@ describe("SyntheticRuntime WorkerController", () => {
       );
       expect(error.message).toContain("could not start on this probe");
     } finally {
+      await browserContext.close();
+    }
+  });
+
+  test("keeps an abandoned bootstrap page whose close never settles out of the tenant's reach", async () => {
+    /*
+     * A failed bootstrap attempt's page is closed, but only for as long as the
+     * teardown bound allows. When that close outlives the bound, the page is
+     * still alive in the context the tenant's script shares -- showing the
+     * sentinel document and carrying the controller's RPC binding. Before this
+     * was fixed the tenant saw that page in page.context().pages(), and a call
+     * to its binding reached the broker as though it came from the controller.
+     *
+     * Everything here is real Chromium except two faults injected on the first
+     * page: its navigation really commits the sentinel document and then
+     * fails, and its close never settles. The faults are patched onto the page
+     * object itself rather than wrapped in a Proxy, because the controller and
+     * the broker recognise their pages by identity.
+     */
+    const browserContext: BrowserContext = await browser.newContext({
+      viewport: { width: 800, height: 600 },
+    });
+    await browserContext.route(`${TARGET_URL}**`, async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: "<!doctype html><title>Synthetic target</title><main>ready</main>",
+      });
+    });
+    const page: Page = await browserContext.newPage();
+
+    const openedPages: Page[] = [];
+    const inspections: AbandonedPageInspection[] = [];
+    const timings: {
+      abandonedCloseCalledAtInMs?: number | undefined;
+      retryPageRequestedAtInMs?: number | undefined;
+    } = {};
+    let releaseAbandonedClose: () => void = (): void => {};
+    const abandonedClose: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        releaseAbandonedClose = resolve;
+      },
+    );
+    const realNewPage: () => Promise<Page> =
+      browserContext.newPage.bind(browserContext);
+
+    const contextWithOneAbandonedPage: BrowserContext = new Proxy(
+      browserContext,
+      {
+        get(
+          target: BrowserContext,
+          property: string | symbol,
+          receiver: unknown,
+        ) {
+          if (property !== "newPage") {
+            return Reflect.get(target, property, receiver);
+          }
+
+          return async (): Promise<Page> => {
+            if (openedPages.length === 1) {
+              timings.retryPageRequestedAtInMs = Date.now();
+            }
+            const created: Page = await realNewPage();
+            openedPages.push(created);
+
+            if (openedPages.length === 1) {
+              const realGoto: Page["goto"] = created.goto.bind(created);
+              created.goto = async (
+                url: string,
+                gotoOptions?: Parameters<Page["goto"]>[1],
+              ): Promise<never> => {
+                await realGoto(url, gotoOptions);
+                throw new Error(
+                  "page.goto: injected failure after the sentinel document committed.",
+                );
+              };
+              created.close = (): Promise<void> => {
+                timings.abandonedCloseCalledAtInMs ??= Date.now();
+                return abandonedClose;
+              };
+            }
+
+            return created;
+          };
+        },
+      },
+    ) as BrowserContext;
+
+    /*
+     * The abandoned page is inspected from the test, not from the tenant's
+     * script, and while the check is still running: once execute() returns,
+     * the run's abort signal rejects every binding call anyway, which would
+     * prove nothing. The tenant's script calls this server and waits for it.
+     */
+    const inspectAbandonedPage: () => Promise<AbandonedPageInspection> =
+      async (): Promise<AbandonedPageInspection> => {
+        const abandonedPage: Page | undefined = openedPages[0];
+        if (!abandonedPage) {
+          throw new Error("The first bootstrap attempt never opened a page.");
+        }
+        const isClosed: boolean = abandonedPage.isClosed();
+        const url: string = abandonedPage.url();
+        const binding: AbandonedBindingCall = await abandonedPage.evaluate(
+          async (): Promise<AbandonedBindingCall> => {
+            const bindingNames: string[] = Object.getOwnPropertyNames(
+              window,
+            ).filter((name: string): boolean => {
+              return name.startsWith("__oneuptimeRpc_");
+            });
+            const candidate: unknown = (
+              window as unknown as Record<string, unknown>
+            )[bindingNames[0] || ""];
+            if (typeof candidate !== "function") {
+              return { bindingNames, outcome: "missing", detail: "" };
+            }
+            try {
+              const value: unknown = await (
+                candidate as (request: unknown) => Promise<unknown>
+              )({});
+              return {
+                bindingNames,
+                outcome: "resolved",
+                detail: String(JSON.stringify(value)).slice(0, 300),
+              };
+            } catch (error: unknown) {
+              return {
+                bindingNames,
+                outcome: "rejected",
+                detail: error instanceof Error ? error.message : String(error),
+              };
+            }
+          },
+        );
+        return { isClosed, url, ...binding };
+      };
+
+    const inspectionServer: Server = http.createServer(
+      (_request: IncomingMessage, response: ServerResponse): void => {
+        void inspectAbandonedPage().then(
+          (inspection: AbandonedPageInspection): void => {
+            inspections.push(inspection);
+            response.writeHead(200, {
+              "Content-Type": "text/plain; charset=utf-8",
+              Connection: "close",
+            });
+            response.end("inspected");
+          },
+          (error: unknown): void => {
+            response.writeHead(500, {
+              "Content-Type": "text/plain; charset=utf-8",
+              Connection: "close",
+            });
+            response.end(
+              error instanceof Error ? error.message : String(error),
+            );
+          },
+        );
+      },
+    );
+    await listen(inspectionServer);
+    const address: ReturnType<Server["address"]> = inspectionServer.address();
+    if (!address || typeof address === "string") {
+      await closeServer(inspectionServer);
+      await browserContext.close();
+      throw new Error("Expected a TCP test server address.");
+    }
+    const inspectionUrl: string = `http://127.0.0.1:${address.port}/inspect`;
+
+    try {
+      const result: SandboxExecutionResult = await WorkerController.execute({
+        browserContext: contextWithOneAbandonedPage,
+        page,
+        code: `
+          await page.goto(${JSON.stringify(`${TARGET_URL}own`)});
+          const context = page.context();
+          const pagesBefore = context.pages();
+          const inspection = await axios.get(${JSON.stringify(inspectionUrl)});
+          await context.newPage();
+          const pagesAfter = context.pages();
+          return { data: {
+            inspectionStatus: inspection.status,
+            ownPageFirst: pagesBefore[0] === page,
+            urlsBefore: pagesBefore.map((candidate) => candidate.url()),
+            urlsAfterOpeningOne: pagesAfter.map((candidate) => candidate.url()),
+          } };
+        `,
+        browserType: "Chromium",
+        screenSizeType: "Desktop",
+        args: {},
+        timeoutInMs: 10_000,
+        bootstrapAttempts: 2,
+        bootstrapTimeoutInMs: 10_000,
+        teardownTimeoutInMs: 300,
+      });
+
+      /*
+       * One assertion over both views, so a regression reports what the tenant
+       * saw and what the leaked binding did together.
+       */
+      expect({
+        scriptError: result.scriptError,
+        tenantView: result.returnValue,
+        abandonedPage: inspections,
+      }).toEqual({
+        scriptError: undefined,
+        tenantView: {
+          data: {
+            inspectionStatus: 200,
+            ownPageFirst: true,
+            urlsBefore: [`${TARGET_URL}own`],
+            urlsAfterOpeningOne: [`${TARGET_URL}own`, "about:blank"],
+          },
+        },
+        abandonedPage: [
+          {
+            // The scenario really happened: the page outlived its close...
+            isClosed: false,
+            // ...showing the committed sentinel document...
+            url: expect.stringMatching(
+              /^https:\/\/synthetic-runtime\.oneuptime\.invalid\/./,
+            ),
+            // ...with the controller's binding still installed.
+            bindingNames: [expect.stringMatching(/^__oneuptimeRpc_./)],
+            outcome: "rejected",
+            detail: expect.stringContaining(
+              "Rejected synthetic runtime RPC source.",
+            ),
+          },
+        ],
+      });
+
+      // The abandoned attempt, the attempt that worked, the tenant's page.
+      expect(openedPages).toHaveLength(3);
+      expect(openedPages[0]!.isClosed()).toBe(false);
+      expect(openedPages[1]!.isClosed()).toBe(true);
+
+      /*
+       * The retry waited out the configured teardown bound (300 ms, plus the
+       * fixed retry delay), not the 5 s production default.
+       */
+      expect(timings.abandonedCloseCalledAtInMs).toBeDefined();
+      expect(timings.retryPageRequestedAtInMs).toBeDefined();
+      expect(
+        timings.retryPageRequestedAtInMs! - timings.abandonedCloseCalledAtInMs!,
+      ).toBeLessThan(2_500);
+    } finally {
+      releaseAbandonedClose();
+      await closeServer(inspectionServer);
       await browserContext.close();
     }
   });

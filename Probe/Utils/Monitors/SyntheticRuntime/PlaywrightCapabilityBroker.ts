@@ -59,6 +59,12 @@ interface BrokerOptions {
   page: Page;
   browserContext: BrowserContext;
   controllerPage: Page;
+  /*
+   * Other pages the runtime opened for itself -- bootstrap attempts it gave up
+   * on, whose bounded close may not have finished. Like the controller page,
+   * they are never shown to the tenant or counted against its page limit.
+   */
+  internalPages?: ReadonlySet<Page> | undefined;
   signal: AbortSignal;
   onRuntimeReady: () => void;
 }
@@ -383,6 +389,7 @@ export default class PlaywrightCapabilityBroker {
   private readonly executionId: string;
   private readonly browserContext: BrowserContext;
   private readonly controllerPage: Page;
+  private readonly internalPages: ReadonlySet<Page>;
   private readonly signal: AbortSignal;
   private readonly onRuntimeReady: () => void;
   private readonly capabilities: Map<string, CapabilityRecord> = new Map();
@@ -406,6 +413,7 @@ export default class PlaywrightCapabilityBroker {
     this.executionId = options.executionId;
     this.browserContext = options.browserContext;
     this.controllerPage = options.controllerPage;
+    this.internalPages = options.internalPages ?? new Set<Page>();
     this.signal = options.signal;
     this.onRuntimeReady = options.onRuntimeReady;
 
@@ -1757,7 +1765,7 @@ export default class PlaywrightCapabilityBroker {
 
   private monitoredPages(): Page[] {
     return this.browserContext.pages().filter((page: Page) => {
-      return page !== this.controllerPage;
+      return page !== this.controllerPage && !this.internalPages.has(page);
     });
   }
 

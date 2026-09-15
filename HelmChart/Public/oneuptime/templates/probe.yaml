@@ -106,12 +106,10 @@ spec:
           volumeMounts:
             - name: synthetic-runtime-tmp
               mountPath: /tmp
-            # Chromium keeps its shared-memory segments here, and a container
-            # gets 64Mi of /dev/shm by default. Several concurrent browsers at
-            # a desktop viewport exhaust that, and a browser that cannot
-            # allocate shared memory does not fail cleanly -- its renderer or
-            # network service wedges, and the synthetic runtime's first
-            # navigation simply never completes.
+            # Not used by the synthetic runtime's browsers: Playwright starts
+            # Chromium with --disable-dev-shm-usage, so Chromium keeps its
+            # shared memory in the per-execution run directory under /tmp
+            # (above), and Firefox uses memfd.
             - name: dshm
               mountPath: /dev/shm
             {{- with (default $.Values.extraVolumeMounts $val.extraVolumeMounts) }}

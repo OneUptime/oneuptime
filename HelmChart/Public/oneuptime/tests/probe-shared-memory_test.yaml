@@ -1,14 +1,13 @@
-# Chromium keeps its shared-memory segments in /dev/shm. A container gets 64Mi
-# of it by default, which is not enough for syntheticMonitorMaxConcurrency
-# browsers at a 1920x1080 viewport -- and running out of it does not surface as
-# a clean browser error. The browser process starts, launchPersistentContext
-# resolves, pages open, and then the synthetic runtime's first navigation
-# simply never completes, which reaches the customer as a 30-second page.goto
-# timeout on an internal URL.
+# The probe gets a memory-backed /dev/shm larger than the 64Mi container
+# default, with a configurable size. These assertions pin how that volume
+# renders.
 #
-# These render assertions exist because that failure is invisible in a
-# deployment that "works": the volume is either there or the probe is one busy
-# night away from the bug.
+# It was added on the theory that exhausting /dev/shm stalled the synthetic
+# runtime's first navigation. Measurement did not bear that out: Playwright
+# starts Chromium with --disable-dev-shm-usage, so Chromium keeps its shared
+# memory in the per-execution run directory under /tmp and never touches
+# /dev/shm, and Firefox uses memfd. The stall was a fresh on-disk browser
+# profile waiting on slow storage (see Probe's SyntheticBrowser).
 suite: probe shared memory
 templates:
   - templates/probe.yaml
