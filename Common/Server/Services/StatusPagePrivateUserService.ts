@@ -19,9 +19,11 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
 import BadDataException from "../../Types/Exception/BadDataException";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import { EncryptionSecret } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
