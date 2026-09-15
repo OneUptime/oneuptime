@@ -350,6 +350,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       monitorQueryField: "monitorId",
       // Monitor has its own dedicated facet above; keep it out of this one.
       excludeMonitor: true,
+      // Burn rate alerts are linked to the SLO that raised them.
+      includeServiceLevelObjective: true,
     }),
   ];
 
@@ -715,6 +717,16 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             projectId: true,
             serviceColor: true,
           },
+          /*
+           * Only columns ServiceLevelObjective flags canReadOnRelationQuery.
+           * Any other SLO column would fail the whole list for a role that
+           * can read alerts but not SLOs.
+           */
+          serviceLevelObjectives: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
         }}
         columns={[
           {
@@ -893,6 +905,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
                 serviceColor: true,
               },
+              serviceLevelObjectives: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
             title: "Affected Resources",
             type: FieldType.EntityArray,
@@ -910,6 +927,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   services={item.services || []}
+                  serviceLevelObjectives={item.serviceLevelObjectives || []}
                 />
               );
             },

@@ -19,6 +19,11 @@ export enum ComponentInputType {
   EntityDropdown = "EntityDropdown",
   EntityMultiSelectDropdown = "EntityMultiSelectDropdown",
   ProjectLabelVariable = "ProjectLabelVariable",
+  /*
+   * Picks one of the dashboard's Telemetry Attribute variables by id, for a
+   * widget that follows that variable's toolbar selection (the SLO widget).
+   */
+  TelemetryAttributeVariable = "TelemetryAttributeVariable",
   // Monaco code editors, one per language.
   Html = "Html",
   Css = "Css",

@@ -1,28 +1,13 @@
+import Label from "../../../../Models/DatabaseModels/Label";
 import MetricType from "../../../../Models/DatabaseModels/MetricType";
-import MutableMetric from "../../../../Models/AnalyticsModels/MutableMetric";
-import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
-import AlertState from "../../../../Models/DatabaseModels/AlertState";
-import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
-import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTeam";
-import IncidentOwnerUser from "../../../../Models/DatabaseModels/IncidentOwnerUser";
-import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
-import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import AlertService from "../../../../Server/Services/AlertService";
-import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
-import IncidentOwnerTeamService from "../../../../Server/Services/IncidentOwnerTeamService";
-import IncidentOwnerUserService from "../../../../Server/Services/IncidentOwnerUserService";
-import IncidentService from "../../../../Server/Services/IncidentService";
 import MetricService from "../../../../Server/Services/MetricService";
-import MutableMetricService from "../../../../Server/Services/MutableMetricService";
-import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
-import NetworkDeviceMetricUtil from "../../../../Server/Utils/Monitor/NetworkDeviceMetricUtil";
+import logger from "../../../../Server/Utils/Logger";
+import SloMetricUtil from "../../../../Server/Utils/Slo/SloMetricUtil";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import AlertMetricType from "../../../../Types/Alerts/AlertMetricType";
 import DashboardBaseComponent from "../../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardComponentType from "../../../../Types/Dashboard/DashboardComponentType";
 import {
   DashboardTemplateType,
   getTemplateConfig,
@@ -32,12 +17,16 @@ import DashboardVariable, {
 } from "../../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../../Types/Dashboard/DashboardViewConfig";
 import Dictionary from "../../../../Types/Dictionary";
+import IncidentMetricType from "../../../../Types/Incident/IncidentMetricType";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
-import PingMonitorResponse from "../../../../Types/Monitor/PingMonitor/PingMonitorResponse";
-import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
-import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import SloMetricType from "../../../../Types/ServiceLevelObjective/SloMetricType";
+import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { SLO_LIST_ATTRIBUTE_TO_COLUMN } from "../../../../Utils/Slo/SloListWidgetFormat";
+import SloMetricTypeUtil, {
+  SLO_METRIC_SLO_NAME_ATTRIBUTE,
+} from "../../../../Utils/Slo/SloMetricType";
 import {
   afterEach,
   beforeEach,
@@ -48,60 +37,39 @@ import {
 } from "@jest/globals";
 
 /*
- * The SLO dashboard template queries metric series by NAME and scopes them
- * with a variable bound to one attribute KEY. Neither the name nor the key
- * is declared anywhere shared: the template names them, and four unrelated
- * emitters decide what actually lands in the metric store. Rename either
- * side and nothing fails to compile — the dashboard just renders empty
- * widgets in every project.
+ * The SLO dashboard template queries metric series by NAME, fans them out and
+ * scopes them by one attribute KEY, and labels them with a UNIT. None of the
+ * three is checked by the compiler across the two sides: the template spells
+ * them, and SloMetricUtil — called by the evaluation worker — decides what
+ * actually lands in the metric store. Rename either side and nothing fails to
+ * compile; the dashboard just renders empty charts, an empty toolbar picker,
+ * or numbers under the wrong unit, in every project.
  *
  * So this suite drives the template side from getTemplateConfig and the
- * emitter side from the real emitters (never from source text), and
- * asserts they still meet. Everything it pins is a claim the template's
- * own comments make about code in other files:
+ * emitter side from the REAL SloMetricUtil.saveSloMetrics (never from source
+ * text), and asserts they still meet:
  *
- *   - MonitorMetricUtil stamps the BARE `monitorName` (no `resource.`
- *     prefix) on both series the template queries.
- *   - NetworkDeviceMetricUtil writes those SAME two names off a device
- *     poll with `deviceName` / `networkDeviceId` and NO `monitorName` —
- *     the contamination that makes the unscoped view "every monitor PLUS
- *     every network device".
- *   - IncidentService stamps `monitorNames` (plural, comma-joined), which
- *     the Monitor variable can never match — the reason incident METRICS
- *     are off this dashboard.
- *   - AlertService stamps the singular `monitorName`, which it can match —
- *     so alert metrics are off the dashboard for a different reason
- *     (a burn-rate alert carries no monitor at all), not this one.
+ *   - every `oneuptime.slo.*` series the template queries is written,
+ *   - with the BARE `sloName` attribute the toolbar variable binds to, the
+ *     charts group by, and the SLO List maps to its name column,
+ *   - published in `attributeKeys`, which is what the variable picker reads,
+ *   - under the unit the template prints and the aggregation it charts with.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
-const MONITOR_ID: ObjectID = new ObjectID(
-  "22222222-2222-4222-8222-222222222222",
-);
-const PROBE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-const DEVICE_ID: ObjectID = new ObjectID(
-  "44444444-4444-4444-8444-444444444444",
-);
-const INCIDENT_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
-);
-const ALERT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
-const SEVERITY_ID: ObjectID = new ObjectID(
-  "77777777-7777-4777-8777-777777777777",
-);
+const SLO_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+const LABEL_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
-const MONITOR_NAME: string = "Checkout API";
-const DEVICE_NAME: string = "core-sw-01";
+const SLO_NAME: string = "Checkout API";
 
 /*
- * The singular key the template's Monitor variable binds to, and the
- * plural key IncidentService writes instead. Spelled out here because the
- * whole point is that the two are one character apart.
+ * The spellings that fail SILENTLY: a `resource.`-prefixed key (what collector
+ * resource attributes carry) offers an empty picker, and `sloId` would offer
+ * UUIDs and match no SLO name.
  */
-const SINGULAR_MONITOR_KEY: string = "monitorName";
-const PLURAL_MONITOR_KEY: string = "monitorNames";
+const PREFIXED_SLO_NAME_KEY: string = "resource.sloName";
 
 // -- Template-side helpers (read from getTemplateConfig, never literals) ----
 
@@ -129,23 +97,27 @@ function metricQueryConfigOf(
   );
 }
 
-function metricNameOf(component: DashboardBaseComponent): string | undefined {
-  const queryData: WidgetArguments =
+function queryDataOf(component: DashboardBaseComponent): WidgetArguments {
+  return (
     (metricQueryConfigOf(component)["metricQueryData"] as
       | WidgetArguments
-      | undefined) || {};
-  const filterData: WidgetArguments =
-    (queryData["filterData"] as WidgetArguments | undefined) || {};
-  const value: unknown = filterData["metricName"];
+      | undefined) || {}
+  );
+}
+
+function filterDataOf(component: DashboardBaseComponent): WidgetArguments {
+  return (
+    (queryDataOf(component)["filterData"] as WidgetArguments | undefined) || {}
+  );
+}
+
+function metricNameOf(component: DashboardBaseComponent): string | undefined {
+  const value: unknown = filterDataOf(component)["metricName"];
 
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-/*
- * Only Chart widgets keep metricAliasData — the Value factory routes
- * through buildMetricQueryData, which drops it — so this returns undefined
- * for tiles by construction, not by accident.
- */
+// Only Chart widgets keep metricAliasData; tiles take their unit from the catalog.
 function legendUnitOf(component: DashboardBaseComponent): string | undefined {
   const aliasData: WidgetArguments =
     (metricQueryConfigOf(component)["metricAliasData"] as
@@ -156,23 +128,27 @@ function legendUnitOf(component: DashboardBaseComponent): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-/** Every distinct metric series the shipped SLO template asks for. */
-function metricNamesQueriedBySloTemplate(): Array<string> {
-  const names: Set<string> = new Set<string>();
-
-  for (const component of sloTemplateConfig().components) {
-    const name: string | undefined = metricNameOf(component);
-
-    if (name) {
-      names.add(name);
-    }
-  }
-
-  return Array.from(names).sort();
+function metricWidgets(): Array<DashboardBaseComponent> {
+  return sloTemplateConfig().components.filter(
+    (component: DashboardBaseComponent): boolean => {
+      return metricNameOf(component) !== undefined;
+    },
+  );
 }
 
-/** The attribute key the template's Monitor variable scopes those series by. */
-function monitorVariableAttributeKey(): string {
+// Every distinct metric series the shipped SLO template asks for.
+function metricNamesQueriedBySloTemplate(): Array<string> {
+  return Array.from(
+    new Set(
+      metricWidgets().map((component: DashboardBaseComponent): string => {
+        return metricNameOf(component) as string;
+      }),
+    ),
+  ).sort();
+}
+
+// The attribute key the template's one toolbar variable scopes by.
+function sloVariableAttributeKey(): string {
   const telemetryVariables: Array<DashboardVariable> = (
     sloTemplateConfig().variables || []
   ).filter((variable: DashboardVariable): boolean => {
@@ -194,6 +170,10 @@ function attributesOfRow(row: JSONObject): JSONObject {
   return (row["attributes"] as JSONObject | undefined) || {};
 }
 
+function attributeKeysOfRow(row: JSONObject): Array<string> {
+  return (row["attributeKeys"] as Array<string> | undefined) || [];
+}
+
 function rowsNamed(
   rows: Array<JSONObject>,
   metricName: string,
@@ -206,12 +186,10 @@ function rowsNamed(
 describe("SLO template metric emitter contract", () => {
   let insertedRows: Array<JSONObject>;
   let indexedMetricTypes: Dictionary<MetricType>;
-  let savedMutableMetrics: Array<MutableMetric>;
 
   beforeEach(() => {
     insertedRows = [];
     indexedMetricTypes = {};
-    savedMutableMetrics = [];
 
     jest
       .spyOn(GlobalConfigService, "findOneBy")
@@ -231,15 +209,6 @@ describe("SLO template metric emitter contract", () => {
           Object.assign(indexedMetricTypes, data.metricNameServiceNameMap);
         },
       );
-    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
-    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
-    jest
-      .spyOn(MutableMetricService, "replaceEntityMetrics")
-      .mockImplementation(
-        async (data: { metrics: Array<MutableMetric> }): Promise<void> => {
-          savedMutableMetrics.push(...data.metrics);
-        },
-      );
   });
 
   afterEach(() => {
@@ -247,181 +216,98 @@ describe("SLO template metric emitter contract", () => {
   });
 
   /*
-   * One probe check, exactly as the probe pipeline hands it over. isOnline
-   * and responseTimeInMs together produce the only two series this
-   * dashboard charts.
+   * One evaluation, exactly as the worker hands it over: a named, labelled SLO
+   * with a finite value for every series.
    */
-  async function saveProbeMetrics(input: { isOnline: boolean }): Promise<void> {
-    await MonitorMetricUtil.saveMonitorMetrics({
-      monitorId: MONITOR_ID,
+  async function saveEvaluation(
+    overrides: { sloName?: string | undefined } = {},
+  ): Promise<void> {
+    const label: Label = new Label();
+    label._id = LABEL_ID.toString();
+    label.id = LABEL_ID;
+    label.name = "team";
+
+    await SloMetricUtil.saveSloMetrics({
       projectId: PROJECT_ID,
-      dataToProcess: {
-        projectId: PROJECT_ID,
-        monitorId: MONITOR_ID,
-        monitorStepId: ObjectID.generate(),
-        probeId: PROBE_ID,
-        failureCause: "",
-        isOnline: input.isOnline,
-        responseTimeInMs: 250,
-        responseCode: 200,
-      } as ProbeMonitorResponse,
-      monitorName: MONITOR_NAME,
-      probeName: "London Probe",
+      sloId: SLO_ID,
+      sloName: "sloName" in overrides ? overrides.sloName : SLO_NAME,
+      labels: [label],
+      values: {
+        [SloMetricType.SliPercent]: 99.95,
+        [SloMetricType.TargetPercent]: 99.9,
+        [SloMetricType.ErrorBudgetRemainingPercent]: 42.5,
+        [SloMetricType.ErrorBudgetRemainingSeconds]: 3600,
+        [SloMetricType.BurnRate]: 1.25,
+        [SloMetricType.Status]: 0,
+      },
     });
-  }
-
-  /** One network-device poll that both pinged and walked the device. */
-  async function saveDeviceMetrics(): Promise<void> {
-    const walk: SnmpMonitorResponse = {
-      isOnline: true,
-      responseTimeInMs: 42,
-      failureCause: "",
-      oidResponses: [],
-    };
-
-    const ping: PingMonitorResponse = {
-      packetsSent: 2,
-      packetsReceived: 2,
-      packetLossPercent: 0,
-      avgRoundTripTimeInMs: 1.5,
-    };
-
-    await NetworkDeviceMetricUtil.saveWalkMetrics({
-      projectId: PROJECT_ID,
-      networkDeviceId: DEVICE_ID,
-      deviceName: DEVICE_NAME,
-      probeId: PROBE_ID,
-      snmpResponse: walk,
-      responseTimeInMs: walk.responseTimeInMs,
-      isOnline: true,
-      pingResponse: ping,
-    });
-  }
-
-  function mockIncident(): void {
-    const incident: Incident = new Incident();
-
-    incident._id = INCIDENT_ID.toString();
-    incident.id = INCIDENT_ID;
-    incident.projectId = PROJECT_ID;
-    incident.createdAt = new Date("2026-08-10T10:00:00.000Z");
-    incident.declaredAt = new Date("2026-08-10T10:00:00.000Z");
-
-    const monitor: Monitor = new Monitor();
-    monitor._id = MONITOR_ID.toString();
-    monitor.id = MONITOR_ID;
-    monitor.name = MONITOR_NAME;
-    incident.monitors = [monitor];
-
-    const severity: IncidentSeverity = new IncidentSeverity();
-    severity._id = SEVERITY_ID.toString();
-    severity.id = SEVERITY_ID;
-    severity.name = "Critical";
-    incident.incidentSeverity = severity;
-
-    jest
-      .spyOn(IncidentService, "findOneById")
-      .mockResolvedValue(incident as never);
-    jest
-      .spyOn(IncidentOwnerUserService, "findBy")
-      .mockResolvedValue([] as Array<IncidentOwnerUser> as never);
-    jest
-      .spyOn(IncidentOwnerTeamService, "findBy")
-      .mockResolvedValue([] as Array<IncidentOwnerTeam> as never);
-  }
-
-  function mockAlert(): void {
-    const alert: Alert = new Alert();
-
-    alert._id = ALERT_ID.toString();
-    alert.id = ALERT_ID;
-    alert.projectId = PROJECT_ID;
-    alert.createdAt = new Date("2026-08-10T10:00:00.000Z");
-
-    const monitor: Monitor = new Monitor();
-    monitor._id = MONITOR_ID.toString();
-    monitor.id = MONITOR_ID;
-    monitor.name = MONITOR_NAME;
-    alert.monitor = monitor;
-
-    const severity: AlertSeverity = new AlertSeverity();
-    severity._id = SEVERITY_ID.toString();
-    severity.id = SEVERITY_ID;
-    severity.name = "Critical";
-    alert.alertSeverity = severity;
-
-    const createdState: AlertStateTimeline = new AlertStateTimeline();
-    createdState._id = ObjectID.generate().toString();
-    createdState.projectId = PROJECT_ID;
-    createdState.startsAt = new Date("2026-08-10T10:00:00.000Z");
-    createdState.alertState = new AlertState();
-
-    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert as never);
-    jest
-      .spyOn(AlertStateTimelineService, "findBy")
-      .mockResolvedValue([createdState] as never);
   }
 
   describe("the series the template asks for", () => {
-    test("queries exactly IsOnline and ResponseTime, and nothing else", () => {
-      /*
-       * A third series added to the template is a decision, not a typo:
-       * whoever adds it has to come here and satisfy themselves that the
-       * new emitter also stamps the bare monitorName, or the Monitor
-       * variable will empty that widget alone.
-       */
-      const queried: Array<string> = metricNamesQueriedBySloTemplate();
-
-      expect(queried).toEqual(
-        [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime].sort(),
+    /*
+     * A series added to or removed from the template is a decision: whoever
+     * makes it comes here and proves the emitter writes it, with the key the
+     * toolbar variable binds to.
+     */
+    test("queries exactly the budget and burn series, and nothing else", () => {
+      expect(metricNamesQueriedBySloTemplate()).toEqual(
+        [
+          SloMetricType.BurnRate,
+          SloMetricType.ErrorBudgetRemainingPercent,
+          SloMetricType.ErrorBudgetRemainingSeconds,
+        ].sort(),
       );
     });
 
-    test("names every series through MonitorMetricType, never as a loose string", () => {
-      const known: Array<string> = Object.values(MonitorMetricType);
+    /*
+     * Monitor, incident and alert series carry monitor keys and never
+     * `sloName`, so the SLO variable would leave them showing the whole
+     * project under a toolbar naming one SLO.
+     */
+    test("names every series through SloMetricType, and none through another catalog", () => {
       const queried: Array<string> = metricNamesQueriedBySloTemplate();
+      const foreign: Array<string> = [
+        ...Object.values(MonitorMetricType),
+        ...Object.values(IncidentMetricType),
+        ...Object.values(AlertMetricType),
+      ];
 
-      // The template really does query something, so the loop below bites.
       expect(queried.length).toBeGreaterThan(0);
 
       for (const metricName of queried) {
         expect(
-          `${metricName}: is a MonitorMetricType=${known.includes(metricName)}`,
-        ).toBe(`${metricName}: is a MonitorMetricType=true`);
+          `${metricName}: SloMetricType=${(Object.values(SloMetricType) as Array<string>).includes(metricName)} foreign=${foreign.includes(metricName)}`,
+        ).toBe(`${metricName}: SloMetricType=true foreign=false`);
       }
     });
   });
 
-  describe("MonitorMetricUtil, the emitter the template queries", () => {
-    test("stamps the BARE monitorName on every series the template queries", async () => {
-      await saveProbeMetrics({ isOnline: true });
+  describe("SloMetricUtil, the emitter the template queries", () => {
+    test("writes every series the template queries", async () => {
+      await saveEvaluation();
 
-      const queried: Array<string> = metricNamesQueriedBySloTemplate();
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        expect(
+          `${metricName}: rows emitted=${rowsNamed(insertedRows, metricName).length}`,
+        ).toBe(`${metricName}: rows emitted=1`);
+      }
+    });
 
-      expect(queried.length).toBeGreaterThan(0);
+    test("stamps the BARE sloName the toolbar variable binds to, with the SLO's exact name", async () => {
+      await saveEvaluation();
 
-      for (const metricName of queried) {
-        const rows: Array<JSONObject> = rowsNamed(insertedRows, metricName);
+      const attributeKey: string = sloVariableAttributeKey();
 
-        // An empty series here means the template charts a name nobody emits.
-        expect(`${metricName}: rows emitted=${rows.length > 0}`).toBe(
-          `${metricName}: rows emitted=true`,
-        );
+      expect(attributeKey).toBe(SLO_METRIC_SLO_NAME_ATTRIBUTE);
 
-        for (const row of rows) {
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        for (const row of rowsNamed(insertedRows, metricName)) {
           const attributes: JSONObject = attributesOfRow(row);
 
           expect(
-            `${metricName}: ${SINGULAR_MONITOR_KEY}=${String(
-              attributes[SINGULAR_MONITOR_KEY],
-            )}`,
-          ).toBe(`${metricName}: ${SINGULAR_MONITOR_KEY}=${MONITOR_NAME}`);
+            `${metricName}: ${attributeKey}=${String(attributes[attributeKey])}`,
+          ).toBe(`${metricName}: ${attributeKey}=${SLO_NAME}`);
 
-          /*
-           * A `resource.`-prefixed key would compile on both sides and
-           * hand the reader an empty variable picker, so pin its absence
-           * rather than only the presence of the bare key.
-           */
           const prefixedKeys: Array<string> = Object.keys(attributes).filter(
             (key: string): boolean => {
               return key.startsWith("resource.");
@@ -431,320 +317,394 @@ describe("SLO template metric emitter contract", () => {
           expect(
             `${metricName}: resource-prefixed keys=${prefixedKeys.join(", ")}`,
           ).toBe(`${metricName}: resource-prefixed keys=`);
+          expect(attributes[PREFIXED_SLO_NAME_KEY]).toBeUndefined();
         }
       }
     });
 
-    test("stamps the exact attribute key the template's Monitor variable binds to", async () => {
-      /*
-       * Both sides read from code: the key comes out of the template, the
-       * attributes out of the emitter. A rename on either side lands here.
-       */
-      await saveProbeMetrics({ isOnline: true });
-
-      const attributeKey: string = monitorVariableAttributeKey();
-      const queried: Array<string> = metricNamesQueriedBySloTemplate();
-
-      expect(queried.length).toBeGreaterThan(0);
-
-      for (const metricName of queried) {
-        const rows: Array<JSONObject> = rowsNamed(insertedRows, metricName);
-
-        expect(`${metricName}: rows emitted=${rows.length > 0}`).toBe(
-          `${metricName}: rows emitted=true`,
-        );
-
-        for (const row of rows) {
-          const attributes: JSONObject = attributesOfRow(row);
-
-          expect(
-            `${metricName}: variable key ${attributeKey} stamped=${Object.prototype.hasOwnProperty.call(
-              attributes,
-              attributeKey,
-            )}`,
-          ).toBe(`${metricName}: variable key ${attributeKey} stamped=true`);
-        }
-      }
-    });
-
+    /*
+     * attributeKeys, not attributes, is what the variable's option list is
+     * built from — a stamped-but-unpublished key offers an empty dropdown.
+     */
     test("publishes the variable's key in attributeKeys, which the picker reads", async () => {
-      await saveProbeMetrics({ isOnline: true });
+      await saveEvaluation();
 
-      const attributeKey: string = monitorVariableAttributeKey();
-      const rows: Array<JSONObject> = rowsNamed(
-        insertedRows,
-        MonitorMetricType.IsOnline,
-      );
+      const attributeKey: string = sloVariableAttributeKey();
 
-      expect(rows.length).toBeGreaterThan(0);
-
-      for (const row of rows) {
-        const attributeKeys: Array<string> =
-          (row["attributeKeys"] as Array<string> | undefined) || [];
-
-        /*
-         * attributeKeys, not attributes, is what the variable's option
-         * list is built from — a stamped-but-unpublished key offers an
-         * empty dropdown.
-         */
-        expect(
-          `IsOnline: ${attributeKey} in attributeKeys=${attributeKeys.includes(
-            attributeKey,
-          )}`,
-        ).toBe(`IsOnline: ${attributeKey} in attributeKeys=true`);
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        for (const row of rowsNamed(insertedRows, metricName)) {
+          expect(
+            `${metricName}: ${attributeKey} in attributeKeys=${attributeKeysOfRow(row).includes(attributeKey)}`,
+          ).toBe(`${metricName}: ${attributeKey} in attributeKeys=true`);
+        }
       }
     });
 
-    test('emits IsOnline as 1 when up, 0 when down, with unit ""', async () => {
-      await saveProbeMetrics({ isOnline: true });
+    /*
+     * Labels are merged onto the same attribute map. They must never clobber
+     * the key the whole dashboard is scoped by.
+     */
+    test("keeps sloName intact when the SLO's labels are merged in", async () => {
+      await saveEvaluation();
 
-      const upValues: Array<unknown> = rowsNamed(
-        insertedRows,
-        MonitorMetricType.IsOnline,
-      ).map((row: JSONObject): unknown => {
-        return row["value"];
-      });
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        const row: JSONObject = rowsNamed(
+          insertedRows,
+          metricName,
+        )[0] as JSONObject;
+        const attributes: JSONObject = attributesOfRow(row);
 
-      expect(upValues).toEqual([1]);
-
-      insertedRows = [];
-      await saveProbeMetrics({ isOnline: false });
-
-      const downValues: Array<unknown> = rowsNamed(
-        insertedRows,
-        MonitorMetricType.IsOnline,
-      ).map((row: JSONObject): unknown => {
-        return row["value"];
-      });
-
-      expect(downValues).toEqual([0]);
-
-      /*
-       * Unit "" is why the template's tile is "Monitor Uptime (avg)": an
-       * Avg over a 0/1 series is a ratio in [0, 1]. If this ever became
-       * "%" the emitter would be writing 1 for 100% and every "%"-labelled
-       * widget in the product would be off by two orders of magnitude.
-       */
-      expect(
-        `IsOnline: unit=${String(
-          indexedMetricTypes[MonitorMetricType.IsOnline]?.unit,
-        )}`,
-      ).toBe("IsOnline: unit=");
+        expect(attributes[SLO_METRIC_SLO_NAME_ATTRIBUTE]).toBe(SLO_NAME);
+        expect(
+          Object.keys(attributes).some((key: string): boolean => {
+            return key.startsWith("oneuptime.label.");
+          }),
+        ).toBe(true);
+      }
     });
 
-    test("declares the same unit the template prints beside the series", async () => {
-      await saveProbeMetrics({ isOnline: true });
+    test("groups each chart by keys every row of its series actually carries", async () => {
+      await saveEvaluation();
+
+      let checked: number = 0;
+
+      for (const component of metricWidgets()) {
+        const groupByKeys: Array<string> =
+          (queryDataOf(component)["groupByAttributeKeys"] as
+            | Array<string>
+            | undefined) || [];
+
+        if (groupByKeys.length === 0) {
+          continue;
+        }
+
+        const metricName: string = metricNameOf(component) as string;
+
+        for (const row of rowsNamed(insertedRows, metricName)) {
+          for (const key of groupByKeys) {
+            checked++;
+            expect(
+              `${metricName}: groups by ${key}, carried=${attributeKeysOfRow(row).includes(key)}`,
+            ).toBe(`${metricName}: groups by ${key}, carried=true`);
+          }
+        }
+      }
+
+      expect(checked).toBeGreaterThan(0);
+    });
+
+    /*
+     * The SLO List reads Postgres, not the metric store — the toolbar reaches
+     * it only because its column map claims the SAME key the emitter writes.
+     */
+    test("writes the key the SLO List maps to its name column", async () => {
+      await saveEvaluation();
+
+      const attributeKey: string = sloVariableAttributeKey();
+
+      expect(SLO_LIST_ATTRIBUTE_TO_COLUMN[attributeKey]).toBe("name");
+      expect(attributesOfRow(insertedRows[0] as JSONObject)[attributeKey]).toBe(
+        SLO_NAME,
+      );
+    });
+
+    test("declares the same unit the template prints beside each chart", async () => {
+      await saveEvaluation();
 
       let compared: number = 0;
 
-      for (const component of sloTemplateConfig().components) {
-        const metricName: string | undefined = metricNameOf(component);
+      for (const component of metricWidgets()) {
+        const metricName: string = metricNameOf(component) as string;
         const legendUnit: string | undefined = legendUnitOf(component);
 
-        if (!metricName || !legendUnit) {
+        if (!legendUnit) {
           continue;
         }
 
         compared++;
 
-        /*
-         * The chart prints this string under the values it plots. The
-         * emitter decides what those values actually are, so a unit change
-         * on one side without the other mislabels real numbers.
-         */
         expect(
           `${metricName}: template legendUnit=${legendUnit}, emitted unit=${String(
             indexedMetricTypes[metricName]?.unit,
-          )}`,
+          )}, catalog unit=${SloMetricTypeUtil.getUnit(metricName as SloMetricType)}`,
         ).toBe(
-          `${metricName}: template legendUnit=${legendUnit}, emitted unit=${legendUnit}`,
+          `${metricName}: template legendUnit=${legendUnit}, emitted unit=${legendUnit}, catalog unit=${legendUnit}`,
         );
       }
 
       // Without this the loop would pass by never running.
       expect(compared).toBeGreaterThan(0);
     });
-  });
 
-  describe("NetworkDeviceMetricUtil, the other writer of the same names", () => {
-    test("writes the very same metric names off a device poll", async () => {
-      await saveDeviceMetrics();
+    /*
+     * The Value tiles carry no legendUnit: they print whatever unit the
+     * MetricType row registers. So every series a tile reads must register a
+     * real one — "%", "seconds" (scaled into minutes and hours), "x" — or the
+     * tile prints a bare number that could be anything.
+     */
+    test("registers a unit for every series a tile totals", async () => {
+      await saveEvaluation();
 
-      const queried: Array<string> = metricNamesQueriedBySloTemplate();
+      const tileSeries: Array<string> = metricWidgets()
+        .filter((component: DashboardBaseComponent): boolean => {
+          return component.componentType === DashboardComponentType.Value;
+        })
+        .map((component: DashboardBaseComponent): string => {
+          return metricNameOf(component) as string;
+        });
 
-      expect(queried.length).toBeGreaterThan(0);
+      expect(tileSeries.length).toBeGreaterThan(0);
 
-      for (const metricName of queried) {
-        /*
-         * This is the contamination the template's comment documents: an
-         * unscoped uptime/response-time widget is "every probeable monitor
-         * PLUS every network device". The day this stops being true the
-         * comment is wrong and should be deleted, so fail here rather than
-         * let it rot.
-         */
+      for (const metricName of tileSeries) {
         expect(
-          `${metricName}: also written by device polls=${
-            rowsNamed(insertedRows, metricName).length > 0
-          }`,
-        ).toBe(`${metricName}: also written by device polls=true`);
+          `${metricName}: unit=${String(indexedMetricTypes[metricName]?.unit)}`,
+        ).toBe(
+          `${metricName}: unit=${SloMetricTypeUtil.getUnit(metricName as SloMetricType)}`,
+        );
+        expect(
+          String(indexedMetricTypes[metricName]?.unit).length,
+        ).toBeGreaterThan(0);
       }
     });
 
-    test("stamps deviceName and networkDeviceId, never monitorName", async () => {
-      await saveDeviceMetrics();
+    test("charts each series with the aggregation the catalog registers it under", () => {
+      let compared: number = 0;
 
-      const attributeKey: string = monitorVariableAttributeKey();
-      const queried: Array<string> = metricNamesQueriedBySloTemplate();
+      for (const component of metricWidgets()) {
+        if (component.componentType !== DashboardComponentType.Chart) {
+          continue;
+        }
 
-      expect(queried.length).toBeGreaterThan(0);
+        compared++;
 
-      for (const metricName of queried) {
-        const rows: Array<JSONObject> = rowsNamed(insertedRows, metricName);
+        const metricName: SloMetricType = metricNameOf(
+          component,
+        ) as SloMetricType;
 
-        expect(`${metricName}: device rows=${rows.length > 0}`).toBe(
-          `${metricName}: device rows=true`,
+        expect(
+          `${metricName}: ${String(filterDataOf(component)["aggegationType"])}`,
+        ).toBe(
+          `${metricName}: ${SloMetricTypeUtil.getAggregationType(metricName)}`,
         );
+      }
 
-        for (const row of rows) {
-          const attributes: JSONObject = attributesOfRow(row);
+      expect(compared).toBeGreaterThan(0);
+    });
 
+    /*
+     * The rows are keyed to the SLO itself, not to one of its monitors — so the
+     * series survive a monitor being swapped out of the objective, and telemetry
+     * billing can tell them from customer telemetry.
+     */
+    test("keys every queried row to the SLO", async () => {
+      await saveEvaluation();
+
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        for (const row of rowsNamed(insertedRows, metricName)) {
+          expect(row["primaryEntityId"]).toBe(SLO_ID.toString());
+          expect(row["primaryEntityType"]).toBe(
+            ServiceType.ServiceLevelObjective,
+          );
+          expect(attributesOfRow(row)["sloId"]).toBe(SLO_ID.toString());
+          expect(attributesOfRow(row)["projectId"]).toBe(PROJECT_ID.toString());
+        }
+      }
+    });
+
+    /*
+     * An evaluation that somehow carries no name posts no `sloName`, rather
+     * than an empty-string value the picker would offer as a blank option.
+     */
+    test("stamps no sloName at all for a nameless evaluation", async () => {
+      await saveEvaluation({ sloName: "   " });
+
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        for (const row of rowsNamed(insertedRows, metricName)) {
           expect(
-            `${metricName}: deviceName=${String(attributes["deviceName"])}`,
-          ).toBe(`${metricName}: deviceName=${DEVICE_NAME}`);
-
-          expect(
-            `${metricName}: networkDeviceId=${String(
-              attributes["networkDeviceId"],
-            )}`,
-          ).toBe(`${metricName}: networkDeviceId=${DEVICE_ID.toString()}`);
-
-          /*
-           * Because the device rows carry no monitorName, picking a
-           * monitor in the toolbar DROPS them rather than making them
-           * selectable — they are never an option in the picker either.
-           * If a device row ever gained this key the template's Monitor
-           * variable would start offering device names as "monitors".
-           */
-          expect(
-            `${metricName}: ${attributeKey} stamped=${Object.prototype.hasOwnProperty.call(
-              attributes,
-              attributeKey,
-            )}`,
-          ).toBe(`${metricName}: ${attributeKey} stamped=false`);
+            Object.prototype.hasOwnProperty.call(
+              attributesOfRow(row),
+              SLO_METRIC_SLO_NAME_ATTRIBUTE,
+            ),
+          ).toBe(false);
         }
       }
     });
   });
 
-  describe("IncidentService, which the template deliberately cannot scope", () => {
-    test("stamps monitorNames (plural) and not the singular key", async () => {
-      mockIncident();
+  /*
+   * Regression: SLO names are not unique within a project, and the fleet
+   * charts grouped by `sloName` alone — so two objectives sharing a name, one
+   * healthy and one overspent, were ONE line (the average of their budgets)
+   * under one legend entry. The series name is built here exactly as
+   * MetricCharts' buildQuerySeries builds it from the grouped attributes:
+   * "key=value" segments joined by ", ".
+   */
+  describe("two SLOs that share a name", () => {
+    const OTHER_SLO_ID: ObjectID = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    );
 
-      const { baseMetricAttributes }: { baseMetricAttributes: JSONObject } =
-        await IncidentService.getIncidentMetricContext({
-          incidentId: INCIDENT_ID,
+    type SeriesNameOfFunction = (
+      row: JSONObject,
+      groupByKeys: Array<string>,
+    ) => string;
+
+    const seriesNameOf: SeriesNameOfFunction = (
+      row: JSONObject,
+      groupByKeys: Array<string>,
+    ): string => {
+      return groupByKeys
+        .map((key: string): string => {
+          const value: unknown = attributesOfRow(row)[key];
+          const displayValue: string =
+            value === undefined || value === null || value === ""
+              ? "(unset)"
+              : String(value);
+
+          return `${key}=${displayValue}`;
+        })
+        .join(", ");
+    };
+
+    test("stay two lines on every fleet chart, each still led by the name", async () => {
+      for (const [sloId, budget] of [
+        [SLO_ID, 90],
+        [OTHER_SLO_ID, -20],
+      ] as Array<[ObjectID, number]>) {
+        await SloMetricUtil.saveSloMetrics({
+          projectId: PROJECT_ID,
+          sloId: sloId,
+          sloName: SLO_NAME,
+          values: {
+            [SloMetricType.ErrorBudgetRemainingPercent]: budget,
+            [SloMetricType.ErrorBudgetRemainingSeconds]: budget * 60,
+            [SloMetricType.BurnRate]: budget > 0 ? 0.5 : 8,
+          },
         });
+      }
 
-      expect(
-        `incident: ${PLURAL_MONITOR_KEY}=${String(
-          baseMetricAttributes[PLURAL_MONITOR_KEY],
-        )}`,
-      ).toBe(`incident: ${PLURAL_MONITOR_KEY}=${MONITOR_NAME}`);
+      let charts: number = 0;
 
-      /*
-       * The singular key is what the Monitor variable filters on. Its
-       * absence is why no incident METRIC widget is on this dashboard:
-       * one pick would empty it while the uptime tiles beside it stayed
-       * populated. If IncidentService ever adds the singular key, incident
-       * metrics become scopeable and that decision can be revisited.
-       */
-      expect(
-        `incident: ${SINGULAR_MONITOR_KEY} stamped=${Object.prototype.hasOwnProperty.call(
-          baseMetricAttributes,
-          SINGULAR_MONITOR_KEY,
-        )}`,
-      ).toBe(`incident: ${SINGULAR_MONITOR_KEY} stamped=false`);
-    });
+      for (const component of metricWidgets()) {
+        if (component.componentType !== DashboardComponentType.Chart) {
+          continue;
+        }
 
-    test("carries no key the template's Monitor variable could match", async () => {
-      mockIncident();
+        charts++;
 
-      const attributeKey: string = monitorVariableAttributeKey();
+        const metricName: string = metricNameOf(component) as string;
+        const groupByKeys: Array<string> =
+          (queryDataOf(component)["groupByAttributeKeys"] as
+            | Array<string>
+            | undefined) || [];
+        const seriesNames: Array<string> = Array.from(
+          new Set(
+            rowsNamed(insertedRows, metricName).map(
+              (row: JSONObject): string => {
+                return seriesNameOf(row, groupByKeys);
+              },
+            ),
+          ),
+        );
 
-      const { baseMetricAttributes }: { baseMetricAttributes: JSONObject } =
-        await IncidentService.getIncidentMetricContext({
-          incidentId: INCIDENT_ID,
-        });
+        expect(`${metricName}: ${seriesNames.length} series`).toBe(
+          `${metricName}: 2 series`,
+        );
 
-      // The context really was built, so the check below is about content.
-      expect(Object.keys(baseMetricAttributes).length).toBeGreaterThan(0);
+        for (const seriesName of seriesNames) {
+          expect(
+            seriesName.startsWith(
+              `${SLO_METRIC_SLO_NAME_ATTRIBUTE}=${SLO_NAME}`,
+            ),
+          ).toBe(true);
+        }
+      }
 
-      expect(
-        `incident: variable key ${attributeKey} present=${Object.prototype.hasOwnProperty.call(
-          baseMetricAttributes,
-          attributeKey,
-        )}`,
-      ).toBe(`incident: variable key ${attributeKey} present=false`);
+      expect(charts).toBeGreaterThan(0);
     });
   });
 
-  describe("AlertService, which the template could scope but does not", () => {
-    test("stamps the singular monitorName on every alert metric", async () => {
-      mockAlert();
+  /*
+   * Regression: the toolbar picker lists the `sloName` values posted in the
+   * last day. The worker posted nothing for an SLO it could only guard, so a
+   * Paused, Misconfigured or never-measured SLO sat in the SLO List but could
+   * never be picked. saveSloGuardMetrics is what the guard paths post.
+   */
+  describe("an SLO the worker can only guard (Paused, Misconfigured, not yet measured)", () => {
+    type SaveGuardFunction = (overrides?: {
+      targetPercentage?: number | null | undefined;
+    }) => Promise<void>;
 
-      await AlertService.refreshAlertMetrics({ alertId: ALERT_ID });
+    const saveGuard: SaveGuardFunction = async (
+      overrides: { targetPercentage?: number | null | undefined } = {},
+    ): Promise<void> => {
+      await SloMetricUtil.saveSloGuardMetrics({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        sloName: SLO_NAME,
+        targetPercentage:
+          "targetPercentage" in overrides ? overrides.targetPercentage : 99.9,
+      });
+    };
 
-      const alertCountMetrics: Array<MutableMetric> =
-        savedMutableMetrics.filter((metric: MutableMetric): boolean => {
-          return metric.name === AlertMetricType.AlertCount;
-        });
+    test("still posts the key the picker lists, with the SLO's exact name", async () => {
+      await saveGuard();
 
-      // A refresh that emitted nothing would make every assertion vacuous.
-      expect(alertCountMetrics.length).toBeGreaterThan(0);
+      const attributeKey: string = sloVariableAttributeKey();
 
-      for (const metric of alertCountMetrics) {
-        const attributes: JSONObject = (metric.attributes || {}) as JSONObject;
+      expect(insertedRows.length).toBeGreaterThan(0);
 
-        /*
-         * Alert metrics ARE scopeable by the Monitor variable — which is
-         * exactly why the template's reason for leaving them off is a
-         * different one (a burn-rate alert is created with no monitor
-         * attached, so it carries no value for this key at all). Pinning
-         * the key here keeps that distinction checkable.
-         */
-        expect(
-          `alert: ${SINGULAR_MONITOR_KEY}=${String(
-            attributes[SINGULAR_MONITOR_KEY],
-          )}`,
-        ).toBe(`alert: ${SINGULAR_MONITOR_KEY}=${MONITOR_NAME}`);
-
-        expect(
-          `alert: ${PLURAL_MONITOR_KEY} stamped=${Object.prototype.hasOwnProperty.call(
-            attributes,
-            PLURAL_MONITOR_KEY,
-          )}`,
-        ).toBe(`alert: ${PLURAL_MONITOR_KEY} stamped=false`);
+      for (const row of insertedRows) {
+        expect(attributesOfRow(row)[attributeKey]).toBe(SLO_NAME);
+        expect(attributeKeysOfRow(row)).toContain(attributeKey);
+        expect(attributesOfRow(row)["sloId"]).toBe(SLO_ID.toString());
+        expect(row["primaryEntityId"]).toBe(SLO_ID.toString());
+        expect(row["primaryEntityType"]).toBe(
+          ServiceType.ServiceLevelObjective,
+        );
       }
     });
 
-    test("uses the same key the template's Monitor variable binds to", async () => {
-      mockAlert();
+    /*
+     * The target is configuration, true with or without a measurement. A
+     * budget, burn rate or status point would chart a measurement that never
+     * happened, and would feed the template's tiles and charts.
+     */
+    test("posts only the target, and nothing the template's widgets aggregate", async () => {
+      await saveGuard();
 
-      const attributeKey: string = monitorVariableAttributeKey();
+      expect(
+        insertedRows.map((row: JSONObject): unknown => {
+          return row["name"];
+        }),
+      ).toEqual([SloMetricType.TargetPercent]);
+      expect((insertedRows[0] as JSONObject)["value"]).toBe(99.9);
 
-      await AlertService.refreshAlertMetrics({ alertId: ALERT_ID });
-
-      expect(savedMutableMetrics.length).toBeGreaterThan(0);
-
-      for (const metric of savedMutableMetrics) {
-        const attributes: JSONObject = (metric.attributes || {}) as JSONObject;
-
-        expect(
-          `${String(metric.name)}: ${attributeKey}=${String(
-            attributes[attributeKey],
-          )}`,
-        ).toBe(`${String(metric.name)}: ${attributeKey}=${MONITOR_NAME}`);
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        expect(rowsNamed(insertedRows, metricName)).toHaveLength(0);
       }
+    });
+
+    test("writes nothing when there is no target to post", async () => {
+      await saveGuard({ targetPercentage: null });
+
+      expect(insertedRows).toHaveLength(0);
+    });
+
+    /*
+     * The guard paths must still resolve open burn-rate alerts and record the
+     * guard status, so a metric store failure is logged, never thrown.
+     */
+    test("never throws when the metric store fails", async () => {
+      jest
+        .spyOn(MetricService, "insertJsonRows")
+        .mockRejectedValue(new Error("ClickHouse is down") as never);
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        // Silenced: the failure is the point of this test.
+      });
+
+      await expect(saveGuard()).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

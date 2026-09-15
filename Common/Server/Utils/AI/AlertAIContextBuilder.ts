@@ -47,6 +47,9 @@ export default class AlertAIContextBuilder {
         monitor: {
           name: true,
         },
+        serviceLevelObjectives: {
+          name: true,
+        },
         labels: {
           name: true,
           color: true,
@@ -146,6 +149,22 @@ export default class AlertAIContextBuilder {
     // Affected monitor
     if (alert.monitor) {
       contextText += `**Monitor:** ${alert.monitor.name || "N/A"}\n\n`;
+    }
+
+    /*
+     * Affected SLOs. A burn-rate alert has no monitor, so this is what tells
+     * the model which objective is burning its error budget.
+     */
+    const affectedSloNames: Array<string> = (alert.serviceLevelObjectives || [])
+      .map((slo: { name?: string | undefined }): string => {
+        return slo.name || "";
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+
+    if (affectedSloNames.length > 0) {
+      contextText += `**Affected SLOs:** ${affectedSloNames.join(", ")}\n\n`;
     }
 
     // Labels

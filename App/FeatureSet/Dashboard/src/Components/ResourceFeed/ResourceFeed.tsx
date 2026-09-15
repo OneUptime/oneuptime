@@ -21,11 +21,12 @@ import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 /*
  * Every infrastructure and catalog resource feed - Kubernetes clusters, Docker
  * and Podman hosts, Docker Swarm / Proxmox / Ceph clusters, vCenters, servers, cloud
- * resources and catalog services - stores the same shape: markdown, a colour,
- * the acting user and a posted-at. Only the two column names differ (the
- * foreign key back to the resource, and the event type column), so the whole
- * feed page is one component parameterised by those two names rather than ten
- * copies that drift apart.
+ * resources and catalog services - and the SLO feed store the same shape:
+ * markdown, a colour, the acting user and a posted-at. Only the two column
+ * names differ (the foreign key back to the resource, and the event type
+ * column), so the whole feed page is one component parameterised by those two
+ * names rather than eleven copies that drift apart. A feed whose events the
+ * shared icon rules do not cover passes its own `getIcon`.
  */
 export interface ResourceFeedModel extends BaseModel {
   feedInfoInMarkdown?: string | undefined;
@@ -45,7 +46,19 @@ export interface ComponentProps<TFeedModel extends ResourceFeedModel> {
   title: string;
   description: string;
   noItemsMessage: string;
+  /*
+   * Icons for the event types that are this feed's own - an SLO's
+   * StatusChanged or BurnRateAlertRaised - which the shared suffix rules
+   * below know nothing about. Returning undefined falls back to those rules,
+   * so a feed maps only what is its own and its Created / Updated / owner
+   * events still look like every other feed's.
+   */
+  getIcon?: GetResourceFeedIconFunction | undefined;
 }
+
+export type GetResourceFeedIconFunction = (
+  eventType: string,
+) => IconProp | undefined;
 
 type GetIconForEventType = (eventType: string) => IconProp;
 
@@ -96,6 +109,23 @@ export const getIconForEventType: GetIconForEventType = (
   return IconProp.Circle;
 };
 
+export type ResolveResourceFeedIconFunction = (data: {
+  eventType: string;
+  getIcon?: GetResourceFeedIconFunction | undefined;
+}) => IconProp;
+
+// The feed's own mapping first, then the shared suffix rules.
+export const resolveResourceFeedIcon: ResolveResourceFeedIconFunction = (data: {
+  eventType: string;
+  getIcon?: GetResourceFeedIconFunction | undefined;
+}): IconProp => {
+  const ownIcon: IconProp | undefined = data.getIcon
+    ? data.getIcon(data.eventType)
+    : undefined;
+
+  return ownIcon || getIconForEventType(data.eventType);
+};
+
 const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
   props: ComponentProps<TFeedModel>,
 ) => ReactElement = <TFeedModel extends ResourceFeedModel>(
@@ -116,7 +146,10 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       user: feed.user,
       itemDateTime: feed.postedAt || feed.createdAt!,
       color: feed.displayColor || Gray500,
-      icon: getIconForEventType(eventType),
+      icon: resolveResourceFeedIcon({
+        eventType: eventType,
+        getIcon: props.getIcon,
+      }),
     };
   };
 

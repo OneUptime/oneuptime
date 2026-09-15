@@ -2,7 +2,9 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -84,6 +86,68 @@ export default class AuditLog extends AnalyticsBaseModel {
         update: [],
       },
     });
+
+    /*
+     * The top-level resource a change belongs to. A top-level resource's rows
+     * point at themselves; a child's rows point at its parent (an SLO burn
+     * rate rule's at its SLO), which is what lets a resource's audit page list
+     * its children's history with one filter. See
+     * EnableAuditLogOn.rootResource. Nullable: rows written before these
+     * columns existed are backfilled by the BackfillAuditLogRootResource data
+     * migration.
+     */
+    const rootResourceTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "rootResourceType",
+        title: "Root Resource Type",
+        description:
+          "Type of the top-level resource this change belongs to. The same as Resource Type for a top-level resource, and the parent's type for a child resource (e.g. Service Level Objective for an SLO Burn Rate Rule).",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.SettingsAdmin,
+            Permission.ReadAuditLog,
+          ],
+          create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+          update: [],
+        },
+      });
+
+    const rootResourceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "rootResourceId",
+        title: "Root Resource ID",
+        description:
+          "ID of the top-level resource this change belongs to. The same as Resource ID for a top-level resource, and the parent's ID for a child resource.",
+        required: false,
+        type: TableColumnType.ObjectID,
+        /*
+         * A resource's audit page filters on this column. It cannot join the
+         * sort key (an existing MergeTree's ORDER BY is fixed), so a bloom
+         * filter lets ClickHouse skip the granules of the project's range that
+         * cannot hold the id.
+         */
+        skipIndex: {
+          name: "idx_root_resource_id",
+          type: SkipIndexType.BloomFilter,
+          params: [0.01],
+          granularity: 1,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.SettingsAdmin,
+            Permission.ReadAuditLog,
+          ],
+          create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+          update: [],
+        },
+      },
+    );
 
     const actionColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "action",
@@ -275,6 +339,8 @@ export default class AuditLog extends AnalyticsBaseModel {
         resourceTypeColumn,
         resourceIdColumn,
         resourceNameColumn,
+        rootResourceTypeColumn,
+        rootResourceIdColumn,
         actionColumn,
         userIdColumn,
         userNameColumn,
@@ -331,6 +397,20 @@ export default class AuditLog extends AnalyticsBaseModel {
   }
   public set resourceName(v: string | undefined) {
     this.setColumnValue("resourceName", v);
+  }
+
+  public get rootResourceType(): string | undefined {
+    return this.getColumnValue("rootResourceType") as string | undefined;
+  }
+  public set rootResourceType(v: string | undefined) {
+    this.setColumnValue("rootResourceType", v);
+  }
+
+  public get rootResourceId(): ObjectID | undefined {
+    return this.getColumnValue("rootResourceId") as ObjectID | undefined;
+  }
+  public set rootResourceId(v: ObjectID | undefined) {
+    this.setColumnValue("rootResourceId", v);
   }
 
   public get action(): string | undefined {

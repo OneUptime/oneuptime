@@ -10,6 +10,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -25,6 +26,7 @@ import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
+import SloElement from "../Slo/SloElement";
 
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
@@ -39,6 +41,13 @@ export interface ComponentProps {
   iotFleets?: Array<IoTFleet> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
+  /*
+   * The SLOs whose burn rate rules raised this incident or alert. The
+   * worker writes the link and it is shown read-only here: the edit picker
+   * deliberately does not offer SLOs, so editing the other resources can
+   * never drop the link that lists this record on the SLO's own tabs.
+   */
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   /*
    * Caller can hide categories that don't apply (e.g. Alert lists its monitor
    * separately via a singular relation).
@@ -55,6 +64,7 @@ export interface ComponentProps {
   hideIoTFleets?: boolean | undefined;
   hideNetworkSites?: boolean | undefined;
   hideServices?: boolean | undefined;
+  hideServiceLevelObjectives?: boolean | undefined;
   emptyMessage?: string | undefined;
   /*
    * How many category cards sit side by side. Left out, the grid follows the
@@ -228,6 +238,9 @@ function CategoryCard<T extends NamedResource>(
  * the five ManyToMany relations under one "Resources Affected" header so the
  * edit experience (one picker) and the view experience (one section) line up.
  * Empty buckets collapse so the section only shows what's actually attached.
+ *
+ * SLOs are the one bucket with no picker counterpart: burn rate rules link
+ * them, and nobody attaches or detaches them by hand.
  */
 const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -246,6 +259,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const iotFleets: Array<IoTFleet> = props.iotFleets || [];
   const networkSites: Array<NetworkSite> = props.networkSites || [];
   const services: Array<Service> = props.services || [];
+  const serviceLevelObjectives: Array<ServiceLevelObjective> =
+    props.serviceLevelObjectives || [];
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
   const showHosts: boolean = !props.hideHosts && hosts.length > 0;
@@ -264,6 +279,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showNetworkSites: boolean =
     !props.hideNetworkSites && networkSites.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
+  const showSlos: boolean =
+    !props.hideServiceLevelObjectives && serviceLevelObjectives.length > 0;
 
   if (
     !showMonitors &&
@@ -277,7 +294,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showSwarm &&
     !showIoTFleets &&
     !showNetworkSites &&
-    !showServices
+    !showServices &&
+    !showSlos
   ) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-10 text-center">
@@ -289,7 +307,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
         </span>
         <span className="max-w-sm text-xs text-gray-500">
           Attach monitors, hosts, clusters, or services to track which parts of
-          your infrastructure are impacted.
+          your infrastructure are impacted. SLOs are linked automatically when
+          their burn rate rules fire.
         </span>
       </div>
     );
@@ -307,7 +326,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
     (showNetworkSites ? networkSites.length : 0) +
-    (showServices ? services.length : 0);
+    (showServices ? services.length : 0) +
+    (showSlos ? serviceLevelObjectives.length : 0);
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
     (showHosts ? 1 : 0) +
@@ -320,7 +340,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
     (showNetworkSites ? 1 : 0) +
-    (showServices ? 1 : 0);
+    (showServices ? 1 : 0) +
+    (showSlos ? 1 : 0);
   const resourceWord: string = totalCount === 1 ? "resource" : "resources";
   const categoryWord: string = categoryCount === 1 ? "category" : "categories";
 
@@ -525,6 +546,29 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
                   service={service}
                   serviceNameClassName="min-w-0 truncate"
                 />
+              );
+            }}
+          />
+        )}
+        {/*
+         * Last: an SLO is not a piece of infrastructure but the objective
+         * measured over it, so it reads best after everything it covers.
+         * Fuchsia is a hue no other category uses, and Theme.css remaps its
+         * 50 / 600 / 700 shades for dark mode.
+         */}
+        {showSlos && (
+          <CategoryCard<ServiceLevelObjective>
+            icon={IconProp.Gauge}
+            label="SLOs"
+            iconBgClass="bg-fuchsia-50"
+            iconColorClass="text-fuchsia-600"
+            accentBarClass="bg-fuchsia-500"
+            countBgClass="bg-fuchsia-50"
+            countTextClass="text-fuchsia-700"
+            items={serviceLevelObjectives}
+            renderItem={(serviceLevelObjective: ServiceLevelObjective) => {
+              return (
+                <SloElement serviceLevelObjective={serviceLevelObjective} />
               );
             }}
           />

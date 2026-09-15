@@ -21,6 +21,7 @@ import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
+import ServiceLevelObjective from "./ServiceLevelObjective";
 import User from "./User";
 import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1348,6 +1349,71 @@ export default class Incident extends BaseModel {
     },
   })
   public services?: Array<Service> = undefined;
+
+  /*
+   * The SLOs this incident is about. An SLO burn rate rule attaches its own
+   * SLO when it declares the incident, which is what lets the incident name
+   * the objective it was declared for and the SLO list the incidents it
+   * caused - before this, the only link was an opaque seriesFingerprint.
+   *
+   * Only the SLO is linked, never the SLO's monitors: resolving an incident
+   * that carries monitors rewrites their status timeline, which is the very
+   * history the SLI is computed from. Same column ACL as `services`.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ServiceLevelObjective,
+    title: "Service Level Objectives",
+    description:
+      "List of Service Level Objectives (SLOs) affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return ServiceLevelObjective;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentServiceLevelObjective",
+    inverseJoinColumn: {
+      name: "serviceLevelObjectiveId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public serviceLevelObjectives?: Array<ServiceLevelObjective> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -11,74 +11,48 @@ import DashboardVariable, {
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricQueryData from "../../../Types/Metrics/MetricQueryData";
-import DashboardModelQueryInterpolation, {
-  AttributeToColumnMap,
-} from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
-import DashboardVariableInterpolation, {
-  ResolvedVariableValue,
-} from "../../../Utils/Dashboard/VariableInterpolation";
+import DashboardModelQueryInterpolation from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
+import {
+  resolveSloWidgetSource,
+  SloWidgetSource,
+  SloWidgetSourceState,
+} from "../../../Utils/Dashboard/SloWidgetSource";
+import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
+import { SLO_LIST_ATTRIBUTE_TO_COLUMN } from "../../../Utils/Slo/SloListWidgetFormat";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * What the SLO template's Monitor variable actually scopes, established by
- * running the real interpolation code over the real template config rather
- * than by reading the template's comments.
+ * What the SLO template's one toolbar variable actually scopes, established by
+ * running the REAL resolution code over the REAL template config — never by
+ * reading the template's comments.
  *
- * The template is two halves. Objective Health and Error Budget Trends read
- * one ServiceLevelObjective by stored id; Monitor Health reads two metric
- * series. Only the second half is reachable by a dashboard variable, and
- * getting that boundary wrong throws nothing — it ships a dashboard whose
- * halves silently disagree about what is selected: uptime narrowed to one
- * monitor, the SLI tile beside it still reporting the whole objective, and
- * no indication which number answers which question.
+ * The template promises that one pick scopes the whole board. That promise is
+ * three different mechanisms, and getting any one wrong throws nothing — it
+ * ships a board whose sections silently disagree about what is selected:
  *
- * The template's declarative facts — widget inventory, titles, layout,
- * unconfigured SLO ids — are pinned in
- * Common/Tests/Types/Dashboard/SloDashboardTemplate.test.ts. This file only
- * asserts behaviour under DashboardVariableInterpolation (metric widgets)
- * and DashboardModelQueryInterpolation (Postgres-backed list widgets).
+ *   - metric widgets (the Error Budget row) go through
+ *     DashboardVariableInterpolation, which writes an attribute predicate;
+ *   - the SLO List goes through DashboardModelQueryInterpolation, which
+ *     writes a Postgres column predicate only for a key it has a column for
+ *     (SLO_LIST_ATTRIBUTE_TO_COLUMN);
+ *   - the Selected SLO widgets go through resolveSloWidgetSource, which turns
+ *     the selection into the one objective they show.
+ *
+ * The template's declarative facts — inventory, titles, layout — are pinned in
+ * Common/Tests/Types/Dashboard/SloDashboardTemplate.test.ts.
  */
 
-/*
- * The attribute key MonitorMetricUtil.buildAttributes stamps onto
- * `oneuptime.monitor.online` and `oneuptime.monitor.response.time`. It is a
- * BARE key: metric attributes written by OneUptime's own monitor workers are
- * not OTel collector resource attributes and carry no prefix.
- */
-const MONITOR_ATTRIBUTE: string = "monitorName";
+// The bare key SloMetricUtil stamps on every `oneuptime.slo.*` row.
+const SLO_NAME_ATTRIBUTE: string = "sloName";
+
+const PICKED_SLO: string = "Checkout API";
+const OTHER_SLO: string = "Search API";
 
 /*
- * The two plausible mis-spellings of that binding. Both fail SILENTLY, which
- * is why they are pinned here rather than left to review:
- *
- * - "resource.monitorName" is the prefix collector-sourced resource
- *   attributes carry. Nothing writes it for these two series, so the
- *   variable's picker would offer no options at all and any value forced
- *   into it would filter on an attribute no row has — every monitor widget
- *   renders empty, with no error anywhere.
- *
- * - "monitorNames" is the PLURAL key IncidentService stamps on incident
- *   metrics, comma-joined ("api-gateway,web-frontend"). It really exists in
- *   the metric store, so the picker would even populate — with comma-joined
- *   lists rather than monitor names — and an IN test for a single monitor
- *   would match none of the uptime rows, emptying exactly the widgets this
- *   variable exists to scope.
+ * An attribute the reader could plausibly have added to a widget by hand. It
+ * must survive every pick / clear cycle: the SLO variable owns exactly one key.
  */
-const PREFIXED_MONITOR_ATTRIBUTE: string = "resource.monitorName";
-const PLURAL_MONITOR_ATTRIBUTE: string = "monitorNames";
-
-/*
- * Two picks on purpose. An objective is normally backed by several monitors,
- * so a single pick would not exercise what the variable is multi-select for.
- */
-const PICKED_MONITORS: Array<string> = ["api-gateway", "web-frontend"];
-
-/*
- * An attribute the reader could plausibly have added to a widget by hand
- * before using the toolbar. It has to survive every clear/pick cycle: the
- * Monitor variable owns exactly one key and must not tidy up its neighbours.
- */
-const UNRELATED_ATTRIBUTE: string = "probeName";
+const UNRELATED_ATTRIBUTE: string = "oneuptime.label.team";
 
 // -- Helpers ---------------------------------------------------------------
 
@@ -90,101 +64,32 @@ function getConfig(): DashboardViewConfig {
   );
 
   expect(config).not.toBeNull();
-  return mutateForFailureCheck(config as DashboardViewConfig);
-}
-
-// TEMPORARY mutation harness - removed before commit.
-function mutateForFailureCheck(
-  config: DashboardViewConfig,
-): DashboardViewConfig {
-  const mutation: string = process.env["SLO_TEST_MUTATION"] || "";
-  const variable: DashboardVariable = (config.variables ||
-    [])[0] as DashboardVariable;
-
-  if (mutation === "prefixedKey") {
-    variable.attributeKey = "resource.monitorName";
-  }
-
-  if (mutation === "multiDefault") {
-    variable.defaultValue = "api-gateway";
-  }
-
-  if (mutation === "singleSelectDefault") {
-    variable.isMultiSelect = false;
-    variable.defaultValue = "api-gateway";
-  }
-
-  if (mutation === "sloGainsQuery") {
-    const slo: DashboardBaseComponent = config.components.filter(
-      (component: DashboardBaseComponent): boolean => {
-        return component.componentType === DashboardComponentType.Slo;
-      },
-    )[0] as DashboardBaseComponent;
-    (slo.arguments as WidgetArguments)["metricQueryConfig"] = {
-      metricQueryData: {
-        filterData: { metricName: "x", aggegationType: "Avg" },
-      },
-    };
-  }
-
-  if (mutation === "storedFilter") {
-    const widget: DashboardBaseComponent = config.components.filter(
-      (component: DashboardBaseComponent): boolean => {
-        return component.componentType === DashboardComponentType.Value;
-      },
-    )[0] as DashboardBaseComponent;
-    const queryConfig: WidgetArguments = (widget.arguments as WidgetArguments)[
-      "metricQueryConfig"
-    ] as WidgetArguments;
-    const queryData: WidgetArguments = queryConfig[
-      "metricQueryData"
-    ] as WidgetArguments;
-    (queryData["filterData"] as WidgetArguments)["attributes"] = {
-      monitorName: "api-gateway",
-    };
-  }
-
-  if (mutation === "dropAValueWidget") {
-    const index: number = config.components.findIndex(
-      (component: DashboardBaseComponent): boolean => {
-        return component.componentType === DashboardComponentType.Value;
-      },
-    );
-    config.components.splice(index, 1);
-  }
-
-  return config;
+  return config as DashboardViewConfig;
 }
 
 /*
- * The variable is selected by being the template's ONLY one, never by its
- * attribute key — selecting it by the key would make the tests that pin the
- * key true by construction.
+ * Selected by being the template's ONLY variable, never by its key — selecting
+ * it by key would make the tests that pin the key true by construction.
  */
-function monitorVariable(config: DashboardViewConfig): DashboardVariable {
+function sloVariable(config: DashboardViewConfig): DashboardVariable {
   const variables: Array<DashboardVariable> = config.variables || [];
 
   expect(variables).toHaveLength(1);
   return variables[0] as DashboardVariable;
 }
 
-function withSelection(
+// The toolbar's single-select writes selectedValue; "" is its All option.
+function picked(
   variable: DashboardVariable,
-  selectedValues: Array<string>,
+  selectedValue: string,
 ): DashboardVariable {
-  return { ...variable, selectedValues: selectedValues };
+  return { ...variable, selectedValue: selectedValue };
 }
 
 function argumentsOf(component: DashboardBaseComponent): WidgetArguments {
   return (component.arguments as WidgetArguments | undefined) || {};
 }
 
-/*
- * Titles are the only stable handle on a template widget — componentIds are
- * regenerated on every getTemplateConfig call and array positions shift
- * whenever a row is inserted. Each widget family stores its title under a
- * different argument key.
- */
 const TITLE_ARGUMENT_KEYS: Array<string> = [
   "title",
   "chartTitle",
@@ -208,53 +113,6 @@ function titleOf(component: DashboardBaseComponent): string {
   return "";
 }
 
-/*
- * Every metric query a widget owns. Chart widgets may carry an additional
- * `metricQueryConfigs` array beside the primary config, and
- * DashboardChartComponent interpolates all of them, so both are collected —
- * a second query added to a chart later is covered without editing here.
- */
-function queryConfigsOf(
-  component: DashboardBaseComponent,
-): Array<MetricQueryConfigData> {
-  const args: WidgetArguments = argumentsOf(component);
-  const configs: Array<MetricQueryConfigData> = [];
-  const primary: unknown = args["metricQueryConfig"];
-
-  if (primary) {
-    configs.push(primary as MetricQueryConfigData);
-  }
-
-  const additional: unknown = args["metricQueryConfigs"];
-
-  if (Array.isArray(additional)) {
-    configs.push(...(additional as Array<MetricQueryConfigData>));
-  }
-
-  return configs;
-}
-
-// The widgets a TelemetryAttribute variable can reach at all.
-function widgetsWithMetricQuery(
-  config: DashboardViewConfig,
-): Array<DashboardBaseComponent> {
-  return config.components.filter(
-    (component: DashboardBaseComponent): boolean => {
-      return queryConfigsOf(component).length > 0;
-    },
-  );
-}
-
-function widgetsWithoutMetricQuery(
-  config: DashboardViewConfig,
-): Array<DashboardBaseComponent> {
-  return config.components.filter(
-    (component: DashboardBaseComponent): boolean => {
-      return queryConfigsOf(component).length === 0;
-    },
-  );
-}
-
 function componentsOfType(
   config: DashboardViewConfig,
   componentType: DashboardComponentType,
@@ -266,41 +124,69 @@ function componentsOfType(
   );
 }
 
+/*
+ * Every metric query a widget owns — the primary config and any additional
+ * `metricQueryConfigs`, both of which DashboardChartComponent interpolates.
+ */
+function queryConfigsOf(
+  component: DashboardBaseComponent,
+): Array<MetricQueryConfigData> {
+  const args: WidgetArguments = argumentsOf(component);
+  const configs: Array<MetricQueryConfigData> = [];
+
+  if (args["metricQueryConfig"]) {
+    configs.push(args["metricQueryConfig"] as MetricQueryConfigData);
+  }
+
+  if (Array.isArray(args["metricQueryConfigs"])) {
+    configs.push(
+      ...(args["metricQueryConfigs"] as Array<MetricQueryConfigData>),
+    );
+  }
+
+  return configs;
+}
+
+function metricWidgets(
+  config: DashboardViewConfig,
+): Array<DashboardBaseComponent> {
+  return config.components.filter(
+    (component: DashboardBaseComponent): boolean => {
+      return queryConfigsOf(component).length > 0;
+    },
+  );
+}
+
 function filterDataOf(queryConfig: MetricQueryConfigData): WidgetArguments {
-  return queryConfig.metricQueryData?.filterData as
-    | WidgetArguments
-    | undefined as WidgetArguments;
+  return (queryConfig.metricQueryData?.filterData ||
+    {}) as unknown as WidgetArguments;
 }
 
 function attributesOf(queryConfig: MetricQueryConfigData): WidgetArguments {
-  const filterData: WidgetArguments = filterDataOf(queryConfig) || {};
-
-  return (filterData["attributes"] as WidgetArguments | undefined) || {};
+  return (
+    (filterDataOf(queryConfig)["attributes"] as WidgetArguments | undefined) ||
+    {}
+  );
 }
 
 /*
- * A widget's attribute filter rendered as one line, so a failing expectation
- * names the offending key and operator instead of dumping an object graph.
- * `Includes` renders as IN(...) and anything else as a plain assignment —
- * that distinction is load-bearing: the server's WHERE-builder emits
- * `attributes[key] IN (...)` only for an actual Includes instance, so a
- * plain array smuggled in here would read as `= a,b` and fail.
+ * A filter as one line, so a failure names the offending key and operator.
+ * `Includes` renders as IN(...) and anything else as `=` — load-bearing: the
+ * server writes `attributes[key] IN (...)` only for a real Includes instance.
  */
-function describeAttributes(queryConfig: MetricQueryConfigData): string {
-  const attributes: WidgetArguments = attributesOf(queryConfig);
-  const keys: Array<string> = Object.keys(attributes).sort();
+function describeFilter(filter: WidgetArguments): string {
+  const keys: Array<string> = Object.keys(filter).sort();
 
   if (keys.length === 0) {
-    return "no attribute filter";
+    return "no filter";
   }
 
   return keys
     .map((key: string): string => {
-      const value: unknown = attributes[key];
+      const value: unknown = filter[key];
 
       if (value instanceof Includes) {
-        const values: Array<string> = value.values as Array<string>;
-        return `${key} IN (${values.join(", ")})`;
+        return `${key} IN (${(value.values as Array<string>).join(", ")})`;
       }
 
       return `${key} = ${String(value)}`;
@@ -308,106 +194,59 @@ function describeAttributes(queryConfig: MetricQueryConfigData): string {
     .join("; ");
 }
 
-function describeResolved(resolved: ResolvedVariableValue | undefined): string {
-  if (!resolved) {
-    return "All";
-  }
-
-  if (resolved.multi) {
-    return `IN (${resolved.multi.join(", ")})`;
-  }
-
-  return `= ${String(resolved.scalar)}`;
-}
-
-/*
- * The predicate every scoped widget must end up with, written once so the
- * expectation for each widget is "<title>: <this>".
- */
-const EXPECTED_PREDICATE: string = `${MONITOR_ATTRIBUTE} IN (${PICKED_MONITORS.join(
-  ", ",
-)})`;
-
-/*
- * Applies the variables to every query a widget owns and labels the outcome
- * with the widget's title.
- */
-function describeWidgetUnderVariables(
+function describeMetricWidget(
   component: DashboardBaseComponent,
   variables: Array<DashboardVariable>,
 ): string {
-  const applied: Array<string> = queryConfigsOf(component).map(
-    (queryConfig: MetricQueryConfigData): string => {
-      return describeAttributes(
-        DashboardVariableInterpolation.applyToQueryConfig(
-          queryConfig,
-          variables,
+  return `${titleOf(component)}: ${queryConfigsOf(component)
+    .map((queryConfig: MetricQueryConfigData): string => {
+      return describeFilter(
+        attributesOf(
+          DashboardVariableInterpolation.applyToQueryConfig(
+            queryConfig,
+            variables,
+          ),
         ),
       );
-    },
-  );
-
-  return `${titleOf(component)}: ${applied.join(" | ")}`;
+    })
+    .join(" | ")}`;
 }
 
-function describeWidgetAsShipped(component: DashboardBaseComponent): string {
-  const shipped: Array<string> = queryConfigsOf(component).map(
-    (queryConfig: MetricQueryConfigData): string => {
-      return describeAttributes(queryConfig);
-    },
-  );
-
-  return `${titleOf(component)}: ${shipped.join(" | ")}`;
+// The SLO List's base query, as the renderer and the public policy build it.
+function sloListBaseQuery(): Record<string, unknown> {
+  return { projectId: "project-1", isArchived: false };
 }
 
-function typesPresentIn(
-  components: Array<DashboardBaseComponent>,
-): Array<string> {
-  return Array.from(
-    new Set(
-      components.map((component: DashboardBaseComponent): string => {
-        return component.componentType;
-      }),
-    ),
-  ).sort();
+function describeSloWidget(
+  component: DashboardBaseComponent,
+  variables: Array<DashboardVariable>,
+): string {
+  const args: WidgetArguments = argumentsOf(component);
+  const source: SloWidgetSource = resolveSloWidgetSource({
+    serviceLevelObjectiveId: args["serviceLevelObjectiveId"] as
+      | string
+      | undefined,
+    serviceLevelObjectiveVariableId: args["serviceLevelObjectiveVariableId"] as
+      | string
+      | undefined,
+    variables,
+  });
+
+  return `${titleOf(component)}: ${source.state}${
+    source.sloName ? ` ${source.sloName}` : ""
+  }`;
 }
 
-function typeBreakdownOf(
-  components: Array<DashboardBaseComponent>,
-): Array<string> {
-  const counts: Record<string, number> = {};
-
-  for (const component of components) {
-    counts[component.componentType] =
-      (counts[component.componentType] || 0) + 1;
-  }
-
-  return Object.keys(counts)
-    .sort()
-    .map((componentType: string): string => {
-      return `${componentType} x ${counts[componentType]}`;
-    });
-}
-
-/*
- * A saved-dashboard state the template itself never ships: a widget whose
- * stored config already carries an attribute filter, because the reader
- * added one in the widget's own settings before touching the toolbar. Built
- * from a real template query config so the surrounding shape (metricName and
- * the misspelled `aggegationType` key the fetch layer reads) is the real one.
- */
 function withStoredAttributes(
   queryConfig: MetricQueryConfigData,
   attributes: WidgetArguments,
 ): MetricQueryConfigData {
-  const filterData: WidgetArguments = filterDataOf(queryConfig) || {};
-
   return {
     ...queryConfig,
     metricQueryData: {
       ...queryConfig.metricQueryData,
       filterData: {
-        ...filterData,
+        ...filterDataOf(queryConfig),
         attributes: attributes,
       },
     } as unknown as MetricQueryData,
@@ -416,46 +255,32 @@ function withStoredAttributes(
 
 // -- Tests -----------------------------------------------------------------
 
-describe("SLO template Monitor variable scoping", () => {
+describe("SLO template variable scoping", () => {
   describe("the binding itself", () => {
-    /*
-     * The variable only reaches a metric query through
-     * applyToAttributes' TelemetryAttribute filter. Any other type — a
-     * CustomList or Query variable bound to the same key — renders an
-     * identical toolbar picker and scopes nothing.
-     */
-    test("is a TelemetryAttribute variable bound to the bare monitorName key", () => {
-      const variable: DashboardVariable = monitorVariable(getConfig());
+    test("is a single-select Telemetry Attribute variable on the bare sloName key", () => {
+      const variable: DashboardVariable = sloVariable(getConfig());
 
       expect(
-        `${variable.name} -> ${variable.type} on ${variable.attributeKey}`,
+        `${variable.name} -> ${variable.type} on ${variable.attributeKey} multi=${variable.isMultiSelect === true}`,
       ).toBe(
-        `monitor -> ${DashboardVariableType.TelemetryAttribute} on ${MONITOR_ATTRIBUTE}`,
+        `slo -> ${DashboardVariableType.TelemetryAttribute} on ${SLO_NAME_ATTRIBUTE} multi=false`,
       );
-      expect(variable.attributeKey).not.toBe(PREFIXED_MONITOR_ATTRIBUTE);
-      expect(variable.attributeKey).not.toBe(PLURAL_MONITOR_ATTRIBUTE);
     });
 
     /*
      * The key the variable is declared with is the key the predicate is
-     * written under — asserted from the interpolation output rather than
-     * from the declaration, because that output is what the fetch layer
-     * compiles into `attributes['monitorName'] IN (...)`.
+     * written under — asserted from the interpolation OUTPUT, which is what
+     * the fetch layer compiles into `attributes['sloName'] = ...`.
      */
-    test("writes its predicate under that same bare key and no other", () => {
+    test("writes its metric predicate under that bare key and no other", () => {
       const config: DashboardViewConfig = getConfig();
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
-
-      expect(widgets.length).toBeGreaterThan(0);
-
       const keysWritten: Set<string> = new Set<string>();
 
-      for (const widget of widgets) {
+      for (const widget of metricWidgets(config)) {
         for (const queryConfig of queryConfigsOf(widget)) {
           const applied: MetricQueryConfigData =
             DashboardVariableInterpolation.applyToQueryConfig(queryConfig, [
-              withSelection(monitorVariable(config), PICKED_MONITORS),
+              picked(sloVariable(config), PICKED_SLO),
             ]);
 
           for (const key of Object.keys(attributesOf(applied))) {
@@ -464,271 +289,113 @@ describe("SLO template Monitor variable scoping", () => {
         }
       }
 
-      expect(Array.from(keysWritten).sort()).toEqual([MONITOR_ATTRIBUTE]);
+      expect(Array.from(keysWritten)).toEqual([SLO_NAME_ATTRIBUTE]);
     });
 
     /*
-     * Multi-select is not cosmetic. The toolbar's multi picker writes
-     * `selectedValues`, and resolveValue reads that list ONLY when
-     * isMultiSelect is set — flip the flag and every pick the reader makes
-     * is dropped on the floor while the picker keeps showing them.
+     * A single-select resolves to a SCALAR equality, never an IN-list — the
+     * same shape on the metric store, on the SLO list's name column, and in
+     * the one-SLO widgets.
      */
-    test("is multi-select, which is what makes selectedValues resolve at all", () => {
-      const config: DashboardViewConfig = getConfig();
-      const picked: DashboardVariable = withSelection(
-        monitorVariable(config),
-        PICKED_MONITORS,
-      );
-      const asSingleSelect: DashboardVariable = {
-        ...picked,
-        isMultiSelect: false,
-      };
-
+    test("resolves a pick to one scalar value", () => {
       expect(
-        `multi=${describeResolved(
-          DashboardVariableInterpolation.resolveValue(picked),
-        )} single=${describeResolved(
-          DashboardVariableInterpolation.resolveValue(asSingleSelect),
-        )}`,
-      ).toBe(`multi=IN (${PICKED_MONITORS.join(", ")}) single=All`);
-    });
-
-    /*
-     * Why the template ships no defaultValue, in the two ways it could be
-     * added:
-     *
-     * - On this multi-select it is dead config. resolveValue never consults
-     *   defaultValue for a multi-select, so the author gets no scoping and
-     *   no warning that the field did nothing.
-     * - Switched to single-select, the same default is worse than dead: it
-     *   applies on first render, so a freshly created dashboard reports one
-     *   monitor's uptime beside SLO tiles that report the whole objective.
-     */
-    test("ships no defaultValue", () => {
-      const variable: DashboardVariable = monitorVariable(getConfig());
-
-      expect(
-        `${variable.name} multiSelect=${variable.isMultiSelect === true} default=${
-          variable.defaultValue ?? "(none)"
-        }`,
-      ).toBe("monitor multiSelect=true default=(none)");
-    });
-
-    test("a defaultValue added to this multi-select would never apply", () => {
-      const variable: DashboardVariable = {
-        ...monitorVariable(getConfig()),
-        defaultValue: PICKED_MONITORS[0] as string,
-      };
-
-      expect(
-        describeResolved(DashboardVariableInterpolation.resolveValue(variable)),
-      ).toBe("All");
+        DashboardVariableInterpolation.resolveValue(
+          picked(sloVariable(getConfig()), PICKED_SLO),
+        ),
+      ).toEqual({ scalar: PICKED_SLO });
     });
   });
 
-  describe("with nothing selected the dashboard is project-wide", () => {
-    test("the untouched variable resolves to All", () => {
-      const variable: DashboardVariable = monitorVariable(getConfig());
-
-      expect(
-        `${variable.name}: ${describeResolved(
-          DashboardVariableInterpolation.resolveValue(variable),
-        )}`,
-      ).toBe("monitor: All");
-    });
-
+  describe("every widget on the board answers to the toolbar", () => {
     /*
-     * The same statement at the level the reader actually sees: no widget's
-     * query gains a filter, and applyToQueryConfig hands back the very same
-     * object so the memoised widgets do not refetch on mount.
-     *
-     * This is also the test that catches a default being added to the
-     * template: a single-select default would turn every line below into
-     * "monitorName = ...".
+     * The closed classification. A widget family added to the template later
+     * has to be placed in one of these routes deliberately, or this fails:
+     * there is no fourth route, and a widget the toolbar cannot reach is
+     * exactly the "project-wide data beside one objective" the template
+     * removed.
      */
-    test("no metric widget's query changes at all", () => {
+    test("metric widgets, the SLO List and the SLO widgets are each reached; only headings are not", () => {
       const config: DashboardViewConfig = getConfig();
-      const variable: DashboardVariable = monitorVariable(config);
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
+      const routes: Array<string> = config.components.map(
+        (component: DashboardBaseComponent): string => {
+          if (queryConfigsOf(component).length > 0) {
+            return `${component.componentType}: metric predicate`;
+          }
 
-      expect(widgets.length).toBeGreaterThan(0);
+          if (component.componentType === DashboardComponentType.SloList) {
+            return `${component.componentType}: name column`;
+          }
 
-      const outcomes: Array<string> = widgets.map(
-        (widget: DashboardBaseComponent): string => {
-          const results: Array<string> = queryConfigsOf(widget).map(
-            (queryConfig: MetricQueryConfigData): string => {
-              const applied: MetricQueryConfigData =
-                DashboardVariableInterpolation.applyToQueryConfig(queryConfig, [
-                  variable,
-                ]);
+          if (component.componentType === DashboardComponentType.Slo) {
+            return `${component.componentType}: followed selection`;
+          }
 
-              return applied === queryConfig
-                ? "unchanged"
-                : describeAttributes(applied);
-            },
-          );
-
-          return `${titleOf(widget)}: ${results.join(" | ")}`;
+          return `${component.componentType}: not reached`;
         },
       );
 
-      expect(outcomes).toEqual(
-        widgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: unchanged`;
-        }),
-      );
-    });
-
-    test("and the widgets ship with no attribute filter of their own", () => {
-      const config: DashboardViewConfig = getConfig();
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
-
-      expect(widgets.length).toBeGreaterThan(0);
-      expect(widgets.map(describeWidgetAsShipped)).toEqual(
-        widgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: no attribute filter`;
-        }),
+      expect(Array.from(new Set(routes)).sort()).toEqual(
+        [
+          `${DashboardComponentType.Chart}: metric predicate`,
+          `${DashboardComponentType.Value}: metric predicate`,
+          `${DashboardComponentType.SloList}: name column`,
+          `${DashboardComponentType.Slo}: followed selection`,
+          `${DashboardComponentType.Text}: not reached`,
+        ].sort(),
       );
     });
   });
 
-  describe("with monitors picked", () => {
-    /*
-     * The scoped half of the dashboard, established from the config rather
-     * than from a list of titles: exactly the widgets that own a metric
-     * query are the widgets a TelemetryAttribute variable can reach, and on
-     * this template those are the three Monitor Health value tiles and the
-     * two monitor charts.
-     */
-    test("the reachable widgets are exactly the three Value tiles and two Charts", () => {
-      const config: DashboardViewConfig = getConfig();
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
-
-      expect(typeBreakdownOf(widgets)).toEqual([
-        `${DashboardComponentType.Chart} x 2`,
-        `${DashboardComponentType.Value} x 3`,
-      ]);
-    });
-
-    test("every one of them gains an Includes predicate on monitorName", () => {
-      const config: DashboardViewConfig = getConfig();
-      const picked: DashboardVariable = withSelection(
-        monitorVariable(config),
-        PICKED_MONITORS,
-      );
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
-
-      expect(widgets.length).toBeGreaterThan(0);
+  describe("with the toolbar on All the board is the fleet", () => {
+    test("the untouched variable resolves to All", () => {
       expect(
-        widgets.map((widget: DashboardBaseComponent): string => {
-          return describeWidgetUnderVariables(widget, [picked]);
-        }),
-      ).toEqual(
-        widgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: ${EXPECTED_PREDICATE}`;
-        }),
-      );
+        DashboardVariableInterpolation.resolveValue(sloVariable(getConfig())),
+      ).toBeUndefined();
     });
 
     /*
-     * Scoping must not cost the widget its identity. `metricName` says which
-     * series to read and the aggregation is stored under the MISSPELLED key
-     * `aggegationType` — that misspelling is the contract the fetch layer
-     * reads, so a rewrite that dropped or corrected it would return an
-     * unaggregated (or empty) result for a widget that still looks right.
+     * applyToQueryConfig hands back the very same object, so the memoised
+     * widgets do not refetch on mount — and no widget gains a filter.
      */
-    test("the scoped query keeps its metric name and its aggegationType key", () => {
+    test("no metric widget's query changes at all", () => {
       const config: DashboardViewConfig = getConfig();
-      const picked: DashboardVariable = withSelection(
-        monitorVariable(config),
-        PICKED_MONITORS,
-      );
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
+      const variable: DashboardVariable = sloVariable(config);
+      const widgets: Array<DashboardBaseComponent> = metricWidgets(config);
 
       expect(widgets.length).toBeGreaterThan(0);
-
-      const before: Array<string> = [];
-      const after: Array<string> = [];
 
       for (const widget of widgets) {
         for (const queryConfig of queryConfigsOf(widget)) {
-          const shipped: WidgetArguments = filterDataOf(queryConfig);
-          const applied: WidgetArguments = filterDataOf(
-            DashboardVariableInterpolation.applyToQueryConfig(queryConfig, [
-              picked,
-            ]),
-          );
-
-          before.push(
-            `${titleOf(widget)}: ${String(shipped["metricName"])} / ${String(
-              shipped["aggegationType"],
-            )}`,
-          );
-          after.push(
-            `${titleOf(widget)}: ${String(applied["metricName"])} / ${String(
-              applied["aggegationType"],
-            )}`,
-          );
+          expect(
+            `${titleOf(widget)}: ${
+              DashboardVariableInterpolation.applyToQueryConfig(queryConfig, [
+                variable,
+              ]) === queryConfig
+                ? "unchanged"
+                : "changed"
+            }`,
+          ).toBe(`${titleOf(widget)}: unchanged`);
         }
       }
+    });
 
-      expect(after).toEqual(before);
-      // Guards the comparison above from passing on two lists of undefineds.
-      for (const line of before) {
-        expect(line).not.toContain("undefined");
-      }
+    test("the SLO List keeps its fleet query", () => {
+      const query: Record<string, unknown> = sloListBaseQuery();
+
+      expect(
+        DashboardModelQueryInterpolation.applyToQuery(
+          query,
+          [sloVariable(getConfig())],
+          SLO_LIST_ATTRIBUTE_TO_COLUMN,
+        ),
+      ).toBe(query);
     });
 
     /*
-     * Interpolation is a render-time transform. If it wrote back into the
-     * component's stored arguments, the first selection would be baked into
-     * the dashboard the next time it was saved — and clearing the toolbar
-     * afterwards would not undo it, because "All" only removes the filter
-     * from the copy it is building.
+     * The one section that waits — and it waits for the TOOLBAR (NoSelection),
+     * not for edit mode (Unconfigured) and not on a broken binding.
      */
-    test("the stored template config is never written back to", () => {
-      const config: DashboardViewConfig = getConfig();
-      const picked: DashboardVariable = withSelection(
-        monitorVariable(config),
-        PICKED_MONITORS,
-      );
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithMetricQuery(config);
-
-      expect(widgets.length).toBeGreaterThan(0);
-
-      const shipped: Array<string> = widgets.map(describeWidgetAsShipped);
-
-      for (const widget of widgets) {
-        DashboardVariableInterpolation.applyToQueryConfigs(
-          queryConfigsOf(widget),
-          [picked],
-        );
-      }
-
-      expect(widgets.map(describeWidgetAsShipped)).toEqual(shipped);
-      expect(shipped).toEqual(
-        widgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: no attribute filter`;
-        }),
-      );
-    });
-  });
-
-  describe("the widgets the variable cannot reach", () => {
-    /*
-     * The unscoped half. A Slo widget resolves one objective from the
-     * serviceLevelObjectiveId stored on it and issues no metric query, so
-     * there is nothing for a TelemetryAttribute variable to interpolate —
-     * picking a monitor narrows the uptime row and leaves every SLO number
-     * reporting the whole objective, which is the correct reading of both.
-     */
-    test("no Slo widget owns a metric query", () => {
+    test("every SLO widget asks for a toolbar pick", () => {
       const config: DashboardViewConfig = getConfig();
       const sloWidgets: Array<DashboardBaseComponent> = componentsOfType(
         config,
@@ -738,143 +405,297 @@ describe("SLO template Monitor variable scoping", () => {
       expect(sloWidgets.length).toBeGreaterThan(0);
       expect(
         sloWidgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: ${queryConfigsOf(widget).length} metric queries`;
+          return describeSloWidget(widget, config.variables || []);
         }),
       ).toEqual(
         sloWidgets.map((widget: DashboardBaseComponent): string => {
-          return `${titleOf(widget)}: 0 metric queries`;
+          return `${titleOf(widget)}: ${SloWidgetSourceState.NoSelection}`;
+        }),
+      );
+    });
+
+    test("picking All explicitly is the same as never picking", () => {
+      const config: DashboardViewConfig = getConfig();
+      const all: DashboardVariable = picked(sloVariable(config), "");
+
+      for (const widget of metricWidgets(config)) {
+        expect(describeMetricWidget(widget, [all])).toBe(
+          `${titleOf(widget)}: no filter`,
+        );
+      }
+
+      for (const widget of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        expect(describeSloWidget(widget, [all])).toBe(
+          `${titleOf(widget)}: ${SloWidgetSourceState.NoSelection}`,
+        );
+      }
+    });
+  });
+
+  describe("with one SLO picked the whole board is that SLO", () => {
+    test("every metric widget gains the sloName predicate", () => {
+      const config: DashboardViewConfig = getConfig();
+      const variables: Array<DashboardVariable> = [
+        picked(sloVariable(config), PICKED_SLO),
+      ];
+      const widgets: Array<DashboardBaseComponent> = metricWidgets(config);
+
+      expect(widgets.length).toBeGreaterThan(0);
+      expect(
+        widgets.map((widget: DashboardBaseComponent): string => {
+          return describeMetricWidget(widget, variables);
+        }),
+      ).toEqual(
+        widgets.map((widget: DashboardBaseComponent): string => {
+          return `${titleOf(widget)}: ${SLO_NAME_ATTRIBUTE} = ${PICKED_SLO}`;
+        }),
+      );
+    });
+
+    test("the SLO List narrows to the objective's row, and still excludes archived SLOs", () => {
+      const scoped: Record<string, unknown> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          sloListBaseQuery(),
+          [picked(sloVariable(getConfig()), PICKED_SLO)],
+          SLO_LIST_ATTRIBUTE_TO_COLUMN,
+        );
+
+      expect(describeFilter(scoped)).toBe(
+        `isArchived = false; name = ${PICKED_SLO}; projectId = project-1`,
+      );
+    });
+
+    test("every SLO widget follows the picked objective", () => {
+      const config: DashboardViewConfig = getConfig();
+      const variables: Array<DashboardVariable> = [
+        picked(sloVariable(config), PICKED_SLO),
+      ];
+      const sloWidgets: Array<DashboardBaseComponent> = componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      );
+
+      expect(
+        sloWidgets.map((widget: DashboardBaseComponent): string => {
+          return describeSloWidget(widget, variables);
+        }),
+      ).toEqual(
+        sloWidgets.map((widget: DashboardBaseComponent): string => {
+          return `${titleOf(widget)}: ${SloWidgetSourceState.FollowsSelection} ${PICKED_SLO}`;
         }),
       );
     });
 
     /*
-     * Stated as a closed set so a widget family added to this template later
-     * has to be classified deliberately: everything outside the metric half
-     * is a Text row, an Slo widget, or one of the three Postgres-backed
-     * lists. All of them are immune to the Monitor variable, and the lists
-     * are additionally project-wide and time-range-free — which is why they
-     * are titled "All Monitors" / "Latest ..." rather than anything that
-     * implies the toolbar narrows them.
+     * Scoping must not cost a widget its identity: the series, the misspelled
+     * `aggegationType` the fetch layer reads, and the per-SLO fan-out all
+     * survive. A chart that lost `groupByAttributeKeys` under a pick would
+     * collapse to one unlabelled line.
      */
-    test("the unreachable widgets are only text rows, Slo widgets and the model-backed lists", () => {
+    test("a scoped query keeps its metric, aggregation and fan-out", () => {
       const config: DashboardViewConfig = getConfig();
-      const widgets: Array<DashboardBaseComponent> =
-        widgetsWithoutMetricQuery(config);
+      const variables: Array<DashboardVariable> = [
+        picked(sloVariable(config), PICKED_SLO),
+      ];
 
-      expect(widgets.length).toBeGreaterThan(0);
-      expect(typesPresentIn(widgets)).toEqual(
-        [
-          DashboardComponentType.AlertList,
-          DashboardComponentType.IncidentList,
-          DashboardComponentType.MonitorList,
-          DashboardComponentType.Slo,
-          DashboardComponentType.Text,
-        ].sort(),
-      );
+      for (const widget of metricWidgets(config)) {
+        for (const queryConfig of queryConfigsOf(widget)) {
+          const applied: MetricQueryConfigData =
+            DashboardVariableInterpolation.applyToQueryConfig(
+              queryConfig,
+              variables,
+            );
+
+          expect(filterDataOf(applied)["metricName"]).toBe(
+            filterDataOf(queryConfig)["metricName"],
+          );
+          expect(filterDataOf(applied)["aggegationType"]).toBe(
+            filterDataOf(queryConfig)["aggegationType"],
+          );
+          expect(applied.metricQueryData.groupByAttributeKeys).toEqual(
+            queryConfig.metricQueryData.groupByAttributeKeys,
+          );
+          expect(String(filterDataOf(queryConfig)["metricName"])).not.toBe(
+            "undefined",
+          );
+        }
+      }
     });
 
     /*
-     * The list widgets query Postgres by column, not by OTel attribute, so
-     * they are interpolated — if at all — through
-     * DashboardModelQueryInterpolation, which writes a predicate only for
-     * attribute keys the widget itself declares a column for. None of the
-     * three lists on this template declares one for `monitorName` (the list
-     * components never call the helper, and the public-dashboard monitor
-     * policy ships no attributeToColumn map), so a picked Monitor variable
-     * leaves their queries byte-identical.
-     *
-     * The second half of the test is what keeps the first from being
-     * vacuous: the very same variable DOES write a predicate the moment a
-     * map claims the key, so what withholds it is the missing mapping and
-     * not something inert about the variable.
+     * Interpolation is a render-time transform. Written back into the stored
+     * arguments, the first pick would be baked into the dashboard on its next
+     * save, and "All" could never undo it.
      */
-    test("a picked Monitor variable writes no model-query predicate unless a widget maps the key", () => {
+    test("the stored template config is never written back to", () => {
       const config: DashboardViewConfig = getConfig();
-      const picked: DashboardVariable = withSelection(
-        monitorVariable(config),
-        PICKED_MONITORS,
-      );
-      const query: Record<string, unknown> = { projectId: "project-1" };
+      const before: string = JSON.stringify(config);
+      const variables: Array<DashboardVariable> = [
+        picked(sloVariable(config), PICKED_SLO),
+      ];
 
-      const unmapped: AttributeToColumnMap = { "host.name": "hostname" };
-      expect(
-        DashboardModelQueryInterpolation.applyToQuery(
-          query,
-          [picked],
-          unmapped,
-        ),
-      ).toBe(query);
+      for (const widget of metricWidgets(config)) {
+        DashboardVariableInterpolation.applyToQueryConfigs(
+          queryConfigsOf(widget),
+          variables,
+        );
+      }
 
-      const mapped: AttributeToColumnMap = { [MONITOR_ATTRIBUTE]: "name" };
-      const scoped: Record<string, unknown> =
-        DashboardModelQueryInterpolation.applyToQuery(query, [picked], mapped);
+      for (const widget of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        describeSloWidget(widget, variables);
+      }
 
-      expect(scoped["name"]).toBeInstanceOf(Includes);
-      expect((scoped["name"] as Includes).values).toEqual(PICKED_MONITORS);
+      expect(JSON.stringify(config)).toBe(before);
     });
   });
 
-  describe("clearing the selection", () => {
-    /*
-     * The failure this prevents: the popover reads "All" the instant the
-     * last pick is removed, so anything still filtered at that moment is
-     * filtered behind a control that says it is not. A stored filter on the
-     * variable's own key is therefore dropped, not merely left alone —
-     * while every other attribute on the widget is left exactly as the
-     * reader set it.
-     */
-    test("removes a stored monitorName filter and keeps the reader's other attributes", () => {
+  describe("moving and clearing the selection", () => {
+    test("picking a different SLO replaces the scope rather than adding to it", () => {
       const config: DashboardViewConfig = getConfig();
-      const widget: DashboardBaseComponent = widgetsWithMetricQuery(
+      const widget: DashboardBaseComponent = metricWidgets(
         config,
       )[0] as DashboardBaseComponent;
-      const storedQuery: MetricQueryConfigData = withStoredAttributes(
+      const stored: MetricQueryConfigData = withStoredAttributes(
         queryConfigsOf(widget)[0] as MetricQueryConfigData,
         {
-          [MONITOR_ATTRIBUTE]: "api-gateway",
-          [UNRELATED_ATTRIBUTE]: "us-west",
+          [SLO_NAME_ATTRIBUTE]: OTHER_SLO,
+          [UNRELATED_ATTRIBUTE]: "payments",
         },
       );
 
-      const cleared: MetricQueryConfigData =
-        DashboardVariableInterpolation.applyToQueryConfig(storedQuery, [
-          withSelection(monitorVariable(config), []),
-        ]);
-
-      expect(`${titleOf(widget)}: ${describeAttributes(storedQuery)}`).toBe(
-        `${titleOf(widget)}: ${MONITOR_ATTRIBUTE} = api-gateway; ${UNRELATED_ATTRIBUTE} = us-west`,
-      );
-      expect(`${titleOf(widget)}: ${describeAttributes(cleared)}`).toBe(
-        `${titleOf(widget)}: ${UNRELATED_ATTRIBUTE} = us-west`,
+      expect(
+        describeFilter(
+          attributesOf(
+            DashboardVariableInterpolation.applyToQueryConfig(stored, [
+              picked(sloVariable(config), PICKED_SLO),
+            ]),
+          ),
+        ),
+      ).toBe(
+        `${UNRELATED_ATTRIBUTE} = payments; ${SLO_NAME_ATTRIBUTE} = ${PICKED_SLO}`,
       );
     });
 
     /*
-     * The other direction, so the removal above cannot be mistaken for the
-     * variable simply never writing: re-picking replaces the stale scalar
-     * with the IN predicate rather than leaving both, or ANDing them.
+     * The toolbar reads "All" the instant it is cleared, so anything still
+     * filtered at that moment is filtered behind a control that says it is
+     * not. The variable's own key is dropped; the reader's others are kept.
      */
-    test("re-picking replaces a stale scalar rather than adding to it", () => {
+    test("clearing drops the variable's own key and keeps the reader's attributes", () => {
       const config: DashboardViewConfig = getConfig();
-      const widget: DashboardBaseComponent = widgetsWithMetricQuery(
+      const widget: DashboardBaseComponent = metricWidgets(
         config,
       )[0] as DashboardBaseComponent;
-      const storedQuery: MetricQueryConfigData = withStoredAttributes(
+      const stored: MetricQueryConfigData = withStoredAttributes(
         queryConfigsOf(widget)[0] as MetricQueryConfigData,
         {
-          [MONITOR_ATTRIBUTE]: "some-other-monitor",
-          [UNRELATED_ATTRIBUTE]: "us-west",
+          [SLO_NAME_ATTRIBUTE]: PICKED_SLO,
+          [UNRELATED_ATTRIBUTE]: "payments",
         },
       );
 
-      const scoped: MetricQueryConfigData =
-        DashboardVariableInterpolation.applyToQueryConfig(storedQuery, [
-          withSelection(monitorVariable(config), PICKED_MONITORS),
-        ]);
+      expect(
+        describeFilter(
+          attributesOf(
+            DashboardVariableInterpolation.applyToQueryConfig(stored, [
+              picked(sloVariable(config), ""),
+            ]),
+          ),
+        ),
+      ).toBe(`${UNRELATED_ATTRIBUTE} = payments`);
+    });
 
-      expect(`${titleOf(widget)}: ${describeAttributes(scoped)}`).toBe(
-        `${titleOf(widget)}: ${EXPECTED_PREDICATE}; ${UNRELATED_ATTRIBUTE} = us-west`,
+    test("clearing removes a stale name filter from the SLO List", () => {
+      const cleared: Record<string, unknown> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          { ...sloListBaseQuery(), name: OTHER_SLO },
+          [picked(sloVariable(getConfig()), "")],
+          SLO_LIST_ATTRIBUTE_TO_COLUMN,
+        );
+
+      expect(describeFilter(cleared)).toBe(
+        "isArchived = false; projectId = project-1",
       );
+    });
+  });
+
+  describe("variables the reader adds later", () => {
+    /*
+     * A second Telemetry Attribute variable (say, a team label) still filters
+     * the metric charts — that is what it is for — but it must neither move
+     * the SLO widgets off the SLO the SLO variable names, nor write a filter
+     * onto the SLO List, which has no column for it.
+     */
+    test("an unrelated attribute variable neither redirects the SLO widgets nor filters the SLO List", () => {
+      const config: DashboardViewConfig = getConfig();
+      const team: DashboardVariable = {
+        id: "team-variable",
+        name: "team",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: UNRELATED_ATTRIBUTE,
+        isMultiSelect: false,
+        selectedValue: "payments",
+      };
+      const variables: Array<DashboardVariable> = [
+        picked(sloVariable(config), PICKED_SLO),
+        team,
+      ];
+
+      for (const widget of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        expect(describeSloWidget(widget, variables)).toBe(
+          `${titleOf(widget)}: ${SloWidgetSourceState.FollowsSelection} ${PICKED_SLO}`,
+        );
+      }
+
+      expect(
+        describeFilter(
+          DashboardModelQueryInterpolation.applyToQuery(
+            sloListBaseQuery(),
+            [team],
+            SLO_LIST_ATTRIBUTE_TO_COLUMN,
+          ),
+        ),
+      ).toBe("isArchived = false; projectId = project-1");
+    });
+  });
+
+  describe("why the template ships a single-select", () => {
+    /*
+     * If a reader switches the variable to multi-select, the metric charts
+     * compare the picks — and the one-SLO widgets, which cannot, ask for a
+     * single pick instead of guessing. Pinned so that trade-off stays visible.
+     */
+    test("a multi-pick compares on the charts and leaves the SLO widgets asking for one", () => {
+      const config: DashboardViewConfig = getConfig();
+      const multi: DashboardVariable = {
+        ...sloVariable(config),
+        isMultiSelect: true,
+        selectedValues: [PICKED_SLO, OTHER_SLO],
+      };
+
+      for (const widget of metricWidgets(config)) {
+        expect(describeMetricWidget(widget, [multi])).toBe(
+          `${titleOf(widget)}: ${SLO_NAME_ATTRIBUTE} IN (${PICKED_SLO}, ${OTHER_SLO})`,
+        );
+      }
+
+      for (const widget of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        expect(describeSloWidget(widget, [multi])).toBe(
+          `${titleOf(widget)}: ${SloWidgetSourceState.MultipleSelection}`,
+        );
+      }
     });
   });
 });

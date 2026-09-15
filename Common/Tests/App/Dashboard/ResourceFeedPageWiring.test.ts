@@ -112,6 +112,13 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     pagesDirectory: "Service",
     routesFile: "ServiceRoutes.tsx",
   },
+  {
+    product: "SLO",
+    pageMapKey: "SLO_VIEW_FEED",
+    urlPrefix: "slos",
+    pagesDirectory: "Slo",
+    routesFile: "SloRoutes.tsx",
+  },
 ];
 
 const MODEL_ID: ObjectID = ObjectID.generate();
@@ -122,7 +129,7 @@ function read(...segments: Array<string>): string {
 
 describe("Resource feed pages", () => {
   test("every product that grew a feed is covered here", () => {
-    expect(FEED_PAGES.length).toBe(10);
+    expect(FEED_PAGES.length).toBe(11);
   });
 
   test.each(FEED_PAGES)(

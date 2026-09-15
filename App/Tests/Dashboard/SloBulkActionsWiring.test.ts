@@ -6,16 +6,20 @@ import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
+import {
+  SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
+} from "../../FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
 
 /*
- * Bulk "Add Labels" / "Remove Labels" / "Add Owner" / "Remove Owner" on the SLO
- * tables is entirely wiring: a hook call, a prop on ModelTable, and a `{modals}`
- * rendered as a sibling. The App suite runs in a plain Node environment with no
- * renderer, so every way of getting it wrong is silent. Drop the prop and the
- * table still renders, with checkboxes that select rows and then offer nothing.
- * Drop the `{modals}` and the buttons appear, are clickable, and open a modal
- * that was never mounted. Neither fails to compile, and neither fails anywhere
- * else in this repo.
+ * Bulk "Add Labels" / "Remove Labels" / "Add Owner" / "Remove Owner" and
+ * "Archive" / "Unarchive" on the SLO tables is entirely wiring: a hook call, a
+ * prop on ModelTable, and a `{modals}` rendered as a sibling. The App suite runs
+ * in a plain Node environment with no renderer, so every way of getting it
+ * wrong is silent. Drop the prop and the table still renders, with checkboxes
+ * that select rows and then offer nothing. Drop the `{modals}` and the buttons
+ * appear, are clickable, and open a modal that was never mounted. Neither fails
+ * to compile, and neither fails anywhere else in this repo.
  *
  * So these read the sources and assert the exact expressions, the same way
  * RecommendationPageWiring.test.ts pins the recommendation pages. Sources are
@@ -25,9 +29,9 @@ import TableColumnType from "Common/Types/Database/TableColumnType";
  * fail the test checking it is gone.
  *
  * The last describe walks the dashboard tree rather than naming files, so a
- * third SLO table added later fails here until it is wired too. It matches raw
- * text with three regexes rather than parsing JSX: an earlier revision of this
- * file carried a hand-rolled tag scanner that ran on the comment-stripped copy,
+ * fourth SLO table added later fails here until it is wired too. It matches raw
+ * text with regexes rather than parsing JSX: an earlier revision of this file
+ * carried a hand-rolled tag scanner that ran on the comment-stripped copy,
  * where a `videoLink={URL.fromString("https://...")}` prop leaves an
  * unterminated quote and the scan slides past the element it was reading.
  */
@@ -47,12 +51,19 @@ const HOOK_MODULE: Array<string> = [
   "useSloBulkActions.tsx",
 ];
 const SLOS_PAGE: Array<string> = ["Pages", "Slo", "Slos.tsx"];
+const ARCHIVED_SLOS_PAGE: Array<string> = ["Pages", "Slo", "Archived.tsx"];
 const MONITOR_SLOS_PAGE: Array<string> = [
   "Pages",
   "Monitor",
   "View",
   "Slos.tsx",
 ];
+
+/*
+ * `unarchiveBulkActions` contains `archiveBulkActions`, so a plain substring
+ * check cannot tell a table that unarchives from one that archives.
+ */
+const ARCHIVE_ACTIONS_NAME: RegExp = /\barchiveBulkActions\b/;
 
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
@@ -85,7 +96,10 @@ function readCode(...relativeParts: Array<string>): string {
 const HOOK_CODE: string = readCode(...HOOK_MODULE);
 
 describe("the shared hook module hands each bulk-action hook what it needs", () => {
-  test("it imports both hooks, and the action type they return", () => {
+  test("it imports all three hooks, the action type they return, and the SLO archive copy", () => {
+    expect(HOOK_CODE).toContain(
+      'import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";',
+    );
     expect(HOOK_CODE).toContain(
       'import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";',
     );
@@ -94,6 +108,11 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
     );
     expect(HOOK_CODE).toContain(
       'import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";',
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        'import { SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, } from "./SloArchiveCopy";',
+      ),
     );
     expect(HOOK_CODE).toContain(
       "bulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;",
@@ -123,6 +142,22 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
     expect(HOOK_CODE).not.toContain('resourceIdField: "');
   });
 
+  test("the archive hook gets the SLO model, the SLO's own names, and the SLO's own copy", () => {
+    /*
+     * The generic defaults say archived resources "will keep collecting
+     * telemetry" - the opposite of an archived SLO, which stops being
+     * evaluated. Without the copy, every SLO table would say so.
+     */
+    expect(HOOK_CODE).toContain(
+      squash(
+        'useBulkArchiveActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, singularName: "SLO", pluralName: "SLOs", archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, })',
+      ),
+    );
+
+    // Through the shared copy module, not a second spelling of it here.
+    expect(HOOK_CODE).not.toContain('archiveConfirmMessage: "');
+  });
+
   test("it returns both hooks' actions and mounts both modal trees", () => {
     /*
      * Returning one set is the failure that looks most like it works: four
@@ -136,6 +171,43 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
 
     expect(modals).toContain("{labelBulkActionModals}");
     expect(modals).toContain("{ownerBulkActionModals}");
+  });
+
+  test("archive and unarchive are handed back on their own, never folded into bulkActions", () => {
+    /*
+     * Which one a table offers depends on which list it is - the live list
+     * archives, the Archived page unarchives, the monitor's tab does neither -
+     * so folding either into `bulkActions` would put it on every table.
+     */
+    expect(HOOK_CODE).toContain(
+      "archiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;",
+    );
+    expect(HOOK_CODE).toContain(
+      "unarchiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;",
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        "archiveBulkActions: archiveBulkActions, unarchiveBulkActions: unarchiveBulkActions,",
+      ),
+    );
+  });
+});
+
+describe("the copy the SLO archive actions confirm with", () => {
+  test("archiving says the SLOs stop being evaluated and their open outputs are resolved", () => {
+    expect(SLO_BULK_ARCHIVE_CONFIRM_MESSAGE).toContain("not evaluated");
+    expect(SLO_BULK_ARCHIVE_CONFIRM_MESSAGE).toContain("resolved");
+    expect(SLO_BULK_ARCHIVE_CONFIRM_MESSAGE).toContain("Archived page");
+  });
+
+  test("unarchiving says evaluation resumes and a disabled SLO stays disabled", () => {
+    expect(SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE).toContain("evaluated again");
+    expect(SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE).toContain("stays disabled");
+  });
+
+  test("neither promises that telemetry keeps flowing", () => {
+    expect(SLO_BULK_ARCHIVE_CONFIRM_MESSAGE).not.toContain("telemetry");
+    expect(SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE).not.toContain("telemetry");
   });
 });
 
@@ -212,6 +284,16 @@ describe("SLO_OWNER_RESOURCE_ID_FIELD names a real column on both owner tables",
       "labels",
     );
   });
+
+  test("and the archive half has its column", () => {
+    /*
+     * useBulkArchiveActions writes `{ isArchived }` by name; on a model
+     * without the column the update would be accepted and archive nothing.
+     */
+    expect(new ServiceLevelObjective().getTableColumns().columns).toContain(
+      "isArchived",
+    );
+  });
 });
 
 describe("the SLOs page does not own the hook", () => {
@@ -231,21 +313,36 @@ describe("the SLOs page does not own the hook", () => {
   });
 });
 
-type ConsumerCase = [string, Array<string>, string];
+// [label, path, import specifier, hook destructuring, buttons prop]
+type ConsumerCase = [string, Array<string>, string, string, string];
 
 const CONSUMER_CASES: Array<ConsumerCase> = [
-  ["Pages/Slo/Slos.tsx", SLOS_PAGE, "../../Components/Slo/useSloBulkActions"],
+  [
+    "Pages/Slo/Slos.tsx",
+    SLOS_PAGE,
+    "../../Components/Slo/useSloBulkActions",
+    "const { bulkActions, archiveBulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+    "bulkActions={{ buttons: [...bulkActions, ...archiveBulkActions], }}",
+  ],
   [
     "Pages/Monitor/View/Slos.tsx",
     MONITOR_SLOS_PAGE,
     "../../../Components/Slo/useSloBulkActions",
+    "const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+    "bulkActions={{ buttons: [...bulkActions], }}",
   ],
 ];
 
-describe("both SLO tables consume the shared hook", () => {
+describe("both live SLO tables consume the shared hook", () => {
   test.each(CONSUMER_CASES)(
     "%s calls it, passes the buttons, and renders the modals",
-    (_label: string, relativeParts: Array<string>, specifier: string) => {
+    (
+      _label: string,
+      relativeParts: Array<string>,
+      specifier: string,
+      destructuring: string,
+      buttons: string,
+    ) => {
       const code: string = readCode(...relativeParts);
 
       expect(code).toContain(
@@ -253,14 +350,8 @@ describe("both SLO tables consume the shared hook", () => {
           `import useSloBulkActions, { SLO_OWNER_RESOURCE_ID_FIELD, SloBulkActionsResult, } from "${specifier}";`,
         ),
       );
-      expect(code).toContain(
-        squash(
-          "const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
-        ),
-      );
-      expect(code).toContain(
-        squash("bulkActions={{ buttons: [...bulkActions], }}"),
-      );
+      expect(code).toContain(squash(destructuring));
+      expect(code).toContain(squash(buttons));
 
       /*
        * A sibling of the table, not a child of it: ModelTable renders no
@@ -276,12 +367,13 @@ describe("both SLO tables consume the shared hook", () => {
        */
       expect(code).not.toContain("useBulkLabelActions");
       expect(code).not.toContain("useBulkOwnerActions");
+      expect(code).not.toContain("useBulkArchiveActions");
     },
   );
 
   test.each(CONSUMER_CASES)(
     "%s shows the owners its Add Owner action writes",
-    (_label: string, relativeParts: Array<string>, _specifier: string) => {
+    (_label: string, relativeParts: Array<string>) => {
       const code: string = readCode(...relativeParts);
 
       /*
@@ -289,10 +381,13 @@ describe("both SLO tables consume the shared hook", () => {
        * from a no-op: the progress modal closes and every row looks the same.
        * The column has to read through the SAME foreign key the action writes,
        * or the two disagree about which junction rows belong to which SLO.
+       *
+       * Checked as a prefix of the call: the SLOs list also hands the hook its
+       * facet chips, which follow these three keys.
        */
       expect(code).toContain(
         squash(
-          "useResourceOwners<ServiceLevelObjective>({ ownerUserModelType: ServiceLevelObjectiveOwnerUser, ownerTeamModelType: ServiceLevelObjectiveOwnerTeam, resourceIdField: SLO_OWNER_RESOURCE_ID_FIELD, })",
+          "useResourceOwners<ServiceLevelObjective>({ ownerUserModelType: ServiceLevelObjectiveOwnerUser, ownerTeamModelType: ServiceLevelObjectiveOwnerTeam, resourceIdField: SLO_OWNER_RESOURCE_ID_FIELD,",
         ),
       );
       expect(code).toContain(
@@ -308,14 +403,53 @@ describe("both SLO tables consume the shared hook", () => {
        * The owners are fetched in one query for the page of rows the table just
        * loaded, so the hook has to be handed that page. Without onFetchSuccess
        * it is never told any rows exist and every cell renders empty forever.
+       * Checked as the first statement of the callback: the SLOs list also
+       * refreshes its summary strip from there.
        */
       expect(code).toContain(
         squash(
-          "onFetchSuccess={(data: Array<ServiceLevelObjective>) => { onResourcesFetched(data); }}",
+          "onFetchSuccess={(data: Array<ServiceLevelObjective>) => { onResourcesFetched(data);",
         ),
       );
     },
   );
+});
+
+describe("each SLO table offers the archive action that fits its list", () => {
+  test("the SLO list archives, and never offers Unarchive for rows that are all live", () => {
+    const code: string = readCode(...SLOS_PAGE);
+
+    expect(code).toMatch(ARCHIVE_ACTIONS_NAME);
+    expect(code).not.toContain("unarchiveBulkActions");
+  });
+
+  test("the monitor's SLOs tab offers neither - an SLO is retired from the SLO list or its Settings", () => {
+    const code: string = readCode(...MONITOR_SLOS_PAGE);
+
+    expect(code).not.toMatch(ARCHIVE_ACTIONS_NAME);
+    expect(code).not.toContain("unarchiveBulkActions");
+  });
+
+  test("the Archived page restores through the shared hook, and only restores", () => {
+    const code: string = readCode(...ARCHIVED_SLOS_PAGE);
+
+    expect(code).toContain(
+      squash(
+        'import useSloBulkActions, { SloBulkActionsResult, } from "../../Components/Slo/useSloBulkActions";',
+      ),
+    );
+    expect(code).toContain(
+      squash(
+        "const { unarchiveBulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+      ),
+    );
+    expect(code).toContain(
+      squash("bulkActions={{ buttons: [...unarchiveBulkActions], }}"),
+    );
+    expect(code).toContain("/> {modals}");
+    expect(code).not.toMatch(ARCHIVE_ACTIONS_NAME);
+    expect(code).not.toContain("useBulkArchiveActions");
+  });
 });
 
 /*
@@ -359,8 +493,8 @@ describe("the monitor's SLOs tab shows the labels it can now edit", () => {
 });
 
 /*
- * Everything above names the two files by hand. This sweeps the dashboard for
- * ModelTables over ServiceLevelObjective instead, so the day a third one is
+ * Everything above names the files by hand. This sweeps the dashboard for
+ * ModelTables over ServiceLevelObjective instead, so the day another one is
  * added — an incident's SLOs tab, a team's — it fails here until it is wired.
  */
 
@@ -410,10 +544,13 @@ describe("every ModelTable over ServiceLevelObjective offers the bulk actions", 
     /*
      * A guard on the sweep itself: the checks below run per matched file, so a
      * pattern that quietly stopped matching would pass by examining nothing.
-     * Named files rather than a count, because a third table is meant to be
+     * Named files rather than a count, because another table is meant to be
      * checked here, not rejected.
      */
     expect(SLO_TABLE_FILES).toContain(path.join("Pages", "Slo", "Slos.tsx"));
+    expect(SLO_TABLE_FILES).toContain(
+      path.join("Pages", "Slo", "Archived.tsx"),
+    );
     expect(SLO_TABLE_FILES).toContain(
       path.join("Pages", "Monitor", "View", "Slos.tsx"),
     );
@@ -431,5 +568,17 @@ describe("every ModelTable over ServiceLevelObjective offers the bulk actions", 
     );
 
     expect(unwired).toEqual([]);
+  });
+
+  test("none of them builds archive actions itself, so none can lose the SLO's archive copy", () => {
+    const selfBuilt: Array<string> = SLO_TABLE_FILES.filter(
+      (relativePath: string): boolean => {
+        return readCodeAt(path.join(DASHBOARD_SRC, relativePath)).includes(
+          "useBulkArchiveActions",
+        );
+      },
+    );
+
+    expect(selfBuilt).toEqual([]);
   });
 });

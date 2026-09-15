@@ -2277,7 +2277,7 @@ const KubernetesClusterOverview: FunctionComponent<
           type={AlertBannerType.Danger}
           className="mb-5"
         >
-          <div className="flex gap-3 mt-1">
+          <div className="flex flex-wrap gap-2 pt-1">
             {pressureBadges.map((badge: { count: number; label: string }) => {
               return (
                 <StatusBadge

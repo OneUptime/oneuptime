@@ -18,10 +18,20 @@ import { describe, expect, it } from "@jest/globals";
  * the rule type it is registered under, by name.
  */
 
+/*
+ * Monitor rules that re-sync one status page or SLO instead of walking
+ * resources. Listed by hand rather than read off the registry, so the
+ * registry's own classification is what gets tested.
+ */
+const SYNC_RULE_TYPES: Array<RuleRunType> = [
+  RuleRunType.StatusPageMonitorRule,
+  RuleRunType.ServiceLevelObjectiveMonitorRule,
+];
+
 const RESOURCE_RULE_TYPES: Array<RuleRunType> = Object.values(
   RuleRunType,
 ).filter((ruleType: RuleRunType): boolean => {
-  return ruleType !== RuleRunType.StatusPageMonitorRule;
+  return !SYNC_RULE_TYPES.includes(ruleType);
 });
 
 function resourceName(ruleType: RuleRunType): string {
@@ -130,4 +140,34 @@ describe("RuleRunRegistry", () => {
       RuleRunRegistry.getDefinition(RuleRunType.StatusPageMonitorRule),
     ).toBeNull();
   });
+
+  it("has no definition for an SLO monitor rule, which re-syncs its SLO instead", () => {
+    expect(
+      RuleRunRegistry.getDefinition(
+        RuleRunType.ServiceLevelObjectiveMonitorRule,
+      ),
+    ).toBeNull();
+  });
+
+  it("classifies exactly the status page and SLO monitor rules as self-syncing", () => {
+    for (const ruleType of Object.values(RuleRunType)) {
+      expect({
+        ruleType: ruleType,
+        isSync: RuleRunRegistry.isSyncRuleRunType(ruleType),
+      }).toEqual({
+        ruleType: ruleType,
+        isSync: SYNC_RULE_TYPES.includes(ruleType),
+      });
+    }
+  });
+
+  it.each(SYNC_RULE_TYPES)(
+    "%s runs a monitor sync rather than a resource walk",
+    (ruleType: RuleRunType) => {
+      expect([
+        RuleRunAction.SyncStatusPageMonitors,
+        RuleRunAction.SyncSloMonitors,
+      ]).toContain(RuleRunTypeUtil.getAction(ruleType));
+    },
+  );
 });

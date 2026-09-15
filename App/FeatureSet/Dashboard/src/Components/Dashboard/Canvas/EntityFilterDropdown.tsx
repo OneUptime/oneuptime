@@ -14,6 +14,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -39,7 +40,44 @@ interface EntityModelDef<T extends BaseModel> {
   modelType: ModelTypeOf<T>;
   sortField: keyof T;
   sortOrder: SortOrder;
+  /*
+   * Narrows what can be PICKED for a new selection, on top of the project
+   * scope - e.g. archived SLOs are retired and must not be offered for a new
+   * widget or variable. An item that is already selected is still shown (see
+   * the load below), labelled with `unpickableLabelSuffix`.
+   */
+  pickableQuery?: Query<T> | undefined;
+  unpickableLabelSuffix?: string | undefined;
 }
+
+type ToDropdownOptionFunction = (item: BaseModel) => DropdownOption;
+
+const toDropdownOption: ToDropdownOptionFunction = (
+  item: BaseModel,
+): DropdownOption => {
+  return {
+    value: ((item as unknown as { _id: string })._id as string) || "",
+    label: ((item as unknown as { name: string }).name as string) || "Unnamed",
+  };
+};
+
+type GetSelectedIdsFunction = (
+  value: string | Array<string> | undefined,
+) => Array<string>;
+
+const getSelectedIds: GetSelectedIdsFunction = (
+  value: string | Array<string> | undefined,
+): Array<string> => {
+  const ids: Array<string> = Array.isArray(value)
+    ? value
+    : value
+      ? [value]
+      : [];
+
+  return ids.filter((id: string): boolean => {
+    return typeof id === "string" && id.length > 0;
+  });
+};
 
 function getEntityModelDef(
   entityFilterModelType: EntityFilterModelType,
@@ -86,6 +124,13 @@ function getEntityModelDef(
         modelType: ServiceLevelObjective as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        /*
+         * An archived SLO is retired - not evaluated, its numbers frozen - so
+         * it is not offered for a new widget or dashboard variable. A widget
+         * that already points at one keeps loading it by id.
+         */
+        pickableQuery: { isArchived: false } as Query<BaseModel>,
+        unpickableLabelSuffix: " (archived)",
       };
     case EntityFilterModelType.Label:
       return {
@@ -187,7 +232,10 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
         const listResult: ListResult<BaseModel> =
           await ModelAPI.getList<BaseModel>({
             modelType: def.modelType,
-            query: { projectId: projectId } as Query<BaseModel>,
+            query: {
+              ...(def.pickableQuery || {}),
+              projectId: projectId,
+            } as Query<BaseModel>,
             limit: 1000,
             skip: 0,
             select: { _id: true, name: true } as Record<string, true>,
@@ -197,16 +245,72 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
             >,
           });
 
-        const newOptions: Array<DropdownOption> = listResult.data.map(
-          (item: BaseModel) => {
-            return {
-              value: ((item as unknown as { _id: string })._id as string) || "",
-              label:
-                ((item as unknown as { name: string }).name as string) ||
-                "Unnamed",
-            };
-          },
-        );
+        const newOptions: Array<DropdownOption> =
+          listResult.data.map(toDropdownOption);
+
+        /*
+         * A selection made before its item stopped being pickable (a widget
+         * pointing at an SLO that has since been archived) is not in the list
+         * above. Left out, the dropdown would render as if nothing were chosen
+         * while the widget keeps using the item - and the next multi-select
+         * edit would silently drop it. So those items are fetched by id and
+         * shown, marked, for the user to keep or remove on purpose.
+         */
+        if (def.pickableQuery) {
+          /*
+           * Only well-formed ids are looked up: a saved value that is not one
+           * would make the server reject the whole lookup and cost the real
+           * archived selections their labels too.
+           */
+          const unlistedSelectedIds: Array<string> = getSelectedIds(
+            props.value,
+          ).filter((id: string): boolean => {
+            return (
+              ObjectID.isValidUUID(id) &&
+              !newOptions.some((option: DropdownOption): boolean => {
+                return option.value === id;
+              })
+            );
+          });
+
+          if (unlistedSelectedIds.length > 0) {
+            try {
+              const selectedResult: ListResult<BaseModel> =
+                await ModelAPI.getList<BaseModel>({
+                  modelType: def.modelType,
+                  query: {
+                    projectId: projectId,
+                    _id: new Includes(
+                      unlistedSelectedIds.map((id: string): ObjectID => {
+                        return new ObjectID(id);
+                      }),
+                    ),
+                  } as Query<BaseModel>,
+                  limit: unlistedSelectedIds.length,
+                  skip: 0,
+                  select: { _id: true, name: true } as Record<string, true>,
+                  sort: { [def.sortField]: def.sortOrder } as Record<
+                    string,
+                    SortOrder
+                  >,
+                });
+
+              for (const item of selectedResult.data) {
+                const option: DropdownOption = toDropdownOption(item);
+
+                newOptions.push({
+                  value: option.value,
+                  label: `${option.label}${def.unpickableLabelSuffix || ""}`,
+                });
+              }
+            } catch {
+              /*
+               * This lookup only labels a stale selection. Failing it must not
+               * take the pickable list down with it.
+               */
+            }
+          }
+        }
 
         setOptions(newOptions);
         setError(null);

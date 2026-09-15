@@ -1,5 +1,8 @@
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServiceLevelObjectiveMonitorRule from "../../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import StatusPageMonitorRule from "../../../../../Models/DatabaseModels/StatusPageMonitorRule";
+import ServiceLevelObjectiveMonitorRuleEngineService from "../../../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
+import ServiceLevelObjectiveMonitorRuleService from "../../../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService from "../../../../../Server/Services/StatusPageMonitorRuleEngineService";
 import StatusPageMonitorRuleService from "../../../../../Server/Services/StatusPageMonitorRuleService";
 import {
@@ -513,6 +516,160 @@ describe("RuleRunner.runPass", () => {
         runPass({ ruleType: RuleRunType.StatusPageMonitorRule }),
       ).rejects.toThrow("This rule is disabled.");
       expect(disabled.sync).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * SLO monitor rules are self-syncing like status page monitor rules, but an
+   * SLO's monitors are the union of every enabled rule of that SLO, so the
+   * run hands the engine the rule's SLO - read off the project-pinned rule,
+   * never off the request - and reports attach/detach counts in one pass.
+   */
+  describe("SLO monitor rules", () => {
+    const SLO_ID: ObjectID = new ObjectID(
+      "55555555-5555-4555-8555-555555555555",
+    );
+
+    interface SloRuleMocks {
+      findOneBy: jest.SpyInstance;
+      sync: jest.SpyInstance;
+      statusPageSync: jest.SpyInstance;
+      getDefinition: jest.SpyInstance;
+    }
+
+    function mockSloRule(
+      rule: Partial<ServiceLevelObjectiveMonitorRule> | null,
+    ): SloRuleMocks {
+      const findOneBy: jest.SpyInstance = jest
+        .spyOn(ServiceLevelObjectiveMonitorRuleService, "findOneBy")
+        .mockResolvedValue(rule as never);
+      const sync: jest.SpyInstance = jest
+        .spyOn(
+          ServiceLevelObjectiveMonitorRuleEngineService,
+          "syncMonitorsForSlo",
+        )
+        .mockResolvedValue({
+          monitorIdsAdded: ["a", "b", "c"],
+          monitorIdsRemoved: ["d"],
+        } as never);
+      const statusPageSync: jest.SpyInstance = jest
+        .spyOn(StatusPageMonitorRuleEngineService, "syncResourcesForRule")
+        .mockResolvedValue({} as never);
+      const getDefinition: jest.SpyInstance = jest.spyOn(
+        RuleRunRegistry,
+        "getDefinition",
+      );
+
+      return {
+        findOneBy: findOneBy,
+        sync: sync,
+        statusPageSync: statusPageSync,
+        getDefinition: getDefinition,
+      };
+    }
+
+    it("re-syncs the rule's SLO and reports what changed in a single pass", async () => {
+      const mocks: SloRuleMocks = mockSloRule({
+        isEnabled: true,
+        serviceLevelObjectiveId: SLO_ID,
+      });
+
+      const result: RuleRunPassResult = await runPass({
+        ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule,
+        cursor: resourceId(5),
+      });
+
+      // Attach/detach counts only; there is nothing to walk or refresh.
+      expect(result).toEqual({
+        resourcesEvaluated: 0,
+        resourcesMatched: 0,
+        resourcesUpdated: 0,
+        itemsAdded: 3,
+        itemsRemoved: 1,
+        resourcesFailed: 0,
+        nextCursor: null,
+        ownersNotified: false,
+      });
+
+      const args: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = mocks.findOneBy.mock.calls[0]![0] as never;
+
+      expect(String(args.query["_id"])).toBe(RULE_ID.toString());
+      expect(String(args.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(args.select).toMatchObject({
+        isEnabled: true,
+        serviceLevelObjectiveId: true,
+      });
+      expect(args.props).toEqual({ isRoot: true });
+
+      expect(mocks.sync).toHaveBeenCalledTimes(1);
+      expect(
+        String(
+          (
+            mocks.sync.mock.calls[0]![0] as {
+              serviceLevelObjectiveId: ObjectID;
+            }
+          ).serviceLevelObjectiveId,
+        ),
+      ).toBe(SLO_ID.toString());
+
+      // Neither the resource walk nor the status page engine is involved.
+      expect(mocks.getDefinition).not.toHaveBeenCalled();
+      expect(mocks.statusPageSync).not.toHaveBeenCalled();
+    });
+
+    it("reports an SLO already in step as a pass that changed nothing", async () => {
+      const mocks: SloRuleMocks = mockSloRule({
+        isEnabled: true,
+        serviceLevelObjectiveId: SLO_ID,
+      });
+      mocks.sync.mockResolvedValue({
+        monitorIdsAdded: [],
+        monitorIdsRemoved: [],
+      } as never);
+
+      const result: RuleRunPassResult = await runPass({
+        ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule,
+      });
+
+      expect(result).toMatchObject({
+        itemsAdded: 0,
+        itemsRemoved: 0,
+        nextCursor: null,
+      });
+    });
+
+    it("refuses an SLO monitor rule from another project or switched off", async () => {
+      const missing: SloRuleMocks = mockSloRule(null);
+
+      await expect(
+        runPass({ ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule }),
+      ).rejects.toThrow("Rule not found.");
+      expect(missing.sync).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+
+      const disabled: SloRuleMocks = mockSloRule({
+        isEnabled: false,
+        serviceLevelObjectiveId: SLO_ID,
+      });
+
+      await expect(
+        runPass({ ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule }),
+      ).rejects.toThrow("This rule is disabled.");
+      expect(disabled.sync).not.toHaveBeenCalled();
+    });
+
+    it("refuses a rule that names no SLO instead of syncing nothing", async () => {
+      const mocks: SloRuleMocks = mockSloRule({ isEnabled: true });
+
+      await expect(
+        runPass({ ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule }),
+      ).rejects.toThrow("Rule not found.");
+      expect(mocks.sync).not.toHaveBeenCalled();
     });
   });
 });

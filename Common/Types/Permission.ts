@@ -1995,6 +1995,17 @@ enum Permission {
   EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
   ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
 
+  // Service Level Objective Monitor Rule Permissions
+  CreateServiceLevelObjectiveMonitorRule = "CreateServiceLevelObjectiveMonitorRule",
+  DeleteServiceLevelObjectiveMonitorRule = "DeleteServiceLevelObjectiveMonitorRule",
+  EditServiceLevelObjectiveMonitorRule = "EditServiceLevelObjectiveMonitorRule",
+  ReadServiceLevelObjectiveMonitorRule = "ReadServiceLevelObjectiveMonitorRule",
+
+  // Service Level Objective Feed Permissions
+  CreateServiceLevelObjectiveFeed = "CreateServiceLevelObjectiveFeed",
+  EditServiceLevelObjectiveFeed = "EditServiceLevelObjectiveFeed",
+  ReadServiceLevelObjectiveFeed = "ReadServiceLevelObjectiveFeed",
+
   // Service Level Objective Owner User Permissions
   CreateServiceLevelObjectiveOwnerUser = "CreateServiceLevelObjectiveOwnerUser",
   DeleteServiceLevelObjectiveOwnerUser = "DeleteServiceLevelObjectiveOwnerUser",
@@ -15976,6 +15987,77 @@ export class PermissionHelper {
         permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
         title: "Read SLO Burn Rate Rule",
         description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Monitor Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveMonitorRule,
+        title: "Create SLO Monitor Rule",
+        description:
+          "Permission to create SLO Monitor Rules, which attach matching monitors to an SLO, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveMonitorRule,
+        title: "Delete SLO Monitor Rule",
+        description: "Permission to delete SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveMonitorRule,
+        title: "Edit SLO Monitor Rule",
+        description: "Permission to edit SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveMonitorRule,
+        title: "Read SLO Monitor Rule",
+        description: "Permission to read SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Feed Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveFeed,
+        title: "Create SLO Feed",
+        description:
+          "This permission can create the activity feed of a Service Level Objective in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveFeed,
+        title: "Edit SLO Feed",
+        description:
+          "This permission can edit the activity feed of a Service Level Objective in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveFeed,
+        title: "Read SLO Feed",
+        description:
+          "This permission can read the activity feed of a Service Level Objective in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

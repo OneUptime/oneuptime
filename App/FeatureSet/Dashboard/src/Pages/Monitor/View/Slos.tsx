@@ -79,6 +79,12 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           monitors: new Includes([modelId]),
+          /*
+           * Live SLOs only - the same set the SLOs list shows. An archived
+           * SLO is not evaluated, so this monitor's downtime is not spending
+           * its budget; it stays reachable from the SLOs Archived page.
+           */
+          isArchived: false,
         }}
         onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
           onResourcesFetched(data);
