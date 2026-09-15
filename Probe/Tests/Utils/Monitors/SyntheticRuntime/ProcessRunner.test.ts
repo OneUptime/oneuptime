@@ -11,6 +11,7 @@ import ProcessRunner, {
   SyntheticProcessRunnerError,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
 import {
+  MAX_ERROR_INTERNAL_DETAIL_LENGTH,
   SyntheticWorkerStartEnvelope,
   createWorkerFailureEnvelope,
   createWorkerNonce,
@@ -190,6 +191,45 @@ function emitFailure(child: FakeChildProcess, error: unknown): void {
       error,
     }),
   );
+}
+
+/*
+ * Sends a failure envelope with the right nonce but a hand-written error
+ * object, so the only thing under test is that error's shape -- including
+ * shapes createWorkerFailureEnvelope never produces.
+ */
+function emitFailureWithError(
+  child: FakeChildProcess,
+  error: Record<string, unknown>,
+): void {
+  const startEnvelope: SyntheticWorkerStartEnvelope<TestConfig> =
+    startEnvelopeFrom(child);
+  child.emit("message", {
+    ...createWorkerFailureEnvelope({
+      nonce: startEnvelope.nonce,
+      error: new Error("replaced by the hand-written error"),
+    }),
+    error,
+  });
+}
+
+async function captureRunFailure(
+  runner: ProcessRunner,
+): Promise<SyntheticProcessRunnerError> {
+  return runner
+    .run<TestConfig, TestResult>({
+      payload: { monitorId: "monitor-1" },
+      timeoutInMs: 1000,
+      validateResult: isTestResult,
+    })
+    .then(
+      (): never => {
+        throw new Error("Expected the run to fail.");
+      },
+      (caught: SyntheticProcessRunnerError): SyntheticProcessRunnerError => {
+        return caught;
+      },
+    );
 }
 
 function emitExit(
@@ -951,7 +991,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
           child,
           new SyntheticRuntimeFault({
             message: "Synthetic monitor could not start on this probe.",
-            internalDetail: "unused on this side of the fork",
+            internalDetail: "page.goto: Timeout 30000ms exceeded.",
           }),
         );
         emitExit(child, null);
@@ -1027,6 +1067,254 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(error.message).toContain("TypeError: page.clickk is not a function");
     expect(error.message).toContain("ProcessRunner.test.ts");
   });
+
+  /*
+   * The worker's diagnosis of a runtime fault -- which bootstrap step each
+   * attempt reached, and what Playwright said -- is the probe operator's only
+   * account of WHY a check could not start. It crosses the fork beside the
+   * fault's message, so it has to come out of the runner as its own field:
+   * never folded into the message the tenant reads, and never dropped.
+   */
+  const BOOTSTRAP_DIAGNOSIS: string = [
+    "Bootstrap attempt 1/3 failed after 20004 ms of its 20000 ms budget. Reached: page opened, route installed, binding installed, navigation started. Error: page.goto: Timeout 20000ms exceeded.",
+    "Last error: page.goto: Timeout 20000ms exceeded.\n    at https://synthetic-runtime.oneuptime.invalid/3f0c9d",
+  ].join("\n");
+
+  test("carries a runtime fault's internal detail up beside its message and stack", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(41_203);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailure(
+          child,
+          new SyntheticRuntimeFault({
+            message: "Synthetic monitor could not start on this probe.",
+            internalDetail: BOOTSTRAP_DIAGNOSIS,
+          }),
+        );
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error).toBeInstanceOf(SyntheticProcessRunnerError);
+    expect(error.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+    expect(error.internalDetail).toBe(BOOTSTRAP_DIAGNOSIS);
+    // The message and remote stack are exactly what they were without it.
+    expect(error.message).toBe(
+      "Synthetic monitor could not start on this probe.",
+    );
+    expect(error.remoteStack).toContain("SyntheticRuntimeFault");
+    expect(error.remoteStack).not.toContain("Bootstrap attempt");
+    expect(error.message).not.toContain("Bootstrap attempt");
+    expect(error.message).not.toContain("synthetic-runtime.oneuptime.invalid");
+  });
+
+  test("carries the internal detail of a runtime fault that arrived without a stack", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(41_204);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailureWithError(child, {
+          message: "Synthetic monitor could not start on this probe.",
+          kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+          internalDetail: BOOTSTRAP_DIAGNOSIS,
+        });
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+    expect(error.internalDetail).toBe(BOOTSTRAP_DIAGNOSIS);
+    expect(error.remoteStack).toBeUndefined();
+    expect(error.message).toBe(
+      "Synthetic monitor could not start on this probe.",
+    );
+  });
+
+  test("leaves internal detail undefined for an ordinary worker failure, even one carrying the property", async () => {
+    /*
+     * An ordinary worker failure reports through its message, stack and all.
+     * A property that merely happens to be called internalDetail is not a
+     * diagnosis the worker vouched for, and must not surface as one.
+     */
+    const child: FakeChildProcess = new FakeChildProcess(41_205);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailure(
+          child,
+          Object.assign(new Error("TypeError: page.clickk is not a function"), {
+            internalDetail: "not a diagnosis the worker vouched for",
+          }),
+        );
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error.kind).toBeUndefined();
+    expect(error.internalDetail).toBeUndefined();
+    expect(error.remoteStack).toBeUndefined();
+    expect(error.message).toContain("TypeError: page.clickk is not a function");
+    expect(error.message).toContain("ProcessRunner.test.ts");
+    expect(error.message).not.toContain(
+      "not a diagnosis the worker vouched for",
+    );
+  });
+
+  test("leaves internal detail undefined for a runtime fault that has none", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(41_206);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailure(
+          child,
+          new SyntheticRuntimeFault({
+            message: "Synthetic monitor could not start on this probe.",
+          }),
+        );
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+    expect(error.internalDetail).toBeUndefined();
+    expect(error.remoteStack).toContain("SyntheticRuntimeFault");
+    expect(error.message).toBe(
+      "Synthetic monitor could not start on this probe.",
+    );
+  });
+
+  interface MalformedDetailCase {
+    readonly name: string;
+    readonly pid: number;
+    readonly error: Record<string, unknown>;
+  }
+
+  const malformedDetailCases: Array<MalformedDetailCase> = [
+    {
+      name: "internal detail without a kind",
+      pid: 43_101,
+      error: {
+        message: "Synthetic monitor could not start on this probe.",
+        stack: "Error: Synthetic monitor could not start on this probe.",
+        internalDetail: BOOTSTRAP_DIAGNOSIS,
+      },
+    },
+    {
+      name: "a non-string internal detail",
+      pid: 43_102,
+      error: {
+        message: "Synthetic monitor could not start on this probe.",
+        kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+        internalDetail: { callLog: BOOTSTRAP_DIAGNOSIS },
+      },
+    },
+    {
+      name: "an internal detail over the maximum length",
+      pid: 43_103,
+      error: {
+        message: "Synthetic monitor could not start on this probe.",
+        kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+        internalDetail: `${BOOTSTRAP_DIAGNOSIS}${"x".repeat(
+          MAX_ERROR_INTERNAL_DETAIL_LENGTH,
+        )}`,
+      },
+    },
+    {
+      name: "an unknown key beside the internal detail",
+      pid: 43_104,
+      error: {
+        message: "Synthetic monitor could not start on this probe.",
+        kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+        internalDetail: BOOTSTRAP_DIAGNOSIS,
+        callLog: BOOTSTRAP_DIAGNOSIS,
+      },
+    },
+  ];
+
+  test.each(malformedDetailCases)(
+    "treats a failure envelope carrying $name as a protocol violation",
+    async ({ pid, error: forgedError }: MalformedDetailCase) => {
+      /*
+       * The detail is trusted only because the envelope around it passed the
+       * exact-shape check. A malformed one is handled like any other invalid
+       * envelope: the worker's process group is terminated, and nothing it
+       * sent -- fault marker, message or detail -- reaches the caller.
+       */
+      jest.spyOn(process, "getuid").mockReturnValue(501);
+      const child: FakeChildProcess = new FakeChildProcess(pid);
+      const forkSpy: jest.Mock = getForkMock().mockImplementation(() => {
+        return asChildProcess(child);
+      });
+      const signalMock: ProcessGroupSignalMock = mockProcessGroupSignals({
+        child,
+        exitOn: "SIGTERM",
+      });
+      child.onSend = (): void => {
+        global.setImmediate(() => {
+          emitFailureWithError(child, forgedError);
+        });
+      };
+
+      const runner: ProcessRunner = new ProcessRunner({
+        workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+        concurrencyLimit: 1,
+        terminationGraceInMs: 20,
+        killWaitInMs: 20,
+      });
+
+      const error: SyntheticProcessRunnerError =
+        await captureRunFailure(runner);
+
+      expect(error).toBeInstanceOf(SyntheticProcessRunnerError);
+      expect(error.message).toBe(
+        "Synthetic worker sent an invalid result envelope.",
+      );
+      expect(error.kind).toBeUndefined();
+      expect(error.internalDetail).toBeUndefined();
+      expect(error.remoteStack).toBeUndefined();
+      expect(signalMock.signals).toContain("SIGTERM");
+      const options: ForkOptions = forkOptionsAt(forkSpy, 0);
+      expect(fs.existsSync(options.env?.["HOME"] as string)).toBe(false);
+      expect(runner.activeCount).toBe(0);
+    },
+  );
 
   test("keeps the synthetic runtime's own host out of every proxy, configured or not", async () => {
     /*

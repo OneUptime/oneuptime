@@ -233,6 +233,13 @@ export class SyntheticProcessRunnerError extends Error {
    * failure mode unreadable before.
    */
   public readonly remoteStack: string | undefined;
+  /*
+   * The worker's own diagnosis of a `kind` failure: the Playwright error and
+   * how far the runtime got before it stopped. Like remoteStack it belongs in
+   * the probe's logs and never in `message`, but unlike remoteStack it says
+   * why the runtime failed, not merely where the fault was thrown.
+   */
+  public readonly internalDetail: string | undefined;
 
   public constructor(data: {
     message: string;
@@ -240,6 +247,7 @@ export class SyntheticProcessRunnerError extends Error {
     stderr: BoundedOutput;
     kind?: SyntheticRuntimeFaultKind | undefined;
     remoteStack?: string | undefined;
+    internalDetail?: string | undefined;
   }) {
     super(data.message);
     this.name = "SyntheticProcessRunnerError";
@@ -249,6 +257,7 @@ export class SyntheticProcessRunnerError extends Error {
     this.stderrTruncated = data.stderr.isTruncated;
     this.kind = data.kind;
     this.remoteStack = data.remoteStack;
+    this.internalDetail = data.internalDetail;
   }
 }
 
@@ -1015,6 +1024,9 @@ export default class ProcessRunner {
             kind: envelope.error.kind,
             ...(envelope.error.stack
               ? { remoteStack: envelope.error.stack }
+              : {}),
+            ...(envelope.error.internalDetail
+              ? { internalDetail: envelope.error.internalDetail }
               : {}),
           });
         }
@@ -2070,6 +2082,7 @@ export default class ProcessRunner {
     stderr: BoundedOutput;
     kind?: SyntheticRuntimeFaultKind | undefined;
     remoteStack?: string | undefined;
+    internalDetail?: string | undefined;
   }): SyntheticProcessRunnerError {
     return new SyntheticProcessRunnerError(data);
   }

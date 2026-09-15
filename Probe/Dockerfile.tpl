@@ -147,6 +147,23 @@ RUN apt-get update \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app
 
+# Firefox syncs every write to its throwaway, per-check profile, and on slow
+# storage the synthetic runtime's bootstrap waits for those syncs.
+# SyntheticBrowser preloads this library into Firefox
+# (FIREFOX_NO_SYNC_LIBRARY_PATH) so fsync()/fdatasync() return without
+# flushing. Root-owned and read-only: the synthetic worker UIDs must never be
+# able to replace a preloaded library. gcc is already installed above (g++).
+# Probe/Tests/Build/ProbeFirefoxNoSyncLibrary.test.ts pins this step to the path
+# SyntheticBrowser preloads.
+COPY ./Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c /tmp/synthetic-no-sync.c
+RUN mkdir -p /usr/lib/oneuptime-probe \
+    && gcc -shared -fPIC -O2 -Wall -Wextra -Werror \
+        -o /usr/lib/oneuptime-probe/libsynthetic-no-sync.so /tmp/synthetic-no-sync.c \
+    && rm /tmp/synthetic-no-sync.c \
+    && chown -R root:root /usr/lib/oneuptime-probe \
+    && chmod 0755 /usr/lib/oneuptime-probe \
+    && chmod 0644 /usr/lib/oneuptime-probe/libsynthetic-no-sync.so
+
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
