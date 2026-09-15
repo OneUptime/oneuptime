@@ -18,6 +18,7 @@ export default abstract class IO {
 
     this.socketServer = new SocketIO.Server(server, {
       path: RealtimeRoute.toString(),
+      transports: ["websocket"],
     });
 
     if (!Redis.getClient()) {
