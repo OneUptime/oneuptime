@@ -93,6 +93,8 @@ const JSON_FIELD_TYPE_PATTERN: RegExp =
 /* Matches a backticked absolute dashboard path in the markdown docs. */
 const DOC_DASHBOARD_PATH_PATTERN: RegExp =
   /`(\/dashboard\/[^`]*security-events[^`]*)`/g;
+/* Matches a bold span in the markdown docs, capturing its text. */
+const DOC_BOLD_SPAN_PATTERN: RegExp = /\*\*([^*]+)\*\*/g;
 /* Matches `DISABLE_QUEUE_WORKERS=<value>` as an assignment, not in prose. */
 const DISABLE_QUEUE_WORKERS_PATTERN: RegExp =
   /^DISABLE_QUEUE_WORKERS=(\S*)\s*$/m;
@@ -867,10 +869,22 @@ describe("Google SecOps integration docs", () => {
       expect(docsSource).toContain(`**${title}**`);
     }
 
-    // And the rotate action the docs point at is the button's real title.
-    expect(docsSource).toContain("**Update Service Account JSON**");
+    /*
+     * And the rotate action the docs point at is the button's real title.
+     * The retired Google SecOps table called it "Update Service Account
+     * JSON"; the shared table has one rotate action for every provider.
+     */
+    expect(actionButtonsBlock).toContain('title: "Update credentials"');
+    expect(docsSource).toContain("**Update credentials**");
+    expect(docsSource).not.toContain("**Update Service Account JSON**");
   });
 
+  /*
+   * The summary sentence lists the columns in the order the table renders
+   * them, and only those. The retired table had Scope and Region columns;
+   * a summary that still promised them would send the reader to a column
+   * that is not there.
+   */
   test("the docs direct readers to View Error in Actions instead of a table column", () => {
     const columnSummary: string = docsSource
       .slice(docsSource.indexOf("The connections list shows "))
@@ -882,6 +896,202 @@ describe("Google SecOps integration docs", () => {
     expect(columnSummary).toContain("**Actions** column");
     expect(docsSource).not.toContain("**View Full Error**");
     expect(docsSource).not.toContain("The table shows a short preview");
+
+    const columnSentence: string = columnSummary.slice(
+      0,
+      columnSummary.indexOf("When a connection has an error"),
+    );
+    const promisedColumns: Array<string> = Array.from(
+      columnSentence.matchAll(DOC_BOLD_SPAN_PATTERN),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(promisedColumns).toEqual(columnEntries.map(titleOf));
+  });
+
+  /*
+   * Every control, run-detail label and Health state the docs name in bold
+   * is read off the component that renders it, so a renamed button or label
+   * breaks here instead of leaving the docs pointing at something the page
+   * no longer shows. The old page's "Google SecOps Connections" card is the
+   * example: the docs sent readers to it long after the card was gone.
+   */
+  test("the controls, run details and Health states the docs name are the ones that ship", () => {
+    const testModalSource: string = readDashboardSource(
+      "Components",
+      "SecurityEvents",
+      "ConnectionTestModal.tsx",
+    );
+    const diagnosticsSource: string = readDashboardSource(
+      "Components",
+      "SecurityEvents",
+      "SecurityEventConnectionDiagnostics.tsx",
+    );
+    const runDetailsSource: string = readDashboardSource(
+      "Components",
+      "SecurityEvents",
+      "SecurityEventConnectionRunDetails.tsx",
+    );
+    const diagnosticsUtilSource: string = readDashboardSource(
+      "Components",
+      "SecurityEvents",
+      "SecurityEventConnectionDiagnosticsUtil.ts",
+    );
+
+    interface ShippedLabel {
+      label: string;
+      source: string;
+      rendered: string;
+    }
+
+    const shipped: Array<ShippedLabel> = [
+      {
+        label: "Add connection",
+        source: connectionsTableSource,
+        rendered: 'title: "Add connection"',
+      },
+      ...[
+        "View Error",
+        "Test connection",
+        "Run now",
+        "Diagnostics",
+        "Edit",
+      ].map((title: string): ShippedLabel => {
+        return {
+          label: title,
+          source: actionButtonsBlock,
+          rendered: `title: "${title}"`,
+        };
+      }),
+      {
+        label: "Copy Error",
+        source: connectionsTableSource,
+        rendered: 'label="Copy Error"',
+      },
+      {
+        label: "Test before saving",
+        source: connectionFormSource,
+        rendered: 'title: "Test before saving"',
+      },
+      {
+        label: "Test these settings",
+        source: testModalSource,
+        rendered: '"Test these settings"',
+      },
+      {
+        label: `Preview ${googleSecOps.importedRecordName}s`,
+        source: diagnosticsSource,
+        rendered: "title={`Preview ${recordName}s`}",
+      },
+      {
+        label: "Import this time range",
+        source: diagnosticsSource,
+        rendered: 'title="Import this time range"',
+      },
+      {
+        label: "Copy diagnostics",
+        source: runDetailsSource,
+        rendered: 'label="Copy diagnostics"',
+      },
+      {
+        label: "View events in this time range",
+        source: runDetailsSource,
+        rendered: "View events in this time range",
+      },
+      {
+        label: "Requested window (UTC)",
+        source: runDetailsSource,
+        rendered: "Requested window (UTC)",
+      },
+      {
+        label: "Window read by this poll",
+        source: runDetailsSource,
+        rendered: "Window read by this poll",
+      },
+      {
+        label: "Next scheduled poll reads",
+        source: runDetailsSource,
+        rendered: "Next scheduled poll reads",
+      },
+      {
+        label: `Returned by ${googleSecOps.title}`,
+        source: runDetailsSource,
+        rendered: "[`Returned by ${providerTitle}`, result.fetchedCount]",
+      },
+      {
+        label: "Imported into OneUptime",
+        source: runDetailsSource,
+        rendered: '["Imported into OneUptime", result.ingestedCount]',
+      },
+      {
+        label: "Already imported",
+        source: runDetailsSource,
+        rendered: '"Already imported",',
+      },
+      {
+        label: "Rejected",
+        source: runDetailsSource,
+        rendered: '["Rejected", result.rejectedCount]',
+      },
+      {
+        label: "Failed",
+        source: runDetailsSource,
+        rendered: '["Failed", result.failedCount]',
+      },
+      {
+        label: "Provider details",
+        source: runDetailsSource,
+        rendered: ">Provider details</h4>",
+      },
+      {
+        label: "Time basis read",
+        source: diagnosticsUtilSource,
+        rendered: 'basis: "Time basis read"',
+      },
+      {
+        label: "Returned by each pass",
+        source: diagnosticsUtilSource,
+        rendered: 'sourceCounts: "Returned by each pass"',
+      },
+      {
+        label: "Creation lag",
+        source: diagnosticsUtilSource,
+        rendered: 'creationLag: "Creation lag"',
+      },
+      ...[
+        "Last poll succeeded",
+        "Polling, no events imported yet",
+        "No records returned",
+        "Partial import",
+        "Catching up",
+        "Last poll failed",
+        "Poll overdue",
+        "Schedule paused",
+        "Waiting for first poll",
+      ].map((state: string): ShippedLabel => {
+        return {
+          label: state,
+          source: diagnosticsUtilSource,
+          rendered: `"${state}"`,
+        };
+      }),
+    ];
+
+    for (const entry of shipped) {
+      expect({
+        label: entry.label,
+        rendered: entry.source.includes(entry.rendered),
+        documented: docsSource.includes(`**${entry.label}**`),
+      }).toEqual({ label: entry.label, rendered: true, documented: true });
+    }
+
+    // The create flow names the provider the way the picker lists it.
+    expect(docsSource).toContain(
+      `select **Add connection**, choose **${googleSecOps.title}**`,
+    );
+    expect(docsSource).not.toContain("**Google SecOps Connections** card");
+    expect(docsSource).not.toContain("**Scope**");
   });
 
   /*
