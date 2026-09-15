@@ -11,6 +11,9 @@ import {
   SecurityConnectorSettings,
   SecurityEventConnector,
 } from "../../../Server/Utils/SecurityEvent/Connectors/Types";
+import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -1229,5 +1232,523 @@ describe("SecurityEventConnectionService - catalog coverage", () => {
         });
       }).toThrow("must not embed credentials");
     }
+  });
+});
+
+/*
+ * Google SecOps moved into the framework (it had a connection model of its
+ * own until then). What is specific to it at this layer: its service-account
+ * key is a "json" secret, pasted as a multi-line document and stored as
+ * that text, and a connection must round-trip create, update and the
+ * poller's settings read with the text intact. The registry stays mocked:
+ * the key's own rules (client_email, private_key, token_uri) belong to the
+ * connector, which is not what this suite pins.
+ */
+const GOOGLE: SecurityEventConnectorDefinition =
+  getSecurityEventConnectorDefinition(
+    SecurityEventConnectorProvider.GoogleSecOps,
+  )!;
+const GOOGLE_CONFIG: JSONObject = {
+  region: "europe",
+  instanceResourceName:
+    "projects/acme-secops/locations/eu/instances/0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b",
+};
+const GOOGLE_REGIONS: string = (GOOGLE.configFields[0]!.options || [])
+  .map((option: { value: string }): string => {
+    return option.value;
+  })
+  .join(", ");
+
+/*
+ * Shaped like a real Google Cloud key file, pretty-printed the way the
+ * console downloads it and about as long (~2.5 KB): the PEM body is the bulk
+ * of it, and its newlines are escaped inside the JSON string.
+ */
+function serviceAccountKeyText(pemBodyCharacter: string): string {
+  const pemBody: string = (
+    pemBodyCharacter.repeat(1700).match(/.{1,64}/g) || []
+  ).join("\n");
+
+  return JSON.stringify(
+    {
+      type: "service_account",
+      project_id: "acme-secops",
+      private_key_id: "0123456789abcdef0123456789abcdef01234567",
+      private_key: `-----BEGIN PRIVATE KEY-----\n${pemBody}\n-----END PRIVATE KEY-----\n`,
+      client_email: "oneuptime-poller@acme-secops.iam.gserviceaccount.com",
+      client_id: "123456789012345678901",
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url:
+        "https://www.googleapis.com/robot/v1/metadata/x509/oneuptime-poller%40acme-secops.iam.gserviceaccount.com",
+      universe_domain: "googleapis.com",
+    },
+    null,
+    2,
+  );
+}
+
+const KEY_TEXT: string = serviceAccountKeyText("A");
+const ROTATED_KEY_TEXT: string = serviceAccountKeyText("B");
+
+function validateGoogleSecrets(
+  values: JSONObject,
+  requireRequiredFields: boolean = true,
+): void {
+  SecurityEventConnectionServiceType.validateFields({
+    definition: GOOGLE,
+    fields: GOOGLE.secretFields,
+    values,
+    label: "Credentials",
+    requireRequiredFields,
+  });
+}
+
+function googleConnection(
+  overrides: Partial<SecurityEventConnection> = {},
+): SecurityEventConnection {
+  return buildConnection({
+    name: "Google SecOps",
+    provider: SecurityEventConnectorProvider.GoogleSecOps,
+    config: { ...GOOGLE_CONFIG },
+    secrets: JSON.stringify({ serviceAccountJson: KEY_TEXT }),
+    ...overrides,
+  });
+}
+
+function storedGoogleConnection(
+  overrides: Partial<SecurityEventConnection> = {},
+): SecurityEventConnection {
+  return storedConnection({
+    provider: SecurityEventConnectorProvider.GoogleSecOps,
+    config: { ...GOOGLE_CONFIG },
+    secrets: JSON.stringify({ serviceAccountJson: KEY_TEXT }),
+    alertingOnly: true,
+    ...overrides,
+  });
+}
+
+describe("SecurityEventConnectionService.validateFields - json fields", () => {
+  test("the Google SecOps key is declared as a required json secret", () => {
+    expect(GOOGLE.secretFields).toEqual([
+      expect.objectContaining({
+        key: "serviceAccountJson",
+        title: "Service account JSON",
+        type: "json",
+        required: true,
+      }),
+    ]);
+  });
+
+  test.each<[string, string]>([
+    ["a pretty-printed key file", KEY_TEXT],
+    [
+      "a single-line object",
+      '{"client_email":"a@b.iam.gserviceaccount.com","private_key":"k"}',
+    ],
+    ["an object with surrounding whitespace", '  \n{"client_email":"a"}\n\t'],
+    ["an empty object (the connector names what is missing)", "{}"],
+  ])("accepts %s", (_label: string, text: string) => {
+    expect(() => {
+      validateGoogleSecrets({ serviceAccountJson: text });
+    }).not.toThrow();
+  });
+
+  test.each<[string, string]>([
+    ["an array of objects", '[{"client_email":"a"}]'],
+    ["an empty array", "[]"],
+    ["a number", "42"],
+    ["a JSON string holding an object", JSON.stringify('{"client_email":"a"}')],
+    ["null written as text", "null"],
+    ["true written as text", "true"],
+    ["text that is not JSON", "not json"],
+    ["a truncated paste", KEY_TEXT.slice(0, 200)],
+    ["an object with a trailing comma", '{"client_email":"a",}'],
+  ])("rejects %s as not a JSON object", (_label: string, text: string) => {
+    expect(() => {
+      validateGoogleSecrets({ serviceAccountJson: text });
+    }).toThrow(BadDataException);
+    expect(() => {
+      validateGoogleSecrets({ serviceAccountJson: text });
+    }).toThrow("Service account JSON must be a JSON object.");
+  });
+
+  test.each([42, 0, true, false])(
+    "rejects the non-text value %j as not a JSON object",
+    (value: unknown) => {
+      expect(() => {
+        validateGoogleSecrets({ serviceAccountJson: value as never });
+      }).toThrow("Service account JSON must be a JSON object.");
+    },
+  );
+
+  test.each([
+    { client_email: "a", private_key: "k" },
+    {},
+    [{ client_email: "a" }],
+    [],
+  ])(
+    "refuses the already-parsed document %j and says to send the text",
+    (value: unknown) => {
+      expect(() => {
+        validateGoogleSecrets({ serviceAccountJson: value as never });
+      }).toThrow(
+        "Service account JSON must be sent as JSON text (a string), not as a parsed object.",
+      );
+    },
+  );
+
+  test.each([undefined, null, "", "   ", "\n\t"])(
+    "a key left as %j is required when required fields are enforced, and skipped otherwise",
+    (value: unknown) => {
+      expect(() => {
+        validateGoogleSecrets({ serviceAccountJson: value as never });
+      }).toThrow("Service account JSON is required for Google SecOps.");
+      expect(() => {
+        validateGoogleSecrets({ serviceAccountJson: value as never }, false);
+      }).not.toThrow();
+    },
+  );
+
+  test("an unknown credential key is still refused before the json rule", () => {
+    expect(() => {
+      validateGoogleSecrets({ serviceAccountJson: KEY_TEXT, privateKey: "x" });
+    }).toThrow(
+      'Credentials contains an unknown setting "privateKey" for Google SecOps.',
+    );
+  });
+
+  test("the parsed-object message is for json fields only: a password field keeps the scalar rule", () => {
+    expect(() => {
+      SecurityEventConnectionServiceType.validateFields({
+        definition: OKTA,
+        fields: OKTA.secretFields,
+        values: { apiToken: { value: SECRET_VALUE } },
+        label: "Credentials",
+        requireRequiredFields: true,
+      });
+    }).toThrow(
+      'Credentials setting "apiToken" must be a string, number or boolean.',
+    );
+  });
+
+  test("an optional json config field is skipped when empty and checked when set", () => {
+    const definition: SecurityEventConnectorDefinition = {
+      ...SYNTHETIC,
+      configFields: [
+        {
+          key: "extra",
+          title: "Extra JSON",
+          description: "",
+          type: "json",
+          required: false,
+        },
+      ],
+    };
+
+    expect(() => {
+      validateConfig({ extra: "" }, definition);
+    }).not.toThrow();
+    expect(() => {
+      validateConfig({ extra: '{"a":1}' }, definition);
+    }).not.toThrow();
+    expect(() => {
+      validateConfig({ extra: "[1]" }, definition);
+    }).toThrow("Extra JSON must be a JSON object.");
+  });
+
+  test("validateSettings hands the connector the key as the exact text that was pasted", async () => {
+    const settings: SecurityConnectorSettings =
+      await SecurityEventConnectionServiceType.validateSettings({
+        provider: SecurityEventConnectorProvider.GoogleSecOps,
+        config: GOOGLE_CONFIG,
+        secrets: { serviceAccountJson: KEY_TEXT },
+        alertingOnly: false,
+        requireRequiredSecrets: true,
+      });
+
+    expect(settings.secrets["serviceAccountJson"]).toBe(KEY_TEXT);
+    expect(connectorValidateCalls).toHaveLength(1);
+    expect(
+      typeof connectorValidateCalls[0]!.secrets["serviceAccountJson"],
+    ).toBe("string");
+    expect(DataSourceEgressGuard.assertUrlAllowed).not.toHaveBeenCalled();
+  });
+});
+
+describe("SecurityEventConnectionService - Google SecOps connections", () => {
+  test("a ~2.5 KB service-account key fits: secrets is unbounded encrypted text and config is unbounded JSON", () => {
+    expect(KEY_TEXT.length).toBeGreaterThan(2400);
+
+    const model: SecurityEventConnection = new SecurityEventConnection();
+    const secrets: TableColumnMetadata =
+      model.getTableColumnMetadata("secrets");
+    const config: TableColumnMetadata = model.getTableColumnMetadata("config");
+
+    expect(secrets.type).toBe(TableColumnType.VeryLongText);
+    expect(secrets.encrypted).toBe(true);
+    expect(getMaxLengthFromTableColumnType(secrets.type)).toBeUndefined();
+    expect(config.type).toBe(TableColumnType.JSON);
+    expect(getMaxLengthFromTableColumnType(config.type)).toBeUndefined();
+  });
+
+  test("create stores the pasted key text byte for byte inside the secrets string, with the catalog interval", async () => {
+    const result: OnCreate<SecurityEventConnection> =
+      await service.onBeforeCreate(
+        createBy(
+          googleConnection({
+            secrets: { serviceAccountJson: KEY_TEXT } as never,
+            alertingOnly: false,
+          }),
+        ),
+      );
+
+    expect(result.createBy.data.config).toEqual(GOOGLE_CONFIG);
+    expect(typeof result.createBy.data.secrets).toBe("string");
+    const stored: JSONObject = JSON.parse(
+      result.createBy.data.secrets as string,
+    ) as JSONObject;
+    expect(stored).toEqual({ serviceAccountJson: KEY_TEXT });
+    expect(stored["serviceAccountJson"]).toBe(KEY_TEXT);
+    expect(result.createBy.data.pollIntervalInMinutes).toBe(
+      GOOGLE.defaultPollIntervalInMinutes,
+    );
+    expect(SecurityEventConnectorRegistry.getConnector).toHaveBeenCalledWith(
+      SecurityEventConnectorProvider.GoogleSecOps,
+    );
+    expect(connectorValidateCalls).toEqual([
+      {
+        provider: SecurityEventConnectorProvider.GoogleSecOps,
+        config: GOOGLE_CONFIG,
+        secrets: { serviceAccountJson: KEY_TEXT },
+        alertingOnly: false,
+      },
+    ]);
+    // Google SecOps has no url field, so no egress lookup runs.
+    expect(DataSourceEgressGuard.assertUrlAllowed).not.toHaveBeenCalled();
+  });
+
+  test("secrets sent as one JSON string, with the key text escaped inside it, store the same key text", async () => {
+    const result: OnCreate<SecurityEventConnection> =
+      await service.onBeforeCreate(createBy(googleConnection()));
+
+    expect(
+      (JSON.parse(result.createBy.data.secrets as string) as JSONObject)[
+        "serviceAccountJson"
+      ],
+    ).toBe(KEY_TEXT);
+    expect(connectorValidateCalls[0]!.alertingOnly).toBe(true);
+  });
+
+  test.each<[string, JSONObject, string]>([
+    [
+      "a missing region (there is no default region)",
+      { instanceResourceName: GOOGLE_CONFIG["instanceResourceName"]! },
+      "Region is required for Google SecOps.",
+    ],
+    [
+      "a region outside the supported list",
+      {
+        region: "us-central1",
+        instanceResourceName: GOOGLE_CONFIG["instanceResourceName"]!,
+      },
+      `Region must be one of: ${GOOGLE_REGIONS}.`,
+    ],
+    [
+      "a missing instance resource name",
+      { region: "us" },
+      "Instance resource name is required for Google SecOps.",
+    ],
+    [
+      "an unknown config key",
+      { ...GOOGLE_CONFIG, projectId: "acme" },
+      'Configuration contains an unknown setting "projectId" for Google SecOps.',
+    ],
+  ])(
+    "create refuses %s before the connector sees it",
+    async (_label: string, config: JSONObject, message: string) => {
+      await expect(
+        service.onBeforeCreate(createBy(googleConnection({ config }))),
+      ).rejects.toThrow(message);
+      expect(connectorValidateCalls).toHaveLength(0);
+    },
+  );
+
+  test.each<[string, string, string]>([
+    ["no key", "{}", "Service account JSON is required for Google SecOps."],
+    [
+      "a key that is not a JSON object",
+      JSON.stringify({ serviceAccountJson: "[]" }),
+      "Service account JSON must be a JSON object.",
+    ],
+    [
+      "a parsed key object",
+      JSON.stringify({ serviceAccountJson: { client_email: "a" } }),
+      "Service account JSON must be sent as JSON text (a string), not as a parsed object.",
+    ],
+  ])(
+    "create refuses %s",
+    async (_label: string, secrets: string, message: string) => {
+      await expect(
+        service.onBeforeCreate(createBy(googleConnection({ secrets }))),
+      ).rejects.toThrow(message);
+      expect(connectorValidateCalls).toHaveLength(0);
+    },
+  );
+
+  describe("update", () => {
+    let findOneById: ReturnType<typeof getJestSpyOn>;
+
+    beforeEach(() => {
+      findOneById = getJestSpyOn(
+        SecurityEventConnectionService,
+        "findOneById",
+      ).mockResolvedValue(storedGoogleConnection() as never);
+    });
+
+    test("an edit that leaves the key blank keeps the stored key and validates the edited settings with it", async () => {
+      const edited: JSONObject = {
+        region: "eu",
+        instanceResourceName:
+          "projects/acme-secops/locations/eu/instances/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      };
+
+      const result: OnUpdate<SecurityEventConnection> =
+        await service.onBeforeUpdate(
+          updateBy({
+            config: edited,
+            secrets: { serviceAccountJson: "" },
+            alertingOnly: false,
+          }),
+        );
+
+      const stored: JSONObject = result.updateBy.data as unknown as JSONObject;
+      expect(stored["config"]).toEqual(edited);
+      expect(JSON.parse(stored["secrets"] as string)).toEqual({
+        serviceAccountJson: KEY_TEXT,
+      });
+      expect(connectorValidateCalls).toEqual([
+        {
+          provider: SecurityEventConnectorProvider.GoogleSecOps,
+          config: edited,
+          secrets: { serviceAccountJson: KEY_TEXT },
+          alertingOnly: false,
+        },
+      ]);
+      expect(findOneById).toHaveBeenCalledTimes(1);
+    });
+
+    test("an edit that sends no secrets at all keeps the stored key", async () => {
+      const result: OnUpdate<SecurityEventConnection> =
+        await service.onBeforeUpdate(updateBy({ config: GOOGLE_CONFIG }));
+
+      expect(
+        JSON.parse(
+          (result.updateBy.data as unknown as JSONObject)["secrets"] as string,
+        ),
+      ).toEqual({ serviceAccountJson: KEY_TEXT });
+      expect(connectorValidateCalls[0]!.alertingOnly).toBe(true);
+    });
+
+    test("a pasted replacement key replaces the stored one, as text", async () => {
+      const result: OnUpdate<SecurityEventConnection> =
+        await service.onBeforeUpdate(
+          updateBy({ secrets: { serviceAccountJson: ROTATED_KEY_TEXT } }),
+        );
+
+      const stored: JSONObject = JSON.parse(
+        (result.updateBy.data as unknown as JSONObject)["secrets"] as string,
+      ) as JSONObject;
+      expect(stored).toEqual({ serviceAccountJson: ROTATED_KEY_TEXT });
+      expect(stored["serviceAccountJson"]).not.toBe(KEY_TEXT);
+      // The stored config is what is validated when the edit omits it.
+      expect(connectorValidateCalls[0]!.config).toEqual(GOOGLE_CONFIG);
+    });
+
+    test("clearing the key with null is refused with the field title", async () => {
+      await expect(
+        service.onBeforeUpdate(
+          updateBy({ secrets: { serviceAccountJson: null } }),
+        ),
+      ).rejects.toThrow("Service account JSON is required for Google SecOps.");
+      expect(connectorValidateCalls).toHaveLength(0);
+    });
+
+    test("a replacement that is not a JSON object is refused and nothing reaches the connector", async () => {
+      await expect(
+        service.onBeforeUpdate(
+          updateBy({
+            secrets: { serviceAccountJson: '{"client_email": "a", ' },
+          }),
+        ),
+      ).rejects.toThrow("Service account JSON must be a JSON object.");
+      expect(connectorValidateCalls).toHaveLength(0);
+    });
+
+    test("a region edit outside the supported list is refused", async () => {
+      await expect(
+        service.onBeforeUpdate(
+          updateBy({ config: { ...GOOGLE_CONFIG, region: "mars" } }),
+        ),
+      ).rejects.toThrow(`Region must be one of: ${GOOGLE_REGIONS}.`);
+    });
+  });
+
+  test("the poller's settings read hands the connector the stored key text and the saved Data to import", async () => {
+    const findOneById: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityEventConnectionService,
+      "findOneById",
+    );
+
+    const settings: SecurityConnectorSettings =
+      await SecurityEventConnectionService.getConnectorSettings(
+        storedGoogleConnection({ alertingOnly: false }),
+      );
+
+    expect(settings).toEqual({
+      provider: SecurityEventConnectorProvider.GoogleSecOps,
+      config: GOOGLE_CONFIG,
+      secrets: { serviceAccountJson: KEY_TEXT },
+      alertingOnly: false,
+    });
+    expect(typeof settings.secrets["serviceAccountJson"]).toBe("string");
+    expect(findOneById).not.toHaveBeenCalled();
+  });
+
+  test("a connection whose Data to import was never set reads as alerts only", async () => {
+    const connection: SecurityEventConnection = storedGoogleConnection();
+    delete connection.alertingOnly;
+
+    const settings: SecurityConnectorSettings =
+      await SecurityEventConnectionService.getConnectorSettings(connection);
+
+    expect(settings.alertingOnly).toBe(true);
+  });
+
+  test("mergeSecrets on the key: '' keeps it, text replaces it, null removes it", () => {
+    const stored: JSONObject = { serviceAccountJson: KEY_TEXT };
+
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: GOOGLE,
+        stored,
+        provided: { serviceAccountJson: "" },
+      }),
+    ).toEqual(stored);
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: GOOGLE,
+        stored,
+        provided: { serviceAccountJson: ROTATED_KEY_TEXT },
+      }),
+    ).toEqual({ serviceAccountJson: ROTATED_KEY_TEXT });
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: GOOGLE,
+        stored,
+        provided: { serviceAccountJson: null },
+      }),
+    ).toEqual({});
   });
 });

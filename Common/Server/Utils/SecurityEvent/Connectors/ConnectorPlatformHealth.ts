@@ -25,9 +25,12 @@ import { makeCheck } from "./Types";
  */
 
 /*
- * The job names the two poll crons are registered under. Both connector
- * families' schedulers are listed so the check reads "the poll scheduler"
- * whichever family asked.
+ * The job name the poll cron is registered under. Every Security Event
+ * Connection provider, Google SecOps included, is enqueued by this one
+ * cron. The retired "SecurityEvents:PollGoogleSecOpsConnections" is
+ * deliberately NOT listed: its repeatable can outlive its code in Redis
+ * after an upgrade, and matching it would report the scheduler as
+ * registered while the cron that actually enqueues polls is missing.
  *
  * These are the RAW names, colon included, because that is what BullMQ
  * reports. RunCron goes through Queue.addJob, which calls
@@ -42,7 +45,6 @@ import { makeCheck } from "./Types";
  * install (review finding scheduler-check-always-fails).
  */
 export const CONNECTOR_SCHEDULER_JOB_NAMES: Array<string> = [
-  "SecurityEvents:PollGoogleSecOpsConnections",
   "SecurityEvents:PollSecurityEventConnections",
 ];
 

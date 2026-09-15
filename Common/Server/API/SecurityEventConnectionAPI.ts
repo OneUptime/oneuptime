@@ -85,14 +85,21 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
 
     /*
      * Synchronous connection test. Body is either
-     *   { connectionId, config?, secrets? }  — a saved connection, optionally
-     *     with unsaved edits overlaid by the same rule a save applies (a
-     *     secret value replaces the stored one, "" or undefined keeps it,
-     *     null removes it, so the edit form can test a cleared optional
-     *     credential before saving), or
+     *   { connectionId, config?, secrets?, alertingOnly? } — a saved
+     *     connection, optionally with the edit form's unsaved values
+     *     overlaid by the same rule a save applies: a config replaces the
+     *     stored one; a secret value replaces the stored one, "" or
+     *     undefined keeps it, null removes it (so the edit form can test a
+     *     cleared optional credential before saving); a boolean alertingOnly
+     *     replaces the stored one, null or undefined keeps it. The stored
+     *     secrets are read here with root props and never returned, because
+     *     an edit form can never read them back. Or
      *   { provider, config, secrets, alertingOnly? } — settings that were
      *     never saved, so the create form can test before storing anything.
-     * Nothing is persisted except a run-history row for a saved connection.
+     * Nothing is persisted except a run-history row for a saved connection
+     * tested exactly as stored: a row describing settings that were never
+     * saved would misstate that connection's history (see
+     * overlaysStoredSettings).
      */
     this.router.post(
       `${basePath}/test`,
@@ -111,9 +118,30 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
               ? (req.body as JSONObject)
               : {};
 
+          /*
+           * Rejected the way a save rejects it, instead of being read as
+           * "not provided" and silently testing a different selection than
+           * the one on screen. null is the one non-boolean accepted: it
+           * keeps the stored value, as it did on the Google SecOps test
+           * route this endpoint replaces.
+           */
+          const alertingOnlyValue: JSONValue | undefined = body["alertingOnly"];
+
+          if (
+            alertingOnlyValue !== undefined &&
+            alertingOnlyValue !== null &&
+            typeof alertingOnlyValue !== "boolean"
+          ) {
+            throw new BadDataException(
+              "Alerting records only must be true or false.",
+            );
+          }
+
           const connectionIdValue: JSONValue | undefined = body["connectionId"];
           let connection: SecurityEventConnection | undefined = undefined;
           let settings: SecurityConnectorSettings;
+          // Only ever true for a saved connection tested exactly as stored.
+          let recordRun: boolean = false;
 
           if (connectionIdValue !== undefined && connectionIdValue !== null) {
             const connectionId: string = String(connectionIdValue);
@@ -192,18 +220,26 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
                 stored: stored.secrets,
                 provided: overlay,
               });
+            const alertingOnly: boolean =
+              typeof alertingOnlyValue === "boolean"
+                ? alertingOnlyValue
+                : stored.alertingOnly;
 
             settings =
               await SecurityEventConnectionServiceType.validateSettings({
                 provider: loaded.provider,
                 config,
                 secrets,
-                alertingOnly:
-                  typeof body["alertingOnly"] === "boolean"
-                    ? body["alertingOnly"]
-                    : stored.alertingOnly,
+                alertingOnly,
                 requireRequiredSecrets: true,
               });
+
+            recordRun = !SecurityEventConnectionAPI.overlaysStoredSettings({
+              stored,
+              config,
+              providedSecrets: overlay,
+              alertingOnly,
+            });
           } else {
             settings =
               await SecurityEventConnectionServiceType.validateSettings({
@@ -216,7 +252,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
                   body["secrets"],
                   "Credentials",
                 ),
-                alertingOnly: body["alertingOnly"] !== false,
+                alertingOnly: alertingOnlyValue !== false,
                 requireRequiredSecrets: true,
               });
           }
@@ -225,6 +261,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
             await SecurityEventConnectionTester.test({
               settings,
               connection,
+              recordRun,
             });
 
           return Response.sendJsonObjectResponse(
@@ -246,5 +283,98 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
       errorMessage:
         "Project owners, project administrators, and security administrators can run connection diagnostics.",
     });
+  }
+
+  /*
+   * Whether a saved connection is tested with anything other than what it
+   * stores (the edit form's unsaved values). Such a test is not recorded in
+   * the connection's run history: a row describing settings that were
+   * never saved would misstate that history, the defect the Google SecOps
+   * test route fixed with the same rule (review finding
+   * edit-form-test-ignores-edited-settings). Called only once the tested
+   * settings have validated.
+   *
+   *  - config is compared by value, not by shape. Connectors trim what they
+   *    read (readSettingString) and a form sends an optional field it left
+   *    empty as "" where the stored row may have no key at all, so " us "
+   *    equals "us", and "" or null equals an absent key. Anything else that
+   *    differs is an overlay.
+   *  - ANY provided secret is an overlay: a non-empty value even when it
+   *    equals the stored one, and null even for a key that is not stored.
+   *    Comparing against the stored secrets would let "was a row recorded"
+   *    tell the caller whether a guessed credential, or an optional one, is
+   *    stored, and secrets are write-only. "" and undefined keep the stored
+   *    value (mergeSecrets), so they test what is saved.
+   *  - alertingOnly is an overlay only when the tested value differs from
+   *    the stored one; an equal value tests what is saved.
+   */
+  private static overlaysStoredSettings(data: {
+    stored: SecurityConnectorSettings;
+    config: JSONObject;
+    providedSecrets: JSONObject;
+    alertingOnly: boolean;
+  }): boolean {
+    if (
+      !SecurityEventConnectionAPI.haveSameConfigValues(
+        data.stored.config,
+        data.config,
+      )
+    ) {
+      return true;
+    }
+
+    for (const key of Object.keys(data.providedSecrets)) {
+      const value: JSONValue | undefined = data.providedSecrets[key];
+
+      if (value === null || (value !== undefined && value !== "")) {
+        return true;
+      }
+    }
+
+    return data.alertingOnly !== data.stored.alertingOnly;
+  }
+
+  private static haveSameConfigValues(
+    stored: JSONObject,
+    tested: JSONObject,
+  ): boolean {
+    const storedValues: Record<string, string> =
+      SecurityEventConnectionAPI.normalizeConfigValues(stored);
+    const testedValues: Record<string, string> =
+      SecurityEventConnectionAPI.normalizeConfigValues(tested);
+    const storedKeys: Array<string> = Object.keys(storedValues);
+
+    if (storedKeys.length !== Object.keys(testedValues).length) {
+      return false;
+    }
+
+    return storedKeys.every((key: string): boolean => {
+      return testedValues[key] === storedValues[key];
+    });
+  }
+
+  private static normalizeConfigValues(
+    config: JSONObject,
+  ): Record<string, string> {
+    const normalized: Record<string, string> = {};
+
+    for (const key of Object.keys(config)) {
+      const value: JSONValue | undefined = config[key];
+
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      const text: string =
+        typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value).trim();
+
+      if (text) {
+        normalized[key] = text;
+      }
+    }
+
+    return normalized;
   }
 }

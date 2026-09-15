@@ -26,10 +26,11 @@ import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/C
 
 /*
  * The run executor is the admission control and bookkeeping around every
- * operation on a Security Event Connection. Mirrors the Google SecOps
- * executor suite so the two stay legible side by side, plus what this
- * executor adds: a scheduler that stamps its own failures on the
- * connection row, and markRunFailed for the queue job's last attempt.
+ * operation on a Security Event Connection, Google SecOps included (its
+ * own executor and that executor's suite were retired when it moved into
+ * the framework). Pinned here as well: a scheduler that stamps its own
+ * failures on the connection row, and markRunFailed for the queue job's
+ * last attempt.
  */
 
 jest.mock(
