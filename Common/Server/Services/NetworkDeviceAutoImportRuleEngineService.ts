@@ -102,6 +102,31 @@ export const AUTO_IMPORT_SCAN_CREDENTIAL_SELECT: {
 };
 
 /*
+ * Every scan column the device builder reads — the credentials above, plus
+ * the scan's naming choice (issue #3678). Both engine reads of a scan select
+ * THIS, never the credential list alone.
+ *
+ * Kept as a superset rather than folded into the credential select because
+ * the two answer different questions. The credential select is pinned key for
+ * key against what the probe claim endpoint sweeps with
+ * (AutoImportScanCredentialSelect.test.ts): a credential the probe uses and
+ * the device lacks is a device that can never poll. `useShortDeviceNames`
+ * decides nothing about the sweep, so the probe has no business being handed
+ * it — but the builder does read it, and an unselected column arrives
+ * undefined, which the builder reads as "off". A scan that asked for short
+ * names would then import every host under its full FQDN, silently, on the
+ * one path where nobody reviews the result. Same failure mode as a dropped
+ * credential, one column over, which is why the same test pins this set
+ * against the builder's DiscoveredDeviceScanSource.
+ */
+export const AUTO_IMPORT_SCAN_BUILDER_SELECT: {
+  [key: string]: boolean;
+} = {
+  ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
+  useShortDeviceNames: true,
+};
+
+/*
  * Devices one pass will create from one scan. Deliberately conservative:
  * every create runs the full service pipeline plus a detached
  * label/owner/site rule chain, so hundreds per pass is already a burst of
@@ -298,7 +323,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           respondedHostCount: true,
           autoImportProcessedAt: true,
           discoveredDevices: true,
-          ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
+          // Credentials AND naming — see AUTO_IMPORT_SCAN_BUILDER_SELECT.
+          ...AUTO_IMPORT_SCAN_BUILDER_SELECT,
         },
         props: {
           isRoot: true,
@@ -785,7 +811,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             scannedHostCount: true,
             respondedHostCount: true,
             discoveredDevices: true,
-            ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
+            /*
+             * The same builder select as the automatic path, so a dry run
+             * previews — and a real run imports — the names the scan asked
+             * for, not the full FQDNs an unselected naming column falls
+             * back to.
+             */
+            ...AUTO_IMPORT_SCAN_BUILDER_SELECT,
           },
           // Preserve the raw scan rows for the compare-and-set write-back.
           props: { isRoot: true, ignoreHooks: true },
@@ -2017,7 +2049,17 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       }
 
       try {
-        createdDevice = await attemptCreate(buildFallbackDeviceName(data.host));
+        /*
+         * Named under the SAME naming choice as the first attempt. The
+         * fallback is the first attempt's name plus the address, so a scan
+         * with short names on retries "web (10.0.0.5)" — not
+         * "web.corp.example.com (10.0.0.5)", which would be a device named by
+         * the FQDN the operator asked to drop, and only for the hosts that
+         * happened to collide.
+         */
+        createdDevice = await attemptCreate(
+          buildFallbackDeviceName(data.host, data.scan),
+        );
       } catch (secondError) {
         data.result.devicesFailed++;
         this.recordFailureReason(data.result.deviceFailureReasons, secondError);

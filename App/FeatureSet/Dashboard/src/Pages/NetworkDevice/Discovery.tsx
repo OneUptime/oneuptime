@@ -66,6 +66,7 @@ import {
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
+  getDiscoveredHostFullName,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import {
@@ -382,6 +383,52 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
           snmpV3PrivKey: undefined,
         });
       },
+    },
+    /*
+     * How the hosts this scan finds are NAMED when they import (OneUptime
+     * issue #3678): "core-sw-01" rather than "core-sw-01.corp.example.com".
+     *
+     * Its own section, directly after the method toggle, for two reasons.
+     * "What to check" is about what the probe SENDS, and this sends nothing —
+     * filing it under that heading would read as another packet the scan
+     * puts on the wire. And it must stay on the scan-target step, never on
+     * the SNMP step: an ICMP-only scan removes that step, and a host with no
+     * SNMP is exactly the host named by its reverse-DNS FQDN, so the setting
+     * would vanish for the scans it matters most to.
+     *
+     * No `showIf`, for the same reason: every scan names its hosts, whatever
+     * it checks.
+     *
+     * Defaults to OFF, matching the column. A deploy must not quietly change
+     * what an operator's next import is called; a scan that wants short names
+     * says so where the operator can see it.
+     *
+     * The description carries the three things that are not obvious from the
+     * title, each of which would otherwise be found out afterwards:
+     *
+     *   - the full name is not lost — it is kept on the device as DNS Name;
+     *   - it is a naming choice, not a sweep one, so it is NOT in the service's
+     *     SWEEP_COLUMNS: flipping it keeps the results and the Review dialog
+     *     simply names them differently the next time it opens;
+     *   - label and owner rules match on the device NAME, so a pattern written
+     *     against the full names stops matching devices imported short.
+     */
+    {
+      field: {
+        useShortDeviceNames: true,
+      },
+      title: "Name devices by their short hostname",
+      stepId: "scan-target",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      defaultValue: false,
+      // A toggle is always answered one way or the other; see isSnmpEnabled.
+      hideOptionalLabel: true,
+      sectionTitle: "Device names",
+      sectionDescription:
+        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by its address.",
+      description:
+        "Name imported devices by the first part of a fully qualified hostname - 'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full DNS name is kept on the device as its DNS Name (a name the device reports over SNMP stays in full as its System Name), and names that are not fully qualified, such as addresses, are left as they are. It changes only what devices are called, so no rescan is needed: Review Results uses it the next time it opens, and so do auto-import rules. Devices already imported keep their names. Label and owner rules whose name patterns were written against full names (such as *.corp.example.com) will not match the new short names.",
     },
     /*
      * The scan's ORDERED LIST of SNMP credential sets, first match wins.
@@ -784,6 +831,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
             discoveredDevices: true,
             probeId: true,
             isSnmpEnabled: true,
+            /*
+             * The scan's naming choice (issue #3678). Read on THIS fetch, not
+             * trusted from the table row, because it is what both the rows
+             * below and the import name every host by: a column missing here
+             * reads as undefined, which the builder treats as "full names",
+             * and the operator would tick "core-sw-01" and create
+             * "core-sw-01.corp.example.com". Fetched fresh for the same
+             * reason the credentials are — the scan can have been edited in
+             * another tab since the table loaded.
+             */
+            useShortDeviceNames: true,
             snmpConfigs: true,
             snmpVersion: true,
             snmpCommunityString: true,
@@ -941,6 +999,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * server-side auto-import rule engine builds through the same
            * function, so a hand-imported host and a rule-imported host are
            * the same device.
+           *
+           * The name follows the scan's `useShortDeviceNames`, read by the
+           * builder off `scan` — which is why the fresh read in
+           * openReviewModal selects that column — and the full reverse-DNS
+           * name is kept on the device as `dnsName` either way.
            */
           const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -990,10 +1053,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * used to provide for free, and buildFallbackDeviceName is reused
              * rather than re-composed so the monitor and the collision-retry
              * device end up spelling the same host the same way.
+             *
+             * Named with the SCAN as the naming argument, exactly like the
+             * device above (which the builder names from `scan`) and the
+             * retry below. With short names on, a device called "cam-lobby"
+             * gets "Ping cam-lobby (10.18.166.54)", not a monitor spelled
+             * after the FQDN the operator asked not to see (issue #3678).
              */
             const monitorSubjectName: string =
               device.name && device.name !== entry.ipAddress
-                ? buildFallbackDeviceName(entry)
+                ? buildFallbackDeviceName(entry, scanToReview)
                 : device.name || entry.ipAddress;
 
             try {
@@ -1039,8 +1108,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * by construction. If THAT also fails the error is real and is
              * reported against this host; the first error is the one worth
              * showing, since the second is usually a consequence of it.
+             *
+             * Under the scan's naming choice, like the first attempt. Short
+             * names make collisions MORE likely, not less — "web" in two
+             * domains is one name — so the retry is where "web (10.0.0.5)"
+             * comes from, and it must not fall back to the full FQDN the
+             * scan was told not to use (issue #3678).
              */
-            device.name = buildFallbackDeviceName(entry);
+            device.name = buildFallbackDeviceName(entry, scanToReview);
 
             try {
               await ModelAPI.create<NetworkDevice>({
@@ -1688,6 +1763,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * asked nothing about SNMP.
            */
           isSnmpEnabled: true,
+          /*
+           * How the scan names what it imports (issue #3678). The Review
+           * dialog re-reads it on open, but the row object it starts from is
+           * this one, so it carries the column too rather than a value that
+           * silently reads as "full names".
+           */
+          useShortDeviceNames: true,
           // Recurrence details rendered inside the "Recurrence" column.
           rescanIntervalInMinutes: true,
           nextScanAt: true,
@@ -1820,7 +1902,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             <Alert
               type={AlertType.INFO}
               strongTitle="Changing the target, probe or credentials re-runs the scan"
-              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule leaves the results alone."
+              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule, or whether devices get short names, leaves the results alone."
             />
           }
           modalWidth={ModalWidth.Medium}
@@ -2051,8 +2133,28 @@ const NetworkDeviceDiscovery: FunctionComponent<
                  * only ever showed up on the longest, least memorable names.
                  * The full PTR name is not lost: when it differs from what is
                  * shown here it appears on the line below.
+                 *
+                 * Named with the SCAN as the naming argument, the same one the
+                 * import hands the builder, so a scan set to short names shows
+                 * "core-sw-01" here and creates "core-sw-01" (issue #3678).
+                 * `scanToReview` is the fresh read openReviewModal made, which
+                 * selects `useShortDeviceNames` for exactly this line — and it
+                 * is why flipping the setting needs no rescan: the stored
+                 * results are the same, only what they are called changes.
                  */
-                const displayName: string = buildDeviceName(entry);
+                const displayName: string = buildDeviceName(
+                  entry,
+                  scanToReview,
+                );
+                /*
+                 * What the name line would read with nothing cut off it: the
+                 * winning name before the short-name option and before the
+                 * 80-character clamp. When the two differ the line above has
+                 * lost something the operator may need to tell hosts apart —
+                 * the domain ("web" in corp and in lab), or the tail of an
+                 * over-long name — so it goes on the second line in full.
+                 */
+                const fullName: string = getDiscoveredHostFullName(entry);
                 /*
                  * Shown BESIDE the address when it is not already the line
                  * above: an SNMP device whose sysName and PTR record disagree
@@ -2071,8 +2173,25 @@ const NetworkDeviceDiscovery: FunctionComponent<
                  */
                 const normalizedDnsHostname: string | undefined =
                   normalizeReverseDnsName(entry.dnsHostname);
+                /*
+                 * The two extra names, each printed at most once and never
+                 * when it IS the name line.
+                 *
+                 * The full name first, because it is the name the line above
+                 * was cut from. The PTR name second, and skipped when it is
+                 * that same full name — the reporter's own rows with short
+                 * names on are "wb-0660-kds01 / 10.18.167.31 ·
+                 * wb-0660-kds01.wbhq.com", not the FQDN twice. A sysName and
+                 * PTR record that disagree still both appear, whatever the
+                 * scan's naming choice: shortening the name line must not be
+                 * what hides a stale reverse zone.
+                 */
+                const secondaryFullName: string | undefined =
+                  fullName !== displayName ? fullName : undefined;
                 const secondaryDnsHostname: string | undefined =
-                  normalizedDnsHostname && normalizedDnsHostname !== displayName
+                  normalizedDnsHostname &&
+                  normalizedDnsHostname !== displayName &&
+                  normalizedDnsHostname !== secondaryFullName
                     ? normalizedDnsHostname
                     : undefined;
                 return (
@@ -2130,6 +2249,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         </div>
                         <div className="truncate text-sm text-gray-500">
                           {entry.ipAddress}
+                          {secondaryFullName && (
+                            <span className="text-gray-400">
+                              {" · "}
+                              {secondaryFullName}
+                            </span>
+                          )}
                           {secondaryDnsHostname && (
                             <span className="text-gray-400">
                               {" · "}

@@ -287,6 +287,12 @@ describe("Editing a discovery scan after it was created", () => {
    * this dialog was built to end, one field further along. Asserted as an
    * exact list rather than a set of `toContain` calls, so a tenth flat field
    * creeping back onto the wizard fails here too.
+   *
+   * `useShortDeviceNames` (OneUptime issue #3678) belongs here as much as the
+   * method does. The scans that most need it are the ones that already exist
+   * and already import "wb-0660-kds01.wbhq.com", and a choice that could only
+   * be made at creation would send the operator straight back to deleting and
+   * recreating them.
    */
   test("offers every setting the create wizard collects", async () => {
     await openEditDialog();
@@ -302,6 +308,7 @@ describe("Editing a discovery scan after it was created", () => {
       "cidr",
       "probe",
       "isSnmpEnabled",
+      "useShortDeviceNames",
       "snmpConfigs",
       "isRecurring",
       "rescanIntervalInMinutes",
@@ -667,6 +674,36 @@ describe("Editing a discovery scan after it was created", () => {
      * questions the step asks would read as one.
      */
     expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBe("What to check");
+
+    /*
+     * The same holds for the naming toggle (issue #3678): it opens its own
+     * "Device names" group inside the Scan Target step, so it must keep that
+     * heading rather than being folded under "What to check" or promoted to a
+     * second "Scan Target".
+     */
+    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(
+      "Device names",
+    );
+    expect(headings).toContain("Device names");
+  });
+
+  /*
+   * The naming choice is not a sweep setting: flipping it keeps the last run's
+   * hosts, and the Review dialog simply names them differently the next time it
+   * opens. The warning about what re-runs the scan has to say so, or an
+   * operator who only wants short names reads "re-runs the scan" and hesitates
+   * to save a change that costs nothing.
+   */
+  test("says that switching short device names leaves the results alone", async () => {
+    await openEditDialog();
+
+    const { container } = render(
+      <MemoryRouter>{capturedModalProps?.footer}</MemoryRouter>,
+    );
+
+    expect(container.textContent || "").toContain(
+      "whether devices get short names, leaves the results alone",
+    );
   });
 
   /*

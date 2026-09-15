@@ -603,6 +603,72 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  /*
+   * Name imported devices by the short hostname rather than the fully
+   * qualified one (OneUptime issue #3678): "wb-0660-kds01" instead of
+   * "wb-0660-kds01.wbhq.com". See ShortHostnameUtil for what counts as
+   * shortenable and why it is the first label rather than a typed suffix.
+   *
+   * A NAMING choice, not a sweep one, and that decides where it lives:
+   *
+   *   - It is NOT in NetworkDeviceDiscoveryScanService's SWEEP_COLUMNS.
+   *     Nothing the probe asks of a host changes, so flipping it must not
+   *     retire the run — the stored results are exactly as valid, and the
+   *     Review dialog simply names them differently the next time it opens.
+   *   - It is not sent to the probe. Names are decided where devices are
+   *     built: the dashboard's Review dialog and the auto-import rule engine,
+   *     both through DiscoveredDeviceBuilder.
+   *
+   * NOT NULL DEFAULT false. Every scan that existed before this column named
+   * devices by their full name, and a deploy must not start renaming what
+   * those scans import; a scan that wants short names says so. The full
+   * reverse-DNS name is stored on the device as `dnsName` either way.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Use Short Device Names",
+    description:
+      "Name imported devices by their short hostname (the first label of a fully qualified name, e.g. 'core-sw-01' rather than 'core-sw-01.corp.example.com'). The full reverse-DNS name is still stored on the device as its DNS Name.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public useShortDeviceNames?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,

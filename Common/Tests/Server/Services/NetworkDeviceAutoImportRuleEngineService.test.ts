@@ -112,6 +112,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import NetworkDeviceAutoImportRuleEngineService, {
+  AUTO_IMPORT_SCAN_BUILDER_SELECT,
   AUTO_IMPORT_SWEEP_LOCK_KEY,
   AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
   AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
@@ -139,6 +140,7 @@ import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { DiscoveryScanSnmpConfig } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
+import * as DiscoveredDeviceBuilder from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -150,7 +152,7 @@ import {
   AutoImportRuleRunResult,
   MAX_MATCHED_IP_SAMPLE,
 } from "../../../Types/NetworkAutomation/RuleRunResult";
-import { describe, expect, it, beforeEach } from "@jest/globals";
+import { afterEach, describe, expect, it, beforeEach } from "@jest/globals";
 
 /*
  * The engine yields the event loop between scans via setImmediate — a Node
@@ -3300,5 +3302,511 @@ describe("a capped run reports the remainder (issue #3642)", () => {
     const updateCall: { data: JSONObject } = scanUpdateMock.mock
       .calls[0]![0] as { data: JSONObject };
     expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
+  });
+});
+
+/*
+ * OneUptime issue #3678: discovered devices were named by their full FQDN
+ * ("wb-0660-kds01.wbhq.com") and the operator wanted the short hostname, with
+ * the FQDN kept separately.
+ *
+ * The naming decision itself lives in DiscoveredDeviceBuilder and is tested
+ * there. What these pin is the part only the ENGINE can get wrong, all of it
+ * silently:
+ *
+ *   - the scan's `useShortDeviceNames` column has to be SELECTED on both of
+ *     the engine's scan reads, or it arrives undefined and the builder reads
+ *     that as "off" — every host then imports under its FQDN on the path
+ *     nobody reviews;
+ *   - the collision retry has to name the device under the same choice, or
+ *     only the hosts that happened to collide come back as FQDNs;
+ *   - a dry run has to preview what the real run will create;
+ *   - the full reverse-DNS name has to land on the device as `dnsName`
+ *     whatever the choice, because with short names on it is the only place
+ *     the FQDN survives.
+ *
+ * Unlike the rest of this file, the scan reads here are PROJECTED THROUGH THE
+ * ENGINE'S OWN `select`. A stub that handed back the whole fixture would carry
+ * `useShortDeviceNames: true` into the builder whether or not the engine asked
+ * for the column, and every test below would pass against an engine that
+ * imports FQDNs in production.
+ */
+describe("short device names on auto-import (issue #3678)", () => {
+  const PTR_NAME: string = "wb-0660-kds01.wbhq.com";
+  const SHORT_NAME: string = "wb-0660-kds01";
+
+  /*
+   * The row as the database would return it for a given select: only the
+   * selected columns, everything else absent. `id` rides along with `_id`
+   * because on a real model it is a getter over `_id`.
+   */
+  function projectThroughSelect(
+    scan: NetworkDeviceDiscoveryScan,
+    select: Record<string, unknown> | undefined,
+  ): NetworkDeviceDiscoveryScan {
+    const stored: Record<string, unknown> = scan as unknown as Record<
+      string,
+      unknown
+    >;
+    const projected: Record<string, unknown> = {};
+
+    for (const column of Object.keys(select || {})) {
+      if (column in stored) {
+        projected[column] = stored[column];
+      }
+    }
+
+    if ("_id" in projected) {
+      projected["id"] = stored["id"];
+    }
+
+    return projected as unknown as NetworkDeviceDiscoveryScan;
+  }
+
+  // The automatic path's single scan read, honouring its select.
+  function mockProcessedScan(scan: NetworkDeviceDiscoveryScan): void {
+    scanFindOneByMock.mockImplementation(
+      (args: { select?: Record<string, unknown> }) => {
+        return Promise.resolve(projectThroughSelect(scan, args.select));
+      },
+    );
+  }
+
+  // Run Now's two-phase read, with the per-scan re-read honouring its select.
+  function mockRunNowScan(scan: NetworkDeviceDiscoveryScan): void {
+    scanFindByMock.mockResolvedValue([
+      { id: SCAN_ID } as unknown as NetworkDeviceDiscoveryScan,
+    ]);
+    scanFindOneByMock.mockImplementation(
+      (args: { select?: Record<string, unknown> }) => {
+        return Promise.resolve(projectThroughSelect(scan, args.select));
+      },
+    );
+  }
+
+  /*
+   * A host with no sysName, named only by its PTR record — the reporter's
+   * case: SNMP was not answering, so reverse DNS is the only name there is.
+   */
+  function makePtrNamedHost(
+    overrides: Partial<DiscoveredNetworkDevice> = {},
+  ): DiscoveredNetworkDevice {
+    return {
+      ipAddress: "10.0.0.5",
+      dnsHostname: PTR_NAME,
+      ...overrides,
+    };
+  }
+
+  /*
+   * The builder spy the dry-run cases install, put back after each test so
+   * the real builder is what every later test in this file runs against.
+   * Tracked and restored by name, so nothing else this file mocks is touched.
+   */
+  let builderSpy: jest.SpyInstance | null = null;
+
+  function spyOnDeviceBuilder(): jest.SpyInstance {
+    builderSpy = jest.spyOn(
+      DiscoveredDeviceBuilder,
+      "buildNetworkDeviceFromDiscoveredHost",
+    );
+    return builderSpy;
+  }
+
+  afterEach(() => {
+    builderSpy?.mockRestore();
+    builderSpy = null;
+  });
+
+  describe("the scan reads", () => {
+    it("selects the whole builder select, naming choice included, on the automatic path", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      await processScan();
+
+      const select: Record<string, unknown> =
+        scanFindOneByMock.mock.calls[0]![0].select;
+
+      expect(select["useShortDeviceNames"]).toBe(true);
+      expect(select).toMatchObject(AUTO_IMPORT_SCAN_BUILDER_SELECT);
+    });
+
+    it("selects the whole builder select, naming choice included, on Run Now's re-read", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      await runRule(true);
+
+      const select: Record<string, unknown> =
+        scanFindOneByMock.mock.calls[0]![0].select;
+
+      expect(select["useShortDeviceNames"]).toBe(true);
+      expect(select).toMatchObject(AUTO_IMPORT_SCAN_BUILDER_SELECT);
+    });
+  });
+
+  describe("the automatic path", () => {
+    it("imports a PTR-named host under its short name when the scan asks for short names", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ devicesCreated: 1, devicesFailed: 0 });
+      expect(createMock).toHaveBeenCalledTimes(1);
+
+      const device: NetworkDevice = createdDevice(0);
+      expect(device.name).toBe(SHORT_NAME);
+      // The FQDN the name no longer carries is kept on the device.
+      expect(device.dnsName).toBe(PTR_NAME);
+      expect(device.hostname).toBe("10.0.0.5");
+    });
+
+    it("imports a PTR-named host under its full name when the scan's flag is off", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: false,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      await processScan();
+
+      const device: NetworkDevice = createdDevice(0);
+      expect(device.name).toBe(PTR_NAME);
+      /*
+       * Set with the flag off too: it is a fact about the host, and it is what
+       * keeps the device findable (and site-rule-matchable) by its DNS name
+       * after somebody renames it.
+       */
+      expect(device.dnsName).toBe(PTR_NAME);
+    });
+
+    /*
+     * Every scan that existed before the column did, and any scan row written
+     * without it, reads as off — nothing about an existing estate's naming
+     * changes on deploy.
+     */
+    it("imports the full name from a scan that never set the flag", async () => {
+      mockProcessedScan(makeScan({ discoveredDevices: [makePtrNamedHost()] }));
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe(PTR_NAME);
+      expect(createdDevice(0).dnsName).toBe(PTR_NAME);
+    });
+
+    /*
+     * The column is boolean NOT NULL, but the value still comes out of a row
+     * the engine did not write. Only an exact `true` turns renaming on.
+     */
+    it("does not treat a truthy non-boolean flag as on", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: "true",
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe(PTR_NAME);
+    });
+
+    /*
+     * Network gear routinely reports its FQDN as sysName, so short names apply
+     * to the sysName winner as well — and shortening never changes WHICH name
+     * wins. The PTR name here is a DHCP-style one that would make a poor
+     * device name; it is still what goes into `dnsName`, because that column
+     * is what DNS says, not what the device says.
+     */
+    it("shortens an FQDN sysName, keeps sysName ahead of the PTR name, and stores the PTR name as dnsName", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [
+            makeHost({
+              sysName: "core-sw01.corp.example.com",
+              dnsHostname: "10-0-0-5.dhcp.corp.example.com",
+            }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      const device: NetworkDevice = createdDevice(0);
+      expect(device.name).toBe("core-sw01");
+      expect(device.dnsName).toBe("10-0-0-5.dhcp.corp.example.com");
+    });
+
+    // A device's own name is never passed off as a DNS name.
+    it("never fills dnsName from sysName when the host has no PTR record", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [
+            makeHost({ sysName: "core-sw01.corp.example.com" }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      const device: NetworkDevice = createdDevice(0);
+      expect(device.name).toBe("core-sw01");
+      expect(device.dnsName).toBeUndefined();
+    });
+
+    it("leaves a single-label sysName exactly as the device reported it", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makeHost()],
+        }),
+      );
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe("core-switch-01");
+    });
+
+    /*
+     * The address is the last-resort name, and "10.0.0.5" has the shape of a
+     * four-label hostname. Cutting it to "10" would give every nameless host
+     * in a /8 the same name.
+     */
+    it("never shortens a host named only by its address", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [{ ipAddress: "10.0.0.5" }],
+        }),
+      );
+
+      await processScan();
+
+      const device: NetworkDevice = createdDevice(0);
+      expect(device.name).toBe("10.0.0.5");
+      expect(device.dnsName).toBeUndefined();
+    });
+
+    it("stores the PTR name without its root label", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [
+            makePtrNamedHost({ dnsHostname: `${PTR_NAME}.` }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe(SHORT_NAME);
+      expect(createdDevice(0).dnsName).toBe(PTR_NAME);
+    });
+
+    it("stores no dnsName for a blank PTR name rather than an empty string", async () => {
+      mockProcessedScan(
+        makeScan({
+          discoveredDevices: [makeHost({ dnsHostname: "   " })],
+        }),
+      );
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe("core-switch-01");
+      expect(createdDevice(0).dnsName).toBeUndefined();
+    });
+  });
+
+  describe("the name-collision retry", () => {
+    /*
+     * Short names collide far more often than FQDNs — "sw01" in two sites is
+     * ordinary — so this retry is the common path for short names, not an edge
+     * case. It must keep the naming choice: a fallback of
+     * "wb-0660-kds01.wbhq.com (10.0.0.5)" would bring the FQDN back for
+     * exactly the devices that collided.
+     */
+    it("retries under the short name plus the address when short names are on", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+      createMock
+        .mockRejectedValueOnce(
+          new BadDataException("Network Device with this name already exists."),
+        )
+        .mockResolvedValueOnce({});
+      deviceFindOneByMock.mockResolvedValue(null);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(createMock).toHaveBeenCalledTimes(2);
+      expect(createdDevice(0).name).toBe(SHORT_NAME);
+      expect(createdDevice(1).name).toBe(`${SHORT_NAME} (10.0.0.5)`);
+      // Same device both times: the FQDN is kept on the retry too.
+      expect(createdDevice(1).dnsName).toBe(PTR_NAME);
+      expect(createdDevice(1).hostname).toBe("10.0.0.5");
+      expect(result).toMatchObject({ devicesCreated: 1, devicesFailed: 0 });
+    });
+
+    it("retries under the full name plus the address when short names are off", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: false,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+      createMock
+        .mockRejectedValueOnce(
+          new BadDataException("Network Device with this name already exists."),
+        )
+        .mockResolvedValueOnce({});
+      deviceFindOneByMock.mockResolvedValue(null);
+
+      await processScan();
+
+      expect(createdDevice(0).name).toBe(PTR_NAME);
+      expect(createdDevice(1).name).toBe(`${PTR_NAME} (10.0.0.5)`);
+    });
+  });
+
+  describe("Run Now", () => {
+    /*
+     * A dry run reports counts rather than names, so what it would create is
+     * read off the builder call itself — the same in-memory device the real
+     * run's create would have been handed. The spy calls through.
+     */
+    it("previews the short name on a dry run", async () => {
+      const spy: jest.SpyInstance = spyOnDeviceBuilder();
+
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        hostsMatched: 1,
+        devicesCreated: 0,
+        isDryRun: true,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const previewed: NetworkDevice = spy.mock.results[0]!
+        .value as NetworkDevice;
+      expect(previewed.name).toBe(SHORT_NAME);
+      expect(previewed.dnsName).toBe(PTR_NAME);
+    });
+
+    it("previews the full name on a dry run of a scan without short names", async () => {
+      const spy: jest.SpyInstance = spyOnDeviceBuilder();
+
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScan(makeScan({ discoveredDevices: [makePtrNamedHost()] }));
+
+      await runRule(true);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const previewed: NetworkDevice = spy.mock.results[0]!
+        .value as NetworkDevice;
+      expect(previewed.name).toBe(PTR_NAME);
+    });
+
+    it("imports the short name on a real run", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost()],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(result).toMatchObject({ devicesCreated: 1, isDryRun: false });
+      expect(createdDevice(0).name).toBe(SHORT_NAME);
+      expect(createdDevice(0).dnsName).toBe(PTR_NAME);
+    });
+  });
+
+  describe("monitors provisioned onto a short-named device", () => {
+    /*
+     * The engine names no monitor itself — a template monitor is named after
+     * the device it watches — so a short-named device must yield a
+     * short-named monitor without any naming code of the engine's own. Driven
+     * through a ping-only host, which is exactly the reporter's estate: no
+     * SNMP answer, a PTR record, and a rule with includePingOnlyHosts.
+     */
+    it("names a ping-only host's template monitor after the short device name", async () => {
+      mockProcessedScan(
+        makeScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makePtrNamedHost({ snmpReachable: false })],
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({
+          includePingOnlyHosts: true,
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ devicesCreated: 1, monitorsCreated: 1 });
+      expect(createdDevice(0).name).toBe(SHORT_NAME);
+      expect(provisionedMonitor(0).name).toBe(`${SHORT_NAME} - SNMP health`);
+      expect(provisionedMonitor(0).name).not.toContain("wbhq.com");
+    });
+
+    it("names the monitor after the full device name when short names are off", async () => {
+      mockProcessedScan(
+        makeScan({
+          discoveredDevices: [makePtrNamedHost({ snmpReachable: false })],
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({
+          includePingOnlyHosts: true,
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([
+        makeTemplate({ monitorName: undefined }),
+      ]);
+
+      await processScan();
+
+      expect(provisionedMonitor(0).name).toBe(PTR_NAME);
+    });
   });
 });

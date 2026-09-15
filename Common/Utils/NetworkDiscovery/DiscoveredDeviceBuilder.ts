@@ -10,6 +10,7 @@ import {
   monitoringMethodForDiscoveredHost,
 } from "./DiscoveryImportEligibility";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
+import { getShortHostname } from "./ShortHostnameUtil";
 
 /*
  * One discovered host -> one NetworkDevice, the same way everywhere.
@@ -38,8 +39,77 @@ export const MAX_DEVICE_NAME_LENGTH: number = 80;
 // NetworkDevice.description is stored to 500 characters; sysDescr can be 255+.
 export const MAX_DEVICE_DESCRIPTION_LENGTH: number = 500;
 
+/*
+ * NetworkDevice.dnsName is LongText (500), but a DNS name never exceeds 253
+ * characters and normalizeReverseDnsName refuses anything longer, so this is
+ * the real ceiling — kept as a constant so the column and the builder agree.
+ */
+export const MAX_DEVICE_DNS_NAME_LENGTH: number = 253;
+
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? value.substring(0, maxLength) : value;
+}
+
+/**
+ * How the scan being imported from wants its hosts named.
+ *
+ * REQUIRED on every naming function rather than optional, and that is the
+ * point of it. The Review dialog row, the device the dialog creates, the
+ * collision fallback, the Ping monitor's name and both auto-import paths all
+ * derive a name separately; an optional argument that one of them forgot
+ * would still compile, and the operator would tick a box next to
+ * "wb-0660-kds01" and get a device called "wb-0660-kds01.wbhq.com". A
+ * required one makes the compiler find every caller.
+ *
+ * The NetworkDeviceDiscoveryScan model satisfies this structurally, so a
+ * caller holding the scan passes the scan.
+ */
+export interface DiscoveredHostNaming {
+  /*
+   * Name devices by the first label of a fully qualified hostname (issue
+   * #3678). ON only when exactly `true`: the value comes out of a database
+   * row or an API payload, and "true" or 1 must not quietly rename a
+   * project's devices.
+   */
+  useShortDeviceNames?: boolean | null | undefined;
+}
+
+/**
+ * The name a discovered host has before any shortening: its sysName, its
+ * reverse-DNS name, or its address. This is what `getDiscoveredHostDisplayName`
+ * shortens, and what the Review dialog shows beside a shortened name so the
+ * operator can see what was cut.
+ */
+export function getDiscoveredHostFullName(
+  host: DiscoveredNetworkDevice,
+): string {
+  /*
+   * The PTR name is re-normalised here rather than trusted from the column.
+   * `discoveredDevices` is jsonb stored verbatim from the probe's payload, so
+   * "the probe already checked it" holds only for the probe version that
+   * wrote the row — not for a result from an older or a modified probe, and
+   * not for a row written straight through the API. This function is the last
+   * point before the value becomes a rendered line and a slugified device
+   * name, so it is the right place to be sure. See ReverseDnsNameUtil.
+   */
+  /*
+   * `sysName` is read through a typeof guard rather than trusted, for the
+   * same reason `dnsHostname` is normalised: both come out of the same
+   * verbatim jsonb blob, where the declared TypeScript type is a description
+   * of what the probe SHOULD send rather than a guarantee about what is
+   * stored. `(42).trim()` is a TypeError, and since this function became the
+   * dashboard's name line that TypeError would be thrown during render —
+   * taking out the whole Review dialog rather than one row, which is
+   * precisely the failure normalizeDiscoveredHosts was written to end.
+   */
+  const sysName: string =
+    typeof host.sysName === "string" ? host.sysName.trim() : "";
+
+  return (
+    sysName ||
+    normalizeReverseDnsName(host.dnsHostname) ||
+    String(host.ipAddress ?? "")
+  );
 }
 
 /**
@@ -82,42 +152,38 @@ function truncate(value: string, maxLength: number): string {
  *     import paths must use it — the rule engine does, and the dashboard's
  *     Review-dialog import does since the same wildcard case made collisions
  *     ordinary rather than rare.
+ *
+ * SHORT NAMES (issue #3678). When the scan asks for them, whichever name won
+ * above is cut to its first label if it is a fully qualified hostname —
+ * sysName included, because network gear routinely reports its FQDN there and
+ * a list where only the PTR-named hosts were shortened would read as broken.
+ * The winner is shortened or kept; shortening never changes WHICH source
+ * wins, and an address is never shortened (see ShortHostnameUtil). The full
+ * reverse-DNS name is not lost: the builder stores it on the device as
+ * `dnsName`.
  */
 export function getDiscoveredHostDisplayName(
   host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
 ): string {
-  /*
-   * The PTR name is re-normalised here rather than trusted from the column.
-   * `discoveredDevices` is jsonb stored verbatim from the probe's payload, so
-   * "the probe already checked it" holds only for the probe version that
-   * wrote the row — not for a result from an older or a modified probe, and
-   * not for a row written straight through the API. This function is the last
-   * point before the value becomes a rendered line and a slugified device
-   * name, so it is the right place to be sure. See ReverseDnsNameUtil.
-   */
-  /*
-   * `sysName` is read through a typeof guard rather than trusted, for the
-   * same reason `dnsHostname` is normalised: both come out of the same
-   * verbatim jsonb blob, where the declared TypeScript type is a description
-   * of what the probe SHOULD send rather than a guarantee about what is
-   * stored. `(42).trim()` is a TypeError, and since this function became the
-   * dashboard's name line that TypeError would be thrown during render —
-   * taking out the whole Review dialog rather than one row, which is
-   * precisely the failure normalizeDiscoveredHosts was written to end.
-   */
-  const sysName: string =
-    typeof host.sysName === "string" ? host.sysName.trim() : "";
+  const fullName: string = getDiscoveredHostFullName(host);
 
-  return (
-    sysName ||
-    normalizeReverseDnsName(host.dnsHostname) ||
-    String(host.ipAddress ?? "")
-  );
+  if (naming.useShortDeviceNames !== true) {
+    return fullName;
+  }
+
+  return getShortHostname(fullName) || fullName;
 }
 
 /** The name a discovered host imports under, clamped to the slug's ceiling. */
-export function buildDeviceName(host: DiscoveredNetworkDevice): string {
-  return truncate(getDiscoveredHostDisplayName(host), MAX_DEVICE_NAME_LENGTH);
+export function buildDeviceName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
+  return truncate(
+    getDiscoveredHostDisplayName(host, naming),
+    MAX_DEVICE_NAME_LENGTH,
+  );
 }
 
 /**
@@ -129,7 +195,10 @@ export function buildDeviceName(host: DiscoveredNetworkDevice): string {
  * sysName cut down first so the composed string still fits under the same
  * ceiling.
  */
-export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
+export function buildFallbackDeviceName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
   /*
    * The address is read through the SAME coercion the display path uses, not
    * straight out of the jsonb.
@@ -152,7 +221,7 @@ export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
    */
   const suffix: string = address ? ` (${address})` : "";
 
-  const baseName: string = buildDeviceName(host);
+  const baseName: string = buildDeviceName(host, naming);
 
   /*
    * Clamped as a whole, not just the base. `Math.max(1, ...)` keeps a
@@ -183,8 +252,13 @@ export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
  * SELECTED by every caller, or the credentials silently arrive undefined and
  * the device is created as a ping-only one. That is what
  * Common/Tests/Server/Services/AutoImportScanCredentialSelect.test.ts pins.
+ *
+ * `useShortDeviceNames` is the scan's naming choice (issue #3678), which is
+ * why this interface extends DiscoveredHostNaming: the device's name is part
+ * of the recipe, so a caller that selected the scan without that column
+ * would import full names from a scan that asked for short ones.
  */
-export interface DiscoveredDeviceScanSource {
+export interface DiscoveredDeviceScanSource extends DiscoveredHostNaming {
   probeId?: ObjectID | undefined;
   snmpConfigs?: Array<DiscoveryScanSnmpConfig> | null | undefined;
   snmpVersion?: string | undefined;
@@ -214,9 +288,9 @@ export interface DiscoveredDeviceScanSource {
  * — issue #3447. Reachability is a built-in capability of every probe-polled
  * device now, so that dead end is gone.)
  *
- * The caller supplies the name (normally `buildDeviceName(host)`) so the
+ * The caller supplies the name (normally `buildDeviceName(host, scan)`) so the
  * name-collision retry can rebuild the same device under
- * `buildFallbackDeviceName(host)` without re-deciding anything else.
+ * `buildFallbackDeviceName(host, scan)` without re-deciding anything else.
  */
 export function buildNetworkDeviceFromDiscoveredHost(data: {
   projectId: ObjectID;
@@ -242,7 +316,7 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
 
   const device: NetworkDevice = new NetworkDevice();
   device.projectId = data.projectId;
-  device.name = data.name || buildDeviceName(host);
+  device.name = data.name || buildDeviceName(host, data.scan);
   /*
    * The address is the device's hostname AND the registered-host dedup key.
    *
@@ -265,6 +339,30 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * for the rule engine and for any future caller that holds a raw row.
    */
   device.hostname = String(host.ipAddress ?? "").trim();
+
+  /*
+   * The full reverse-DNS name, kept on the device (issue #3678).
+   *
+   * Set whatever the scan's naming choice, because it is a fact about the
+   * host rather than a presentation: with short names on it is the only place
+   * the FQDN survives, and with them off it is still what lets a device be
+   * searched for, and matched by a site rule, by the name DNS gives it once
+   * someone renames it. Normalised again at the point of use for the reasons
+   * given on getDiscoveredHostFullName.
+   *
+   * Written only when there IS a name. An empty string is still a value on a
+   * create payload, and a device with no PTR record should read as "no DNS
+   * name", not as a DNS name that happens to be blank.
+   *
+   * Never taken from sysName: that is the name the device gives itself, it
+   * is already stored as sysName by the first poll, and calling it a DNS name
+   * would be a claim nothing checked.
+   */
+  const dnsName: string | undefined = normalizeReverseDnsName(host.dnsHostname);
+
+  if (dnsName) {
+    device.dnsName = truncate(dnsName, MAX_DEVICE_DNS_NAME_LENGTH);
+  }
 
   if (host.sysDescr) {
     device.description = truncate(host.sysDescr, MAX_DEVICE_DESCRIPTION_LENGTH);

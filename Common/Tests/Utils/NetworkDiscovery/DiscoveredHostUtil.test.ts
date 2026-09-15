@@ -1,6 +1,9 @@
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
-import { getDiscoveredHostDisplayName } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import {
+  DiscoveredHostNaming,
+  getDiscoveredHostDisplayName,
+} from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -18,6 +21,13 @@ import { describe, expect, test } from "@jest/globals";
  * forbids on purpose: the whole point of the function is that the runtime
  * value does not honour the type, so the tests have to be able to say so.
  */
+
+/*
+ * Full names, as every scan named its devices before issue #3678's short-name
+ * setting. Normalisation is independent of the naming choice; this only says
+ * which name the display assertions below expect.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
 
 function host(
   overrides: Partial<DiscoveredNetworkDevice>,
@@ -401,7 +411,7 @@ describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () =
       }),
     ]);
 
-    expect(getDiscoveredHostDisplayName(normalized!)).toBe(
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe(
       "core-gw.corp.example.com",
     );
   });
@@ -420,7 +430,7 @@ describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () =
 
     for (const row of rows) {
       expect(() => {
-        return getDiscoveredHostDisplayName(row);
+        return getDiscoveredHostDisplayName(row, FULL_NAMES);
       }).not.toThrow();
     }
   });

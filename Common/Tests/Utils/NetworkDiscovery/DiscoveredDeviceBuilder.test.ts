@@ -1,11 +1,14 @@
 import {
   MAX_DEVICE_DESCRIPTION_LENGTH,
+  MAX_DEVICE_DNS_NAME_LENGTH,
   MAX_DEVICE_NAME_LENGTH,
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostDisplayName,
+  getDiscoveredHostFullName,
   DiscoveredDeviceScanSource,
+  DiscoveredHostNaming,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -39,6 +42,18 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+
+/*
+ * The naming choice every case written before issue #3678 was written
+ * against: full names, exactly as every scan named its devices before the
+ * short-name setting existed. Spelled `false` rather than `{}` so a reader
+ * sees which behaviour the expectations below pin; the "off by default"
+ * cases further down prove `{}` means the same thing.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
+
+// The scan setting from issue #3678, switched on.
+const SHORT_NAMES: DiscoveredHostNaming = { useShortDeviceNames: true };
 
 function snmpHost(
   overrides: Partial<DiscoveredNetworkDevice> = {},
@@ -171,6 +186,14 @@ function expectNoV3Credentials(device: NetworkDevice): void {
   expect(device.snmpV3AuthKey).toBeUndefined();
   expect(device.snmpV3PrivProtocol).toBeUndefined();
   expect(device.snmpV3PrivKey).toBeUndefined();
+}
+
+/*
+ * fullScanSource() with issue #3678's short-name setting switched on — the
+ * shape a scan row has when the operator ticked "Use Short Device Names".
+ */
+function shortNamesScan(): DiscoveredDeviceScanSource {
+  return { ...fullScanSource(), useShortDeviceNames: true };
 }
 
 function build(data: {
@@ -546,16 +569,20 @@ describe("buildNetworkDeviceFromDiscoveredHost - both kinds of host share the re
 
 describe("buildDeviceName", () => {
   it("prefers the sysName", () => {
-    expect(buildDeviceName(snmpHost())).toBe("core-switch-01");
+    expect(buildDeviceName(snmpHost(), FULL_NAMES)).toBe("core-switch-01");
   });
 
   // A ping-only host has no SNMP identity; the address is all there is.
   it("falls back to the address when sysName is missing", () => {
-    expect(buildDeviceName(snmpHost({ sysName: undefined }))).toBe("10.0.0.5");
+    expect(buildDeviceName(snmpHost({ sysName: undefined }), FULL_NAMES)).toBe(
+      "10.0.0.5",
+    );
   });
 
   it("falls back to the address when sysName is whitespace", () => {
-    expect(buildDeviceName(snmpHost({ sysName: "   " }))).toBe("10.0.0.5");
+    expect(buildDeviceName(snmpHost({ sysName: "   " }), FULL_NAMES)).toBe(
+      "10.0.0.5",
+    );
   });
 
   /*
@@ -566,7 +593,10 @@ describe("buildDeviceName", () => {
    */
   it("clamps a 255-character sysName to MAX_DEVICE_NAME_LENGTH", () => {
     const longSysName: string = "x".repeat(255);
-    const name: string = buildDeviceName(snmpHost({ sysName: longSysName }));
+    const name: string = buildDeviceName(
+      snmpHost({ sysName: longSysName }),
+      FULL_NAMES,
+    );
 
     expect(name.length).toBe(MAX_DEVICE_NAME_LENGTH);
     expect(name).toBe(longSysName.substring(0, MAX_DEVICE_NAME_LENGTH));
@@ -575,7 +605,7 @@ describe("buildDeviceName", () => {
 
 describe("buildFallbackDeviceName", () => {
   it("appends the address that tells name-twins apart", () => {
-    expect(buildFallbackDeviceName(snmpHost())).toBe(
+    expect(buildFallbackDeviceName(snmpHost(), FULL_NAMES)).toBe(
       "core-switch-01 (10.0.0.5)",
     );
   });
@@ -592,6 +622,7 @@ describe("buildFallbackDeviceName", () => {
         sysName: "y".repeat(255),
         ipAddress: "255.255.255.255",
       }),
+      FULL_NAMES,
     );
 
     expect(name.length).toBeLessThanOrEqual(MAX_DEVICE_NAME_LENGTH);
@@ -662,20 +693,26 @@ describe("the reverse-DNS name (issue #3529)", () => {
     test("a host with no sysName is named by its PTR record", () => {
       // The reported case, in one line.
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "core-gw.corp.example.com",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "core-gw.corp.example.com",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("core-gw.corp.example.com");
     });
 
     test("sysName still wins when the host has both", () => {
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          sysName: "core-switch-01",
-          dnsHostname: "sw1.corp.example.com",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            sysName: "core-switch-01",
+            dnsHostname: "sw1.corp.example.com",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("core-switch-01");
     });
 
@@ -686,11 +723,14 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * device named " ".
        */
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          sysName: "   ",
-          dnsHostname: "sw1.corp.example.com",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            sysName: "   ",
+            dnsHostname: "sw1.corp.example.com",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("sw1.corp.example.com");
     });
 
@@ -710,16 +750,21 @@ describe("the reverse-DNS name (issue #3529)", () => {
         dnsHostname: "sw1.corp.example.com",
       };
 
-      expect(getDiscoveredHostDisplayName(paddedHost)).toBe("core-switch-01");
+      expect(getDiscoveredHostDisplayName(paddedHost, FULL_NAMES)).toBe(
+        "core-switch-01",
+      );
       expect(build({ host: paddedHost }).name).toBe("core-switch-01");
     });
 
     test("the address is still the last resort", () => {
-      expect(buildDeviceName({ ipAddress: "10.18.166.51" })).toBe(
+      expect(buildDeviceName({ ipAddress: "10.18.166.51" }, FULL_NAMES)).toBe(
         "10.18.166.51",
       );
       expect(
-        buildDeviceName({ ipAddress: "10.18.166.51", dnsHostname: "" }),
+        buildDeviceName(
+          { ipAddress: "10.18.166.51", dnsHostname: "" },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
     });
 
@@ -730,9 +775,14 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * that has not been upgraded yet.
        */
       expect(
-        buildDeviceName({ ipAddress: "10.0.0.5", sysName: "core-switch-01" }),
+        buildDeviceName(
+          { ipAddress: "10.0.0.5", sysName: "core-switch-01" },
+          FULL_NAMES,
+        ),
       ).toBe("core-switch-01");
-      expect(buildDeviceName({ ipAddress: "10.0.0.5" })).toBe("10.0.0.5");
+      expect(buildDeviceName({ ipAddress: "10.0.0.5" }, FULL_NAMES)).toBe(
+        "10.0.0.5",
+      );
     });
   });
 
@@ -769,9 +819,12 @@ describe("the reverse-DNS name (issue #3529)", () => {
       ];
 
       for (const discoveredHost of hosts) {
-        const displayed: string = getDiscoveredHostDisplayName(discoveredHost);
+        const displayed: string = getDiscoveredHostDisplayName(
+          discoveredHost,
+          FULL_NAMES,
+        );
 
-        expect(buildDeviceName(discoveredHost)).toBe(
+        expect(buildDeviceName(discoveredHost, FULL_NAMES)).toBe(
           displayed.substring(0, MAX_DEVICE_NAME_LENGTH),
         );
 
@@ -782,7 +835,7 @@ describe("the reverse-DNS name (issue #3529)", () => {
          * naming rule would pass the assertion above and fail this one.
          */
         expect(build({ host: discoveredHost }).name).toBe(
-          buildDeviceName(discoveredHost),
+          buildDeviceName(discoveredHost, FULL_NAMES),
         );
       }
 
@@ -791,8 +844,8 @@ describe("the reverse-DNS name (issue #3529)", () => {
         hosts.length - 1
       ] as DiscoveredNetworkDevice;
 
-      expect(getDiscoveredHostDisplayName(clampedHost)).not.toBe(
-        buildDeviceName(clampedHost),
+      expect(getDiscoveredHostDisplayName(clampedHost, FULL_NAMES)).not.toBe(
+        buildDeviceName(clampedHost, FULL_NAMES),
       );
     });
 
@@ -806,13 +859,19 @@ describe("the reverse-DNS name (issue #3529)", () => {
       const longName: string = `${"a".repeat(63)}.${"b".repeat(40)}.example.com`;
 
       expect(
-        getDiscoveredHostDisplayName({
-          ipAddress: "10.0.0.1",
-          dnsHostname: longName,
-        }),
+        getDiscoveredHostDisplayName(
+          {
+            ipAddress: "10.0.0.1",
+            dnsHostname: longName,
+          },
+          FULL_NAMES,
+        ),
       ).toBe(longName);
       expect(
-        buildDeviceName({ ipAddress: "10.0.0.1", dnsHostname: longName }),
+        buildDeviceName(
+          { ipAddress: "10.0.0.1", dnsHostname: longName },
+          FULL_NAMES,
+        ),
       ).toHaveLength(MAX_DEVICE_NAME_LENGTH);
     });
   });
@@ -828,19 +887,25 @@ describe("the reverse-DNS name (issue #3529)", () => {
      */
     test("falls back to the address rather than naming a device after markup", () => {
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "<script>alert(1)</script>",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "<script>alert(1)</script>",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
     });
 
     test("falls back to the address for a name with whitespace in it", () => {
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "core switch",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "core switch",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
     });
 
@@ -850,16 +915,22 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * published, which is worse than showing the address as an address.
        */
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "10.18.166.51",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "10.18.166.51",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "51.166.18.10.in-addr.arpa",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "51.166.18.10.in-addr.arpa",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
     });
 
@@ -873,10 +944,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * "51" and a single all-numeric label is refused anyway.
        */
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: 51 as unknown as string,
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: 51 as unknown as string,
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
 
       /*
@@ -887,19 +961,25 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * address, and this line is the only thing in the file that notices.
        */
       expect(
-        buildDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: true as unknown as string,
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: true as unknown as string,
+          },
+          FULL_NAMES,
+        ),
       ).toBe("10.18.166.51");
     });
 
     test("stores the normalised form, not the raw answer", () => {
       expect(
-        buildDeviceName({
-          ipAddress: "10.0.0.1",
-          dnsHostname: "  gw.corp.example.com.  ",
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "10.0.0.1",
+            dnsHostname: "  gw.corp.example.com.  ",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("gw.corp.example.com");
     });
   });
@@ -956,10 +1036,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * The address is what tells them apart.
        */
       expect(
-        buildFallbackDeviceName({
-          ipAddress: "10.18.166.51",
-          dnsHostname: "dhcp-pool.corp.example.com",
-        }),
+        buildFallbackDeviceName(
+          {
+            ipAddress: "10.18.166.51",
+            dnsHostname: "dhcp-pool.corp.example.com",
+          },
+          FULL_NAMES,
+        ),
       ).toBe("dhcp-pool.corp.example.com (10.18.166.51)");
     });
   });
@@ -1015,10 +1098,12 @@ describe("the reverse-DNS name (issue #3529)", () => {
           dnsHostname: "core-gw.corp.example.com",
         };
 
-        expect(getDiscoveredHostDisplayName(host)).toBe(
+        expect(getDiscoveredHostDisplayName(host, FULL_NAMES)).toBe(
           "core-gw.corp.example.com",
         );
-        expect(buildDeviceName(host)).toBe("core-gw.corp.example.com");
+        expect(buildDeviceName(host, FULL_NAMES)).toBe(
+          "core-gw.corp.example.com",
+        );
       });
 
       test(`${untrusted.reason} sysName falls through to the address`, () => {
@@ -1028,8 +1113,10 @@ describe("the reverse-DNS name (issue #3529)", () => {
           sysName: untrusted.value as unknown as string,
         };
 
-        expect(getDiscoveredHostDisplayName(host)).toBe("10.18.166.51");
-        expect(buildDeviceName(host)).toBe("10.18.166.51");
+        expect(getDiscoveredHostDisplayName(host, FULL_NAMES)).toBe(
+          "10.18.166.51",
+        );
+        expect(buildDeviceName(host, FULL_NAMES)).toBe("10.18.166.51");
       });
     }
   });
@@ -1041,9 +1128,9 @@ describe("the reverse-DNS name (issue #3529)", () => {
    */
   describe("an untrusted address as the last resort", () => {
     test("a numeric address still names the row", () => {
-      expect(buildDeviceName({ ipAddress: 42 as unknown as string })).toBe(
-        "42",
-      );
+      expect(
+        buildDeviceName({ ipAddress: 42 as unknown as string }, FULL_NAMES),
+      ).toBe("42");
     });
 
     test("a null address degrades to an empty name rather than a throw", () => {
@@ -1053,7 +1140,10 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * than a TypeError that removes the dialog.
        */
       expect(
-        getDiscoveredHostDisplayName({ ipAddress: null as unknown as string }),
+        getDiscoveredHostDisplayName(
+          { ipAddress: null as unknown as string },
+          FULL_NAMES,
+        ),
       ).toBe("");
     });
 
@@ -1072,9 +1162,12 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * still holds, which is why the null case above is asserted too.
        */
       expect(
-        buildDeviceName({
-          ipAddress: { v4: "10.18.166.51" } as unknown as string,
-        }),
+        buildDeviceName(
+          {
+            ipAddress: { v4: "10.18.166.51" } as unknown as string,
+          },
+          FULL_NAMES,
+        ),
       ).toBe("[object Object]");
     });
 
@@ -1157,7 +1250,7 @@ describe("the reverse-DNS name (issue #3529)", () => {
           dnsHostname: answer.value as unknown as string,
         };
 
-        expect(getDiscoveredHostDisplayName(hostWithBadPtr)).toBe(
+        expect(getDiscoveredHostDisplayName(hostWithBadPtr, FULL_NAMES)).toBe(
           "10.18.166.51",
         );
         // The device, not just the name: a coercion would reach the column.
@@ -1238,13 +1331,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
     });
 
     test("buildFallbackDeviceName tells them apart by their own address", () => {
-      expect(buildFallbackDeviceName(firstPoolHost)).not.toBe(
-        buildFallbackDeviceName(secondPoolHost),
+      expect(buildFallbackDeviceName(firstPoolHost, FULL_NAMES)).not.toBe(
+        buildFallbackDeviceName(secondPoolHost, FULL_NAMES),
       );
-      expect(buildFallbackDeviceName(firstPoolHost)).toBe(
+      expect(buildFallbackDeviceName(firstPoolHost, FULL_NAMES)).toBe(
         "dhcp-pool.corp.example.com (10.18.166.51)",
       );
-      expect(buildFallbackDeviceName(secondPoolHost)).toBe(
+      expect(buildFallbackDeviceName(secondPoolHost, FULL_NAMES)).toBe(
         "dhcp-pool.corp.example.com (10.18.166.52)",
       );
     });
@@ -1262,7 +1355,7 @@ describe("the reverse-DNS name (issue #3529)", () => {
        */
       const device: NetworkDevice = build({
         host: secondPoolHost,
-        name: buildFallbackDeviceName(secondPoolHost),
+        name: buildFallbackDeviceName(secondPoolHost, FULL_NAMES),
       });
 
       expect(device.name).toBe("dhcp-pool.corp.example.com (10.18.166.52)");
@@ -1289,7 +1382,10 @@ describe("the reverse-DNS name (issue #3529)", () => {
         dnsHostname: WILDCARD_PTR_NAME,
       } as unknown as DiscoveredNetworkDevice;
 
-      const fallbackName: string = buildFallbackDeviceName(addresslessHost);
+      const fallbackName: string = buildFallbackDeviceName(
+        addresslessHost,
+        FULL_NAMES,
+      );
 
       expect(fallbackName).toBe(WILDCARD_PTR_NAME);
       expect(fallbackName).not.toContain("undefined");
@@ -1311,8 +1407,12 @@ describe("the reverse-DNS name (issue #3529)", () => {
         dnsHostname: WILDCARD_PTR_NAME,
       };
 
-      expect(buildFallbackDeviceName(nullAddressHost)).toBe(WILDCARD_PTR_NAME);
-      expect(buildFallbackDeviceName(nullAddressHost)).not.toContain("null)");
+      expect(buildFallbackDeviceName(nullAddressHost, FULL_NAMES)).toBe(
+        WILDCARD_PTR_NAME,
+      );
+      expect(
+        buildFallbackDeviceName(nullAddressHost, FULL_NAMES),
+      ).not.toContain("null)");
     });
   });
 
@@ -1350,10 +1450,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
        */
       expect(MAXIMAL_PTR_NAME).toHaveLength(MAX_REVERSE_DNS_NAME_LENGTH);
       expect(
-        buildDeviceName({
-          ipAddress: "255.255.255.255",
-          dnsHostname: MAXIMAL_PTR_NAME,
-        }),
+        buildDeviceName(
+          {
+            ipAddress: "255.255.255.255",
+            dnsHostname: MAXIMAL_PTR_NAME,
+          },
+          FULL_NAMES,
+        ),
       ).toBe(MAXIMAL_PTR_NAME.substring(0, MAX_DEVICE_NAME_LENGTH));
     });
 
@@ -1368,10 +1471,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * gives way, or the wildcard range collides again), and what precedes
        * it is a genuine prefix of the PTR name rather than some other string.
        */
-      const name: string = buildFallbackDeviceName({
-        ipAddress: "255.255.255.255",
-        dnsHostname: MAXIMAL_PTR_NAME,
-      });
+      const name: string = buildFallbackDeviceName(
+        {
+          ipAddress: "255.255.255.255",
+          dnsHostname: MAXIMAL_PTR_NAME,
+        },
+        FULL_NAMES,
+      );
 
       expect(name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
       expect(name.endsWith(WIDEST_ADDRESS_SUFFIX)).toBe(true);
@@ -1392,15 +1498,21 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * differ only in their last octet.
        */
       expect(
-        buildFallbackDeviceName({
-          ipAddress: "255.255.255.255",
-          dnsHostname: MAXIMAL_PTR_NAME,
-        }),
+        buildFallbackDeviceName(
+          {
+            ipAddress: "255.255.255.255",
+            dnsHostname: MAXIMAL_PTR_NAME,
+          },
+          FULL_NAMES,
+        ),
       ).not.toBe(
-        buildFallbackDeviceName({
-          ipAddress: "255.255.255.254",
-          dnsHostname: MAXIMAL_PTR_NAME,
-        }),
+        buildFallbackDeviceName(
+          {
+            ipAddress: "255.255.255.254",
+            dnsHostname: MAXIMAL_PTR_NAME,
+          },
+          FULL_NAMES,
+        ),
       );
     });
 
@@ -1420,10 +1532,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
       // Anti-vacuity: this really is the wider of the two suffixes.
       expect(IPV6_SUFFIX.length).toBeGreaterThan(WIDEST_ADDRESS_SUFFIX.length);
 
-      const name: string = buildFallbackDeviceName({
-        ipAddress: FULL_IPV6_ADDRESS,
-        dnsHostname: MAXIMAL_PTR_NAME,
-      });
+      const name: string = buildFallbackDeviceName(
+        {
+          ipAddress: FULL_IPV6_ADDRESS,
+          dnsHostname: MAXIMAL_PTR_NAME,
+        },
+        FULL_NAMES,
+      );
 
       expect(name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
       expect(name.endsWith(IPV6_SUFFIX)).toBe(true);
@@ -1449,15 +1564,21 @@ describe("the reverse-DNS name (issue #3529)", () => {
        * an address that occupies 42 of the 80 characters available.
        */
       expect(
-        buildFallbackDeviceName({
-          ipAddress: FULL_IPV6_ADDRESS,
-          dnsHostname: MAXIMAL_PTR_NAME,
-        }),
+        buildFallbackDeviceName(
+          {
+            ipAddress: FULL_IPV6_ADDRESS,
+            dnsHostname: MAXIMAL_PTR_NAME,
+          },
+          FULL_NAMES,
+        ),
       ).not.toBe(
-        buildFallbackDeviceName({
-          ipAddress: "2001:0db8:85a3:0000:0000:8a2e:0370:7335",
-          dnsHostname: MAXIMAL_PTR_NAME,
-        }),
+        buildFallbackDeviceName(
+          {
+            ipAddress: "2001:0db8:85a3:0000:0000:8a2e:0370:7335",
+            dnsHostname: MAXIMAL_PTR_NAME,
+          },
+          FULL_NAMES,
+        ),
       );
     });
 
@@ -1497,10 +1618,13 @@ describe("the reverse-DNS name (issue #3529)", () => {
       const slugSuffixLength: number =
         Slug.getSlug(SLUG_PROBE).length - SLUG_PROBE.length;
 
-      const name: string = buildDeviceName({
-        ipAddress: "10.18.166.51",
-        sysName: "long-sysname-".repeat(20),
-      });
+      const name: string = buildDeviceName(
+        {
+          ipAddress: "10.18.166.51",
+          sysName: "long-sysname-".repeat(20),
+        },
+        FULL_NAMES,
+      );
 
       expect(name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
 
@@ -1580,5 +1704,860 @@ describe("the reverse-DNS name (issue #3529)", () => {
         expect(device.hostname).toBe("10.18.166.51");
       });
     }
+  });
+});
+
+/*
+ * OneUptime issue #3678 — "discovered devices are named by their full DNS
+ * name".
+ *
+ * The reporter's estate is one corporate domain, so every device in the list
+ * reads "wb-0660-kds01.wbhq.com", "wb-0660-kds02.wbhq.com", ... and the part
+ * an operator recognises is pushed to the far left of a truncated column. The
+ * scan setting `useShortDeviceNames` names imports by the first label
+ * instead. What these cases pin:
+ *
+ *   - OFF unless the setting is exactly `true`. Every scan that existed before
+ *     the setting must keep importing under the names it always did, and a
+ *     value that arrives as "true" or 1 out of an API payload must not
+ *     quietly rename a project's devices.
+ *   - ON shortens whichever name WON — sysName or PTR — and never changes
+ *     which one wins. A sysName an operator typed ("Core Switch") beats a PTR
+ *     record with the setting on exactly as it does with it off.
+ *   - What cannot be shortened safely is kept whole: an address, an OS
+ *     version string, an address spelled with dashes.
+ *   - The Review dialog's name, the device's name, and the collision fallback
+ *     all agree, because they all go through the same naming argument.
+ */
+describe("short device names (issue #3678)", () => {
+  const CUSTOMER_PTR_NAME: string = "wb-0660-kds01.wbhq.com";
+
+  const customerHost: DiscoveredNetworkDevice = {
+    ipAddress: "10.18.167.31",
+    snmpReachable: false,
+    dnsHostname: CUSTOMER_PTR_NAME,
+  };
+
+  describe("the setting is off unless it is exactly true", () => {
+    test("an empty naming choice imports the full name", () => {
+      expect(buildDeviceName(customerHost, {})).toBe(CUSTOMER_PTR_NAME);
+      expect(getDiscoveredHostDisplayName(customerHost, {})).toBe(
+        CUSTOMER_PTR_NAME,
+      );
+      expect(buildFallbackDeviceName(customerHost, {})).toBe(
+        `${CUSTOMER_PTR_NAME} (10.18.167.31)`,
+      );
+    });
+
+    test("false imports the full name", () => {
+      expect(buildDeviceName(customerHost, FULL_NAMES)).toBe(CUSTOMER_PTR_NAME);
+    });
+
+    /*
+     * Values that are truthy but not `true`. A jsonb row, an API client that
+     * stringifies booleans, or a form library that submits 1 — none of them
+     * is an operator saying "rename my devices".
+     */
+    const NOT_TRUE: Array<{ reason: string; value: unknown }> = [
+      { reason: "the string true", value: "true" },
+      { reason: "the number 1", value: 1 },
+      { reason: "null", value: null },
+      { reason: "undefined", value: undefined },
+      { reason: "an object", value: {} },
+      { reason: "the string yes", value: "yes" },
+    ];
+
+    for (const notTrue of NOT_TRUE) {
+      test(`${notTrue.reason} imports the full name`, () => {
+        const naming: DiscoveredHostNaming = {
+          useShortDeviceNames: notTrue.value as boolean,
+        };
+
+        expect(getDiscoveredHostDisplayName(customerHost, naming)).toBe(
+          CUSTOMER_PTR_NAME,
+        );
+        expect(buildDeviceName(customerHost, naming)).toBe(CUSTOMER_PTR_NAME);
+        expect(
+          build({
+            host: customerHost,
+            scan: {
+              ...fullScanSource(),
+              useShortDeviceNames: notTrue.value as boolean,
+            },
+          }).name,
+        ).toBe(CUSTOMER_PTR_NAME);
+      });
+    }
+
+    // Anti-vacuity for the block: the same host really is shortened when on.
+    test("true imports the short name", () => {
+      expect(buildDeviceName(customerHost, SHORT_NAMES)).toBe("wb-0660-kds01");
+    });
+  });
+
+  describe("with the setting on", () => {
+    test("a PTR name is shortened to its first label", () => {
+      expect(getDiscoveredHostDisplayName(customerHost, SHORT_NAMES)).toBe(
+        "wb-0660-kds01",
+      );
+      expect(buildDeviceName(customerHost, SHORT_NAMES)).toBe("wb-0660-kds01");
+    });
+
+    test("a PTR name with a root dot is shortened the same way", () => {
+      expect(
+        buildDeviceName(
+          { ipAddress: "10.18.167.31", dnsHostname: `${CUSTOMER_PTR_NAME}.` },
+          SHORT_NAMES,
+        ),
+      ).toBe("wb-0660-kds01");
+    });
+
+    test("the PTR name's case is preserved", () => {
+      expect(
+        buildDeviceName(
+          { ipAddress: "10.18.167.31", dnsHostname: "WB-0660-KDS01.WBHQ.COM" },
+          SHORT_NAMES,
+        ),
+      ).toBe("WB-0660-KDS01");
+    });
+
+    /*
+     * Network gear routinely reports its FQDN as sysName. Shortening only
+     * PTR-named hosts would leave a list where half the switches carry the
+     * domain and half do not, which reads as broken. The full sysName is not
+     * lost: the poller keeps writing it to the device's sysName column.
+     */
+    test("a fully qualified sysName is shortened too", () => {
+      const host: DiscoveredNetworkDevice = snmpHost({
+        sysName: "core-sw-01.corp.example.com",
+      });
+
+      expect(getDiscoveredHostDisplayName(host, SHORT_NAMES)).toBe(
+        "core-sw-01",
+      );
+      expect(build({ host: host, scan: shortNamesScan() }).name).toBe(
+        "core-sw-01",
+      );
+    });
+
+    test("a padded fully qualified sysName is trimmed and shortened", () => {
+      expect(
+        buildDeviceName(
+          snmpHost({ sysName: "  core-sw-01.corp.example.com  " }),
+          SHORT_NAMES,
+        ),
+      ).toBe("core-sw-01");
+    });
+
+    test("a sysName that is not a hostname is kept exactly", () => {
+      expect(
+        buildDeviceName(snmpHost({ sysName: "Core Switch" }), SHORT_NAMES),
+      ).toBe("Core Switch");
+      expect(
+        buildDeviceName(snmpHost({ sysName: "Core Switch 1.5" }), SHORT_NAMES),
+      ).toBe("Core Switch 1.5");
+    });
+
+    test("a single-label sysName is kept exactly", () => {
+      expect(buildDeviceName(snmpHost(), SHORT_NAMES)).toBe("core-switch-01");
+    });
+
+    // An address has no domain. "10.18.167.31" must not become "10".
+    test("an IPv4 address is kept whole", () => {
+      expect(buildDeviceName({ ipAddress: "10.18.167.31" }, SHORT_NAMES)).toBe(
+        "10.18.167.31",
+      );
+    });
+
+    test("an IPv6 address is kept whole", () => {
+      expect(
+        buildDeviceName(
+          { ipAddress: "2001:0db8:85a3:0000:0000:8a2e:0370:7334" },
+          SHORT_NAMES,
+        ),
+      ).toBe("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+      expect(buildDeviceName({ ipAddress: "2001:db8::5" }, SHORT_NAMES)).toBe(
+        "2001:db8::5",
+      );
+    });
+
+    /*
+     * Names that pass as DNS names but that the short-name rule refuses. Kept
+     * FULL, not cut: "ubuntu-22" is a name nobody chose, and
+     * "10-18-167-31" is an address dressed up as a hostname.
+     */
+    test("a name the short-name rule refuses is kept in full", () => {
+      for (const unshortenable of [
+        "ubuntu-22.04",
+        "10-18-167-31.dhcp.corp.com",
+        "a.b.v2",
+      ]) {
+        expect(
+          buildDeviceName(
+            { ipAddress: "10.18.167.31", dnsHostname: unshortenable },
+            SHORT_NAMES,
+          ),
+        ).toBe(unshortenable);
+        expect(
+          buildDeviceName(snmpHost({ sysName: unshortenable }), SHORT_NAMES),
+        ).toBe(unshortenable);
+      }
+    });
+
+    test("an untrusted PTR record still falls back to the address", () => {
+      for (const hostile of [
+        "<script>alert(1)</script>",
+        "core switch.corp.example.com",
+        "31.167.18.10.in-addr.arpa",
+      ]) {
+        expect(
+          buildDeviceName(
+            { ipAddress: "10.18.167.31", dnsHostname: hostile },
+            SHORT_NAMES,
+          ),
+        ).toBe("10.18.167.31");
+      }
+    });
+  });
+
+  /*
+   * Shortening is applied to the WINNER, after the contest. If it were
+   * applied to each candidate first, a sysName the rule refuses could lose to
+   * a shortenable PTR record, and turning the setting on would silently
+   * change which of the device's names it is known by.
+   */
+  describe("shortening never changes which name wins", () => {
+    test('a sysName of "Core Switch" still beats a PTR name', () => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.18.167.31",
+        sysName: "Core Switch",
+        dnsHostname: CUSTOMER_PTR_NAME,
+      };
+
+      expect(getDiscoveredHostDisplayName(host, FULL_NAMES)).toBe(
+        "Core Switch",
+      );
+      expect(getDiscoveredHostDisplayName(host, SHORT_NAMES)).toBe(
+        "Core Switch",
+      );
+      expect(build({ host: host, scan: shortNamesScan() }).name).toBe(
+        "Core Switch",
+      );
+    });
+
+    test("an unshortenable sysName still beats a shortenable PTR name", () => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.18.167.31",
+        sysName: "ubuntu-22.04",
+        dnsHostname: CUSTOMER_PTR_NAME,
+      };
+
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe("ubuntu-22.04");
+    });
+
+    test("a fully qualified sysName wins and is shortened, not the PTR name", () => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.18.167.31",
+        sysName: "kds-controller.corp.example.com",
+        dnsHostname: CUSTOMER_PTR_NAME,
+      };
+
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe("kds-controller");
+    });
+
+    /*
+     * The general statement, over every naming combination: the short name
+     * is always the short form of the FULL name the host would get with the
+     * setting off, or that full name itself.
+     */
+    test("the short name is always the full name or its first label", () => {
+      const hosts: Array<DiscoveredNetworkDevice> = [
+        { ipAddress: "10.0.0.1" },
+        { ipAddress: "10.0.0.2", dnsHostname: "gw.corp.example.com" },
+        { ipAddress: "10.0.0.3", sysName: "sw-3" },
+        { ipAddress: "10.0.0.4", sysName: "sw-4.corp.example.com" },
+        {
+          ipAddress: "10.0.0.5",
+          sysName: "Core Switch",
+          dnsHostname: "sw5.corp.example.com",
+        },
+        { ipAddress: "10.0.0.6", dnsHostname: "ubuntu-22.04" },
+        { ipAddress: "2001:db8::7", dnsHostname: "v6.corp.example.com" },
+      ];
+
+      for (const host of hosts) {
+        const full: string = getDiscoveredHostDisplayName(host, FULL_NAMES);
+        const short: string = getDiscoveredHostDisplayName(host, SHORT_NAMES);
+
+        expect([full, full.split(".")[0]]).toContain(short);
+        expect(full.startsWith(short)).toBe(true);
+      }
+    });
+  });
+
+  describe("the Review name, the device name and the fallback agree", () => {
+    test("the device is created under the clamped short display name", () => {
+      const longPtrName: string = `${"a".repeat(63)}.${"b".repeat(
+        40,
+      )}.example.com`;
+
+      const hosts: Array<DiscoveredNetworkDevice> = [
+        { ipAddress: "10.0.0.1" },
+        customerHost,
+        snmpHost({ sysName: "core-sw-01.corp.example.com" }),
+        snmpHost({ sysName: "Core Switch" }),
+        { ipAddress: "10.0.0.5", dnsHostname: longPtrName },
+        snmpHost({ sysName: "long-sysname-".repeat(20) }),
+      ];
+
+      for (const host of hosts) {
+        const displayed: string = getDiscoveredHostDisplayName(
+          host,
+          SHORT_NAMES,
+        );
+
+        expect(buildDeviceName(host, SHORT_NAMES)).toBe(
+          displayed.substring(0, MAX_DEVICE_NAME_LENGTH),
+        );
+        expect(build({ host: host, scan: shortNamesScan() }).name).toBe(
+          buildDeviceName(host, SHORT_NAMES),
+        );
+      }
+    });
+
+    /*
+     * Clamping happens AFTER shortening. A PTR name too long to be a device
+     * name with the setting off becomes a first label that fits whole with it
+     * on — the operator gets the entire hostname rather than an 80-character
+     * fragment of the FQDN.
+     */
+    test("a long PTR name is shortened first, so its first label is not clamped", () => {
+      const label: string = "a".repeat(63);
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.0.0.5",
+        dnsHostname: `${label}.${"b".repeat(40)}.example.com`,
+      };
+
+      expect(buildDeviceName(host, FULL_NAMES)).toHaveLength(
+        MAX_DEVICE_NAME_LENGTH,
+      );
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe(label);
+    });
+
+    test("a long name the rule refuses is still clamped with the setting on", () => {
+      const name: string = buildDeviceName(
+        snmpHost({ sysName: "x".repeat(255) }),
+        SHORT_NAMES,
+      );
+
+      expect(name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
+
+      const versionLike: string = buildDeviceName(
+        snmpHost({ sysName: `${"v".repeat(100)}.22.04` }),
+        SHORT_NAMES,
+      );
+
+      expect(versionLike).toBe(
+        `${"v".repeat(100)}.22.04`.substring(0, MAX_DEVICE_NAME_LENGTH),
+      );
+    });
+
+    /*
+     * A wildcard reverse zone gives many hosts one PTR name, so with the
+     * setting on they share one SHORT name too, and the second create
+     * collides. The retry name is the short name plus the address.
+     */
+    test("the collision fallback is the short name plus the address", () => {
+      expect(
+        buildFallbackDeviceName(
+          { ipAddress: "10.0.0.5", dnsHostname: "web.corp.example.com" },
+          SHORT_NAMES,
+        ),
+      ).toBe("web (10.0.0.5)");
+
+      expect(
+        buildFallbackDeviceName(
+          { ipAddress: "2001:db8::5", dnsHostname: "web.corp.example.com" },
+          SHORT_NAMES,
+        ),
+      ).toBe("web (2001:db8::5)");
+
+      expect(
+        buildFallbackDeviceName(
+          snmpHost({ sysName: "Core Switch" }),
+          SHORT_NAMES,
+        ),
+      ).toBe("Core Switch (10.0.0.5)");
+    });
+
+    test("the fallback still tells a wildcard range apart", () => {
+      const first: string = buildFallbackDeviceName(
+        {
+          ipAddress: "10.18.166.51",
+          dnsHostname: "dhcp-pool.corp.example.com",
+        },
+        SHORT_NAMES,
+      );
+      const second: string = buildFallbackDeviceName(
+        {
+          ipAddress: "10.18.166.52",
+          dnsHostname: "dhcp-pool.corp.example.com",
+        },
+        SHORT_NAMES,
+      );
+
+      expect(first).toBe("dhcp-pool (10.18.166.51)");
+      expect(second).toBe("dhcp-pool (10.18.166.52)");
+    });
+
+    test("the fallback with a long first label keeps the address and the ceiling", () => {
+      const name: string = buildFallbackDeviceName(
+        {
+          ipAddress: "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+          dnsHostname: `${"a".repeat(63)}.example.com`,
+        },
+        SHORT_NAMES,
+      );
+
+      expect(name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
+      expect(name.endsWith(" (2001:0db8:85a3:0000:0000:8a2e:0370:7334)")).toBe(
+        true,
+      );
+      expect(Slug.getSlug(name).length).toBeLessThanOrEqual(ColumnLength.Slug);
+    });
+  });
+
+  describe("the builder reads the scan's own setting", () => {
+    /*
+     * buildNetworkDeviceFromDiscoveredHost takes no naming argument of its
+     * own: the scan it is handed IS the naming choice. That is what makes a
+     * caller that selected the scan without the column fail loudly (a type
+     * error on DiscoveredDeviceScanSource) instead of importing full names
+     * from a scan that asked for short ones.
+     */
+    test("a scan with the setting on imports the short name", () => {
+      const device: NetworkDevice = build({
+        host: customerHost,
+        scan: shortNamesScan(),
+      });
+
+      expect(device.name).toBe("wb-0660-kds01");
+      expect(device.hostname).toBe("10.18.167.31");
+    });
+
+    test("a scan without the setting imports the full name", () => {
+      expect(build({ host: customerHost }).name).toBe(CUSTOMER_PTR_NAME);
+      expect(
+        build({
+          host: customerHost,
+          scan: { ...fullScanSource(), useShortDeviceNames: false },
+        }).name,
+      ).toBe(CUSTOMER_PTR_NAME);
+    });
+
+    /*
+     * Naming is independent of credentials. A multi-config scan with the
+     * setting on must still hand each host its own config.
+     */
+    test("the setting changes the name and nothing else about the device", () => {
+      const host: DiscoveredNetworkDevice = snmpHost({
+        sysName: "core-rtr-01.corp.example.com",
+        snmpConfigId: CORE_CONFIG_ID,
+      });
+
+      const withFullNames: NetworkDevice = build({
+        host: host,
+        scan: multiConfigScanSource(),
+      });
+      const withShortNames: NetworkDevice = build({
+        host: host,
+        scan: { ...multiConfigScanSource(), useShortDeviceNames: true },
+      });
+
+      expect(withFullNames.name).toBe("core-rtr-01.corp.example.com");
+      expect(withShortNames.name).toBe("core-rtr-01");
+
+      expect(withShortNames.hostname).toBe(withFullNames.hostname);
+      expect(withShortNames.description).toBe(withFullNames.description);
+      expect(withShortNames.monitoringMethod).toBe(
+        withFullNames.monitoringMethod,
+      );
+      expect(withShortNames.isPollingEnabled).toBe(
+        withFullNames.isPollingEnabled,
+      );
+      expect(withShortNames.probeId?.toString()).toBe(
+        withFullNames.probeId?.toString(),
+      );
+      expect(withShortNames.snmpVersion).toBe("V3");
+      expect(withShortNames.snmpV3Username).toBe("core-observer");
+      expect(withShortNames.snmpCommunityString).toBeUndefined();
+    });
+
+    /*
+     * The collision retry passes the fallback name explicitly, and it must
+     * be used verbatim — the builder may not shorten a name it was handed,
+     * or "web (10.0.0.5)" and a hand-supplied FQDN would both be rewritten.
+     */
+    test("an explicit name still wins, verbatim, with the setting on", () => {
+      expect(
+        build({
+          host: customerHost,
+          scan: shortNamesScan(),
+          name: "custom-kds-name",
+        }).name,
+      ).toBe("custom-kds-name");
+
+      expect(
+        build({
+          host: customerHost,
+          scan: shortNamesScan(),
+          name: "kds-override.corp.example.com",
+        }).name,
+      ).toBe("kds-override.corp.example.com");
+    });
+
+    test("the retry creates the device under the short fallback name", () => {
+      const scan: DiscoveredDeviceScanSource = shortNamesScan();
+
+      const device: NetworkDevice = build({
+        host: customerHost,
+        scan: scan,
+        name: buildFallbackDeviceName(customerHost, scan),
+      });
+
+      expect(device.name).toBe("wb-0660-kds01 (10.18.167.31)");
+      expect(device.hostname).toBe("10.18.167.31");
+      expect(device.dnsName).toBe(CUSTOMER_PTR_NAME);
+    });
+
+    // The scan model itself is a naming choice, structurally.
+    test("a scan source is accepted wherever a naming choice is", () => {
+      const scan: DiscoveredDeviceScanSource = shortNamesScan();
+      const naming: DiscoveredHostNaming = scan;
+
+      expect(buildDeviceName(customerHost, naming)).toBe("wb-0660-kds01");
+    });
+  });
+});
+
+/*
+ * The unshortened winner, which the Review dialog shows beside a shortened
+ * name so the operator can see what was cut. It must be exactly what the
+ * display name WOULD be with short names off.
+ */
+describe("getDiscoveredHostFullName", () => {
+  test("returns the full PTR name a short display name was cut from", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.18.167.31",
+      dnsHostname: "wb-0660-kds01.wbhq.com.",
+    };
+
+    expect(getDiscoveredHostFullName(host)).toBe("wb-0660-kds01.wbhq.com");
+    expect(getDiscoveredHostDisplayName(host, SHORT_NAMES)).toBe(
+      "wb-0660-kds01",
+    );
+  });
+
+  test("returns the full sysName, trimmed, when the sysName won", () => {
+    expect(
+      getDiscoveredHostFullName(
+        snmpHost({ sysName: "  core-sw-01.corp.example.com " }),
+      ),
+    ).toBe("core-sw-01.corp.example.com");
+  });
+
+  test("keeps the sysName ahead of the PTR name", () => {
+    expect(
+      getDiscoveredHostFullName({
+        ipAddress: "10.0.0.5",
+        sysName: "Core Switch",
+        dnsHostname: "sw.corp.example.com",
+      }),
+    ).toBe("Core Switch");
+  });
+
+  test("falls back to the address, and never throws on junk", () => {
+    expect(getDiscoveredHostFullName({ ipAddress: "10.0.0.5" })).toBe(
+      "10.0.0.5",
+    );
+    expect(
+      getDiscoveredHostFullName({
+        ipAddress: "10.0.0.5",
+        sysName: 42 as unknown as string,
+        dnsHostname: "<b>x</b>",
+      }),
+    ).toBe("10.0.0.5");
+    expect(
+      getDiscoveredHostFullName({ ipAddress: null as unknown as string }),
+    ).toBe("");
+  });
+
+  /*
+   * Stated as the relationship the dialog depends on, across every naming
+   * combination: the full name IS the display name with short names off, and
+   * the short display name is derived from it and nothing else.
+   */
+  test("is the display name with short names off, whatever the host", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      { ipAddress: "10.0.0.1" },
+      { ipAddress: "10.0.0.2", dnsHostname: "gw.corp.example.com" },
+      { ipAddress: "10.0.0.3", sysName: "sw-3.corp.example.com" },
+      { ipAddress: "10.0.0.4", sysName: "   ", dnsHostname: "a.b.example" },
+      { ipAddress: "10.0.0.5", dnsHostname: "ubuntu-22.04" },
+      { ipAddress: 42 as unknown as string },
+    ];
+
+    for (const host of hosts) {
+      expect(getDiscoveredHostFullName(host)).toBe(
+        getDiscoveredHostDisplayName(host, FULL_NAMES),
+      );
+      expect(getDiscoveredHostFullName(host)).toBe(
+        getDiscoveredHostDisplayName(host, {}),
+      );
+    }
+  });
+
+  test("differs from the short display name only when something was cut", () => {
+    expect(
+      getDiscoveredHostFullName({ ipAddress: "10.0.0.5", sysName: "sw-3" }),
+    ).toBe(
+      getDiscoveredHostDisplayName(
+        { ipAddress: "10.0.0.5", sysName: "sw-3" },
+        SHORT_NAMES,
+      ),
+    );
+    expect(
+      getDiscoveredHostFullName({
+        ipAddress: "10.0.0.5",
+        dnsHostname: "sw-3.corp.example.com",
+      }),
+    ).not.toBe(
+      getDiscoveredHostDisplayName(
+        { ipAddress: "10.0.0.5", dnsHostname: "sw-3.corp.example.com" },
+        SHORT_NAMES,
+      ),
+    );
+  });
+
+  // It is the unclamped winner: the dialog shows it whole.
+  test("is not clamped", () => {
+    const longName: string = `${"a".repeat(63)}.${"b".repeat(40)}.example.com`;
+
+    expect(
+      getDiscoveredHostFullName({
+        ipAddress: "10.0.0.5",
+        dnsHostname: longName,
+      }),
+    ).toBe(longName);
+  });
+});
+
+/*
+ * NetworkDevice.dnsName (issue #3678): the host's full reverse-DNS name, kept
+ * on the device whatever it ends up being called.
+ *
+ * With short names on it is the ONLY place the FQDN survives, which is what
+ * the issue's follow-up comment asked for; and it is what a site rule written
+ * against "*.wbhq.com" still matches after the name loses the domain. So it is
+ * a fact about the host, not a presentation choice, and these cases pin that
+ * it is written from the PTR record, normalised, and from nowhere else.
+ */
+describe("the device's DNS name", () => {
+  test("is the PTR name, with short names on", () => {
+    const device: NetworkDevice = build({
+      host: {
+        ipAddress: "10.18.167.31",
+        dnsHostname: "wb-0660-kds01.wbhq.com",
+      },
+      scan: shortNamesScan(),
+    });
+
+    expect(device.name).toBe("wb-0660-kds01");
+    expect(device.dnsName).toBe("wb-0660-kds01.wbhq.com");
+  });
+
+  test("is the PTR name, with short names off", () => {
+    const device: NetworkDevice = build({
+      host: {
+        ipAddress: "10.18.167.31",
+        dnsHostname: "wb-0660-kds01.wbhq.com",
+      },
+    });
+
+    expect(device.name).toBe("wb-0660-kds01.wbhq.com");
+    expect(device.dnsName).toBe("wb-0660-kds01.wbhq.com");
+  });
+
+  test("is set even when the sysName names the device", () => {
+    const device: NetworkDevice = build({
+      host: snmpHost({ dnsHostname: "sw1.corp.example.com" }),
+      scan: shortNamesScan(),
+    });
+
+    expect(device.name).toBe("core-switch-01");
+    expect(device.dnsName).toBe("sw1.corp.example.com");
+  });
+
+  test("is set on a ping-only host", () => {
+    const device: NetworkDevice = build({
+      host: {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        dnsHostname: "cam-lobby.corp.example.com",
+      },
+    });
+
+    expect(device.dnsName).toBe("cam-lobby.corp.example.com");
+    expect(device.snmpCommunityString).toBeUndefined();
+  });
+
+  test("is stored normalised: no root dot, no padding, case preserved", () => {
+    expect(
+      build({
+        host: {
+          ipAddress: "10.18.167.31",
+          dnsHostname: "  WB-0660-KDS01.WbHq.com.  ",
+        },
+      }).dnsName,
+    ).toBe("WB-0660-KDS01.WbHq.com");
+  });
+
+  test("is set even when the short-name rule refuses the name", () => {
+    const device: NetworkDevice = build({
+      host: { ipAddress: "10.18.167.31", dnsHostname: "ubuntu-22.04" },
+      scan: shortNamesScan(),
+    });
+
+    expect(device.name).toBe("ubuntu-22.04");
+    expect(device.dnsName).toBe("ubuntu-22.04");
+  });
+
+  /*
+   * A PTR name is at most 253 characters, which is far more than the
+   * 80-character device name but well inside the column. It is stored WHOLE:
+   * clamping it like the name would store half a DNS name.
+   */
+  test("is stored whole at the longest name DNS allows, unlike the device name", () => {
+    const maximalName: string = `${"a".repeat(63)}.${"b".repeat(
+      63,
+    )}.${"c".repeat(63)}.${"d".repeat(61)}`;
+
+    const device: NetworkDevice = build({
+      host: { ipAddress: "10.18.167.31", dnsHostname: maximalName },
+    });
+
+    expect(maximalName).toHaveLength(MAX_DEVICE_DNS_NAME_LENGTH);
+    expect(device.dnsName).toBe(maximalName);
+    expect(device.name).toHaveLength(MAX_DEVICE_NAME_LENGTH);
+  });
+
+  test("its ceiling is the DNS ceiling, and fits the column", () => {
+    expect(MAX_DEVICE_DNS_NAME_LENGTH).toBe(MAX_REVERSE_DNS_NAME_LENGTH);
+    expect(MAX_DEVICE_DNS_NAME_LENGTH).toBeLessThanOrEqual(
+      ColumnLength.LongText,
+    );
+  });
+
+  test("survives the collision retry's explicit name", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.18.166.52",
+      dnsHostname: "dhcp-pool.corp.example.com",
+    };
+
+    const device: NetworkDevice = build({
+      host: host,
+      name: buildFallbackDeviceName(host, FULL_NAMES),
+    });
+
+    expect(device.name).toBe("dhcp-pool.corp.example.com (10.18.166.52)");
+    expect(device.dnsName).toBe("dhcp-pool.corp.example.com");
+  });
+
+  describe("is absent when there is no usable PTR name", () => {
+    /*
+     * "Absent", not "blank": an empty string is still a value on a create
+     * payload, and a device with no PTR record should read as having no DNS
+     * name rather than one that happens to be empty. The model initialises
+     * the property to undefined, so undefined is what "not written" looks
+     * like.
+     */
+    const NO_USABLE_PTR: Array<{ reason: string; dnsHostname: unknown }> = [
+      { reason: "no PTR record", dnsHostname: undefined },
+      { reason: "an empty PTR answer", dnsHostname: "" },
+      { reason: "a blank PTR answer", dnsHostname: "   " },
+      { reason: "markup", dnsHostname: "<script>alert(1)</script>" },
+      { reason: "a name with spaces", dnsHostname: "core switch" },
+      { reason: "the address restated", dnsHostname: "10.18.167.31" },
+      {
+        reason: "an in-addr.arpa echo",
+        dnsHostname: "31.167.18.10.in-addr.arpa",
+      },
+      {
+        reason: "a name longer than DNS allows",
+        dnsHostname: ["a", "b", "c", "d", "e"]
+          .map((letter: string): string => {
+            return letter.repeat(60);
+          })
+          .join("."),
+      },
+      { reason: "a number", dnsHostname: 42 },
+      { reason: "null", dnsHostname: null },
+      {
+        reason: "the resolver's whole answer array",
+        dnsHostname: ["gw.corp.example.com"],
+      },
+      {
+        reason: "a string-like object",
+        dnsHostname: {
+          toString: (): string => {
+            return "gw.corp.example.com";
+          },
+        },
+      },
+    ];
+
+    for (const noPtr of NO_USABLE_PTR) {
+      test(`${noPtr.reason}`, () => {
+        for (const scan of [fullScanSource(), shortNamesScan()]) {
+          const device: NetworkDevice = build({
+            host: {
+              ipAddress: "10.18.167.31",
+              dnsHostname: noPtr.dnsHostname as string,
+            },
+            scan: scan,
+          });
+
+          expect(device.dnsName).toBeUndefined();
+          expect(device.dnsName).not.toBe("");
+          expect(device.name).toBe("10.18.167.31");
+        }
+      });
+    }
+  });
+
+  /*
+   * sysName is the name the device gives ITSELF. It is already stored as
+   * sysName by the first poll, and calling it a DNS name would be a claim no
+   * resolver made — even when it looks exactly like one.
+   */
+  test("is never taken from the sysName", () => {
+    for (const scan of [fullScanSource(), shortNamesScan()]) {
+      const device: NetworkDevice = build({
+        host: snmpHost({ sysName: "core-sw-01.corp.example.com" }),
+        scan: scan,
+      });
+
+      expect(device.dnsName).toBeUndefined();
+    }
+  });
+
+  test("is never taken from the device name or the address", () => {
+    const device: NetworkDevice = build({
+      host: { ipAddress: "10.18.167.31" },
+      name: "kds01.wbhq.com",
+    });
+
+    expect(device.name).toBe("kds01.wbhq.com");
+    expect(device.dnsName).toBeUndefined();
   });
 });
