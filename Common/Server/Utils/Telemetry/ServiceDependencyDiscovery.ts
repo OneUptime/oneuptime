@@ -22,7 +22,7 @@ export { isLoopbackHost, normalizeHost };
 
 /*
  * Service dependency discovery — the pure half of the
- * TelemetryEntity:ComputeServiceDependencies cron.
+ * "TelemetryEntity:ComputeServiceDependencies" cron.
  *
  * A service map needs an edge for every call one thing makes to another.
  * Pairing a caller's span with its callee's span is the precise way to get
