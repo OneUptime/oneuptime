@@ -182,6 +182,7 @@ function criteriaInstance(input: {
   filters: Array<CriteriaFilter>;
   filterCondition?: FilterCondition | undefined;
   createAlerts?: boolean | undefined;
+  isEnabled?: boolean | undefined;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
   instance.data = {
@@ -195,6 +196,7 @@ function criteriaInstance(input: {
     alerts: [],
     createAlerts: input.createAlerts !== false,
     createIncidents: input.createAlerts !== false,
+    isEnabled: input.isEnabled !== false,
   } as unknown as MonitorCriteriaInstance["data"];
   return instance;
 }
@@ -310,6 +312,54 @@ describe("MonitorCriteriaEvaluator per-series fan-out", () => {
           },
         ),
       ).toBe(true);
+    });
+
+    it("records a disabled criterion distinctly and still evaluates a later match", async () => {
+      const { response, summary } = await evaluate({
+        grouped: true,
+        aliases: ["a"],
+        criteriaInstances: [
+          criteriaInstance({
+            id: "critical",
+            name: "Disk > 95%",
+            filters: [thresholdFilter({ alias: "a", greaterThan: 95 })],
+          }),
+          criteriaInstance({
+            id: "disabled-recovery",
+            name: "Disabled recovery criterion",
+            isEnabled: false,
+            filters: [thresholdFilter({ alias: "a", greaterThan: 90 })],
+          }),
+          criteriaInstance({
+            id: "warning",
+            name: "Disk > 80%",
+            filters: [thresholdFilter({ alias: "a", greaterThan: 80 })],
+          }),
+        ],
+        series: [{ host: "host-a", valuesByAlias: [96] }],
+      });
+
+      expect(response.criteriaMetId).toBe("critical");
+      expect(response.evaluatedCriteriaIds).toEqual(["critical", "warning"]);
+      expect(
+        response.matchedCriteria?.map((match: MatchedCriteriaResult) => {
+          return match.criteriaId;
+        }),
+      ).toEqual(["critical", "warning"]);
+
+      expect(summary.criteriaResults).toHaveLength(3);
+      expect(summary.criteriaResults[1]).toMatchObject({
+        criteriaId: "disabled-recovery",
+        met: false,
+        skipped: true,
+        skipCause: "disabled",
+        skipReason: "This criterion is disabled, so it was not evaluated.",
+        message: "This criterion is disabled, so it was not evaluated.",
+      });
+      expect(summary.criteriaResults[2]).toMatchObject({
+        criteriaId: "warning",
+        met: true,
+      });
     });
 
     it("records an unmatched criteria with an empty breaching set, not as absent", async () => {
@@ -465,8 +515,11 @@ describe("MonitorCriteriaEvaluator per-series fan-out", () => {
       expect(summary.criteriaResults).toHaveLength(2);
       expect(summary.criteriaResults[1]!.criteriaId).toBe("warning");
       expect(summary.criteriaResults[1]!.skipped).toBe(true);
-      expect(summary.criteriaResults[1]!.skipReason).toContain(
-        "already matched",
+      expect(summary.criteriaResults[1]!.skipCause).toBe(
+        "earlier-criterion-matched",
+      );
+      expect(summary.criteriaResults[1]!.skipReason).toBe(
+        "An earlier criterion already matched. Criteria are evaluated in order for this monitor, so evaluation stopped at the first match.",
       );
     });
   });

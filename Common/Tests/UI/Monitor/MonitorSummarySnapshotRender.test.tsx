@@ -76,6 +76,7 @@ function storeAndReadBack(input: {
   monitorType: MonitorType;
   dataToProcess?: MonitorSummaryDataToProcess | undefined;
   probeName?: string | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }): MonitorSummarySnapshot {
   const snapshot: MonitorSummarySnapshot | null =
     MonitorSummarySnapshotUtil.buildSnapshot({
@@ -84,7 +85,7 @@ function storeAndReadBack(input: {
       monitorId: MONITOR_ID.toString(),
       monitorName: "Production API",
       probeName: input.probeName,
-      evaluationSummary: EVALUATION_SUMMARY,
+      evaluationSummary: input.evaluationSummary || EVALUATION_SUMMARY,
       capturedAt: CAPTURED_AT,
     });
 
@@ -217,6 +218,59 @@ describe("A stored monitor summary renders the check that caused the incident", 
     );
 
     expect(screen.getByText(/Site Is Offline/)).toBeInTheDocument();
+  });
+
+  it("preserves the relationship between a matching and skipped criterion", () => {
+    const evaluationSummary: MonitorEvaluationSummary = {
+      evaluatedAt: CAPTURED_AT,
+      criteriaResults: [
+        {
+          criteriaId: "incoming-request-degraded",
+          criteriaName: "Incoming Request is degraded",
+          filterCondition: FilterCondition.All,
+          met: true,
+          message: "Incoming request reported a degraded state.",
+          filters: [],
+        },
+        {
+          criteriaId: "online-criteria",
+          criteriaName: "Online Criteria",
+          filterCondition: FilterCondition.All,
+          met: false,
+          message:
+            "An earlier criterion already matched. Criteria are evaluated in order for this monitor, so evaluation stopped at the first match.",
+          filters: [],
+          skipped: true,
+          skipReason:
+            "An earlier criterion already matched. Criteria are evaluated in order for this monitor, so evaluation stopped at the first match.",
+          skipCause: "earlier-criterion-matched",
+        },
+      ],
+      events: [],
+    };
+
+    renderSnapshot(
+      storeAndReadBack({
+        monitorType: MonitorType.Logs,
+        evaluationSummary: evaluationSummary,
+        dataToProcess: {
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          logCount: 412,
+        } as unknown as MonitorSummaryDataToProcess,
+      }),
+    );
+
+    const skippedCriterion: HTMLElement = screen.getByRole("group", {
+      name: "Online Criteria: Not evaluated",
+    });
+
+    expect(skippedCriterion).toHaveTextContent(
+      "Not evaluated because “Incoming Request is degraded” matched first.",
+    );
+    expect(skippedCriterion).toHaveTextContent(
+      "Criteria are evaluated in order",
+    );
   });
 
   it("does not tell the reader to wait a few minutes for data that is already here", () => {
