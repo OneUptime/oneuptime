@@ -11,7 +11,7 @@ import {
  * Logs / Traces / Metrics / Exceptions / Profiles pages were missing.
  *
  * A Kubernetes cluster's pages scope by resource attribute AND entity key,
- * and the attribute chip ("Cluster: prod") already explains both halves. An
+ * and the attribute chip ("Cluster: prod") already stands for both. An
  * Inventory item has no attribute counterpart: its pages scope by
  * `hasAny(entityKeys, [item key])` alone, and the viewers built chips only
  * from attributes, entity ids and trace / span / session ids — so the list
@@ -97,24 +97,6 @@ const displayFor: DisplayForFunction = (
   return displays[entityKey];
 };
 
-type GetLockedEntityKeySearchAttributesFunction = (
-  displays: LockedEntityKeyDisplayMap | undefined,
-  entityKey: string,
-) => Record<string, string> | undefined;
-
-/**
- * The identifying resource attributes the page handed over for one entity
- * key, for a describer that re-explains an entity-key chip after it was
- * built (the logs viewer does).
- */
-export const getLockedEntityKeySearchAttributes: GetLockedEntityKeySearchAttributesFunction =
-  (
-    displays: LockedEntityKeyDisplayMap | undefined,
-    entityKey: string,
-  ): Record<string, string> | undefined => {
-    return displayFor(displays, entityKey)?.searchAttributes;
-  };
-
 export interface BuildLockedEntityKeyChipsInput {
   rows: EntityKeyScopedRows;
   /** The entity keys the page scopes the viewer by. */
@@ -126,13 +108,6 @@ export interface BuildLockedEntityKeyChipsInput {
    * chip list keys its pills by facet and value).
    */
   skipEntityKeys?: ReadonlyArray<string> | undefined;
-  /*
-   * Who pinned the keys: the page (the default) or the stored query the view
-   * was opened with. The logs viewer reads its keys from `logQuery`, which a
-   * log monitor's incident snapshot fills from the monitor's stored query, so
-   * the chip must not claim the page pinned them.
-   */
-  source?: string | undefined;
 }
 
 type BuildLockedEntityKeyChipsFunction = (
@@ -142,9 +117,9 @@ type BuildLockedEntityKeyChipsFunction = (
 /**
  * One read-only chip per entity key, named by the page when it can
  * ("Kubernetes Pod: checkout-7d9f") and by the raw key otherwise
- * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its explanation and — when
- * the page named the entity's identifying attributes — its search syntax.
- * The filter itself is the host's: nothing here reaches the query.
+ * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its search syntax when the
+ * page named the entity's identifying attributes, and the reason it has none
+ * otherwise. The filter itself is the host's: nothing here reaches the query.
  */
 export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
   input: BuildLockedEntityKeyChipsInput,
@@ -176,10 +151,6 @@ export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
       readOnly: true,
       lockedDetail: describeLockedEntityKeyFilter({
         rows: input.rows,
-        entityKey,
-        entityKeys,
-        entityTypeLabel: displayKey || undefined,
-        source: input.source,
         searchAttributes: display?.searchAttributes,
       }),
     });

@@ -3,17 +3,21 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The traces explorer's locked chips — a service page's entity, a
- * snapshot's stored query, a resource page's attribute filters, an Inventory
- * item's entity key — carry a LockedFilterDetail whose search syntax the
- * shared chip shows as its tooltip.
+ * The traces explorer's locked chips — an exception page's fingerprint, a
+ * service page's entity, a snapshot's stored query, a resource page's
+ * attribute filters, an Inventory item's entity key — carry a
+ * LockedFilterDetail: the search syntax the shared chip shows as its tooltip,
+ * or the reason there is none.
  *
  * The describers and builders are unit-tested in LockedTelemetryScope.test.ts
- * and TracesEntityDisplay.test.ts. What this suite pins is the WIRING in
- * TracesViewer.tsx, which is where the detail is most easily lost: the viewer
- * rebuilds each stored-query chip as a fresh object literal, so a detail that
- * is not attached at that literal never reaches the chip, and nothing would
- * fail — the tooltip would simply go back to saying "(applied filter)".
+ * and TracesEntityDisplay.test.ts, token by token. What this suite pins is
+ * the WIRING in TracesViewer.tsx — which describer each chip goes through and
+ * with which inputs, since those inputs alone decide the token or reason —
+ * and the one reason the viewer writes itself (the exception scope's). The
+ * viewer is also where the detail is most easily lost: it rebuilds each
+ * stored-query chip as a fresh object literal, so a detail that is not
+ * attached at that literal never reaches the chip, and nothing would fail —
+ * the pill would simply go back to its plain "(applied filter)" title.
  *
  * Assertions are on MEMBERSHIP inside a sliced block (this memo, this call),
  * never on the exact text of a whole dependency array, import list or run of
@@ -145,7 +149,6 @@ describe("TracesViewer imports the locked-scope helpers", () => {
 
     for (const name of [
       "describeStoredQueryChip",
-      "entityScopeForAttributeKey",
       "buildLockedAttributeChip",
       "buildTracesLockedEntityKeyChips",
     ]) {
@@ -192,7 +195,7 @@ describe("TracesViewer imports the locked-scope helpers", () => {
   });
 });
 
-describe("every locked chip carries its explanation", () => {
+describe("every locked chip carries its search syntax, or the reason it has none", () => {
   const lockedChipsMemo: string = blockAfter(
     TRACES_VIEWER,
     "const lockedChips: Array<ActiveFilter> = useMemo(",
@@ -200,10 +203,38 @@ describe("every locked chip carries its explanation", () => {
     "}",
   );
 
-  test("the service / RUM application scope chip is described AFTER its label resolves", () => {
+  test("the exception scope chip carries exactly the viewer's own reason, and no token", () => {
     /*
-     * Resolving first is what turns "Service: <id>" into
-     * "RUM Application: checkout-web"; the explanation must name the latter.
+     * The traces grammar has no exception field, so this is the one chip
+     * whose detail no describer builds: the viewer writes the reason inline,
+     * and nothing else would catch it going missing or growing a token.
+     */
+    const exceptionBranch: string = blockAfter(
+      lockedChipsMemo,
+      "if (props.exceptionScope)",
+      "{",
+      "}",
+    );
+
+    expect(exceptionBranch).toContain("readOnly: true,");
+
+    const exceptionDetail: string = blockAfter(
+      exceptionBranch,
+      "lockedDetail:",
+      "{",
+      "}",
+    );
+
+    expect(exceptionDetail.trim()).toBe(
+      'searchTokenUnavailableReason: "The traces search cannot filter spans by exception.",',
+    );
+  });
+
+  test("the service / RUM application scope chip keeps its resolved label and takes its search syntax from the entity id alone", () => {
+    /*
+     * Resolving is what turns "Service: <id>" into
+     * "RUM Application: checkout-web" on the chip; the token is `service:`
+     * and the id either way, so the describer is handed the id, not a label.
      */
     const entityBranch: string = blockAfter(
       lockedChipsMemo,
@@ -216,20 +247,11 @@ describe("every locked chip carries its explanation", () => {
       "const resolved: ActiveFilter = resolveChipDisplay(",
     );
     expect(entityBranch).toContain(
-      'lockedDetail: describeLockedEntityFilter({ signal: "traces", entityTypeLabel: resolved.displayKey, id: entityId, name: resolved.displayValue, })',
+      'base.push({ ...resolved, lockedDetail: describeLockedEntityFilter({ signal: "traces", id: entityId, }), });',
     );
   });
 
-  test("the stored-query chips get their detail at the literal that rebuilds them — the drop point — with the columns the scope matches as substrings", () => {
-    /*
-     * A single stored span name / status message is compiled as a
-     * substring match; only the scope knows which columns took that path,
-     * so the context comes from spanScope, not from the chip.
-     */
-    expect(lockedChipsMemo).toContain(
-      'substringColumns: new Set<string>([ ...(spanScope.spanNameSearch ? ["name"] : []), ...(spanScope.statusMessageSearch ? ["statusMessage"] : []), ]),',
-    );
-
+  test("the stored-query chips get their search syntax at the literal that rebuilds them — the drop point — from the resolved chip's column and value", () => {
     const spanScopeLoop: string = blockAfter(
       lockedChipsMemo,
       "for (const chip of spanScope.chips as Array<SpanScopeChip>)",
@@ -241,11 +263,11 @@ describe("every locked chip carries its explanation", () => {
       "const resolved: ActiveFilter = resolveChipDisplay(",
     );
     expect(spanScopeLoop).toContain(
-      "base.push({ ...resolved, lockedDetail: describeStoredQueryChip(resolved, storedQueryContext), });",
+      "base.push({ ...resolved, lockedDetail: describeStoredQueryChip(resolved), });",
     );
   });
 
-  test("the attribute scope chips are explained from the built label, with the entity scope only where its key matches", () => {
+  test("the attribute scope chips keep the built label and take their search syntax from the pinned key and value alone", () => {
     const attributeLoop: string = blockAfter(
       lockedChipsMemo,
       "for (const [key, value] of Object.entries(props.attributeFilters))",
@@ -257,7 +279,7 @@ describe("every locked chip carries its explanation", () => {
       "const attributeChip: ActiveFilter = buildLockedAttributeChip(",
     );
     expect(attributeLoop).toContain(
-      'lockedDetail: describeLockedAttributeFilter({ signal: "traces", attributeKey: key, rawValue: value, displayKey: attributeChip.displayKey, displayValue: attributeChip.displayValue, entityScope: entityScopeForAttributeKey(props.entityScope, key), })',
+      'base.push({ ...attributeChip, lockedDetail: describeLockedAttributeFilter({ signal: "traces", attributeKey: key, rawValue: value, }), });',
     );
   });
 
@@ -268,11 +290,12 @@ describe("every locked chip carries its explanation", () => {
     );
 
     for (const dependency of [
+      "props.exceptionScope",
+      "props.exceptionScopeLabel",
       "props.primaryEntityId",
       "props.attributeFilters",
       "props.attributeFilterDisplayKeys",
       "props.attributeFilterDisplayValues",
-      "props.entityScope",
       "spanScope",
       "activeFilters",
       "submittedSearch",
@@ -361,10 +384,10 @@ describe("an entity-key scope (an Inventory item's Traces tab) gets its locked c
    * The Inventory pages scope the viewer by `entityKeysFilter` alone, which
    * the server compiles to `hasAny(entityKeys, [item key])`. The viewer only
    * built chips from entity ids, stored queries and attribute filters, so the
-   * list was narrowed behind an empty chip bar. The chip's wording and its
-   * duplicate rule are unit-tested in TracesEntityDisplay.test.ts; what this
-   * pins is that the viewer builds it, from the right inputs, and that it
-   * stays display only.
+   * list was narrowed behind an empty chip bar. The chip's label, its search
+   * syntax (or reason) and its duplicate rule are unit-tested in
+   * TracesEntityKeyLockedScope.test.ts; what this pins is that the viewer
+   * builds it, from the right inputs, and that it stays display only.
    */
   const LOCKED_CHIPS_MARKER: string =
     "const lockedChips: Array<ActiveFilter> = useMemo(";
@@ -397,7 +420,7 @@ describe("an entity-key scope (an Inventory item's Traces tab) gets its locked c
     );
   });
 
-  test("the chip joins the locked chips, built from the page's filter, its names and the stored scope", () => {
+  test("the chip joins the locked chips, built from the page's filter, its names and the chips already on the bar", () => {
     expect(lockedChipsMemo).toContain(
       "base.push( ...buildTracesLockedEntityKeyChips({",
     );
@@ -405,7 +428,6 @@ describe("an entity-key scope (an Inventory item's Traces tab) gets its locked c
     for (const argument of [
       "entityKeysFilter: props.entityKeysFilter",
       "displays: props.entityKeyDisplays",
-      "storedQueryEntityKeys: spanScope.entityKeys",
       "lockedChips: base",
     ]) {
       expect(entityKeyCall).toContain(argument);
@@ -432,15 +454,18 @@ describe("an entity-key scope (an Inventory item's Traces tab) gets its locked c
     ).toBeGreaterThan(loopEnd);
   });
 
-  test("REGRESSION: a Kubernetes / Host page's entityScope is never turned into an entity-key chip", () => {
+  test("REGRESSION: a Kubernetes / Host page's entityScope is never turned into an entity-key chip, nor read by any locked chip", () => {
     /*
      * Those pages pass `entityScope` (entity keys OR attribute) next to the
-     * attribute filter, and the attribute chip already explains both halves.
-     * A second "Resource: <key>" pill would claim a filter the attribute
-     * chip already describes.
+     * attribute filter, and the attribute chip already stands for that
+     * scope. A second "Resource: <key>" pill would claim a filter the
+     * attribute chip already shows. The attribute chip's search syntax comes
+     * from its key and value alone (pinned above), so no locked chip reads
+     * the entity scope at all.
      */
     expect(entityKeyCall).not.toContain("entityScope");
     expect(lockedChipsMemo).not.toContain("entityScope.entityKeys");
+    expect(lockedChipsMemo).not.toContain("props.entityScope");
   });
 
   test("a new filter or new names re-render the chip bar", () => {

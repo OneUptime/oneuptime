@@ -1,15 +1,43 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import type Dictionary from "Common/Types/Dictionary";
+import type { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import type { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
+/*
+ * Pure modules, imported statically: the same chip builders and glue the
+ * viewer's base-chips memo calls, so a scenario's token (or reason) is
+ * checked on real chips, not re-derived.
+ */
+import { buildAttributeFilterChips } from "../../FeatureSet/Dashboard/src/Components/Logs/LogsAttributeFilterChips";
+import {
+  LOGS_SIGNAL,
+  attachLogsLockedFilterDetails,
+} from "../../FeatureSet/Dashboard/src/Components/Logs/LogsLockedScope";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
+import {
+  DEFAULT_ENTITY_KEY_DISPLAY_KEY,
+  ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
+} from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 
 /*
- * The logs viewer's wiring for the locked-filter explainer. The pure halves
- * are pinned elsewhere (LogsLockedScope.test.ts, LockedTelemetryScope.test.ts,
- * LogsHistogramRequest.test.ts); what this suite owns is that the viewer
- * actually CALLS them, from the right place, with the right inputs:
+ * The logs viewer's wiring for the locked chips' search syntax. The pure
+ * halves are pinned elsewhere (LogsLockedScope.test.ts,
+ * LockedTelemetryScope.test.ts, LogsHistogramRequest.test.ts); what this
+ * suite owns is that the viewer actually CALLS them, from the right place,
+ * with the right inputs:
  *
- *  - every base chip is decorated with its explanation, and the page's
- *    entity scope reaches the decorator;
+ *  - every base chip carries its search syntax (or the reason there is none)
+ *    from what the page hands over — the entity-key chips from the builder
+ *    that reads the display map naming their keys, every other locked chip
+ *    from the decoration step that reads its pinned attributes — and the
+ *    page's entity scope, which only shapes the list query, is not a chip
+ *    input;
  *  - the Common viewer is told the signal name, and nothing else about the
  *    locked scope: each chip's own tooltip is the only place its search
  *    syntax is offered;
@@ -19,14 +47,18 @@ import path from "path";
  *  - a superseded facets response is never painted.
  *
  * Each of these is a connection that a refactor could drop without any test
- * of a helper noticing, and each would cost the reader a filter (or an
- * explanation) with no visible error.
+ * of a helper noticing, and each would cost the reader a filter (or a chip's
+ * search syntax) with no visible error.
  *
  * The assertions check MEMBERSHIP inside a balanced slice — this import is
  * present, that dependency is listed — never the position of a name among
  * its neighbours. LogsViewer.tsx is edited by many features, and a wiring
  * test that pins the exact shape of a dependency array breaks on unrelated
  * work while the connection it guards is still intact.
+ *
+ * Where a scenario depends on what the memo hands the chip steps, the real
+ * steps are also run with exactly those inputs (`viewerLockedChips`), and
+ * the chip's exact token or reason is asserted.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -154,7 +186,64 @@ function occurrences(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
 
-describe("locked chips are explained", () => {
+interface ViewerLockedChipsInput {
+  // `logQuery.attributes`, as pinned.
+  logQueryAttributes?: Dictionary<DictionaryEntryValue> | undefined;
+  // `logQuery.entityKeys`, whoever pinned them.
+  entityKeys?: Array<string> | undefined;
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
+}
+
+type ViewerLockedChipsFunction = (
+  input: ViewerLockedChipsInput,
+) => Array<ActiveFilter>;
+
+/*
+ * The base-chips memo's entity-key, attribute and decoration steps, called
+ * with exactly the arguments the source assertions below pin — and with
+ * nothing the memo does not hand them.
+ */
+const viewerLockedChips: ViewerLockedChipsFunction = (
+  input: ViewerLockedChipsInput,
+): Array<ActiveFilter> => {
+  const filters: Array<ActiveFilter> = [
+    ...buildLockedEntityKeyChips({
+      rows: LOGS_SIGNAL,
+      entityKeys: input.entityKeys,
+      displays: input.entityKeyDisplays,
+    }),
+    ...buildAttributeFilterChips(input.logQueryAttributes, {
+      displayKeys: input.attributeFilterDisplayKeys,
+      displayValues: input.attributeFilterDisplayValues,
+    }),
+  ];
+
+  return attachLogsLockedFilterDetails(filters, {
+    logQueryAttributes: input.logQueryAttributes,
+  });
+};
+
+const POD_KEY: string = "3f9a1b2c4d5e6f70";
+const NODE_KEY: string = "aaaaaaaaaaaaaaaa";
+
+// An Inventory item's display map: the pod's name and identifying attributes.
+const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
+  [POD_KEY]: {
+    displayKey: "Kubernetes Pod",
+    displayValue: "checkout-7d9f",
+    searchAttributes: {
+      "k8s.cluster.name": "prod",
+      "k8s.namespace.name": "shop",
+      "k8s.pod.name": "checkout-7d9f",
+    },
+  },
+};
+const POD_SEARCH_TOKEN: string =
+  "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
+
+describe("locked chips carry their search syntax", () => {
   test("the viewer imports the logs glue and the typed-filter helpers", () => {
     const glue: Array<string> = importedNames(LOGS_VIEWER, "./LogsLockedScope");
 
@@ -172,7 +261,7 @@ describe("locked chips are explained", () => {
     expect(helpers).toContain("serializeTypedLogFilter");
   });
 
-  test("the base chips are decorated with the page's entity scope before they leave the memo", () => {
+  test("the base chips are decorated from the page's pinned attributes before they leave the memo", () => {
     const memo: string = blockAfter(
       LOGS_VIEWER,
       "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
@@ -188,14 +277,33 @@ describe("locked chips are explained", () => {
 
     expect(decorate).toContain("filters,");
     expect(decorate).toContain("logQueryAttributes");
-    expect(decorate).toContain("entityScope: props.entityScope");
 
-    // The memo re-runs when the scope changes.
-    expect(dependencyList(memo)).toContain("props.entityScope");
+    // The memo re-runs when the pinned attributes change.
+    expect(dependencyList(memo)).toContain("logQueryAttributes");
+
+    /*
+     * The pinned map as pinned is what the tokens are spelled from: an
+     * operator value only reaches its chip as display text.
+     */
+    const chips: Array<ActiveFilter> = viewerLockedChips({
+      logQueryAttributes: {
+        "resource.host.name": "web-01",
+        "k8s.namespace.name": new Includes(["payments", "checkout"]),
+      },
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): unknown => {
+        return chip.lockedDetail;
+      }),
+    ).toEqual([
+      { searchToken: "@resource.host.name:web-01" },
+      { searchToken: "@k8s.namespace.name:(payments OR checkout)" },
+    ]);
   });
 });
 
-describe("the locked scope is explained chip by chip, with no scope-wide actions", () => {
+describe("each locked chip carries its own search syntax, with no scope-wide actions", () => {
   test("the viewer builds no actions for the whole locked scope, and imports nothing that would", () => {
     for (const removed of [
       "lockedFilterActions",
@@ -389,7 +497,7 @@ describe("the page's pinned attributes are never written into", () => {
  * so its list was filtered under an empty chip bar. The viewer now builds a
  * locked chip for that scope — display only, from the same key list the
  * requests carry, and never for a Kubernetes-style `entityScope`, whose
- * attribute chip already explains its entity keys.
+ * attribute chip already stands for its entity keys.
  */
 describe("an entity-key scope has a locked chip", () => {
   test("the viewer imports the shared entity-key chip builder, its display map type and the logs signal name", () => {
@@ -435,7 +543,7 @@ describe("an entity-key scope has a locked chip", () => {
       ")",
     );
 
-    // The same rows noun the attach step describes with, so the two agree.
+    // The signal the attach step describes with, so both spell one syntax.
     expect(call).toContain("rows: LOGS_SIGNAL");
     expect(call).toContain("entityKeys: logQueryEntityKeys");
     expect(call).toContain("displays: props.entityKeyDisplays");
@@ -538,68 +646,54 @@ describe("an entity-key scope has a locked chip", () => {
     }
   });
 
-  test("the chips say who pinned the keys — the page only when the page says so — and the decoration step keeps that source", () => {
+  test("whoever pinned the keys, the chip carries the item's search syntax when the page names its attributes, and the reason when it does not", () => {
     /*
      * Log monitors write `logQuery.entityKeys` from their stored query, so an
-     * incident's log snapshot reaches this memo with keys no page pinned.
-     * attachLogsLockedFilterDetails re-describes every entity-key chip, so
-     * the source must reach it as well as the builder, or the decoration
-     * quietly restores "Pinned by this page". The wording is pinned in
-     * LockedTelemetryScope.test.ts and the pass-through in
-     * LogsLockedScope.test.ts.
+     * incident's log snapshot reaches this memo with keys and no display map,
+     * while an Inventory item's Logs tab hands over the item's identifying
+     * attributes. The display map is the only difference the chips see.
      */
-    expect(
-      blockAfter(LOGS_VIEWER, "export interface ComponentProps {", "{", "}"),
-    ).toContain("entityKeysPinnedByPage?: boolean | undefined;");
+    const inventoryItem: Array<ActiveFilter> = viewerLockedChips({
+      entityKeys: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
 
-    const sources: Array<string> = importedNames(
-      LOGS_VIEWER,
-      "../../Utils/LockedTelemetryScope",
-    );
+    expect(inventoryItem).toEqual([
+      {
+        facetKey: ENTITY_KEYS_FACET_KEY,
+        value: POD_KEY,
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout-7d9f",
+        readOnly: true,
+        lockedDetail: { searchToken: POD_SEARCH_TOKEN },
+      },
+    ]);
 
-    expect(sources).toContain("LOCKED_FILTER_SOURCE_PAGE");
-    expect(sources).toContain("LOCKED_FILTER_SOURCE_STORED_QUERY");
+    const monitorSnapshot: Array<ActiveFilter> = viewerLockedChips({
+      entityKeys: [POD_KEY],
+    });
 
-    const memo: string = blockAfter(
-      LOGS_VIEWER,
-      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
-      "(",
-      ")",
-    );
-
-    const declaredAt: number = memo.indexOf("const entityKeysSource: string =");
-
-    expect(declaredAt).toBeGreaterThan(-1);
-
-    const declaration: string = memo.slice(
-      declaredAt,
-      memo.indexOf(";", declaredAt) + 1,
-    );
-    const whenPinnedByPage: string = declaration.slice(
-      declaration.indexOf("?") + 1,
-      declaration.lastIndexOf(":"),
-    );
-
-    expect(declaration).toContain("props.entityKeysPinnedByPage");
-    expect(whenPinnedByPage).toContain("LOCKED_FILTER_SOURCE_PAGE");
-    expect(whenPinnedByPage).not.toContain("LOCKED_FILTER_SOURCE_STORED_QUERY");
-
-    expect(blockAfter(memo, "buildLockedEntityKeyChips(", "(", ")")).toContain(
-      "source: entityKeysSource",
-    );
-    expect(
-      blockAfter(memo, "return attachLogsLockedFilterDetails(", "(", ")"),
-    ).toContain("entityKeysSource");
-    expect(dependencyList(memo)).toContain("props.entityKeysPinnedByPage");
+    expect(monitorSnapshot).toEqual([
+      {
+        facetKey: ENTITY_KEYS_FACET_KEY,
+        value: POD_KEY,
+        displayKey: DEFAULT_ENTITY_KEY_DISPLAY_KEY,
+        displayValue: POD_KEY,
+        readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+        },
+      },
+    ]);
   });
 
-  test("the decoration step is handed the same display map as the builder, so an item's search syntax survives it", () => {
+  test("only the builder is handed the display map — the decoration step is not, and an item's search syntax survives it", () => {
     /*
      * The display map carries the identifying resource attributes the chip's
-     * search syntax is spelled with. attachLogsLockedFilterDetails
-     * re-describes every entity-key chip, so without the map it drops the
-     * syntax the builder spelled. The pass-through is pinned in
-     * LogsLockedScope.test.ts.
+     * search syntax is spelled with, and buildLockedEntityKeyChips spells it.
+     * attachLogsLockedFilterDetails has no describer for the entity-key
+     * column, so it passes those chips through untouched and needs no map.
+     * The pass-through is pinned in LogsLockedScope.test.ts.
      */
     const memo: string = blockAfter(
       LOGS_VIEWER,
@@ -611,10 +705,37 @@ describe("an entity-key scope has a locked chip", () => {
     expect(blockAfter(memo, "buildLockedEntityKeyChips(", "(", ")")).toContain(
       "displays: props.entityKeyDisplays",
     );
-    expect(
-      blockAfter(memo, "return attachLogsLockedFilterDetails(", "(", ")"),
-    ).toContain("entityKeyDisplays: props.entityKeyDisplays");
+
+    const decorate: string = blockAfter(
+      memo,
+      "return attachLogsLockedFilterDetails(",
+      "(",
+      ")",
+    );
+
+    expect(decorate).toContain("logQueryAttributes");
+    expect(decorate).not.toContain("entityKeyDisplays");
+    // The builder still reads the map, so the memo still re-runs on it.
     expect(dependencyList(memo)).toContain("props.entityKeyDisplays");
+
+    /*
+     * A page pinning several keys: each chip keeps the syntax of its OWN
+     * key through the decoration, and a key the map names no attributes for
+     * keeps its reason.
+     */
+    const chips: Array<ActiveFilter> = viewerLockedChips({
+      entityKeys: [POD_KEY, NODE_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): unknown => {
+        return chip.lockedDetail;
+      }),
+    ).toEqual([
+      { searchToken: POD_SEARCH_TOKEN },
+      { searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON },
+    ]);
   });
 });
 
@@ -649,20 +770,49 @@ describe("a Kubernetes-style entity scope never becomes an entity-key chip", () 
     expect(dependencyList(keys)).not.toContain("entityScope");
   });
 
-  test("the entity scope still reaches the attribute chip that explains it", () => {
+  test("the entity scope reaches the list query and not the chips: the attribute chip beside it is spelled from the pinned attribute alone", () => {
+    expect(
+      blockAfter(
+        LOGS_VIEWER,
+        "function buildBaseQuery(props: ComponentProps): Query<Log> {",
+        "{",
+        "}",
+      ),
+    ).toContain('(query as any)["entityScope"] = props.entityScope;');
+
     const memo: string = blockAfter(
       LOGS_VIEWER,
       "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
       "(",
       ")",
     );
-    const decorate: string = blockAfter(
-      memo,
-      "return attachLogsLockedFilterDetails(",
-      "(",
-      ")",
-    );
 
-    expect(decorate).toContain("entityScope: props.entityScope");
+    // Neither built, described nor re-run from the entity scope.
+    expect(memo).not.toContain("entityScope");
+
+    /*
+     * A Kubernetes cluster's Logs tab: `entityScope` carries the cluster's
+     * entity key and attribute fallback, and `logQuery.attributes` pins the
+     * same attribute, read as "Cluster: production". That one chip stands
+     * for the scope, and its token is the attribute's.
+     */
+    const chips: Array<ActiveFilter> = viewerLockedChips({
+      logQueryAttributes: { "resource.k8s.cluster.name": "prod-eks-01" },
+      attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
+      attributeFilterDisplayValues: {
+        "resource.k8s.cluster.name": "production",
+      },
+    });
+
+    expect(chips).toEqual([
+      {
+        facetKey: "attributes.resource.k8s.cluster.name",
+        value: "prod-eks-01",
+        displayKey: "Cluster",
+        displayValue: "production",
+        readOnly: true,
+        lockedDetail: { searchToken: "@resource.k8s.cluster.name:prod-eks-01" },
+      },
+    ]);
   });
 });

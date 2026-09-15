@@ -310,7 +310,7 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
   );
 };
 
-interface ExplainedLockedFilterChipProps {
+interface DetailedLockedFilterChipProps {
   displayKey: string;
   displayValue: string;
   lockedDetail: LockedFilterDetail;
@@ -320,12 +320,12 @@ interface ExplainedLockedFilterChipProps {
 
 /*
  * The chip that has something to say. The control is a native button so it
- * is focusable with a role that permits a name; Tippy attaches its
- * explanation to it (focus and hover open it; aria-describedby reads it).
+ * is focusable with a role that permits a name; Tippy attaches the search
+ * syntax tooltip to it (focus and hover open it; aria-describedby reads it).
  */
-const ExplainedLockedFilterChip: FunctionComponent<
-  ExplainedLockedFilterChipProps
-> = (props: ExplainedLockedFilterChipProps): ReactElement => {
+const DetailedLockedFilterChip: FunctionComponent<
+  DetailedLockedFilterChipProps
+> = (props: DetailedLockedFilterChipProps): ReactElement => {
   const feedback: CopiedFeedback = useCopiedFeedback();
   const searchToken: string | undefined = props.lockedDetail.searchToken;
 
@@ -348,7 +348,7 @@ const ExplainedLockedFilterChip: FunctionComponent<
         /*
          * Enter and Space arrive here as clicks on a native button. A chip
          * without syntax has nothing to copy; its button exists so the
-         * explanation is reachable from the keyboard at all.
+         * reason in its tooltip is reachable from the keyboard at all.
          */
         event.preventDefault();
         event.stopPropagation();
@@ -395,7 +395,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
 ): ReactElement => {
   if (!props.lockedDetail) {
     /*
-     * Exactly the pill from before the explainer: not focusable, no name of
+     * Exactly the pill from before the tooltip: not focusable, no name of
      * its own, the plain title. Nothing would open on focus, so a tab stop
      * here would be a dead one.
      */
@@ -417,7 +417,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
   }
 
   return (
-    <ExplainedLockedFilterChip
+    <DetailedLockedFilterChip
       displayKey={props.displayKey}
       displayValue={props.displayValue}
       lockedDetail={props.lockedDetail}

@@ -37,8 +37,8 @@ export interface ActiveFilter {
    */
   openRoute?: Route | URL | undefined;
   /*
-   * For a read-only chip: what it matches and why it is locked, rendered as
-   * the chip's tooltip and folded into "Copy filter". Display only.
+   * For a read-only chip: its search syntax (or why there is none), shown in
+   * the chip's tooltip. Display only.
    */
   lockedDetail?: LockedFilterDetail | undefined;
 }

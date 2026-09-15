@@ -293,7 +293,7 @@ describe("ProfileTable builds the locked chips from its entity-key scope", () =>
 });
 
 describe("ProfileTable shows the locked chips as grey pills", () => {
-  test("each chip is one LockedFilterChip carrying its explanation", () => {
+  test("each chip is one LockedFilterChip carrying its locked detail (the reason it has no search syntax)", () => {
     expect(LOCKED_CHIP_MAP).toContain("<LockedFilterChip");
     expect(LOCKED_CHIP_MAP).toContain("displayKey={chip.displayKey}");
     expect(LOCKED_CHIP_MAP).toContain("displayValue={chip.displayValue}");

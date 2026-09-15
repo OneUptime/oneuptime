@@ -1395,10 +1395,9 @@ const MetricsViewer: FunctionComponent<Props> = (
       attributeFilters: props.attributeFilters,
       attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: props.attributeFilterDisplayValues,
-      entityScope: props.entityScope,
       /*
        * The bare entity-key scope gets its own locked chip; `entityScope`
-       * above does not (its attribute chip already explains it).
+       * does not (its attribute chip already stands for it).
        */
       entityKeysFilter: props.entityKeysFilter,
       entityKeyDisplays: props.entityKeyDisplays,
@@ -1412,7 +1411,6 @@ const MetricsViewer: FunctionComponent<Props> = (
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
-    props.entityScope,
     props.entityKeysFilter,
     props.entityKeyDisplays,
     activeFilters,

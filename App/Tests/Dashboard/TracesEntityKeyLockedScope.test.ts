@@ -61,7 +61,6 @@ const podChips: PodChipsFunction = (): Array<ActiveFilter> => {
       entityType: "k8s.pod",
       displayName: "checkout-7d9f",
     }),
-    storedQueryEntityKeys: [],
     lockedChips: [],
   });
 };
@@ -115,7 +114,7 @@ const searchSyntaxOf: SearchSyntaxOfFunction = (
 };
 
 describe("an Inventory item's Traces tab names the item on its locked chip", () => {
-  test("a pod reads 'Kubernetes Pod: <name>' and says the list is linked to it", () => {
+  test("a pod reads 'Kubernetes Pod: <name>', and without its identifying attributes says it has no syntax", () => {
     const chips: Array<ActiveFilter> = podChips();
 
     expect(chips).toHaveLength(1);
@@ -124,13 +123,13 @@ describe("an Inventory item's Traces tab names the item on its locked chip", () 
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
     expect(chips[0]!.readOnly).toBe(true);
-    expect(chips[0]!.lockedDetail!.source).toBe("Pinned by this page");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Kubernetes Pod are shown.",
-    );
+    // The tooltip's whole content: the reason, and nothing else.
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 
-  test("an item with neither type nor name reads 'Inventory Item: <key>'", () => {
+  test("an item with neither type nor name reads 'Inventory Item: <key>' and has no syntax", () => {
     const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: buildInventoryEntityKeyDisplays({
@@ -138,11 +137,12 @@ describe("an Inventory item's Traces tab names the item on its locked chip", () 
       }),
     });
 
+    expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Inventory Item");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Inventory Item are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 
   test("names the page holds for a different key do not rename this one", () => {
@@ -159,8 +159,12 @@ describe("an Inventory item's Traces tab names the item on its locked chip", () 
       displays,
     });
 
+    expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Resource");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 
   test("an item without an entity key hands the viewer no names, and no filter means no chip", () => {
@@ -199,17 +203,17 @@ describe("the search syntax each locked chip shows on an Inventory item's Traces
           "k8s.cluster.name": "prod",
         },
       }),
-      storedQueryEntityKeys: [],
       lockedChips: [],
     });
 
+    const expectedToken: string =
+      "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
+
     expect(searchSyntaxOf(chips)).toEqual([
-      [
-        "entityKeys",
-        "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
-        undefined,
-      ],
+      ["entityKeys", expectedToken, undefined],
     ]);
+    // The tooltip's whole content: the token, and nothing else.
+    expect(chips[0]!.lockedDetail).toEqual({ searchToken: expectedToken });
   });
 
   test("several unnamed keys: every chip says it has no syntax", () => {
@@ -232,7 +236,6 @@ describe("the search syntax each locked chip shows on an Inventory item's Traces
       ...stored,
       ...buildTracesLockedEntityKeyChips({
         entityKeysFilter: [POD_KEY],
-        storedQueryEntityKeys: [],
         lockedChips: stored,
       }),
     ];
@@ -257,8 +260,6 @@ describe("the search syntax each locked chip shows on an Inventory item's Traces
           signal: "traces",
           attributeKey: "resource.host.name",
           rawValue: "web-01",
-          displayKey: attributeChip.displayKey,
-          displayValue: attributeChip.displayValue,
         }),
       },
     ];
@@ -288,7 +289,6 @@ describe("the search syntax each locked chip shows on an Inventory item's Traces
           entityType: "k8s.pod",
           displayName: "checkout-7d9f",
         }),
-        storedQueryEntityKeys: scope.entityKeys,
         lockedChips: stored,
       }),
     ];
@@ -299,8 +299,50 @@ describe("the search syntax each locked chip shows on an Inventory item's Traces
       }),
     ).toEqual([`entityKeys=${POD_KEY}`]);
 
+    expect(lockedChips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: NO_SEARCH_SYNTAX_REASON,
+    });
     expect(searchSyntaxOf(lockedChips)).toEqual([
       ["entityKeys", undefined, NO_SEARCH_SYNTAX_REASON],
+    ]);
+  });
+
+  test("a stored query pinning a different key: both chips show — the stored query's has no syntax, the page's is spelled from the item's attributes", () => {
+    /*
+     * Page chips are built only for the page's own keys, skipping any the
+     * bar already shows. So a key only the stored query pins is that query's
+     * chip alone, and the page's key still gets its own chip, spelled from
+     * the item's identifying attributes.
+     */
+    const stored: Array<ActiveFilter> = storedQueryChips(
+      buildSpanQueryScope({ entityKeys: [NODE_KEY] }),
+    );
+
+    const lockedChips: Array<ActiveFilter> = [
+      ...stored,
+      ...buildTracesLockedEntityKeyChips({
+        entityKeysFilter: [POD_KEY],
+        displays: buildInventoryEntityKeyDisplays({
+          entityKey: POD_KEY,
+          entityType: "k8s.pod",
+          displayName: "checkout-7d9f",
+          identifyingAttributes: {
+            "k8s.pod.name": "checkout-7d9f",
+          },
+        }),
+        lockedChips: stored,
+      }),
+    ];
+
+    expect(
+      lockedChips.map((chip: ActiveFilter): string => {
+        return `${chip.facetKey}=${chip.value}`;
+      }),
+    ).toEqual([`entityKeys=${NODE_KEY}`, `entityKeys=${POD_KEY}`]);
+
+    expect(searchSyntaxOf(lockedChips)).toEqual([
+      ["entityKeys", undefined, NO_SEARCH_SYNTAX_REASON],
+      ["entityKeys", "@resource.k8s.pod.name:checkout-7d9f", undefined],
     ]);
   });
 });

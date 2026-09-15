@@ -17,17 +17,30 @@ import {
 import React from "react";
 import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/ActiveFilterChips";
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
-import { getLockedFilterChipAriaLabel } from "../../../UI/Components/TelemetryViewer/components/LockedFilterChip";
+import {
+  NO_SEARCH_SYNTAX_REASON,
+  getLockedFilterChipAriaLabel,
+} from "../../../UI/Components/TelemetryViewer/components/LockedFilterChip";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 
 /*
- * The logs chip list, now that its read-only chips are LockedFilterChips: a
- * locked chip shows its search syntax through its detail, no "Copy filter" /
- * "Open in …" actions follow the locked group, and everything the list
- * already did — remove buttons, "Clear all", the open-trace icon-link, the
- * operator-value backstop — is untouched.
+ * The logs chip list, now that its read-only chips are LockedFilterChips. A
+ * locked chip's tooltip shows the search syntax its detail carries, or the
+ * reason there is none. No "Copy filter" / "Open in …" actions follow the
+ * locked group. Everything the list already did — remove buttons, "Clear
+ * all", the open-trace icon-link, the operator-value backstop — is untouched.
  */
+
+const CLUSTER_SEARCH_TOKEN: string = "@resource.k8s.cluster.name:prod-eks-01";
+
+const TRACE_SEARCH_TOKEN: string = "trace:trace-1";
+
+/*
+ * The Dashboard's SESSION_NO_SYNTAX_REASON, spelled out here because a Common
+ * test cannot import from App. The chip shows whatever reason it is given.
+ */
+const SESSION_REASON: string = "Session filters have no search syntax.";
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -56,15 +69,7 @@ function lockedClusterChip(
     displayValue: "production",
     readOnly: true,
     lockedDetail: {
-      source: "Pinned by this page",
-      summary: "Only logs from this Kubernetes cluster are shown.",
-      predicates: [
-        {
-          label: "Attribute",
-          expression: 'resource.k8s.cluster.name = "prod-eks-01"',
-        },
-      ],
-      searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+      searchToken: CLUSTER_SEARCH_TOKEN,
     },
     ...overrides,
   };
@@ -87,8 +92,19 @@ async function hover(trigger: HTMLElement): Promise<void> {
   });
 }
 
+function getClusterChip(hasSearchToken: boolean = true): HTMLElement {
+  return screen.getByRole("button", {
+    name: getLockedFilterChipAriaLabel("Cluster", "production", hasSearchToken),
+  });
+}
+
+// The search syntax the open tooltip shows, read from its token element.
+function getTooltipSearchToken(): string | null {
+  return screen.getByTestId("locked-filter-search-token").textContent;
+}
+
 describe("ActiveFilterChips — locked chips", () => {
-  test("a read-only chip renders as a locked chip: a named button, no remove control", () => {
+  test("a read-only chip renders as a locked chip: a named button, no remove control", async () => {
     render(
       <ActiveFilterChips
         filters={[lockedClusterChip()]}
@@ -97,13 +113,15 @@ describe("ActiveFilterChips — locked chips", () => {
       />,
     );
 
-    const chip: HTMLElement = screen.getByRole("button", {
-      name: getLockedFilterChipAriaLabel("Cluster", "production", true),
-    });
+    const chip: HTMLElement = getClusterChip();
 
     expect(chip).toHaveTextContent("Cluster:");
     expect(chip).toHaveTextContent("production");
     expect(screen.queryByTitle(/^Remove /)).not.toBeInTheDocument();
+
+    await hover(chip);
+
+    expect(getTooltipSearchToken()).toBe(CLUSTER_SEARCH_TOKEN);
   });
 
   test("hovering the locked chip shows only its search syntax", async () => {
@@ -115,30 +133,73 @@ describe("ActiveFilterChips — locked chips", () => {
       />,
     );
 
-    await hover(
-      screen.getByRole("button", {
-        name: getLockedFilterChipAriaLabel("Cluster", "production", true),
-      }),
-    );
+    await hover(getClusterChip());
 
     const tooltip: HTMLElement = screen.getByRole("tooltip");
 
     expect(tooltip).toHaveTextContent("Search syntax");
-    expect(tooltip).toHaveTextContent("@resource.k8s.cluster.name:prod-eks-01");
+    expect(getTooltipSearchToken()).toBe(CLUSTER_SEARCH_TOKEN);
     // The list is the logs list: it names its explorer without being told.
     expect(tooltip).toHaveTextContent(
       "Paste into the Logs explorer search bar.",
     );
-    expect(tooltip).not.toHaveTextContent(
-      "Only logs from this Kubernetes cluster are shown.",
-    );
-    expect(tooltip).not.toHaveTextContent("Pinned by this page");
-    expect(tooltip).not.toHaveTextContent(
-      'resource.k8s.cluster.name = "prod-eks-01"',
+    // A chip with syntax shows that syntax, never a reason in its place.
+    expect(tooltip).not.toHaveTextContent(NO_SEARCH_SYNTAX_REASON);
+    expect(tooltip.textContent).toBe(
+      `Search syntax${CLUSTER_SEARCH_TOKEN}CopyPaste into the Logs explorer search bar.`,
     );
   });
 
-  test("a read-only chip without a detail keeps the plain title", () => {
+  test("a locked chip whose detail has no syntax shows its reason, with nothing to copy", async () => {
+    render(
+      <ActiveFilterChips
+        filters={[
+          lockedClusterChip({
+            lockedDetail: { searchTokenUnavailableReason: SESSION_REASON },
+          }),
+        ]}
+        onRemove={() => {}}
+        onClearAll={() => {}}
+      />,
+    );
+
+    // No syntax, so the chip's name does not offer Enter to copy.
+    await hover(getClusterChip(false));
+
+    const tooltip: HTMLElement = screen.getByRole("tooltip");
+
+    expect(tooltip.textContent).toBe(`Search syntax${SESSION_REASON}`);
+    expect(
+      screen.queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy search syntax" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a locked chip whose detail names neither syntax nor a reason falls back to the default reason", async () => {
+    render(
+      <ActiveFilterChips
+        filters={[lockedClusterChip({ lockedDetail: {} })]}
+        onRemove={() => {}}
+        onClearAll={() => {}}
+      />,
+    );
+
+    await hover(getClusterChip(false));
+
+    expect(screen.getByRole("tooltip").textContent).toBe(
+      `Search syntax${NO_SEARCH_SYNTAX_REASON}`,
+    );
+    expect(
+      screen.queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy search syntax" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a read-only chip without a detail keeps the plain title and opens no tooltip", async () => {
     render(
       <ActiveFilterChips
         filters={[lockedClusterChip({ lockedDetail: undefined })]}
@@ -150,9 +211,17 @@ describe("ActiveFilterChips — locked chips", () => {
     expect(
       document.querySelector("[title='Cluster: production (applied filter)']"),
     ).not.toBeNull();
+
+    await hover(screen.getByTestId("locked-filter-chip"));
+
+    // No detail: neither a search token nor a reason to show.
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
   });
 
-  test("a read-only chip with an openRoute keeps its icon-link inside the pill", () => {
+  test("a read-only chip with an openRoute keeps its icon-link inside the pill", async () => {
     render(
       <ActiveFilterChips
         filters={[
@@ -162,6 +231,7 @@ describe("ActiveFilterChips — locked chips", () => {
             displayKey: "Trace",
             displayValue: "trace-1",
             openRoute: new Route("/traces/view/trace-1"),
+            lockedDetail: { searchToken: TRACE_SEARCH_TOKEN },
           }),
         ]}
         onRemove={() => {}}
@@ -181,6 +251,11 @@ describe("ActiveFilterChips — locked chips", () => {
     // Beside the chip's own control, never inside it.
     expect(control).not.toContainElement(link);
     expect(link).toHaveAttribute("href", "/traces/view/trace-1");
+
+    await hover(control);
+
+    // The link does not displace the tooltip: it still shows the chip's token.
+    expect(getTooltipSearchToken()).toBe(TRACE_SEARCH_TOKEN);
   });
 
   test("a read-only chip without a detail is not a tab stop and has no name of its own", () => {
@@ -228,7 +303,7 @@ describe("ActiveFilterChips — locked chips", () => {
 });
 
 describe("ActiveFilterChips — no locked filter actions", () => {
-  test("renders no Copy filter or Open in … actions next to the locked chips", () => {
+  test("renders no Copy filter or Open in … actions next to the locked chips", async () => {
     render(
       <ActiveFilterChips
         filters={[lockedClusterChip(), removableChip()]}
@@ -250,6 +325,11 @@ describe("ActiveFilterChips — no locked filter actions", () => {
       screen.queryByRole("button", { name: /^Copy locked filters/ }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+
+    // The chip's own tooltip is where its search syntax lives now.
+    await hover(getClusterChip());
+
+    expect(getTooltipSearchToken()).toBe(CLUSTER_SEARCH_TOKEN);
   });
 
   test("locked chips are followed directly by the removable ones", () => {
@@ -277,14 +357,11 @@ describe("ActiveFilterChips — no locked filter actions", () => {
       />,
     );
 
-    await hover(
-      screen.getByRole("button", {
-        name: getLockedFilterChipAriaLabel("Cluster", "production", true),
-      }),
-    );
+    await hover(getClusterChip());
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "Paste into the Traces explorer search bar.",
+    expect(getTooltipSearchToken()).toBe(CLUSTER_SEARCH_TOKEN);
+    expect(screen.getByRole("tooltip").textContent).toBe(
+      `Search syntax${CLUSTER_SEARCH_TOKEN}CopyPaste into the Traces explorer search bar.`,
     );
     expect(
       screen.queryByTestId("locked-filter-actions"),

@@ -1,19 +1,40 @@
+/*
+ * The chip builder's name resolver imports ModelAPI, which reads browser
+ * config on load; nothing here resolves a name, so a stub is enough.
+ */
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: jest.fn(),
+    },
+  };
+});
+
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { buildMetricsActiveFilterChips } from "../../FeatureSet/Dashboard/src/Utils/MetricsEntityChipDisplay";
+import { METRICS_SERVICE_NO_SYNTAX_REASON } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 
 /*
- * The metrics explorer's locked chips explain themselves, each with the
- * search syntax that reproduces it on the main /metrics page. The
- * explanation text is owned by LockedTelemetryScope.test.ts and the chip
- * builders' behaviour by MetricsEntityChipDisplay.test.ts; what is left is
- * structural — that the viewer hands its entity scope to the builders, that
- * the chips reach the shared TelemetryViewer with the signal the Common
- * layer reads to word their tooltip, and that the viewer builds no
- * locked-filter actions of its own. None of that is observable from a unit
- * test of a helper, and each of them silently degrades the feature (a chip
- * with no tooltip, a tooltip pointing at the wrong explorer) rather than
- * failing, so this suite reads the source and pins the arrangement.
+ * The metrics explorer's locked chips each carry the search syntax that
+ * reproduces them on the main /metrics page, or the reason there is none,
+ * shown in the chip's tooltip. The tokens and reasons are owned by
+ * LockedTelemetryScope.test.ts and the chip builders' behaviour by
+ * MetricsEntityChipDisplay.test.ts; what is left is mostly structural — that
+ * the builders take each chip's syntax from the shared describers, from the
+ * filter alone and never from the page's entity scope, that the chips reach
+ * the shared TelemetryViewer with the signal the Common layer reads to name
+ * the explorer in their tooltip, and that the viewer builds no locked-filter
+ * actions of its own. Each of those silently degrades the feature (a chip
+ * with no syntax, a tooltip pointing at the wrong explorer) rather than
+ * failing, so this suite reads the source and pins the arrangement. Two
+ * tests also build, from the props a Kubernetes cluster page and a RUM
+ * application page pass, the chips the viewer shows, and pin their exact
+ * token and reason.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -114,8 +135,8 @@ const METRICS_VIEWER: string = readSource(
 
 const CHIP_DISPLAY: string = readSource("Utils", "MetricsEntityChipDisplay.ts");
 
-describe("MetricsViewer explains its locked chips", () => {
-  test("hands the page's entity scope to the chip builders", () => {
+describe("MetricsViewer's locked chips carry their search syntax", () => {
+  test("the viewer hands the chip builder no entity scope", () => {
     const call: string = blockAfter(
       METRICS_VIEWER,
       "buildMetricsActiveFilterChips(",
@@ -123,10 +144,17 @@ describe("MetricsViewer explains its locked chips", () => {
       "}",
     );
 
-    expect(call).toContain("entityScope: props.entityScope,");
+    /*
+     * A Kubernetes / host / Docker page's entityScope scopes the metrics
+     * queries and marks the page scoped; it plays no part in the chips. The
+     * attribute chip it names takes its syntax from the attribute alone, so
+     * nothing about the scope reaches the chip builder.
+     */
+    expect(call).toContain("attributeFilters: props.attributeFilters,");
+    expect(call).not.toContain("entityScope");
   });
 
-  test("the chip builders attach an explanation through the shared describers", () => {
+  test("the chip builders take each chip's syntax from the shared describers, from the filter alone", () => {
     expect(CHIP_DISPLAY).toContain('from "./LockedTelemetryScope"');
 
     const attributeChips: string = bodyAfter(
@@ -134,23 +162,87 @@ describe("MetricsViewer explains its locked chips", () => {
       "export const buildMetricsLockedAttributeChips",
     );
 
+    // The raw key and value, never the display overrides or an entity scope.
     expect(attributeChips).toContain(
-      'lockedDetail: describeLockedAttributeFilter({ signal: "metrics",',
+      'lockedDetail: describeLockedAttributeFilter({ signal: "metrics", attributeKey: key, rawValue: value, }),',
     );
-    // The scope belongs to exactly one attribute; it is attached to that one.
-    expect(attributeChips).toContain(
-      "data.entityScope && data.entityScope.attributeKey === key ? data.entityScope : undefined",
-    );
+    expect(attributeChips).not.toContain("entityScope");
 
     const scopeChips: string = bodyAfter(
       CHIP_DISPLAY,
       "export const buildMetricsLockedScopeChips",
     );
 
-    // Described after display resolution so the entity label is the chip's.
+    // The id alone: the Metrics search bar has no syntax for an entity id.
     expect(scopeChips).toContain(
-      'lockedDetail: describeLockedEntityFilter({ signal: "metrics", entityTypeLabel: resolved.displayKey,',
+      'lockedDetail: describeLockedEntityFilter({ signal: "metrics", id, }),',
     );
+  });
+
+  test("a Kubernetes page's attribute chip, built from what the viewer hands the builder, carries the attribute's token", () => {
+    /*
+     * The props a Kubernetes cluster page passes, minus the entityScope the
+     * viewer keeps out of the chips: one attribute chip, whose token spells
+     * the raw filter rather than the display overrides.
+     */
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
+      attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
+      attributeFilterDisplayValues: {
+        "resource.k8s.cluster.name": "production",
+      },
+      entityKeysFilter: undefined,
+      entityKeyDisplays: undefined,
+      activeFilters: [],
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    expect(chips).toEqual([
+      {
+        facetKey: "attributes.resource.k8s.cluster.name",
+        value: "prod-eks-01",
+        displayKey: "Cluster",
+        displayValue: "production",
+        readOnly: true,
+        lockedDetail: {
+          searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+        },
+      },
+    ]);
+  });
+
+  test("a RUM page's scope chip carries the reason an entity id has no metrics syntax", () => {
+    const RUM_APP_ID: string = "84858d6c-3c1f-4f5e-9a51-2a8a6c1d0e7b";
+
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: [RUM_APP_ID],
+      scopeEntityType: ServiceType.RealUserMonitor,
+      attributeFilters: undefined,
+      activeFilters: [],
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    expect(chips).toEqual([
+      {
+        facetKey: "primaryEntityId",
+        value: RUM_APP_ID,
+        displayKey: "RUM Application",
+        displayValue: RUM_APP_ID,
+        readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+        },
+      },
+    ]);
+
+    // The reason stands in for the token: the chip carries no syntax at all.
+    expect(chips[0]!.lockedDetail).toStrictEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
   });
 });
 
@@ -208,13 +300,13 @@ describe("MetricsViewer hands its locked chips to the shared viewer and builds n
 
 /*
  * An Inventory item's Metrics page scopes the list by entity key alone, and
- * the chip bar used to stay empty. The chip itself, its explanation and its
- * search syntax are unit-tested in MetricsEntityChipDisplay.test.ts; what is
- * left is what only the source can show — that the viewer accepts the
- * page's names, hands the
- * bare entity-key scope (and never the entityScope's keys) to the builder,
- * recomputes when either changes, and that the chip array stays display
- * only: nothing that builds a query, the URL or a saved view reads it.
+ * the chip bar used to stay empty. The chip itself and its search syntax (or
+ * the reason it has none) are unit-tested in MetricsEntityChipDisplay.test.ts;
+ * what is left is what only the source can show — that the viewer accepts
+ * the page's names, hands the bare entity-key scope (and never the
+ * entityScope or its keys) to the builder, recomputes when either changes,
+ * and that the chip array stays display only: nothing that builds a query,
+ * the URL or a saved view reads it.
  */
 describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
   type ImportListFromFunction = (
@@ -320,7 +412,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     ).toContain("LockedEntityKeyDisplayMap");
   });
 
-  test("hands the bare entity-key scope and its names to the chip builder, alongside the entity scope", () => {
+  test("hands the bare entity-key scope and its names to the chip builder, and never the entity scope", () => {
     const call: string = blockAfter(
       MEMO,
       "buildMetricsActiveFilterChips(",
@@ -330,24 +422,22 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
 
     expect(call).toContain("entityKeysFilter: props.entityKeysFilter,");
     expect(call).toContain("entityKeyDisplays: props.entityKeyDisplays,");
-    expect(call).toContain("entityScope: props.entityScope,");
 
     /*
      * REGRESSION: a Kubernetes / host / Docker page's entityScope carries
-     * entity keys too, but its attribute chip already explains them. Handing
-     * those keys to the entity-key chip would give every such page a second
-     * pill that reads like a second, AND-ed filter.
+     * entity keys too, but its attribute chip already stands for them.
+     * Handing those keys to the entity-key chip would give every such page a
+     * second pill that reads like a second, AND-ed filter.
      */
-    expect(call).not.toContain("entityScope.entityKeys");
-    expect(call).not.toContain("entityScope?.entityKeys");
+    expect(call).not.toContain("entityScope");
   });
 
-  test("recomputes the chips when the entity keys or their names change", () => {
+  test("recomputes the chips when the entity keys or their names change, and not on the entity scope it never reads", () => {
     const dependencies: Array<string> = dependenciesOf(MEMO);
 
     expect(dependencies).toContain("props.entityKeysFilter");
     expect(dependencies).toContain("props.entityKeyDisplays");
-    expect(dependencies).toContain("props.entityScope");
+    expect(dependencies).not.toContain("props.entityScope");
   });
 
   test("the page's names reach the chip builder and nothing else", () => {
@@ -425,9 +515,8 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     expect(call).toContain("entityKeys: data.entityKeysFilter,");
     expect(call).toContain("displays: data.entityKeyDisplays,");
 
-    // The same regression, one layer down.
-    expect(body).not.toContain("entityScope.entityKeys");
-    expect(body).not.toContain("entityScope?.entityKeys");
+    // The same regression, one layer down: the builder takes no entity scope.
+    expect(body).not.toContain("entityScope");
   });
 });
 

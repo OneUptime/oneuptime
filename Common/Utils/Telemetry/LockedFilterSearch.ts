@@ -28,7 +28,7 @@ import {
 
 export type TelemetrySignal = "logs" | "traces" | "metrics";
 
-/** Human name of each explorer, for button labels and tooltips. */
+/** Human name of each explorer, for tooltips. */
 export const TELEMETRY_EXPLORER_LABELS: Readonly<
   Record<TelemetrySignal, string>
 > = {

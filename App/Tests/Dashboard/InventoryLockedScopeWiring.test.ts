@@ -372,21 +372,6 @@ describe("every signal page gives its viewer the name on the element that carrie
     },
   );
 
-  test("the Logs page says the entity keys in its logQuery are its own, so its pill reads 'Pinned by this page'", () => {
-    /*
-     * The logs viewer cannot tell a page's own `logQuery.entityKeys` from a
-     * log monitor's stored query, and describes keys nobody vouches for as
-     * the stored query's. The Inventory item's Logs tab is the page that
-     * pins them.
-     */
-    expect(
-      elementAttributes(
-        readSource("Pages", "Inventory", "View", "Logs.tsx"),
-        "<LogsViewer",
-      ),
-    ).toContain("entityKeysPinnedByPage={true}");
-  });
-
   test.each(SIGNAL_PAGES)(
     "%s: %s carries the entity-key scope and the shell's display map together",
     (file: string, element: string, scope: string) => {
@@ -417,11 +402,11 @@ describe("every signal page gives its viewer the name on the element that carrie
   );
 
   test.each(SIGNAL_PAGES)(
-    "%s: %s is scoped by entity key alone, so the entity-key pill is the whole explanation",
+    "%s: %s is scoped by entity key alone, so no other scope rides beside the entity-key pill",
     (file: string, element: string) => {
       /*
        * A Kubernetes cluster's page pins an attribute AND its entity keys
-       * through `entityScope`, and its attribute chip explains both halves.
+       * through `entityScope`, and its one attribute chip stands for both.
        * An Inventory item has no attribute counterpart — reading its
        * telemetry through an attribute or the primary owner returns nothing
        * for a pod (InventoryDetailPageInvariants) — so none may ride along

@@ -5,9 +5,10 @@
  * which the table compiles to `hasAny(entityKeys, [key])`. The list WAS
  * filtered, but the table had no chip bar and its pill row only opened for
  * the removable deep-link pills — so a pod's profiles page looked exactly
- * like the project-wide list. These tests pin what the pill says and when
- * the row opens; ProfilesEntityKeyLockedScopeWiring.test.ts pins that the
- * table really renders it.
+ * like the project-wide list. These tests pin how the pill is named, the
+ * no-search-syntax reason its tooltip shows (the profiles list has no search
+ * bar), and when the row opens; ProfilesEntityKeyLockedScopeWiring.test.ts
+ * pins that the table really renders it.
  *
  * ProfilesEntityDisplay imports the shared entity-name resolver, which
  * imports ModelAPI; it is mocked so nothing reaches the network.
@@ -30,7 +31,7 @@ import {
   ENTITY_KEYS_FACET_KEY,
   ENTITY_KEY_NO_ATTRIBUTES_REASON,
   ENTITY_KEY_NO_SYNTAX_REASON,
-  LOCKED_FILTER_SOURCE_PAGE,
+  EntityKeyScopedRows,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import {
@@ -70,33 +71,13 @@ const profileChips: ProfileChipsFunction = (
   });
 };
 
-type SingleKeyDetailFunction = (
-  entityKey: string,
-  summary: string,
-  entityTypeLabel?: string | undefined,
-) => LockedFilterDetail;
-
 /*
- * The describer's explanation for one profiles key, checked against the
- * profiles sentence and reason this table shows. The rest of the wording is
- * owned by LockedTelemetryScope.test.ts, so it is not spelled out again here.
+ * The detail every profiles pill carries: no search token (there is no
+ * search bar to paste one into), only the entity-key reason. Its exact
+ * spelling is pinned by the contract test below.
  */
-const singleKeyDetail: SingleKeyDetailFunction = (
-  entityKey: string,
-  summary: string,
-  entityTypeLabel?: string | undefined,
-): LockedFilterDetail => {
-  const detail: LockedFilterDetail = describeLockedEntityKeyFilter({
-    rows: "profiles",
-    entityKey,
-    entityTypeLabel,
-  });
-
-  expect(detail.summary).toBe(summary);
-  expect(detail.source).toBe(LOCKED_FILTER_SOURCE_PAGE);
-  expect(detail.searchTokenUnavailableReason).toBe(ENTITY_KEY_NO_SYNTAX_REASON);
-
-  return detail;
+const PROFILES_PILL_DETAIL: LockedFilterDetail = {
+  searchTokenUnavailableReason: ENTITY_KEY_NO_SYNTAX_REASON,
 };
 
 const POD_DISPLAYS: LockedEntityKeyDisplayMap = buildInventoryEntityKeyDisplays(
@@ -107,20 +88,53 @@ const POD_DISPLAYS: LockedEntityKeyDisplayMap = buildInventoryEntityKeyDisplays(
   },
 );
 
+/*
+ * The same pod, named with the resource attributes that identify it — what
+ * an explorer spells its entity-key chip's search syntax with.
+ */
+const POD_ATTRIBUTE_DISPLAYS: LockedEntityKeyDisplayMap = {
+  [POD_KEY]: {
+    displayKey: "Kubernetes Pod",
+    displayValue: "checkout-7d9f",
+    searchAttributes: {
+      "k8s.cluster.name": "prod",
+      "k8s.namespace.name": "shop",
+      "k8s.pod.name": "checkout-7d9f",
+    },
+  },
+};
+
+const POD_EXPLORER_SEARCH_TOKEN: string =
+  "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
+
 describe("the contract strings the profiles pill is built from", () => {
-  test("the facet, fallback key, page source and no-syntax reason read as the pill shows them", () => {
+  test("the facet, fallback keys and no-syntax reasons read as the pill shows them", () => {
     expect(ENTITY_KEYS_FACET_KEY).toBe("entityKeys");
     expect(DEFAULT_ENTITY_KEY_DISPLAY_KEY).toBe("Resource");
-    expect(LOCKED_FILTER_SOURCE_PAGE).toBe("Pinned by this page");
     expect(ENTITY_KEY_NO_SYNTAX_REASON).toBe(
       "Entity keys have no search syntax.",
     );
+    expect(ENTITY_KEY_NO_ATTRIBUTES_REASON).toBe(
+      "This resource has no telemetry attributes to search by.",
+    );
     expect(INVENTORY_ITEM_FALLBACK_DISPLAY_KEY).toBe("Inventory Item");
+  });
+
+  test("the describer gives the profiles list the entity-key reason and nothing else", () => {
+    expect(describeLockedEntityKeyFilter({ rows: "profiles" })).toStrictEqual(
+      PROFILES_PILL_DETAIL,
+    );
+    expect(
+      describeLockedEntityKeyFilter({
+        rows: "profiles",
+        searchAttributes: POD_ATTRIBUTE_DISPLAYS[POD_KEY]!.searchAttributes,
+      }),
+    ).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 });
 
 describe("an Inventory item's Profiles page names its locked pill", () => {
-  test("a Kubernetes pod reads 'Kubernetes Pod: checkout-7d9f' and explains the scope in profiles", () => {
+  test("a Kubernetes pod reads 'Kubernetes Pod: checkout-7d9f' with the entity-key reason in its tooltip", () => {
     expect(POD_DISPLAYS).toEqual({
       [POD_KEY]: {
         displayKey: "Kubernetes Pod",
@@ -128,20 +142,19 @@ describe("an Inventory item's Profiles page names its locked pill", () => {
       },
     });
 
-    expect(profileChips([POD_KEY], POD_DISPLAYS)).toEqual([
+    const chips: Array<ActiveFilter> = profileChips([POD_KEY], POD_DISPLAYS);
+
+    expect(chips).toEqual([
       {
         facetKey: "entityKeys",
         value: POD_KEY,
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: singleKeyDetail(
-          POD_KEY,
-          "Only profiles linked to this Kubernetes Pod are shown.",
-          "Kubernetes Pod",
-        ),
+        lockedDetail: PROFILES_PILL_DETAIL,
       },
     ]);
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("a host item reads 'Host: web-01'", () => {
@@ -157,9 +170,7 @@ describe("an Inventory item's Profiles page names its locked pill", () => {
     expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Host");
     expect(chips[0]!.displayValue).toBe("web-01");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this Host are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("an item without a type reads 'Inventory Item: <name>'", () => {
@@ -174,9 +185,7 @@ describe("an Inventory item's Profiles page names its locked pill", () => {
 
     expect(chips[0]!.displayKey).toBe("Inventory Item");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this Inventory Item are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("an item without a name shows its key as the value, still under its type", () => {
@@ -191,6 +200,7 @@ describe("an Inventory item's Profiles page names its locked pill", () => {
 
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("a type this build has no label for is shown as the raw type", () => {
@@ -205,9 +215,7 @@ describe("an Inventory item's Profiles page names its locked pill", () => {
 
     expect(chips[0]!.displayKey).toBe("future.widget");
     expect(chips[0]!.displayValue).toBe("w-1");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this future.widget are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 });
 
@@ -217,24 +225,28 @@ describe("the pill renders without a display map", () => {
      * The bug was a filtered list with nothing above it. A host that scopes
      * by entity key but cannot name the entity must still say so.
      */
-    expect(profileChips([POD_KEY])).toEqual([
+    const chips: Array<ActiveFilter> = profileChips([POD_KEY]);
+
+    expect(chips).toEqual([
       {
         facetKey: "entityKeys",
         value: POD_KEY,
         displayKey: "Resource",
         displayValue: POD_KEY,
         readOnly: true,
-        lockedDetail: singleKeyDetail(
-          POD_KEY,
-          "Only profiles linked to this resource are shown.",
-        ),
+        lockedDetail: PROFILES_PILL_DETAIL,
       },
     ]);
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("an empty map — the shell's answer for an item without a key — falls back the same way", () => {
     expect(buildInventoryEntityKeyDisplays({ entityKey: "  " })).toEqual({});
-    expect(profileChips([POD_KEY], {})).toEqual(profileChips([POD_KEY]));
+
+    const chips: Array<ActiveFilter> = profileChips([POD_KEY], {});
+
+    expect(chips).toEqual(profileChips([POD_KEY]));
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("a map built for another key does not name this page's pill", () => {
@@ -244,6 +256,7 @@ describe("the pill renders without a display map", () => {
     expect(chips[0]!.displayKey).toBe("Resource");
     expect(chips[0]!.displayValue).toBe(HOST_KEY);
     expect(chips[0]!.displayValue).not.toBe("checkout-7d9f");
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 });
 
@@ -255,9 +268,7 @@ describe("display text that is blank or padded", () => {
 
     expect(chips[0]!.displayKey).toBe("Resource");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this resource are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("a blank key alone falls back while the name is kept", () => {
@@ -267,9 +278,7 @@ describe("display text that is blank or padded", () => {
 
     expect(chips[0]!.displayKey).toBe("Resource");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this resource are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("a blank value alone falls back to the key while the type is kept", () => {
@@ -279,12 +288,10 @@ describe("display text that is blank or padded", () => {
 
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this Kubernetes Pod are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
-  test("padded display text is trimmed on the pill and in the summary", () => {
+  test("padded display text is trimmed on the pill", () => {
     const chips: Array<ActiveFilter> = profileChips([POD_KEY], {
       [POD_KEY]: {
         displayKey: "  Kubernetes Pod ",
@@ -294,25 +301,22 @@ describe("display text that is blank or padded", () => {
 
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this Kubernetes Pod are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
-  test("a display key of 'Resource' in any case reads as the generic noun, not 'this Resource'", () => {
+  test("a display key of 'Resource' in any case is kept as the page wrote it", () => {
     const chips: Array<ActiveFilter> = profileChips([POD_KEY], {
       [POD_KEY]: { displayKey: "RESOURCE", displayValue: "checkout-7d9f" },
     });
 
     expect(chips[0]!.displayKey).toBe("RESOURCE");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only profiles linked to this resource are shown.",
-    );
+    expect(chips[0]!.displayValue).toBe("checkout-7d9f");
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 });
 
 describe("several entity keys", () => {
-  test("one pill per key in page order, each saying the other key WIDENS the list", () => {
+  test("one pill per key in page order, each with the reason a lone key's pill shows", () => {
     const chips: Array<ActiveFilter> = profileChips(
       [POD_KEY, NODE_KEY],
       POD_DISPLAYS,
@@ -325,12 +329,7 @@ describe("several entity keys", () => {
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "profiles",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY, NODE_KEY],
-          entityTypeLabel: "Kubernetes Pod",
-        }),
+        lockedDetail: PROFILES_PILL_DETAIL,
       },
       {
         facetKey: "entityKeys",
@@ -338,24 +337,24 @@ describe("several entity keys", () => {
         displayKey: "Resource",
         displayValue: NODE_KEY,
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "profiles",
-          entityKey: NODE_KEY,
-          entityKeys: [POD_KEY, NODE_KEY],
-        }),
+        lockedDetail: PROFILES_PILL_DETAIL,
       },
     ]);
     expect(
-      chips.map((chip: ActiveFilter): string => {
-        return chip.lockedDetail!.summary;
+      chips.map((chip: ActiveFilter): string | undefined => {
+        return chip.lockedDetail!.searchTokenUnavailableReason;
       }),
-    ).toEqual([
-      "Profiles linked to this Kubernetes Pod are shown, along with profiles linked to the 1 other resource this page pins.",
-      "Profiles linked to this resource are shown, along with profiles linked to the 1 other resource this page pins.",
-    ]);
+    ).toEqual([ENTITY_KEY_NO_SYNTAX_REASON, ENTITY_KEY_NO_SYNTAX_REASON]);
+    // The other key on the page changes nothing about a pill's detail.
+    expect(chips[0]!.lockedDetail).toStrictEqual(
+      profileChips([POD_KEY], POD_DISPLAYS)[0]!.lockedDetail,
+    );
+    expect(chips[1]!.lockedDetail).toStrictEqual(
+      profileChips([NODE_KEY])[0]!.lockedDetail,
+    );
   });
 
-  test("three keys count the other resources in the plural", () => {
+  test("three keys build three pills in page order, none carrying a search token", () => {
     const chips: Array<ActiveFilter> = profileChips([
       POD_KEY,
       NODE_KEY,
@@ -367,12 +366,9 @@ describe("several entity keys", () => {
         return chip.value;
       }),
     ).toEqual([POD_KEY, NODE_KEY, HOST_KEY]);
-    expect(chips[2]!.lockedDetail!.summary).toBe(
-      "Profiles linked to this resource are shown, along with profiles linked to the 2 other resources this page pins.",
-    );
-    expect(chips[2]!.lockedDetail!.predicates[0]!.expression).toBe(
-      `entityKeys has any of ${HOST_KEY}, ${POD_KEY}, ${NODE_KEY}`,
-    );
+    for (const chip of chips) {
+      expect(chip.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
+    }
   });
 
   test("duplicate, padded and blank keys collapse to one pill per distinct key", () => {
@@ -390,22 +386,17 @@ describe("several entity keys", () => {
         return chip.value;
       }),
     ).toEqual([POD_KEY, NODE_KEY]);
-    // A duplicate is not "another resource": the count is of distinct keys.
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Profiles linked to this resource are shown, along with profiles linked to the 1 other resource this page pins.",
-    );
+    for (const chip of chips) {
+      expect(chip.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
+    }
   });
 
-  test("a duplicated single key is still the single-key sentence", () => {
+  test("a duplicated single key builds exactly the pill a lone key builds", () => {
     const chips: Array<ActiveFilter> = profileChips([POD_KEY, POD_KEY]);
 
     expect(chips).toHaveLength(1);
-    expect(chips[0]!.lockedDetail).toEqual(
-      singleKeyDetail(
-        POD_KEY,
-        "Only profiles linked to this resource are shown.",
-      ),
-    );
+    expect(chips).toEqual(profileChips([POD_KEY]));
+    expect(chips[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
   });
 
   test("the table's React keys are unique per pill", () => {
@@ -423,6 +414,9 @@ describe("several entity keys", () => {
 
     expect(reactKeys.size).toBe(chips.length);
     expect(chips).toHaveLength(3);
+    for (const chip of chips) {
+      expect(chip.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
+    }
   });
 });
 
@@ -455,6 +449,7 @@ describe("every profiles pill is locked and carries nothing to copy", () => {
       expect(chip.facetKey).toBe("entityKeys");
       expect([POD_KEY, NODE_KEY]).toContain(chip.value);
       expect(chip.openRoute).toBeUndefined();
+      expect(chip.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
     }
     expect(chips[0]!.value).not.toBe(chips[0]!.displayValue);
   });
@@ -468,37 +463,32 @@ describe("every profiles pill is locked and carries nothing to copy", () => {
       );
       expect(detail.searchToken).toBeUndefined();
       expect(detail.searchTokenUnavailableReason).toBe(
-        "Entity keys have no search syntax.",
+        ENTITY_KEY_NO_SYNTAX_REASON,
       );
     }
   });
 
   test("profiles have no search bar, so the reason is the entity-key one — never the explorers' missing-attributes one", () => {
+    expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_SYNTAX_REASON,
+    );
     expect(chips[0]!.lockedDetail!.searchTokenUnavailableReason).not.toBe(
       ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
     // The same scope on the logs explorer gives the explorers' reason instead.
     expect(
       buildLockedEntityKeyChips({ rows: "logs", entityKeys: [POD_KEY] })[0]!
-        .lockedDetail!.searchTokenUnavailableReason,
-    ).toBe(ENTITY_KEY_NO_ATTRIBUTES_REASON);
+        .lockedDetail,
+    ).toStrictEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 
   test("an item that names its identifying attributes still gets no search syntax on the profiles pill", () => {
-    const displays: LockedEntityKeyDisplayMap = {
-      [POD_KEY]: {
-        displayKey: "Kubernetes Pod",
-        displayValue: "checkout-7d9f",
-        searchAttributes: {
-          "k8s.cluster.name": "prod",
-          "k8s.namespace.name": "shop",
-          "k8s.pod.name": "checkout-7d9f",
-        },
-      },
-    };
-
-    const detail: LockedFilterDetail = profileChips([POD_KEY], displays)[0]!
-      .lockedDetail!;
+    const detail: LockedFilterDetail = profileChips(
+      [POD_KEY],
+      POD_ATTRIBUTE_DISPLAYS,
+    )[0]!.lockedDetail!;
 
     expect(Object.prototype.hasOwnProperty.call(detail, "searchToken")).toBe(
       false,
@@ -506,20 +496,35 @@ describe("every profiles pill is locked and carries nothing to copy", () => {
     expect(detail.searchTokenUnavailableReason).toBe(
       ENTITY_KEY_NO_SYNTAX_REASON,
     );
-    // The attributes change nothing else the pill says.
-    expect(detail).toEqual(
+    // The attributes leave the detail exactly as a pill without them has it.
+    expect(detail).toStrictEqual(
       profileChips([POD_KEY], POD_DISPLAYS)[0]!.lockedDetail,
     );
   });
 
-  test("the sentence speaks of profiles, never of another signal", () => {
-    for (const chip of chips) {
-      const summary: string = chip.lockedDetail!.summary;
+  test("the profiles pill shares the exceptions list's reason, while an explorer spells the same entity's attributes", () => {
+    expect(
+      profileChips([POD_KEY], POD_ATTRIBUTE_DISPLAYS)[0]!.lockedDetail,
+    ).toStrictEqual(PROFILES_PILL_DETAIL);
+    // The exceptions list has no search bar either.
+    expect(
+      buildLockedEntityKeyChips({
+        rows: "exceptions",
+        entityKeys: [POD_KEY],
+        displays: POD_ATTRIBUTE_DISPLAYS,
+      })[0]!.lockedDetail,
+    ).toStrictEqual(PROFILES_PILL_DETAIL);
 
-      expect(summary.toLowerCase()).toContain("profiles");
-      for (const noun of ["logs", "traces", "metrics", "exceptions"]) {
-        expect(summary).not.toContain(noun);
-      }
+    const explorers: Array<EntityKeyScopedRows> = ["logs", "traces", "metrics"];
+
+    for (const rows of explorers) {
+      expect(
+        buildLockedEntityKeyChips({
+          rows,
+          entityKeys: [POD_KEY],
+          displays: POD_ATTRIBUTE_DISPLAYS,
+        })[0]!.lockedDetail,
+      ).toStrictEqual({ searchToken: POD_EXPLORER_SEARCH_TOKEN });
     }
   });
 });
@@ -538,9 +543,21 @@ describe("the pill is display only", () => {
       }),
     }) as LockedEntityKeyDisplayMap;
 
+    let chips: Array<ActiveFilter> = [];
+
     expect(() => {
-      return profileChips(entityKeys, displays);
+      chips = profileChips(entityKeys, displays);
     }).not.toThrow();
+    expect(chips).toEqual([
+      {
+        facetKey: "entityKeys",
+        value: POD_KEY,
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout-7d9f",
+        readOnly: true,
+        lockedDetail: PROFILES_PILL_DETAIL,
+      },
+    ]);
     expect(entityKeys).toEqual([` ${POD_KEY} `, POD_KEY, ""]);
     expect(displays).toEqual({
       [POD_KEY]: {
@@ -551,9 +568,15 @@ describe("the pill is display only", () => {
   });
 
   test("the same inputs build equal pills every time", () => {
-    expect(profileChips([POD_KEY, NODE_KEY], POD_DISPLAYS)).toEqual(
-      profileChips([POD_KEY, NODE_KEY], POD_DISPLAYS),
+    const chips: Array<ActiveFilter> = profileChips(
+      [POD_KEY, NODE_KEY],
+      POD_DISPLAYS,
     );
+
+    expect(chips).toEqual(profileChips([POD_KEY, NODE_KEY], POD_DISPLAYS));
+    for (const chip of chips) {
+      expect(chip.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
+    }
   });
 });
 
@@ -581,6 +604,7 @@ describe("hasProfileTableFilterRow", () => {
   });
 
   test("REGRESSION: a locked entity-key chip opens the row with no deep link set", () => {
+    expect(LOCKED[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
     expect(
       hasProfileTableFilterRow({
         lockedChips: LOCKED,
@@ -592,9 +616,10 @@ describe("hasProfileTableFilterRow", () => {
   });
 
   test("a fallback pill (no display map) opens the row just the same", () => {
-    expect(
-      hasProfileTableFilterRow({ lockedChips: profileChips([POD_KEY]) }),
-    ).toBe(true);
+    const fallback: Array<ActiveFilter> = profileChips([POD_KEY]);
+
+    expect(fallback[0]!.lockedDetail).toStrictEqual(PROFILES_PILL_DETAIL);
+    expect(hasProfileTableFilterRow({ lockedChips: fallback })).toBe(true);
   });
 
   test.each<[string, ProfileTableFilterRowInput]>([

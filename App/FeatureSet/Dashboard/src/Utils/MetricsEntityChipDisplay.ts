@@ -17,7 +17,6 @@ import {
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { ATTRIBUTE_FACET_PREFIX } from "../Components/Metrics/MetricsSearchQuery";
 import {
-  LockedEntityScope,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "./LockedTelemetryScope";
@@ -428,23 +427,18 @@ export const resolveMetricsChipDisplay: (data: {
  * `resource.host.name`). The filter value is untouched; the page may supply
  * a friendlier key and value for display.
  *
- * Each chip also carries its explanation (LockedFilterDetail): the chip
- * bar used to say nothing beyond "(applied filter)", so a reader could not
- * tell that "Cluster: production" is an attribute equality — nor that the
- * page's entityScope, when it names the same key, lets newer rows match on
- * their entity key instead. The entity scope belongs to exactly one of the
- * page's attributes, so it is attached only to the chip for that key.
+ * Each chip also carries its LockedFilterDetail: the `@key:value` search
+ * syntax that reproduces it on the Metrics explorer, or the reason there is
+ * none.
  */
 export const buildMetricsLockedAttributeChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
-  entityScope?: LockedEntityScope | undefined;
 }) => Array<ActiveFilter> = (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
-  entityScope?: LockedEntityScope | undefined;
 }): Array<ActiveFilter> => {
   const chips: Array<ActiveFilter> = [];
   for (const [key, value] of Object.entries(data.attributeFilters || {})) {
@@ -464,12 +458,6 @@ export const buildMetricsLockedAttributeChips: (data: {
         signal: "metrics",
         attributeKey: key,
         rawValue: value,
-        displayKey,
-        displayValue,
-        entityScope:
-          data.entityScope && data.entityScope.attributeKey === key
-            ? data.entityScope
-            : undefined,
       }),
     });
   }
@@ -511,17 +499,14 @@ export const buildMetricsLockedScopeChips: (data: {
       scopeEntityType: data.scopeEntityType,
     });
     /*
-     * Described AFTER display resolution so the explanation names the entity
-     * the way the chip does ("RUM Application", not the seeded "Service")
-     * and improves as names load, exactly like the chip text.
+     * The Metrics search bar matches services by name, so the detail is the
+     * reason an id has no search syntax here.
      */
     chips.push({
       ...resolved,
       lockedDetail: describeLockedEntityFilter({
         signal: "metrics",
-        entityTypeLabel: resolved.displayKey,
         id,
-        name: resolved.displayValue !== id ? resolved.displayValue : undefined,
       }),
     });
   }
@@ -539,9 +524,9 @@ export const buildMetricsLockedScopeChips: (data: {
  * after the entity-id chip in the same way.
  *
  * Only `entityKeysFilter` becomes an entity-key chip. The `entityScope` of a
- * Kubernetes / host / Docker page carries entity keys too, but it is
- * explained on the attribute chip it names ("Cluster: prod"); a second chip
- * for the same scope would read as a second, AND-ed filter.
+ * Kubernetes / host / Docker page carries entity keys too, but its attribute
+ * chip ("Cluster: prod") already stands for it; a second chip for the same
+ * scope would read as a second, AND-ed filter.
  */
 export const buildMetricsActiveFilterChips: (data: {
   scopeIds: Array<ObjectID | string> | undefined;
@@ -549,8 +534,6 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
-  // The page's entity scope, explained on the attribute chip it names.
-  entityScope?: LockedEntityScope | undefined;
   // The page's bare entity-key scope (an Inventory item), one chip per key.
   entityKeysFilter?: ReadonlyArray<string> | undefined;
   // How each of those chips reads; a key without an entry reads "Resource".
@@ -564,7 +547,6 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilters: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
-  entityScope?: LockedEntityScope | undefined;
   entityKeysFilter?: ReadonlyArray<string> | undefined;
   entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   activeFilters: Array<ActiveFilter>;
@@ -587,7 +569,6 @@ export const buildMetricsActiveFilterChips: (data: {
       attributeFilters: data.attributeFilters,
       attributeFilterDisplayKeys: data.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: data.attributeFilterDisplayValues,
-      entityScope: data.entityScope,
     }),
     ...data.activeFilters.map((chip: ActiveFilter): ActiveFilter => {
       return resolveMetricsChipDisplay({

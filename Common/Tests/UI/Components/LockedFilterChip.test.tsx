@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import LockedFilterChip, {
@@ -26,12 +27,14 @@ import LockedFilterChip, {
 import { LockedFilterDetail } from "../../../Types/Telemetry/LockedFilterDetail";
 
 /*
- * The grey lock chip on a resource page's telemetry tab. With a
- * LockedFilterDetail its tooltip shows the search syntax that reproduces the
- * filter on the explorer — and nothing else — and hands that syntax over from
- * the keyboard too, since the tooltip's own Copy button sits in a popover Tab
- * never reaches. Without a detail it must look and behave exactly as before:
- * a plain pill that is not a tab stop.
+ * The grey lock chip on a resource page's telemetry tab. A LockedFilterDetail
+ * carries only the search syntax that reproduces the filter on the explorer,
+ * or the reason there is none, and the chip's tooltip shows exactly that
+ * under a "Search syntax" heading — the token with a Copy button and where to
+ * paste it, or the reason. The chip hands the token over from the keyboard
+ * too, since the tooltip's own Copy button sits in a popover Tab never
+ * reaches. Without a detail it must look and behave exactly as before: a
+ * plain pill that is not a tab stop.
  */
 
 type WriteTextMock = ReturnType<
@@ -43,6 +46,11 @@ let writeText: WriteTextMock;
 const originalExecCommand: unknown = (
   document as unknown as Record<string, unknown>
 )["execCommand"];
+
+const CLUSTER_SEARCH_TOKEN: string = "@resource.k8s.cluster.name:prod-eks-01";
+const TRACE_SEARCH_TOKEN: string = "trace:abc";
+const SESSION_REASON: string = "Session filters have no syntax.";
+const OPERATOR_REASON: string = "Operator filters have no search syntax yet.";
 
 function installClipboard(mock: WriteTextMock | undefined): void {
   Object.defineProperty(navigator, "clipboard", {
@@ -80,27 +88,34 @@ afterEach(() => {
   });
 });
 
+// A locked detail for a cluster chip: its search token, plus any overrides.
 function clusterDetail(
   overrides: Partial<LockedFilterDetail> = {},
 ): LockedFilterDetail {
   return {
-    source: "Pinned by this page",
-    summary: "Only logs from this Kubernetes cluster are shown.",
-    predicates: [
-      {
-        label: "Attribute",
-        expression: 'resource.k8s.cluster.name = "prod-eks-01"',
-        note: "Rows ingested before entity keys existed match on this attribute.",
-      },
-      {
-        label: "Entity key",
-        expression: "entityKeys has 3f9a1b2c4d5e6f70",
-      },
-    ],
-    combinator: "any",
-    searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+    searchToken: CLUSTER_SEARCH_TOKEN,
     ...overrides,
   };
+}
+
+/*
+ * Everything a tooltip with syntax says, in document order: its heading, the
+ * token, the Copy button's label and where to paste the token.
+ */
+function searchSyntaxText(
+  searchToken: string,
+  explorerLabel?: string | undefined,
+): string {
+  const pasteHint: string = explorerLabel
+    ? `Paste into the ${explorerLabel} explorer search bar.`
+    : "Paste into the explorer search bar.";
+
+  return `Search syntax${searchToken}Copy${pasteHint}`;
+}
+
+// Everything a tooltip without syntax says: its heading and the reason.
+function unavailableReasonText(reason: string): string {
+  return `Search syntax${reason}`;
 }
 
 const CLUSTER_LABEL: string = getLockedFilterChipAriaLabel(
@@ -181,7 +196,7 @@ describe("LockedFilterChip without a detail", () => {
 });
 
 describe("LockedFilterChip with a detail", () => {
-  test("is a button named for the filter, with the Enter hint, and no plain title", () => {
+  test("is a button named for the filter, with the Enter hint, and no plain title", async () => {
     render(
       <LockedFilterChip
         displayKey="Cluster"
@@ -201,33 +216,48 @@ describe("LockedFilterChip with a detail", () => {
     expect(control).toHaveAttribute("type", "button");
     expect(control).toHaveTextContent("Cluster:");
     expect(control).toHaveTextContent("production");
+
+    await hover(control);
+
+    expect(
+      within(screen.getByRole("tooltip")).getByTestId(
+        "locked-filter-search-token",
+      ).textContent,
+    ).toBe(CLUSTER_SEARCH_TOKEN);
   });
 
-  test("a chip whose syntax cannot be copied is named without the Enter hint", () => {
+  test("a chip whose syntax cannot be copied is named without the Enter hint and gives its reason", async () => {
     render(
       <LockedFilterChip
         displayKey="Session"
         displayValue="s-1"
-        lockedDetail={clusterDetail({
-          searchToken: undefined,
-          searchTokenUnavailableReason: "Session filters have no syntax.",
-        })}
+        lockedDetail={{ searchTokenUnavailableReason: SESSION_REASON }}
       />,
     );
 
+    const control: HTMLElement = screen.getByRole("button", {
+      name: getLockedFilterChipAriaLabel("Session", "s-1"),
+    });
+
+    expect(control).toBeInTheDocument();
+
+    await hover(control);
+
+    const tooltip: HTMLElement = screen.getByRole("tooltip");
+
+    expect(tooltip.textContent).toBe(unavailableReasonText(SESSION_REASON));
     expect(
-      screen.getByRole("button", {
-        name: getLockedFilterChipAriaLabel("Session", "s-1"),
-      }),
-    ).toBeInTheDocument();
+      within(tooltip).queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
   });
 
-  test("renders the trailing element beside the button, never inside it", () => {
+  test("renders the trailing element beside the button, never inside it", async () => {
     render(
       <LockedFilterChip
         displayKey="Trace"
         displayValue="abc"
-        lockedDetail={clusterDetail({ searchToken: "trace:abc" })}
+        lockedDetail={{ searchToken: TRACE_SEARCH_TOKEN }}
+        signal="traces"
         trailing={<a href="/traces/view/abc">open</a>}
       />,
     );
@@ -240,6 +270,12 @@ describe("LockedFilterChip with a detail", () => {
 
     expect(chip).toContainElement(link);
     expect(control).not.toContainElement(link);
+
+    await hover(control);
+
+    expect(screen.getByRole("tooltip").textContent).toBe(
+      searchSyntaxText(TRACE_SEARCH_TOKEN, "Traces"),
+    );
   });
 
   test("hover opens the search syntax and nothing else", async () => {
@@ -257,21 +293,18 @@ describe("LockedFilterChip with a detail", () => {
     const tooltip: HTMLElement = screen.getByRole("tooltip");
 
     expect(tooltip).toHaveTextContent("Search syntax");
-    expect(tooltip).toHaveTextContent("@resource.k8s.cluster.name:prod-eks-01");
+    expect(
+      within(tooltip).getByTestId("locked-filter-search-token").textContent,
+    ).toBe(CLUSTER_SEARCH_TOKEN);
     expect(tooltip).toHaveTextContent(
       "Paste into the Logs explorer search bar.",
     );
-    // The explanation that used to sit above the syntax is gone.
-    expect(tooltip).not.toHaveTextContent("Locked filter");
-    expect(tooltip).not.toHaveTextContent(
-      "Only logs from this Kubernetes cluster are shown.",
+    // The heading, the token, its Copy button and the paste hint — no more.
+    expect(tooltip.textContent).toBe(
+      searchSyntaxText(CLUSTER_SEARCH_TOKEN, "Logs"),
     );
-    expect(tooltip).not.toHaveTextContent("Pinned by this page");
-    expect(tooltip).not.toHaveTextContent("How rows are matched");
-    expect(tooltip).not.toHaveTextContent(
-      'resource.k8s.cluster.name = "prod-eks-01"',
-    );
-    expect(tooltip).not.toHaveTextContent("entityKeys has 3f9a1b2c4d5e6f70");
+    expect(tooltip.querySelectorAll("code")).toHaveLength(1);
+    expect(within(tooltip).getAllByRole("button")).toHaveLength(1);
   });
 
   test("keyboard focus opens the search syntax too", async () => {
@@ -295,9 +328,11 @@ describe("LockedFilterChip with a detail", () => {
       jest.advanceTimersByTime(150);
     });
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "@resource.k8s.cluster.name:prod-eks-01",
-    );
+    expect(
+      within(screen.getByRole("tooltip")).getByTestId(
+        "locked-filter-search-token",
+      ).textContent,
+    ).toBe(CLUSTER_SEARCH_TOKEN);
   });
 
   test("activating the chip copies its search syntax, shows the tick and announces it", async () => {
@@ -316,9 +351,8 @@ describe("LockedFilterChip with a detail", () => {
 
     await activate(control);
 
-    expect(writeText).toHaveBeenCalledWith(
-      "@resource.k8s.cluster.name:prod-eks-01",
-    );
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledWith(CLUSTER_SEARCH_TOKEN);
     expect(screen.getByRole("status")).toHaveTextContent(
       COPIED_SEARCH_SYNTAX_ANNOUNCEMENT,
     );
@@ -336,23 +370,88 @@ describe("LockedFilterChip with a detail", () => {
     );
   });
 
-  test("activating a chip without syntax copies nothing and announces nothing", async () => {
+  test("activating a chip without syntax copies nothing, announces nothing and says it has none", async () => {
     render(
       <LockedFilterChip
         displayKey="Session"
         displayValue="s-1"
-        lockedDetail={clusterDetail({ searchToken: undefined })}
+        lockedDetail={{ searchToken: undefined }}
       />,
     );
 
-    await activate(
-      screen.getByRole("button", {
-        name: getLockedFilterChipAriaLabel("Session", "s-1"),
-      }),
-    );
+    const control: HTMLElement = screen.getByRole("button", {
+      name: getLockedFilterChipAriaLabel("Session", "s-1"),
+    });
+
+    await activate(control);
 
     expect(writeText).not.toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("");
+
+    await hover(control);
+
+    expect(screen.getByRole("tooltip").textContent).toBe(
+      unavailableReasonText(NO_SEARCH_SYNTAX_REASON),
+    );
+  });
+
+  test("activating a chip with only a reason copies nothing and announces nothing", async () => {
+    render(
+      <LockedFilterChip
+        displayKey="Session"
+        displayValue="s-1"
+        lockedDetail={{ searchTokenUnavailableReason: SESSION_REASON }}
+        signal="logs"
+      />,
+    );
+
+    const control: HTMLElement = screen.getByRole("button", {
+      name: getLockedFilterChipAriaLabel("Session", "s-1"),
+    });
+
+    await activate(control);
+
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(control.querySelector("svg")?.getAttribute("class")).toContain(
+      "text-gray-400",
+    );
+  });
+
+  test("an empty detail — neither a token nor a reason — is still a button, without the Enter hint, that copies nothing and gives the fallback reason", async () => {
+    render(
+      <LockedFilterChip
+        displayKey="Resource"
+        displayValue="3f9a1b2c4d5e6f70"
+        lockedDetail={{}}
+        signal="traces"
+      />,
+    );
+
+    const chip: HTMLElement = screen.getByTestId("locked-filter-chip");
+    const control: HTMLElement = screen.getByRole("button", {
+      name: getLockedFilterChipAriaLabel("Resource", "3f9a1b2c4d5e6f70"),
+    });
+
+    expect(chip).not.toHaveAttribute("title");
+    expect(chip).toContainElement(control);
+
+    await activate(control);
+
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("");
+
+    await hover(control);
+
+    const tooltip: HTMLElement = screen.getByRole("tooltip");
+
+    expect(tooltip.textContent).toBe(
+      unavailableReasonText(NO_SEARCH_SYNTAX_REASON),
+    );
+    expect(
+      within(tooltip).queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
+    expect(within(tooltip).queryByRole("button")).not.toBeInTheDocument();
   });
 
   test("the activation does not bubble to whatever holds the chip row", async () => {
@@ -371,10 +470,11 @@ describe("LockedFilterChip with a detail", () => {
 
     await activate(screen.getByRole("button", { name: CLUSTER_LABEL }));
 
+    expect(writeText).toHaveBeenCalledWith(CLUSTER_SEARCH_TOKEN);
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  test("says so when nothing could be copied", async () => {
+  test("says so when nothing could be copied, and still shows the syntax to copy by hand", async () => {
     installClipboard(undefined);
 
     render(
@@ -400,13 +500,27 @@ describe("LockedFilterChip with a detail", () => {
     expect(control.querySelector("svg")?.getAttribute("class")).toContain(
       "text-rose-500",
     );
+
+    await hover(control);
+
+    expect(
+      within(screen.getByRole("tooltip")).getByTestId(
+        "locked-filter-search-token",
+      ).textContent,
+    ).toBe(CLUSTER_SEARCH_TOKEN);
   });
 
   test("copies through the legacy command when the async clipboard is absent", async () => {
     installClipboard(undefined);
+    const selectedTexts: Array<string | undefined> = [];
     const execCommand: ReturnType<
       typeof jest.fn<(command: string) => boolean>
     > = jest.fn<(command: string) => boolean>((): boolean => {
+      // The legacy path copies whatever the hidden textarea holds right now.
+      selectedTexts.push(
+        document.querySelector<HTMLTextAreaElement>("textarea[readonly]")
+          ?.value,
+      );
       return true;
     });
     installExecCommand(execCommand);
@@ -422,6 +536,7 @@ describe("LockedFilterChip with a detail", () => {
     await activate(screen.getByRole("button", { name: CLUSTER_LABEL }));
 
     expect(execCommand).toHaveBeenCalledWith("copy");
+    expect(selectedTexts).toEqual([CLUSTER_SEARCH_TOKEN]);
     expect(screen.getByRole("status")).toHaveTextContent(
       COPIED_SEARCH_SYNTAX_ANNOUNCEMENT,
     );
@@ -429,7 +544,7 @@ describe("LockedFilterChip with a detail", () => {
 });
 
 describe("LockedFilterTooltipContent", () => {
-  test("shows only the search syntax: no header, chip, summary, source or predicates", () => {
+  test("shows only the search syntax: its heading, the token, a Copy button and where to paste it", () => {
     render(
       <LockedFilterTooltipContent
         lockedDetail={clusterDetail()}
@@ -440,31 +555,17 @@ describe("LockedFilterTooltipContent", () => {
     const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
 
     expect(screen.getByText("Search syntax")).toBeInTheDocument();
-    expect(screen.getByTestId("locked-filter-search-token")).toHaveTextContent(
-      "@resource.k8s.cluster.name:prod-eks-01",
+    expect(screen.getByTestId("locked-filter-search-token").textContent).toBe(
+      CLUSTER_SEARCH_TOKEN,
     );
     expect(
       screen.getByRole("button", { name: "Copy search syntax" }),
     ).toBeInTheDocument();
-
-    expect(content).not.toHaveTextContent("Locked filter");
+    // It does not repeat the chip it belongs to, or say anything else.
     expect(content).not.toHaveTextContent("Cluster: production");
-    expect(content).not.toHaveTextContent(
-      "Only logs from this Kubernetes cluster are shown.",
+    expect(content.textContent).toBe(
+      searchSyntaxText(CLUSTER_SEARCH_TOKEN, "Logs"),
     );
-    expect(content).not.toHaveTextContent("Pinned by this page");
-    expect(content).not.toHaveTextContent(/How rows are matched/);
-    expect(content).not.toHaveTextContent(/any of|all of/);
-    expect(screen.queryByText("Attribute")).not.toBeInTheDocument();
-    expect(screen.queryByText("Entity key")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('resource.k8s.cluster.name = "prod-eks-01"'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "Rows ingested before entity keys existed match on this attribute.",
-      ),
-    ).not.toBeInTheDocument();
   });
 
   test("the only code block and the only button belong to the search syntax", () => {
@@ -476,20 +577,21 @@ describe("LockedFilterTooltipContent", () => {
     );
 
     const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
+    const codeBlocks: NodeListOf<HTMLElement> =
+      content.querySelectorAll("code");
+    const buttons: Array<HTMLElement> = screen.getAllByRole("button");
 
-    expect(content.querySelectorAll("code")).toHaveLength(1);
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(codeBlocks).toHaveLength(1);
+    expect(codeBlocks[0]?.textContent).toBe(CLUSTER_SEARCH_TOKEN);
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toHaveAccessibleName("Copy search syntax");
   });
 
-  test("ignores whatever explanation the detail carries", () => {
+  test("shows the token, not the reason, when the detail carries both", () => {
     render(
       <LockedFilterTooltipContent
         lockedDetail={clusterDetail({
-          summary: "A summary nobody should see.",
-          source: "A source nobody should see.",
-          predicates: [
-            { label: "Hidden label", expression: "hidden = expression" },
-          ],
+          searchTokenUnavailableReason: OPERATOR_REASON,
         })}
         signal="metrics"
       />,
@@ -497,10 +599,13 @@ describe("LockedFilterTooltipContent", () => {
 
     const content: HTMLElement = screen.getByTestId("locked-filter-tooltip");
 
-    expect(content).not.toHaveTextContent("A summary nobody should see.");
-    expect(content).not.toHaveTextContent("A source nobody should see.");
-    expect(content).not.toHaveTextContent("Hidden label");
-    expect(content).not.toHaveTextContent("hidden = expression");
+    expect(screen.getByTestId("locked-filter-search-token").textContent).toBe(
+      CLUSTER_SEARCH_TOKEN,
+    );
+    expect(screen.queryByText(OPERATOR_REASON)).not.toBeInTheDocument();
+    expect(content.textContent).toBe(
+      searchSyntaxText(CLUSTER_SEARCH_TOKEN, "Metrics"),
+    );
   });
 
   test("names the explorer the search syntax is for", () => {
@@ -511,8 +616,8 @@ describe("LockedFilterTooltipContent", () => {
       />,
     );
 
-    expect(screen.getByTestId("locked-filter-search-token")).toHaveTextContent(
-      "@resource.k8s.cluster.name:prod-eks-01",
+    expect(screen.getByTestId("locked-filter-search-token").textContent).toBe(
+      CLUSTER_SEARCH_TOKEN,
     );
     expect(
       screen.getByText("Paste into the Traces explorer search bar."),
@@ -525,6 +630,9 @@ describe("LockedFilterTooltipContent", () => {
     expect(
       screen.getByText("Paste into the explorer search bar."),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-tooltip").textContent).toBe(
+      searchSyntaxText(CLUSTER_SEARCH_TOKEN),
+    );
   });
 
   test("the copy button writes the token to the clipboard and says Copied! for a moment", async () => {
@@ -541,9 +649,8 @@ describe("LockedFilterTooltipContent", () => {
 
     await activate(button);
 
-    expect(writeText).toHaveBeenCalledWith(
-      "@resource.k8s.cluster.name:prod-eks-01",
-    );
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledWith(CLUSTER_SEARCH_TOKEN);
     expect(screen.getByRole("button", { name: "Copied" })).toHaveTextContent(
       "Copied!",
     );
@@ -573,6 +680,10 @@ describe("LockedFilterTooltipContent", () => {
       screen.getByRole("button", { name: "Copy failed" }),
     ).toHaveTextContent("Copy failed");
     expect(screen.queryByText("Copied!")).not.toBeInTheDocument();
+    // The token stays on screen to be selected by hand.
+    expect(screen.getByTestId("locked-filter-search-token").textContent).toBe(
+      CLUSTER_SEARCH_TOKEN,
+    );
 
     await act(async () => {
       jest.advanceTimersByTime(COPIED_FEEDBACK_MS + 10);
@@ -595,48 +706,83 @@ describe("LockedFilterTooltipContent", () => {
 
     await activate(screen.getByRole("button", { name: "Copy search syntax" }));
 
+    expect(writeText).toHaveBeenCalledWith(CLUSTER_SEARCH_TOKEN);
     expect(onClick).not.toHaveBeenCalled();
   });
 
   test("shows the reason instead of the syntax when the filter has none", () => {
     render(
       <LockedFilterTooltipContent
-        lockedDetail={clusterDetail({
-          searchToken: undefined,
-          searchTokenUnavailableReason:
-            "Operator filters have no search syntax yet.",
-        })}
+        lockedDetail={{ searchTokenUnavailableReason: OPERATOR_REASON }}
         signal="logs"
       />,
     );
 
     expect(screen.getByText("Search syntax")).toBeInTheDocument();
-    expect(
-      screen.getByText("Operator filters have no search syntax yet."),
-    ).toBeInTheDocument();
+    expect(screen.getByText(OPERATOR_REASON)).toBeInTheDocument();
     expect(
       screen.queryByTestId("locked-filter-search-token"),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Copy search syntax" }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Only logs from this Kubernetes cluster are shown."),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-tooltip").textContent).toBe(
+      unavailableReasonText(OPERATOR_REASON),
+    );
   });
 
   test("says the filter has no search syntax when the detail names neither a token nor a reason", () => {
     render(
       <LockedFilterTooltipContent
-        lockedDetail={clusterDetail({
+        lockedDetail={{
           searchToken: undefined,
           searchTokenUnavailableReason: undefined,
-        })}
+        }}
       />,
     );
 
     expect(screen.getByText("Search syntax")).toBeInTheDocument();
     expect(screen.getByText(NO_SEARCH_SYNTAX_REASON)).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-tooltip").textContent).toBe(
+      unavailableReasonText(NO_SEARCH_SYNTAX_REASON),
+    );
+  });
+
+  test("an empty detail object says the filter has no search syntax, with no token and no Copy button", () => {
+    render(<LockedFilterTooltipContent lockedDetail={{}} signal="metrics" />);
+
+    expect(
+      screen.queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-tooltip").textContent).toBe(
+      unavailableReasonText(NO_SEARCH_SYNTAX_REASON),
+    );
+  });
+
+  test("the fallback reason reads word for word as the Dashboard describers' generic one", () => {
+    /*
+     * A detail the describers leave without a reason and one they give the
+     * generic reason must read the same in the tooltip.
+     */
+    expect(NO_SEARCH_SYNTAX_REASON).toBe("This filter has no search syntax.");
+  });
+
+  test("an empty token and an empty reason count as none: nothing to copy, and the fallback reason", () => {
+    render(
+      <LockedFilterTooltipContent
+        lockedDetail={{ searchToken: "", searchTokenUnavailableReason: "" }}
+        signal="logs"
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("locked-filter-search-token"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-tooltip").textContent).toBe(
+      unavailableReasonText(NO_SEARCH_SYNTAX_REASON),
+    );
   });
 });

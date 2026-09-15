@@ -44,14 +44,11 @@ import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import { parseTraceSearch } from "../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
 import {
   ENTITY_KEY_NO_ATTRIBUTES_REASON,
-  LOCKED_FILTER_SOURCE_PAGE,
-  LOCKED_FILTER_SOURCE_STORED_QUERY,
   NO_SEARCH_SYNTAX_REASON,
-  describeLockedEntityKeyFilter,
+  describeLockedAttributeFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
-  AttributeEntityScope,
   TRACE_ANALYTICS_EMPTY_GROUP_LABEL,
   TRACE_ENTITY_FACET_KEYS,
   TRACE_PRIMARY_ENTITY_FACET_KEY,
@@ -61,7 +58,6 @@ import {
   buildTraceEntityTypeHints,
   buildTracesLockedEntityKeyChips,
   describeStoredQueryChip,
-  entityScopeForAttributeKey,
   collectTraceAnalyticsEntityIds,
   collectTraceEntityIdsToResolve,
   formatTraceAnalyticsGroupValue,
@@ -673,37 +669,12 @@ describe("resolveTraceChipDisplay", () => {
   });
 });
 
-describe("entityScopeForAttributeKey", () => {
-  const hostScope: AttributeEntityScope = {
-    entityKeys: ["3f9a1b2c4d5e6f70"],
-    attributeKey: "resource.host.name",
-    attributeValue: "web-01",
-  };
-
-  test("hands the scope to the chip whose attribute it names", () => {
-    expect(entityScopeForAttributeKey(hostScope, "resource.host.name")).toBe(
-      hostScope,
-    );
-  });
-
-  test("withholds it from every other chip — a Docker host's runtime chip is not the host's entity", () => {
-    expect(
-      entityScopeForAttributeKey(hostScope, "resource.container.runtime"),
-    ).toBeUndefined();
-  });
-
-  test("a page without an entity scope attaches nothing", () => {
-    expect(
-      entityScopeForAttributeKey(undefined, "resource.host.name"),
-    ).toBeUndefined();
-  });
-});
-
 describe("buildLockedAttributeChip", () => {
-  test("is label only — the explanation is the viewer's to attach", () => {
+  test("is label only — the search syntax is the viewer's to attach", () => {
     /*
-     * The viewer attaches the detail next to the entity scope it alone
-     * knows (entityScopeForAttributeKey), so a chip built here carries none.
+     * The viewer attaches the chip's search syntax from the same key and
+     * value (describeLockedAttributeFilter), so a chip built here carries
+     * none.
      */
     expect(
       buildLockedAttributeChip({
@@ -1481,22 +1452,19 @@ describe("describeStoredQueryChip", () => {
     };
   }
 
-  test("trace and span chips get the id describers under the stored-query source", () => {
+  test("trace and span chips are spelled with the trace: and span: tokens", () => {
     const trace: LockedFilterDetail = describeStoredQueryChip(
       storedChip({ facetKey: "traceId", value: "t-1", displayKey: "Trace" }),
     );
-    expect(trace.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
-    expect(trace.predicates[0]!.expression).toBe('traceId = "t-1"');
-    expect(trace.searchToken).toBe("trace:t-1");
+    expect(trace).toEqual({ searchToken: "trace:t-1" });
 
     const span: LockedFilterDetail = describeStoredQueryChip(
       storedChip({ facetKey: "spanId", value: "s-1", displayKey: "Span" }),
     );
-    expect(span.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
-    expect(span.searchToken).toBe("span:s-1");
+    expect(span).toEqual({ searchToken: "span:s-1" });
   });
 
-  test("entity chips are explained by entity id with the RESOLVED label, never the 'Service' seed", () => {
+  test("entity chips are spelled with the entity id, never the RESOLVED label", () => {
     const detail: LockedFilterDetail = describeStoredQueryChip(
       storedChip({
         facetKey: "primaryEntityId",
@@ -1506,12 +1474,7 @@ describe("describeStoredQueryChip", () => {
       }),
     );
 
-    expect(detail.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
-    expect(detail.summary).toBe(
-      "Only traces emitted by this RUM Application are shown.",
-    );
-    expect(detail.searchToken).toBe("service:651a000000000000000000aa");
-    expect(detail.source).not.toBe(LOCKED_FILTER_SOURCE_PAGE);
+    expect(detail).toEqual({ searchToken: "service:651a000000000000000000aa" });
 
     // The pre-rename alias is an entity chip too.
     expect(
@@ -1520,40 +1483,22 @@ describe("describeStoredQueryChip", () => {
           facetKey: "serviceId",
           value: "651a000000000000000000aa",
         }),
-      ).searchToken,
-    ).toBe("service:651a000000000000000000aa");
+      ),
+    ).toEqual({ searchToken: "service:651a000000000000000000aa" });
   });
 
-  test("a status chip is explained as its predicate and spelled with the status token", () => {
+  test("a status chip is spelled with the status token", () => {
     const detail: LockedFilterDetail = describeStoredQueryChip(storedChip({}));
 
-    expect(detail.source).toBe(LOCKED_FILTER_SOURCE_STORED_QUERY);
-    expect(detail.predicates).toEqual([
-      { label: "Status", expression: 'statusCode = "2"' },
-    ]);
-    expect(detail.searchToken).toBe("status:2");
+    expect(detail).toEqual({ searchToken: "status:2" });
   });
 
-  test("a single stored span name is a substring match — and the tooltip says so — only when the scope says the column took that path", () => {
-    const substring: LockedFilterDetail = describeStoredQueryChip(
+  test("a stored span name chip is spelled with the name token", () => {
+    const detail: LockedFilterDetail = describeStoredQueryChip(
       storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
-      { substringColumns: new Set<string>(["name"]) },
     );
-    expect(substring.predicates[0]!.expression).toBe(
-      'name contains "checkout"',
-    );
-    expect(substring.searchToken).toBe("name:checkout");
 
-    const exact: LockedFilterDetail = describeStoredQueryChip(
-      storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
-      { substringColumns: new Set<string>(["statusMessage"]) },
-    );
-    expect(exact.predicates[0]!.expression).toBe('name = "checkout"');
-
-    const noContext: LockedFilterDetail = describeStoredQueryChip(
-      storedChip({ facetKey: "name", value: "checkout", displayKey: "Name" }),
-    );
-    expect(noContext.predicates[0]!.expression).toBe('name = "checkout"');
+    expect(detail).toEqual({ searchToken: "name:checkout" });
   });
 
   test("an entity-keys chip has no search syntax, and is told so", () => {
@@ -1566,11 +1511,84 @@ describe("describeStoredQueryChip", () => {
       }),
     );
 
-    expect(detail.predicates[0]!.expression).toBe(
-      "entityKeys has 3f9a1b2c4d5e6f70",
-    );
-    expect(detail.searchToken).toBeUndefined();
-    expect(detail.searchTokenUnavailableReason).toBe(NO_SEARCH_SYNTAX_REASON);
+    expect(detail).toEqual({
+      searchTokenUnavailableReason: NO_SEARCH_SYNTAX_REASON,
+    });
+    expect(detail).not.toHaveProperty("searchToken");
+  });
+
+  test("every column a stored span query turns into a chip is spelled with its traces token", () => {
+    /*
+     * SpanQueryScope builds chips on these columns; each one the traces
+     * grammar has a field for carries exactly that field's token, whatever
+     * label the chip shows.
+     */
+    const cases: Array<[string, string, string, string]> = [
+      ["kind", "SPAN_KIND_SERVER", "Kind", "kind:SPAN_KIND_SERVER"],
+      ["hasException", "true", "Has Exception", "hasexception:true"],
+      ["hasException", "false", "Has Exception", "hasexception:false"],
+      ["statusMessage", "boom", "Status Message", "statusmessage:boom"],
+      ["name", "POST /checkout submit", "Name", 'name:"POST /checkout submit"'],
+      ["traceId", "abc123", "Trace", "trace:abc123"],
+      ["spanId", "span-1", "Span", "span:span-1"],
+      [
+        "attributes.resource.k8s.cluster.name",
+        "prod-eks-01",
+        "Cluster",
+        "@resource.k8s.cluster.name:prod-eks-01",
+      ],
+      ["attributes.x", "v 1", "x", '@x:"v 1"'],
+    ];
+
+    for (const [facetKey, value, displayKey, searchToken] of cases) {
+      const detail: LockedFilterDetail = describeStoredQueryChip(
+        storedChip({ facetKey, value, displayKey, displayValue: "Label" }),
+      );
+
+      expect(detail).toStrictEqual({ searchToken });
+    }
+  });
+
+  test("a stored chip the traces grammar cannot spell has no token, and gets its describer's reason", () => {
+    const genericReasonChips: Array<[string, string]> = [
+      // Columns the traces search bar has no field token for.
+      ["sessionId", "sess-1"],
+      ["severityText", "Error"],
+      ["body", "boom"],
+      ["attributeSearches.http.url", "/api"],
+      ["notAColumn", "x"],
+      // An attribute key the search bar cannot type, or no key at all.
+      ["attributes.weird key", "x"],
+      ["attributes.", "x"],
+      // Empty values on columns that do have a token.
+      ["traceId", ""],
+      ["spanId", ""],
+      ["name", ""],
+      ["statusCode", ""],
+      ["attributes.http.method", ""],
+    ];
+
+    for (const [facetKey, value] of genericReasonChips) {
+      const detail: LockedFilterDetail = describeStoredQueryChip(
+        storedChip({ facetKey, value }),
+      );
+
+      expect(detail).toStrictEqual({
+        searchTokenUnavailableReason: NO_SEARCH_SYNTAX_REASON,
+      });
+    }
+
+    /*
+     * An entity chip goes through the entity describer, so an empty id gets
+     * that describer's empty-value reason under either alias.
+     */
+    for (const facetKey of ["primaryEntityId", "serviceId"]) {
+      expect(
+        describeStoredQueryChip(storedChip({ facetKey, value: "" })),
+      ).toStrictEqual({
+        searchTokenUnavailableReason: "This filter has no value to copy.",
+      });
+    }
   });
 });
 
@@ -1600,13 +1618,13 @@ describe("stored-query search tokens round-trip through the traces search parser
  * An Inventory item's Traces tab narrows the list by
  * `hasAny(entityKeys, [item key])`. With no attribute counterpart, the chip
  * bar above that filtered list used to be empty. These pin the chips that now
- * explain it: their exact wording, the fallbacks when the page cannot name
- * the item, and the rule that one key never renders twice when a stored span
- * query pins it too. The viewer's wiring is pinned in
+ * show it: their labels, the fallbacks when the page cannot name the item,
+ * the exact search syntax — or the reason there is none — each one carries,
+ * and the rule that one key never renders twice when a stored span query
+ * pins it too. The viewer's wiring is pinned in
  * TracesLockedScopeWiring.test.ts, and an Inventory item's chips end to end
- * in TracesEntityKeyLockedScope.test.ts. The explanation's wording is owned
- * by LockedTelemetryScope.test.ts: a chip's detail is compared to the
- * describer here, with the traces sentence spelled out.
+ * in TracesEntityKeyLockedScope.test.ts. How an entity key's syntax is
+ * spelled is owned by LockedTelemetryScope.test.ts.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
@@ -1615,6 +1633,23 @@ const CLUSTER_KEY: string = "0a1b2c3d4e5f6a7b";
 
 const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
   [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: "checkout-7d9f" },
+};
+
+/*
+ * The detail of a page's entity-key chip when the page did not hand over the
+ * entity's identifying resource attributes: no syntax, and why.
+ */
+const NO_ATTRIBUTES_DETAIL: LockedFilterDetail = {
+  searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+};
+
+/*
+ * The detail of a stored query's own entity-key chip (describeStoredQueryChip):
+ * the traces grammar has no `entityKeys` token, and the chip is described
+ * from its column and value alone, with no attributes to spell the entity by.
+ */
+const STORED_ENTITY_KEY_DETAIL: LockedFilterDetail = {
+  searchTokenUnavailableReason: NO_SEARCH_SYNTAX_REASON,
 };
 
 function entityKeyValues(chips: Array<ActiveFilter>): Array<string> {
@@ -1641,20 +1676,11 @@ describe("buildTracesLockedEntityKeyChips", () => {
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "traces",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY],
-          entityTypeLabel: "Kubernetes Pod",
-        }),
+        lockedDetail: {
+          searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+        },
       },
     ]);
-    expect(
-      buildTracesLockedEntityKeyChips({
-        entityKeysFilter: [POD_KEY],
-        displays: POD_DISPLAYS,
-      })[0]!.lockedDetail!.summary,
-    ).toBe("Only traces linked to this Kubernetes Pod are shown.");
   });
 
   test.each([
@@ -1678,12 +1704,7 @@ describe("buildTracesLockedEntityKeyChips", () => {
       expect(chips[0]!.displayKey).toBe("Resource");
       expect(chips[0]!.displayValue).toBe(POD_KEY);
       expect(chips[0]!.readOnly).toBe(true);
-      expect(chips[0]!.lockedDetail).toEqual(
-        describeLockedEntityKeyFilter({ rows: "traces", entityKey: POD_KEY }),
-      );
-      expect(chips[0]!.lockedDetail!.summary).toBe(
-        "Only traces linked to this resource are shown.",
-      );
+      expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
     },
   );
 
@@ -1701,9 +1722,7 @@ describe("buildTracesLockedEntityKeyChips", () => {
       expect(chips).toHaveLength(1);
       expect(chips[0]!.displayKey).toBe("Resource");
       expect(chips[0]!.displayValue).toBe(POD_KEY);
-      expect(chips[0]!.lockedDetail!.summary).toBe(
-        "Only traces linked to this resource are shown.",
-      );
+      expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
     },
   );
 
@@ -1715,11 +1734,10 @@ describe("buildTracesLockedEntityKeyChips", () => {
       },
     });
 
+    expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe(POD_KEY);
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Kubernetes Pod are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
   test("a name without a type reads 'Resource: <name>'", () => {
@@ -1730,11 +1748,10 @@ describe("buildTracesLockedEntityKeyChips", () => {
       },
     });
 
+    expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Resource");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this resource are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
   test("the page's display text is trimmed", () => {
@@ -1748,14 +1765,13 @@ describe("buildTracesLockedEntityKeyChips", () => {
       },
     });
 
+    expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("Kubernetes Pod");
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Kubernetes Pod are shown.",
-    );
+    expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
-  test("a key the display map does not name reads 'Resource' while the named key keeps its name, and each says the other widens it", () => {
+  test("a key the display map does not name reads 'Resource' while the named key keeps its name", () => {
     const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY],
       displays: POD_DISPLAYS,
@@ -1770,43 +1786,47 @@ describe("buildTracesLockedEntityKeyChips", () => {
       [NODE_KEY, "Resource", NODE_KEY],
     ]);
 
-    // `hasAny` WIDENS with every key: neither chip may read like an AND.
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Traces linked to this Kubernetes Pod are shown, along with traces linked to the 1 other resource this page pins.",
-    );
-    expect(chips[0]!.lockedDetail).toEqual(
-      describeLockedEntityKeyFilter({
-        rows: "traces",
-        entityKey: POD_KEY,
-        entityKeys: [POD_KEY, NODE_KEY],
-        entityTypeLabel: "Kubernetes Pod",
-      }),
-    );
-
-    expect(chips[1]!.lockedDetail!.summary).toBe(
-      "Traces linked to this resource are shown, along with traces linked to the 1 other resource this page pins.",
-    );
-    expect(chips[1]!.lockedDetail).toEqual(
-      describeLockedEntityKeyFilter({
-        rows: "traces",
-        entityKey: NODE_KEY,
-        entityKeys: [POD_KEY, NODE_KEY],
-      }),
-    );
+    // Named or not, neither entity came with attributes to spell it by.
+    expect(chips[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
+    expect(chips[1]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
-  test("three keys: every chip counts the other two", () => {
+  test("three keys: each chip carries its own entity's syntax, exactly as on a one-key page", () => {
+    /*
+     * `hasAny` WIDENS with every key, but a chip's search syntax reproduces
+     * its own entity only: the other keys never leak into it, and a key
+     * without attributes stays without syntax next to one that has them.
+     */
+    const nodeDisplays: LockedEntityKeyDisplayMap = {
+      [NODE_KEY]: {
+        displayKey: "Kubernetes Node",
+        displayValue: "ip-10-0-0-12",
+        searchAttributes: { "k8s.node.name": "ip-10-0-0-12" },
+      },
+    };
+
     const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY, CLUSTER_KEY],
+      displays: nodeDisplays,
     });
 
     expect(entityKeyValues(chips)).toEqual([POD_KEY, NODE_KEY, CLUSTER_KEY]);
-    expect(chips[1]!.lockedDetail!.summary).toBe(
-      "Traces linked to this resource are shown, along with traces linked to the 2 other resources this page pins.",
-    );
-    expect(chips[1]!.lockedDetail!.predicates[0]!.expression).toBe(
-      `entityKeys has any of ${NODE_KEY}, ${POD_KEY}, ${CLUSTER_KEY}`,
-    );
+    expect(
+      chips.map((candidate: ActiveFilter): LockedFilterDetail | undefined => {
+        return candidate.lockedDetail;
+      }),
+    ).toEqual([
+      NO_ATTRIBUTES_DETAIL,
+      { searchToken: "@resource.k8s.node.name:ip-10-0-0-12" },
+      NO_ATTRIBUTES_DETAIL,
+    ]);
+
+    expect(
+      buildTracesLockedEntityKeyChips({
+        entityKeysFilter: [NODE_KEY],
+        displays: nodeDisplays,
+      })[0]!.lockedDetail,
+    ).toEqual(chips[1]!.lockedDetail);
   });
 
   test("blank, whitespace-padded and repeated keys collapse to one chip per key, in first-seen order", () => {
@@ -1816,10 +1836,11 @@ describe("buildTracesLockedEntityKeyChips", () => {
     });
 
     expect(entityKeyValues(chips)).toEqual([POD_KEY, NODE_KEY]);
-    // The padded duplicate is not counted as another resource.
-    expect(chips[0]!.lockedDetail!.summary).toBe(
-      "Traces linked to this Kubernetes Pod are shown, along with traces linked to the 1 other resource this page pins.",
-    );
+    expect(
+      chips.map((candidate: ActiveFilter): LockedFilterDetail | undefined => {
+        return candidate.lockedDetail;
+      }),
+    ).toEqual([NO_ATTRIBUTES_DETAIL, NO_ATTRIBUTES_DETAIL]);
   });
 
   test.each([
@@ -1838,17 +1859,19 @@ describe("buildTracesLockedEntityKeyChips", () => {
     },
   );
 
-  test("no page key, no chip, even when the stored query pins keys and the page passed names", () => {
+  test("no page key, no chip, even when the stored query's key chips are on the bar and the page passed names", () => {
     /*
      * The stored query's keys already have their own chips (the viewer's
-     * stored-query loop); this builder only explains the page's filter.
+     * stored-query loop); this builder only adds chips for the page's filter.
      */
     expect(
       buildTracesLockedEntityKeyChips({
         entityKeysFilter: undefined,
         displays: POD_DISPLAYS,
-        storedQueryEntityKeys: [POD_KEY, NODE_KEY],
-        lockedChips: [],
+        lockedChips: [
+          chip("entityKeys", POD_KEY, { readOnly: true }),
+          chip("entityKeys", NODE_KEY, { readOnly: true }),
+        ],
       }),
     ).toEqual([]);
   });
@@ -1867,6 +1890,7 @@ describe("buildTracesLockedEntityKeyChips", () => {
     for (const candidate of chips) {
       expect(candidate.readOnly).toBe(true);
       expect(candidate.facetKey).toBe("entityKeys");
+      expect(candidate.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
     }
 
     expect(
@@ -1885,10 +1909,8 @@ describe("buildTracesLockedEntityKeyChips", () => {
     expect(chips).toHaveLength(2);
 
     for (const candidate of chips) {
-      expect(Object.keys(candidate.lockedDetail!)).not.toContain("searchToken");
-      expect(candidate.lockedDetail!.searchTokenUnavailableReason).toBe(
-        ENTITY_KEY_NO_ATTRIBUTES_REASON,
-      );
+      expect(candidate.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
+      expect(candidate.lockedDetail).not.toHaveProperty("searchToken");
     }
   });
 
@@ -1912,17 +1934,18 @@ describe("buildTracesLockedEntityKeyChips", () => {
       },
     });
 
-    expect(chips[0]!.lockedDetail!.searchToken).toBe(
-      "@resource.k8s.cluster.name:prod @resource.k8s.pod.name:checkout-7d9f",
-    );
+    expect(chips).toHaveLength(2);
+
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchToken:
+        "@resource.k8s.cluster.name:prod @resource.k8s.pod.name:checkout-7d9f",
+    });
     expect(chips[0]!.lockedDetail).not.toHaveProperty(
       "searchTokenUnavailableReason",
     );
 
-    expect(chips[1]!.lockedDetail!.searchToken).toBeUndefined();
-    expect(chips[1]!.lockedDetail!.searchTokenUnavailableReason).toBe(
-      ENTITY_KEY_NO_ATTRIBUTES_REASON,
-    );
+    expect(chips[1]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
+    expect(chips[1]!.lockedDetail).not.toHaveProperty("searchToken");
   });
 });
 
@@ -1930,8 +1953,9 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
   /*
    * What the viewer's stored-query loop decides, rebuilt from the same
    * helpers: a column the user filtered themselves withholds the scope's
-   * chip; every other chip is resolved, then described. TracesViewer hands
-   * the entity-key builder exactly these chips (`lockedChips: base`).
+   * chip; every other chip is resolved, then given its search syntax
+   * (describeStoredQueryChip). TracesViewer hands the entity-key builder
+   * exactly these chips (`lockedChips: base`).
    */
   function storedQueryChips(
     scope: SpanQueryScope,
@@ -1967,7 +1991,6 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
       lockedChips: stored,
     });
 
@@ -1976,13 +1999,17 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     const bar: Array<ActiveFilter> = [...stored, ...page];
 
     expect(entityKeyValues(bar)).toEqual([POD_KEY]);
+    expect(bar).toHaveLength(1);
+    /*
+     * The stored query's chip, not the page's: the seeded "Resource" label
+     * and the stored-query detail, where the page's chip would read
+     * "Kubernetes Pod" and carry the entity-key reason.
+     */
     expect(bar[0]!.displayKey).toBe("Resource");
-    expect(bar[0]!.lockedDetail!.source).toBe(
-      "Pinned by the stored query this view was opened with",
-    );
+    expect(bar[0]!.lockedDetail).toEqual(STORED_ENTITY_KEY_DETAIL);
   });
 
-  test("a page key the stored query does not pin keeps its chip, and counts the stored key as widening it", () => {
+  test("a page key the stored query does not pin keeps its own chip and its own detail", () => {
     const scope: SpanQueryScope = buildSpanQueryScope({
       entityKeys: [NODE_KEY],
     });
@@ -1991,7 +2018,6 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
       lockedChips: stored,
     });
 
@@ -1999,18 +2025,10 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     expect(page[0]!.value).toBe(POD_KEY);
     expect(page[0]!.displayKey).toBe("Kubernetes Pod");
     expect(page[0]!.displayValue).toBe("checkout-7d9f");
-    expect(page[0]!.lockedDetail!.source).toBe("Pinned by this page");
-    expect(page[0]!.lockedDetail!.summary).toBe(
-      "Traces linked to this Kubernetes Pod are shown, along with traces linked to the 1 other resource this page pins.",
-    );
-    expect(page[0]!.lockedDetail).toEqual(
-      describeLockedEntityKeyFilter({
-        rows: "traces",
-        entityKey: POD_KEY,
-        entityKeys: [POD_KEY, NODE_KEY],
-        entityTypeLabel: "Kubernetes Pod",
-      }),
-    );
+    expect(page[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.lockedDetail).toEqual(STORED_ENTITY_KEY_DETAIL);
 
     // One pill per key: the stored query's, then the page's.
     expect(entityKeyValues([...stored, ...page])).toEqual([NODE_KEY, POD_KEY]);
@@ -2030,40 +2048,15 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
       lockedChips: stored,
     });
 
     expect(entityKeyValues(page)).toEqual([POD_KEY]);
     expect(page[0]!.displayKey).toBe("Kubernetes Pod");
-    expect(page[0]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Kubernetes Pod are shown.",
-    );
+    expect(page[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
-  test("a key only the stored query pins never gets a 'Pinned by this page' chip, even when its own chip was withheld", () => {
-    const scope: SpanQueryScope = buildSpanQueryScope({
-      entityKeys: [NODE_KEY],
-    });
-    const stored: Array<ActiveFilter> = storedQueryChips(
-      scope,
-      new Set<string>(["entityKeys"]),
-    );
-
-    const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
-      entityKeysFilter: [POD_KEY],
-      displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
-      lockedChips: stored,
-    });
-
-    expect(entityKeyValues(page)).toEqual([POD_KEY]);
-    expect(page[0]!.lockedDetail!.summary).toBe(
-      "Traces linked to this Kubernetes Pod are shown, along with traces linked to the 1 other resource this page pins.",
-    );
-  });
-
-  test("overlapping page and stored keys: only the page's own keys the stored chips do not show get a chip, each counting every key the query ORs", () => {
+  test("overlapping page and stored keys: only the page's own keys the stored chips do not show get a chip", () => {
     const scope: SpanQueryScope = buildSpanQueryScope({
       entityKeys: [NODE_KEY, CLUSTER_KEY],
     });
@@ -2072,21 +2065,23 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY],
       displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
       lockedChips: stored,
     });
 
     expect(entityKeyValues(page)).toEqual([POD_KEY]);
-    expect(page[0]!.lockedDetail!.summary).toBe(
-      "Traces linked to this Kubernetes Pod are shown, along with traces linked to the 2 other resources this page pins.",
-    );
-    expect(page[0]!.lockedDetail!.predicates[0]!.expression).toBe(
-      `entityKeys has any of ${POD_KEY}, ${NODE_KEY}, ${CLUSTER_KEY}`,
-    );
-    expect(entityKeyValues([...stored, ...page])).toEqual([
-      NODE_KEY,
-      CLUSTER_KEY,
-      POD_KEY,
+    expect(page[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
+
+    const bar: Array<ActiveFilter> = [...stored, ...page];
+
+    expect(entityKeyValues(bar)).toEqual([NODE_KEY, CLUSTER_KEY, POD_KEY]);
+    expect(
+      bar.map((candidate: ActiveFilter): LockedFilterDetail | undefined => {
+        return candidate.lockedDetail;
+      }),
+    ).toEqual([
+      STORED_ENTITY_KEY_DETAIL,
+      STORED_ENTITY_KEY_DETAIL,
+      NO_ATTRIBUTES_DETAIL,
     ]);
   });
 
@@ -2097,6 +2092,7 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     });
 
     expect(entityKeyValues(page)).toEqual([POD_KEY]);
+    expect(page[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
   test("a shown key is matched after trimming", () => {
@@ -2108,14 +2104,13 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
     ).toEqual([]);
   });
 
-  test("the stored query's other chips leave the page's chip alone and keep their own wording", () => {
+  test("the stored query's other chips leave the page's chip alone and keep their own search syntax", () => {
     const scope: SpanQueryScope = buildSpanQueryScope({ traceId: OTHER_ID });
     const stored: Array<ActiveFilter> = storedQueryChips(scope);
 
     const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: POD_DISPLAYS,
-      storedQueryEntityKeys: scope.entityKeys,
       lockedChips: stored,
     });
 
@@ -2126,20 +2121,13 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
         return `${candidate.facetKey}=${candidate.value}`;
       }),
     ).toEqual([`traceId=${OTHER_ID}`, `entityKeys=${POD_KEY}`]);
-    expect(bar[0]!.lockedDetail!.summary).toBe(
-      "Only traces that belong to this trace are shown.",
-    );
-    expect(bar[1]!.lockedDetail!.summary).toBe(
-      "Only traces linked to this Kubernetes Pod are shown.",
-    );
+    expect(bar[0]!.lockedDetail).toEqual({ searchToken: `trace:${OTHER_ID}` });
+    expect(bar[1]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
   test("INVARIANT: never touches its inputs; the viewer passes the chip array it is still building", () => {
     const entityKeysFilter: Array<string> = Object.freeze([
       POD_KEY,
-      NODE_KEY,
-    ]) as Array<string>;
-    const storedQueryEntityKeys: Array<string> = Object.freeze([
       NODE_KEY,
     ]) as Array<string>;
     const lockedChips: Array<ActiveFilter> = Object.freeze([
@@ -2154,26 +2142,22 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
 
     const before: string = JSON.stringify({
       entityKeysFilter,
-      storedQueryEntityKeys,
       lockedChips,
       displays,
     });
 
-    expect(
-      entityKeyValues(
-        buildTracesLockedEntityKeyChips({
-          entityKeysFilter,
-          displays,
-          storedQueryEntityKeys,
-          lockedChips,
-        }),
-      ),
-    ).toEqual([POD_KEY]);
+    const page: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
+      entityKeysFilter,
+      displays,
+      lockedChips,
+    });
+
+    expect(entityKeyValues(page)).toEqual([POD_KEY]);
+    expect(page[0]!.lockedDetail).toEqual(NO_ATTRIBUTES_DETAIL);
 
     expect(
       JSON.stringify({
         entityKeysFilter,
-        storedQueryEntityKeys,
         lockedChips,
         displays,
       }),
@@ -2182,38 +2166,56 @@ describe("buildTracesLockedEntityKeyChips next to a stored span query", () => {
 });
 
 describe("REGRESSION: a Kubernetes / Host page's entityScope adds no entity-key chip", () => {
-  test("a cluster page's locked chips are its attribute chip alone", () => {
+  test("a cluster page's locked chips are its attribute chip alone, spelled with the attribute", () => {
     /*
      * The cluster page passes attributeFilters + entityScope and no
-     * entityKeysFilter: its attribute chip ("Cluster: prod") already explains
-     * the entity scope. The viewer hands the entity-key builder
+     * entityKeysFilter: its attribute chip ("Cluster: prod") already stands
+     * for the entity scope. The viewer hands the entity-key builder
      * `props.entityKeysFilter` and nothing from `props.entityScope`, pinned
-     * in TracesLockedScopeWiring.test.ts; this is what that bar then holds.
+     * in TracesLockedScopeWiring.test.ts; this is what that bar then holds,
+     * with the attribute chip's search syntax attached the way the viewer
+     * attaches it.
      */
-    const clusterScope: AttributeEntityScope = {
+    const clusterScope: {
+      entityKeys: Array<string>;
+      attributeKey: string;
+      attributeValue: string;
+    } = {
       entityKeys: [CLUSTER_KEY],
       attributeKey: "resource.k8s.cluster.name",
       attributeValue: "prod-eu-1-7f3a",
     };
 
+    const attributeChip: ActiveFilter = buildLockedAttributeChip({
+      key: clusterScope.attributeKey,
+      value: clusterScope.attributeValue,
+      displayKeys: { "resource.k8s.cluster.name": "Cluster" },
+      displayValues: { "resource.k8s.cluster.name": "prod" },
+    });
+
     const bar: Array<ActiveFilter> = [
       ...buildTracesLockedEntityKeyChips({
         entityKeysFilter: undefined,
         displays: undefined,
-        storedQueryEntityKeys: buildSpanQueryScope(undefined).entityKeys,
         lockedChips: [],
       }),
-      buildLockedAttributeChip({
-        key: clusterScope.attributeKey,
-        value: clusterScope.attributeValue,
-        displayKeys: { "resource.k8s.cluster.name": "Cluster" },
-        displayValues: { "resource.k8s.cluster.name": "prod" },
-      }),
+      {
+        ...attributeChip,
+        lockedDetail: describeLockedAttributeFilter({
+          signal: "traces",
+          attributeKey: clusterScope.attributeKey,
+          rawValue: clusterScope.attributeValue,
+        }),
+      },
     ];
 
     expect(bar).toHaveLength(1);
     expect(entityKeyValues(bar)).toEqual([]);
     expect(bar[0]!.displayKey).toBe("Cluster");
     expect(bar[0]!.displayValue).toBe("prod");
+    // Spelled with the identifier the query filters by, not the display name.
+    expect(bar[0]!.lockedDetail).toEqual({
+      searchToken: "@resource.k8s.cluster.name:prod-eu-1-7f3a",
+    });
   });
 });

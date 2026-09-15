@@ -31,7 +31,6 @@ import {
 import {
   LockedEntityKeyDisplayMap,
   buildLockedEntityKeyChips,
-  getLockedEntityKeySearchAttributes,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import {
   ENTITY_KEYS_FACET_KEY,
@@ -59,16 +58,18 @@ import { buildMetricsActiveFilterChips } from "../../FeatureSet/Dashboard/src/Ut
  * The search syntax on an Inventory item's locked pill.
  *
  * The item's Logs / Traces / Metrics pages scope by `hasAny(entityKeys, [key])`
- * — a hash no search bar understands — so the pill used to say "This filter
- * cannot be copied or carried to the explorer." It now spells the scope with
- * the item's identifying OpenTelemetry resource attributes, the same
- * `@resource.<key>:<value>` shape a Kubernetes cluster's pill already shows,
- * and never with the entity key.
+ * — a hash no search bar understands. The pill's tooltip spells that scope
+ * with the item's identifying OpenTelemetry resource attributes, the same
+ * `@resource.<key>:<value>` shape a Kubernetes cluster's pill shows, and
+ * never with the entity key. An item with nothing to spell gets the reason
+ * there is no syntax instead, as do the exceptions and profiles lists, which
+ * have no search bar.
  *
  * Every failure pinned here is silent: a token that names the entity key, a
  * lowercased value that matches nothing, an attribute quietly dropped (which
- * widens the search past the entity), or a viewer step that rebuilds the chip
- * and loses the token on the way.
+ * widens the search past the entity), a chip that borrows another key's
+ * attributes, or a viewer step that rebuilds the chip and loses the token on
+ * the way.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
@@ -289,26 +290,41 @@ describe("buildInventoryEntityKeyDisplays carries the search attributes", () => 
   });
 });
 
-describe("getLockedEntityKeySearchAttributes", () => {
-  test("reads the attributes of the key asked for", () => {
-    expect(getLockedEntityKeySearchAttributes(podDisplays(), POD_KEY)).toEqual(
-      POD_IDENTIFYING,
-    );
+describe("buildLockedEntityKeyChips reads each chip's search attributes from the displays", () => {
+  test("spells the chip with the attributes named for its own key", () => {
+    const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY],
+      displays: podDisplays(),
+    });
+
+    expect(chips[0]!.lockedDetail).toEqual({ searchToken: POD_SEARCH_TOKEN });
   });
 
-  test("undefined for a key the page did not name, or without displays", () => {
-    expect(
-      getLockedEntityKeySearchAttributes(podDisplays(), OTHER_KEY),
-    ).toBeUndefined();
-    expect(
-      getLockedEntityKeySearchAttributes(undefined, POD_KEY),
-    ).toBeUndefined();
+  test("a key the page did not name, or no displays at all, gives the reason instead", () => {
+    for (const displays of [podDisplays(), undefined]) {
+      const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+        rows: "logs",
+        entityKeys: displays ? [OTHER_KEY] : [POD_KEY],
+        displays,
+      });
+
+      expect(chips[0]!.lockedDetail).toEqual({
+        searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+      });
+    }
   });
 
-  test("never answers from the prototype", () => {
-    expect(
-      getLockedEntityKeySearchAttributes(podDisplays(), "constructor"),
-    ).toBeUndefined();
+  test("never reads a key's attributes from the prototype", () => {
+    const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: ["constructor"],
+      displays: podDisplays(),
+    });
+
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 });
 
@@ -430,8 +446,6 @@ describe("describeLockedEntityKeyFilter spells the syntax with attributes", () =
       const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
         describeLockedEntityKeyFilter({
           rows: signal,
-          entityKey: POD_KEY,
-          entityTypeLabel: "Kubernetes Pod",
           searchAttributes: POD_IDENTIFYING,
         });
 
@@ -446,7 +460,6 @@ describe("describeLockedEntityKeyFilter spells the syntax with attributes", () =
       const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
         describeLockedEntityKeyFilter({
           rows: signal,
-          entityKey: POD_KEY,
         });
 
       expect(detail.searchToken).toBeUndefined();
@@ -462,7 +475,6 @@ describe("describeLockedEntityKeyFilter spells the syntax with attributes", () =
       const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
         describeLockedEntityKeyFilter({
           rows: signal,
-          entityKey: POD_KEY,
           searchAttributes: { "bad key": "x" },
         });
 
@@ -479,7 +491,6 @@ describe("describeLockedEntityKeyFilter spells the syntax with attributes", () =
       const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
         describeLockedEntityKeyFilter({
           rows,
-          entityKey: POD_KEY,
           searchAttributes: POD_IDENTIFYING,
         });
 
@@ -491,53 +502,37 @@ describe("describeLockedEntityKeyFilter spells the syntax with attributes", () =
   );
 
   test("no reason ever sends the reader to a removed Open in button", () => {
-    for (const rows of [
-      ...SIGNALS,
-      "exceptions",
-      "profiles",
-    ] as Array<EntityKeyScopedRows>) {
-      const reason: string | undefined = describeLockedEntityKeyFilter({
-        rows,
-        entityKey: POD_KEY,
-      }).searchTokenUnavailableReason;
+    const expectedReasons: Array<[EntityKeyScopedRows, string]> = [
+      ["logs", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["traces", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["metrics", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["exceptions", ENTITY_KEY_NO_SYNTAX_REASON],
+      ["profiles", ENTITY_KEY_NO_SYNTAX_REASON],
+    ];
 
-      expect(reason).toBeDefined();
-      expect(reason).not.toMatch(/Open in|carried|explorer link/i);
+    for (const [rows, expectedReason] of expectedReasons) {
+      const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
+        describeLockedEntityKeyFilter({ rows });
+
+      expect(detail.searchToken).toBeUndefined();
+      expect(detail.searchTokenUnavailableReason).toBe(expectedReason);
+      expect(detail.searchTokenUnavailableReason).not.toMatch(
+        /Open in|carried|explorer link/i,
+      );
     }
   });
 
-  test("several pinned keys: each chip spells only its own entity", () => {
-    const detail: ReturnType<typeof describeLockedEntityKeyFilter> =
-      describeLockedEntityKeyFilter({
-        rows: "logs",
-        entityKey: POD_KEY,
-        entityKeys: [POD_KEY, OTHER_KEY],
-        searchAttributes: { "host.name": "web-01" },
-      });
-
-    expect(detail.searchToken).toBe("@resource.host.name:web-01");
-    // The widening is still explained where it always was.
-    expect(detail.summary).toContain("1 other resource");
-  });
-
-  test("the explanation fields are unchanged by the attributes", () => {
-    const withAttributes: ReturnType<typeof describeLockedEntityKeyFilter> =
+  test("the attributes decide only between the token and the reason", () => {
+    // The detail is the syntax or why there is none — nothing rides along.
+    expect(
       describeLockedEntityKeyFilter({
         rows: "traces",
-        entityKey: POD_KEY,
-        entityTypeLabel: "Kubernetes Pod",
         searchAttributes: POD_IDENTIFYING,
-      });
-    const withoutAttributes: ReturnType<typeof describeLockedEntityKeyFilter> =
-      describeLockedEntityKeyFilter({
-        rows: "traces",
-        entityKey: POD_KEY,
-        entityTypeLabel: "Kubernetes Pod",
-      });
-
-    expect(withAttributes.summary).toBe(withoutAttributes.summary);
-    expect(withAttributes.source).toBe(withoutAttributes.source);
-    expect(withAttributes.predicates).toEqual(withoutAttributes.predicates);
+      }),
+    ).toEqual({ searchToken: POD_SEARCH_TOKEN });
+    expect(describeLockedEntityKeyFilter({ rows: "traces" })).toEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
   });
 });
 
@@ -577,6 +572,9 @@ describe("an Inventory item's pill shows attribute syntax on every viewer", () =
     expect(chips[0]!.displayValue).toBe("checkout-7d9f");
     expect(chips[0]!.readOnly).toBe(true);
     expect(chips[0]!.lockedDetail!.searchToken).toBe(POD_SEARCH_TOKEN);
+    expect(
+      chips[0]!.lockedDetail!.searchTokenUnavailableReason,
+    ).toBeUndefined();
   });
 
   test("shared builder: a key the page did not name has no token", () => {
@@ -590,6 +588,10 @@ describe("an Inventory item's pill shows attribute syntax on every viewer", () =
       POD_SEARCH_TOKEN,
     );
     expect(
+      entityKeyChipOf(chips, POD_KEY).lockedDetail!
+        .searchTokenUnavailableReason,
+    ).toBeUndefined();
+    expect(
       entityKeyChipOf(chips, OTHER_KEY).lockedDetail!.searchToken,
     ).toBeUndefined();
     expect(
@@ -598,52 +600,105 @@ describe("an Inventory item's pill shows attribute syntax on every viewer", () =
     ).toBe(ENTITY_KEY_NO_ATTRIBUTES_REASON);
   });
 
-  test("logs: the re-describe step keeps the token when handed the displays", () => {
-    const displays: LockedEntityKeyDisplayMap = podDisplays();
-    const chips: Array<ActiveFilter> = attachLogsLockedFilterDetails(
-      buildLockedEntityKeyChips({
-        rows: "logs",
-        entityKeys: [POD_KEY],
-        displays,
-      }),
-      { entityKeyDisplays: displays },
-    );
+  test.each(SIGNALS)(
+    "%s: several pinned keys, each chip spells only its own entity",
+    (signal: TelemetrySignal) => {
+      /*
+       * A page pinning two named items gets one pill per key. Each pill's
+       * syntax is that item's attributes alone — never the other item's, and
+       * never both AND-ed into a search that matches neither.
+       */
+      const displays: LockedEntityKeyDisplayMap = {
+        [POD_KEY]: {
+          displayKey: "Host",
+          displayValue: "web-01",
+          searchAttributes: { "host.name": "web-01" },
+        },
+        [OTHER_KEY]: {
+          displayKey: "Host",
+          displayValue: "web-02",
+          searchAttributes: { "host.name": "web-02" },
+        },
+      };
 
+      const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
+        rows: signal,
+        entityKeys: [POD_KEY, OTHER_KEY],
+        displays,
+      });
+
+      expect(chips).toHaveLength(2);
+      expect(entityKeyChipOf(chips, POD_KEY).lockedDetail!.searchToken).toBe(
+        "@resource.host.name:web-01",
+      );
+      expect(
+        entityKeyChipOf(chips, POD_KEY).lockedDetail!
+          .searchTokenUnavailableReason,
+      ).toBeUndefined();
+      expect(entityKeyChipOf(chips, OTHER_KEY).lockedDetail!.searchToken).toBe(
+        "@resource.host.name:web-02",
+      );
+      expect(
+        entityKeyChipOf(chips, OTHER_KEY).lockedDetail!
+          .searchTokenUnavailableReason,
+      ).toBeUndefined();
+    },
+  );
+
+  test("logs: the decoration step keeps the builder's token (same chip object) with no displays input", () => {
+    /*
+     * The Logs viewer runs every locked chip through this step. It has no
+     * describer for the entity-key column, so the chip the builder spelled
+     * from the item's attributes passes through untouched.
+     */
+    const built: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY],
+      displays: podDisplays(),
+    });
+    const chips: Array<ActiveFilter> = attachLogsLockedFilterDetails(built, {});
+
+    expect(entityKeyChipOf(chips, POD_KEY)).toBe(built[0]);
     expect(entityKeyChipOf(chips, POD_KEY).lockedDetail!.searchToken).toBe(
       POD_SEARCH_TOKEN,
     );
+    expect(
+      entityKeyChipOf(chips, POD_KEY).lockedDetail!
+        .searchTokenUnavailableReason,
+    ).toBeUndefined();
   });
 
-  test("logs: without the displays the re-describe step would drop the token", () => {
-    /*
-     * Why the Logs viewer passes `entityKeyDisplays` into this step: it
-     * rebuilds every entity-key chip's detail from scratch.
-     */
-    const chips: Array<ActiveFilter> = attachLogsLockedFilterDetails(
-      buildLockedEntityKeyChips({
-        rows: "logs",
-        entityKeys: [POD_KEY],
-        displays: podDisplays(),
-      }),
-      {},
-    );
+  test("logs: a chip built without displays keeps its reason through the decoration step", () => {
+    const built: Array<ActiveFilter> = buildLockedEntityKeyChips({
+      rows: "logs",
+      entityKeys: [POD_KEY],
+    });
+    const chips: Array<ActiveFilter> = attachLogsLockedFilterDetails(built, {});
 
+    expect(entityKeyChipOf(chips, POD_KEY)).toBe(built[0]);
     expect(
       entityKeyChipOf(chips, POD_KEY).lockedDetail!.searchToken,
     ).toBeUndefined();
+    expect(
+      entityKeyChipOf(chips, POD_KEY).lockedDetail!
+        .searchTokenUnavailableReason,
+    ).toBe(ENTITY_KEY_NO_ATTRIBUTES_REASON);
   });
 
   test("traces: the page's entity-key chip carries the token", () => {
     const chips: Array<ActiveFilter> = buildTracesLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
       displays: podDisplays(),
-      storedQueryEntityKeys: [],
       lockedChips: [],
     });
 
     expect(entityKeyChipOf(chips, POD_KEY).lockedDetail!.searchToken).toBe(
       POD_SEARCH_TOKEN,
     );
+    expect(
+      entityKeyChipOf(chips, POD_KEY).lockedDetail!
+        .searchTokenUnavailableReason,
+    ).toBeUndefined();
   });
 
   test("metrics: the page's entity-key chip carries the token", () => {
@@ -661,6 +716,10 @@ describe("an Inventory item's pill shows attribute syntax on every viewer", () =
     expect(entityKeyChipOf(chips, POD_KEY).lockedDetail!.searchToken).toBe(
       POD_SEARCH_TOKEN,
     );
+    expect(
+      entityKeyChipOf(chips, POD_KEY).lockedDetail!
+        .searchTokenUnavailableReason,
+    ).toBeUndefined();
   });
 
   test("a host item's token restores the host name's case on all three viewers", () => {
@@ -684,6 +743,102 @@ describe("an Inventory item's pill shows attribute syntax on every viewer", () =
       expect(chips[0]!.lockedDetail!.searchToken).toBe(
         "@resource.host.name:WEB-Prod-01",
       );
+      expect(
+        chips[0]!.lockedDetail!.searchTokenUnavailableReason,
+      ).toBeUndefined();
+    }
+  });
+
+  test("an identity value the grammar reads specially is quoted, and a numeric one is spelled as its digits, on all three viewers", () => {
+    const hostDisplays: LockedEntityKeyDisplayMap =
+      buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: "host",
+        displayName: "web 01",
+        identifyingAttributes: { "host.name": "web 01" },
+      });
+    const processDisplays: LockedEntityKeyDisplayMap =
+      buildInventoryEntityKeyDisplays({
+        entityKey: OTHER_KEY,
+        entityType: "process",
+        displayName: "worker",
+        identifyingAttributes: { "host.name": "web-01", "process.pid": 1234 },
+      });
+
+    for (const signal of SIGNALS) {
+      expect(
+        entityKeyChipOf(
+          buildLockedEntityKeyChips({
+            rows: signal,
+            entityKeys: [POD_KEY],
+            displays: hostDisplays,
+          }),
+          POD_KEY,
+        ).lockedDetail,
+      ).toStrictEqual({ searchToken: '@resource.host.name:"web 01"' });
+
+      expect(
+        entityKeyChipOf(
+          buildLockedEntityKeyChips({
+            rows: signal,
+            entityKeys: [OTHER_KEY],
+            displays: processDisplays,
+          }),
+          OTHER_KEY,
+        ).lockedDetail,
+      ).toStrictEqual({
+        searchToken: "@resource.host.name:web-01 @resource.process.pid:1234",
+      });
+    }
+  });
+
+  test("an item whose identity cannot be spelled has no token on any surface, and each surface gives its own reason", () => {
+    const unspellableItems: Array<[string, unknown]> = [
+      ["no identifying attributes", undefined],
+      ["a key the search bar cannot type", { "host name": "web-01" }],
+      ["an empty identity value", { "process.pid": "" }],
+      [
+        "an identity minted outside telemetry",
+        { [MANUAL_ENTITY_IDENTITY_ATTRIBUTE]: "payments vendor api" },
+      ],
+      [
+        "an Inventory-table identity",
+        { [INVENTORY_ENTITY_IDENTITY_ATTRIBUTE]: "651a000000000000000000aa" },
+      ],
+    ];
+
+    const reasonByRows: Array<[EntityKeyScopedRows, string]> = [
+      ["logs", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["traces", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["metrics", ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      ["exceptions", ENTITY_KEY_NO_SYNTAX_REASON],
+      ["profiles", ENTITY_KEY_NO_SYNTAX_REASON],
+    ];
+
+    for (const [, identifyingAttributes] of unspellableItems) {
+      const displays: LockedEntityKeyDisplayMap =
+        buildInventoryEntityKeyDisplays({
+          entityKey: POD_KEY,
+          entityType: "host",
+          displayName: "web-01",
+          identifyingAttributes,
+        });
+
+      for (const [rows, reason] of reasonByRows) {
+        const chip: ActiveFilter = entityKeyChipOf(
+          buildLockedEntityKeyChips({
+            rows,
+            entityKeys: [POD_KEY],
+            displays,
+          }),
+          POD_KEY,
+        );
+
+        expect(chip.lockedDetail).toStrictEqual({
+          searchTokenUnavailableReason: reason,
+        });
+        expect(chip.lockedDetail).not.toHaveProperty("searchToken");
+      }
     }
   });
 });
@@ -773,13 +928,19 @@ describe("the wiring that gets the attributes to the pill", () => {
     expect(hook).toContain("descriptiveAttributes: true");
   });
 
-  test("the Logs viewer hands its entity-key displays to the re-describe step", () => {
+  test("the Logs viewer hands its entity-key displays to the chip builder, not to the decoration step", () => {
     const viewer: string = readSource("Components", "Logs", "LogsViewer.tsx");
+
+    expect(sliceCall(viewer, "buildLockedEntityKeyChips(")).toContain(
+      "displays: props.entityKeyDisplays",
+    );
+
     const call: string = sliceCall(
       viewer,
       "attachLogsLockedFilterDetails(filters,",
     );
 
-    expect(call).toContain("entityKeyDisplays: props.entityKeyDisplays");
+    expect(call).toContain("logQueryAttributes");
+    expect(call).not.toContain("entityKeyDisplays");
   });
 });

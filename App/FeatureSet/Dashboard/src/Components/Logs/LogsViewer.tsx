@@ -34,10 +34,6 @@ import {
   buildLockedEntityKeyChips,
 } from "../../Utils/LockedEntityKeyChips";
 import {
-  LOCKED_FILTER_SOURCE_PAGE,
-  LOCKED_FILTER_SOURCE_STORED_QUERY,
-} from "../../Utils/LockedTelemetryScope";
-import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
 } from "./LogSavedViewTimeRange";
@@ -200,15 +196,6 @@ export interface ComponentProps {
    * what this exists to prevent.
    */
   entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
-  /*
-   * Whether `logQuery.entityKeys` is the page's own scope (an Inventory
-   * item's Logs tab) rather than a stored query the view was opened with.
-   * Log monitors write the same field from their "Filter by Infrastructure
-   * Entity" picker, so an incident's log snapshot, a companion Logs tab and
-   * the monitor preview carry entity keys nobody on the page pinned. Left
-   * unset, the chips say the stored query pinned them.
-   */
-  entityKeysPinnedByPage?: boolean | undefined;
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
@@ -2195,23 +2182,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
      * session ids.
      *
      * Built from the pinned logQuery only, never from `entityScope`: a
-     * Kubernetes-style page's attribute chip already explains its entity
+     * Kubernetes-style page's attribute chip already stands for its entity
      * keys, and a second chip for the same scope would read as a second
      * filter.
-     *
-     * The same source reaches the decoration step below, which re-describes
-     * every entity-key chip and would otherwise restore the page wording.
      */
-    const entityKeysSource: string = props.entityKeysPinnedByPage
-      ? LOCKED_FILTER_SOURCE_PAGE
-      : LOCKED_FILTER_SOURCE_STORED_QUERY;
-
     filters.push(
       ...buildLockedEntityKeyChips({
         rows: LOGS_SIGNAL,
         entityKeys: logQueryEntityKeys,
         displays: props.entityKeyDisplays,
-        source: entityKeysSource,
       }),
     );
 
@@ -2261,15 +2240,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     );
 
     /*
-     * Every locked chip explains itself: what the server matches (the
-     * attribute, the entity key the page's entityScope adds, the entity id)
-     * and the search syntax that reproduces it on the main explorer.
+     * Every locked chip carries the search syntax that reproduces it on the
+     * main explorer, or the reason there is none. The entity-key chips already
+     * carry theirs from buildLockedEntityKeyChips and pass through untouched.
      */
     return attachLogsLockedFilterDetails(filters, {
       logQueryAttributes,
-      entityScope: props.entityScope,
-      entityKeysSource,
-      entityKeyDisplays: props.entityKeyDisplays,
     });
   }, [
     props.serviceIds,
@@ -2277,10 +2253,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props.traceIds,
     props.spanIds,
     props.sessionIds,
-    props.entityScope,
     logQueryEntityKeys,
     props.entityKeyDisplays,
-    props.entityKeysPinnedByPage,
     traceIdStrings,
     logQueryAttributes,
     props.attributeFilterDisplayKeys,

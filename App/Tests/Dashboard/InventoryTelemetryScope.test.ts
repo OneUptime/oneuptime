@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import type { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import type { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 /*
  * STATIC imports, on purpose: the shell hands this map to five viewers whose
@@ -21,7 +22,6 @@ import {
   ENTITY_KEY_NO_ATTRIBUTES_REASON,
   ENTITY_KEY_NO_SYNTAX_REASON,
   EntityKeyScopedRows,
-  describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 
 /*
@@ -37,8 +37,11 @@ import {
  * hash with nothing crashing.
  *
  * Which identifying attributes become the pill's search syntax is pinned in
- * InventoryEntitySearchSyntax.test.ts; the pills here are built without
- * them, so each says it has no attributes to search by.
+ * InventoryEntitySearchSyntax.test.ts. Apart from the two tests that hand
+ * them over, the pills here are built without them, so each carries no
+ * search token: on the Logs / Traces / Metrics pages its tooltip says the
+ * item has no attributes to search by, and on Exceptions / Profiles — lists
+ * with no search bar — that entity keys have no search syntax.
  */
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
@@ -55,6 +58,25 @@ type PillTextFunction = (chip: ActiveFilter) => string;
 /** The pill as the chip bar prints it: `<displayKey>: <displayValue>`. */
 const pillText: PillTextFunction = (chip: ActiveFilter): string => {
   return `${chip.displayKey}: ${chip.displayValue}`;
+};
+
+type ExpectNoSearchSyntaxFunction = (
+  chip: ActiveFilter,
+  reason: string,
+) => void;
+
+/*
+ * The chip's tooltip content, exactly: no search token, only the reason
+ * there is none.
+ */
+const expectNoSearchSyntax: ExpectNoSearchSyntaxFunction = (
+  chip: ActiveFilter,
+  reason: string,
+): void => {
+  const expected: LockedFilterDetail = { searchTokenUnavailableReason: reason };
+
+  expect(chip.lockedDetail).toStrictEqual(expected);
+  expect(chip.lockedDetail?.searchToken).toBeUndefined();
 };
 
 type OnlyChipFunction = (
@@ -305,9 +327,11 @@ describe("buildInventoryEntityKeyDisplays", () => {
       true,
     );
     expect(Object.getPrototypeOf(displays)).toBe(Object.prototype);
-    expect(pillText(onlyChip("logs", ["__proto__"], displays))).toBe(
-      "Kubernetes Pod: checkout-7d9f",
-    );
+
+    const chip: ActiveFilter = onlyChip("logs", ["__proto__"], displays);
+
+    expect(pillText(chip)).toBe("Kubernetes Pod: checkout-7d9f");
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
   });
 
   test("identifying attributes ride along as the display's search attributes, leaving the pill's words alone", () => {
@@ -335,6 +359,29 @@ describe("buildInventoryEntityKeyDisplays", () => {
         },
       },
     });
+
+    /*
+     * They reach the pill only as its search syntax: the same words, now with
+     * a token on a surface that has a search bar, and still none on one
+     * without.
+     */
+    const logsChip: ActiveFilter = onlyChip("logs", [POD_KEY], displays);
+
+    expect(pillText(logsChip)).toBe("Kubernetes Pod: checkout-7d9f");
+    expect(logsChip.lockedDetail).toStrictEqual({
+      searchToken:
+        "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+    });
+    expect(logsChip.lockedDetail?.searchTokenUnavailableReason).toBeUndefined();
+
+    const exceptionsChip: ActiveFilter = onlyChip(
+      "exceptions",
+      [POD_KEY],
+      displays,
+    );
+
+    expect(pillText(exceptionsChip)).toBe("Kubernetes Pod: checkout-7d9f");
+    expectNoSearchSyntax(exceptionsChip, NO_SYNTAX);
 
     // Without them the entry holds the pill's two strings and nothing else.
     expect(Object.keys(POD_DISPLAYS[POD_KEY]!).sort()).toEqual([
@@ -370,14 +417,17 @@ describe("buildInventoryEntityKeyDisplays", () => {
 });
 
 describe("the Inventory item's pill, end to end", () => {
-  test("a Kubernetes pod's Logs page without identifying attributes: 'Kubernetes Pod: checkout-7d9f', read-only, explained, no search token", () => {
+  test("a Kubernetes pod's Logs page without identifying attributes: 'Kubernetes Pod: checkout-7d9f', read-only, no search token, the no-attributes reason", () => {
     const chips: Array<ActiveFilter> = buildLockedEntityKeyChips({
       rows: "logs",
       entityKeys: [POD_KEY],
       displays: POD_DISPLAYS,
     });
 
-    // The explanation's wording is owned by LockedTelemetryScope.test.ts.
+    const lockedDetail: LockedFilterDetail = {
+      searchTokenUnavailableReason: NO_ATTRIBUTES,
+    };
+
     expect(chips).toStrictEqual([
       {
         facetKey: "entityKeys",
@@ -385,68 +435,39 @@ describe("the Inventory item's pill, end to end", () => {
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "logs",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY],
-          entityTypeLabel: "Kubernetes Pod",
-        }),
+        lockedDetail,
       },
     ]);
-    expect(chips[0]!.lockedDetail?.summary).toBe(
-      "Only logs linked to this Kubernetes Pod are shown.",
-    );
-    expect(chips[0]!.lockedDetail?.searchToken).toBeUndefined();
-    expect(chips[0]!.lockedDetail?.searchTokenUnavailableReason).toBe(
-      NO_ATTRIBUTES,
-    );
   });
 
-  const SURFACES: Array<[EntityKeyScopedRows, string, string]> = [
-    [
-      "logs",
-      "Only logs linked to this Kubernetes Pod are shown.",
-      NO_ATTRIBUTES,
-    ],
-    [
-      "traces",
-      "Only traces linked to this Kubernetes Pod are shown.",
-      NO_ATTRIBUTES,
-    ],
-    [
-      "metrics",
-      "Only metrics linked to this Kubernetes Pod are shown.",
-      NO_ATTRIBUTES,
-    ],
-    [
-      "exceptions",
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-      NO_SYNTAX,
-    ],
-    [
-      "profiles",
-      "Only profiles linked to this Kubernetes Pod are shown.",
-      NO_SYNTAX,
-    ],
+  /*
+   * Every surface gets the same pill; only the reason it has no search syntax
+   * differs — the three explorers lack the item's attributes, while the
+   * exceptions and profiles lists have no search bar at all.
+   */
+  const SURFACES: Array<[EntityKeyScopedRows, string]> = [
+    ["logs", NO_ATTRIBUTES],
+    ["traces", NO_ATTRIBUTES],
+    ["metrics", NO_ATTRIBUTES],
+    ["exceptions", NO_SYNTAX],
+    ["profiles", NO_SYNTAX],
   ];
 
   test.each(SURFACES)(
-    "%s: the same pill, explained in that surface's words",
-    (rows: EntityKeyScopedRows, summary: string, reason: string) => {
+    "%s: the same pill, with that surface's reason for having no search syntax",
+    (rows: EntityKeyScopedRows, reason: string) => {
       const chip: ActiveFilter = onlyChip(rows, [POD_KEY], POD_DISPLAYS);
 
       expect(pillText(chip)).toBe("Kubernetes Pod: checkout-7d9f");
       expect(chip.readOnly).toBe(true);
       expect(chip.facetKey).toBe("entityKeys");
       expect(chip.value).toBe(POD_KEY);
-      expect(chip.lockedDetail?.summary).toBe(summary);
-      expect(chip.lockedDetail?.searchTokenUnavailableReason).toBe(reason);
-      expect(chip.lockedDetail?.searchToken).toBeUndefined();
+      expectNoSearchSyntax(chip, reason);
     },
   );
 
   test.each(ALL_ENTITY_TYPES)(
-    "%s: the pill and its summary both use the catalog label",
+    "%s: the pill uses the catalog label, and the type never changes its search syntax",
     (entityType: EntityType) => {
       const label: string = getInventoryTypeLabel(entityType);
       const chip: ActiveFilter = onlyChip(
@@ -460,9 +481,7 @@ describe("the Inventory item's pill, end to end", () => {
       );
 
       expect(pillText(chip)).toBe(`${label}: ${POD_NAME}`);
-      expect(chip.lockedDetail?.summary).toBe(
-        `Only traces linked to this ${label} are shown.`,
-      );
+      expectNoSearchSyntax(chip, NO_ATTRIBUTES);
     },
   );
 
@@ -477,9 +496,7 @@ describe("the Inventory item's pill, end to end", () => {
     );
 
     expect(pillText(chip)).toBe("Kubernetes Pod: 3f9a1b2c4d5e6f70");
-    expect(chip.lockedDetail?.summary).toBe(
-      "Only metrics linked to this Kubernetes Pod are shown.",
-    );
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
   });
 
   test("an item with no type is an 'Inventory Item'", () => {
@@ -493,9 +510,7 @@ describe("the Inventory item's pill, end to end", () => {
     );
 
     expect(pillText(chip)).toBe("Inventory Item: checkout-7d9f");
-    expect(chip.lockedDetail?.summary).toBe(
-      "Only logs linked to this Inventory Item are shown.",
-    );
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
   });
 
   test("an item with neither a type nor a name", () => {
@@ -506,9 +521,7 @@ describe("the Inventory item's pill, end to end", () => {
     );
 
     expect(pillText(chip)).toBe("Inventory Item: 3f9a1b2c4d5e6f70");
-    expect(chip.lockedDetail?.summary).toBe(
-      "Only exceptions linked to this Inventory Item are shown.",
-    );
+    expectNoSearchSyntax(chip, NO_SYNTAX);
   });
 
   test("without the map — or with an empty one — the scoped viewer STILL shows the pill, on its fallback", () => {
@@ -524,9 +537,7 @@ describe("the Inventory item's pill, end to end", () => {
       const chip: ActiveFilter = onlyChip("logs", [POD_KEY], displays);
 
       expect(pillText(chip)).toBe("Resource: 3f9a1b2c4d5e6f70");
-      expect(chip.lockedDetail?.summary).toBe(
-        "Only logs linked to this resource are shown.",
-      );
+      expectNoSearchSyntax(chip, NO_ATTRIBUTES);
     }
   });
 
@@ -534,9 +545,28 @@ describe("the Inventory item's pill, end to end", () => {
     const chip: ActiveFilter = onlyChip("profiles", [OTHER_KEY], POD_DISPLAYS);
 
     expect(pillText(chip)).toBe("Resource: aaaaaaaaaaaaaaaa");
-    expect(chip.lockedDetail?.summary).toBe(
-      "Only profiles linked to this resource are shown.",
+    expectNoSearchSyntax(chip, NO_SYNTAX);
+  });
+
+  test("a map built for one item never lends its attributes' search syntax to another item's key", () => {
+    const displays: LockedEntityKeyDisplayMap = buildInventoryEntityKeyDisplays(
+      {
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: POD_NAME,
+        identifyingAttributes: { "k8s.pod.name": POD_NAME },
+      },
     );
+
+    // The item's own key does carry the syntax, so the map is not empty-handed.
+    expect(onlyChip("logs", [POD_KEY], displays).lockedDetail).toStrictEqual({
+      searchToken: "@resource.k8s.pod.name:checkout-7d9f",
+    });
+
+    const chip: ActiveFilter = onlyChip("logs", [OTHER_KEY], displays);
+
+    expect(pillText(chip)).toBe("Resource: aaaaaaaaaaaaaaaa");
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
   });
 
   test("a padded key on either side still finds its name", () => {
@@ -552,6 +582,7 @@ describe("the Inventory item's pill, end to end", () => {
 
     expect(pillText(chip)).toBe("Kubernetes Pod: checkout-7d9f");
     expect(chip.value).toBe(POD_KEY);
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
   });
 
   test("the name is display only: the facet and value — what the query reads — are the key", () => {
@@ -559,6 +590,7 @@ describe("the Inventory item's pill, end to end", () => {
 
     expect(chip.facetKey).toBe("entityKeys");
     expect(chip.value).toBe(POD_KEY);
+    expectNoSearchSyntax(chip, NO_ATTRIBUTES);
     expect(JSON.stringify([chip.facetKey, chip.value])).not.toContain(POD_NAME);
     expect(JSON.stringify([chip.facetKey, chip.value])).not.toContain(
       "Kubernetes",

@@ -142,19 +142,16 @@ import {
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
-  StoredQueryChipContext,
   buildFacetDisplayNames,
   buildLockedAttributeChip,
   buildTraceEntityTypeHints,
   buildTracesLockedEntityKeyChips,
   collectTraceEntityIdsToResolve,
   describeStoredQueryChip,
-  entityScopeForAttributeKey,
   getSpanEntity,
   resolveTraceChipDisplay,
 } from "./TracesEntityDisplay";
 import {
-  LOCKED_FILTER_SOURCE_PAGE,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
@@ -2408,18 +2405,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           props.exceptionScope.fingerprint.slice(0, 12),
         readOnly: true,
         lockedDetail: {
-          source: LOCKED_FILTER_SOURCE_PAGE,
-          summary: "Only spans in which this exception was raised are shown.",
-          predicates: [
-            {
-              label: "Exception",
-              expression: `fingerprint = ${JSON.stringify(
-                props.exceptionScope.fingerprint,
-              )}`,
-              note: "Matched through the exception's recorded occurrences.",
-            },
-          ],
-          combinator: "all",
           searchTokenUnavailableReason:
             "The traces search cannot filter spans by exception.",
         },
@@ -2428,9 +2413,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (props.primaryEntityId) {
       const entityId: string = props.primaryEntityId.toString();
       /*
-       * Described AFTER resolving: the seed says "Service: <id>", the
-       * resolved chip says "RUM Application: checkout-web", and the
-       * explanation must use the latter.
+       * The seed says "Service: <id>"; the resolved chip says "RUM
+       * Application: checkout-web". The search syntax is the id's either way.
        */
       const resolved: ActiveFilter = resolveChipDisplay({
         facetKey: "primaryEntityId",
@@ -2443,9 +2427,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         ...resolved,
         lockedDetail: describeLockedEntityFilter({
           signal: "traces",
-          entityTypeLabel: resolved.displayKey,
           id: entityId,
-          name: resolved.displayValue,
         }),
       });
     }
@@ -2488,19 +2470,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
     }
 
-    /*
-     * A single stored span name / status message is compiled as a SUBSTRING
-     * match (see the query builder's TEXT_CHIP_FIELDS); the chip's tooltip
-     * has to say "contains", and only the scope knows which columns took
-     * that path.
-     */
-    const storedQueryContext: StoredQueryChipContext = {
-      substringColumns: new Set<string>([
-        ...(spanScope.spanNameSearch ? ["name"] : []),
-        ...(spanScope.statusMessageSearch ? ["statusMessage"] : []),
-      ]),
-    };
-
     for (const chip of spanScope.chips as Array<SpanScopeChip>) {
       if (userFilteredFacetKeys.has(chip.facetKey)) {
         continue;
@@ -2521,7 +2490,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
       base.push({
         ...resolved,
-        lockedDetail: describeStoredQueryChip(resolved, storedQueryContext),
+        lockedDetail: describeStoredQueryChip(resolved),
       });
     }
     /*
@@ -2533,13 +2502,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * a key the stored query's chip already shows is not shown twice while a
      * stored chip withheld above (a column the user filtered) cannot take the
      * page's key off screen. `entityScope` is not read: the attribute chip
-     * below already explains a Kubernetes / Host page's scope.
+     * below already stands for a Kubernetes / Host page's scope.
      */
     base.push(
       ...buildTracesLockedEntityKeyChips({
         entityKeysFilter: props.entityKeysFilter,
         displays: props.entityKeyDisplays,
-        storedQueryEntityKeys: spanScope.entityKeys,
         lockedChips: base,
       }),
     );
@@ -2549,10 +2517,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           continue;
         }
         /*
-         * The builder gives the label; the explanation is attached here so
-         * TracesEntityDisplay stays loadable without a window (see the
-         * builder's comment). The entity scope rides only the chip whose
-         * attribute it names.
+         * The builder gives the label; the search syntax comes from the same
+         * key and value, attached here as for the entity and stored-query
+         * chips above.
          */
         const attributeChip: ActiveFilter = buildLockedAttributeChip({
           key,
@@ -2567,9 +2534,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             signal: "traces",
             attributeKey: key,
             rawValue: value,
-            displayKey: attributeChip.displayKey,
-            displayValue: attributeChip.displayValue,
-            entityScope: entityScopeForAttributeKey(props.entityScope, key),
           }),
         });
       }
@@ -2582,7 +2546,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
-    props.entityScope,
     props.entityKeysFilter,
     props.entityKeyDisplays,
     spanScope,
