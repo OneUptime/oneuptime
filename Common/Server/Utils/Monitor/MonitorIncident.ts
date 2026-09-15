@@ -230,24 +230,13 @@ export default class MonitorIncident {
         continue;
       }
 
-      const createdCriteriaId: string | undefined =
-        openIncident.createdCriteriaId?.toString();
-      const createdIncidentTemplateId: string | undefined =
-        openIncident.createdIncidentTemplateId?.toString();
-
       // Only auto-resolve when the creating criteria opted into it.
-      if (!createdCriteriaId || !createdIncidentTemplateId) {
-        continue;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          createdCriteriaId
-        ];
-
       if (
-        !autoResolveTemplates ||
-        !autoResolveTemplates.includes(createdIncidentTemplateId)
+        !MonitorIncident.isAutoResolveConfiguredForIncident({
+          openIncident: openIncident,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        })
       ) {
         continue;
       }
@@ -1253,28 +1242,10 @@ export default class MonitorIncident {
 
     // If antoher criteria is active then, check if the incident id is present in the map.
 
-    if (!input.openIncident.createdCriteriaId?.toString()) {
-      return false;
-    }
-
-    if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-      return false;
-    }
-
-    if (
-      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
-      ]
-    ) {
-      if (
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId?.toString()
-        ]?.includes(input.openIncident.createdIncidentTemplateId?.toString())
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return MonitorIncident.isAutoResolveConfiguredForIncident({
+      openIncident: input.openIncident,
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+    });
   }
 }
