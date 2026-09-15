@@ -142,24 +142,19 @@ import {
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
-  StoredQueryChipContext,
   buildFacetDisplayNames,
   buildLockedAttributeChip,
   buildTraceEntityTypeHints,
   buildTracesLockedEntityKeyChips,
   collectTraceEntityIdsToResolve,
   describeStoredQueryChip,
-  entityScopeForAttributeKey,
   getSpanEntity,
   resolveTraceChipDisplay,
 } from "./TracesEntityDisplay";
-import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
-  LOCKED_FILTER_SOURCE_PAGE,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
-import { buildLockedScopeFilterActions } from "../../Utils/LockedTelemetryScopeLink";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 
 const DEFAULT_PAGE_SIZE: number = 50;
@@ -2395,11 +2390,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   /*
    * Read-only chips for prop-level scoping (a service page's entity, a
    * snapshot's stored query, an Inventory item's entity key, a resource
-   * page's attribute filters). Each carries a LockedFilterDetail — what it
-   * matches and why it is locked — which the chip renders as its tooltip and
-   * the "Copy filter" / "Open in Traces" actions below are built from. Kept
-   * apart from the user's chips
-   * so those actions describe the pinned scope alone.
+   * page's attribute filters). Each carries a LockedFilterDetail whose search
+   * syntax the chip shows in its tooltip. Kept apart from the user's chips.
    */
   const lockedChips: Array<ActiveFilter> = useMemo(() => {
     const base: Array<ActiveFilter> = [];
@@ -2413,18 +2405,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           props.exceptionScope.fingerprint.slice(0, 12),
         readOnly: true,
         lockedDetail: {
-          source: LOCKED_FILTER_SOURCE_PAGE,
-          summary: "Only spans in which this exception was raised are shown.",
-          predicates: [
-            {
-              label: "Exception",
-              expression: `fingerprint = ${JSON.stringify(
-                props.exceptionScope.fingerprint,
-              )}`,
-              note: "Matched through the exception's recorded occurrences.",
-            },
-          ],
-          combinator: "all",
           searchTokenUnavailableReason:
             "The traces search cannot filter spans by exception.",
         },
@@ -2433,9 +2413,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (props.primaryEntityId) {
       const entityId: string = props.primaryEntityId.toString();
       /*
-       * Described AFTER resolving: the seed says "Service: <id>", the
-       * resolved chip says "RUM Application: checkout-web", and the
-       * explanation must use the latter.
+       * The seed says "Service: <id>"; the resolved chip says "RUM
+       * Application: checkout-web". The search syntax is the id's either way.
        */
       const resolved: ActiveFilter = resolveChipDisplay({
         facetKey: "primaryEntityId",
@@ -2448,9 +2427,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         ...resolved,
         lockedDetail: describeLockedEntityFilter({
           signal: "traces",
-          entityTypeLabel: resolved.displayKey,
           id: entityId,
-          name: resolved.displayValue,
         }),
       });
     }
@@ -2493,19 +2470,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
     }
 
-    /*
-     * A single stored span name / status message is compiled as a SUBSTRING
-     * match (see the query builder's TEXT_CHIP_FIELDS); the chip's tooltip
-     * has to say "contains", and only the scope knows which columns took
-     * that path.
-     */
-    const storedQueryContext: StoredQueryChipContext = {
-      substringColumns: new Set<string>([
-        ...(spanScope.spanNameSearch ? ["name"] : []),
-        ...(spanScope.statusMessageSearch ? ["statusMessage"] : []),
-      ]),
-    };
-
     for (const chip of spanScope.chips as Array<SpanScopeChip>) {
       if (userFilteredFacetKeys.has(chip.facetKey)) {
         continue;
@@ -2526,7 +2490,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
       base.push({
         ...resolved,
-        lockedDetail: describeStoredQueryChip(resolved, storedQueryContext),
+        lockedDetail: describeStoredQueryChip(resolved),
       });
     }
     /*
@@ -2538,13 +2502,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * a key the stored query's chip already shows is not shown twice while a
      * stored chip withheld above (a column the user filtered) cannot take the
      * page's key off screen. `entityScope` is not read: the attribute chip
-     * below already explains a Kubernetes / Host page's scope.
+     * below already stands for a Kubernetes / Host page's scope.
      */
     base.push(
       ...buildTracesLockedEntityKeyChips({
         entityKeysFilter: props.entityKeysFilter,
         displays: props.entityKeyDisplays,
-        storedQueryEntityKeys: spanScope.entityKeys,
         lockedChips: base,
       }),
     );
@@ -2554,10 +2517,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           continue;
         }
         /*
-         * The builder gives the label; the explanation is attached here so
-         * TracesEntityDisplay stays loadable without a window (see the
-         * builder's comment). The entity scope rides only the chip whose
-         * attribute it names.
+         * The builder gives the label; the search syntax comes from the same
+         * key and value, attached here as for the entity and stored-query
+         * chips above.
          */
         const attributeChip: ActiveFilter = buildLockedAttributeChip({
           key,
@@ -2572,9 +2534,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             signal: "traces",
             attributeKey: key,
             rawValue: value,
-            displayKey: attributeChip.displayKey,
-            displayValue: attributeChip.displayValue,
-            entityScope: entityScopeForAttributeKey(props.entityScope, key),
           }),
         });
       }
@@ -2587,7 +2546,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
-    props.entityScope,
     props.entityKeysFilter,
     props.entityKeyDisplays,
     spanScope,
@@ -2624,26 +2582,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ...spanTypeChip,
     ];
   }, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);
-
-  /*
-   * How the pinned scope travels to the main Traces explorer: every locked
-   * chip as search syntax to paste into its search bar, and a link that
-   * opens it with the same chips and window already applied. Built from the
-   * locked chips alone — the user's own chips are theirs to carry. The link
-   * builder reads the current URL for the project route; a host without one
-   * (a preview outside the dashboard shell) keeps the copy affordance only
-   * rather than losing the chip bar to a thrown error. That fallback, and the
-   * rule that a link carrying none of the scope is not offered, live in the
-   * shared builder, where they are exercised on real chips.
-   */
-  const lockedFilterActions: LockedFilterActionOptions | undefined =
-    useMemo(() => {
-      return buildLockedScopeFilterActions({
-        signal: "traces",
-        chips: lockedChips,
-        timeRange,
-      });
-    }, [lockedChips, timeRange]);
 
   /*
    * "Create metric…" from the analytics view — prefill a Trace Recording
@@ -3330,7 +3268,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
-      lockedFilterActions={lockedFilterActions}
       // Histogram
       showHistogram={true}
       histogramBuckets={histogramBuckets}

@@ -192,6 +192,16 @@ const chipTexts: ChipTextsFunction = (): Array<string> => {
   );
 };
 
+type FirstChipFunction = () => ActiveFilter;
+
+/*
+ * The first chip handed to the shell: with no exception scope (none of these
+ * tests set one) that is the page's entity chip.
+ */
+const firstChip: FirstChipFunction = (): ActiveFilter => {
+  return (lastViewerProps().activeFilters as Array<ActiveFilter>)[0]!;
+};
+
 /*
  * Mirrors what the tables hold: the explorer lists Services / Hosts / …
  * (no RUM row there), and the entity resolver reads RumApplication by id.
@@ -267,12 +277,25 @@ describe("TracesViewer names non-Service entities", () => {
       readOnly: true,
     });
 
+    /*
+     * The search syntax is the id from the start: `service:` on the Traces
+     * explorer filters `primaryEntityId` by id, whatever the chip is named.
+     */
+    expect(firstChips[0]!.lockedDetail).toEqual({
+      searchToken: `service:${RUM_ID}`,
+    });
+
     await waitFor(() => {
       expect(chipTexts()).toContain("RUM Application: checkout-web");
     });
 
     expect(chipTexts().join(" | ")).not.toContain(RUM_ID);
     expect(chipTexts().join(" | ")).not.toContain("Service:");
+
+    // Naming the entity changed the label, never the search syntax.
+    expect(firstChip().lockedDetail).toEqual({
+      searchToken: `service:${RUM_ID}`,
+    });
 
     // The hinted id went straight to its own table.
     expect(rumListCalls().length).toBeGreaterThan(0);
@@ -301,10 +324,11 @@ describe("TracesViewer names non-Service entities", () => {
       expect(chipTexts()).toContain("RUM Application: checkout-web");
     });
 
-    const scopeChip: ActiveFilter = (
-      lastViewerProps().activeFilters as Array<ActiveFilter>
-    )[0]!;
+    const scopeChip: ActiveFilter = firstChip();
     expect(scopeChip.value).toBe(RUM_ID);
+    expect(scopeChip.lockedDetail).toEqual({
+      searchToken: `service:${RUM_ID}`,
+    });
   });
 
   test("without scopeEntityType the resolved entity's own type still labels the chip", async () => {
@@ -315,6 +339,10 @@ describe("TracesViewer names non-Service entities", () => {
     await waitFor(() => {
       expect(chipTexts()).toContain("RUM Application: checkout-web");
     });
+
+    expect(firstChip().lockedDetail).toEqual({
+      searchToken: `service:${RUM_ID}`,
+    });
   });
 
   test("a Service page is unchanged: 'Service: <service name>'", async () => {
@@ -324,6 +352,10 @@ describe("TracesViewer names non-Service entities", () => {
 
     await waitFor(() => {
       expect(chipTexts()).toContain("Service: checkout-api");
+    });
+
+    expect(firstChip().lockedDetail).toEqual({
+      searchToken: `service:${SERVICE_ID}`,
     });
   });
 
@@ -395,6 +427,9 @@ describe("TracesViewer names non-Service entities", () => {
       ).toBe(true);
 
       expect(chipTexts()[0]).toBe(`RUM Application: ${RUM_ID}`);
+      expect(firstChip().lockedDetail).toEqual({
+        searchToken: `service:${RUM_ID}`,
+      });
     } finally {
       resolveSpy.mockRestore();
     }
@@ -426,9 +461,9 @@ describe("TracesViewer names non-Service entities", () => {
     );
 
     /*
-     * A partial match: the chip also carries its explanation (lockedDetail),
-     * which is display-only and pinned by its own suites. What this test
-     * protects is that the override changes the label and never the filter.
+     * A partial match: the chip also carries its search syntax
+     * (lockedDetail), asserted exactly below. What this protects is that the
+     * override changes the label and never the filter.
      */
     expect(clusterChip).toMatchObject({
       facetKey: "attributes.resource.k8s.cluster.name",
@@ -439,16 +474,13 @@ describe("TracesViewer names non-Service entities", () => {
     });
 
     /*
-     * The explanation must describe the FILTER (the identifier the rows
-     * carry), not the friendly name the chip shows — a reader copying the
-     * search syntax needs the value that matches.
+     * The search syntax spells the FILTER (the identifier the rows carry),
+     * not the friendly name the chip shows — a reader pasting it into the
+     * Traces explorer needs the value that matches.
      */
-    expect(clusterChip?.lockedDetail?.searchToken).toBe(
-      "@resource.k8s.cluster.name:prod-eu-1-7f3a",
-    );
-    expect(clusterChip?.lockedDetail?.predicates[0]?.expression).toBe(
-      'resource.k8s.cluster.name = "prod-eu-1-7f3a"',
-    );
+    expect(clusterChip?.lockedDetail).toEqual({
+      searchToken: "@resource.k8s.cluster.name:prod-eu-1-7f3a",
+    });
   });
 
   test("REGRESSION: span rows name a RUM application instead of 'unknown service'", async () => {

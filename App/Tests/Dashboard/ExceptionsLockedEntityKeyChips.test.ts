@@ -4,7 +4,8 @@
  * item's entity key, and the chip bar above it used to be empty — so a
  * filtered list read like every exception in the window.
  *
- * These tests pin what the pill says (exact user-visible text), when it
+ * These tests pin what the pill reads (its exact key and value, and the
+ * exact reason its tooltip gives for having no search syntax), when it
  * appears, and — just as important — that it is display only: it names
  * exactly the keys the instance scope filters on, never reaches the entity
  * name resolver, and cannot mark or unfold a facet in the sidebar. The
@@ -63,20 +64,33 @@ import {
 import {
   DEFAULT_ENTITY_KEY_DISPLAY_KEY,
   ENTITY_KEYS_FACET_KEY,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
   ENTITY_KEY_NO_SYNTAX_REASON,
-  LOCKED_FILTER_SOURCE_PAGE,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 
 /*
- * The explanation's wording is owned by LockedTelemetryScope.test.ts. Here a
- * pill's detail is compared to the describer, with the exceptions sentence
- * and reason spelled out where they are what a test is about.
+ * The exceptions list has no search bar, so every pill's detail is exactly
+ * the entity-key no-syntax reason and never a token — whatever the page
+ * named the item, whichever identifying attributes it handed over, and
+ * however many keys it pins. The reason is spelled out here rather than
+ * read from the describer or its constant, so a change to either cannot
+ * move both sides of an assertion at once; compared strictly, a stray
+ * `searchToken` key fails too.
  */
+const EXCEPTIONS_PILL_DETAIL: LockedFilterDetail = {
+  searchTokenUnavailableReason: "Entity keys have no search syntax.",
+};
 
 const POD_KEY: string = "3f9a1b2c4d5e6f70";
 const NODE_KEY: string = "9c8b7a6d5e4f3021";
 const VOLUME_KEY: string = "0a1b2c3d4e5f6071";
+
+const POD_SEARCH_ATTRIBUTES: Record<string, string> = {
+  "k8s.cluster.name": "prod",
+  "k8s.namespace.name": "shop",
+  "k8s.pod.name": "checkout-7d9f",
+};
 
 const POD_DISPLAYS: LockedEntityKeyDisplayMap = buildInventoryEntityKeyDisplays(
   {
@@ -102,6 +116,22 @@ const detailOf: DetailOfFunction = (chip: ActiveFilter): LockedFilterDetail => {
   return chip.lockedDetail!;
 };
 
+type ExpectExceptionsPillDetailFunction = (chip: ActiveFilter) => void;
+
+/*
+ * The whole detail, compared strictly: the exact no-syntax reason, and no
+ * `searchToken` key at all — so the tooltip renders no Copy button and a
+ * keyboard user is not told Enter copies anything.
+ */
+const expectExceptionsPillDetail: ExpectExceptionsPillDetailFunction = (
+  chip: ActiveFilter,
+): void => {
+  const detail: LockedFilterDetail = detailOf(chip);
+
+  expect(detail).toStrictEqual(EXCEPTIONS_PILL_DETAIL);
+  expect(detail).not.toHaveProperty("searchToken");
+};
+
 type ChipValuesFunction = (chips: Array<ActiveFilter>) => Array<string>;
 
 const chipValues: ChipValuesFunction = (
@@ -125,12 +155,15 @@ const readOnlyChipKey: ReadOnlyChipKeyFunction = (
 };
 
 describe("the words the pill is built from", () => {
-  test("the facet, the fallback key, the source and the no-syntax reason read exactly as the chip bar shows them", () => {
+  test("the facet, the fallback key and the no-syntax reasons read exactly as the chip bar and its tooltip show them", () => {
     expect(ENTITY_KEYS_FACET_KEY).toBe("entityKeys");
     expect(DEFAULT_ENTITY_KEY_DISPLAY_KEY).toBe("Resource");
-    expect(LOCKED_FILTER_SOURCE_PAGE).toBe("Pinned by this page");
     expect(ENTITY_KEY_NO_SYNTAX_REASON).toBe(
       "Entity keys have no search syntax.",
+    );
+    // The explorers' reason, which an exceptions pill must never give.
+    expect(ENTITY_KEY_NO_ATTRIBUTES_REASON).toBe(
+      "This resource has no telemetry attributes to search by.",
     );
     expect(INVENTORY_ITEM_FALLBACK_DISPLAY_KEY).toBe("Inventory Item");
   });
@@ -150,17 +183,12 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "exceptions",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY],
-          entityTypeLabel: "Kubernetes Pod",
-        }),
+        lockedDetail: {
+          searchTokenUnavailableReason: "Entity keys have no search syntax.",
+        },
       },
     ]);
-    expect(detailOf(chips[0]!).summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
+    expectExceptionsPillDetail(chips[0]!);
   });
 
   test("the pill is read-only under the entityKeys facet, so the chip bar draws a lock with no remove button and no link", () => {
@@ -178,36 +206,78 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
     expect(chip).not.toHaveProperty("openRoute");
   });
 
-  test("the explanation names exceptions, has no search syntax to copy, and gives the exceptions reason rather than an explorer's", () => {
-    const detail: LockedFilterDetail = detailOf(
-      onlyChip(
-        buildExceptionLockedEntityKeyChips({
-          entityKeysFilter: [POD_KEY],
-          entityKeyDisplays: POD_DISPLAYS,
-        }),
-      ),
+  test("the tooltip has no search syntax to copy, and gives the exceptions reason rather than an explorer's", () => {
+    const chip: ActiveFilter = onlyChip(
+      buildExceptionLockedEntityKeyChips({
+        entityKeysFilter: [POD_KEY],
+        entityKeyDisplays: POD_DISPLAYS,
+      }),
     );
+    const detail: LockedFilterDetail = detailOf(chip);
 
-    expect(detail.summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
-    expect(detail.source).toBe("Pinned by this page");
     /*
      * No token: the chip's own tooltip renders no Copy button, and a
      * keyboard user is not told Enter copies anything.
      */
-    expect(detail).not.toHaveProperty("searchToken");
+    expectExceptionsPillDetail(chip);
     expect(detail.searchTokenUnavailableReason).toBe(
       "Entity keys have no search syntax.",
     );
+    // Not the explorers' reason: exceptions have no search bar at all.
     expect(detail.searchTokenUnavailableReason).not.toBe(
-      "This filter cannot be copied or carried to the explorer.",
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
-    expect(detail.combinator).toBe("all");
-    expect(detail.predicates).toEqual(
-      describeLockedEntityKeyFilter({ rows: "exceptions", entityKey: POD_KEY })
-        .predicates,
+    // The pill carries exactly what the describer decides for exceptions rows.
+    expect(detail).toStrictEqual(
+      describeLockedEntityKeyFilter({ rows: "exceptions" }),
     );
+    /*
+     * The reason is the rows', not the missing attributes': an explorer's
+     * pill, with no attributes either, gets the explorers' reason instead.
+     */
+    expect(describeLockedEntityKeyFilter({ rows: "logs" })).toStrictEqual({
+      searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    });
+  });
+
+  test("an item that names its identifying attributes still gets no search syntax on the exceptions pill", () => {
+    /*
+     * The same display map spells the pill on the Logs, Traces and Metrics
+     * tabs; the exceptions list has nowhere to paste it.
+     */
+    const chip: ActiveFilter = onlyChip(
+      buildExceptionLockedEntityKeyChips({
+        entityKeysFilter: [POD_KEY],
+        entityKeyDisplays: {
+          [POD_KEY]: {
+            displayKey: "Kubernetes Pod",
+            displayValue: "checkout-7d9f",
+            searchAttributes: POD_SEARCH_ATTRIBUTES,
+          },
+        },
+      }),
+    );
+
+    expect(chip.displayKey).toBe("Kubernetes Pod");
+    expect(chip.displayValue).toBe("checkout-7d9f");
+    expectExceptionsPillDetail(chip);
+    expect(
+      describeLockedEntityKeyFilter({
+        rows: "exceptions",
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      }),
+    ).toStrictEqual(EXCEPTIONS_PILL_DETAIL);
+
+    // The attributes are spellable: an explorer's pill would carry them.
+    expect(
+      describeLockedEntityKeyFilter({
+        rows: "logs",
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      }),
+    ).toStrictEqual({
+      searchToken:
+        "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+    });
   });
 
   test("an item without a type reads 'Inventory Item: <name>'", () => {
@@ -223,9 +293,7 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
 
     expect(chip.displayKey).toBe("Inventory Item");
     expect(chip.displayValue).toBe("checkout-7d9f");
-    expect(detailOf(chip).summary).toBe(
-      "Only exceptions linked to this Inventory Item are shown.",
-    );
+    expectExceptionsPillDetail(chip);
   });
 
   test("an item without a name shows its key as the value, still under its type", () => {
@@ -242,9 +310,7 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
 
     expect(chip.displayKey).toBe("Kubernetes Pod");
     expect(chip.displayValue).toBe(POD_KEY);
-    expect(detailOf(chip).summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
+    expectExceptionsPillDetail(chip);
   });
 
   test("a display map built for another item's key does not name this one", () => {
@@ -257,9 +323,7 @@ describe("buildExceptionLockedEntityKeyChips — an Inventory item's Exceptions 
 
     expect(chip.displayKey).toBe("Resource");
     expect(chip.displayValue).toBe(NODE_KEY);
-    expect(detailOf(chip).summary).toBe(
-      "Only exceptions linked to this resource are shown.",
-    );
+    expectExceptionsPillDetail(chip);
   });
 });
 
@@ -276,22 +340,20 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
         displayKey: "Resource",
         displayValue: POD_KEY,
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "exceptions",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY],
-        }),
+        lockedDetail: {
+          searchTokenUnavailableReason: "Entity keys have no search syntax.",
+        },
       },
     ]);
-    expect(detailOf(chips[0]!).summary).toBe(
-      "Only exceptions linked to this resource are shown.",
-    );
+    expectExceptionsPillDetail(chips[0]!);
   });
 
   test("an empty display map, or an explicit undefined one, reads the same", () => {
     const fallback: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY],
     });
+
+    expectExceptionsPillDetail(onlyChip(fallback));
 
     expect(
       buildExceptionLockedEntityKeyChips({
@@ -323,9 +385,7 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
 
       expect(chip.displayKey).toBe("Resource");
       expect(chip.displayValue).toBe(POD_KEY);
-      expect(detailOf(chip).summary).toBe(
-        "Only exceptions linked to this resource are shown.",
-      );
+      expectExceptionsPillDetail(chip);
     },
   );
 
@@ -341,9 +401,7 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
 
     expect(namedOnly.displayKey).toBe("Resource");
     expect(namedOnly.displayValue).toBe("checkout-7d9f");
-    expect(detailOf(namedOnly).summary).toBe(
-      "Only exceptions linked to this resource are shown.",
-    );
+    expectExceptionsPillDetail(namedOnly);
 
     const typedOnly: ActiveFilter = onlyChip(
       buildExceptionLockedEntityKeyChips({
@@ -356,9 +414,7 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
 
     expect(typedOnly.displayKey).toBe("Kubernetes Pod");
     expect(typedOnly.displayValue).toBe(POD_KEY);
-    expect(detailOf(typedOnly).summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
+    expectExceptionsPillDetail(typedOnly);
   });
 
   test("the page's key and name are trimmed before they are shown", () => {
@@ -376,9 +432,7 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
 
     expect(chip.displayKey).toBe("Kubernetes Pod");
     expect(chip.displayValue).toBe("checkout-7d9f");
-    expect(detailOf(chip).summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
+    expectExceptionsPillDetail(chip);
   });
 
   test("a key the display map does not know falls back while the known key keeps its name", () => {
@@ -392,11 +446,15 @@ describe("buildExceptionLockedEntityKeyChips — without a name from the page", 
         return `${chip.displayKey}: ${chip.displayValue}`;
       }),
     ).toEqual(["Kubernetes Pod: checkout-7d9f", `Resource: ${NODE_KEY}`]);
+
+    for (const chip of chips) {
+      expectExceptionsPillDetail(chip);
+    }
   });
 });
 
 describe("buildExceptionLockedEntityKeyChips — several keys, duplicates and blanks", () => {
-  test("one pill per key, in the page's order, each saying the scope widens rather than narrows", () => {
+  test("one pill per key, in the page's order, each with the no-syntax reason", () => {
     const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY],
     });
@@ -404,55 +462,62 @@ describe("buildExceptionLockedEntityKeyChips — several keys, duplicates and bl
     expect(chipValues(chips)).toEqual([POD_KEY, NODE_KEY]);
 
     for (const chip of chips) {
-      expect(detailOf(chip)).toEqual(
-        describeLockedEntityKeyFilter({
-          rows: "exceptions",
-          entityKey: chip.value,
-          entityKeys: [POD_KEY, NODE_KEY],
-        }),
-      );
-      expect(detailOf(chip).summary).toBe(
-        "Exceptions linked to this resource are shown, along with exceptions linked to the 1 other resource this page pins.",
-      );
-      expect(detailOf(chip).searchTokenUnavailableReason).toBe(
-        "Entity keys have no search syntax.",
-      );
+      expectExceptionsPillDetail(chip);
     }
   });
 
-  test("three keys count two other resources", () => {
+  test("three keys build three pills whose detail is exactly a lone key's — no pill depends on how many other keys the page pins", () => {
     const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY, VOLUME_KEY],
     });
 
     expect(chipValues(chips)).toEqual([POD_KEY, NODE_KEY, VOLUME_KEY]);
 
-    for (const chip of chips) {
-      expect(detailOf(chip).summary).toBe(
-        "Exceptions linked to this resource are shown, along with exceptions linked to the 2 other resources this page pins.",
-      );
-    }
-
-    expect(detailOf(chips[2]!).predicates[0]!.expression).toBe(
-      `entityKeys has any of ${VOLUME_KEY}, ${POD_KEY}, ${NODE_KEY}`,
+    const loneVolume: ActiveFilter = onlyChip(
+      buildExceptionLockedEntityKeyChips({ entityKeysFilter: [VOLUME_KEY] }),
     );
+
+    expect(chips[2]).toEqual(loneVolume);
+
+    for (const chip of chips) {
+      expectExceptionsPillDetail(chip);
+      expect(detailOf(chip)).toStrictEqual(detailOf(loneVolume));
+    }
   });
 
-  test("a named key keeps its type in the widened wording; an unnamed one says resource", () => {
+  test("side by side, a named key keeps its type and name, an unnamed one reads 'Resource: <key>', and both carry the same reason", () => {
     const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter: [POD_KEY, NODE_KEY],
       entityKeyDisplays: POD_DISPLAYS,
     });
 
-    expect(detailOf(chips[0]!).summary).toBe(
-      "Exceptions linked to this Kubernetes Pod are shown, along with exceptions linked to the 1 other resource this page pins.",
-    );
-    expect(detailOf(chips[1]!).summary).toBe(
-      "Exceptions linked to this resource are shown, along with exceptions linked to the 1 other resource this page pins.",
-    );
+    expect(chips).toEqual([
+      {
+        facetKey: "entityKeys",
+        value: POD_KEY,
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout-7d9f",
+        readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: "Entity keys have no search syntax.",
+        },
+      },
+      {
+        facetKey: "entityKeys",
+        value: NODE_KEY,
+        displayKey: "Resource",
+        displayValue: NODE_KEY,
+        readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: "Entity keys have no search syntax.",
+        },
+      },
+    ]);
+    expectExceptionsPillDetail(chips[0]!);
+    expectExceptionsPillDetail(chips[1]!);
   });
 
-  test("duplicates and whitespace collapse to one pill, and a duplicate never counts as another resource", () => {
+  test("duplicates and whitespace collapse to one pill that reads exactly like a lone key's", () => {
     const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter: [` ${POD_KEY} `, POD_KEY, "", "   ", `${POD_KEY}\t`],
       entityKeyDisplays: POD_DISPLAYS,
@@ -464,9 +529,7 @@ describe("buildExceptionLockedEntityKeyChips — several keys, duplicates and bl
         entityKeyDisplays: POD_DISPLAYS,
       }),
     );
-    expect(detailOf(onlyChip(chips)).summary).toBe(
-      "Only exceptions linked to this Kubernetes Pod are shown.",
-    );
+    expectExceptionsPillDetail(onlyChip(chips));
   });
 
   test("the first spelling of a key decides its place in the row", () => {
@@ -475,6 +538,10 @@ describe("buildExceptionLockedEntityKeyChips — several keys, duplicates and bl
     });
 
     expect(chipValues(chips)).toEqual([NODE_KEY, POD_KEY, VOLUME_KEY]);
+
+    for (const chip of chips) {
+      expectExceptionsPillDetail(chip);
+    }
   });
 
   test.each([
@@ -506,11 +573,26 @@ describe("buildExceptionLockedEntityKeyChips — several keys, duplicates and bl
     const displaysBefore: string = JSON.stringify(entityKeyDisplays);
     const storedBefore: string = JSON.stringify(storedScopeChips);
 
-    buildExceptionLockedEntityKeyChips({
+    const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
       entityKeysFilter,
       entityKeyDisplays,
       storedScopeChips,
     });
+
+    // The stored chip shows NODE_KEY already; the pod pill reads trimmed.
+    expect(chips).toEqual([
+      {
+        facetKey: "entityKeys",
+        value: POD_KEY,
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout",
+        readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: "Entity keys have no search syntax.",
+        },
+      },
+    ]);
+    expectExceptionsPillDetail(chips[0]!);
 
     expect(entityKeysFilter).toEqual(keysBefore);
     expect(JSON.stringify(entityKeyDisplays)).toBe(displaysBefore);
@@ -537,11 +619,16 @@ describe("buildExceptionLockedEntityKeyChips — the pill names exactly what the
         })
         .sort();
 
-      const pills: Array<string> = chipValues(
-        buildExceptionLockedEntityKeyChips({ entityKeysFilter }),
-      ).sort();
+      const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
+        entityKeysFilter,
+      });
+      const pills: Array<string> = chipValues(chips).sort();
 
       expect(pills).toEqual(filtered);
+
+      for (const chip of chips) {
+        expectExceptionsPillDetail(chip);
+      }
     },
   );
 
@@ -594,6 +681,7 @@ describe("buildExceptionLockedEntityKeyChips — stored query scopes (the entity
     });
 
     expect(chipValues(chips)).toEqual([NODE_KEY]);
+    expectExceptionsPillDetail(onlyChip(chips));
 
     const lockedRow: Array<ExceptionEntityChipRef> = [
       ...chips,
@@ -604,7 +692,7 @@ describe("buildExceptionLockedEntityKeyChips — stored query scopes (the entity
     expect(new Set<string>(keys).size).toBe(keys.length);
   });
 
-  test("a host scoped only by its stored query gets no extra pill — its own chip already explains the scope", () => {
+  test("a host scoped only by its stored query gets no extra pill — its own chip already shows the scope", () => {
     const storedScope: ExceptionQueryScope = buildExceptionQueryScope(
       STORED_ENTITY_KEY_QUERY,
     );
@@ -634,6 +722,7 @@ describe("buildExceptionLockedEntityKeyChips — stored query scopes (the entity
     });
 
     expect(chipValues(chips)).toEqual([POD_KEY]);
+    expectExceptionsPillDetail(onlyChip(chips));
   });
 
   test("a stored key with stray whitespace still suppresses the same page key", () => {
@@ -652,18 +741,21 @@ describe("buildExceptionLockedEntityKeyChips — stored query scopes (the entity
     });
 
     expect(storedScope.chips.length).toBeGreaterThan(0);
-    expect(
-      buildExceptionLockedEntityKeyChips({
-        entityKeysFilter: [POD_KEY],
-        entityKeyDisplays: POD_DISPLAYS,
-        storedScopeChips: storedScope.chips,
-      }),
-    ).toEqual(
+
+    const chips: Array<ActiveFilter> = buildExceptionLockedEntityKeyChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+      storedScopeChips: storedScope.chips,
+    });
+
+    expect(chips).toEqual(
       buildExceptionLockedEntityKeyChips({
         entityKeysFilter: [POD_KEY],
         entityKeyDisplays: POD_DISPLAYS,
       }),
     );
+    // The stored chips beside it leave the pill's detail exactly as it was.
+    expectExceptionsPillDetail(onlyChip(chips));
   });
 });
 
@@ -746,15 +838,18 @@ describe("buildExceptionLockedEntityKeyChips — display only", () => {
     expect(withPill.visibleKeys).not.toContain("entityKeys");
   });
 
-  test("with no facet keyed entityKeys, the display resolver would hand a pill back unchanged", () => {
+  test("with no facet keyed entityKeys, the display resolver would hand a pill back unchanged, its no-syntax reason included", () => {
+    expect(PILLS).toHaveLength(2);
+
     for (const pill of PILLS) {
-      expect(
-        resolveExceptionChipDisplay({
-          chip: pill,
-          config: undefined,
-          entityNames: undefined,
-        }),
-      ).toEqual(pill);
+      const resolved: ActiveFilter = resolveExceptionChipDisplay({
+        chip: pill,
+        config: undefined,
+        entityNames: undefined,
+      });
+
+      expect(resolved).toEqual(pill);
+      expectExceptionsPillDetail(resolved);
     }
   });
 });

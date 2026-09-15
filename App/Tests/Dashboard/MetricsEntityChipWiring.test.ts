@@ -106,10 +106,9 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
 
     expect(callStart).toBeGreaterThanOrEqual(0);
 
-    const call: string = METRICS_VIEWER.slice(
-      callStart,
-      METRICS_VIEWER.indexOf("})", callStart) + "})".length,
-    );
+    const callEnd: number =
+      METRICS_VIEWER.indexOf("})", callStart) + "})".length;
+    const call: string = METRICS_VIEWER.slice(callStart, callEnd);
 
     for (const argument of [
       "scopeIds: props.serviceIds,",
@@ -117,22 +116,53 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
       "attributeFilters: props.attributeFilters,",
       "attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,",
       "attributeFilterDisplayValues: props.attributeFilterDisplayValues,",
-      "entityScope: props.entityScope,",
+      "entityKeysFilter: props.entityKeysFilter,",
+      "entityKeyDisplays: props.entityKeyDisplays,",
       "activeFilters,",
       "facetConfigs,",
       "nameMap: entityNameMap,",
     ]) {
       expect(call).toContain(argument);
     }
-    // Every input is a memo dependency, so a late name re-renders the chip.
+    /*
+     * The entity scope is not a chip input: its attribute chip already
+     * stands for it, and the chip's search syntax depends only on that
+     * attribute's key and value.
+     */
+    expect(call).not.toContain("entityScope");
+    // The prop still narrows the metric list itself.
+    expect(METRICS_VIEWER).toContain(
+      "const entityScope: EntityScopeFilter | undefined = props.entityScope;",
+    );
+    expect(METRICS_VIEWER).toContain(
+      '(analyticsQuery as Record<string, unknown>)["entityScope"] = entityScope;',
+    );
+
+    // Every input is a dependency of this memo, so a late name re-renders.
+    const depsStart: number = METRICS_VIEWER.indexOf("}, [", callEnd);
+
+    expect(depsStart).toBeGreaterThanOrEqual(callEnd);
+
+    const dependencies: string = METRICS_VIEWER.slice(
+      depsStart,
+      METRICS_VIEWER.indexOf("]);", depsStart) + "]);".length,
+    );
+
     for (const dependency of [
+      "props.serviceIds,",
       "props.scopeEntityType,",
+      "props.attributeFilters,",
+      "props.attributeFilterDisplayKeys,",
       "props.attributeFilterDisplayValues,",
-      "props.entityScope,",
+      "props.entityKeysFilter,",
+      "props.entityKeyDisplays,",
+      "activeFilters,",
+      "facetConfigs,",
       "entityNameMap,",
     ]) {
-      expect(METRICS_VIEWER).toContain(dependency);
+      expect(dependencies).toContain(dependency);
     }
+    expect(dependencies).not.toContain("props.entityScope");
   });
 
   test("the scope chip no longer hard-codes a Service key or a raw id value", () => {

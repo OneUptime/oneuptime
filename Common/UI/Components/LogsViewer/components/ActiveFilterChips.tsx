@@ -5,9 +5,6 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import { formatDictionaryValueForDisplay } from "../../Dictionary/DictionaryFilterOperator";
 import LockedFilterChip from "../../TelemetryViewer/components/LockedFilterChip";
-import LockedFilterActions, {
-  LockedFilterActionOptions,
-} from "../../TelemetryViewer/components/LockedFilterActions";
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 
 export interface ActiveFilterChipsProps {
@@ -16,15 +13,10 @@ export interface ActiveFilterChipsProps {
   onClearAll: () => void;
   /*
    * Which explorer the read-only chips belong to — names the explorer in the
-   * locked chips' tooltips and in the "Copy filter" / "Open in …" actions.
-   * Defaults to logs, the only signal this list renders.
+   * locked chips' tooltips. Defaults to logs, the only signal this list
+   * renders.
    */
   signal?: TelemetrySignal | undefined;
-  /*
-   * How the host reproduces its locked scope elsewhere. Rendered after the
-   * read-only chips; nothing is rendered when neither field is set.
-   */
-  lockedFilterActions?: LockedFilterActionOptions | undefined;
 }
 
 /*
@@ -107,9 +99,6 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           />
         );
       })}
-      {readOnlyFilters.length > 0 && props.lockedFilterActions && (
-        <LockedFilterActions signal={signal} {...props.lockedFilterActions} />
-      )}
       {removableFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `${filter.facetKey}:${chipText(filter.value)}`;
         return (

@@ -388,18 +388,18 @@ describe("the pill is display only", () => {
     expect(requestedFacetKeys).not.toContain("entityKeys");
   });
 
-  test("the viewer offers no Copy filter / Open in actions, so an entity-key-only scope cannot render an empty Copy button", () => {
+  test("the viewer names no explorer signal, since exceptions have no search bar a pill's syntax could be pasted into", () => {
     /*
      * The JSX element cannot be sliced by brace balancing (its props hold
      * arrow functions and nested elements), so the region is positional:
      * from the element to the end of the component. "exceptions" is not a
-     * TelemetrySignal, and the pill has no search token to copy and no
-     * explorer that could carry it.
+     * TelemetrySignal, and the pill has no search token for its tooltip to
+     * offer.
      *
      * What the shared chip bar does with a read-only chip (no remove button,
-     * actions only with a signal and options) is Common's, pinned in
-     * Common/Tests/UI/Components/TelemetryActiveFilterChipsLockedFilters.test.tsx
-     * and LockedFilterActions.test.tsx.
+     * a tooltip naming the explorer only when given a signal) is Common's,
+     * pinned in
+     * Common/Tests/UI/Components/TelemetryActiveFilterChipsLockedFilters.test.tsx.
      */
     const elementStart: number = EXCEPTIONS_VIEWER.indexOf(
       "<TelemetryViewer<TelemetryException>",
@@ -414,7 +414,19 @@ describe("the pill is display only", () => {
     const element: string = EXCEPTIONS_VIEWER.slice(elementStart, componentEnd);
 
     expect(element).toContain("activeFilters={mergedActiveFilters}");
-    expect(element).not.toContain("lockedFilterActions=");
     expect(element).not.toContain("lockedFilterSignal=");
+  });
+
+  test("the viewer builds no actions for the locked scope, and imports nothing that would", () => {
+    for (const removed of [
+      "lockedFilterActions",
+      "LockedFilterActions",
+      "buildLockedScopeFilterActions",
+      "LockedTelemetryScopeLink",
+    ]) {
+      expect({ removed, present: EXCEPTIONS_VIEWER.includes(removed) }).toEqual(
+        { removed, present: false },
+      );
+    }
   });
 });

@@ -11,7 +11,7 @@ import {
  * Logs / Traces / Metrics / Exceptions / Profiles pages were missing.
  *
  * A Kubernetes cluster's pages scope by resource attribute AND entity key,
- * and the attribute chip ("Cluster: prod") already explains both halves. An
+ * and the attribute chip ("Cluster: prod") already stands for both. An
  * Inventory item has no attribute counterpart: its pages scope by
  * `hasAny(entityKeys, [item key])` alone, and the viewers built chips only
  * from attributes, entity ids and trace / span / session ids — so the list
@@ -27,6 +27,13 @@ export interface LockedEntityKeyDisplay {
   displayKey: string;
   /** The chip's value: its name, e.g. "checkout-7d9f". */
   displayValue: string;
+  /*
+   * The OpenTelemetry resource attributes that identify the entity, keys
+   * without the `resource.` prefix — `{ "k8s.pod.name": "checkout-7d9f", ... }`.
+   * The chip's search syntax is spelled with these, since no search bar
+   * understands an entity key. Absent when the page does not know them.
+   */
+  searchAttributes?: Record<string, string> | undefined;
 }
 
 /** Per entity key, how its chip reads. A key without an entry falls back. */
@@ -101,13 +108,6 @@ export interface BuildLockedEntityKeyChipsInput {
    * chip list keys its pills by facet and value).
    */
   skipEntityKeys?: ReadonlyArray<string> | undefined;
-  /*
-   * Who pinned the keys: the page (the default) or the stored query the view
-   * was opened with. The logs viewer reads its keys from `logQuery`, which a
-   * log monitor's incident snapshot fills from the monitor's stored query, so
-   * the chip must not claim the page pinned them.
-   */
-  source?: string | undefined;
 }
 
 type BuildLockedEntityKeyChipsFunction = (
@@ -117,8 +117,9 @@ type BuildLockedEntityKeyChipsFunction = (
 /**
  * One read-only chip per entity key, named by the page when it can
  * ("Kubernetes Pod: checkout-7d9f") and by the raw key otherwise
- * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its explanation. The filter
- * itself is the host's: nothing here reaches the query.
+ * ("Resource: 3f9a1b2c4d5e6f70"), each carrying its search syntax when the
+ * page named the entity's identifying attributes, and the reason it has none
+ * otherwise. The filter itself is the host's: nothing here reaches the query.
  */
 export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
   input: BuildLockedEntityKeyChipsInput,
@@ -150,10 +151,7 @@ export const buildLockedEntityKeyChips: BuildLockedEntityKeyChipsFunction = (
       readOnly: true,
       lockedDetail: describeLockedEntityKeyFilter({
         rows: input.rows,
-        entityKey,
-        entityKeys,
-        entityTypeLabel: displayKey || undefined,
-        source: input.source,
+        searchAttributes: display?.searchAttributes,
       }),
     });
   }
