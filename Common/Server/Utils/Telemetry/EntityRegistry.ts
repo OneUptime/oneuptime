@@ -76,6 +76,14 @@ export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.VMwareHost, 2000],
   [EntityType.VMwareVirtualMachine, 10000],
   [EntityType.VMwareDatastore, 2000],
+  /*
+   * Dependency endpoints inferred from client spans. One row per database /
+   * remote host a project's services call, so the realistic count is small;
+   * the budget exists for the pathological producer that puts a per-request
+   * hostname in `server.address`.
+   */
+  [EntityType.Database, 2000],
+  [EntityType.RemoteService, 2000],
 ]);
 
 // For types not in the map (future promotions of high-churn types).

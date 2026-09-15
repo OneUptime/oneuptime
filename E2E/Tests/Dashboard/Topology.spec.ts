@@ -53,12 +53,16 @@ test.describe("Topology page", () => {
       timeout: 30000,
     });
 
-    await page.getByText("Current inventory · About this data").click();
+    await page.getByText("What is shown · About this data").click();
     await expect(
-      page.getByText("All current inventory resources are included.", {
-        exact: false,
-      }),
+      page.getByText(
+        "Resources and services that reported in the selected range",
+        {
+          exact: false,
+        },
+      ),
     ).toBeVisible();
+    await expect(page.getByTestId("topology-show-inactive")).not.toBeChecked();
 
     // Infrastructure tab: its own empty state.
     await page.getByRole("tab", { name: "Infrastructure" }).click();

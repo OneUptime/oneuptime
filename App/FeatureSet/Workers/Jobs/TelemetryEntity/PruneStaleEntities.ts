@@ -64,6 +64,14 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.VMwareHost, 7 * 24],
   [EntityType.VMwareCluster, 7 * 24],
   [EntityType.VMwareDatastore, 7 * 24],
+  /*
+   * Dependency endpoints inferred from client spans. Re-bumped every
+   * ComputeServiceDependencies run while any service still calls them, so a
+   * week of silence means the dependency is gone (a migrated database, a
+   * retired third-party API) — weekly like the other mid-churn types.
+   */
+  [EntityType.Database, 7 * 24],
+  [EntityType.RemoteService, 7 * 24],
   [EntityType.TelemetrySdk, 30 * 24],
   [EntityType.Service, 30 * 24],
   [EntityType.Host, 30 * 24],

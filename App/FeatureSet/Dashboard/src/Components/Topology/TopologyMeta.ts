@@ -64,6 +64,12 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   [EntityType.DockerSwarmTask]: { label: "Swarm Task", color: "#22d3ee" },
   [EntityType.TelemetrySdk]: { label: "Telemetry SDK", color: "#94a3b8" },
   /*
+   * Dependencies discovered from client spans: a database in violet, a remote
+   * endpoint in slate-teal — both clearly "not one of your services".
+   */
+  [EntityType.Database]: { label: "Database", color: "#7c3aed" },
+  [EntityType.RemoteService]: { label: "Remote Service", color: "#0f766e" },
+  /*
    * Inventory-mirrored types. Greens, to read as one family distinct from the
    * telemetry-derived types above — on the graph these are things OneUptime
    * polls rather than things that report in.
@@ -125,20 +131,27 @@ export function labelForRelationship(
 }
 
 /*
- * Traffic-health thresholds shared by edges and service nodes: no errors
- * is healthy, under 5% is degraded, 5%+ is critical.
+ * Traffic-health thresholds shared by edges and service nodes: an error rate
+ * at or below the tolerated rate is healthy, under 5% is degraded, 5%+ is
+ * critical. A single trace tolerates nothing (one failed call in it matters);
+ * a project-wide window tolerates SERVICE_MAP_TOLERATED_ERROR_RATE, because at
+ * volume nearly every busy connection has *some* errors and painting all of
+ * them amber leaves nothing that stands out.
  */
 export type TrafficHealth = "healthy" | "degraded" | "critical" | "unknown";
+
+export const SERVICE_MAP_TOLERATED_ERROR_RATE: number = 0.01;
 
 export function healthForErrorRate(
   callCount: number | undefined,
   errorCount: number | undefined,
+  toleratedErrorRate: number = 0,
 ): TrafficHealth {
   if (!callCount || callCount <= 0) {
     return "unknown";
   }
   const rate: number = (errorCount || 0) / callCount;
-  if (rate <= 0) {
+  if (rate <= toleratedErrorRate && rate < 0.05) {
     return "healthy";
   }
   if (rate < 0.05) {

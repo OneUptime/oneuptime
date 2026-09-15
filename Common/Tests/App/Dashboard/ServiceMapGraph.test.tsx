@@ -21,10 +21,18 @@ import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
+import EntitySource from "../../../Types/Telemetry/EntitySource";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { ServiceOperationalStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 import ServiceMapGraph from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/ServiceMapGraph";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * The Service Map component: what a person sees first, how they narrow it
+ * down, and how they get to details. Graph drawing itself (React Flow) is
+ * replaced by a stand-in that renders nodes and edges as buttons, so these
+ * tests exercise the component's decisions, not the canvas.
+ */
 
 const mockFitView: MockFunction = getJestMockFunction();
 mockFitView.mockReturnValue(true);
@@ -93,6 +101,7 @@ jest.mock(
       __esModule: true,
       default: (props: {
         entity: InventoryItem;
+        traffic?: { statusLabel: string; subtitle: string };
         onClose: () => void;
         onFocus: (key: string) => void;
         onSelectEntity?: (key: string) => void;
@@ -100,6 +109,8 @@ jest.mock(
         return (
           <div role="dialog" aria-label="Service details">
             <p>{props.entity.displayName}</p>
+            <p data-testid="drawer-status">{props.traffic?.statusLabel}</p>
+            <p data-testid="drawer-subtitle">{props.traffic?.subtitle}</p>
             <button onClick={props.onClose}>Close service</button>
             <button
               onClick={() => {
@@ -110,10 +121,17 @@ jest.mock(
             </button>
             <button
               onClick={() => {
-                props.onSelectEntity?.("db");
+                props.onSelectEntity?.("postgres");
               }}
             >
-              View related service
+              View related dependency
+            </button>
+            <button
+              onClick={() => {
+                props.onSelectEntity?.("pod-1");
+              }}
+            >
+              View placement
             </button>
           </div>
         );
@@ -126,9 +144,16 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { onClose: () => void }) => {
+      default: (props: {
+        onClose: () => void;
+        fromEntity: InventoryItem;
+        toEntity: InventoryItem;
+      }) => {
         return (
           <div role="dialog" aria-label="Connection details">
+            <p>
+              {props.fromEntity.displayName} → {props.toEntity.displayName}
+            </p>
             <button onClick={props.onClose}>Close connection</button>
           </div>
         );
@@ -150,13 +175,19 @@ jest.mock("reactflow", () => {
     Handle: () => {
       return null;
     },
-    Position: { Top: "top", Bottom: "bottom" },
+    Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
     default: (props: {
-      nodes: Array<{ id: string; data: { label: string; dimmed: boolean } }>;
+      nodes: Array<{
+        id: string;
+        position: { x: number; y: number };
+        data: { label: string; dimmed: boolean; footer?: string };
+      }>;
       edges: Array<{ id: string; label?: string; animated?: boolean }>;
       onInit: (value: unknown) => void;
       onNodeClick: (event: React.MouseEvent, node: unknown) => void;
       onEdgeClick: (event: React.MouseEvent, edge: unknown) => void;
+      onEdgeMouseEnter: (event: React.MouseEvent, edge: unknown) => void;
+      onEdgeMouseLeave: () => void;
     }) => {
       React.useEffect(() => {
         props.onInit({ fitView: mockFitView });
@@ -166,13 +197,16 @@ jest.mock("reactflow", () => {
           {props.nodes.map(
             (node: {
               id: string;
-              data: { label: string; dimmed: boolean };
+              position: { x: number; y: number };
+              data: { label: string; dimmed: boolean; footer?: string };
             }) => {
               return (
                 <button
                   key={node.id}
                   data-testid={`map-node-${node.id}`}
                   data-context={String(node.data.dimmed)}
+                  data-x={String(node.position.x)}
+                  data-footer={node.data.footer || ""}
                   onClick={(event: React.MouseEvent) => {
                     props.onNodeClick(event, node);
                   }}
@@ -192,6 +226,12 @@ jest.mock("reactflow", () => {
                   onClick={(event: React.MouseEvent) => {
                     props.onEdgeClick(event, edge);
                   }}
+                  onMouseEnter={(event: React.MouseEvent) => {
+                    props.onEdgeMouseEnter(event, edge);
+                  }}
+                  onMouseLeave={() => {
+                    props.onEdgeMouseLeave();
+                  }}
                 >
                   {edge.label || "Connection"}
                 </button>
@@ -204,52 +244,79 @@ jest.mock("reactflow", () => {
   };
 });
 
-const SERVICES: Array<InventoryItem> = [
-  "web",
-  "api",
-  "db",
-  "archive",
-  "worker",
-].map((key: string) => {
+const NOW: Date = new Date("2026-09-07T10:00:00Z");
+const RANGE_START: Date = new Date("2026-09-06T10:00:00Z");
+
+function item(
+  key: string,
+  type: EntityType,
+  overrides: Partial<InventoryItem> = {},
+): InventoryItem {
   return {
     entityKey: key,
     displayName: key,
-    entityType: EntityType.Service,
+    entityType: type,
+    source: EntitySource.Discovered,
+    lastSeenAt: NOW,
+    ...overrides,
   } as InventoryItem;
-});
+}
+
 function edge(
   from: string,
   to: string,
-  calls: number,
-  errors: number,
+  calls?: number,
+  errors?: number,
+  type: EntityRelationshipType = EntityRelationshipType.DependsOn,
 ): InventoryItemRelationship {
   return {
     fromEntityKey: from,
     toEntityKey: to,
-    relationshipType: EntityRelationshipType.DependsOn,
+    relationshipType: type,
     callCount: calls,
     errorCount: errors,
-    avgDurationMs: 25,
+    avgDurationMs: calls === undefined ? undefined : 25,
   } as InventoryItemRelationship;
 }
+
+const ENTITIES: Array<InventoryItem> = [
+  item("web", EntityType.Service),
+  item("api", EntityType.Service),
+  item("worker", EntityType.Service),
+  item("postgres", EntityType.Database, {
+    descriptiveAttributes: { "db.system.name": "postgresql" },
+  }),
+  item("pod-1", EntityType.KubernetesPod),
+  item("legacy", EntityType.Service, {
+    lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+  }),
+];
+
 const RELATIONSHIPS: Array<InventoryItemRelationship> = [
-  edge("web", "api", 100, 6),
-  edge("api", "db", 100, 0),
-  edge("db", "archive", 100, 0),
+  edge("web", "api", 600, 60),
+  edge("api", "postgres", 900, 0),
+  edge("api", "pod-1", undefined, undefined, EntityRelationshipType.RunsOn),
 ];
 
 async function renderGraph(
-  entities: Array<InventoryItem> = SERVICES,
-  relationships: Array<InventoryItemRelationship> = RELATIONSHIPS,
+  options: {
+    entities?: Array<InventoryItem>;
+    relationships?: Array<InventoryItemRelationship>;
+    includeInactive?: boolean;
+    onOpenInfrastructure?: (key: string) => void;
+  } = {},
 ): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
         <ServiceMapGraph
-          entities={entities}
-          relationships={relationships}
+          entities={options.entities || ENTITIES}
+          relationships={options.relationships || RELATIONSHIPS}
           metricsWindowSeconds={60}
-          timeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+          timeRange={{ range: TimeRange.PAST_ONE_DAY }}
+          rangeStart={RANGE_START}
+          includeInactive={options.includeInactive}
+          onOpenInfrastructure={options.onOpenInfrastructure}
         />
       </MemoryRouter>,
     );
@@ -267,145 +334,171 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("service directory interactions", () => {
-  const largeCatalog: Array<InventoryItem> = Array.from(
-    { length: 1000 },
-    (_value: unknown, index: number) => {
-      const key: string = `service-${String(index).padStart(4, "0")}`;
-      return {
-        entityKey: key,
-        displayName: key,
-        entityType: EntityType.Service,
-      } as InventoryItem;
-    },
-  );
-
-  test("large catalogs render 40 services per page with working navigation", async () => {
-    await renderGraph(largeCatalog, []);
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(40);
-    expect(screen.getByTestId("service-map-pagination")).toHaveTextContent(
-      "Showing 1–40 of 1000 services",
-    );
-    expect(
-      screen.getByRole("button", { name: "Previous service page" }),
-    ).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Next service page" }));
-    expect(screen.getByTestId("service-map-pagination")).toHaveTextContent(
-      "Showing 41–80 of 1000 services",
-    );
-    expect(
-      screen.getByRole("button", { name: "service-0040", exact: true }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "service-0000", exact: true }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Previous service page" }),
-    );
-    expect(
-      screen.getByRole("button", { name: "service-0000", exact: true }),
-    ).toBeInTheDocument();
-  });
-
-  test("search finds services beyond the current page and resets pagination", async () => {
-    await renderGraph(largeCatalog, []);
-    fireEvent.click(screen.getByRole("button", { name: "Next service page" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
-      target: { value: "0999" },
-    });
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: "service-0999", exact: true }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("service-map-pagination"),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("service-map-reset-filters"));
-    expect(screen.getByTestId("service-map-pagination")).toHaveTextContent(
-      "Showing 1–40 of 1000 services",
-    );
-  });
-
-  test("connection navigation in the drawer selects the related service", async () => {
-    await renderGraph();
-    fireEvent.click(screen.getByRole("button", { name: "api", exact: true }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "View related service" }),
-    );
-    expect(
-      screen.getByRole("dialog", { name: "Service details" }),
-    ).toHaveTextContent("db");
-  });
-  test("a fresh project explains how to discover services and provides setup documentation", async () => {
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <ServiceMapGraph
-            entities={[]}
-            relationships={[]}
-            metricsWindowSeconds={60}
-            timeRange={{ range: TimeRange.PAST_ONE_HOUR }}
-          />
-        </MemoryRouter>,
-      );
-    });
+describe("first impression", () => {
+  test("a fresh project explains how to discover services", async () => {
+    await renderGraph({ entities: [], relationships: [] });
     expect(screen.getByText("No services discovered yet")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /View telemetry setup documentation/ }),
     ).toHaveAttribute("href");
-    expect(screen.queryByTestId("service-map-list")).not.toBeInTheDocument();
   });
 
-  test("operational incidents are included in attention and take precedence over traffic status", async () => {
-    mockStatuses.set("worker", {
-      serviceId: "worker-id",
-      activeIncidentCount: 2,
-      worstIncidentSeverityName: "Critical",
-      worstIncidentSeverityColor: "#dc2626",
-      incidents: [],
-      activeAlertCount: 1,
-      worstAlertSeverityName: "Warning",
-      worstAlertSeverityColor: "#f59e0b",
-      alerts: [],
-    });
+  test("opens on the map, drawing services and the databases they call", async () => {
     await renderGraph();
-    fireEvent.click(screen.getByTestId("service-map-attention-filter"));
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(2);
-    expect(screen.getByText("2 active incidents")).toBeInTheDocument();
-  });
-
-  test("starts with a readable list and summary instead of a miniature graph", async () => {
-    await renderGraph();
-    expect(screen.getByTestId("service-map-view-list")).toHaveAttribute(
+    expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(5);
-    expect(screen.queryByTestId("service-map-canvas")).not.toBeInTheDocument();
-    expect(screen.getByTestId("service-map-summary")).toHaveTextContent(
-      "Without connections",
-    );
-    expect(screen.getAllByTestId("service-map-list-row")[0]).toHaveTextContent(
-      "api",
-    );
-    expect(screen.getByTestId("service-map-result-count")).toHaveTextContent(
-      "5 of 5 services",
+    expect(screen.getByTestId("map-node-web")).toBeInTheDocument();
+    expect(screen.getByTestId("map-node-api")).toBeInTheDocument();
+    expect(screen.getByTestId("map-node-postgres")).toBeInTheDocument();
+    expect(screen.queryByTestId("map-node-pod-1")).not.toBeInTheDocument();
+    // Callers sit left of what they call.
+    expect(
+      Number(screen.getByTestId("map-node-web").getAttribute("data-x")),
+    ).toBeLessThan(
+      Number(screen.getByTestId("map-node-api").getAttribute("data-x")),
     );
   });
 
-  test("search removes unrelated list rows and reports result count", async () => {
+  test("summarizes services, dependencies, connections and attention", async () => {
+    await renderGraph();
+    const summary: HTMLElement = screen.getByTestId("service-map-summary");
+    expect(summary).toHaveTextContent("Services3");
+    expect(summary).toHaveTextContent("1 inactive not shown");
+    expect(summary).toHaveTextContent("Dependencies1");
+    expect(summary).toHaveTextContent("Connections2");
+    expect(summary).toHaveTextContent("Need attention1");
+  });
+
+  test("services with no calls are listed beside the map, not scattered on it", async () => {
+    await renderGraph();
+    expect(screen.queryByTestId("map-node-worker")).not.toBeInTheDocument();
+    const tray: HTMLElement = screen.getByTestId("service-map-unconnected");
+    expect(tray).toHaveTextContent("Not connected to anything in this view");
+    fireEvent.click(within(tray).getByRole("button", { name: /worker/ }));
+    expect(
+      screen.getByRole("dialog", { name: "Service details" }),
+    ).toHaveTextContent("worker");
+    expect(screen.getByTestId("drawer-status")).toHaveTextContent(
+      "No calls observed",
+    );
+  });
+
+  test("where a service runs is part of its card", async () => {
+    await renderGraph();
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-footer",
+      "Runs on 1 pod",
+    );
+    expect(screen.getByTestId("map-node-postgres")).toHaveAttribute(
+      "data-footer",
+      "Called by 1 service",
+    );
+  });
+});
+
+describe("a project with services but no observed calls", () => {
+  const entities: Array<InventoryItem> = [
+    item("dashboard", EntityType.Service),
+    item("probe", EntityType.Service),
+  ];
+
+  test("explains how calls are discovered and still lists every service", async () => {
+    await renderGraph({ entities, relationships: [] });
+    const explainer: HTMLElement = screen.getByTestId(
+      "service-map-no-connections",
+    );
+    expect(explainer).toHaveTextContent(
+      "No calls between services in this time range",
+    );
+    expect(explainer).toHaveTextContent("traceparent");
+    expect(explainer).toHaveTextContent("db.system.name");
+    expect(explainer).toHaveTextContent("eBPF");
+    expect(
+      within(explainer).getByRole("link", { name: /Set up tracing/ }),
+    ).toHaveAttribute("href");
+    expect(screen.getAllByTestId("service-map-unconnected-item")).toHaveLength(
+      2,
+    );
+    expect(screen.queryByTestId("service-map-canvas")).not.toBeInTheDocument();
+  });
+});
+
+describe("activity", () => {
+  test("show inactive brings back services that did not report", async () => {
+    await renderGraph({ includeInactive: true });
+    expect(screen.getByTestId("service-map-summary")).toHaveTextContent(
+      "Services4",
+    );
+    expect(
+      within(screen.getByTestId("service-map-unconnected")).getByRole(
+        "button",
+        { name: /legacy/ },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("when nothing reported at all, says so instead of showing an empty map", async () => {
+    await renderGraph({
+      entities: [
+        item("legacy", EntityType.Service, {
+          lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+        }),
+      ],
+      relationships: [],
+    });
+    expect(screen.getByTestId("service-map-no-results")).toHaveTextContent(
+      "No service reported in the selected time range",
+    );
+  });
+});
+
+describe("narrowing the map", () => {
+  test("search keeps matches and dims their neighbours as context", async () => {
     await renderGraph();
     fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
-      target: { value: "API" },
+      target: { value: "postgres" },
     });
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
-    expect(screen.getByTestId("service-map-list-row")).toHaveTextContent("api");
+    expect(screen.getByTestId("map-node-postgres")).toHaveAttribute(
+      "data-context",
+      "false",
+    );
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-context",
+      "true",
+    );
+    expect(screen.queryByTestId("map-node-web")).not.toBeInTheDocument();
     expect(screen.getByTestId("service-map-result-count")).toHaveTextContent(
-      "1 of 5 services",
+      "1 of 4 items · 1 connected for context",
     );
   });
 
-  test("search updates the shareable URL once typing pauses", async () => {
+  test("a search miss offers a way back", async () => {
+    await renderGraph();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
+      target: { value: "missing" },
+    });
+    expect(
+      screen.getByText("No services match your filters"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByTestId("map-node-web")).toBeInTheDocument();
+  });
+
+  test("needs attention keeps only the services with trouble", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("service-map-attention-filter"));
+    fireEvent.click(screen.getByTestId("service-map-view-list"));
+    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
+    expect(screen.getByTestId("service-map-list-row")).toHaveTextContent(
+      "High error rate",
+    );
+    fireEvent.click(screen.getByTestId("service-map-reset-filters"));
+    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(4);
+  });
+
+  test("search reaches the URL once typing pauses, and never after unmount", async () => {
     jest.useFakeTimers();
     await renderGraph();
     const search: HTMLElement = screen.getByRole("textbox", {
@@ -419,173 +512,41 @@ describe("service directory interactions", () => {
     });
     expect(window.location.search).toContain("search=api");
     expect(mockSetQuery).toHaveBeenCalledTimes(1);
-  });
 
-  test("a search miss gives a clear recovery action", async () => {
-    await renderGraph();
-    fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
-      target: { value: "missing" },
+    fireEvent.change(search, { target: { value: "web" } });
+    cleanup();
+    mockSetQuery.mockClear();
+    act(() => {
+      jest.runOnlyPendingTimers();
     });
-    expect(
-      screen.getByText("No services match your filters"),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(5);
-    expect(
-      screen.getByRole("textbox", { name: "Search services" }),
-    ).toHaveValue("");
+    expect(mockSetQuery).not.toHaveBeenCalled();
   });
 
-  test("attention filtering leaves only affected services in the list", async () => {
+  test("focus from a shared link shows one node's direct connections", async () => {
+    window.history.replaceState({}, "", "/?focus=postgres");
     await renderGraph();
-    fireEvent.click(screen.getByTestId("service-map-attention-filter"));
-    expect(screen.getByTestId("service-map-attention-filter")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
-    expect(screen.getByTestId("service-map-list-row")).toHaveTextContent(
-      "High error rate",
-    );
-    fireEvent.click(screen.getByTestId("service-map-reset-filters"));
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(5);
-  });
-
-  test("no incoming traffic is distinguished from healthy traffic", async () => {
-    await renderGraph();
-    const workerRow: HTMLElement = screen
-      .getByRole("button", { name: "worker", exact: true })
-      .closest("tr")!;
-    expect(workerRow).toHaveTextContent("No incoming calls");
-    expect(workerRow).not.toHaveTextContent("No call errors");
-    expect(workerRow).toHaveTextContent("0 callers · 0 dependencies");
-  });
-
-  test("service names open details and drawer focus opens its dependency map", async () => {
-    await renderGraph();
-    fireEvent.click(screen.getByRole("button", { name: "api", exact: true }));
-    expect(
-      screen.getByRole("dialog", { name: "Service details" }),
-    ).toHaveTextContent("api");
-    fireEvent.click(screen.getByRole("button", { name: "Focus this service" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
     expect(
       screen.getByText("Direct connections of", { exact: false }),
-    ).toHaveTextContent("api");
-    expect(screen.getByTestId("map-node-web")).toBeInTheDocument();
-    expect(screen.queryByTestId("map-node-archive")).not.toBeInTheDocument();
-  });
-});
-
-describe("dependency map interactions", () => {
-  test("view connections reveals only direct callers and dependencies", async () => {
-    await renderGraph();
-    fireEvent.click(
-      screen.getByRole("button", { name: "View connections for api" }),
-    );
+    ).toHaveTextContent("postgres");
     expect(screen.getByTestId("map-node-api")).toBeInTheDocument();
-    expect(screen.getByTestId("map-node-web")).toBeInTheDocument();
-    expect(screen.getByTestId("map-node-db")).toBeInTheDocument();
-    expect(screen.queryByTestId("map-node-archive")).not.toBeInTheDocument();
-    expect(window.location.search).toContain("serviceView=map");
-    expect(window.location.search).toContain("focus=api");
+    expect(screen.queryByTestId("map-node-web")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("service-map-clear-focus"));
-    expect(screen.getByTestId("map-node-archive")).toBeInTheDocument();
-    expect(screen.getByTestId("map-node-worker")).toBeInTheDocument();
+    expect(screen.getByTestId("map-node-web")).toBeInTheDocument();
   });
 
-  test("saved map URLs restore map selection, search and focus", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/?serviceView=map&focus=api&search=api",
-    );
-    await renderGraph();
-    expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(
-      screen.getByRole("textbox", { name: "Search services" }),
-    ).toHaveValue("api");
-    expect(screen.getByTestId("map-node-web")).toHaveAttribute(
-      "data-context",
-      "true",
-    );
-    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
-      "data-context",
-      "false",
-    );
-    expect(screen.queryByTestId("map-node-archive")).not.toBeInTheDocument();
-    expect(screen.getByTestId("service-map-result-count")).toHaveTextContent(
-      "2 connected services for context",
-    );
-  });
-
-  test("map metrics stay quiet until selected, with no animated edges", async () => {
-    window.history.replaceState({}, "", "/?serviceView=map");
-    await renderGraph();
-    const connection: HTMLElement = screen.getByTestId("map-edge-web->api");
-    expect(connection).toHaveTextContent("Connection");
-    expect(connection).toHaveAttribute("data-animated", "false");
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "errors" } },
-    );
-    expect(connection).toHaveTextContent("6.0% errors");
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "latency" } },
-    );
-    expect(connection).toHaveTextContent("25ms");
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "calls" } },
-    );
-    expect(connection).toHaveTextContent("100/min");
-  });
-
-  test("service and connection drawers remain exclusive", async () => {
-    window.history.replaceState({}, "", "/?serviceView=map");
-    await renderGraph();
-    fireEvent.click(screen.getByTestId("map-node-api"));
-    expect(
-      screen.getByRole("dialog", { name: "Service details" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("map-edge-web->api"));
-    expect(
-      screen.queryByRole("dialog", { name: "Service details" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("dialog", { name: "Connection details" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("map-node-web"));
-    expect(
-      screen.queryByRole("dialog", { name: "Connection details" }),
-    ).not.toBeInTheDocument();
-  });
-
-  test("reframes new search matches even when their node count is unchanged", async () => {
-    window.history.replaceState({}, "", "/?serviceView=map");
+  test("a new set of matches is re-framed", async () => {
     await renderGraph();
     fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
       target: { value: "web" },
     });
     mockFitView.mockClear();
     fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
-      target: { value: "archive" },
+      target: { value: "postgres" },
     });
     expect(mockFitView).toHaveBeenCalled();
-    expect(screen.getByTestId("map-node-archive")).toBeInTheDocument();
-    expect(screen.queryByTestId("map-node-web")).not.toBeInTheDocument();
   });
 
-  test("fit-to-screen control provides an explicit way to recover the viewport", async () => {
-    window.history.replaceState({}, "", "/?serviceView=map");
+  test("fit to screen recovers the viewport", async () => {
     await renderGraph();
     mockFitView.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Fit to screen" }));
@@ -595,32 +556,172 @@ describe("dependency map interactions", () => {
       duration: 300,
     });
   });
+});
 
-  test("switching back to the list preserves current search", async () => {
-    window.history.replaceState({}, "", "/?serviceView=map&search=api");
+describe("connections", () => {
+  test("labels appear on hover by default and on demand for every edge", async () => {
     await renderGraph();
-    fireEvent.click(screen.getByTestId("service-map-view-list"));
-    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
-    expect(
-      within(screen.getByTestId("service-map-list-row")).getByRole("button", {
-        name: "api",
-        exact: true,
-      }),
-    ).toBeInTheDocument();
-    expect(window.location.search).not.toContain("serviceView");
+    const connection: HTMLElement = screen.getByTestId("map-edge-web->api");
+    expect(connection).toHaveTextContent("Connection");
+    expect(connection).toHaveAttribute("data-animated", "false");
+    fireEvent.mouseEnter(connection);
+    expect(screen.getByTestId("map-edge-web->api")).toHaveTextContent(
+      "600/min",
+    );
+    fireEvent.mouseLeave(screen.getByTestId("map-edge-web->api"));
+    expect(screen.getByTestId("map-edge-web->api")).toHaveTextContent(
+      "Connection",
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Connection labels" }),
+      { target: { value: "errors" } },
+    );
+    expect(screen.getByTestId("map-edge-web->api")).toHaveTextContent(
+      "10.0% errors",
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Connection labels" }),
+      { target: { value: "latency" } },
+    );
+    expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
+      "25ms",
+    );
   });
 
-  test("unmount cancels a pending search URL update instead of leaking it to another tab", async () => {
-    jest.useFakeTimers();
+  test("service and connection drawers are exclusive", async () => {
     await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    expect(
+      screen.getByRole("dialog", { name: "Service details" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("map-edge-api->postgres"));
+    expect(
+      screen.queryByRole("dialog", { name: "Service details" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Connection details" }),
+    ).toHaveTextContent("api → postgres");
+    fireEvent.click(screen.getByTestId("map-node-web"));
+    expect(
+      screen.queryByRole("dialog", { name: "Connection details" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("details", () => {
+  test("the drawer navigates to map nodes and hands infrastructure to its own view", async () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    await renderGraph({ onOpenInfrastructure });
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent("Service");
+    fireEvent.click(
+      screen.getByRole("button", { name: "View related dependency" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Service details" }),
+    ).toHaveTextContent("postgres");
+    expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent(
+      "Database · PostgreSQL",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "View placement" }));
+    expect(onOpenInfrastructure).toHaveBeenCalledWith("pod-1");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("focusing from the drawer opens that node's connections on the map", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("service-map-view-list"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "postgres", exact: true }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Focus this service" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(window.location.search).toContain("focus=postgres");
+    expect(screen.queryByTestId("map-node-web")).not.toBeInTheDocument();
+  });
+
+  test("incidents take precedence over traffic in status", async () => {
+    mockStatuses.set("worker", {
+      serviceId: "worker-id",
+      activeIncidentCount: 2,
+      worstIncidentSeverityName: "Critical",
+      worstIncidentSeverityColor: "#dc2626",
+      incidents: [],
+      activeAlertCount: 1,
+      worstAlertSeverityName: "Warning",
+      worstAlertSeverityColor: "#f59e0b",
+      alerts: [],
+    });
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("service-map-view-list"));
+    expect(screen.getByText("2 active incidents")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("service-map-attention-filter"));
+    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(2);
+  });
+});
+
+describe("table", () => {
+  test("describes entry points, dependencies and quiet services in words", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("service-map-view-list"));
+    expect(window.location.search).toContain("serviceView=list");
+    const row: (name: string) => HTMLElement = (name: string): HTMLElement => {
+      return screen
+        .getByRole("button", { name, exact: true })
+        .closest("tr") as HTMLElement;
+    };
+    expect(row("web")).toHaveTextContent("Entry point");
+    expect(row("web")).toHaveTextContent("0 callers · 1 dependency");
+    expect(row("postgres")).toHaveTextContent("Database · PostgreSQL");
+    expect(row("postgres")).toHaveTextContent("Healthy");
+    expect(row("worker")).toHaveTextContent("No calls observed");
+    expect(row("api")).toHaveTextContent("Service · 1 pod");
+  });
+
+  test("a large catalog opens as a paged table with a hint to narrow it", async () => {
+    const many: Array<InventoryItem> = Array.from(
+      { length: 130 },
+      (_value: unknown, index: number) => {
+        return item(
+          `service-${String(index).padStart(3, "0")}`,
+          EntityType.Service,
+        );
+      },
+    );
+    await renderGraph({ entities: many, relationships: [] });
+    expect(screen.getByTestId("service-map-view-list")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(
+      screen.getByText(/too many services to draw at once/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(40);
+    expect(screen.getByTestId("service-map-pagination")).toHaveTextContent(
+      "Showing 1–40 of 130",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    expect(
+      screen.getByRole("button", { name: "service-040", exact: true }),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "Search services" }), {
-      target: { value: "api" },
+      target: { value: "service-129" },
     });
-    cleanup();
-    mockSetQuery.mockClear();
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    expect(mockSetQuery).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId("service-map-list-row")).toHaveLength(1);
+    expect(
+      screen.queryByTestId("service-map-pagination"),
+    ).not.toBeInTheDocument();
+    // A narrowed result is small enough to draw again.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show on map service-129" }),
+    );
+    expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });

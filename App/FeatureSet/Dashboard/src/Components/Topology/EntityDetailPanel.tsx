@@ -12,6 +12,7 @@ import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -33,21 +34,29 @@ import {
   ServiceOperationalStatus,
   ServiceStatusItem,
 } from "./OperationalOverlay";
+import { TrafficTotals } from "./ServiceMapViewModel";
 
 /*
- * Right-hand detail drawer for a topology node. Keeps the user on the map
- * (no navigation on click) while still offering deep links: the entity
- * detail page, service traces (via the registry's resourceId pointer,
- * with a by-name fallback for pre-pointer rows), active incidents and
- * alerts (Service Map overlay), and the matching network device for Host
- * entities (cross-layer link, matched on hostname/sysName since the two
- * features share no foreign key).
+ * Right-hand detail drawer for anything on a topology map. It keeps the user
+ * on the map and answers, in order: how is it doing, what does it call, what
+ * calls it, where does it run, and where can I go next (inventory, traces,
+ * the matching network device for a host).
  */
+
+export interface EntityTrafficSummary {
+  inbound: TrafficTotals;
+  outbound: TrafficTotals;
+  statusLabel: string;
+  statusColor: string;
+  subtitle: string;
+}
 
 export interface ComponentProps {
   entity: InventoryItem;
   relationships: Array<InventoryItemRelationship>;
   entityByKey: Map<string, InventoryItem>;
+  /** Service Map traffic for this node. */
+  traffic?: EntityTrafficSummary | undefined;
   /** Active incidents/alerts affecting this service (Service Map overlay). */
   incidentStatus?: ServiceOperationalStatus | null | undefined;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
@@ -56,14 +65,35 @@ export interface ComponentProps {
   onFocus: (entityKey: string) => void;
   focusButtonLabel?: string | undefined;
   onSelectEntity?: ((entityKey: string) => void) | undefined;
+  /** Open a resource in the Infrastructure view. */
+  onOpenInfrastructure?: ((entityKey: string) => void) | undefined;
 }
 
-interface EdgeRow {
-  direction: "outbound" | "inbound";
+interface ConnectionRow {
   relationship: InventoryItemRelationship;
   otherLabel: string;
   otherKey: string | null;
+  otherType: string | undefined;
+  sentence: string;
 }
+
+/* Descriptive attributes worth a line in the drawer, in display order. */
+const DETAIL_ATTRIBUTES: Array<{ key: string; label: string }> = [
+  { key: "telemetry.sdk.language", label: "Language" },
+  { key: "db.system.name", label: "Database engine" },
+  { key: "network.protocol.name", label: "Protocol" },
+  { key: "k8s.pod.name", label: "Pod name" },
+  { key: "k8s.node.name", label: "Node" },
+  { key: "os.type", label: "Operating system" },
+  { key: "host.arch", label: "Architecture" },
+  { key: "cloud.provider", label: "Cloud provider" },
+  { key: "cloud.region", label: "Region" },
+];
+
+const PLACEMENT_RELATIONSHIPS: Set<string> = new Set<string>([
+  EntityRelationshipType.RunsOn,
+  EntityRelationshipType.HostedOn,
+]);
 
 function normalizeHostName(value: string | undefined): string {
   if (!value) {
@@ -108,6 +138,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const t: (value: string) => string = (value: string): string => {
+    return translateString(value) || value;
+  };
   const { entity } = props;
   const entityKey: string = entity.entityKey || "";
   const displayName: string = entity.displayName || "Unnamed entity";
@@ -120,15 +153,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   /*
    * Service entities: the traces link needs the Service row id. The
    * registry stamps the (resourceType, resourceId) pointer at reconcile
-   * time now — use it directly; fall back to a by-name lookup only for
-   * rows written before the pointer existed.
+   * time — use it directly; fall back to a by-name lookup only for rows
+   * written before the pointer existed.
    */
   useEffect(() => {
-    /*
-     * Stale-write guard: the pointer branch resolves synchronously, so an
-     * unguarded by-name fetch from a previously selected entity would
-     * always land AFTER it and overwrite the newer selection's id.
-     */
     let cancelled: boolean = false;
     setServiceId(null);
     if (entity.entityType === EntityType.Service && entity.displayName) {
@@ -205,94 +233,214 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     };
   }, [entity]);
 
-  const edgeRows: Array<EdgeRow> = useMemo(() => {
-    const rows: Array<EdgeRow> = [];
+  const sections: {
+    calls: Array<ConnectionRow>;
+    calledBy: Array<ConnectionRow>;
+    runsOn: Array<ConnectionRow>;
+    related: Array<ConnectionRow>;
+  } = useMemo(() => {
+    const calls: Array<ConnectionRow> = [];
+    const calledBy: Array<ConnectionRow> = [];
+    const runsOn: Array<ConnectionRow> = [];
+    const related: Array<ConnectionRow> = [];
+    const seen: Set<string> = new Set<string>();
     for (const relationship of props.relationships) {
-      if (relationship.fromEntityKey === entityKey) {
-        const other: InventoryItem | undefined = props.entityByKey.get(
-          relationship.toEntityKey || "",
-        );
-        rows.push({
-          direction: "outbound",
-          relationship,
-          otherKey: other?.entityKey || null,
-          otherLabel:
-            other?.displayName ||
-            (other ? "Unnamed resource" : "Undiscovered resource"),
-        });
-      } else if (relationship.toEntityKey === entityKey) {
-        const other: InventoryItem | undefined = props.entityByKey.get(
-          relationship.fromEntityKey || "",
-        );
-        rows.push({
-          direction: "inbound",
-          relationship,
-          otherKey: other?.entityKey || null,
-          otherLabel:
-            other?.displayName ||
-            (other ? "Unnamed resource" : "Undiscovered resource"),
-        });
+      const outbound: boolean = relationship.fromEntityKey === entityKey;
+      const inbound: boolean = relationship.toEntityKey === entityKey;
+      if (!outbound && !inbound) {
+        continue;
+      }
+      const id: string = `${relationship.fromEntityKey}|${relationship.relationshipType}|${relationship.toEntityKey}`;
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      const otherKeyRaw: string =
+        (outbound ? relationship.toEntityKey : relationship.fromEntityKey) ||
+        "";
+      const other: InventoryItem | undefined =
+        props.entityByKey.get(otherKeyRaw);
+      const otherLabel: string =
+        other?.displayName ||
+        (other ? "Unnamed resource" : "Undiscovered resource");
+      const verb: string = labelForRelationship(relationship.relationshipType);
+      const row: ConnectionRow = {
+        relationship,
+        otherLabel,
+        otherKey: other?.entityKey || null,
+        otherType: other?.entityType,
+        sentence: outbound
+          ? `${displayName} ${verb} ${otherLabel}`
+          : `${otherLabel} ${verb} ${displayName}`,
+      };
+      if (relationship.relationshipType === EntityRelationshipType.DependsOn) {
+        (outbound ? calls : calledBy).push(row);
+      } else if (
+        outbound &&
+        entity.entityType === EntityType.Service &&
+        PLACEMENT_RELATIONSHIPS.has(relationship.relationshipType || "")
+      ) {
+        runsOn.push(row);
+      } else {
+        related.push(row);
       }
     }
-    return rows;
-  }, [props.relationships, props.entityByKey, entityKey]);
+    const byTraffic: (a: ConnectionRow, b: ConnectionRow) => number = (
+      a: ConnectionRow,
+      b: ConnectionRow,
+    ): number => {
+      return (
+        (b.relationship.callCount || 0) - (a.relationship.callCount || 0) ||
+        a.otherLabel.localeCompare(b.otherLabel)
+      );
+    };
+    calls.sort(byTraffic);
+    calledBy.sort(byTraffic);
+    runsOn.sort((a: ConnectionRow, b: ConnectionRow): number => {
+      return a.otherLabel.localeCompare(b.otherLabel);
+    });
+    return { calls, calledBy, runsOn, related };
+  }, [props.relationships, props.entityByKey, entityKey, entity.entityType]);
 
   const typeMeta: { label: string; color: string } = metaForEntityType(
     entity.entityType,
   );
 
-  const renderEdgeRow: (row: EdgeRow, index: number) => ReactElement = (
-    row: EdgeRow,
-    index: number,
-  ): ReactElement => {
-    const rel: InventoryItemRelationship = row.relationship;
-    const hasMetrics: boolean = Boolean(rel.callCount && rel.callCount > 0);
-    const sentence: string =
-      row.direction === "outbound"
-        ? `${displayName} ${labelForRelationship(rel.relationshipType)} ${row.otherLabel}`
-        : `${row.otherLabel} ${labelForRelationship(rel.relationshipType)} ${displayName}`;
+  const renderTraffic: (
+    title: string,
+    totals: TrafficTotals,
+  ) => ReactElement = (title: string, totals: TrafficTotals): ReactElement => {
     return (
-      <li key={index} className="py-2">
-        {row.otherKey && props.onSelectEntity ? (
-          <button
-            type="button"
-            className="w-full rounded-md text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            aria-label={`${translateString("View details for")} ${row.otherLabel}`}
-            onClick={() => {
-              props.onSelectEntity?.(row.otherKey!);
-            }}
-          >
-            {sentence} <span aria-hidden={true}>→</span>
-          </button>
+      <div className="rounded-lg border border-gray-200 px-3 py-2.5">
+        <p className="text-xs font-medium text-gray-500">{t(title)}</p>
+        {totals.calls > 0 ? (
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {formatCallRate(totals.calls, props.metricsWindowSeconds)}
+              </p>
+              <p className="text-[11px] text-gray-400">{t("requests")}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {formatErrorRate(totals.calls, totals.errors)}
+              </p>
+              <p className="text-[11px] text-gray-400">{t("errors")}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {totals.avgDurationMs === null
+                  ? "—"
+                  : formatDurationMs(totals.avgDurationMs)}
+              </p>
+              <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
+            </div>
+          </div>
         ) : (
-          <p className="text-sm text-gray-900">{sentence}</p>
+          <p className="mt-1 text-sm text-gray-500">{t("None observed")}</p>
         )}
-        {hasMetrics && (
-          <p className="mt-0.5 text-xs text-gray-500">
-            {formatCallRate(rel.callCount!, props.metricsWindowSeconds)} ·{" "}
-            {formatErrorRate(rel.callCount, rel.errorCount)} errors · avg{" "}
-            {formatDurationMs(rel.avgDurationMs)}
-          </p>
-        )}
-      </li>
+      </div>
     );
   };
+
+  const renderRows: (
+    rows: Array<ConnectionRow>,
+    options: { showMetrics: boolean; infrastructureLinks?: boolean },
+  ) => ReactElement = (
+    rows: Array<ConnectionRow>,
+    options: { showMetrics: boolean; infrastructureLinks?: boolean },
+  ): ReactElement => {
+    return (
+      <ul className="mt-1 divide-y divide-gray-100">
+        {rows.map((row: ConnectionRow, index: number): ReactElement => {
+          const rel: InventoryItemRelationship = row.relationship;
+          const hasMetrics: boolean = Boolean(
+            options.showMetrics && rel.callCount && rel.callCount > 0,
+          );
+          const navigate: ((key: string) => void) | undefined =
+            options.infrastructureLinks && props.onOpenInfrastructure
+              ? props.onOpenInfrastructure
+              : props.onSelectEntity;
+          const typeLabel: string = row.otherType
+            ? metaForEntityType(row.otherType).label
+            : "";
+          return (
+            <li key={index} className="py-2">
+              {row.otherKey && navigate ? (
+                <button
+                  type="button"
+                  className="w-full rounded-md text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  aria-label={`${t("View details for")} ${row.otherLabel}`}
+                  onClick={() => {
+                    navigate(row.otherKey!);
+                  }}
+                >
+                  {row.sentence} <span aria-hidden={true}>→</span>
+                </button>
+              ) : (
+                <p className="text-sm text-gray-900">{row.sentence}</p>
+              )}
+              {(hasMetrics || typeLabel) && (
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {typeLabel ? t(typeLabel) : ""}
+                  {typeLabel && hasMetrics ? " · " : ""}
+                  {hasMetrics
+                    ? `${formatCallRate(rel.callCount!, props.metricsWindowSeconds)} · ${formatErrorRate(rel.callCount, rel.errorCount)} errors · avg ${formatDurationMs(rel.avgDurationMs)}`
+                    : ""}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  const attributes: Array<{ label: string; value: string }> =
+    DETAIL_ATTRIBUTES.map((item: { key: string; label: string }) => {
+      const bag: Record<string, unknown> = {
+        ...((entity.identifyingAttributes as Record<string, unknown>) || {}),
+        ...((entity.descriptiveAttributes as Record<string, unknown>) || {}),
+      };
+      const value: unknown = bag[item.key];
+      return {
+        label: item.label,
+        value: typeof value === "string" ? value : "",
+      };
+    }).filter((item: { label: string; value: string }): boolean => {
+      return Boolean(item.value) && item.value !== displayName;
+    });
+
+  const connectionCount: number =
+    sections.calls.length +
+    sections.calledBy.length +
+    sections.runsOn.length +
+    sections.related.length;
 
   return (
     <SideOver
       title={displayName}
-      description={typeMeta.label}
+      description={props.traffic?.subtitle || typeMeta.label}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
       <div className="space-y-6">
+        {props.traffic && (
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: props.traffic.statusColor }}
+              aria-hidden={true}
+            />
+            <span data-testid="entity-detail-status">
+              {t(props.traffic.statusLabel)}
+            </span>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button
-            title={
-              translateString(
-                props.focusButtonLabel || "Explore connections",
-              ) || ""
-            }
+            title={t(props.focusButtonLabel || "Explore connections")}
             buttonStyle={ButtonStyleType.OUTLINE}
             onClick={() => {
               props.onFocus(entityKey);
@@ -300,11 +448,21 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           />
         </div>
 
+        {props.traffic && (
+          <div className="grid gap-2">
+            {renderTraffic("Requests it answered", props.traffic.inbound)}
+            {renderTraffic("Calls it made", props.traffic.outbound)}
+            <p className="text-xs text-gray-400">
+              {t("Latest ~15-minute window.")}
+            </p>
+          </div>
+        )}
+
         {props.incidentStatus &&
         props.incidentStatus.activeIncidentCount > 0 ? (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              {translateString("Active incidents") || ""} (
+              {t("Active incidents")} (
               {props.incidentStatus.activeIncidentCount})
             </h3>
             <ul className="mt-1 divide-y divide-gray-100">
@@ -326,8 +484,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {props.incidentStatus && props.incidentStatus.activeAlertCount > 0 ? (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              {translateString("Active alerts") || ""} (
-              {props.incidentStatus.activeAlertCount})
+              {t("Active alerts")} ({props.incidentStatus.activeAlertCount})
             </h3>
             <ul className="mt-1 divide-y divide-gray-100">
               {props.incidentStatus.alerts.map(
@@ -345,15 +502,81 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {sections.calls.length > 0 && (
+          <div data-testid="entity-detail-calls">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t("Calls")} ({sections.calls.length})
+            </h3>
+            {renderRows(sections.calls, { showMetrics: true })}
+          </div>
+        )}
+
+        {sections.calledBy.length > 0 && (
+          <div data-testid="entity-detail-called-by">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t("Called by")} ({sections.calledBy.length})
+            </h3>
+            {renderRows(sections.calledBy, { showMetrics: true })}
+          </div>
+        )}
+
+        {sections.runsOn.length > 0 && (
+          <div data-testid="entity-detail-runs-on">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t("Runs on")} ({sections.runsOn.length})
+            </h3>
+            {renderRows(sections.runsOn.slice(0, 25), {
+              showMetrics: false,
+              infrastructureLinks: true,
+            })}
+            {sections.runsOn.length > 25 && (
+              <p className="mt-1 text-xs text-gray-500">
+                +{sections.runsOn.length - 25} {t("more")}
+              </p>
+            )}
+          </div>
+        )}
+
+        {sections.related.length > 0 && (
+          <div data-testid="entity-detail-related">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t("Related infrastructure")} ({sections.related.length})
+            </h3>
+            {renderRows(sections.related.slice(0, 25), { showMetrics: false })}
+          </div>
+        )}
+
+        {connectionCount === 0 && (
+          <p className="text-sm text-gray-500">
+            {t("No connections in the selected time range.")}
+          </p>
+        )}
+
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
-            {translateString("Details") || ""}
+            {t("Details")}
           </h3>
           <dl className="mt-2 space-y-1 text-sm text-gray-600">
+            <div className="flex justify-between gap-4">
+              <dt>{t("Type")}</dt>
+              <dd className="text-right text-gray-900">{t(typeMeta.label)}</dd>
+            </div>
+            {attributes.map(
+              (item: { label: string; value: string }): ReactElement => {
+                return (
+                  <div key={item.label} className="flex justify-between gap-4">
+                    <dt>{t(item.label)}</dt>
+                    <dd className="break-all text-right text-gray-900">
+                      {item.value}
+                    </dd>
+                  </div>
+                );
+              },
+            )}
             {entity.firstSeenAt && (
               <div className="flex justify-between gap-4">
-                <dt>{translateString("First seen") || ""}</dt>
-                <dd>
+                <dt>{t("First seen")}</dt>
+                <dd className="text-right">
                   {OneUptimeDate.getDateAsLocalFormattedString(
                     entity.firstSeenAt,
                   )}
@@ -362,8 +585,8 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             {entity.lastSeenAt && (
               <div className="flex justify-between gap-4">
-                <dt>{translateString("Last seen") || ""}</dt>
-                <dd>
+                <dt>{t("Last seen")}</dt>
+                <dd className="text-right">
                   {OneUptimeDate.getDateAsLocalFormattedString(
                     entity.lastSeenAt,
                   )}
@@ -374,25 +597,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">
-            {translateString("Connections") || ""} ({edgeRows.length})
-          </h3>
-          {edgeRows.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
-              {translateString("No connections in the selected time range.") ||
-                ""}
-            </p>
-          ) : (
-            <ul className="mt-1 divide-y divide-gray-100">
-              {edgeRows.map(renderEdgeRow)}
-            </ul>
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">
-            {translateString("Open") || ""}
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t("Open")}</h3>
           <ul className="mt-2 space-y-2 text-sm">
             {entity._id && (
               <li>
@@ -403,7 +608,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  {translateString("Inventory details") || ""}
+                  {t("Inventory details")}
                 </Link>
               </li>
             )}
@@ -416,7 +621,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  {translateString("Traces for this service") || ""}
+                  {t("Traces for this service")}
                 </Link>
               </li>
             )}
@@ -429,8 +634,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  {translateString("Network device:") || ""}{" "}
-                  {matchedDevice.name || "device"}
+                  {t("Network device:")} {matchedDevice.name || "device"}
                 </Link>
               </li>
             )}

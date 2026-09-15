@@ -2,424 +2,457 @@ import { describe, expect, test } from "@jest/globals";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
+import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import { ServiceOperationalStatus } from "../../FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 import {
   ServiceMapEntry,
+  ServiceMapLayout,
   ServiceMapModel,
   ServiceMapVisibility,
-  SERVICE_TRAFFIC_LABELS,
   buildServiceMapModel,
+  detailLabelForEntity,
+  kindForEntityType,
+  layoutServiceMap,
+  nounForType,
   resolveServiceMapVisibility,
-  serviceIsolatedPosition,
+  summarizeRunsOn,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/ServiceMapViewModel";
-import { ServiceOperationalStatus } from "../../FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 
-function service(key: string, name: string = key): InventoryItem {
-  return {
-    entityKey: key,
-    displayName: name,
-    entityType: EntityType.Service,
-  } as InventoryItem;
+/*
+ * The Service Map view model decides what the map says about every node:
+ * which nodes exist (services and what they call), how healthy each one is,
+ * where it runs, and what survives a search or focus.
+ */
+
+const NOW: Date = new Date("2026-09-07T10:00:00Z");
+const RANGE_START: Date = new Date("2026-09-06T10:00:00Z");
+
+function entity(
+  key: string,
+  type: EntityType,
+  overrides: Partial<InventoryItem> = {},
+): InventoryItem {
+  const item: InventoryItem = new InventoryItem();
+  item.entityKey = key;
+  item.displayName = key;
+  item.entityType = type;
+  item.source = EntitySource.Discovered;
+  item.lastSeenAt = NOW;
+  Object.assign(item, overrides);
+  return item;
 }
 
-function dependency(
+function calls(
   from: string,
   to: string,
-  calls?: number,
-  errors?: number,
+  callCount?: number,
+  errorCount?: number,
+  avgDurationMs?: number,
 ): InventoryItemRelationship {
-  return {
-    fromEntityKey: from,
-    toEntityKey: to,
-    callCount: calls,
-    errorCount: errors,
-    relationshipType: EntityRelationshipType.DependsOn,
-  } as InventoryItemRelationship;
+  const edge: InventoryItemRelationship = new InventoryItemRelationship();
+  edge.fromEntityKey = from;
+  edge.toEntityKey = to;
+  edge.relationshipType = EntityRelationshipType.DependsOn;
+  if (callCount !== undefined) {
+    edge.callCount = callCount;
+  }
+  if (errorCount !== undefined) {
+    edge.errorCount = errorCount;
+  }
+  if (avgDurationMs !== undefined) {
+    edge.avgDurationMs = avgDurationMs;
+  }
+  return edge;
 }
 
-function status(incidents: number, alerts: number): ServiceOperationalStatus {
-  return {
-    serviceId: "service-id",
-    activeIncidentCount: incidents,
-    worstIncidentSeverityColor: "#ff0000",
-    worstIncidentSeverityName: null,
-    incidents: [],
-    activeAlertCount: alerts,
-    worstAlertSeverityColor: "#ffaa00",
-    worstAlertSeverityName: null,
-    alerts: [],
-  };
+function placed(
+  from: string,
+  to: string,
+  type: EntityRelationshipType = EntityRelationshipType.RunsOn,
+): InventoryItemRelationship {
+  const edge: InventoryItemRelationship = new InventoryItemRelationship();
+  edge.fromEntityKey = from;
+  edge.toEntityKey = to;
+  edge.relationshipType = type;
+  return edge;
 }
 
-function visible(
-  model: ServiceMapModel,
-  options: {
-    search?: string;
-    focusKey?: string | null;
-    attentionOnly?: boolean;
-  } = {},
-): ServiceMapVisibility {
-  return resolveServiceMapVisibility({
-    model,
-    search: options.search || "",
-    focusKey: options.focusKey || null,
-    attentionOnly: options.attentionOnly || false,
-  });
+const ENTITIES: Array<InventoryItem> = [
+  entity("web", EntityType.Service, {
+    descriptiveAttributes: { "telemetry.sdk.language": "webjs" },
+  }),
+  entity("api", EntityType.Service, {
+    descriptiveAttributes: { "telemetry.sdk.language": "nodejs" },
+  }),
+  entity("worker", EntityType.Service),
+  entity("postgres", EntityType.Database, {
+    descriptiveAttributes: { "db.system.name": "postgresql" },
+  }),
+  entity("stripe", EntityType.RemoteService, {
+    descriptiveAttributes: { "network.protocol.name": "http" },
+  }),
+  entity("pod-1", EntityType.KubernetesPod),
+  entity("pod-2", EntityType.KubernetesPod),
+  entity("old-host", EntityType.Host, {
+    lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+  }),
+];
+
+const RELATIONSHIPS: Array<InventoryItemRelationship> = [
+  calls("web", "api", 1000, 5, 100),
+  calls("api", "postgres", 3000, 0, 4),
+  calls("api", "stripe", 100, 20, 300),
+  placed("api", "pod-1"),
+  placed("api", "pod-2"),
+  placed("api", "old-host", EntityRelationshipType.HostedOn),
+];
+
+function model(
+  entities: Array<InventoryItem> = ENTITIES,
+  relationships: Array<InventoryItemRelationship> = RELATIONSHIPS,
+  options: Parameters<typeof buildServiceMapModel>[2] = {
+    rangeStart: RANGE_START,
+  },
+): ServiceMapModel {
+  return buildServiceMapModel(entities, relationships, options);
 }
 
-describe("service directory model", () => {
-  test("keeps only keyed services and deduplicates inventory rows", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [
-        service("api"),
-        service("api"),
-        service("worker"),
-        service(""),
-        { entityKey: "host", entityType: EntityType.Host } as InventoryItem,
-      ],
-      [],
-    );
+function entry(result: ServiceMapModel, key: string): ServiceMapEntry {
+  return result.entryByKey.get(key)!;
+}
+
+describe("nodes", () => {
+  test("include every active service and everything services call", () => {
+    const result: ServiceMapModel = model();
     expect(
-      model.entries.map((entry: ServiceMapEntry) => {
-        return entry.key;
-      }),
-    ).toEqual(["api", "worker"]);
+      result.entries
+        .map((item: ServiceMapEntry) => {
+          return item.key;
+        })
+        .sort(),
+    ).toEqual(["api", "postgres", "stripe", "web", "worker"]);
+    expect(entry(result, "postgres").kind).toBe("database");
+    expect(entry(result, "stripe").kind).toBe("remote");
   });
 
-  test("does not invent services for stale or infrastructure links", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("api"), service("db")],
-      [
-        dependency("api", "db", 100),
-        dependency("ghost", "api", 100),
-        dependency("api", "ghost", 100),
-        {
-          ...dependency("api", "db", 100),
-          relationshipType: EntityRelationshipType.RunsOn,
-        } as InventoryItemRelationship,
-      ],
-    );
-    expect(model.relationships).toHaveLength(1);
-    expect(model.entryByKey.get("db")?.calls).toBe(100);
+  test("never include infrastructure, even when a service runs on it", () => {
+    expect(model().entryByKey.has("pod-1")).toBe(false);
   });
 
-  test("aggregates incoming traffic weighted by calls, not mean error percentages", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("web"), service("api"), service("worker")],
-      [dependency("web", "api", 900, 0), dependency("worker", "api", 100, 10)],
-    );
-    expect(model.entryByKey.get("api")).toMatchObject({
-      calls: 1000,
-      errors: 10,
-      health: "degraded",
-      callers: 2,
-      dependencies: 0,
-    });
-    expect(model.entryByKey.get("web")).toMatchObject({
-      calls: 0,
-      health: "unknown",
-      callers: 0,
-      dependencies: 1,
-    });
+  test("a dependency nothing calls is not drawn", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("web", "api", 10, 0, 1),
+    ]);
+    expect(result.entryByKey.has("postgres")).toBe(false);
   });
 
-  test("missing metrics remain unknown and do not become a healthy verdict", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("api"), service("db")],
-      [dependency("api", "db")],
-    );
-    expect(model.entryByKey.get("db")).toMatchObject({
-      calls: 0,
-      errors: 0,
-      health: "unknown",
-      needsAttention: false,
-    });
-    expect(SERVICE_TRAFFIC_LABELS.unknown).toBe("No incoming calls");
-  });
-
-  test("zero and negative call counts do not contribute error-only health", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("api"), service("db")],
-      [dependency("api", "db", 0, 2), dependency("api", "db", -1, 5)],
-    );
-    expect(model.entryByKey.get("db")).toMatchObject({
-      calls: 0,
-      errors: 0,
-      health: "unknown",
-    });
-  });
-
-  test.each([
-    [100, 0, "healthy", false],
-    [100, 1, "degraded", true],
-    [100, 5, "critical", true],
-  ])(
-    "%s calls and %s errors classify as %s",
-    (
-      calls: number | string | boolean,
-      errors: number | string | boolean,
-      health: number | string | boolean,
-      needsAttention: number | string | boolean,
-    ) => {
-      const model: ServiceMapModel = buildServiceMapModel(
-        [service("api"), service("db")],
-        [dependency("api", "db", calls as number, errors as number)],
-      );
-      expect(model.entryByKey.get("db")).toMatchObject({
-        health,
-        needsAttention,
-      });
-    },
-  );
-
-  test("incidents and alerts mark attention even without incoming calls", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("api", "API"), service("worker")],
-      [],
-      new Map<string, ServiceOperationalStatus>([
-        ["api", status(2, 0)],
-        ["worker", status(0, 3)],
-      ]),
-    );
-    expect(model.entryByKey.get("api")).toMatchObject({
-      needsAttention: true,
-      incidentCount: 2,
-      incidentColor: "#ff0000",
-      health: "unknown",
-    });
-    expect(model.entryByKey.get("worker")).toMatchObject({
-      needsAttention: true,
-      alertCount: 3,
-    });
-  });
-
-  test("sorts attention first, then service name, independently of input order", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("worker"), service("db"), service("api")],
-      [dependency("api", "worker", 100, 10)],
-    );
-    expect(
-      model.entries.map((entry: ServiceMapEntry) => {
-        return entry.key;
-      }),
-    ).toEqual(["worker", "api", "db"]);
-  });
-
-  test("active incidents and critical errors come before lower-priority services regardless of their names", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [
-        service("api"),
-        service("payments"),
-        service("incident"),
-        service("alert"),
-        service("web"),
-      ],
-      [dependency("web", "api", 100, 1), dependency("web", "payments", 100, 8)],
-      new Map<string, ServiceOperationalStatus>([
-        ["incident", status(1, 0)],
-        ["alert", status(0, 1)],
-      ]),
-    );
-    expect(
-      model.entries.map((entry: ServiceMapEntry) => {
-        return entry.key;
-      }),
-    ).toEqual(["incident", "payments", "alert", "api", "web"]);
-  });
-
-  test("services with the same attention priority retain a stable alphabetical order", () => {
-    const model: ServiceMapModel = buildServiceMapModel(
-      [service("z-critical"), service("a-critical"), service("web")],
-      [
-        dependency("web", "z-critical", 100, 10),
-        dependency("web", "a-critical", 100, 5),
-      ],
-    );
-    expect(
-      model.entries.map((entry: ServiceMapEntry) => {
-        return entry.key;
-      }),
-    ).toEqual(["a-critical", "z-critical", "web"]);
-  });
-
-  test("unnamed services have a readable fallback", () => {
-    expect(
-      buildServiceMapModel([service("api", "")], []).entries[0]?.label,
-    ).toBe("Unnamed service");
-  });
-
-  test("empty inventories produce a complete empty model", () => {
-    expect(buildServiceMapModel([], [])).toEqual({
-      entries: [],
-      entryByKey: new Map(),
-      relationships: [],
-    });
+  test("describe language, database engine and protocol in plain words", () => {
+    const result: ServiceMapModel = model();
+    expect(entry(result, "api").detailLabel).toBe("Node.js");
+    expect(entry(result, "web").detailLabel).toBe("Browser");
+    expect(entry(result, "postgres").detailLabel).toBe("PostgreSQL");
+    expect(entry(result, "stripe").detailLabel).toBe("HTTP");
+    expect(entry(result, "worker").detailLabel).toBeNull();
+    expect(entry(result, "postgres").typeLabel).toBe("Database");
   });
 });
 
-describe("service directory and map filtering", () => {
-  const model: ServiceMapModel = buildServiceMapModel(
-    [
-      service("web", "Web frontend"),
-      service("api", "Checkout API"),
-      service("db", "Orders database"),
-      service("archive", "Archive"),
-      service("isolated", "Isolated worker"),
-    ],
-    [
-      dependency("web", "api", 100, 6),
-      dependency("api", "db", 100, 0),
-      dependency("db", "archive", 100, 0),
-    ],
-  );
-
-  test("an unfiltered directory includes disconnected services", () => {
-    const result: ServiceMapVisibility = visible(model);
-    expect(result.matchedKeys.size).toBe(5);
-    expect(result.visibleKeys.has("isolated")).toBe(true);
-    expect(result.contextKeys.size).toBe(0);
-  });
-
-  test("search matches trimmed names without case sensitivity", () => {
-    const result: ServiceMapVisibility = visible(model, {
-      search: "  CHECKOUT ",
-    });
-    expect(Array.from(result.matchedKeys)).toEqual(["api"]);
-    expect(result.contextKeys).toEqual(new Set(["web", "db"]));
-    expect(result.visibleKeys.has("archive")).toBe(false);
-    expect(result.visibleKeys.has("isolated")).toBe(false);
-  });
-
-  test("search can find a service by entity key", () => {
-    expect(visible(model, { search: "db" }).matchedKeys).toEqual(
-      new Set(["db"]),
+describe("traffic and status", () => {
+  test("totals calls answered and made, with call-weighted latency", () => {
+    const api: ServiceMapEntry = entry(model(), "api");
+    expect(api.inbound).toEqual({ calls: 1000, errors: 5, avgDurationMs: 100 });
+    expect(api.outbound.calls).toBe(3100);
+    expect(api.outbound.errors).toBe(20);
+    expect(api.outbound.avgDurationMs).toBeCloseTo(
+      (3000 * 4 + 100 * 300) / 3100,
     );
+    expect(api.callers).toBe(1);
+    expect(api.dependencies).toBe(2);
   });
 
-  test("a focus shows direct callers and dependencies instead of the entire component", () => {
-    const result: ServiceMapVisibility = visible(model, { focusKey: "api" });
-    expect(result.matchedKeys).toEqual(new Set(["api", "web", "db"]));
-    expect(result.visibleKeys.has("archive")).toBe(false);
+  test("a node that only makes calls is an entry point, not unknown", () => {
+    const web: ServiceMapEntry = entry(model(), "web");
+    expect(web.status).toBe("entry");
+    expect(web.health).toBe("unknown");
+    expect(web.needsAttention).toBe(false);
   });
 
-  test("a stale focus key does not blank the service directory", () => {
-    const result: ServiceMapVisibility = visible(model, {
-      focusKey: "old-service",
+  test("a small error rate stays healthy; a high one is critical", () => {
+    const result: ServiceMapModel = model();
+    expect(entry(result, "api").status).toBe("healthy"); // 0.5%
+    expect(entry(result, "postgres").status).toBe("healthy"); // 0%
+    expect(entry(result, "stripe").status).toBe("critical"); // 20%
+    expect(entry(result, "stripe").needsAttention).toBe(true);
+  });
+
+  test("an error rate between the tolerance and 5% is degraded", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("web", "api", 1000, 30, 10),
+    ]);
+    expect(entry(result, "api").status).toBe("degraded");
+    expect(result.edges[0]!.health).toBe("degraded");
+  });
+
+  test("a service with no calls at all is isolated", () => {
+    expect(entry(model(), "worker").status).toBe("isolated");
+  });
+
+  test("a call without counts still marks its callee as called", () => {
+    const result: ServiceMapModel = model(ENTITIES, [calls("web", "api")]);
+    expect(entry(result, "api").status).toBe("healthy");
+    expect(entry(result, "api").callers).toBe(1);
+  });
+
+  test("incidents and alerts need attention and sort first", () => {
+    const statuses: Map<string, ServiceOperationalStatus> = new Map();
+    statuses.set("worker", {
+      serviceId: "worker-id",
+      activeIncidentCount: 1,
+      worstIncidentSeverityName: "Critical",
+      worstIncidentSeverityColor: "#ff0000",
+      incidents: [],
+      activeAlertCount: 0,
+      worstAlertSeverityName: null,
+      worstAlertSeverityColor: null,
+      alerts: [],
     });
-    expect(result.effectiveFocusKey).toBeNull();
-    expect(result.matchedKeys.size).toBe(5);
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      statuses,
+    });
+    expect(result.entries[0]!.key).toBe("worker");
+    expect(entry(result, "worker").incidentColor).toBe("#ff0000");
+    expect(entry(result, "worker").needsAttention).toBe(true);
   });
 
-  test("an isolated service stays visible when focused", () => {
-    expect(visible(model, { focusKey: "isolated" }).visibleKeys).toEqual(
-      new Set(["isolated"]),
+  test("operational status never applies to a dependency with a service's name", () => {
+    const statuses: Map<string, ServiceOperationalStatus> = new Map();
+    statuses.set("postgres", {
+      serviceId: "x",
+      activeIncidentCount: 3,
+      worstIncidentSeverityName: null,
+      worstIncidentSeverityColor: null,
+      incidents: [],
+      activeAlertCount: 0,
+      worstAlertSeverityName: null,
+      worstAlertSeverityColor: null,
+      alerts: [],
+    });
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      statuses,
+    });
+    expect(entry(result, "postgres").incidentCount).toBe(0);
+  });
+});
+
+describe("activity", () => {
+  const stale: InventoryItem = entity("legacy", EntityType.Service, {
+    lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+  });
+
+  test("services silent in the range are left out and counted", () => {
+    const result: ServiceMapModel = model(
+      [...ENTITIES, stale],
+      [
+        ...RELATIONSHIPS,
+        calls("legacy", "api", 5, 0, 1),
+        calls("web", "legacy", 5, 0, 1),
+      ],
     );
+    expect(result.entryByKey.has("legacy")).toBe(false);
+    expect(result.inactiveServiceCount).toBe(1);
+    // Neither direction may resurrect it through an edge.
+    expect(
+      result.edges.some((edge: { from: string; to: string }) => {
+        return edge.from === "legacy" || edge.to === "legacy";
+      }),
+    ).toBe(false);
   });
 
-  test("attention filters directory rows, retaining immediate map context", () => {
-    const result: ServiceMapVisibility = visible(model, {
-      attentionOnly: true,
+  test("show inactive brings them back", () => {
+    const result: ServiceMapModel = model([...ENTITIES, stale], RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      includeInactive: true,
     });
-    expect(result.matchedKeys).toEqual(new Set(["api"]));
-    expect(result.visibleKeys).toEqual(new Set(["api", "web", "db"]));
+    expect(result.entryByKey.has("legacy")).toBe(true);
+    expect(result.inactiveServiceCount).toBe(0);
   });
 
-  test("search and attention combine, and a miss has no ghost context", () => {
-    const result: ServiceMapVisibility = visible(model, {
-      attentionOnly: true,
-      search: "database",
+  test("where a service runs lists only active infrastructure", () => {
+    expect(entry(model(), "api").runsOn.sort()).toEqual(["pod-1", "pod-2"]);
+  });
+});
+
+describe("edges", () => {
+  test("duplicate, self and dangling rows are dropped", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("web", "api", 10, 0, 1),
+      calls("web", "api", 99, 0, 1),
+      calls("api", "api", 10, 0, 1),
+      calls("api", "missing", 10, 0, 1),
+      calls("missing", "api", 10, 0, 1),
+    ]);
+    expect(
+      result.edges.map((edge: { id: string; calls: number }) => {
+        return [edge.id, edge.calls];
+      }),
+    ).toEqual([["web->api", 10]]);
+    expect(result.relationships).toHaveLength(1);
+  });
+
+  test("co-occurrence relationships are never drawn as calls", () => {
+    expect(
+      model().edges.every((edge: { to: string }) => {
+        return !edge.to.startsWith("pod");
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("visibility", () => {
+  test("search keeps matches plus their direct neighbours as context", () => {
+    const visibility: ServiceMapVisibility = resolveServiceMapVisibility({
+      model: model(),
+      search: "postgres",
+      focusKey: null,
+      attentionOnly: false,
     });
-    expect(result.matchedKeys.size).toBe(0);
-    expect(result.visibleKeys.size).toBe(0);
+    expect(Array.from(visibility.matchedKeys)).toEqual(["postgres"]);
+    expect(Array.from(visibility.contextKeys)).toEqual(["api"]);
   });
 
-  test("search context never escapes the focused neighborhood", () => {
-    const result: ServiceMapVisibility = visible(model, {
+  test("search matches type and engine words too", () => {
+    const visibility: ServiceMapVisibility = resolveServiceMapVisibility({
+      model: model(),
+      search: "database postgresql",
+      focusKey: null,
+      attentionOnly: false,
+    });
+    expect(Array.from(visibility.matchedKeys)).toEqual(["postgres"]);
+  });
+
+  test("focus limits the map to a node and its direct connections", () => {
+    const visibility: ServiceMapVisibility = resolveServiceMapVisibility({
+      model: model(),
+      search: "",
       focusKey: "api",
-      search: "database",
+      attentionOnly: false,
     });
-    expect(result.matchedKeys).toEqual(new Set(["db"]));
-    expect(result.visibleKeys).toEqual(new Set(["api", "db"]));
+    expect(Array.from(visibility.visibleKeys).sort()).toEqual([
+      "api",
+      "postgres",
+      "stripe",
+      "web",
+    ]);
   });
 
-  test("filtering does not recompute incoming health from only visible connections", () => {
-    const entry: ServiceMapEntry | undefined = model.entryByKey.get("api");
-    visible(model, { focusKey: "db", search: "Checkout" });
-    expect(entry).toMatchObject({ calls: 100, errors: 6, health: "critical" });
+  test("an unknown focus is ignored", () => {
+    const visibility: ServiceMapVisibility = resolveServiceMapVisibility({
+      model: model(),
+      search: "",
+      focusKey: "gone",
+      attentionOnly: false,
+    });
+    expect(visibility.effectiveFocusKey).toBeNull();
+    expect(visibility.visibleKeys.size).toBe(5);
   });
 
-  test("cycles and self links do not recurse or duplicate matches", () => {
-    const cyclic: ServiceMapModel = buildServiceMapModel(
-      [service("a"), service("b")],
-      [dependency("a", "b"), dependency("b", "a"), dependency("a", "a")],
+  test("attention only keeps nodes that need attention", () => {
+    const visibility: ServiceMapVisibility = resolveServiceMapVisibility({
+      model: model(),
+      search: "",
+      focusKey: null,
+      attentionOnly: true,
+    });
+    expect(Array.from(visibility.matchedKeys)).toEqual(["stripe"]);
+  });
+});
+
+describe("layoutServiceMap", () => {
+  test("lays callers left of callees and lists unconnected nodes separately", () => {
+    const result: ServiceMapModel = model();
+    const layout: ServiceMapLayout = layoutServiceMap({
+      visibleKeys: new Set<string>(result.entryByKey.keys()),
+      edges: result.edges,
+      columnGap: 300,
+      rowGap: 150,
+    });
+    const x: (key: string) => number = (key: string): number => {
+      return layout.positions.get(key)!.x;
+    };
+    expect(x("web")).toBeLessThan(x("api"));
+    expect(x("api")).toBeLessThan(x("postgres"));
+    expect(x("postgres")).toBe(x("stripe"));
+    expect(layout.positions.get("postgres")!.y).not.toBe(
+      layout.positions.get("stripe")!.y,
     );
-    expect(visible(cyclic, { focusKey: "a", search: "a" }).visibleKeys).toEqual(
-      new Set(["a", "b"]),
+    expect(layout.positions.has("worker")).toBe(false);
+    expect(layout.unconnectedKeys).toEqual(["worker"]);
+  });
+
+  test("only visible edges connect nodes", () => {
+    const result: ServiceMapModel = model();
+    const layout: ServiceMapLayout = layoutServiceMap({
+      visibleKeys: new Set<string>(["web", "postgres"]),
+      edges: result.edges,
+      columnGap: 300,
+      rowGap: 150,
+    });
+    expect(layout.positions.size).toBe(0);
+    expect(layout.unconnectedKeys).toEqual(["postgres", "web"]);
+  });
+
+  test("is deterministic", () => {
+    const result: ServiceMapModel = model();
+    const build: () => ServiceMapLayout = (): ServiceMapLayout => {
+      return layoutServiceMap({
+        visibleKeys: new Set<string>(result.entryByKey.keys()),
+        edges: result.edges,
+        columnGap: 300,
+        rowGap: 150,
+      });
+    };
+    expect(Array.from(build().positions.entries())).toEqual(
+      Array.from(build().positions.entries()),
     );
   });
 });
 
-describe("isolated services stay readable on the map", () => {
-  test("the first isolated service starts at the requested row", () => {
-    expect(
-      serviceIsolatedPosition({
-        index: 0,
-        count: 1,
-        xGap: 260,
-        yGap: 180,
-        startY: 400,
+describe("helpers", () => {
+  test("summarizeRunsOn counts placements by type, most first", () => {
+    const byKey: Map<string, InventoryItem> = new Map(
+      ENTITIES.map((item: InventoryItem): [string, InventoryItem] => {
+        return [item.entityKey!, item];
       }),
-    ).toEqual({ x: 0, y: 400 });
+    );
+    expect(summarizeRunsOn(["pod-1", "pod-2", "old-host"], byKey)).toBe(
+      "2 pods · 1 host",
+    );
+    expect(summarizeRunsOn([], byKey)).toBeNull();
   });
 
-  test("large inventories wrap after four columns", () => {
-    expect(
-      serviceIsolatedPosition({
-        index: 4,
-        count: 100,
-        xGap: 260,
-        yGap: 180,
-        startY: 0,
-      }),
-    ).toEqual({ x: 0, y: 180 });
-    expect(
-      serviceIsolatedPosition({
-        index: 99,
-        count: 100,
-        xGap: 260,
-        yGap: 180,
-        startY: 0,
-      }).x,
-    ).toBeLessThanOrEqual(780);
+  test("nounForType pluralizes short nouns and falls back to type labels", () => {
+    expect(nounForType(EntityType.KubernetesPod, 1)).toBe("pod");
+    expect(nounForType(EntityType.KubernetesDeployment, 3)).toBe("deployments");
+    expect(nounForType(EntityType.CephCluster, 2)).toBe("ceph clusters");
   });
 
-  test("small inventories use a compact square grid", () => {
-    expect(
-      serviceIsolatedPosition({
-        index: 2,
-        count: 3,
-        xGap: 260,
-        yGap: 180,
-        startY: 0,
-      }),
-    ).toEqual({ x: 0, y: 180 });
+  test("kindForEntityType maps manual and inferred dependency types", () => {
+    expect(kindForEntityType(EntityType.ExternalDatabase)).toBe("database");
+    expect(kindForEntityType(EntityType.ExternalService)).toBe("external");
+    expect(kindForEntityType(EntityType.Service)).toBe("service");
+    expect(kindForEntityType("something.new")).toBe("remote");
   });
 
-  test("grid positions never overlap", () => {
-    const positions: Set<string> = new Set<string>();
-    for (let index: number = 0; index < 100; index++) {
-      positions.add(
-        JSON.stringify(
-          serviceIsolatedPosition({
-            index,
-            count: 100,
-            xGap: 260,
-            yGap: 180,
-            startY: 0,
-          }),
-        ),
-      );
-    }
-    expect(positions.size).toBe(100);
+  test("detailLabelForEntity keeps unknown values as reported", () => {
+    expect(
+      detailLabelForEntity(
+        entity("x", EntityType.Database, {
+          identifyingAttributes: { "db.system.name": "couchbase" },
+        }),
+      ),
+    ).toBe("couchbase");
   });
 });
