@@ -1,12 +1,18 @@
 import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "../../Models/DatabaseModels/GoogleSecOpsConnection";
 import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectionRun from "../../Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "../../Models/DatabaseModels/ThreatIntelFeed";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "../../Models/AnalyticsModels/ThreatIntelIndicator";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../Types/Dictionary";
 import Permission from "../../Types/Permission";
+import {
+  ConnectorField,
+  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
+} from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -70,10 +76,10 @@ const buildSecurityModels: BuildSecurityModelsFunction =
   (): Array<SecurityModel> => {
     const detectionRule: DetectionRule = new DetectionRule();
     const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
-    const googleSecOpsConnection: GoogleSecOpsConnection =
-      new GoogleSecOpsConnection();
     const securityEventConnection: SecurityEventConnection =
       new SecurityEventConnection();
+    const securityEventConnectionRun: SecurityEventConnectionRun =
+      new SecurityEventConnectionRun();
     const securityEvent: SecurityEvent = new SecurityEvent();
     const threatIntelIndicator: ThreatIntelIndicator =
       new ThreatIntelIndicator();
@@ -96,20 +102,20 @@ const buildSecurityModels: BuildSecurityModelsFunction =
         columns: columnsOf(threatIntelFeed),
       },
       {
-        name: "GoogleSecOpsConnection",
-        read: googleSecOpsConnection.readRecordPermissions,
-        create: googleSecOpsConnection.createRecordPermissions,
-        update: googleSecOpsConnection.updateRecordPermissions,
-        delete: googleSecOpsConnection.deleteRecordPermissions,
-        columns: columnsOf(googleSecOpsConnection),
-      },
-      {
         name: "SecurityEventConnection",
         read: securityEventConnection.readRecordPermissions,
         create: securityEventConnection.createRecordPermissions,
         update: securityEventConnection.updateRecordPermissions,
         delete: securityEventConnection.deleteRecordPermissions,
         columns: columnsOf(securityEventConnection),
+      },
+      {
+        name: "SecurityEventConnectionRun",
+        read: securityEventConnectionRun.readRecordPermissions,
+        create: securityEventConnectionRun.createRecordPermissions,
+        update: securityEventConnectionRun.updateRecordPermissions,
+        delete: securityEventConnectionRun.deleteRecordPermissions,
+        columns: columnsOf(securityEventConnectionRun),
       },
       {
         name: "SecurityEvent",
@@ -174,9 +180,9 @@ describe("Security domain access control", () => {
       }).sort(),
     ).toEqual([
       "DetectionRule",
-      "GoogleSecOpsConnection",
       "SecurityEvent",
       "SecurityEventConnection",
+      "SecurityEventConnectionRun",
       "ThreatIntelFeed",
       "ThreatIntelIndicator",
     ]);
@@ -258,9 +264,10 @@ describe("Security domain access control", () => {
       for (const [column, accessControl] of model.columns) {
         /*
          * `read: []` is a deliberate "nobody reads this through the API" -
-         * GoogleSecOpsConnection.serviceAccountJson and
-         * SecurityEventConnection.secrets are the ones that matter. Those
-         * must stay closed, which the credential tests below assert.
+         * SecurityEventConnection.secrets, which holds every provider's
+         * credential (the Google SecOps service-account key included), is
+         * the one that matters. It must stay closed, which the credential
+         * tests below assert.
          */
         if (!accessControl?.read || accessControl.read.length === 0) {
           continue;
@@ -295,16 +302,38 @@ describe("Security domain access control", () => {
   );
 
   /*
-   * The connector's service-account key is a live Google Cloud credential. It
-   * was already closed to everyone before the Security tiers existed, and
+   * The Google SecOps service-account key is a live Google Cloud credential.
+   * It was already closed to everyone before the Security tiers existed, and
    * giving the SIEM its own admin role must not have quietly opened it -
    * SecurityAdmin administers the connection, which is not the same as being
-   * able to read the key back out of it.
+   * able to read the key back out of it. The key used to have a column of its
+   * own; it is now the serviceAccountJson entry of SecurityEventConnection
+   * .secrets, and the move must not have opened it either: it has to be a
+   * secret field of the catalog entry, never a (readable) config field.
    */
-  test("the SecOps service-account key stays unreadable by everyone", () => {
-    const model: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+  test("the Google SecOps service-account key stays unreadable by everyone", () => {
+    const definition: SecurityEventConnectorDefinition | undefined =
+      getSecurityEventConnectorDefinition(
+        SecurityEventConnectorProvider.GoogleSecOps,
+      );
+
+    expect(definition).toBeDefined();
+
+    const keysOf: (fields: Array<ConnectorField>) => Array<string> = (
+      fields: Array<ConnectorField>,
+    ): Array<string> => {
+      return fields.map((field: ConnectorField): string => {
+        return field.key;
+      });
+    };
+
+    expect(keysOf(definition!.secretFields)).toContain("serviceAccountJson");
+    expect(keysOf(definition!.configFields)).not.toContain(
+      "serviceAccountJson",
+    );
+
     const accessControl: ColumnAccessControl | null =
-      model.getColumnAccessControlFor("serviceAccountJson");
+      new SecurityEventConnection().getColumnAccessControlFor("secrets");
 
     expect(accessControl).toBeDefined();
     expect(accessControl?.read).toEqual([]);
@@ -312,11 +341,11 @@ describe("Security domain access control", () => {
 
   /*
    * The framework connections store every provider's credential (client
-   * secrets, API tokens, AWS secret keys) as one encrypted JSON string.
-   * Like the SecOps key it is write-only: SecurityAdmin configures and
-   * rotates it, nobody reads it back through the API. The non-secret
-   * config column, by contrast, is what the edit form and the table show,
-   * so it follows the table into the Security tiers.
+   * secrets, API tokens, AWS secret keys, the Google SecOps service-account
+   * key) as one encrypted JSON string. It is write-only: SecurityAdmin
+   * configures and rotates it, nobody reads it back through the API. The
+   * non-secret config column, by contrast, is what the edit form and the
+   * table show, so it follows the table into the Security tiers.
    */
   test("the framework connection secrets stay unreadable by everyone", () => {
     const model: SecurityEventConnection = new SecurityEventConnection();
@@ -378,32 +407,26 @@ describe("Security domain access control", () => {
   });
 
   /*
-   * Pointing the project at a Chronicle instance, and holding the credential
-   * that reads it, is administration of the SIEM rather than use of it.
+   * Pointing the project at a security product - a Chronicle instance, a
+   * Sentinel workspace - and holding the credential that reads it, is
+   * administration of the SIEM rather than use of it.
    */
-  test.each<[string, GoogleSecOpsConnection | SecurityEventConnection]>([
-    ["GoogleSecOpsConnection", new GoogleSecOpsConnection()],
-    ["SecurityEventConnection", new SecurityEventConnection()],
-  ])(
-    "only the Admin tier configures the %s connector",
-    (
-      _name: string,
-      model: GoogleSecOpsConnection | SecurityEventConnection,
-    ) => {
-      for (const list of [
-        model.createRecordPermissions,
-        model.updateRecordPermissions,
-        model.deleteRecordPermissions,
-      ]) {
-        expect(list).toContain(Permission.SecurityAdmin);
-        expect(list).not.toContain(Permission.SecurityMember);
-        expect(list).not.toContain(Permission.SecurityViewer);
-      }
+  test("only the Admin tier configures security event connections", () => {
+    const model: SecurityEventConnection = new SecurityEventConnection();
 
-      expect(model.readRecordPermissions).toContain(Permission.SecurityMember);
-      expect(model.readRecordPermissions).toContain(Permission.SecurityViewer);
-    },
-  );
+    for (const list of [
+      model.createRecordPermissions,
+      model.updateRecordPermissions,
+      model.deleteRecordPermissions,
+    ]) {
+      expect(list).toContain(Permission.SecurityAdmin);
+      expect(list).not.toContain(Permission.SecurityMember);
+      expect(list).not.toContain(Permission.SecurityViewer);
+    }
+
+    expect(model.readRecordPermissions).toContain(Permission.SecurityMember);
+    expect(model.readRecordPermissions).toContain(Permission.SecurityViewer);
+  });
 
   /*
    * The Member tier is what makes the family usable without handing out admin:
@@ -469,5 +492,113 @@ describe("Security domain access control", () => {
     expect(threatIntelFeed.createRecordPermissions).toContain(
       Permission.CreateProjectThreatIntelFeed,
     );
+  });
+});
+
+/*
+ * Run history and poll bookkeeping are what the connection diagnostics read,
+ * so every Security tier can see them - and nothing but the worker may write
+ * them. A client that could create a run or set lastPollResult could forge a
+ * healthy connection, or move the cursor past records it never imported.
+ * (Carried over from the Google SecOps diagnostics model suite, which pinned
+ * the same boundaries on its own run model.)
+ */
+describe("Security event connection diagnostics access boundaries", () => {
+  test("run history is tenant scoped and cannot be created, changed or deleted through CRUD", () => {
+    const run: SecurityEventConnectionRun = new SecurityEventConnectionRun();
+
+    expect(run.getTenantColumn()).toBe("projectId");
+    expect(run.getCrudApiPath()?.toString()).toBe(
+      "/security-event-connection-run",
+    );
+    expect(run.createRecordPermissions).toEqual([]);
+    expect(run.updateRecordPermissions).toEqual([]);
+    expect(run.deleteRecordPermissions).toEqual([]);
+    expect(run.readRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+    ]);
+    expect(run.readRecordPermissions).not.toContain(Permission.Public);
+  });
+
+  test.each([
+    "projectId",
+    "securityEventConnectionId",
+    "requestedByUserId",
+    "type",
+    "status",
+    "request",
+    "result",
+    "error",
+    "startedAt",
+    "completedAt",
+  ])(
+    "run field %s is readable by security viewers and writable only internally",
+    (field: string) => {
+      const control: ColumnAccessControl | null =
+        new SecurityEventConnectionRun().getColumnAccessControlFor(field);
+
+      expect(control).toBeTruthy();
+      expect(control?.create).toEqual([]);
+      expect(control?.update).toEqual([]);
+      expect(control?.read).toContain(Permission.SecurityViewer);
+    },
+  );
+
+  test.each([
+    "lastSuccessfulPollAt",
+    "lastEventIngestedAt",
+    "lastPollResult",
+    "lastPolledAt",
+    "cursor",
+    "lastError",
+  ])("clients cannot forge the connection's %s", (field: string) => {
+    const control: ColumnAccessControl | null =
+      new SecurityEventConnection().getColumnAccessControlFor(field);
+
+    expect(control).toBeTruthy();
+    expect(control?.create).toEqual([]);
+    expect(control?.update).toEqual([]);
+    expect(control?.read).toContain(Permission.SecurityMember);
+  });
+
+  /*
+   * Alerts only, or alerts and detections, decides what a connection
+   * imports. Changing it is configuring the connection.
+   */
+  test("only connector administrators can change what a connection imports", () => {
+    const control: ColumnAccessControl | null =
+      new SecurityEventConnection().getColumnAccessControlFor("alertingOnly");
+
+    expect(control?.update).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ]);
+    expect(control?.create).toEqual(control?.update);
+    expect(control?.read).toContain(Permission.SecurityViewer);
+  });
+
+  test("diagnostics do not make credentials readable or add them to run history", () => {
+    expect(
+      new SecurityEventConnection().getColumnAccessControlFor("secrets")?.read,
+    ).toEqual([]);
+
+    const runColumns: Array<string> =
+      new SecurityEventConnectionRun().getTableColumns().columns;
+
+    for (const credentialColumn of [
+      "secrets",
+      "serviceAccountJson",
+      "config",
+    ]) {
+      expect(runColumns).not.toContain(credentialColumn);
+      expect(Object.keys(new SecurityEventConnectionRun())).not.toContain(
+        credentialColumn,
+      );
+    }
   });
 });

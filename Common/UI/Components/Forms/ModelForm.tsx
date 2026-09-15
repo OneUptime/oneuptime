@@ -972,11 +972,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
        * auto-remediation command allowlist.
        *
        * Both halves of the condition are load-bearing. Not every JSON editor
-       * is backed by a JSON column: GoogleSecOpsConnection.serviceAccountJson
-       * is VeryLongText, edited as JSON because that is what the customer
-       * pastes, and STORED as the text they pasted - parsing that one would
-       * hand the server an object where it expects the string it decrypts and
-       * parses itself. And not every JSON column is edited as text.
+       * is backed by a JSON column: a VeryLongText column can hold JSON as
+       * the text it was given (SecurityEventConnection.secrets does, as the
+       * retired Google SecOps connection's pasted service account key did),
+       * and parsing that would hand the server an object where it expects
+       * the string it parses and encrypts itself. And not every JSON column
+       * is edited as text.
        *
        * Only a string is converted, and only when it parses. An untouched
        * field still holds whatever the fetch loaded (already parsed), and

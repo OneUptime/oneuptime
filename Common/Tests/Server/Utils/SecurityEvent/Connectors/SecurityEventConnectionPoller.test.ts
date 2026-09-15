@@ -21,16 +21,22 @@ import SecurityEventConnectionPoller, {
   POLL_REQUEST_TIMEOUT_IN_MS,
   PollerOverrides,
   RecordedConnectionPollFailure,
+  ResolvedFetchBudget,
   SECURITY_EVENT_SOURCE_LOCK_NAMESPACE,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionPoller";
 import SecurityEventConnectorRegistry from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import {
+  ConnectorFetchBudget,
+  ConnectorFetchFailureSummary,
   ConnectorFetchOptions,
   ConnectorFetchResult,
   ConnectorFetchWindow,
   ConnectorTestOptions,
+  ConnectorTestResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
+  attachConnectorChecks,
+  attachConnectorFetchSummary,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
@@ -40,6 +46,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { SecurityConnectorCheck } from "../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
+  LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE,
+  SECURITY_CONNECTION_ID_ATTRIBUTE,
   SecurityEventConnectionRunOptions,
   SecurityEventConnectionRunResult,
 } from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
@@ -842,7 +850,7 @@ describe("SecurityEventConnectionPoller.executeConnection - validation", () => {
     await expect(
       SecurityEventConnectionPoller.executeConnection(
         makeConnection({
-          provider: "google-secops" as SecurityEventConnectorProvider,
+          provider: "not-a-provider" as SecurityEventConnectorProvider,
         }),
         { type: "poll" },
         overridesFor(fake),
@@ -970,7 +978,10 @@ describe("SecurityEventConnectionPoller.executeConnection - source lock", () => 
   });
 
   test("without overrides the connection is re-read under the lock, scoped to its project", async () => {
-    const reloaded: SecurityEventConnection = makeConnection();
+    // The caller's snapshot says 5; the row as saved now says 15.
+    const reloaded: SecurityEventConnection = makeConnection({
+      pollIntervalInMinutes: 15,
+    });
     getJestSpyOn(
       SecurityEventConnectionService,
       "findOneById",
@@ -995,6 +1006,11 @@ describe("SecurityEventConnectionPoller.executeConnection - source lock", () => 
           secrets: true,
           cursor: true,
           lastPollResult: true,
+          /*
+           * The connector is told the saved interval (Google SecOps measures
+           * late-created detections against it), so it must be reloaded too.
+           */
+          pollIntervalInMinutes: true,
         }),
         props: { isRoot: true },
       }),
@@ -1006,6 +1022,8 @@ describe("SecurityEventConnectionPoller.executeConnection - source lock", () => 
       SecurityEventConnectionService.getConnectorSettings,
     ).toHaveBeenCalledWith(reloaded);
     expect(fake.fetchCalls).toHaveLength(1);
+    // The reloaded row's interval, not the caller's stale snapshot.
+    expect(fake.fetchCalls[0]!.options.pollIntervalInMinutes).toBe(15);
   });
 
   test.each<[string, SecurityEventConnection | null]>([
@@ -1119,7 +1137,11 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
       maxEvents: MAX_EVENTS_PER_RUN,
       requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
       sampleLimit: MAX_DIAGNOSTIC_SAMPLES,
+      purpose: "poll",
+      pollIntervalInMinutes: 5,
     });
+    // No connector budget, so no wall clock is imposed.
+    expect(call.options).not.toHaveProperty("maxDurationMs");
   });
 
   test("a poll that reads nothing is 'empty', writes nothing to storage and still advances the cursor", async () => {
@@ -2050,7 +2072,14 @@ describe("SecurityEventConnectionPoller.executeConnection - test, preview and ba
     expect(fake.testCalls).toEqual([
       {
         settings: SETTINGS,
-        options: { requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS },
+        /*
+         * A queued test only needs to know whether access works; the slow
+         * availability probes belong to the synchronous Test connection.
+         */
+        options: {
+          requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+          skipAvailability: true,
+        },
       },
     ]);
     expect(fake.fetchCalls).toHaveLength(0);
@@ -3036,6 +3065,1419 @@ describe("SecurityEventConnectionPoller - scheduled polls against a source large
     );
     expect(source.fetchWindows[3]!.endTime.toISOString()).toBe(
       source.fetchWindows[2]!.endTime.toISOString(),
+    );
+  });
+});
+
+/*
+ * What a connector that reads one window in several passes needs from this
+ * loop to run with the parity the retired Google SecOps poller had: its own
+ * fetch budget, the operation and the poll interval in the fetch options,
+ * one check per pass, a read summary that is never green for a read that
+ * did not finish, its diagnostics kept on the run, and a failed run named
+ * after the pass that failed.
+ */
+
+function historicalRun(
+  type: "preview" | "backfill",
+): SecurityEventConnectionRunOptions {
+  return {
+    type,
+    startTime: new Date(Date.now() - 120 * MINUTE_MS).toISOString(),
+    endTime: new Date(Date.now() - 60 * MINUTE_MS).toISOString(),
+  };
+}
+
+function runOptionsFor(
+  type: SecurityEventConnectionRunOptions["type"],
+): SecurityEventConnectionRunOptions {
+  return type === "preview" || type === "backfill"
+    ? historicalRun(type)
+    : { type };
+}
+
+function checkKeysAndStatuses(
+  result: SecurityEventConnectionRunResult,
+): Array<string> {
+  return result.checks.map((item: SecurityConnectorCheck): string => {
+    return `${item.key}:${item.status}`;
+  });
+}
+
+function withBudget(
+  fake: FakeConnector,
+  fetchBudget: ConnectorFetchBudget | undefined,
+): SecurityEventConnector {
+  return { ...fake.connector, fetchBudget };
+}
+
+const PASS_CHECKS: Array<SecurityConnectorCheck> = [
+  check(
+    "rule-detections-read",
+    "pass",
+    "Read 12 rule detections by created time.",
+  ),
+  check(
+    "curated-detections-read",
+    "warn",
+    "Curated detections are not available to this service account (HTTP 403).",
+  ),
+  check("alerts-view-read", "pass", "Read 3 alerts from the alerts view."),
+];
+
+const PROVIDER_DETAILS: JSONObject = {
+  basis: "created-time",
+  includeNonAlertingDetections: false,
+  sourceCounts: { ruleDetections: 12, curatedDetections: 0, alertsView: 3 },
+  creationLag: { measured: 15, lateCount: 1, maxLagMinutes: 42 },
+};
+
+describe("SecurityEventConnectionPoller.resolveFetchBudget", () => {
+  function resolve(
+    fetchBudget: ConnectorFetchBudget | undefined,
+  ): ResolvedFetchBudget {
+    return SecurityEventConnectionPoller.resolveFetchBudget(
+      withBudget(makeFakeConnector({}), fetchBudget),
+    );
+  }
+
+  test.each<[string, ConnectorFetchBudget | undefined]>([
+    ["no budget", undefined],
+    ["an empty budget", {}],
+  ])(
+    "a connector with %s gets the defaults and no wall clock",
+    (_label: string, fetchBudget: ConnectorFetchBudget | undefined) => {
+      const budget: ResolvedFetchBudget = resolve(fetchBudget);
+
+      expect(budget).toEqual({
+        maxRequests: MAX_FETCH_REQUESTS,
+        maxEvents: MAX_EVENTS_PER_RUN,
+      });
+      expect(budget).not.toHaveProperty("maxDurationMs");
+    },
+  );
+
+  test.each<[string, ConnectorFetchBudget, ResolvedFetchBudget]>([
+    [
+      "only maxRequests",
+      { maxRequests: 36 },
+      { maxRequests: 36, maxEvents: MAX_EVENTS_PER_RUN },
+    ],
+    [
+      "only maxEvents",
+      { maxEvents: 36000 },
+      { maxRequests: MAX_FETCH_REQUESTS, maxEvents: 36000 },
+    ],
+    [
+      "only maxDurationMs",
+      { maxDurationMs: 240000 },
+      {
+        maxRequests: MAX_FETCH_REQUESTS,
+        maxEvents: MAX_EVENTS_PER_RUN,
+        maxDurationMs: 240000,
+      },
+    ],
+    [
+      "every field",
+      { maxRequests: 36, maxEvents: 36000, maxDurationMs: 240000 },
+      { maxRequests: 36, maxEvents: 36000, maxDurationMs: 240000 },
+    ],
+    [
+      "values below the defaults (a budget may tighten a bound too)",
+      { maxRequests: 5, maxEvents: 100, maxDurationMs: 1000 },
+      { maxRequests: 5, maxEvents: 100, maxDurationMs: 1000 },
+    ],
+  ])(
+    "overrides field by field: %s",
+    (
+      _label: string,
+      fetchBudget: ConnectorFetchBudget,
+      expected: ResolvedFetchBudget,
+    ) => {
+      const budget: ResolvedFetchBudget = resolve(fetchBudget);
+
+      expect(budget).toEqual(expected);
+
+      if (expected.maxDurationMs === undefined) {
+        expect(budget).not.toHaveProperty("maxDurationMs");
+      }
+    },
+  );
+
+  test.each([0, -0, -1, -0.5, NaN, Infinity, -Infinity, "30", null, true])(
+    "an override of %j is ignored for every field",
+    (value: unknown) => {
+      const budget: ResolvedFetchBudget = resolve({
+        maxRequests: value as never,
+        maxEvents: value as never,
+        maxDurationMs: value as never,
+      });
+
+      expect(budget).toEqual({
+        maxRequests: MAX_FETCH_REQUESTS,
+        maxEvents: MAX_EVENTS_PER_RUN,
+      });
+      expect(budget).not.toHaveProperty("maxDurationMs");
+    },
+  );
+
+  test("an invalid field is ignored without discarding the valid ones beside it", () => {
+    const first: ResolvedFetchBudget = resolve({
+      maxRequests: 0,
+      maxEvents: 36000,
+      maxDurationMs: NaN,
+    });
+    const second: ResolvedFetchBudget = resolve({
+      maxRequests: 36,
+      maxEvents: -5,
+      maxDurationMs: 240000,
+    });
+
+    expect(first).toEqual({
+      maxRequests: MAX_FETCH_REQUESTS,
+      maxEvents: 36000,
+    });
+    expect(first).not.toHaveProperty("maxDurationMs");
+    expect(second).toEqual({
+      maxRequests: 36,
+      maxEvents: MAX_EVENTS_PER_RUN,
+      maxDurationMs: 240000,
+    });
+  });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - fetch options", () => {
+  test.each<["poll" | "preview" | "backfill"]>([
+    ["poll"],
+    ["preview"],
+    ["backfill"],
+  ])(
+    "a %s tells the connector which operation it serves",
+    async (type: "poll" | "preview" | "backfill") => {
+      const fake: FakeConnector = makeFakeConnector({});
+
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        runOptionsFor(type),
+        overridesFor(fake),
+      );
+
+      expect(fake.fetchCalls).toHaveLength(1);
+      expect(fake.fetchCalls[0]!.options.purpose).toBe(type);
+    },
+  );
+
+  test("a test run never fetches, so no connector is ever asked to fetch for a test", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      checks: [check("authentication", "pass")],
+    });
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection(),
+      { type: "test" },
+      overridesFor(fake),
+    );
+
+    expect(fake.fetchCalls).toHaveLength(0);
+  });
+
+  test.each<[number | undefined, number]>([
+    [30, 30],
+    [1, 1],
+    [1440, 1440],
+    [0, 5],
+    [undefined, 5],
+  ])(
+    "a connection polling every %j minutes tells the connector %j, the interval the scheduler applies",
+    async (interval: number | undefined, expected: number) => {
+      const fake: FakeConnector = makeFakeConnector({});
+
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({ pollIntervalInMinutes: interval as number }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+      expect(fake.fetchCalls[0]!.options.pollIntervalInMinutes).toBe(expected);
+    },
+  );
+
+  test.each<["poll" | "preview" | "backfill"]>([
+    ["poll"],
+    ["preview"],
+    ["backfill"],
+  ])(
+    "a connector's fetch budget replaces the defaults for a %s",
+    async (type: "poll" | "preview" | "backfill") => {
+      const fake: FakeConnector = makeFakeConnector({});
+
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({ pollIntervalInMinutes: 10 }),
+        runOptionsFor(type),
+        {
+          connector: withBudget(fake, {
+            maxRequests: 36,
+            maxEvents: 36000,
+            maxDurationMs: 240000,
+          }),
+          settings: SETTINGS,
+        },
+      );
+
+      expect(fake.fetchCalls[0]!.options).toEqual({
+        maxRequests: 36,
+        maxEvents: 36000,
+        maxDurationMs: 240000,
+        requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+        sampleLimit: MAX_DIAGNOSTIC_SAMPLES,
+        purpose: type,
+        pollIntervalInMinutes: 10,
+      });
+    },
+  );
+
+  test("an invalid budget falls back to the defaults when the fetch is made", async () => {
+    const fake: FakeConnector = makeFakeConnector({});
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection(),
+      { type: "poll" },
+      {
+        connector: withBudget(fake, {
+          maxRequests: 0,
+          maxEvents: 500,
+          maxDurationMs: -1,
+        }),
+        settings: SETTINGS,
+      },
+    );
+
+    expect(fake.fetchCalls[0]!.options.maxRequests).toBe(MAX_FETCH_REQUESTS);
+    expect(fake.fetchCalls[0]!.options.maxEvents).toBe(500);
+    expect(fake.fetchCalls[0]!.options).not.toHaveProperty("maxDurationMs");
+  });
+
+  test("without overrides the registry's connector brings its own budget", async () => {
+    getJestSpyOn(
+      SecurityEventConnectionService,
+      "findOneById",
+    ).mockResolvedValue(makeConnection() as never);
+    const fake: FakeConnector = makeFakeConnector({});
+    (
+      SecurityEventConnectorRegistry.getConnector as unknown as jest.Mock
+    ).mockReturnValue(withBudget(fake, { maxRequests: 36 }));
+
+    await SecurityEventConnectionPoller.executeConnection(makeConnection(), {
+      type: "poll",
+    });
+
+    expect(fake.fetchCalls[0]!.options.maxRequests).toBe(36);
+    expect(fake.fetchCalls[0]!.options.maxEvents).toBe(MAX_EVENTS_PER_RUN);
+  });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - per-pass checks and the read summary", () => {
+  test("a poll records the connector's pass checks verbatim, in order, between configuration and the read summary", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")], { checks: PASS_CHECKS }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "alerts-view-read:pass",
+      "read:pass",
+      "import:pass",
+    ]);
+    expect(result.checks.slice(1, 4)).toEqual(PASS_CHECKS);
+    // A pass that warned without leaving the window unread is not partial.
+    expect(result.status).toBe("success");
+    expect(
+      (updateCall().data["lastPollResult"] as unknown as JSONObject)["checks"],
+    ).toEqual(result.checks);
+  });
+
+  test("a preview records the pass checks before the read summary too, with no import step", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")], { checks: PASS_CHECKS }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        historicalRun("preview"),
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "alerts-view-read:pass",
+      "read:pass",
+    ]);
+  });
+
+  test("an empty pass list adds nothing", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([], { checks: [] }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "read:pass",
+      "import:pass",
+    ]);
+  });
+
+  test("a read the connector could not finish is a warning that says so, never a pass", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")], {
+        complete: false,
+        requestCount: MAX_FETCH_REQUESTS,
+        warnings: ["Stopped by the search page budget after 20 requests."],
+        checks: [
+          check(
+            "rule-detections-read",
+            "warn",
+            "Stopped by the search page budget after 20 requests.",
+          ),
+        ],
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS).toISOString(),
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("partial");
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:warn",
+      "read:warn",
+      "import:pass",
+    ]);
+    expect(findCheck(result, "read").message).toBe(
+      `1 ${DEFINITION.importedRecordName}s recognized; 0 rejected; 0 failed; ${MAX_FETCH_REQUESTS} requests. The window was not read completely; the warnings say what stopped the read.`,
+    );
+  });
+
+  test("a complete read keeps the plain summary message", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1"), makeEvent("evt-2")]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    const read: SecurityConnectorCheck = findCheck(result, "read");
+    expect(read.status).toBe("pass");
+    expect(read.message).toBe(
+      `2 ${DEFINITION.importedRecordName}s recognized; 0 rejected; 0 failed; 1 request.`,
+    );
+  });
+
+  test.each<
+    [
+      string,
+      Partial<ConnectorFetchResult>,
+      SecurityConnectorCheck["status"],
+      SecurityEventConnectionRunResult["status"],
+    ]
+  >([
+    ["complete and clean", {}, "pass", "success"],
+    ["incomplete", { complete: false }, "warn", "partial"],
+    [
+      "complete with rejected records",
+      { rejectedCount: 2, fetchedCount: 3 },
+      "warn",
+      "success",
+    ],
+    [
+      "incomplete with rejected records",
+      { complete: false, rejectedCount: 2, fetchedCount: 3 },
+      "warn",
+      "partial",
+    ],
+    [
+      "complete with normalization failures",
+      { failedCount: 1, fetchedCount: 2 },
+      "fail",
+      "partial",
+    ],
+    [
+      "incomplete with normalization failures",
+      { complete: false, failedCount: 1, fetchedCount: 2 },
+      "fail",
+      "partial",
+    ],
+  ])(
+    "a preview whose fetch is %s gets a %s read summary and a %s run",
+    async (
+      _label: string,
+      overrides: Partial<ConnectorFetchResult>,
+      readStatus: SecurityConnectorCheck["status"],
+      runStatus: SecurityEventConnectionRunResult["status"],
+    ) => {
+      const fake: FakeConnector = makeFakeConnector({
+        fetch: makeFetchResult([makeEvent("evt-1")], overrides),
+      });
+
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection(),
+          historicalRun("preview"),
+          overridesFor(fake),
+        );
+
+      const read: SecurityConnectorCheck = findCheck(result, "read");
+      expect(read.status).toBe(readStatus);
+      expect(result.status).toBe(runStatus);
+      expect(read.message.endsWith("stopped the read.")).toBe(
+        overrides.complete === false,
+      );
+    },
+  );
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - provider details", () => {
+  test("a poll keeps the connector's details on the run result and in the stored lastPollResult", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")], {
+        details: PROVIDER_DETAILS,
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.providerDetails).toEqual(PROVIDER_DETAILS);
+    expect(
+      (updateCall().data["lastPollResult"] as unknown as JSONObject)[
+        "providerDetails"
+      ],
+    ).toEqual(PROVIDER_DETAILS);
+  });
+
+  test.each<["preview" | "backfill"]>([["preview"], ["backfill"]])(
+    "a %s keeps them too",
+    async (type: "preview" | "backfill") => {
+      const fake: FakeConnector = makeFakeConnector({
+        fetch: makeFetchResult([makeEvent("evt-1")], {
+          details: { ...PROVIDER_DETAILS, basis: "detection-time" },
+        }),
+      });
+
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection(),
+          historicalRun(type),
+          overridesFor(fake),
+        );
+
+      expect(result.providerDetails).toEqual({
+        ...PROVIDER_DETAILS,
+        basis: "detection-time",
+      });
+    },
+  );
+
+  test("a fetch without details leaves providerDetails off the run", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+
+  test("details and pass checks survive a failure after the read, and the failure is named after the import", async () => {
+    getJestSpyOn(
+      SecurityEventDedupe,
+      "findExistingEventUids",
+    ).mockRejectedValue(new Error("Cluster oneuptime not found") as never);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")], {
+        details: PROVIDER_DETAILS,
+        checks: PASS_CHECKS,
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.providerDetails).toEqual(PROVIDER_DETAILS);
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "alerts-view-read:pass",
+      "read:pass",
+      "failure:fail",
+    ]);
+    expect(findCheck(result, "failure").name).toBe("Import records");
+  });
+
+  test("a fetch that throws leaves no provider details", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error("Okta system log read failed (HTTP 503): unavailable"),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - a failed pass names the failure", () => {
+  const READ_PHASE: string = `Read ${DEFINITION.importedRecordName}s from ${DEFINITION.title}`;
+
+  function failingPass(
+    name: string,
+    remediation?: string | undefined,
+  ): SecurityConnectorCheck {
+    return {
+      key: "curated-detections-read",
+      name,
+      status: "fail",
+      durationMs: 3,
+      message: "HTTP 500 from the curated detections search.",
+      ...(remediation ? { remediation } : {}),
+    };
+  }
+
+  test("the passes that ran are kept and the failure is named after the pass that threw, with its remediation and the redacted error", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const error: Error = attachConnectorChecks(
+      new Error(
+        `Google SecOps legacySearchCuratedDetections failed (HTTP 500): client_secret=${SECRET_VALUE}`,
+      ),
+      [
+        PASS_CHECKS[0]!,
+        failingPass(
+          "Read curated rule detections by created time",
+          "Google returned a server error; the next poll retries this window.",
+        ),
+      ],
+    );
+    const fake: FakeConnector = makeFakeConnector({ fetch: error });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({ cursor: cursor.toISOString() }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "failure:fail",
+    ]);
+    const failure: SecurityConnectorCheck = findCheck(result, "failure");
+    expect(failure.name).toBe("Read curated rule detections by created time");
+    expect(failure.remediation).toBe(
+      "Google returned a server error; the next poll retries this window.",
+    );
+    expect(failure.message).toBe(result.error);
+    expect(result.error).toContain(
+      "Google SecOps legacySearchCuratedDetections failed (HTTP 500)",
+    );
+    expect(result.error).not.toContain(SECRET_VALUE);
+    expect(JSON.stringify(result)).not.toContain(SECRET_VALUE);
+
+    // Still an ordinary failure for the cursor: held, chunk kept.
+    const written: ConnectionUpdateCall = updateCall();
+    expect("cursor" in written.data).toBe(false);
+    expect(written.data["lastError"]).toBe(result.error);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES);
+  });
+
+  test("attached checks without a failure are all kept and the phase names the failure", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(new Error("stream ended early"), [
+        PASS_CHECKS[0]!,
+        PASS_CHECKS[1]!,
+      ]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "failure:fail",
+    ]);
+    expect(findCheck(result, "failure").name).toBe(READ_PHASE);
+    expect(findCheck(result, "failure")).not.toHaveProperty("remediation");
+  });
+
+  test("an empty attached list is the same as none", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(new Error("boom"), []),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "failure:fail",
+    ]);
+    expect(findCheck(result, "failure").name).toBe(READ_PHASE);
+  });
+
+  test("when more than one attached check failed, the last one (the pass that threw) names the failure", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(new Error("boom"), [
+        failingPass("Read rule detections by created time"),
+        PASS_CHECKS[2]!,
+        failingPass("Read alerts view by detection time"),
+      ]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "alerts-view-read:pass",
+      "failure:fail",
+    ]);
+    expect(findCheck(result, "failure").name).toBe(
+      "Read alerts view by detection time",
+    );
+  });
+
+  test("a failing pass without remediation adds none", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(new Error("boom"), [
+        failingPass("Read rule detections by created time"),
+      ]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(findCheck(result, "failure").name).toBe(
+      "Read rule detections by created time",
+    );
+    expect(findCheck(result, "failure")).not.toHaveProperty("remediation");
+  });
+
+  test("entries in an attached list that are not checks are skipped", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(new Error("boom"), [
+        null,
+        "not a check",
+        PASS_CHECKS[0]!,
+      ] as never),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "failure:fail",
+    ]);
+  });
+
+  test("a thrown value that is not an Error still fails the run under the phase name", async () => {
+    const fake: FakeConnector = makeFakeConnector({});
+    const connector: SecurityEventConnector = {
+      ...fake.connector,
+      fetchEvents: (): Promise<ConnectorFetchResult> => {
+        return Promise.reject("socket hang up");
+      },
+    };
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        { connector, settings: SETTINGS },
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe("socket hang up");
+    expect(findCheck(result, "failure").name).toBe(READ_PHASE);
+  });
+
+  test("a pass that timed out names the failure and, like any timeout, narrows the next window", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: attachConnectorChecks(
+        new Error(
+          "Google SecOps legacySearchDetections timed out after 60 seconds with no response.",
+        ),
+        [failingPass("Read rule detections by created time")],
+      ),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({ cursor: cursor.toISOString() }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(findCheck(result, "failure").name).toBe(
+      "Read rule detections by created time",
+    );
+    expect(result.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES / 2);
+    expect("cursor" in updateCall().data).toBe(false);
+  });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - a failed fetch keeps what its passes gathered", () => {
+  /*
+   * The retired Google SecOps poller mutated one result through every pass,
+   * so its failed run still carried the passes' warnings (the curated HTTP
+   * 403 downgrade among them), the request and record counts, and its
+   * details. A connector hands the same over with
+   * attachConnectorFetchSummary. The failure itself, lastError and the
+   * cursor must not change because of it, and a connector that attaches no
+   * summary must leave the failed run exactly as it was.
+   */
+  const CURATED_WARNING: string =
+    "Curated rule detections could not be read (HTTP 403); this tenant may not have curated rule access. Rule detections and the alerts view were still read.";
+  const BUDGET_WARNING: string =
+    "Read rule detections by created time was stopped by the request budget after 20 requests.";
+  const CATCH_UP_WARNING: string =
+    "Catching up from the saved cursor in 24 hour windows. Later records will be fetched by subsequent polls.";
+  const SUMMARY_DETAILS: JSONObject = {
+    basis: "created-time",
+    sourceCounts: { ruleDetections: 2, curatedDetections: 0, alertsView: 0 },
+    includeNonAlertingDetections: false,
+  };
+
+  function alertsViewFailure(
+    summary?: ConnectorFetchFailureSummary | undefined,
+  ): Error {
+    const error: Error = attachConnectorChecks(
+      new Error(
+        `Google SecOps alerts fetch failed (HTTP 500): client_secret=${SECRET_VALUE}`,
+      ),
+      [
+        PASS_CHECKS[0]!,
+        PASS_CHECKS[1]!,
+        {
+          key: "alerts-view-read",
+          name: "Read alerts view by detection time",
+          status: "fail",
+          durationMs: 2,
+          message: "HTTP 500 from the alerts view.",
+        },
+      ],
+    );
+
+    return summary ? attachConnectorFetchSummary(error, summary) : error;
+  }
+
+  function lastConnectionUpdate(): ConnectionUpdateCall {
+    const spy: jest.Mock =
+      SecurityEventConnectionService.updateOneById as unknown as jest.Mock;
+    expect(spy.mock.calls.length).toBeGreaterThan(0);
+    return spy.mock.calls[
+      spy.mock.calls.length - 1
+    ]![0] as ConnectionUpdateCall;
+  }
+
+  function pollWith(
+    fetch: Error,
+    cursor: Date,
+  ): Promise<SecurityEventConnectionRunResult> {
+    return SecurityEventConnectionPoller.executeConnection(
+      makeConnection({ cursor: cursor.toISOString() }),
+      { type: "poll" },
+      overridesFor(makeFakeConnector({ fetch })),
+    );
+  }
+
+  test("the summary's warnings, counts and provider details are kept while the failure, lastError and cursor stay as they were", async () => {
+    // Three days behind, so the window raises its own catch-up warning.
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const baseline: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure(),
+      cursor,
+    );
+    const baselineUpdate: ConnectionUpdateCall = lastConnectionUpdate();
+
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        // A warning the window already raised, and a repeat, are written once.
+        warnings: [
+          CURATED_WARNING,
+          CATCH_UP_WARNING,
+          BUDGET_WARNING,
+          CURATED_WARNING,
+        ],
+        requestCount: 3,
+        fetchedCount: 2,
+        details: SUMMARY_DETAILS,
+      }),
+      cursor,
+    );
+    const written: ConnectionUpdateCall = lastConnectionUpdate();
+
+    expect(baseline.warnings).toEqual([CATCH_UP_WARNING]);
+    expect(result.status).toBe("failed");
+    expect(result.complete).toBe(false);
+    expect(result.warnings).toEqual([
+      CATCH_UP_WARNING,
+      CURATED_WARNING,
+      BUDGET_WARNING,
+    ]);
+    expect(result.requestCount).toBe(3);
+    expect(result.fetchedCount).toBe(2);
+    expect(result.ingestedCount).toBe(0);
+    expect(result.providerDetails).toEqual(SUMMARY_DETAILS);
+
+    // The failure is booked exactly as it is without a summary.
+    expect(result.error).toBe(baseline.error);
+    expect(result.error).toContain(
+      "Google SecOps alerts fetch failed (HTTP 500)",
+    );
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "failure:fail",
+    ]);
+    expect(checkKeysAndStatuses(result)).toEqual(
+      checkKeysAndStatuses(baseline),
+    );
+    expect(result.checks[result.checks.length - 1]!.key).toBe("failure");
+    expect(findCheck(result, "failure")).toMatchObject({
+      name: "Read alerts view by detection time",
+      message: result.error,
+    });
+    expect(result.chunkMinutes).toBe(baseline.chunkMinutes);
+    expect(result.nextChunkMinutes).toBe(baseline.nextChunkMinutes);
+    expect(written.data["lastError"]).toBe(result.error);
+    expect(written.data["lastError"]).toBe(baselineUpdate.data["lastError"]);
+    expect("cursor" in written.data).toBe(false);
+    expect("lastSuccessfulPollAt" in written.data).toBe(false);
+    expect(written.data["lastPollResult"]).toMatchObject({
+      status: "failed",
+      requestCount: 3,
+      fetchedCount: 2,
+      providerDetails: SUMMARY_DETAILS,
+    });
+    expect(JSON.stringify(result)).not.toContain(SECRET_VALUE);
+  });
+
+  test("a connector that attaches no summary leaves the failed run's counts, warnings and details as they were", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure(),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.requestCount).toBe(0);
+    expect(result.fetchedCount).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(result).not.toHaveProperty("providerDetails");
+    expect(findCheck(result, "failure").name).toBe(
+      "Read alerts view by detection time",
+    );
+    expect(lastConnectionUpdate().data["lastError"]).toBe(result.error);
+  });
+
+  test("a malformed summary is ignored like none", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        warnings: "not a list",
+        requestCount: 3,
+        fetchedCount: 2,
+        details: SUMMARY_DETAILS,
+      } as unknown as ConnectorFetchFailureSummary),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.requestCount).toBe(0);
+    expect(result.fetchedCount).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+
+  test("a summary without details keeps its warnings and counts and adds no provider details", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        warnings: [CURATED_WARNING],
+        requestCount: 1,
+        fetchedCount: 0,
+      }),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result).toMatchObject({
+      status: "failed",
+      warnings: [CURATED_WARNING],
+      requestCount: 1,
+      fetchedCount: 0,
+    });
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+
+  test.each<["preview" | "backfill"]>([["preview"], ["backfill"]])(
+    "a failed %s keeps the summary too",
+    async (type: "preview" | "backfill") => {
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection(),
+          runOptionsFor(type),
+          overridesFor(
+            makeFakeConnector({
+              fetch: alertsViewFailure({
+                warnings: [CURATED_WARNING],
+                requestCount: 2,
+                fetchedCount: 1,
+                details: SUMMARY_DETAILS,
+              }),
+            }),
+          ),
+        );
+
+      expect(result).toMatchObject({
+        status: "failed",
+        warnings: [CURATED_WARNING],
+        requestCount: 2,
+        fetchedCount: 1,
+        providerDetails: SUMMARY_DETAILS,
+      });
+      expect(findCheck(result, "failure").name).toBe(
+        "Read alerts view by detection time",
+      );
+    },
+  );
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - queued test with a ConnectorTestResult", () => {
+  function resultConnector(
+    fake: FakeConnector,
+    answer: ConnectorTestResult,
+  ): SecurityEventConnector {
+    return {
+      ...fake.connector,
+      testConnection: (
+        settings: SecurityConnectorSettings,
+        options: ConnectorTestOptions,
+      ): Promise<ConnectorTestResult> => {
+        fake.testCalls.push({ settings, options });
+        return Promise.resolve(answer);
+      },
+    };
+  }
+
+  test("its checks are recorded, it is asked to skip availability, and counts and samples stay off the run", async () => {
+    const fake: FakeConnector = makeFakeConnector({});
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "test" },
+        {
+          connector: resultConnector(fake, {
+            checks: [
+              check("authentication", "pass"),
+              check("rule-detections-read", "pass"),
+            ],
+            counts: { alertsViewLast24h: 3 },
+            samples: [{ id: "de_1", title: "Rule", severity: "High" }],
+          }),
+          settings: SETTINGS,
+        },
+      );
+
+    expect(result.status).toBe("success");
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "authentication:pass",
+      "rule-detections-read:pass",
+    ]);
+    expect(fake.testCalls[0]!.options).toEqual({
+      requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+      skipAvailability: true,
+    });
+    expect(result.samples).toEqual([]);
+    expect(result).not.toHaveProperty("counts");
+    expect(fake.fetchCalls).toHaveLength(0);
+  });
+
+  test("a failing check inside it fails the run, naming that check", async () => {
+    const fake: FakeConnector = makeFakeConnector({});
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "test" },
+        {
+          connector: resultConnector(fake, {
+            checks: [
+              check("authentication", "fail", "Token exchange refused."),
+            ],
+          }),
+          settings: SETTINGS,
+        },
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe("Check authentication: Token exchange refused.");
+    expect(findCheck(result, "failure").name).toBe(
+      `Check access to ${DEFINITION.title}`,
+    );
+  });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - event attribute key", () => {
+  test.each<[SecurityEventConnectionRunOptions["type"]]>([
+    ["poll"],
+    ["preview"],
+    ["backfill"],
+    ["test"],
+  ])(
+    "a %s run leaves eventAttributeKey unset, which means the default attribute",
+    async (type: SecurityEventConnectionRunOptions["type"]) => {
+      const fake: FakeConnector = makeFakeConnector({
+        fetch: makeFetchResult([makeEvent("evt-1")]),
+        checks: [check("authentication", "pass")],
+      });
+
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection(),
+          runOptionsFor(type),
+          overridesFor(fake),
+        );
+
+      expect(result).not.toHaveProperty("eventAttributeKey");
+    },
+  );
+
+  test("a failed run leaves it unset too", async () => {
+    const fake: FakeConnector = makeFakeConnector({ fetch: new Error("boom") });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result).not.toHaveProperty("eventAttributeKey");
+  });
+
+  test("imported rows carry the connection id under the default attribute, never the legacy Google SecOps one", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")]),
+    });
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection(),
+      { type: "poll" },
+      overridesFor(fake),
+    );
+
+    const attributes: JSONObject = insertedRows[0]!["attributes"] as JSONObject;
+    expect(SECURITY_CONNECTION_ID_ATTRIBUTE).toBe(
+      "oneuptime.security_connection.id",
+    );
+    expect(attributes[SECURITY_CONNECTION_ID_ATTRIBUTE]).toBe(
+      CONNECTION_ID.toString(),
+    );
+    expect(attributes).not.toHaveProperty(
+      LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE,
+    );
+  });
+});
+
+/*
+ * Google SecOps through the shared loop with a fake connector: the catalog
+ * supplies the one-minute overlap, the "detection" record name and the
+ * Google / Google SecOps names that are the dedupe scope and the telemetry
+ * service, so connections carried over from the retired poller recognize
+ * what they already imported.
+ */
+describe("SecurityEventConnectionPoller - Google SecOps connections", () => {
+  const GOOGLE: SecurityEventConnectorDefinition =
+    getSecurityEventConnectorDefinition(
+      SecurityEventConnectorProvider.GoogleSecOps,
+    )!;
+  const GOOGLE_SETTINGS: SecurityConnectorSettings = {
+    provider: SecurityEventConnectorProvider.GoogleSecOps,
+    config: {
+      region: "us",
+      instanceResourceName: "projects/acme/locations/us/instances/i",
+    },
+    secrets: { serviceAccountJson: '{"client_email":"poller@acme"}' },
+    // Detections selected under Data to import.
+    alertingOnly: false,
+  };
+
+  function googleConnection(
+    overrides: Partial<SecurityEventConnection> = {},
+  ): SecurityEventConnection {
+    return makeConnection({
+      name: "Google SecOps production",
+      provider: SecurityEventConnectorProvider.GoogleSecOps,
+      config: GOOGLE_SETTINGS.config,
+      secrets: JSON.stringify(GOOGLE_SETTINGS.secrets),
+      alertingOnly: false,
+      ...overrides,
+    });
+  }
+
+  function googleOverrides(fake: FakeConnector): PollerOverrides {
+    return {
+      connector: withBudget(fake, {
+        maxRequests: 36,
+        maxEvents: 36000,
+        maxDurationMs: 240000,
+      }),
+      settings: GOOGLE_SETTINGS,
+    };
+  }
+
+  test("a scheduled poll reads from one minute before the cursor and imports detections under Google / Google SecOps", async () => {
+    const cursor: Date = new Date(Date.now() - 10 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("de_1"), makeEvent("de_2")], {
+        checks: PASS_CHECKS,
+        details: PROVIDER_DETAILS,
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        googleConnection({
+          cursor: cursor.toISOString(),
+          pollIntervalInMinutes: 5,
+        }),
+        { type: "poll" },
+        googleOverrides(fake),
+      );
+
+    expect(GOOGLE.cursorOverlapInMinutes).toBe(1);
+    const call: FakeConnector["fetchCalls"][number] = fake.fetchCalls[0]!;
+    expect(call.window.startTime.toISOString()).toBe(
+      new Date(cursor.getTime() - MINUTE_MS).toISOString(),
+    );
+    expect(call.settings.alertingOnly).toBe(false);
+    expect(call.options).toEqual({
+      maxRequests: 36,
+      maxEvents: 36000,
+      maxDurationMs: 240000,
+      requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+      sampleLimit: MAX_DIAGNOSTIC_SAMPLES,
+      purpose: "poll",
+      pollIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.provider).toBe(SecurityEventConnectorProvider.GoogleSecOps);
+    expect(result.providerDetails).toEqual(PROVIDER_DETAILS);
+    expect(findCheck(result, "read").name).toBe(
+      "Read detections from Google SecOps",
+    );
+    expect(dedupeCalls[0]).toEqual(
+      expect.objectContaining({
+        vendorName: "Google",
+        productName: "Google SecOps",
+      }),
+    );
+    expect(OTelIngestService.telemetryServiceFromName).toHaveBeenCalledWith({
+      serviceName: "Google SecOps",
+      projectId: PROJECT_ID,
+    });
+    expect(insertedRows).toHaveLength(2);
+    expect(insertedRows[0]!["vendorName"]).toBe("Google");
+    expect(insertedRows[0]!["productName"]).toBe("Google SecOps");
+    const attributes: JSONObject = insertedRows[0]!["attributes"] as JSONObject;
+    expect(attributes[SECURITY_CONNECTION_ID_ATTRIBUTE]).toBe(
+      CONNECTION_ID.toString(),
+    );
+    expect(attributes["oneuptime.security_connection.provider"]).toBe(
+      "google-secops",
+    );
+    expect(updateCall().data["cursor"]).toBe(result.windowEnd);
+  });
+
+  test("a detection already imported by the retired poller counts as a duplicate, not a new row", async () => {
+    existingUids = new Set(["de_1"]);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("de_1"), makeEvent("de_2")]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        googleConnection(),
+        { type: "poll" },
+        googleOverrides(fake),
+      );
+
+    expect(result.duplicateCount).toBe(1);
+    expect(result.ingestedCount).toBe(1);
+    expect(dedupeCalls[0]!.vendorName).toBe("Google");
+    expect(dedupeCalls[0]!.productName).toBe("Google SecOps");
+  });
+
+  test("a preview tells the connector it is a preview, so it can also read by detection time", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("de_1")], {
+        details: { ...PROVIDER_DETAILS, basis: "detection-time" },
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        googleConnection(),
+        historicalRun("preview"),
+        googleOverrides(fake),
+      );
+
+    expect(fake.fetchCalls[0]!.options.purpose).toBe("preview");
+    expect(result.providerDetails).toEqual({
+      ...PROVIDER_DETAILS,
+      basis: "detection-time",
+    });
+    expect(SecurityEventService.insertJsonRows).not.toHaveBeenCalled();
+  });
+
+  test("a budget-stopped Google SecOps read is partial with a warning summary and narrows the next window", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("de_1")], {
+        complete: false,
+        requestCount: 16,
+        warnings: [
+          "The alerts view was stopped by the request budget after 16 requests.",
+        ],
+        checks: [
+          check("rule-detections-read", "pass"),
+          check(
+            "alerts-view-read",
+            "warn",
+            "Stopped by the request budget after 16 requests.",
+          ),
+        ],
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        googleConnection({
+          cursor: new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS).toISOString(),
+        }),
+        { type: "poll" },
+        googleOverrides(fake),
+      );
+
+    expect(result.status).toBe("partial");
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "alerts-view-read:warn",
+      "read:warn",
+      "import:pass",
+    ]);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES / 2);
+    expect("cursor" in updateCall().data).toBe(false);
+  });
+
+  test("a Google SecOps timeout halves the chunk like any other provider's (accepted when it moved into the framework)", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error(
+        "Google SecOps token exchange timed out after 60 seconds with no response.",
+      ),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        googleConnection({
+          cursor: new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS).toISOString(),
+        }),
+        { type: "poll" },
+        googleOverrides(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES / 2);
+    expect(result.warnings).toContain(
+      `The source did not answer in time for this window; the next poll reads a ${MAX_CHUNK_MINUTES / 2} minute window from the same starting point.`,
+    );
+    expect(findCheck(result, "failure").name).toBe(
+      "Read detections from Google SecOps",
     );
   });
 });

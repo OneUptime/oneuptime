@@ -125,8 +125,6 @@ import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
-import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
-import GoogleSecOpsConnectionRun from "./GoogleSecOpsConnectionRun";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ThreatIntelFeed from "./ThreatIntelFeed";
@@ -503,8 +501,6 @@ const AllModelTypes: Array<{
   LogPipelineProcessor,
   LogDropFilter,
   DetectionRule,
-  GoogleSecOpsConnection,
-  GoogleSecOpsConnectionRun,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ThreatIntelFeed,

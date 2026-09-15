@@ -1,22 +1,37 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
+import { JSONObject } from "Common/Types/JSON";
 import {
   SecurityConnectorCheck,
+  SecurityConnectorCheckStatus,
   SecurityConnectorSample,
   SecurityConnectorTestReport,
 } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
-import { getSecurityEventConnectorDefinition } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import {
+  ConnectorAlertingOnlyControl,
+  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
+} from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Link from "Common/UI/Components/Link/Link";
 import ConnectorTestReportView from "./ConnectorTestReportView";
 import {
+  ConnectorProviderDetailGroup,
+  ConnectorProviderDetailRow,
   connectionEventsRoute,
   connectionTimeTitle,
   connectorCheckStatusLabels,
+  connectorProviderDetailGroups,
   connectorProviderTitle,
+  connectorSampleEventTime,
+  connectorSampleTitle,
+  connectorScopeLabel,
+  connectorScopeSummary,
   formatConnectionDate,
   formatWindowMinutes,
+  normalizeConnectorCheckStatus,
+  readConnectorProviderDetails,
   readSecurityConnectorTestReport,
   readSecurityEventConnectionResult,
   readWindowMinutes,
@@ -52,8 +67,8 @@ export const ConnectionTime: FunctionComponent<ConnectionTimeProps> = (
 
 /*
  * The adaptive catch-up fields a scheduled poll stores on its result. Typed
- * structurally so the Google SecOps run details can render the same notice
- * from a GoogleSecOpsRunResult.
+ * structurally, so a result carried over from the retired Google SecOps
+ * connector (which stored the same fields) renders the same notice.
  */
 export interface ConnectionWindowProgressResult {
   status: string;
@@ -193,11 +208,14 @@ export const ConnectionWindowProgress: FunctionComponent<
 
 export interface ComponentProps {
   run: SecurityEventConnectionRun;
+  /*
+   * The parent connection's provider, used when the stored result does not
+   * name one (a run carried over from the retired Google SecOps connector).
+   */
+  provider?: string | undefined;
 }
 
-function checkStatusClassName(
-  status: SecurityConnectorCheck["status"],
-): string {
+function checkStatusClassName(status: string): string {
   switch (status) {
     case "fail":
       return "font-medium text-red-700";
@@ -226,12 +244,39 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
     ? null
     : readSecurityEventConnectionResult(run.result);
   const error: string | undefined = run.error || result?.error;
-  const providerTitle: string = connectorProviderTitle(
-    result?.provider || report?.provider || "",
+  const provider: string =
+    result?.provider || report?.provider || props.provider || "";
+  const providerTitle: string = connectorProviderTitle(provider);
+  const definition: SecurityEventConnectorDefinition | undefined =
+    getSecurityEventConnectorDefinition(provider);
+  const recordName: string = definition?.importedRecordName || "record";
+  const scopeControl: ConnectorAlertingOnlyControl | undefined =
+    definition?.supportsAlertingOnlyToggle
+      ? definition.alertingOnlyControl
+      : undefined;
+  const providerDetails: JSONObject | undefined = result
+    ? readConnectorProviderDetails(result)
+    : undefined;
+  const includeNonAlerting: unknown =
+    providerDetails?.["includeNonAlertingDetections"];
+  /*
+   * What this run imported, in the provider's own words ("Data to import:
+   * Alerts only"), when the connector recorded it. Shown as that line rather
+   * than repeated as a raw detail below.
+   */
+  const showScope: boolean =
+    Boolean(scopeControl) && typeof includeNonAlerting === "boolean";
+  const detailGroups: Array<ConnectorProviderDetailGroup> =
+    connectorProviderDetailGroups(
+      providerDetails,
+      showScope ? ["includeNonAlertingDetections"] : [],
+    );
+  // Only a source that says which records are alerts gets the column.
+  const showAlertColumn: boolean = Boolean(
+    result?.samples.some((sample: SecurityConnectorSample): boolean => {
+      return typeof sample.isAlert === "boolean";
+    }),
   );
-  const recordName: string =
-    getSecurityEventConnectorDefinition(result?.provider)?.importedRecordName ||
-    "record";
 
   return (
     <section
@@ -277,7 +322,11 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
             connection to check whether a worker is consuming the queue.
           </p>
         )}
-      {error && (
+      {/*
+       * A failed synchronous test stores its summary as the run error; the
+       * report banner below already shows it, so it is not repeated here.
+       */}
+      {error && !report && (
         <p
           role="alert"
           className="whitespace-pre-wrap break-words rounded-md bg-red-50 p-3 text-sm text-red-800"
@@ -310,6 +359,19 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               <dt className="text-gray-500">Provider</dt>
               <dd>{providerTitle}</dd>
             </div>
+            {showScope && (
+              <div>
+                <dt className="text-gray-500">
+                  {connectorScopeLabel(definition)}
+                </dt>
+                <dd>
+                  {connectorScopeSummary(
+                    definition,
+                    includeNonAlerting !== true,
+                  )}
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-gray-500">Completed (UTC)</dt>
               <dd>
@@ -347,6 +409,38 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               );
             })}
           </div>
+          {detailGroups.length > 0 && (
+            <section aria-label="Provider details" className="text-sm">
+              <h4 className="mb-2 text-sm font-medium">Provider details</h4>
+              <div className="space-y-3">
+                {detailGroups.map(
+                  (group: ConnectorProviderDetailGroup): ReactElement => {
+                    return (
+                      <div key={group.key || "general"}>
+                        {group.title && (
+                          <h5 className="text-xs font-medium text-gray-700">
+                            {group.title}
+                          </h5>
+                        )}
+                        <dl className="mt-1 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                          {group.rows.map(
+                            (row: ConnectorProviderDetailRow): ReactElement => {
+                              return (
+                                <div key={row.key} data-detail-key={row.key}>
+                                  <dt className="text-gray-500">{row.label}</dt>
+                                  <dd>{row.value}</dd>
+                                </div>
+                              );
+                            },
+                          )}
+                        </dl>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </section>
+          )}
           {run.type === "test" && (
             <p className="text-sm text-gray-600">
               This checks credentials and access to {providerTitle}. It does not
@@ -361,9 +455,11 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
           )}
           {result.status === "empty" && (
             <p className="text-sm text-gray-600">
-              {providerTitle} returned no matching records for this time range.
-              Try a wider range, or use Test connection to see what is available
-              to import.
+              {`${providerTitle} returned no matching records for this time range. Try a wider range, or use Test connection to see what is available to import.${
+                scopeControl && includeNonAlerting === false
+                  ? ` Only ${scopeControl.alertingLabel.toLowerCase()} are imported with this ${scopeControl.title} selection; select ${scopeControl.nonAlertingLabel} to import the rest.`
+                  : ""
+              }`}
             </p>
           )}
           {!result.complete &&
@@ -404,15 +500,19 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                     check: SecurityConnectorCheck,
                     index: number,
                   ): ReactElement => {
+                    const status: string = normalizeConnectorCheckStatus(
+                      check.status,
+                    );
                     return (
                       <li key={`${check.key}-${index}`}>
-                        <span className={checkStatusClassName(check.status)}>
+                        <span className={checkStatusClassName(status)}>
                           {check.name}:{" "}
-                          {connectorCheckStatusLabels[check.status] ||
-                            check.status}
+                          {connectorCheckStatusLabels[
+                            status as SecurityConnectorCheckStatus
+                          ] || status}
                         </span>
                         <p className="text-gray-600">{check.message}</p>
-                        {check.remediation && check.status !== "pass" && (
+                        {check.remediation && status !== "pass" && (
                           <p className="text-gray-800">{check.remediation}</p>
                         )}
                       </li>
@@ -436,7 +536,10 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                       <th className="py-2 pr-4">Record</th>
                       <th className="py-2 pr-4">Severity</th>
                       <th className="py-2 pr-4">Event time (UTC)</th>
-                      <th className="py-2">Created at source (UTC)</th>
+                      <th className={showAlertColumn ? "py-2 pr-4" : "py-2"}>
+                        Created at source (UTC)
+                      </th>
+                      {showAlertColumn && <th className="py-2">Alert</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -451,7 +554,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             className="border-b border-gray-100"
                           >
                             <td className="max-w-xs break-words py-2 pr-4">
-                              {sample.title || "Untitled"}
+                              {connectorSampleTitle(sample) || "Untitled"}
                               <div className="text-xs text-gray-500">
                                 {sample.id}
                               </div>
@@ -461,16 +564,31 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             </td>
                             <td className="whitespace-nowrap py-2 pr-4">
                               <ConnectionTime
-                                value={sample.eventTime}
+                                value={connectorSampleEventTime(sample)}
                                 emptyText="Not provided"
                               />
                             </td>
-                            <td className="whitespace-nowrap py-2">
+                            <td
+                              className={
+                                showAlertColumn
+                                  ? "whitespace-nowrap py-2 pr-4"
+                                  : "whitespace-nowrap py-2"
+                              }
+                            >
                               <ConnectionTime
                                 value={sample.createdTime}
                                 emptyText="Not provided"
                               />
                             </td>
+                            {showAlertColumn && (
+                              <td className="py-2">
+                                {sample.isAlert === undefined
+                                  ? "Unknown"
+                                  : sample.isAlert
+                                    ? "Yes"
+                                    : "No"}
+                              </td>
+                            )}
                           </tr>
                         );
                       },

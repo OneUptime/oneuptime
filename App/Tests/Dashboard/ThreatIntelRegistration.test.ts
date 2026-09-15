@@ -188,19 +188,24 @@ describe("registry wiring", () => {
     /*
      * The shared-builder discipline (SecurityEventRow.ts) exists because a
      * step added to only one producer silently skips the other. Enrichment
-     * is such a step: HTTP ingest and the SecOps poller must both stamp
-     * threat.* on their normalized events before buildSecurityEventDbRow
-     * derives attributeKeys.
+     * is such a step: HTTP ingest and the Security Event Connections poller
+     * (which polls Google SecOps and every other managed source) must both
+     * stamp threat.* on their normalized events before
+     * buildSecurityEventDbRow derives attributeKeys.
      */
     expect(
       readSquashed(
         "App/FeatureSet/Telemetry/Services/SecurityEventsIngestService.ts",
       ),
     ).toContain("ThreatIntelEnricher.enrichNormalizedEvents");
+    const connectionPoller: string = readSquashed(
+      "Common/Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionPoller.ts",
+    );
+    expect(connectionPoller).toContain(
+      "ThreatIntelEnricher.enrichNormalizedEvents",
+    );
     expect(
-      readSquashed(
-        "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller.ts",
-      ),
-    ).toContain("ThreatIntelEnricher.enrichNormalizedEvents");
+      connectionPoller.indexOf("ThreatIntelEnricher.enrichNormalizedEvents"),
+    ).toBeLessThan(connectionPoller.indexOf("buildSecurityEventDbRow({"));
   });
 });

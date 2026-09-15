@@ -323,15 +323,33 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
     expect(getJobSchedulers).toHaveBeenCalledWith(0, 1000, true);
   });
 
-  test("either connector family's scheduler counts as registered, by its raw job name", () => {
+  test("only the Security Event Connections poll cron counts as the scheduler, by its raw job name", () => {
     /*
-     * The raw RunCron names, colon included: BullMQ reports `name` as
-     * passed to queue.add, never the sanitized jobId.
+     * The raw RunCron name, colon included: BullMQ reports `name` as passed
+     * to queue.add, never the sanitized jobId. Google SecOps is polled by
+     * this cron now; its retired cron name must not be listed.
      */
-    expect(CONNECTOR_SCHEDULER_JOB_NAMES).toEqual([
-      GOOGLE_POLL_JOB,
-      GENERIC_POLL_JOB,
-    ]);
+    expect(CONNECTOR_SCHEDULER_JOB_NAMES).toEqual([GENERIC_POLL_JOB]);
+    expect(CONNECTOR_SCHEDULER_JOB_NAMES).not.toContain(GOOGLE_POLL_JOB);
+  });
+
+  test("the retired Google SecOps cron is not a connector scheduler, by name or by key", () => {
+    expect(
+      ConnectorPlatformHealth.isConnectorScheduler(
+        bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
+      ),
+    ).toBe(false);
+    expect(
+      ConnectorPlatformHealth.isConnectorScheduler({
+        key: legacyRepeatKey(GOOGLE_POLL_JOB),
+        name: "SecurityEvents",
+      }),
+    ).toBe(false);
+    expect(
+      ConnectorPlatformHealth.isConnectorScheduler(
+        bullmqRepeatable(GENERIC_POLL_JOB),
+      ),
+    ).toBe(true);
   });
 
   test("a healthy registration, in the exact shape BullMQ returns, passes the scheduler check", async () => {
@@ -507,7 +525,7 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
           getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
             return Promise.resolve([
               undefined,
-              bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
+              bullmqRepeatable(GENERIC_POLL_JOB, NEXT_TICK_MS),
             ]);
           },
         }),
@@ -531,29 +549,65 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
     ).toBe(false);
   });
 
-  test("the Google scheduler alone marks the scheduler registered", async () => {
+  test("a leftover Google SecOps cron alone does not mark the scheduler registered", async () => {
+    /*
+     * The retired cron's repeatable can survive an upgrade in Redis. It
+     * enqueues nothing any more, so on its own it must read as a missing
+     * scheduler (a failed check), never as a healthy one.
+     */
     const status: ConnectorPlatformStatus =
       await ConnectorPlatformHealth.getPlatformStatus({
         queueOverride: makeQueue({
           getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
-            return Promise.resolve([bullmqRepeatable(GOOGLE_POLL_JOB)]);
+            return Promise.resolve([
+              bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
+              {
+                key: legacyRepeatKey(GOOGLE_POLL_JOB),
+                name: "SecurityEvents",
+                next: NEXT_TICK_MS,
+              },
+            ]);
+          },
+        }),
+        storageProbeOverride: storageUp,
+      });
+
+    expect(status.schedulerRegistered).toBe(false);
+    expect(status.schedulerNextRunAt).toBeUndefined();
+    expect(
+      findCheck(ConnectorPlatformHealth.toPlatformChecks(status), "scheduler")
+        .status,
+    ).toBe("fail");
+  });
+
+  test("a registered cron without a usable next tick invents no next-run timestamp", async () => {
+    const status: ConnectorPlatformStatus =
+      await ConnectorPlatformHealth.getPlatformStatus({
+        queueOverride: makeQueue({
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([bullmqRepeatable(GENERIC_POLL_JOB)]);
           },
         }),
         storageProbeOverride: storageUp,
       });
 
     expect(status.schedulerRegistered).toBe(true);
-    // No usable `next` on the entry, so no next-run timestamp is invented.
     expect(status.schedulerNextRunAt).toBeUndefined();
   });
 
-  test("reports the earliest next tick when both schedulers are registered", async () => {
+  test("reports the earliest next tick of the poll cron's registrations and ignores a leftover Google SecOps cron", async () => {
     const status: ConnectorPlatformStatus =
       await ConnectorPlatformHealth.getPlatformStatus({
         queueOverride: makeQueue({
           getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
             return Promise.resolve([
               bullmqRepeatable(GENERIC_POLL_JOB, NEXT_TICK_MS + 5_000),
+              {
+                key: legacyRepeatKey(GENERIC_POLL_JOB),
+                name: "SecurityEvents",
+                next: NEXT_TICK_MS + 2_000,
+              },
+              // Earliest of all, but it enqueues nothing any more.
               bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
             ]);
           },
@@ -561,8 +615,9 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
         storageProbeOverride: storageUp,
       });
 
+    expect(status.schedulerRegistered).toBe(true);
     expect(status.schedulerNextRunAt).toBe(
-      new Date(NEXT_TICK_MS).toISOString(),
+      new Date(NEXT_TICK_MS + 2_000).toISOString(),
     );
   });
 

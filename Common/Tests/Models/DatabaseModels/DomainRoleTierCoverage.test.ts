@@ -67,20 +67,19 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
 
   /*
    * The whole SIEM, and not one table of it is named for its domain: a Sigma
-   * rule, a TAXII subscription and a Chronicle connector. They shipped reading
-   * through the Telemetry tiers because they arrived beside logs and traces in
-   * ClickHouse, which made "can read every log in the project" and "can read the
-   * security events" one decision. Splitting them is what the Security tiers are
-   * for, and naming the three models here is what keeps a fourth from quietly
-   * shipping back under Telemetry.
+   * rule, a TAXII subscription and a managed security source connection. They
+   * shipped reading through the Telemetry tiers because they arrived beside
+   * logs and traces in ClickHouse, which made "can read every log in the
+   * project" and "can read the security events" one decision. Splitting them is
+   * what the Security tiers are for, and naming the models here is what keeps
+   * another from quietly shipping back under Telemetry.
    */
   DetectionRule: "Security",
   ThreatIntelFeed: "Security",
-  GoogleSecOpsConnection: "Security",
   /*
-   * The managed connector framework that followed the Chronicle connector:
-   * one row per polled security product plus its run history. Same domain
-   * for the same reason.
+   * The managed connector framework, Google SecOps (Chronicle) included: one
+   * row per polled security product plus its run history. Same domain for the
+   * same reason.
    */
   SecurityEventConnection: "Security",
   SecurityEventConnectionRun: "Security",

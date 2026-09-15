@@ -40,6 +40,7 @@ const KNOWN_FIELD_TYPES: Array<string> = [
   "number",
   "toggle",
   "dropdown",
+  "json",
 ];
 
 const DEFINITION_CASES: Array<[string, SecurityEventConnectorDefinition]> =
@@ -180,11 +181,16 @@ describe.each(DEFINITION_CASES)(
       }
     });
 
-    test("secret fields are all passwords and no config field is a password", () => {
+    test("secret fields are passwords or JSON documents, and no config field is either", () => {
+      /*
+       * "json" is a secret too: a service-account key pasted into a code
+       * editor. A config field of either type would be readable back from
+       * the API, which is the one thing a credential must never be.
+       */
       for (const field of definition.secretFields) {
-        expect({ key: field.key, type: field.type }).toEqual({
+        expect({ key: field.key, secretType: ["password", "json"] }).toEqual({
           key: field.key,
-          type: "password",
+          secretType: expect.arrayContaining([field.type]),
         });
       }
 
@@ -192,6 +198,10 @@ describe.each(DEFINITION_CASES)(
         expect({ key: field.key, type: field.type }).not.toEqual({
           key: field.key,
           type: "password",
+        });
+        expect({ key: field.key, type: field.type }).not.toEqual({
+          key: field.key,
+          type: "json",
         });
       }
     });
@@ -240,6 +250,21 @@ describe.each(DEFINITION_CASES)(
         for (const option of field.options!) {
           expect(option.label.trim()).not.toBe("");
           expect(option.value.trim()).not.toBe("");
+        }
+
+        /*
+         * A required dropdown may leave the choice to the person on purpose
+         * (Google SecOps's region: a preselected "us" would silently save
+         * the wrong regional endpoint for a tenant elsewhere). It must then
+         * say so with a placeholder. Every other dropdown defaults to one
+         * of its own options.
+         */
+        if (field.defaultValue === undefined && field.required) {
+          expect({ key: field.key, placeholder: field.placeholder }).toEqual({
+            key: field.key,
+            placeholder: expect.stringMatching(/\S/),
+          });
+          continue;
         }
 
         expect(typeof field.defaultValue).toBe("string");
@@ -295,7 +320,7 @@ describe("getSecurityEventConnectorDefinition", () => {
     ).toBe("Okta System Log");
   });
 
-  test.each([undefined, "", "google-secops", "OKTA"])(
+  test.each([undefined, "", "not-a-provider", "OKTA"])(
     "returns undefined for %j",
     (provider: string | undefined) => {
       expect(getSecurityEventConnectorDefinition(provider)).toBeUndefined();
