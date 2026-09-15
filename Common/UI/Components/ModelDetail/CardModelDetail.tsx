@@ -59,7 +59,22 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     onBeforeEditRef.current = props.onBeforeEdit;
   }, [props.onBeforeEdit]);
 
+  /*
+   * Only a real change to props.refresher toggles the internal one. Toggling
+   * on mount as well handed ModelDetail a second refresher value right after
+   * its first render, so every card sent two getItem requests on page load.
+   * Comparing against the last seen value, rather than skipping the first
+   * run, also holds when StrictMode re-runs effects on mount.
+   */
+  const lastPropsRefresherRef: React.MutableRefObject<boolean | undefined> =
+    useRef<boolean | undefined>(props.refresher);
+
   useEffect(() => {
+    if (lastPropsRefresherRef.current === props.refresher) {
+      return;
+    }
+
+    lastPropsRefresherRef.current = props.refresher;
     setRefresher(!refresher);
   }, [props.refresher]);
 

@@ -194,7 +194,7 @@ test("settings project access makes required SSO and provider choices clear with
 
   await page.getByLabel("Search projects", { exact: true }).fill(" atlas ");
   await expect(page.getByRole("button", { name: "Authenticate with SSO for Atlas Staging", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Clear project search", exact: true }).click();
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
   await expect(page.getByLabel("Search projects", { exact: true })).toHaveValue("");
   await page.getByRole("button", { name: "Authenticate with SSO for Atlas Staging", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Choose your provider", exact: true })).toBeVisible();

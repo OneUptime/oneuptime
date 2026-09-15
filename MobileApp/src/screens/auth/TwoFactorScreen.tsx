@@ -1,14 +1,23 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { Pressable, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../theme";
+import { spacing, useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { LoginResponse, TwoFactorMethod } from "../../api/auth";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import AuthLayout from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthLink,
+  AuthNotice,
+  AuthTextField,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
+import Card from "../../components/Card";
 import GradientButton from "../../components/GradientButton";
+import IconBadge from "../../components/IconBadge";
+import { ListGroup } from "../../components/ListGroup";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
   decideTwoFactorFollowUp,
@@ -203,38 +212,6 @@ export default function TwoFactorScreen(): React.JSX.Element {
     navigation.navigate("Login");
   };
 
-  const renderError: () => React.JSX.Element | null =
-    (): React.JSX.Element | null => {
-      if (!error) {
-        return null;
-      }
-
-      return (
-        <View
-          accessible
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            marginTop: 12,
-          }}
-        >
-          <Ionicons
-            name="alert-circle"
-            size={14}
-            color={theme.colors.statusError}
-            style={{ marginRight: 6, marginTop: 2 }}
-          />
-          <Text
-            style={{ fontSize: 14, flex: 1, color: theme.colors.statusError }}
-          >
-            {error}
-          </Text>
-        </View>
-      );
-    };
-
   /*
    * Rendered under EVERY challenge screen -- the picker, the code entry, and
    * the security key list -- and rendered whether or not the account has codes
@@ -261,124 +238,109 @@ export default function TwoFactorScreen(): React.JSX.Element {
       }
 
       return (
-        <TouchableOpacity
-          accessibilityRole="button"
+        <AuthLink
+          label={lostAccessLabel}
           testID="lost-access-link"
           disabled={isLoading}
           onPress={() => {
             setIsUsingBackupCode(true);
             setError(null);
           }}
-          style={{
-            marginTop: 12,
-            minHeight: 48,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-            {lostAccessLabel}
-          </Text>
-        </TouchableOpacity>
+        />
       );
     };
 
   const renderMethodPicker: () => React.JSX.Element = (): React.JSX.Element => {
     return (
-      <View>
-        {totpAuthList.map((method: TwoFactorMethod) => {
-          return (
-            <TouchableOpacity
-              key={method._id}
-              accessibilityRole="button"
-              accessibilityLabel={`Use ${method.name}`}
-              accessibilityHint="Enter a code from this authenticator app."
-              testID={`totp-method-${method._id}`}
-              onPress={() => {
-                setSelectedTotp(method);
-                setError(null);
-              }}
-              style={{
-                padding: 20,
-                borderRadius: 16,
-                marginBottom: 12,
-                borderWidth: 1.5,
-                borderColor: theme.colors.borderDefault,
-                backgroundColor: theme.colors.backgroundSecondary,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {method.name}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  marginTop: 2,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Authenticator App
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={{ gap: spacing.lg }}>
+        {totpAuthList.length + webAuthnList.length > 0 ? (
+          <ListGroup>
+            {totpAuthList.map((method: TwoFactorMethod) => {
+              return (
+                <Pressable
+                  key={method._id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${method.name}`}
+                  accessibilityHint="Enter a code from this authenticator app."
+                  testID={`totp-method-${method._id}`}
+                  onPress={() => {
+                    setSelectedTotp(method);
+                    setError(null);
+                  }}
+                  style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                    return {
+                      minHeight: 68,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      backgroundColor: pressed
+                        ? theme.colors.backgroundTertiary
+                        : "transparent",
+                    };
+                  }}
+                >
+                  <IconBadge name="phone-portrait-outline" />
+                  <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+                    <AppText variant="headline">{method.name}</AppText>
+                    <AppText variant="footnote" tone="secondary">
+                      Authenticator App
+                    </AppText>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={theme.colors.textTertiary}
+                  />
+                </Pressable>
+              );
+            })}
 
-        {webAuthnList.map((method: TwoFactorMethod) => {
-          return (
-            <View
-              key={method._id}
-              testID={`webauthn-method-${method._id}`}
-              style={{
-                padding: 16,
-                borderRadius: 12,
-                marginBottom: 12,
-                borderWidth: 1.5,
-                borderColor: theme.colors.borderDefault,
-                backgroundColor: theme.colors.backgroundTertiary,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {method.name}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  marginTop: 2,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Security keys are not supported in the mobile app. Use an
-                authenticator app, a backup code, or the web dashboard.
-              </Text>
-            </View>
-          );
-        })}
+            {webAuthnList.map((method: TwoFactorMethod) => {
+              return (
+                <View
+                  key={method._id}
+                  testID={`webauthn-method-${method._id}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    gap: spacing.md,
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.md,
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
+                >
+                  <IconBadge
+                    name="key-outline"
+                    color={theme.colors.textTertiary}
+                    background={theme.colors.backgroundElevated}
+                  />
+                  <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+                    <AppText variant="headline" tone="secondary">
+                      {method.name}
+                    </AppText>
+                    <AppText variant="footnote" tone="secondary">
+                      Security keys are not supported in the mobile app. Use an
+                      authenticator app, a backup code, or the web dashboard.
+                    </AppText>
+                  </View>
+                </View>
+              );
+            })}
+          </ListGroup>
+        ) : null}
 
         {totpAuthList.length === 0 && webAuthnList.length > 0 ? (
-          <Text
+          <AuthNotice
             testID="security-key-only-notice"
-            style={{
-              fontSize: 14,
-              color: theme.colors.textSecondary,
-              marginTop: 4,
-            }}
-          >
-            {isKnownToHaveNoBackupCodes
-              ? "A security key is the only two factor method on this account, and this app cannot use one. Sign in on the web dashboard, or ask an administrator to reset two factor authentication."
-              : "A security key is the only two factor method on this account, and this app cannot use one. Sign in with a backup code below, or use the web dashboard."}
-          </Text>
+            tone="warning"
+            message={
+              isKnownToHaveNoBackupCodes
+                ? "A security key is the only two factor method on this account, and this app cannot use one. Sign in on the web dashboard, or ask an administrator to reset two factor authentication."
+                : "A security key is the only two factor method on this account, and this app cannot use one. Sign in with a backup code below, or use the web dashboard."
+            }
+          />
         ) : null}
       </View>
     );
@@ -386,105 +348,65 @@ export default function TwoFactorScreen(): React.JSX.Element {
 
   const renderCodeEntry: () => React.JSX.Element = (): React.JSX.Element => {
     return (
-      <View>
-        <View
-          style={{
-            padding: 16,
-            borderRadius: 16,
-            backgroundColor: theme.colors.iconBackground,
-            marginBottom: 24,
-          }}
-        >
-          <Text
+      <View style={{ gap: spacing.xl }}>
+        <Card variant="tinted">
+          <View
             style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.md,
             }}
           >
-            {selectedTotp?.name}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-              marginTop: 6,
-            }}
-          >
-            Open this authenticator and enter its current six-digit code below.
-          </Text>
-        </View>
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "600",
-            marginBottom: 8,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Code
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: theme.colors.borderDefault,
-          }}
-        >
-          <Ionicons
-            name="keypad-outline"
-            size={18}
-            color={theme.colors.textTertiary}
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            testID="totp-code-input"
-            accessibilityLabel="Authenticator code"
-            editable={!isLoading}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 24,
-              letterSpacing: 5,
-              color: theme.colors.textPrimary,
-            }}
-            value={code}
-            onChangeText={(text: string) => {
-              setCode(text);
-              setError(null);
-            }}
-            placeholder="123456"
-            placeholderTextColor={theme.colors.textTertiary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="number-pad"
-            /*
-             * `oneTimeCode` is what lets iOS offer the code straight from the
-             * Messages/keychain suggestion bar. Without it the user is
-             * switching apps to read six digits they have to remember.
-             */
-            textContentType="oneTimeCode"
-            returnKeyType="go"
-            onSubmitEditing={submitTotpCode}
-          />
-        </View>
+            <IconBadge
+              name="phone-portrait-outline"
+              background={theme.colors.backgroundElevated}
+            />
+            <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+              <AppText variant="headline">{selectedTotp?.name}</AppText>
+              <AppText variant="subhead" tone="secondary">
+                Open this authenticator and enter its current six-digit code
+                below.
+              </AppText>
+            </View>
+          </View>
+        </Card>
 
-        {renderError()}
+        <AuthTextField
+          testID="totp-code-input"
+          containerTestID="totp-code-field"
+          variant="code"
+          label="Six-digit code"
+          accessibilityLabel="Authenticator code"
+          editable={!isLoading}
+          errorMessage={error}
+          value={code}
+          onChangeText={(text: string) => {
+            setCode(text);
+            setError(null);
+          }}
+          placeholder="000000"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="number-pad"
+          /*
+           * `oneTimeCode` is what lets iOS offer the code straight from the
+           * Messages/keychain suggestion bar. Without it the user is
+           * switching apps to read six digits they have to remember.
+           * `one-time-code` is the same hint for Android autofill.
+           */
+          textContentType="oneTimeCode"
+          autoComplete="one-time-code"
+          returnKeyType="go"
+          onSubmitEditing={submitTotpCode}
+        />
 
-        <View style={{ marginTop: 24 }}>
-          <GradientButton
-            label="Verify"
-            onPress={submitTotpCode}
-            loading={isLoading}
-            disabled={isLoading}
-          />
-        </View>
+        <GradientButton
+          label="Verify"
+          onPress={submitTotpCode}
+          loading={isLoading}
+          disabled={isLoading}
+          style={authPrimaryButtonStyle}
+        />
       </View>
     );
   };
@@ -501,108 +423,71 @@ export default function TwoFactorScreen(): React.JSX.Element {
   const renderRecovery: () => React.JSX.Element = (): React.JSX.Element => {
     if (isKnownToHaveNoBackupCodes) {
       return (
-        <View testID="no-backup-codes">
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-            }}
-          >
-            You have no backup codes.
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              marginTop: 8,
-              lineHeight: 20,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            There is no code you can enter here, because this account has never
-            been given a set. Ask an administrator of this OneUptime instance to
-            reset two factor authentication on your account. You will then be
-            able to sign in with your password and set a new authenticator app
-            up, and backup codes will be created for you at the same time.
-          </Text>
-        </View>
+        <Card variant="outlined" testID="no-backup-codes">
+          <View style={{ flexDirection: "row", gap: spacing.md }}>
+            <IconBadge
+              name="warning-outline"
+              color={theme.colors.statusWarning}
+              background={theme.colors.statusWarningBg}
+            />
+            <View style={{ flex: 1, minWidth: 0, gap: spacing.sm }}>
+              <AppText variant="headline">You have no backup codes.</AppText>
+              <AppText variant="subhead" tone="secondary">
+                There is no code you can enter here, because this account has
+                never been given a set. Ask an administrator of this OneUptime
+                instance to reset two factor authentication on your account. You
+                will then be able to sign in with your password and set a new
+                authenticator app up, and backup codes will be created for you
+                at the same time.
+              </AppText>
+            </View>
+          </View>
+        </Card>
       );
     }
 
     return (
-      <View>
-        <Text
-          style={{
-            fontSize: 14,
-            marginBottom: 16,
-            lineHeight: 20,
-            color: theme.colors.textSecondary,
-          }}
-        >
+      <View style={{ gap: spacing.xl }}>
+        <AppText variant="callout" tone="secondary">
           Enter one of the backup codes you saved when you set up two factor
           authentication. Each code works only once.
-        </Text>
+        </AppText>
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: theme.colors.borderDefault,
+        <AuthTextField
+          testID="backup-code-input"
+          containerTestID="backup-code-field"
+          label="Backup code"
+          icon="key-outline"
+          accessibilityLabel="Backup code"
+          editable={!isLoading}
+          errorMessage={error}
+          value={backupCode}
+          onChangeText={(text: string) => {
+            setBackupCode(text);
+            setError(null);
           }}
-        >
-          <Ionicons
-            name="key-outline"
-            size={18}
-            color={theme.colors.textTertiary}
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            testID="backup-code-input"
-            accessibilityLabel="Backup code"
-            editable={!isLoading}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 16,
-              color: theme.colors.textPrimary,
-            }}
-            value={backupCode}
-            onChangeText={(text: string) => {
-              setBackupCode(text);
-              setError(null);
-            }}
-            placeholder="ABCDE-12345"
-            placeholderTextColor={theme.colors.textTertiary}
-            /*
-             * Autocorrect and autocapitalise are both off: a recovery code is
-             * not a word, and a keyboard that "helpfully" capitalises or
-             * rewrites it produces a refusal the user cannot explain. Case and
-             * hyphens are normalized on the server, so what is typed is what
-             * matters, not how it looks.
-             */
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            returnKeyType="go"
-            onSubmitEditing={submitBackupCode}
-          />
-        </View>
+          placeholder="ABCDE-12345"
+          /*
+           * Autocorrect and autocapitalise are both off: a recovery code is
+           * not a word, and a keyboard that "helpfully" capitalises or
+           * rewrites it produces a refusal the user cannot explain. Case and
+           * hyphens are normalized on the server, so what is typed is what
+           * matters, not how it looks.
+           */
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          returnKeyType="go"
+          onSubmitEditing={submitBackupCode}
+        />
 
-        {renderError()}
-
-        <View style={{ marginTop: 24 }}>
-          <GradientButton
-            label="Sign In"
-            onPress={submitBackupCode}
-            loading={isLoading}
-            disabled={isLoading}
-          />
-        </View>
+        <GradientButton
+          label="Sign In"
+          onPress={submitBackupCode}
+          loading={isLoading}
+          disabled={isLoading}
+          style={authPrimaryButtonStyle}
+        />
       </View>
     );
   };
@@ -617,19 +502,16 @@ export default function TwoFactorScreen(): React.JSX.Element {
      */
     if (!pendingTwoFactor) {
       return (
-        <View testID="no-pending-challenge">
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 20,
-              textAlign: "center",
-              color: theme.colors.textSecondary,
-            }}
-          >
+        <Card
+          testID="no-pending-challenge"
+          style={{ alignItems: "center", gap: spacing.md }}
+        >
+          <IconBadge name="time-outline" size="lg" shape="circle" />
+          <AppText variant="subhead" tone="secondary" align="center">
             This sign-in has expired. Enter your email and password again to
             start over.
-          </Text>
-        </View>
+          </AppText>
+        </Card>
       );
     }
 
@@ -654,6 +536,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
     <AuthLayout
       title="Verify your identity"
       compact
+      icon={isUsingBackupCode ? "key-outline" : "shield-checkmark-outline"}
       eyebrow={
         isUsingBackupCode ? "ACCOUNT RECOVERY" : "TWO-FACTOR AUTHENTICATION"
       }
@@ -661,58 +544,42 @@ export default function TwoFactorScreen(): React.JSX.Element {
     >
       {renderBody()}
 
-      {renderLostAccessLink()}
+      <View style={{ marginTop: spacing.md }}>
+        {renderLostAccessLink()}
 
-      {isUsingBackupCode || selectedTotp ? (
-        <TouchableOpacity
-          accessibilityRole="button"
-          testID="back-to-methods"
+        {isUsingBackupCode || selectedTotp ? (
+          <AuthLink
+            label="Use a different two factor method"
+            testID="back-to-methods"
+            icon="arrow-back"
+            disabled={isLoading}
+            onPress={() => {
+              setIsUsingBackupCode(false);
+              setSelectedTotp(null);
+              setError(null);
+
+              /*
+               * The typed values go too. A six digit code is bound to the
+               * factor it came from, so leaving it in the box while the user
+               * picks a DIFFERENT authenticator means a reflex press of
+               * Verify submits the first method's code against the second --
+               * refused, with nothing on screen to explain why. Same for a
+               * half-typed recovery code left behind a method switch.
+               */
+              setCode("");
+              setBackupCode("");
+            }}
+          />
+        ) : null}
+
+        <AuthLink
+          label="Sign in as a different user"
+          tone="secondary"
+          testID="sign-in-as-different-user"
           disabled={isLoading}
-          onPress={() => {
-            setIsUsingBackupCode(false);
-            setSelectedTotp(null);
-            setError(null);
-
-            /*
-             * The typed values go too. A six digit code is bound to the
-             * factor it came from, so leaving it in the box while the user
-             * picks a DIFFERENT authenticator means a reflex press of
-             * Verify submits the first method's code against the second --
-             * refused, with nothing on screen to explain why. Same for a
-             * half-typed recovery code left behind a method switch.
-             */
-            setCode("");
-            setBackupCode("");
-          }}
-          style={{
-            marginTop: 4,
-            minHeight: 48,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-            Use a different two factor method
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <TouchableOpacity
-        accessibilityRole="button"
-        testID="sign-in-as-different-user"
-        disabled={isLoading}
-        onPress={signInAsSomebodyElse}
-        style={{
-          marginTop: 4,
-          minHeight: 48,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-          Sign in as a different user
-        </Text>
-      </TouchableOpacity>
+          onPress={signInAsSomebodyElse}
+        />
+      </View>
     </AuthLayout>
   );
 }

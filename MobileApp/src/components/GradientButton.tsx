@@ -4,10 +4,19 @@ import {
   ActivityIndicator,
   Pressable,
   View,
-  ViewStyle,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
+
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "tonal"
+  | "destructive"
+  | "ghost";
 
 interface GradientButtonProps {
   label: string;
@@ -15,8 +24,9 @@ interface GradientButtonProps {
   loading?: boolean;
   disabled?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
-  variant?: "primary" | "secondary";
-  style?: ViewStyle;
+  variant?: ButtonVariant;
+  size?: "md" | "sm";
+  style?: StyleProp<ViewStyle>;
 
   /*
    * Needed because the label is not always a stable handle. A button whose
@@ -28,6 +38,13 @@ interface GradientButtonProps {
   testID?: string;
 }
 
+/**
+ * The app's button. The name is historical; it no longer draws a gradient.
+ *
+ * primary: the one main action on a screen. secondary: an outlined
+ * alternative. tonal: a softer accent action. destructive: irreversible or
+ * risky actions. ghost: low-emphasis text actions.
+ */
 export default function GradientButton({
   label,
   onPress,
@@ -35,134 +52,122 @@ export default function GradientButton({
   disabled = false,
   icon,
   variant = "primary",
+  size = "md",
   style,
   testID,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
-  const primaryContentColor: string = theme.colors.textInverse;
-
   const isDisabled: boolean = disabled || loading;
 
-  if (variant === "secondary") {
-    return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        /*
-         * Named explicitly because the label is not always rendered. While
-         * `loading` the text is replaced by a spinner, and a Pressable with no
-         * text inside it has no accessible name at all - so the control a
-         * responder is waiting on becomes an unlabelled button at the exact
-         * moment they ask what it is doing.
-         */
-        accessibilityLabel={label}
-        accessibilityState={{ disabled: isDisabled, busy: loading }}
-        aria-disabled={isDisabled}
-        aria-busy={loading}
-        onPress={onPress}
-        disabled={isDisabled}
-        style={[
-          {
-            minHeight: 52,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            borderRadius: 12,
-            alignItems: "center" as const,
-            justifyContent: "center" as const,
-            overflow: "hidden" as const,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.borderDefault,
-            opacity: isDisabled ? 0.5 : 1,
-          },
-          style,
-        ]}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {loading ? (
-            <ActivityIndicator color={theme.colors.textSecondary} />
-          ) : (
-            <>
-              {icon ? (
-                <Ionicons
-                  name={icon}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                  style={{ marginRight: 8 }}
-                />
-              ) : null}
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {label}
-              </Text>
-            </>
-          )}
-        </View>
-      </Pressable>
-    );
-  }
+  const palette: Record<
+    ButtonVariant,
+    { background: string; pressed: string; content: string; border?: string }
+  > = {
+    primary: {
+      background: theme.colors.actionPrimary,
+      pressed: theme.colors.actionPrimaryPressed,
+      content: theme.colors.textInverse,
+    },
+    secondary: {
+      background: theme.colors.backgroundElevated,
+      pressed: theme.colors.backgroundTertiary,
+      content: theme.colors.textPrimary,
+      border: theme.colors.borderDefault,
+    },
+    tonal: {
+      background: theme.colors.cardAccent,
+      pressed: theme.colors.backgroundTertiary,
+      content: theme.colors.actionPrimary,
+    },
+    destructive: {
+      background: theme.colors.actionDestructive,
+      pressed: theme.colors.actionDestructivePressed,
+      content: theme.colors.textInverse,
+    },
+    ghost: {
+      background: "transparent",
+      pressed: theme.colors.backgroundTertiary,
+      content: theme.colors.actionPrimary,
+    },
+  };
+  const colors: {
+    background: string;
+    pressed: string;
+    content: string;
+    border?: string;
+  } = palette[variant];
 
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      /* Named explicitly for the reason given on the secondary variant above. */
+      /*
+       * Named explicitly because the label is not always rendered. While
+       * `loading` the text is replaced by a spinner, and a Pressable with no
+       * text inside it has no accessible name at all - so the control a
+       * responder is waiting on becomes an unlabelled button at the exact
+       * moment they ask what it is doing.
+       */
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       aria-disabled={isDisabled}
       aria-busy={loading}
       onPress={onPress}
       disabled={isDisabled}
-      style={[
-        {
-          minHeight: 52,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          borderRadius: 12,
-          overflow: "hidden" as const,
-          alignItems: "center" as const,
-          justifyContent: "center" as const,
-          flexDirection: "row" as const,
-          backgroundColor: theme.colors.actionPrimary,
-          opacity: isDisabled ? 0.5 : 1,
-          shadowColor: theme.colors.actionPrimary,
-          shadowOpacity: 0,
-          shadowOffset: { width: 0, height: 4 },
-          shadowRadius: 12,
-          elevation: 0,
-        },
-        style,
-      ]}
+      style={({ pressed }: { pressed: boolean }): StyleProp<ViewStyle> => {
+        return [
+          {
+            minHeight: size === "sm" ? 44 : 50,
+            paddingHorizontal: size === "sm" ? spacing.md : spacing.lg + 2,
+            paddingVertical: size === "sm" ? spacing.sm : spacing.md,
+            borderRadius: radius.md,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor:
+              pressed && !isDisabled ? colors.pressed : colors.background,
+            borderWidth: colors.border ? 1 : 0,
+            borderColor: colors.border,
+            opacity: isDisabled ? 0.55 : 1,
+          },
+          style,
+        ];
+      }}
     >
-      {loading ? (
-        <ActivityIndicator color={primaryContentColor} />
-      ) : (
-        <>
-          {icon ? (
-            <Ionicons
-              name={icon}
-              size={18}
-              color={primaryContentColor}
-              style={{ marginRight: 8 }}
-            />
-          ) : null}
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "bold",
-              color: primaryContentColor,
-              letterSpacing: 0.2,
-            }}
-          >
-            {label}
-          </Text>
-        </>
-      )}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.sm,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator color={colors.content} />
+        ) : (
+          <>
+            {icon ? (
+              <Ionicons
+                name={icon}
+                size={size === "sm" ? 16 : 18}
+                color={colors.content}
+              />
+            ) : null}
+            <Text
+              style={[
+                size === "sm" ? typography.subhead : typography.callout,
+                {
+                  fontWeight: "600",
+                  color: colors.content,
+                  textAlign: "center",
+                  flexShrink: 1,
+                },
+              ]}
+            >
+              {label}
+            </Text>
+          </>
+        )}
+      </View>
     </Pressable>
   );
 }

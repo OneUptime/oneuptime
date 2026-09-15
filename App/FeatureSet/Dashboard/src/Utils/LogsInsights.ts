@@ -14,6 +14,7 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { RESOURCE_FACET_CATALOG } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -188,14 +189,51 @@ export const INSIGHTS_SCOPE_FACET_KEYS: Array<string> = [
   ...RESOURCE_ENTITY_FACET_KEYS,
 ];
 
-/** Human-readable group label per facet key. */
-export const INSIGHTS_SCOPE_FACET_LABELS: Dictionary<string> = {
-  primaryEntityId: "Services",
-  hostId: "Hosts",
-  dockerHostId: "Docker hosts",
-  podmanHostId: "Podman hosts",
-  kubernetesClusterId: "Kubernetes clusters",
-};
+const PLAIN_CAPITALISED_WORD_PATTERN: RegExp = /^[A-Z][a-z]+$/;
+
+/**
+ * A resource type's plural label in the picker's sentence case: the head
+ * noun (the last word) goes lower case, so "Docker Hosts" reads "Docker
+ * hosts" while product names and acronyms ("Docker Swarm", "RUM", "IoT",
+ * "vCenters") keep their casing. A last word that is not plainly
+ * capitalised ("CRDs") is left as written rather than mangled.
+ */
+export function toInsightsScopeGroupLabel(pluralLabel: string): string {
+  const words: Array<string> = pluralLabel.trim().split(/\s+/);
+
+  if (words.length < 2) {
+    return words.join(" ");
+  }
+
+  const lastIndex: number = words.length - 1;
+  const lastWord: string = words[lastIndex] || "";
+
+  if (PLAIN_CAPITALISED_WORD_PATTERN.test(lastWord)) {
+    words[lastIndex] = lastWord.toLowerCase();
+  }
+
+  return words.join(" ");
+}
+
+function buildInsightsScopeFacetLabels(): Dictionary<string> {
+  const labels: Dictionary<string> = { primaryEntityId: "Services" };
+
+  for (const definition of RESOURCE_FACET_CATALOG) {
+    labels[definition.facetKey] = toInsightsScopeGroupLabel(
+      definition.pluralLabel,
+    );
+  }
+
+  return labels;
+}
+
+/**
+ * Human-readable group label per facet key: Services, then one per resource
+ * facet catalog entry, so a resource type added to the catalog gets its
+ * picker group titled without an edit here.
+ */
+export const INSIGHTS_SCOPE_FACET_LABELS: Dictionary<string> =
+  buildInsightsScopeFacetLabels();
 
 export interface ScopeFacetValue {
   facetKey: string;

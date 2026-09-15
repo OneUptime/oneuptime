@@ -1,14 +1,25 @@
 import React from "react";
+import { Appearance, StyleSheet, type ViewStyle } from "react-native";
 import {
   act,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { MockedFunction } from "jest-mock";
 import ProjectsScreen from "./ProjectsScreen";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
 import { clearAllSsoDenials, markProjectSsoDenied } from "../../sso/ssoDenials";
 import { makeListResponse, makeProject } from "../../__tests__/testSupport";
 import type { ListResponse, ProjectItem } from "../../api/types";
@@ -88,6 +99,21 @@ const mockNavigate: MockedFunction<Navigate> = jest.fn<Navigate>();
 const mockAddListener: MockedFunction<AddListener> = jest.fn<AddListener>();
 const mockRemoveFocusListener: MockedFunction<() => void> =
   jest.fn<() => void>();
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead (as in ThemeContext.test).
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("../../api/projects", () => {
   return {
@@ -248,9 +274,7 @@ describe("Finding projects and understanding access", () => {
     );
     expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
     expect(screen.queryByText(SSO_PROJECT.name)).toBeNull();
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Clear project search" }),
-    );
+    await fireEvent.press(screen.getByRole("button", { name: "Clear search" }));
     expect(screen.getByText(SSO_PROJECT.name)).toBeTruthy();
     expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
   });
@@ -1180,5 +1204,368 @@ describe("Returning to the screen", () => {
     await returnToScreen();
 
     expect(mockFetchProjects).toHaveBeenCalledTimes(1);
+  });
+});
+
+type Element = ReturnType<typeof screen.getByTestId>;
+
+describe("How the projects look", () => {
+  let setColorScheme: { mockRestore: () => void } | null = null;
+
+  beforeEach(() => {
+    mockSystemScheme = "light";
+    setColorScheme = jest
+      .spyOn(Appearance, "setColorScheme")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+  });
+
+  afterEach(() => {
+    setColorScheme?.mockRestore();
+  });
+
+  function avatarText(project: ProjectItem): string {
+    const avatar: Element = screen.getByTestId(
+      `project-avatar-${project._id}`,
+      {
+        includeHiddenElements: true,
+      },
+    );
+    return String(
+      within(avatar).getByText(/^[A-Z]{1,2}$/, { includeHiddenElements: true })
+        .props.children,
+    );
+  }
+
+  test("each project gets an initials avatar that screen readers skip", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    expect(avatarText(OPEN_PROJECT)).toBe("AP");
+    expect(avatarText(SSO_PROJECT)).toBe("EP");
+    const avatar: Element = screen.getByTestId(
+      `project-avatar-${OPEN_PROJECT._id}`,
+      { includeHiddenElements: true },
+    );
+    expect(avatar.props.importantForAccessibility).toBe("no-hide-descendants");
+    expect(avatar).toHaveStyle({ backgroundColor: lightColors.cardAccent });
+    expect(screen.queryByText("AP")).toBeNull();
+  });
+
+  test("a single-word project gets a single initial", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([
+        makeProject({ _id: "solo", name: "platform" }),
+      ]),
+    );
+    await renderLoadedProjectsScreen();
+
+    expect(
+      within(
+        screen.getByTestId("project-avatar-solo", {
+          includeHiddenElements: true,
+        }),
+      ).getByText("P", { includeHiddenElements: true }),
+    ).toBeTruthy();
+  });
+
+  test("a project that needs SSO carries a warning pill", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const pill: Element = screen.getByTestId(
+      `project-sso-status-${SSO_PROJECT._id}`,
+    );
+    expect(pill).toHaveStyle({ backgroundColor: lightColors.statusWarningBg });
+    expect(within(pill).getByText("SSO Required")).toHaveStyle({
+      color: lightColors.statusWarning,
+    });
+    expect(
+      screen.getByTestId(`project-sso-status-${SSO_PROJECT._id}-dot`),
+    ).toHaveStyle({ backgroundColor: lightColors.statusWarning });
+  });
+
+  test("an authenticated project carries a success pill and no button", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([SSO_PROJECT]),
+    );
+    mockGetSsoTokens.mockResolvedValue({ [SSO_PROJECT._id]: "token" });
+    await renderLoadedProjectsScreen();
+
+    const pill: Element = screen.getByTestId(
+      `project-sso-status-${SSO_PROJECT._id}`,
+    );
+    expect(pill).toHaveStyle({ backgroundColor: lightColors.statusSuccessBg });
+    expect(within(pill).getByText("Authenticated")).toHaveStyle({
+      color: lightColors.statusSuccess,
+    });
+    expect(
+      screen.queryByTestId(`project-authenticate-${SSO_PROJECT._id}`),
+    ).toBeNull();
+  });
+
+  test("a project without SSO says it is ready and has no pill", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const row: ReturnType<typeof within> = within(
+      screen.getByTestId(`project-row-${OPEN_PROJECT._id}`),
+    );
+    expect(row.getByText("Ready to use")).toBeTruthy();
+    expect(
+      screen.queryByTestId(`project-sso-status-${OPEN_PROJECT._id}`),
+    ).toBeNull();
+  });
+
+  test("the authenticate action is a filled, full-size button inside its project's row", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const row: ReturnType<typeof within> = within(
+      screen.getByTestId(`project-row-${SSO_PROJECT._id}`),
+    );
+    const button: Element = row.getByRole("button", {
+      name: `Authenticate with SSO for ${SSO_PROJECT.name}`,
+    });
+    const style: ViewStyle = StyleSheet.flatten(
+      button.props.style,
+    ) as ViewStyle;
+    expect(style.backgroundColor).toBe(lightColors.actionPrimary);
+    expect(Number(style.minHeight)).toBeGreaterThanOrEqual(44);
+    expect(row.getByText("Authenticate with SSO")).toHaveStyle({
+      color: lightColors.textInverse,
+    });
+  });
+
+  test("the rows share one grouped surface", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const list: ReturnType<typeof within> = within(
+      screen.getByTestId("projects-list"),
+    );
+    expect(list.getByText(OPEN_PROJECT.name)).toBeTruthy();
+    expect(list.getByText(SSO_PROJECT.name)).toBeTruthy();
+  });
+
+  test("a ready account is summarised calmly, in the singular", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    expect(screen.getByText("1 project · All projects ready")).toHaveStyle({
+      color: lightColors.textSecondary,
+    });
+  });
+
+  test("projects that need sign-in are summarised in the warning colour", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([SSO_PROJECT, SECOND_SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const summary: Element = screen.getByText(
+      "2 projects · 2 need SSO sign-in",
+    );
+    expect(summary).toHaveStyle({ color: lightColors.statusWarning });
+    expect(summary.props.accessibilityLiveRegion).toBe("polite");
+  });
+
+  test("the SSO explanation is left out when no project uses SSO", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    expect(
+      screen.queryByText(/Projects requiring SSO need separate authentication/),
+    ).toBeNull();
+  });
+
+  test("the empty account state is a titled placeholder", async () => {
+    await renderLoadedProjectsScreen();
+
+    const empty: ReturnType<typeof within> = within(
+      screen.getByTestId("projects-empty"),
+    );
+    expect(
+      empty.getByRole("header", { name: "No projects found." }),
+    ).toBeTruthy();
+    expect(empty.getByText(/Ask your team to invite you/)).toBeTruthy();
+    expect(screen.queryByLabelText("Search projects")).toBeNull();
+  });
+
+  test("an unmatched search is a titled placeholder", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+    await fireEvent.changeText(screen.getByLabelText("Search projects"), "zzz");
+
+    expect(
+      within(screen.getByTestId("projects-no-match")).getByRole("header", {
+        name: "No matching projects",
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("projects-list")).toBeNull();
+  });
+
+  test("a load failure is an alert with a retry beneath it", async () => {
+    mockFetchProjects.mockRejectedValue(new Error("network is down"));
+    await renderLoadedProjectsScreen();
+
+    const banner: ReturnType<typeof within> = within(
+      screen.getByTestId("projects-error"),
+    );
+    expect(
+      banner.getByRole("alert", { name: "Failed to load projects." }),
+    ).toHaveStyle({ color: lightColors.statusError });
+    expect(screen.getByTestId("projects-error")).toHaveStyle({
+      backgroundColor: lightColors.statusErrorBg,
+    });
+    expect(
+      screen.getByRole("button", { name: "Retry loading projects" }),
+    ).toBeTruthy();
+  });
+
+  test("an SSO error with projects on screen offers no project reload", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([SSO_PROJECT]),
+    );
+    mockFetchAllGlobalProviders.mockRejectedValue(new Error("network is down"));
+    await renderLoadedProjectsScreen();
+
+    await pressAuthenticate(SSO_PROJECT);
+    await settleSso();
+
+    expect(
+      screen.getByRole("alert", {
+        name: "SSO authentication failed. Please try again.",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Retry loading projects" }),
+    ).toBeNull();
+    expect(screen.getByText(SSO_PROJECT.name)).toBeTruthy();
+  });
+
+  test("the loading state explains the wait and gives way to the list", async () => {
+    let release: (response: ListResponse<ProjectItem>) => void = (): void => {
+      return undefined;
+    };
+    mockFetchProjects.mockImplementation(
+      (): Promise<ListResponse<ProjectItem>> => {
+        return new Promise<ListResponse<ProjectItem>>(
+          (resolve: (response: ListResponse<ProjectItem>) => void): void => {
+            release = resolve;
+          },
+        );
+      },
+    );
+    await renderProjectsScreen();
+
+    expect(
+      within(screen.getByTestId("projects-loading")).getByText(
+        "Loading your projects…",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByTestId("projects-loading")).toHaveStyle({
+      backgroundColor: lightColors.backgroundPrimary,
+    });
+
+    release(makeListResponse<ProjectItem>([OPEN_PROJECT]));
+
+    await waitFor(() => {
+      expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
+    });
+    expect(screen.queryByTestId("projects-loading")).toBeNull();
+  });
+
+  test("pull to refresh reloads the list with themed indicator colours", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+
+    const refreshControl: {
+      props: {
+        onRefresh: () => void;
+        tintColor: string;
+        colors: Array<string>;
+        progressBackgroundColor: string;
+      };
+    } = screen.getByTestId("projects-scroll").props.refreshControl;
+    expect(refreshControl.props.tintColor).toBe(lightColors.actionPrimary);
+    expect(refreshControl.props.colors).toEqual([lightColors.actionPrimary]);
+    expect(refreshControl.props.progressBackgroundColor).toBe(
+      lightColors.backgroundElevated,
+    );
+
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    await act(async (): Promise<void> => {
+      refreshControl.props.onRefresh();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(SSO_PROJECT.name)).toBeTruthy();
+    });
+    expect(mockFetchProjects).toHaveBeenCalledTimes(2);
+  });
+
+  test("dark mode paints the canvas, rows, pills and actions from dark tokens", async () => {
+    mockSystemScheme = "dark";
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse<ProjectItem>([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    await render(
+      <ThemeProvider>
+        <ProjectsScreen {...screenProps()} />
+      </ThemeProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Project access")).toBeTruthy();
+    });
+
+    expect(screen.getByTestId("projects-scroll")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    expect(screen.getByText(SSO_PROJECT.name)).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(
+      screen.getByTestId(`project-sso-status-${SSO_PROJECT._id}`),
+    ).toHaveStyle({ backgroundColor: darkColors.statusWarningBg });
+    const button: Element = screen.getByTestId(
+      `project-authenticate-${SSO_PROJECT._id}`,
+    );
+    expect(
+      (StyleSheet.flatten(button.props.style) as ViewStyle).backgroundColor,
+    ).toBe(darkColors.actionPrimary);
+    expect(within(button).getByText("Authenticate with SSO")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
+    expect(
+      screen.getByTestId(`project-avatar-${OPEN_PROJECT._id}`, {
+        includeHiddenElements: true,
+      }),
+    ).toHaveStyle({ backgroundColor: darkColors.cardAccent });
+    expect(
+      screen.getByLabelText("Search projects").props.keyboardAppearance,
+    ).toBe("dark");
   });
 });

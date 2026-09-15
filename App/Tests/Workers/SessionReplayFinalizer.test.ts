@@ -4,6 +4,9 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
+  SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
+  SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
+  SESSION_REPLAY_IDLE_FINALIZE_MS as SHARED_SESSION_REPLAY_IDLE_FINALIZE_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
@@ -46,6 +49,13 @@ class MockRedis {
   public scanCalls: Array<string> = [];
   /* Keys handed out per SCAN page, and the cursor the page reports next. */
   public scanPages: Array<{ keys: Array<string>; next: string }> = [];
+  /* Every plain ZREM, so a test can prove a removal went through the script. */
+  public zremCalls: Array<{ key: string; members: Array<string> }> = [];
+  /* Every conditional-removal script call, as KEYS[1] and flat ARGV. */
+  public evalCalls: Array<{ key: string; argv: Array<string> }> = [];
+  /* Every SET, with its full argument list, so lock options can be pinned. */
+  public setCalls: Array<Array<string | number>> = [];
+  public failSmembers: boolean = false;
 
   public reset(): void {
     this.strings = new Map<string, string>();
@@ -54,6 +64,32 @@ class MockRedis {
     this.connected = true;
     this.scanCalls = [];
     this.scanPages = [];
+    this.zremCalls = [];
+    this.evalCalls = [];
+    this.setCalls = [];
+    this.failSmembers = false;
+  }
+
+  /* Synchronous seeding, for fixtures. */
+  public seedZset(key: string, member: string, score: number): void {
+    const zset: Map<string, number> =
+      this.zsets.get(key) || new Map<string, number>();
+    zset.set(member, score);
+    this.zsets.set(key, zset);
+  }
+
+  public seedSet(key: string, member: string): void {
+    const set: Set<string> = this.sets.get(key) || new Set<string>();
+    set.add(member);
+    this.sets.set(key, set);
+  }
+
+  public scoreOf(key: string, member: string): number | undefined {
+    return this.zsets.get(key)?.get(member);
+  }
+
+  public membersOf(key: string): Array<string> {
+    return Array.from(this.zsets.get(key)?.keys() || []).sort();
   }
 
   public client(): unknown {
@@ -64,10 +100,17 @@ class MockRedis {
       set: (
         key: string,
         value: string,
-        _expiryToken?: string,
-        _seconds?: number,
+        expiryToken?: string,
+        ttl?: number,
         nxToken?: string,
       ): Promise<"OK" | null> => {
+        this.setCalls.push(
+          [key, value, expiryToken ?? "", ttl ?? 0, nxToken ?? ""].filter(
+            (argument: string | number): boolean => {
+              return argument !== "";
+            },
+          ),
+        );
         if (nxToken === "NX" && this.strings.has(key)) {
           return Promise.resolve(null);
         }
@@ -83,10 +126,21 @@ class MockRedis {
         return Promise.resolve(set.size);
       },
       smembers: (key: string): Promise<Array<string>> => {
+        if (this.failSmembers) {
+          return Promise.reject(new Error("smembers exploded"));
+        }
         return Promise.resolve(Array.from(this.sets.get(key) || []));
       },
       srem: (key: string, member: string): Promise<number> => {
         return Promise.resolve(this.sets.get(key)?.delete(member) ? 1 : 0);
+      },
+      incr: (key: string): Promise<number> => {
+        const next: number = Number(this.strings.get(key) ?? "0") + 1;
+        this.strings.set(key, String(next));
+        return Promise.resolve(next);
+      },
+      expire: (): Promise<number> => {
+        return Promise.resolve(1);
       },
       sismember: (key: string, member: string): Promise<number> => {
         return Promise.resolve(this.sets.get(key)?.has(member) ? 1 : 0);
@@ -100,8 +154,12 @@ class MockRedis {
       },
       zrem: (key: string, members: Array<string> | string): Promise<number> => {
         const zset: Map<string, number> | undefined = this.zsets.get(key);
+        const list: Array<string> = Array.isArray(members)
+          ? members
+          : [members];
+        this.zremCalls.push({ key: key, members: list });
         let removed: number = 0;
-        for (const member of Array.isArray(members) ? members : [members]) {
+        for (const member of list) {
           if (zset?.delete(member)) {
             removed++;
           }
@@ -111,18 +169,88 @@ class MockRedis {
       zcard: (key: string): Promise<number> => {
         return Promise.resolve(this.zsets.get(key)?.size || 0);
       },
+      zscore: (key: string, member: string): Promise<string | null> => {
+        const score: number | undefined = this.zsets.get(key)?.get(member);
+        return Promise.resolve(score === undefined ? null : String(score));
+      },
+      /*
+       * ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count], ordered
+       * by score as Redis orders it, so per-run caps are exercised for real.
+       */
       zrangebyscore: (
         key: string,
-        _min: string,
-        max: number,
+        min: string | number,
+        max: string | number,
+        ...rest: Array<string | number>
       ): Promise<Array<string>> => {
+        const lower: number = min === "-inf" ? -Infinity : Number(min);
+        const upper: number = max === "+inf" ? Infinity : Number(max);
+        const withScores: boolean = rest.includes("WITHSCORES");
+        const limitAt: number = rest.indexOf("LIMIT");
+        const offset: number = limitAt >= 0 ? Number(rest[limitAt + 1]) : 0;
+        const count: number =
+          limitAt >= 0 ? Number(rest[limitAt + 2]) : Number.MAX_SAFE_INTEGER;
+
+        const matched: Array<[string, number]> = Array.from(
+          this.zsets.get(key)?.entries() || [],
+        )
+          .filter(([, score]: [string, number]): boolean => {
+            return score >= lower && score <= upper;
+          })
+          .sort((a: [string, number], b: [string, number]): number => {
+            return a[1] - b[1] || a[0].localeCompare(b[0]);
+          })
+          .slice(offset, offset + count);
+
         const flat: Array<string> = [];
-        for (const [member, score] of this.zsets.get(key)?.entries() || []) {
-          if (score <= max) {
-            flat.push(member, String(score));
+        for (const [member, score] of matched) {
+          flat.push(member);
+          if (withScores) {
+            flat.push(String(score));
           }
         }
         return Promise.resolve(flat);
+      },
+      /*
+       * Emulates exactly two scripts: the finalizer's conditional removal and
+       * the ended job's lock release. Anything else is a test failure rather
+       * than a silent no-op.
+       */
+      eval: (
+        script: string,
+        numKeys: number,
+        ...args: Array<string | number>
+      ): Promise<number> => {
+        if (
+          script === SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT &&
+          numKeys === 1
+        ) {
+          const lockKey: string = String(args[0]);
+          if (this.strings.get(lockKey) === String(args[1])) {
+            this.strings.delete(lockKey);
+            return Promise.resolve(1);
+          }
+          return Promise.resolve(0);
+        }
+        if (
+          script !== SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT ||
+          numKeys !== 1
+        ) {
+          return Promise.reject(new Error("unexpected EVAL in MockRedis"));
+        }
+        const key: string = String(args[0]);
+        const argv: Array<string> = args.slice(1).map(String);
+        this.evalCalls.push({ key: key, argv: argv });
+        const zset: Map<string, number> | undefined = this.zsets.get(key);
+        let removed: number = 0;
+        for (let index: number = 0; index + 1 < argv.length; index += 2) {
+          const score: number | undefined = zset?.get(argv[index]!);
+          if (score !== undefined && score <= Number(argv[index + 1])) {
+            zset!.delete(argv[index]!);
+            removed++;
+          }
+        }
+        return Promise.resolve(removed);
       },
       scan: (cursor: string): Promise<[string, Array<string>]> => {
         this.scanCalls.push(cursor);
@@ -173,12 +301,26 @@ import {
   buildSessionTraceIdStatement,
   buildTabAggregateStatement,
   combineTabAggregates,
+  ConditionalMemberRemoval,
   discoverActiveProjectIds,
+  ENDED_RUN_BUDGET_MS,
+  ENDED_RUN_LOCK_TTL_MS,
   fetchSessionCorrelation,
+  finalizeEndedSessions,
+  FinalizeEndedSessionsSummary,
   finalizeExpiredSessions,
+  finalizeSession,
+  FinalizeSessionOutcome,
+  FinalizeSessionResult,
+  finalizeSessionWithTabs,
   getActiveSessionsKey,
+  getEndedSessionsKey,
   getSessionSealHintKey,
+  MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN,
+  MAX_ENDED_SESSIONS_PER_RUN,
   MAX_EXCEPTION_FINGERPRINTS_PER_SESSION,
+  MIN_ENDED_PROJECT_SLICE_MS,
+  MIN_ENDED_SESSIONS_PER_PROJECT_PER_RUN,
   MAX_SWEEP_SESSIONS_PER_RUN,
   MAX_TRACE_IDS_PER_SESSION,
   parseActiveSessionMember,
@@ -187,9 +329,17 @@ import {
   PROJECT_INDEX_SCAN_CURSOR_KEY,
   ProvisionalSessionHeader,
   reconcileActiveProjectIndex,
+  removeActivityMembersIfNotNewer,
   resolveSealedReason,
+  rotateEndedProjectOrder,
+  SESSION_REPLAY_ACTIVE_KEY_PREFIX,
   SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
+  SESSION_REPLAY_ENDED_KEY_PREFIX,
+  SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY,
+  SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
+  SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT,
   SESSION_REPLAY_IDLE_FINALIZE_MS,
+  SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT,
   SessionChunkAggregate,
   SessionCorrelation,
   SWEEP_LOOKBACK_MS,
@@ -203,6 +353,20 @@ import { ClientType } from "Common/Server/Infrastructure/Redis";
 import { Results } from "Common/Server/Services/AnalyticsDatabaseService";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import { getErasedSessionsKey } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import {
+  hasSessionRecordingEnded,
+  hasTabRecordingEnded,
+} from "Common/Utils/Rum/SessionReplayRecordingEnded";
+import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import RunCron from "../../FeatureSet/Workers/Utils/Cron";
+
+/*
+ * RunCron is a jest.fn() (mocked above), called once per job when the module
+ * was imported. Captured now, before any test can reset mock state.
+ */
+const runCronRegistrations: Array<Array<unknown>> = (
+  RunCron as unknown as { mock: { calls: Array<Array<unknown>> } }
+).mock.calls.slice();
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
 const sessionId: string = "1f0c9a4b6d2e47f8a1b3c5d7e9f00112";
@@ -268,6 +432,12 @@ function makeChunkRow(data: {
    * the browser-minted sessionId; the chunk rows are what tells them apart.
    */
   rumApplicationId?: string;
+  /*
+   * Wall-clock overrides, for the recording-ended rule: by default a chunk
+   * occupies its 15s flush window after the session start.
+   */
+  chunkStartUnixMs?: number;
+  chunkEndUnixMs?: number;
 }): RawChunkRow {
   const chunkIndex: number = data.chunkIndex;
 
@@ -296,8 +466,12 @@ function makeChunkRow(data: {
     url: data.url ?? "",
     routes: data.routes ?? (data.url ? [data.url] : []),
     sessionStartUnixMs: sessionStartUnixMs,
-    chunkStartUnixMs: sessionStartUnixMs + chunkIndex * CHUNK_DURATION_MS,
-    chunkEndUnixMs: sessionStartUnixMs + (chunkIndex + 1) * CHUNK_DURATION_MS,
+    chunkStartUnixMs:
+      data.chunkStartUnixMs ??
+      sessionStartUnixMs + chunkIndex * CHUNK_DURATION_MS,
+    chunkEndUnixMs:
+      data.chunkEndUnixMs ??
+      sessionStartUnixMs + (chunkIndex + 1) * CHUNK_DURATION_MS,
     chunkStartOffsetMs: chunkIndex * CHUNK_DURATION_MS,
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
@@ -462,7 +636,7 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
         .map((row: RawChunkRow): number => {
           return row.chunkIndex;
         }),
-      eventCount: String(
+      totalEventCount: String(
         sum((row: RawChunkRow): number => {
           return row.eventCount;
         }),
@@ -472,7 +646,7 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
           return row.payloadBytes;
         }),
       ),
-      errorCount: sum((row: RawChunkRow): number => {
+      totalErrorCount: sum((row: RawChunkRow): number => {
         return row.errorCount;
       }),
       rageClickCount: sum((row: RawChunkRow): number => {
@@ -558,6 +732,31 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
       })
         ? 1
         : 0,
+      /*
+       * toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal)): the epoch (0)
+       * when the tab sent no final chunk, exactly as ClickHouse returns it.
+       */
+      finalChunkEndUnixMs: String(
+        tabRows
+          .filter((row: RawChunkRow): boolean => {
+            return row.isFinal;
+          })
+          .reduce((latest: number, row: RawChunkRow): number => {
+            return Math.max(latest, row.chunkEndUnixMs);
+          }, 0),
+      ),
+      /* toUnixTimestamp64Milli(max(chunkStartTime)), final or not. */
+      lastChunkStartUnixMs: String(
+        max((row: RawChunkRow): number => {
+          return row.chunkStartUnixMs;
+        }),
+      ),
+      /* max(version): a UInt64, so a quoted string on some servers. */
+      lastChunkStoredAtUnixMs: String(
+        max((row: RawChunkRow): number => {
+          return row.version;
+        }),
+      ),
       firstChunkStartUnixMs: String(
         Math.min(
           ...tabRows.map((row: RawChunkRow): number => {
@@ -1475,6 +1674,50 @@ describe("Rum:FinalizeSessions queries", () => {
     expect(Object.values(params)).toContain(sessionId);
   });
 
+  test("the chunk aggregate reads each tab's end facts under names no aggregate reads", () => {
+    const query: string = buildTabAggregateStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionId: sessionId,
+    }).query;
+
+    /*
+     * Spelled exactly as Common/Utils/Rum/SessionReplayRecordingEnded
+     * documents them, so the finalizer and the read path judge a tab from
+     * the same expressions.
+     */
+    expect(query).toContain(
+      "toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal)) AS finalChunkEndUnixMs",
+    );
+    expect(query).toContain(
+      "toUnixTimestamp64Milli(max(chunkStartTime)) AS lastChunkStartUnixMs",
+    );
+    expect(query).toContain("max(toUInt8(isFinal)) AS hasFinalChunk");
+    /*
+     * The chunk-cap fact and the server write time the grace is measured
+     * on. version is SERVER unix ms already, so it is read as is.
+     */
+    expect(query).toContain("max(chunkIndex) AS maxChunkIndex");
+    expect(query).toContain("max(version) AS lastChunkStoredAtUnixMs");
+
+    /*
+     * ClickHouse resolves an identifier to a SELECT alias before a column,
+     * so an alias named after a column another aggregate reads turns that
+     * read into a nested aggregate and the server rejects the query.
+     */
+    expect(query).not.toContain("AS isFinal");
+    expect(query).not.toContain("AS chunkEndTime");
+    expect(query).not.toContain("AS chunkStartTime");
+    expect(query).not.toContain("AS version");
+    expect(query).not.toMatch(/AS chunkIndex\b/);
+
+    /* The inner projection carries every column the new aggregates read. */
+    expect(query).toContain("isFinal,");
+    expect(query).toContain("chunkStartTime,");
+    expect(query).toContain("chunkEndTime,");
+    expect(query).toContain("version,");
+  });
+
   test("the header read collapses ReplacingMergeTree versions", () => {
     const statement: Statement = buildProvisionalHeaderStatement({
       databaseName: databaseName,
@@ -1787,9 +2030,9 @@ describe("Rum:FinalizeSessions row parsing", () => {
       maxChunkIndex: 2,
       chunkIndexes: [0, 1, 2],
       fullSnapshotChunkIndexes: [0],
-      eventCount: "30",
+      totalEventCount: "30",
       payloadBytes: "3000",
-      errorCount: 1,
+      totalErrorCount: 1,
       rageClickCount: 0,
       deadClickCount: 0,
       errorClickCount: 0,
@@ -1812,6 +2055,79 @@ describe("Rum:FinalizeSessions row parsing", () => {
     expect(parsed.payloadBytes).toBe(3000);
     expect(parsed.hasFinalChunk).toBe(true);
     expect(parsed.sessionStartUnixMs).toBe(sessionStartUnixMs);
+  });
+
+  test("a tab's end facts are parsed from the aggregate row", () => {
+    const storedAt: number = Date.now() - 5 * 60 * 1000;
+
+    const parsed: TabChunkAggregate = parseTabAggregateRow({
+      tabId: "tab-a",
+      hasFinalChunk: "1",
+      maxChunkIndex: "1",
+      /* Int64 renderings arrive quoted on some server versions. */
+      finalChunkEndUnixMs: String(sessionStartUnixMs + 30_000),
+      lastChunkStartUnixMs: sessionStartUnixMs + 15_000,
+      /* max(version) is a UInt64, quoted the same way. */
+      lastChunkStoredAtUnixMs: String(storedAt),
+    });
+
+    expect(parsed.hasFinalChunk).toBe(true);
+    expect(parsed.maxChunkIndex).toBe(1);
+    expect(parsed.finalChunkEndUnixMs).toBe(sessionStartUnixMs + 30_000);
+    expect(parsed.lastChunkStartUnixMs).toBe(sessionStartUnixMs + 15_000);
+    expect(parsed.lastChunkStoredAtUnixMs).toBe(storedAt);
+    /* The parsed row is directly what the shared rule reads. */
+    expect(hasTabRecordingEnded(parsed)).toBe(true);
+    expect(hasSessionRecordingEnded([parsed], Date.now())).toBe(true);
+    expect(
+      hasSessionRecordingEnded(
+        [parsed],
+        storedAt + SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS - 1,
+      ),
+    ).toBe(false);
+  });
+
+  test("a row without the end facts parses to zeros and never counts as ended", () => {
+    const parsed: TabChunkAggregate = parseTabAggregateRow({
+      tabId: "tab-a",
+      hasFinalChunk: 0,
+    });
+
+    expect(parsed.finalChunkEndUnixMs).toBe(0);
+    expect(parsed.lastChunkStartUnixMs).toBe(0);
+    expect(parsed.lastChunkStoredAtUnixMs).toBe(0);
+    expect(hasTabRecordingEnded(parsed)).toBe(false);
+  });
+
+  test("the in-test GROUP BY model derives the end facts the SQL does", () => {
+    const tabs: Array<TabChunkAggregate> = runGroupByOverChunkRows([
+      makeChunkRow({ chunkIndex: 0 }),
+      makeChunkRow({ chunkIndex: 1, isFinal: true }),
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+    ]).map(parseTabAggregateRow);
+
+    const tabA: TabChunkAggregate = tabs.find((tab: TabChunkAggregate) => {
+      return tab.tabId === "tab-a";
+    })!;
+    const tabB: TabChunkAggregate = tabs.find((tab: TabChunkAggregate) => {
+      return tab.tabId === "tab-b";
+    })!;
+
+    expect(tabA.finalChunkEndUnixMs).toBe(
+      sessionStartUnixMs + 2 * CHUNK_DURATION_MS,
+    );
+    expect(tabA.lastChunkStartUnixMs).toBe(
+      sessionStartUnixMs + CHUNK_DURATION_MS,
+    );
+    expect(hasTabRecordingEnded(tabA)).toBe(true);
+
+    expect(tabB.hasFinalChunk).toBe(false);
+    expect(tabB.finalChunkEndUnixMs).toBe(0);
+    expect(hasTabRecordingEnded(tabB)).toBe(false);
+
+    /* max(version) over the deduped rows: tab-a's chunk 1 is its newest. */
+    expect(tabA.lastChunkStoredAtUnixMs).toBe(1_700_000_000_000 + 1);
+    expect(tabB.lastChunkStoredAtUnixMs).toBe(1_700_000_000_000);
   });
 
   test("the provisional header's visitor id is mapped, and a row that predates the column reads as empty", () => {
@@ -2007,9 +2323,27 @@ function resultSetOf(rows: Array<JSONObject>): unknown {
  */
 function stubClickhouse(data: {
   tabRows?: Array<JSONObject>;
+  /*
+   * Per-session chunk aggregates, for batches whose sessions differ. A
+   * session missing from the record falls back to tabRows.
+   */
+  tabRowsBySessionId?: Record<string, Array<JSONObject>>;
   headerRows?: Array<JSONObject>;
   sweepRows?: Array<JSONObject>;
   failAggregate?: Error;
+  /* What the grouped correlation reads over ExceptionInstance / Span find. */
+  exceptionRows?: Array<JSONObject>;
+  traceRows?: Array<JSONObject>;
+  /*
+   * Runs when the tab aggregate is read, before its rows are returned: the
+   * moment a slow read lets the clock move on.
+   */
+  onAggregate?: () => void;
+  /*
+   * Runs after the rows are accepted, before the insert resolves: the moment
+   * a concurrent ingest would re-queue a member mid-finalization.
+   */
+  onInsert?: (rows: Array<JSONObject>) => void;
 }): { inserted: Array<JSONObject>; statements: Array<Statement> } {
   const inserted: Array<JSONObject> = [];
   const statements: Array<Statement> = [];
@@ -2032,6 +2366,17 @@ function stubClickhouse(data: {
       if (data.failAggregate) {
         return Promise.reject(data.failAggregate);
       }
+      if (data.onAggregate) {
+        data.onAggregate();
+      }
+      const boundValues: Array<unknown> = Object.values(statement.query_params);
+      for (const [rowsSessionId, rows] of Object.entries(
+        data.tabRowsBySessionId || {},
+      )) {
+        if (boundValues.includes(rowsSessionId)) {
+          return Promise.resolve(resultSetOf(rows));
+        }
+      }
       return Promise.resolve(resultSetOf(data.tabRows || []));
     }
 
@@ -2053,6 +2398,14 @@ function stubClickhouse(data: {
       return Promise.resolve(resultSetOf(headerRows));
     }
 
+    if (query.includes("AS exceptionFingerprints")) {
+      return Promise.resolve(resultSetOf(data.exceptionRows || []));
+    }
+
+    if (query.includes("AS traceIds")) {
+      return Promise.resolve(resultSetOf(data.traceRows || []));
+    }
+
     return Promise.resolve(resultSetOf([]));
   };
 
@@ -2060,6 +2413,9 @@ function stubClickhouse(data: {
     rows: Array<JSONObject>,
   ): Promise<void> => {
     inserted.push(...rows);
+    if (data.onInsert) {
+      data.onInsert(rows);
+    }
     return Promise.resolve();
   };
 
@@ -2379,6 +2735,102 @@ describe("Rum:FinalizeSessions expired-session loop", () => {
     ).toBe(0);
   });
 
+  test("a finalized session leaves the ended set too, so the minute job does not finalize it again", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+
+    await seedActive(sessionId, idleSince);
+    /* The ingest path writes the candidate with the activity score. */
+    mockRedis.seedZset(endedKey, `${sessionId}:tab-a`, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(1);
+    expect(
+      mockRedis.membersOf(getActiveSessionsKey(projectId.toString())),
+    ).toEqual([]);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("a chunk processed while the session was being finalized keeps its entries in both sets", async () => {
+    /*
+     * The race behind "stays provisional for hours": the ingest path ZADDs
+     * the same member again between this job's read and its removal. An
+     * unconditional ZREM deleted the fresh entry, the header just written
+     * did not count that chunk, and nothing re-queued the session until the
+     * hourly sweep.
+     */
+    const activeKey: string = getActiveSessionsKey(projectId.toString());
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+    const bumpedTo: number = Date.now();
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+      onInsert: (): void => {
+        mockRedis.seedZset(activeKey, `${sessionId}:tab-a`, bumpedTo);
+        mockRedis.seedZset(endedKey, `${sessionId}:tab-a`, bumpedTo);
+      },
+    });
+
+    await seedActive(sessionId, idleSince);
+    mockRedis.seedZset(endedKey, `${sessionId}:tab-a`, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.scoreOf(activeKey, `${sessionId}:tab-a`)).toBe(bumpedTo);
+    expect(mockRedis.scoreOf(endedKey, `${sessionId}:tab-a`)).toBe(bumpedTo);
+  });
+
+  test("members are removed through the conditional script, never a plain ZREM", async () => {
+    stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(mockRedis.zremCalls).toEqual([]);
+
+    const activeKey: string = getActiveSessionsKey(projectId.toString());
+
+    /* Each member rides with the exact score the range read returned. */
+    expect(mockRedis.evalCalls).toContainEqual({
+      key: activeKey,
+      argv: [`${sessionId}:tab-a`, String(idleSince)],
+    });
+    expect(mockRedis.evalCalls).toContainEqual({
+      key: getEndedSessionsKey(projectId.toString()),
+      argv: [`${sessionId}:tab-a`, String(idleSince)],
+    });
+  });
+
+  test("an ended candidate of a tab that is not idle yet is left for the minute job", async () => {
+    stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+    const otherSessionId: string = "c".repeat(32);
+
+    await seedActive(sessionId, idleSince);
+    mockRedis.seedZset(endedKey, `${otherSessionId}:tab-z`, nowUnixMs - 5_000);
+
+    await finalizeExpiredSessions();
+
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${otherSessionId}:tab-z`]);
+  });
+
   test("the gate's budget seal hint reaches the finalized row", async () => {
     const { inserted } = stubClickhouse({
       tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
@@ -2542,5 +2994,1784 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     expect(summary.failed).toBe(1);
     expect(summary.finalized).toBe(1);
     expect(inserted).toHaveLength(1);
+  });
+});
+
+/*
+ * ------------------------------------------------------------------
+ * The tab-close fix: a closed tab used to keep "Recording now" for 10-15
+ * minutes, because the recorder's final chunk was only ever a label and
+ * finalization waited for the idle window. Everything below pins the
+ * pieces that end a recording as soon as every tab has said it is over.
+ * ------------------------------------------------------------------
+ */
+describe("Rum:FinalizeEndedSessions Redis contract", () => {
+  test("the ended set has its own prefix, outside the reconcile's replay:active:* SCAN", () => {
+    expect(SESSION_REPLAY_ENDED_KEY_PREFIX).toBe("replay:ended:");
+    expect(getEndedSessionsKey("p1")).toBe("replay:ended:p1");
+    /*
+     * The reconcile reads every replay:active:* key as a project's activity
+     * set; an ended key under that prefix would index a project named
+     * "ended:<projectId>".
+     */
+    expect(
+      getEndedSessionsKey("p1").startsWith(SESSION_REPLAY_ACTIVE_KEY_PREFIX),
+    ).toBe(false);
+  });
+
+  test("the idle window is the shared constant, still importable from the job", () => {
+    expect(SESSION_REPLAY_IDLE_FINALIZE_MS).toBe(
+      SHARED_SESSION_REPLAY_IDLE_FINALIZE_MS,
+    );
+    expect(SESSION_REPLAY_IDLE_FINALIZE_MS).toBe(10 * 60 * 1000);
+  });
+
+  test("the removal script touches exactly one key, so it is Redis Cluster safe", () => {
+    expect(SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT).toContain("KEYS[1]");
+    expect(SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT).not.toContain("KEYS[2]");
+    /* Compare and remove happen inside one script, so nothing races them. */
+    expect(SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT).toContain("ZSCORE");
+    expect(SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT).toContain("ZREM");
+    expect(SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT).toContain("<=");
+  });
+});
+
+describe("removeActivityMembersIfNotNewer", () => {
+  const key: string = "replay:active:p1";
+
+  beforeEach(() => {
+    mockRedis.reset();
+  });
+
+  function client(): ClientType {
+    return mockRedis.client() as unknown as ClientType;
+  }
+
+  test("removes a member at or below its threshold and keeps one that moved past it", async () => {
+    mockRedis.seedZset(key, "s:at", 100);
+    mockRedis.seedZset(key, "s:below", 50);
+    mockRedis.seedZset(key, "s:bumped", 101);
+
+    const removed: number = await removeActivityMembersIfNotNewer(
+      client(),
+      key,
+      [
+        { member: "s:at", maxScore: 100 },
+        { member: "s:below", maxScore: 100 },
+        { member: "s:bumped", maxScore: 100 },
+      ],
+    );
+
+    expect(removed).toBe(2);
+    expect(mockRedis.membersOf(key)).toEqual(["s:bumped"]);
+  });
+
+  test("a member that is already gone is neither removed nor counted", async () => {
+    const removed: number = await removeActivityMembersIfNotNewer(
+      client(),
+      key,
+      [{ member: "s:gone", maxScore: 100 }],
+    );
+
+    expect(removed).toBe(0);
+  });
+
+  test("is one script call per batch with the key in KEYS and member/score pairs in ARGV", async () => {
+    mockRedis.seedZset(key, "s:a", 1);
+    mockRedis.seedZset(key, "s:b", 2);
+
+    await removeActivityMembersIfNotNewer(client(), key, [
+      { member: "s:a", maxScore: 1 },
+      { member: "s:b", maxScore: 2 },
+    ]);
+
+    expect(mockRedis.evalCalls).toEqual([
+      { key: key, argv: ["s:a", "1", "s:b", "2"] },
+    ]);
+    expect(mockRedis.zremCalls).toEqual([]);
+  });
+
+  test("nothing to remove means no round trip", async () => {
+    await expect(
+      removeActivityMembersIfNotNewer(client(), key, []),
+    ).resolves.toBe(0);
+    expect(mockRedis.evalCalls).toEqual([]);
+  });
+
+  test("a threshold that is not a number is dropped instead of failing the batch", async () => {
+    mockRedis.seedZset(key, "s:a", 1);
+    mockRedis.seedZset(key, "s:nan", 1);
+
+    const removed: number = await removeActivityMembersIfNotNewer(
+      client(),
+      key,
+      [
+        { member: "s:a", maxScore: 1 },
+        { member: "s:nan", maxScore: Number.NaN },
+      ],
+    );
+
+    expect(removed).toBe(1);
+    expect(mockRedis.membersOf(key)).toEqual(["s:nan"]);
+    expect(mockRedis.evalCalls[0]!.argv).toEqual(["s:a", "1"]);
+  });
+
+  test("a large removal is split into several short script calls", async () => {
+    const entries: Array<ConditionalMemberRemoval> = [];
+
+    for (let index: number = 0; index < 1_201; index++) {
+      mockRedis.seedZset(key, `s:${index}`, index);
+      entries.push({ member: `s:${index}`, maxScore: index });
+    }
+
+    const removed: number = await removeActivityMembersIfNotNewer(
+      client(),
+      key,
+      entries,
+    );
+
+    expect(removed).toBe(1_201);
+    expect(mockRedis.evalCalls.length).toBe(3);
+    expect(mockRedis.membersOf(key)).toEqual([]);
+  });
+});
+
+describe("Rum:FinalizeEndedSessions gated finalization", () => {
+  const appA: string = "6600000000000000000000b2";
+  const appB: string = "6600000000000000000000c3";
+
+  beforeEach(() => {
+    mockRedis.reset();
+  });
+
+  afterEach(() => {
+    chunkServiceStub.executeQuery = realExecuteQuery;
+    sessionServiceStub.insertJsonRows = realInsertJsonRows;
+    chunkServiceStub.database = realDatabase;
+    jest.restoreAllMocks();
+  });
+
+  function gated(
+    overrides?: Partial<Parameters<typeof finalizeSessionWithTabs>[0]>,
+  ): Promise<FinalizeSessionResult> {
+    return finalizeSessionWithTabs({
+      projectId: projectId,
+      sessionId: sessionId,
+      databaseName: databaseName,
+      requireRecordingEnded: true,
+      ...overrides,
+    });
+  }
+
+  function issuedHeaderRead(statements: Array<Statement>): boolean {
+    return statements.some((statement: Statement): boolean => {
+      return statement.query.includes("toString(startTime) AS startTimeText");
+    });
+  }
+
+  test("a single tab that sent its final chunk is written", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0 }),
+        makeChunkRow({ chunkIndex: 1, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "written", writtenTabIds: ["tab-a"] });
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["isFinalized"]).toBe(true);
+    expect(inserted[0]!["sealedReason"]).toBe(
+      SessionReplaySealedReason.FinalChunk,
+    );
+  });
+
+  test("the one trailing non-final chunk an older recorder posts at unload does not keep the session live", async () => {
+    /*
+     * pagehide fires before visibilitychange on a visible tab, and the old
+     * hidden handler flushed one more non-final chunk right after the final.
+     */
+    const finalEnd: number = sessionStartUnixMs + 2 * CHUNK_DURATION_MS;
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0 }),
+        makeChunkRow({ chunkIndex: 1, isFinal: true }),
+        makeChunkRow({
+          chunkIndex: 2,
+          chunkStartUnixMs:
+            finalEnd + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS - 1,
+          chunkEndUnixMs:
+            finalEnd + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 5,
+        }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result.outcome).toBe("written");
+    expect(inserted).toHaveLength(1);
+  });
+
+  test("a chunk that started well after the final one means the tab kept recording, and nothing is written", async () => {
+    const finalEnd: number = sessionStartUnixMs + 2 * CHUNK_DURATION_MS;
+
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0 }),
+        makeChunkRow({ chunkIndex: 1, isFinal: true }),
+        makeChunkRow({
+          chunkIndex: 2,
+          chunkStartUnixMs:
+            finalEnd + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+          chunkEndUnixMs:
+            finalEnd +
+            SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS +
+            15_000,
+        }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "still-recording", writtenTabIds: [] });
+    expect(inserted).toHaveLength(0);
+    /* Not even the header read: the gate decides before any of that. */
+    expect(issuedHeaderRead(statements)).toBe(false);
+  });
+
+  test("two tabs where one is still live is still recording", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result.outcome).toBe("still-recording");
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("two tabs that both ended are written together", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result.outcome).toBe("written");
+    expect([...result.writtenTabIds].sort()).toEqual(["tab-a", "tab-b"]);
+    expect(inserted).toHaveLength(1);
+  });
+
+  test("a tab that stored its last permitted chunk index has ended without a final chunk", async () => {
+    /*
+     * The ingest gate refuses every index at or past the cap, including the
+     * recorder's own truncation seal, so nothing more can land for it.
+     */
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1 }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result.outcome).toBe("written");
+    expect(inserted).toHaveLength(1);
+  });
+
+  test("of two applications sharing the id, only the one that ended gets a header", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({
+          chunkIndex: 0,
+          tabId: "tab-a",
+          rumApplicationId: appA,
+          isFinal: true,
+        }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", rumApplicationId: appB }),
+      ]),
+      headerRows: [
+        headerRowOf({ rumApplicationId: appA, primaryEntityId: appA }),
+        headerRowOf({ rumApplicationId: appB, primaryEntityId: appB }),
+      ],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "written", writtenTabIds: ["tab-a"] });
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["rumApplicationId"]).toBe(appA);
+  });
+
+  test("a tab id shared with an application that is still recording is not reported as written", async () => {
+    /*
+     * The activity member carries no application, so reporting tab-a would
+     * have the caller act on the live application's queue entry too.
+     */
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({
+          chunkIndex: 0,
+          tabId: "tab-a",
+          rumApplicationId: appA,
+          isFinal: true,
+        }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", rumApplicationId: appB }),
+      ]),
+      headerRows: [
+        headerRowOf({ rumApplicationId: appA, primaryEntityId: appA }),
+        headerRowOf({ rumApplicationId: appB, primaryEntityId: appB }),
+      ],
+    });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "written", writtenTabIds: [] });
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["rumApplicationId"]).toBe(appA);
+  });
+
+  test("the erasure tombstone wins over an ended recording, before any chunk is read", async () => {
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    mockRedis.seedSet(getErasedSessionsKey(projectId.toString()), sessionId);
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "erased", writtenTabIds: [] });
+    expect(inserted).toHaveLength(0);
+    expect(statements).toHaveLength(0);
+  });
+
+  test("an erasure that lands while correlation is being resolved still gets no header", async () => {
+    /*
+     * The lazy batch correlation is two grouped ClickHouse reads. An erasure
+     * that tombstones the session and submits its ALTER DELETE meanwhile
+     * would never see a header inserted afterwards, and does not revisit a
+     * tombstoned session - so the row would outlive the erasure.
+     */
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated({
+      resolveCorrelation: (): Promise<SessionCorrelation> => {
+        mockRedis.seedSet(
+          getErasedSessionsKey(projectId.toString()),
+          sessionId,
+        );
+        return Promise.resolve({ traceIds: [], exceptionFingerprints: [] });
+      },
+    });
+
+    expect(result).toEqual({ outcome: "erased", writtenTabIds: [] });
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("an erasure that lands during the header read stops the ungated write too", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const routed: unknown = chunkServiceStub.executeQuery;
+
+    chunkServiceStub.executeQuery = (
+      statement: Statement,
+    ): Promise<unknown> => {
+      if (statement.query.includes("toString(startTime) AS startTimeText")) {
+        mockRedis.seedSet(
+          getErasedSessionsKey(projectId.toString()),
+          sessionId,
+        );
+      }
+      return (routed as (statement: Statement) => Promise<unknown>)(statement);
+    };
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: sessionId,
+      databaseName: databaseName,
+    });
+
+    expect(outcome).toBe("erased");
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("a session with no stored chunks answers no-chunks, as before", async () => {
+    const { inserted } = stubClickhouse({ tabRows: [] });
+
+    const result: FinalizeSessionResult = await gated();
+
+    expect(result).toEqual({ outcome: "no-chunks", writtenTabIds: [] });
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("finalizeSession keeps its ungated contract: a live session is still written", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: sessionId,
+      databaseName: databaseName,
+    });
+
+    expect(outcome).toBe("written");
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["sealedReason"]).toBe(
+      SessionReplaySealedReason.IdleTimeout,
+    );
+  });
+
+  test("finalizeSession ignores the grace: a just-stored session is still written", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true, version: Date.now() }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: sessionId,
+      databaseName: databaseName,
+    });
+
+    expect(outcome).toBe("written");
+    expect(inserted).toHaveLength(1);
+  });
+
+  test("correlation is resolved lazily, and only when a header is written", async () => {
+    let resolved: number = 0;
+    const resolveCorrelation: () => Promise<SessionCorrelation> =
+      (): Promise<SessionCorrelation> => {
+        resolved++;
+        return Promise.resolve({
+          traceIds: ["trace-late"],
+          exceptionFingerprints: ["fp-late"],
+        });
+      };
+
+    stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    await gated({ resolveCorrelation: resolveCorrelation });
+    expect(resolved).toBe(0);
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf({ traceIds: [], exceptionFingerprints: [] })],
+    });
+
+    await gated({ resolveCorrelation: resolveCorrelation });
+
+    expect(resolved).toBe(1);
+    expect(inserted[0]!["traceIds"]).toEqual(["trace-late"]);
+    expect(inserted[0]!["exceptionFingerprints"]).toEqual(["fp-late"]);
+  });
+
+  test("the header version is stamped before the chunk rows are read, not after the slow steps", async () => {
+    /*
+     * A run that read the rows at T and then stalled in correlation must not
+     * outrank a later run's header built from a later read.
+     */
+    const readStartedAt: number = Date.now();
+    let clockUnixMs: number = readStartedAt;
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+      return new Date(clockUnixMs);
+    });
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+      onAggregate: (): void => {
+        clockUnixMs += 5_000;
+      },
+    });
+
+    const result: FinalizeSessionResult = await gated({
+      resolveCorrelation: (): Promise<SessionCorrelation> => {
+        clockUnixMs += 2 * 60 * 1000;
+        return Promise.resolve({ traceIds: [], exceptionFingerprints: [] });
+      },
+    });
+
+    expect(result.outcome).toBe("written");
+    expect(inserted[0]!["version"]).toBe(readStartedAt);
+  });
+
+  test("a defer check that says stop leaves an ended session unwritten, before correlation", async () => {
+    let resolved: number = 0;
+    let asked: number = 0;
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated({
+      shouldDefer: (): boolean => {
+        asked++;
+        return true;
+      },
+      resolveCorrelation: (): Promise<SessionCorrelation> => {
+        resolved++;
+        return Promise.resolve({ traceIds: [], exceptionFingerprints: [] });
+      },
+    });
+
+    expect(result).toEqual({ outcome: "deferred", writtenTabIds: [] });
+    expect(asked).toBe(1);
+    expect(resolved).toBe(0);
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("the defer check is not consulted for a session that has not ended", async () => {
+    let asked: number = 0;
+
+    stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const result: FinalizeSessionResult = await gated({
+      shouldDefer: (): boolean => {
+        asked++;
+        return true;
+      },
+    });
+
+    expect(result.outcome).toBe("still-recording");
+    expect(asked).toBe(0);
+  });
+
+  describe("with the ended-session grace", () => {
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+
+    test("a tab whose newest chunk was stored inside the grace holds the session back as settling", async () => {
+      /*
+       * Page A ended long ago, page B's final chunk was stored 10s ago: page
+       * C may be about to register under the same session.
+       */
+      const { inserted, statements } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-b",
+            isFinal: true,
+            version: Date.now() - 10_000,
+          }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      const result: FinalizeSessionResult = await gated();
+
+      expect(result).toEqual({ outcome: "settling", writtenTabIds: [] });
+      expect(inserted).toHaveLength(0);
+      expect(issuedHeaderRead(statements)).toBe(false);
+    });
+
+    test("the grace holds even when the newest tab has no ended candidate at all", async () => {
+      /*
+       * Its ended-set ZADD failed, or has not landed yet. The old Redis-score
+       * refinement read a missing member as "settled" and wrote at once;
+       * the chunk rows' own write time does not depend on the ZADD.
+       */
+      mockRedis.seedZset(
+        endedKey,
+        `${sessionId}:tab-a`,
+        Date.now() - 5 * 60 * 1000,
+      );
+
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-b",
+            isFinal: true,
+            version: Date.now() - 1_000,
+          }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      const result: FinalizeSessionResult = await gated();
+
+      expect(result.outcome).toBe("settling");
+      expect(inserted).toHaveLength(0);
+    });
+
+    test("once the newest chunk is older than the grace, the session is written with no Redis read", async () => {
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-b",
+            isFinal: true,
+            version:
+              Date.now() - SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS - 1_000,
+          }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      const result: FinalizeSessionResult = await gated();
+
+      expect(result.outcome).toBe("written");
+      expect(inserted).toHaveLength(1);
+      /* The ended set was never consulted. */
+      expect(mockRedis.evalCalls).toEqual([]);
+    });
+
+    test("the grace is judged per application", async () => {
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-a",
+            rumApplicationId: appA,
+            isFinal: true,
+          }),
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-b",
+            rumApplicationId: appB,
+            isFinal: true,
+            version: Date.now() - 1_000,
+          }),
+        ]),
+        headerRows: [
+          headerRowOf({ rumApplicationId: appA, primaryEntityId: appA }),
+          headerRowOf({ rumApplicationId: appB, primaryEntityId: appB }),
+        ],
+      });
+
+      const result: FinalizeSessionResult = await gated();
+
+      expect(result).toEqual({ outcome: "written", writtenTabIds: ["tab-a"] });
+      expect(inserted).toHaveLength(1);
+      expect(inserted[0]!["rumApplicationId"]).toBe(appA);
+    });
+
+    test("a live tab answers still-recording, not settling, whatever its age", async () => {
+      stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({
+            chunkIndex: 0,
+            tabId: "tab-a",
+            isFinal: true,
+            version: Date.now() - 1_000,
+          }),
+          makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      const result: FinalizeSessionResult = await gated();
+
+      expect(result.outcome).toBe("still-recording");
+    });
+  });
+});
+
+describe("Rum:FinalizeEndedSessions loop", () => {
+  const activeKey: string = getActiveSessionsKey(projectId.toString());
+  const endedKey: string = getEndedSessionsKey(projectId.toString());
+  const otherSessionId: string = "2a1b3c4d5e6f708192a3b4c5d6e7f809";
+
+  beforeEach(() => {
+    mockRedis.reset();
+  });
+
+  afterEach(() => {
+    chunkServiceStub.executeQuery = realExecuteQuery;
+    sessionServiceStub.insertJsonRows = realInsertJsonRows;
+    chunkServiceStub.database = realDatabase;
+    jest.restoreAllMocks();
+  });
+
+  /* What the ingest path writes for a tab's final frame. */
+  function seedFinalFrame(
+    sessionIdToSeed: string,
+    tabId: string,
+    score: number,
+    projectIdToSeed: string = projectId.toString(),
+  ): void {
+    mockRedis.seedZset(
+      getActiveSessionsKey(projectIdToSeed),
+      `${sessionIdToSeed}:${tabId}`,
+      score,
+    );
+    mockRedis.seedZset(
+      getEndedSessionsKey(projectIdToSeed),
+      `${sessionIdToSeed}:${tabId}`,
+      score,
+    );
+    mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectIdToSeed);
+  }
+
+  /* What the ingest path writes for any other frame. */
+  function seedChunk(
+    sessionIdToSeed: string,
+    tabId: string,
+    score: number,
+  ): void {
+    mockRedis.seedZset(activeKey, `${sessionIdToSeed}:${tabId}`, score);
+    mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+  }
+
+  function settledAgo(): number {
+    return Date.now() - SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS - 30_000;
+  }
+
+  function aggregateReads(statements: Array<Statement>): number {
+    return statements.filter((statement: Statement): boolean => {
+      return statement.query.includes("GROUP BY rumApplicationId, tabId");
+    }).length;
+  }
+
+  /* Moves both clocks the job reads - Date.now and the header stamp - on. */
+  function advanceClocksBy(offsetMs: () => number): void {
+    const realNow: () => number = Date.now.bind(Date);
+
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return realNow() + offsetMs();
+    });
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+      return new Date(realNow() + offsetMs());
+    });
+  }
+
+  test("a closed tab is finalized once it settles; its candidate goes, its activity entry stays for the idle pass", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0 }),
+        makeChunkRow({ chunkIndex: 1, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.finalized).toBe(1);
+    expect(summary.checked).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["isFinalized"]).toBe(true);
+    expect(inserted[0]!["sealedReason"]).toBe(
+      SessionReplaySealedReason.FinalChunk,
+    );
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+    /* Every removal went through the conditional script. */
+    expect(mockRedis.zremCalls).toEqual([]);
+  });
+
+  test("a candidate younger than the grace is not even checked", async () => {
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(
+      sessionId,
+      "tab-a",
+      Date.now() - SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS + 10_000,
+    );
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.checked).toBe(0);
+    expect(inserted).toHaveLength(0);
+    expect(statements).toHaveLength(0);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  test("an early finalization leaves every tab's activity entry, including a page without a candidate", async () => {
+    /*
+     * tab-a (page A) ended long ago and its candidate was consumed by a
+     * still-recording check while page B recorded. The header covers both
+     * pages; the idle path finalizes the session once more from these.
+     */
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const pageBEnded: number = settledAgo();
+
+    seedChunk(sessionId, "tab-a", pageBEnded - 5 * 60 * 1000);
+    seedFinalFrame(sessionId, "tab-b", pageBEnded);
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(activeKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+    expect(mockRedis.scoreOf(activeKey, `${sessionId}:tab-a`)).toBe(
+      pageBEnded - 5 * 60 * 1000,
+    );
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("the idle pass re-finalizes an early-finalized session and adds telemetry that landed after it", async () => {
+    /*
+     * The span and exception batch of the page that just closed is ingested
+     * later than its final replay chunk. The early header cannot hold ids
+     * that are not in ClickHouse yet; the idle pass, 10 minutes after the
+     * last chunk, reads them and merges them onto the ids already there.
+     */
+    const lastChunkAt: number = settledAgo();
+
+    const early: { inserted: Array<JSONObject> } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [
+        headerRowOf({
+          traceIds: ["trace-early"],
+          exceptionFingerprints: ["fp-early"],
+        }),
+      ],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", lastChunkAt);
+
+    expect((await finalizeEndedSessions()).finalized).toBe(1);
+    expect(early.inserted).toHaveLength(1);
+    expect(early.inserted[0]!["exceptionFingerprints"]).toEqual(["fp-early"]);
+
+    /* Ten minutes on, the late telemetry is in, and the idle job runs. */
+    advanceClocksBy((): number => {
+      return SESSION_REPLAY_IDLE_FINALIZE_MS;
+    });
+
+    const idle: { inserted: Array<JSONObject> } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      /* The newest header version is now the early finalized one. */
+      headerRows: [
+        headerRowOf({
+          traceIds: early.inserted[0]!["traceIds"] as Array<string>,
+          exceptionFingerprints: early.inserted[0]![
+            "exceptionFingerprints"
+          ] as Array<string>,
+        }),
+      ],
+      exceptionRows: [
+        { sessionId: sessionId, exceptionFingerprints: ["fp-late"] },
+      ],
+      traceRows: [{ sessionId: sessionId, traceIds: ["trace-late"] }],
+    });
+
+    await finalizeExpiredSessions();
+
+    expect(idle.inserted).toHaveLength(1);
+    expect(idle.inserted[0]!["isFinalized"]).toBe(true);
+    expect(
+      [...(idle.inserted[0]!["exceptionFingerprints"] as Array<string>)].sort(),
+    ).toEqual(["fp-early", "fp-late"]);
+    expect(
+      [...(idle.inserted[0]!["traceIds"] as Array<string>)].sort(),
+    ).toEqual(["trace-early", "trace-late"]);
+    /* And only now is the session off both queues. */
+    expect(mockRedis.membersOf(activeKey)).toEqual([]);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("a tab of another session is untouched", async () => {
+    stubClickhouse({
+      tabRowsBySessionId: {
+        [sessionId]: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+      },
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+    seedChunk(otherSessionId, "tab-a", settledAgo() - 1_000);
+
+    await finalizeEndedSessions();
+
+    expect(mockRedis.membersOf(activeKey)).toContain(`${otherSessionId}:tab-a`);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("a final chunk re-queued while the header was being written survives in the ended set", async () => {
+    const bumpedTo: number = Date.now();
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+      onInsert: (): void => {
+        /* The same tab posts again (a stop() then start()), final this time. */
+        mockRedis.seedZset(activeKey, `${sessionId}:tab-b`, bumpedTo);
+        mockRedis.seedZset(endedKey, `${sessionId}:tab-b`, bumpedTo);
+      },
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo() - 1_000);
+    seedFinalFrame(sessionId, "tab-b", settledAgo());
+
+    await finalizeEndedSessions();
+
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(activeKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+    expect(mockRedis.scoreOf(activeKey, `${sessionId}:tab-b`)).toBe(bumpedTo);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-b`]);
+    expect(mockRedis.scoreOf(endedKey, `${sessionId}:tab-b`)).toBe(bumpedTo);
+  });
+
+  test("still recording: the candidate leaves the ended set, the activity entries stay with the idle path", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+    seedChunk(sessionId, "tab-b", Date.now() - 5_000);
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.stillRecording).toBe(1);
+    expect(summary.finalized).toBe(0);
+    expect(inserted).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+
+    /* A second run has nothing left to re-check. */
+    const second: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+    expect(second.checked).toBe(0);
+  });
+
+  test("the live tab's own final chunk later brings the session back and finalizes it", async () => {
+    const tabsLive: Array<JSONObject> = runGroupByOverChunkRows([
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+    ]);
+    const tabsEnded: Array<JSONObject> = runGroupByOverChunkRows([
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+      makeChunkRow({ chunkIndex: 1, tabId: "tab-b", isFinal: true }),
+    ]);
+
+    stubClickhouse({ tabRows: tabsLive, headerRows: [headerRowOf()] });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo() - 60_000);
+    seedChunk(sessionId, "tab-b", Date.now() - 5_000);
+
+    expect((await finalizeEndedSessions()).stillRecording).toBe(1);
+
+    const { inserted } = stubClickhouse({
+      tabRows: tabsEnded,
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-b", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+  });
+
+  test("a final chunk still inside its grace holds the whole session back, and its old candidate stays until it settles", async () => {
+    /*
+     * A user who spent under a minute on page B: page A's candidate is old
+     * enough to read, page B's rows are not old enough to pass the grace.
+     * Finalizing now would be undone by page C's first chunk.
+     */
+    const pageBStoredAt: number = Date.now() - 10_000;
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({
+          chunkIndex: 0,
+          tabId: "tab-b",
+          isFinal: true,
+          version: pageBStoredAt,
+        }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+    seedFinalFrame(sessionId, "tab-b", pageBStoredAt + 50);
+
+    const first: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(first.settling).toBe(1);
+    expect(inserted).toHaveLength(0);
+    /* Nothing is removed while the session settles. */
+    expect(mockRedis.membersOf(endedKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+
+    /* A minute later page B has settled too. */
+    advanceClocksBy((): number => {
+      return SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+    });
+
+    const second: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(second.finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([
+      `${sessionId}:tab-a`,
+      `${sessionId}:tab-b`,
+    ]);
+  });
+
+  test("a settling session whose newest tab has no candidate is still finalized once it settles", async () => {
+    /*
+     * Page B's rows landed but its ended-set ZADD failed: only page A's old
+     * candidate can bring the session back, so it must not be consumed by
+     * the check that the grace held back.
+     */
+    const pageBStoredAt: number = Date.now() - 5_000;
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({
+          chunkIndex: 0,
+          tabId: "tab-b",
+          isFinal: true,
+          version: pageBStoredAt,
+        }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    expect((await finalizeEndedSessions()).settling).toBe(1);
+    expect(inserted).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+
+    advanceClocksBy((): number => {
+      return SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+    });
+
+    expect((await finalizeEndedSessions()).finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("a finalize that throws leaves the candidate and the activity entry for the next run", async () => {
+    stubClickhouse({ failAggregate: new Error("clickhouse timeout") });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.failed).toBe(1);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  test("an insert that throws also leaves everything in place", async () => {
+    stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    sessionServiceStub.insertJsonRows = (): Promise<void> => {
+      return Promise.reject(new Error("async insert flush failed"));
+    };
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.failed).toBe(1);
+    expect(summary.finalized).toBe(0);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  test("an erased session gets no header; its candidate goes, its activity entry stays", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    mockRedis.seedSet(getErasedSessionsKey(projectId.toString()), sessionId);
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    await finalizeEndedSessions();
+
+    expect(inserted).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  test("a session erased while its batch correlation is fetched gets no header", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const routed: unknown = chunkServiceStub.executeQuery;
+
+    chunkServiceStub.executeQuery = (
+      statement: Statement,
+    ): Promise<unknown> => {
+      if (statement.query.includes("AS traceIds")) {
+        mockRedis.seedSet(
+          getErasedSessionsKey(projectId.toString()),
+          sessionId,
+        );
+      }
+      return (routed as (statement: Statement) => Promise<unknown>)(statement);
+    };
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.finalized).toBe(0);
+    expect(inserted).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("a session with no stored chunks: its candidate goes, its activity entry stays", async () => {
+    const { inserted } = stubClickhouse({ tabRows: [] });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    await finalizeEndedSessions();
+
+    expect(inserted).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    expect(mockRedis.membersOf(activeKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  test("a malformed candidate is dropped from the ended set", async () => {
+    const { statements } = stubClickhouse({ tabRows: [] });
+
+    mockRedis.seedZset(endedKey, "no-separator", settledAgo());
+    mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.checked).toBe(0);
+    expect(statements).toHaveLength(0);
+    expect(mockRedis.membersOf(endedKey)).toEqual([]);
+  });
+
+  test("several candidates of one session are checked once", async () => {
+    const { statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo() - 1_000);
+    seedFinalFrame(sessionId, "tab-b", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.candidates).toBe(2);
+    expect(summary.checked).toBe(1);
+    expect(aggregateReads(statements)).toBe(1);
+  });
+
+  test("correlation is read once per batch, and not at all when nothing is written", async () => {
+    const correlationReads: (statements: Array<Statement>) => number = (
+      statements: Array<Statement>,
+    ): number => {
+      return statements.filter((statement: Statement): boolean => {
+        return (
+          statement.query.includes("groupUniqArray(") &&
+          statement.query.includes("GROUP BY sessionId")
+        );
+      }).length;
+    };
+
+    const liveRun: { statements: Array<Statement> } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+    seedFinalFrame(otherSessionId, "tab-a", settledAgo());
+
+    await finalizeEndedSessions();
+
+    expect(correlationReads(liveRun.statements)).toBe(0);
+
+    const endedRun: {
+      inserted: Array<JSONObject>;
+      statements: Array<Statement>;
+    } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+    seedFinalFrame(otherSessionId, "tab-a", settledAgo());
+
+    await finalizeEndedSessions();
+
+    expect(endedRun.inserted).toHaveLength(2);
+    /* One Span read and one ExceptionInstance read for both sessions. */
+    expect(correlationReads(endedRun.statements)).toBe(2);
+  });
+
+  test("only indexed projects are read, and the keyspace is never scanned", async () => {
+    const { statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    /* A candidate for a project the index does not hold. */
+    mockRedis.seedZset(endedKey, `${sessionId}:tab-a`, settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.checked).toBe(0);
+    expect(statements).toHaveLength(0);
+    expect(mockRedis.scanCalls).toEqual([]);
+  });
+
+  test("candidates per project are capped, oldest first, and the rest wait for the next run", async () => {
+    stubClickhouse({ tabRows: [] });
+
+    const oldest: number = settledAgo() - 10 * 60 * 1000;
+
+    for (
+      let index: number = 0;
+      index < MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN + 5;
+      index++
+    ) {
+      const member: string = `${index.toString(16).padStart(32, "0")}:tab-a`;
+      mockRedis.seedZset(endedKey, member, oldest + index);
+    }
+    mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.checked).toBe(MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN);
+    /* The five NEWEST were beyond the window. */
+    expect(mockRedis.membersOf(endedKey)).toHaveLength(5);
+    expect(
+      Math.min(
+        ...mockRedis.membersOf(endedKey).map((member: string): number => {
+          return mockRedis.scoreOf(endedKey, member)!;
+        }),
+      ),
+    ).toBe(oldest + MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN);
+  });
+
+  test("the run budget stops the loop and leaves the rest queued", async () => {
+    const realNow: () => number = Date.now.bind(Date);
+    let skewMs: number = 0;
+
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return realNow() + skewMs;
+    });
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+      onInsert: (): void => {
+        /* The first finalization eats the whole budget. */
+        skewMs += ENDED_RUN_BUDGET_MS + 1;
+      },
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo() - 1_000);
+    seedFinalFrame(otherSessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.budgetExhausted).toBe(true);
+    expect(summary.checked).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${otherSessionId}:tab-a`]);
+  });
+
+  test("an ended session that would start its correlation past the budget stays queued, unwritten", async () => {
+    const realNow: () => number = Date.now.bind(Date);
+    let skewMs: number = 0;
+
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return realNow() + skewMs;
+    });
+
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+      onAggregate: (): void => {
+        /* The chunk read itself runs the run out of budget. */
+        skewMs += ENDED_RUN_BUDGET_MS + 1;
+      },
+    });
+
+    seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary.deferred).toBe(1);
+    expect(summary.budgetExhausted).toBe(true);
+    expect(inserted).toHaveLength(0);
+    /* No correlation read was started. */
+    expect(
+      statements.some((statement: Statement): boolean => {
+        return statement.query.includes("GROUP BY sessionId");
+      }),
+    ).toBe(false);
+    expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+  });
+
+  describe("single flight", () => {
+    test("the lock is taken with NX and a TTL well over the worst case of one run", async () => {
+      stubClickhouse({ tabRows: [] });
+
+      await finalizeEndedSessions();
+
+      const lockSet: Array<string | number> | undefined =
+        mockRedis.setCalls.find((call: Array<string | number>): boolean => {
+          return call[0] === SESSION_REPLAY_ENDED_RUN_LOCK_KEY;
+        });
+
+      expect(lockSet).toBeDefined();
+      expect(lockSet!.slice(2)).toEqual(["PX", ENDED_RUN_LOCK_TTL_MS, "NX"]);
+      /* The budget plus one correlation fetch of two 58s reads, and margin. */
+      expect(ENDED_RUN_LOCK_TTL_MS).toBeGreaterThan(
+        ENDED_RUN_BUDGET_MS + 2 * 58 * 1000,
+      );
+      /* And the lock is gone again once the run is over. */
+      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
+        false,
+      );
+    });
+
+    test("a run that finds the lock held skips without reading a candidate", async () => {
+      const { inserted, statements } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      mockRedis.strings.set(SESSION_REPLAY_ENDED_RUN_LOCK_KEY, "earlier-run");
+      seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions();
+
+      expect(summary.skippedLockHeld).toBe(true);
+      expect(summary.checked).toBe(0);
+      expect(statements).toHaveLength(0);
+      expect(inserted).toHaveLength(0);
+      expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+      /* Another run's lock is never released by this one. */
+      expect(mockRedis.strings.get(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
+        "earlier-run",
+      );
+    });
+
+    test("overlapping runs: exactly one does the work", async () => {
+      const { inserted, statements } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
+
+      seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+      const runs: Array<FinalizeEndedSessionsSummary> = await Promise.all([
+        finalizeEndedSessions(),
+        finalizeEndedSessions(),
+      ]);
+
+      expect(
+        runs.filter((run: FinalizeEndedSessionsSummary): boolean => {
+          return run.skippedLockHeld;
+        }),
+      ).toHaveLength(1);
+      expect(inserted).toHaveLength(1);
+      expect(aggregateReads(statements)).toBe(1);
+      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
+        false,
+      );
+
+      /* Released, so the next run does its work again. */
+      expect((await finalizeEndedSessions()).skippedLockHeld).toBe(false);
+    });
+
+    test("a run that overran its TTL does not release the lock a later run took", async () => {
+      stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+        onInsert: (): void => {
+          mockRedis.strings.set(SESSION_REPLAY_ENDED_RUN_LOCK_KEY, "later-run");
+        },
+      });
+
+      seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+      await finalizeEndedSessions();
+
+      expect(mockRedis.strings.get(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
+        "later-run",
+      );
+    });
+
+    test("the lock is released even when the run throws", async () => {
+      stubClickhouse({ tabRows: [] });
+      mockRedis.failSmembers = true;
+
+      await expect(finalizeEndedSessions()).rejects.toThrow(
+        "smembers exploded",
+      );
+      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("fairness across projects", () => {
+    const busyProjectId: string = projectId.toString();
+    const quietProjectId: string = "6600000000000000000000a2";
+
+    function sessionIdAt(index: number): string {
+      return (index + 1).toString(16).padStart(32, "0");
+    }
+
+    function projectOfAggregate(statement: Statement): string | undefined {
+      return Object.values(statement.query_params).find(
+        (value: unknown): boolean => {
+          return value === busyProjectId || value === quietProjectId;
+        },
+      ) as string | undefined;
+    }
+
+    test("the project order is sorted and rotates with the cursor", () => {
+      const projects: Array<string> = ["p-c", "p-a", "p-b", "p-a"];
+
+      expect(rotateEndedProjectOrder(projects, 0)).toEqual([
+        "p-a",
+        "p-b",
+        "p-c",
+      ]);
+      expect(rotateEndedProjectOrder(projects, 1)).toEqual([
+        "p-b",
+        "p-c",
+        "p-a",
+      ]);
+      expect(rotateEndedProjectOrder(projects, 5)).toEqual([
+        "p-c",
+        "p-a",
+        "p-b",
+      ]);
+      expect(rotateEndedProjectOrder(projects, -1)).toEqual([
+        "p-c",
+        "p-a",
+        "p-b",
+      ]);
+      expect(rotateEndedProjectOrder([], 3)).toEqual([]);
+    });
+
+    test("each run starts one project further on", async () => {
+      const firstProjectPerRun: Array<string | undefined> = [];
+
+      for (let run: number = 0; run < 3; run++) {
+        const { statements } = stubClickhouse({ tabRows: [] });
+
+        seedFinalFrame(sessionIdAt(0), "tab-a", settledAgo(), busyProjectId);
+        seedFinalFrame(sessionIdAt(1), "tab-a", settledAgo(), quietProjectId);
+
+        await finalizeEndedSessions();
+
+        const firstAggregate: Statement | undefined = statements.find(
+          (statement: Statement): boolean => {
+            return statement.query.includes("GROUP BY rumApplicationId, tabId");
+          },
+        );
+
+        firstProjectPerRun.push(
+          firstAggregate ? projectOfAggregate(firstAggregate) : undefined,
+        );
+      }
+
+      expect(firstProjectPerRun[0]).toBeDefined();
+      expect(firstProjectPerRun[1]).not.toBe(firstProjectPerRun[0]);
+      expect(firstProjectPerRun[2]).toBe(firstProjectPerRun[0]);
+      expect(
+        mockRedis.strings.get(SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY),
+      ).toBe("3");
+    });
+
+    test("a busy project first in the order cannot starve the next one", async () => {
+      /*
+       * Every written header costs a second of the run. The busy project has
+       * far more settled sessions than the whole budget covers.
+       */
+      const realNow: () => number = Date.now.bind(Date);
+      let skewMs: number = 0;
+
+      jest.spyOn(Date, "now").mockImplementation((): number => {
+        return realNow() + skewMs;
+      });
+
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+        onInsert: (): void => {
+          skewMs += 1_000;
+        },
+      });
+
+      const busySessions: number = 200;
+
+      for (let index: number = 0; index < busySessions; index++) {
+        seedFinalFrame(
+          sessionIdAt(index),
+          "tab-a",
+          settledAgo() - 1_000 + index,
+          busyProjectId,
+        );
+      }
+
+      seedFinalFrame(
+        sessionIdAt(busySessions),
+        "tab-a",
+        settledAgo(),
+        quietProjectId,
+      );
+
+      /* The next INCR lands on 2, i.e. offset 0: the busy project goes first. */
+      mockRedis.strings.set(SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY, "1");
+
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions();
+
+      const writtenProjects: Array<unknown> = inserted.map(
+        (row: JSONObject): unknown => {
+          return row["projectId"];
+        },
+      );
+
+      expect(writtenProjects[0]).toBe(busyProjectId);
+      /* The quiet project was served in the same run. */
+      expect(writtenProjects).toContain(quietProjectId);
+      expect(mockRedis.membersOf(getEndedSessionsKey(quietProjectId))).toEqual(
+        [],
+      );
+      /* The busy one drains over several runs instead, oldest first. */
+      const busyLeft: number = mockRedis.membersOf(
+        getEndedSessionsKey(busyProjectId),
+      ).length;
+      expect(busyLeft).toBeGreaterThan(busySessions / 2);
+      expect(summary.budgetExhausted).toBe(false);
+    });
+
+    test("no project can take the whole run's session cap: every project gets a share", async () => {
+      /*
+       * Three projects, each holding as many settled candidates as one
+       * project may read. Walked in order with only the per-project read cap,
+       * the first two used all 2000 checks and the third was never read.
+       */
+      stubClickhouse({ tabRows: [] });
+
+      const thirdProjectId: string = "6600000000000000000000a3";
+      const projects: Array<string> = [
+        busyProjectId,
+        quietProjectId,
+        thirdProjectId,
+      ];
+
+      for (const projectIdToSeed of projects) {
+        mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectIdToSeed);
+
+        for (
+          let index: number = 0;
+          index < MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN;
+          index++
+        ) {
+          mockRedis.seedZset(
+            getEndedSessionsKey(projectIdToSeed),
+            `${sessionIdAt(index)}:tab-a`,
+            settledAgo() - 100_000 + index,
+          );
+        }
+      }
+
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions();
+
+      expect(summary.checked).toBe(MAX_ENDED_SESSIONS_PER_RUN);
+
+      const checkedPerProject: Array<number> = projects.map(
+        (projectIdToRead: string): number => {
+          return (
+            MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN -
+            mockRedis.membersOf(getEndedSessionsKey(projectIdToRead)).length
+          );
+        },
+      );
+
+      for (const checked of checkedPerProject) {
+        expect(checked).toBeGreaterThanOrEqual(
+          Math.max(
+            MIN_ENDED_SESSIONS_PER_PROJECT_PER_RUN,
+            Math.floor(MAX_ENDED_SESSIONS_PER_RUN / projects.length),
+          ),
+        );
+      }
+
+      /* The floors stay below an even split, so they cannot undo it. */
+      expect(MIN_ENDED_SESSIONS_PER_PROJECT_PER_RUN).toBeLessThan(
+        MAX_ENDED_SESSIONS_PER_RUN / projects.length,
+      );
+      expect(MIN_ENDED_PROJECT_SLICE_MS).toBeLessThan(ENDED_RUN_BUDGET_MS);
+    });
+  });
+
+  test("Redis down skips the run with a warning instead of throwing", async () => {
+    const { statements } = stubClickhouse({});
+
+    mockRedis.connected = false;
+
+    const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions();
+
+    expect(summary).toEqual({
+      candidates: 0,
+      checked: 0,
+      finalized: 0,
+      stillRecording: 0,
+      settling: 0,
+      deferred: 0,
+      failed: 0,
+      budgetExhausted: false,
+      skippedLockHeld: false,
+    });
+    expect(statements).toHaveLength(0);
+  });
+});
+
+describe("Rum:FinalizeSessions cron registration", () => {
+  function registrationOf(jobName: string): Array<unknown> | undefined {
+    return runCronRegistrations.find((call: Array<unknown>): boolean => {
+      return call[0] === jobName;
+    });
+  }
+
+  test("the ended-session job runs every minute with a one-minute timeout", () => {
+    const registration: Array<unknown> | undefined = registrationOf(
+      "Rum:FinalizeEndedSessions",
+    );
+
+    expect(registration).toBeDefined();
+    expect(registration![1]).toEqual({
+      schedule: EVERY_MINUTE,
+      runOnStartup: false,
+      timeoutInMS: 60 * 1000,
+    });
+    expect(typeof registration![2]).toBe("function");
+    /* The run budget sits comfortably inside that timeout. */
+    expect(ENDED_RUN_BUDGET_MS).toBeLessThanOrEqual(50 * 1000);
+  });
+
+  test("the idle job and the sweep are still registered", () => {
+    expect(registrationOf("Rum:FinalizeSessions")).toBeDefined();
+    expect(registrationOf("Rum:SweepNeverFinalizedSessions")).toBeDefined();
   });
 });

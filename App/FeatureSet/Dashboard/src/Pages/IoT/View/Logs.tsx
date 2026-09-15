@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -86,23 +86,26 @@ const IoTFleetLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Fleet Logs"
-      description="OpenTelemetry logs ingested with this fleet's iot.fleet.name resource attribute. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * `logQuery.attributes` scopes the logs query to this fleet via the
        * `iot.fleet.name` resource attribute that the IoT agent stamps on every
        * telemetry record, and also drives the histogram / facet scoping.
+       *
+       * The chip value is already the fleet's name, so only the key needs a
+       * label: "Fleet" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`iot-fleet-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.iot.fleet.name": "Fleet",
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found. The IoT agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this fleet's iot.fleet.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

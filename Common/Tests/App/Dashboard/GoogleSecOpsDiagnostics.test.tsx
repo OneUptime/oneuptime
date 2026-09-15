@@ -36,6 +36,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
   GoogleSecOpsRunResult,
   GoogleSecOpsRunStatus,
@@ -101,6 +102,48 @@ function result(
     eventTimeEnd: "2026-09-09T01:30:30Z",
     ...overrides,
   };
+}
+
+/*
+ * What GoogleSecOpsConnectionTester returns and stores as a synchronous test
+ * run's result: a checklist report, with no run `type`.
+ */
+function testReport(
+  overrides: Partial<SecurityConnectorTestReport> = {},
+): SecurityConnectorTestReport {
+  return {
+    provider: "google-secops",
+    status: "pass",
+    startedAt: "2026-09-10T11:59:58.000Z",
+    completedAt: "2026-09-10T12:00:00.000Z",
+    durationMs: 2000,
+    checks: [
+      {
+        key: "authentication",
+        name: "Authenticate with Google",
+        status: "pass",
+        durationMs: 300,
+        message: "Google accepted the service account credentials.",
+      },
+      {
+        key: "worker-consumers",
+        name: "Background workers",
+        status: "pass",
+        durationMs: 10,
+        message: "2 worker processes are consuming the queue.",
+      },
+    ],
+    summary: "Google SecOps is reachable, credentials are accepted.",
+    ...overrides,
+  };
+}
+
+function testRequestUrls(): Array<string> {
+  return jest
+    .mocked(API.post)
+    .mock.calls.map((call: Array<unknown>): string => {
+      return String((call[0] as { url: unknown }).url);
+    });
 }
 
 function run(
@@ -196,34 +239,119 @@ describe("Google SecOps diagnostics interactions", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
-  test("starts an access test without a range and clearly limits its claim", async (): Promise<void> => {
+  /*
+   * Review finding google-diagnostics-test-still-queued: Test connection
+   * used to POST /:id/run and wait for a worker. It now calls the
+   * synchronous endpoint and renders the checklist inline.
+   */
+  test("runs the synchronous connection test and renders its checklist inline", async (): Promise<void> => {
+    jest
+      .mocked(API.post)
+      .mockResolvedValue(
+        new HTTPResponse(200, testReport() as unknown as JSONObject, {}),
+      );
     renderDiagnostics();
     await screen.findByText(/No runs recorded yet/);
-    jest
-      .mocked(ModelAPI.getList)
-      .mockResolvedValue(
-        history([
-          run("success", "test", result({ type: "test", ingestedCount: 0 })),
-        ]),
-      );
     fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
-    expect(
-      await screen.findByText(
-        /does not import events or confirm that scheduled polling is working/,
-      ),
-    ).toBeVisible();
+    const report: HTMLElement = await screen.findByRole("region", {
+      name: "Connection test report",
+    });
+    expect(within(report).getByText("All checks passed")).toBeVisible();
+    expect(within(report).getByText("Background workers")).toBeVisible();
+    expect(API.post).toHaveBeenCalledTimes(1);
     expect(API.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { type: "test" },
+        data: { connectionId: CONNECTION_ID },
         headers: { "project-id": PROJECT_ID },
       }),
     );
-    const destination: string = String(
-      jest.mocked(API.post).mock.calls[0]?.[0].url,
+    expect(testRequestUrls()[0]).toContain("/google-secops-connection/test");
+    expect(testRequestUrls()[0]).not.toContain("/run");
+    expect(
+      screen.getByText(
+        /It runs immediately, without a worker, and imports nothing/,
+      ),
+    ).toBeVisible();
+  });
+
+  test("Test connection stays available while a queued run waits for a worker", async (): Promise<void> => {
+    jest.mocked(ModelAPI.getList).mockResolvedValue(history([run("queued")]));
+    jest.mocked(API.post).mockResolvedValue(
+      new HTTPResponse(
+        200,
+        testReport({
+          status: "fail",
+          summary: "1 check failed: Background workers.",
+        }) as unknown as JSONObject,
+        {},
+      ),
     );
-    expect(destination).toContain(
-      `/google-secops-connection/${CONNECTION_ID}/run`,
-    );
+    renderDiagnostics();
+    expect(
+      await screen.findByText(/Queued — waiting for a worker/),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
+    const testButton: HTMLElement = screen.getByRole("button", {
+      name: "Test connection",
+    });
+    expect(testButton).toBeEnabled();
+    fireEvent.click(testButton);
+    expect(await screen.findByText("Some checks failed")).toBeVisible();
+    expect(testRequestUrls()).toEqual([
+      expect.stringContaining("/google-secops-connection/test"),
+    ]);
+  });
+
+  test("a failed re-run clears the previous report instead of showing it beside the error", async (): Promise<void> => {
+    jest
+      .mocked(API.post)
+      .mockResolvedValueOnce(
+        new HTTPResponse(200, testReport() as unknown as JSONObject, {}),
+      )
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Test endpoint unavailable." },
+          {},
+        ),
+      );
+    renderDiagnostics();
+    await screen.findByText(/No runs recorded yet/);
+    fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
+    expect(await screen.findByText(/Test endpoint unavailable/)).toBeVisible();
+    expect(screen.queryByText("All checks passed")).not.toBeInTheDocument();
+  });
+
+  test("an initial test action runs the synchronous test once", async (): Promise<void> => {
+    jest
+      .mocked(API.post)
+      .mockResolvedValue(
+        new HTTPResponse(200, testReport() as unknown as JSONObject, {}),
+      );
+    renderDiagnostics({ initialAction: "test" });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(15000);
+    });
+    expect(testRequestUrls()).toEqual([
+      expect.stringContaining("/google-secops-connection/test"),
+    ]);
+  });
+
+  test("the copy describes created-time polling and the Data to import control", async (): Promise<void> => {
+    renderDiagnostics();
+    await screen.findByText(/No runs recorded yet/);
+    expect(screen.getByText("Data to import")).toBeVisible();
+    expect(
+      screen.getByText(/select Detections under Data to import/),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/reads detections created in the last 24 hours/),
+    ).toBeVisible();
+    expect(screen.queryByText(/15 minutes/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Change the scope/)).not.toBeInTheDocument();
   });
 
   test("Run now is available for paused schedules and sends a poll request", async (): Promise<void> => {
@@ -242,10 +370,14 @@ describe("Google SecOps diagnostics interactions", () => {
   });
 
   test("a direct row action is submitted only once even with refreshes", async (): Promise<void> => {
+    /*
+     * Run now is the queued row action; Test connection no longer queues
+     * (google-diagnostics-test-still-queued), so this pins the poll path.
+     */
     jest
       .mocked(ModelAPI.getList)
-      .mockResolvedValue(history([run("queued", "test")]));
-    renderDiagnostics({ initialAction: "test" });
+      .mockResolvedValue(history([run("queued", "poll")]));
+    renderDiagnostics({ initialAction: "poll" });
     expect(
       await screen.findByText(/Queued — waiting for a worker/),
     ).toBeVisible();
@@ -581,6 +713,130 @@ describe("Google SecOps diagnostics interactions", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * A synchronous test stores the checklist report as the run result. It
+   * has no run `type`, so it used to render as a bare "Result: Success".
+   */
+  test("a stored synchronous test report renders as its checklist", (): void => {
+    const stored: GoogleSecOpsConnectionRun = run("failed", "test");
+    stored.result = testReport({
+      status: "fail",
+      summary: "1 check failed: Background workers.",
+      checks: [
+        {
+          key: "worker-consumers",
+          name: "Background workers",
+          status: "fail",
+          durationMs: 10,
+          message: "No process is consuming the Worker queue.",
+          remediation: "Start a worker.",
+        },
+      ],
+    }) as unknown as JSONObject;
+    stored.error = "1 check failed: Background workers.";
+    render(
+      <MemoryRouter>
+        <GoogleSecOpsRunDetails run={stored} />
+      </MemoryRouter>,
+    );
+
+    const report: HTMLElement = screen.getByRole("region", {
+      name: "Connection test report",
+    });
+    expect(within(report).getByText("Some checks failed")).toBeVisible();
+    expect(
+      within(report).getByText("No process is consuming the Worker queue."),
+    ).toBeVisible();
+    // The summary is shown once, in the report banner.
+    expect(
+      screen.getAllByText("1 check failed: Background workers."),
+    ).toHaveLength(1);
+    expect(screen.queryByText("Returned by Google")).not.toBeInTheDocument();
+  });
+
+  test("a legacy queued test result still renders as a run result", (): void => {
+    render(
+      <MemoryRouter>
+        <GoogleSecOpsRunDetails
+          run={run("success", "test", result({ type: "test" }))}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Returned by Google")).toBeVisible();
+    expect(
+      screen.getByText(
+        /does not import events or confirm that scheduled polling is working/,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "Connection test report" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a forced advance explains the skipped minute and how to recover it", (): void => {
+    const forced: GoogleSecOpsRunResult = result({
+      status: "partial",
+      complete: false,
+      chunkMinutes: 1,
+      nextChunkMinutes: 1,
+      forcedAdvance: true,
+      warnings: [
+        "More records were created in the one minute from 2026-09-10T04:00:00.000Z to 2026-09-10T04:01:00.000Z than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.",
+      ],
+      checks: [
+        {
+          name: "Read rule detections by created time",
+          status: "warn",
+          durationMs: 500,
+          message: "stopped by the request budget after 20 requests",
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <GoogleSecOpsRunDetails run={run("partial", "poll", forced)} />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/Polling moved past a one-minute window/),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/1 minutes \(next poll: 1 minutes\)/),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/The next scheduled poll starts from the same point/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Read rule detections by created time: warn"),
+    ).toHaveClass("text-amber-700");
+  });
+
+  test("a narrowed partial poll says the next poll re-reads a shorter window", (): void => {
+    const narrowed: GoogleSecOpsRunResult = result({
+      status: "partial",
+      complete: false,
+      chunkMinutes: 1440,
+      nextChunkMinutes: 720,
+      warnings: [
+        "This window holds more records than one poll can read; the next poll reads a 720 minute window from the same starting point.",
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <GoogleSecOpsRunDetails run={run("partial", "poll", narrowed)} />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/The next scheduled poll starts from the same point/),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/1,440 minutes \(next poll: 720 minutes\)/),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Polling moved past a one-minute window/),
+    ).not.toBeInTheDocument();
+  });
+
   test("failed run errors remain literal readable text", (): void => {
     const failed: GoogleSecOpsConnectionRun = run("failed");
     failed.error = "Google rejected access. <script>not markup</script>";
@@ -597,6 +853,27 @@ describe("Google SecOps diagnostics interactions", () => {
 describe("Google SecOps health and time ranges", () => {
   afterEach((): void => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * The outage this page exists for: every poll succeeded and nothing was
+   * ever imported. A green "Last poll succeeded" on that row is a lie, so
+   * success is only claimed once an event has actually landed.
+   */
+  test("a succeeding poll that never imported an event does not read as success", (): void => {
+    const item: GoogleSecOpsConnection = connection();
+    item.lastPolledAt = new Date(NOW - 60_000);
+    item.lastPollResult = result({
+      windowEnd: "2026-09-10T11:58:00Z",
+      ingestedCount: 0,
+    }) as unknown as JSONObject;
+
+    expect(googleSecOpsHealth(item, NOW)).toBe(
+      "Polling, no events imported yet",
+    );
+
+    item.lastEventIngestedAt = new Date(NOW - 30_000);
+    expect(googleSecOpsHealth(item, NOW)).toBe("Last poll succeeded");
   });
 
   test("configuration and a recent attempt cannot imply success", (): void => {

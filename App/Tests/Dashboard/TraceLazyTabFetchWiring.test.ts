@@ -24,10 +24,17 @@ const readSource: ReadSourceFunction = (
     .trim();
 };
 
-const TRACE_EXPLORER: string = readSource(
+const TRACE_SIGNALS: string = readSource(
   "Components",
   "Traces",
-  "TraceExplorer.tsx",
+  "TraceDetail",
+  "TraceSignals.tsx",
+);
+const TRACE_SPAN_PANEL: string = readSource(
+  "Components",
+  "Traces",
+  "TraceDetail",
+  "TraceSpanPanel.tsx",
 );
 const SPAN_DETAILS_PANEL: string = readSource(
   "Components",
@@ -36,7 +43,7 @@ const SPAN_DETAILS_PANEL: string = readSource(
 );
 
 /*
- * The lazy correlated-signal fetches (Trace Explorer's Metrics tab, the span
+ * The lazy correlated-signal fetches (the trace page's Metrics tab, the span
  * panel's Logs and Exceptions tabs) must never list their own loading flag as
  * a dependency of the effect that sets it: setLoading(true) inside the effect
  * body re-runs the effect, which first runs the previous run's cleanup and
@@ -49,43 +56,101 @@ const SPAN_DETAILS_PANEL: string = readSource(
  * that always clear the loading flag for the current generation.
  */
 
-describe("trace explorer metrics tab lazy fetch", () => {
+describe("trace signals metrics tab lazy fetch", () => {
   test("the effect neither guards on nor depends on its own loading flag", () => {
-    expect(TRACE_EXPLORER).toContain(
+    expect(TRACE_SIGNALS).toContain(
       'if (activeSignalTab !== "metrics" || metricsFetched) { return; }',
     );
-    expect(TRACE_EXPLORER).not.toContain("metricsFetched || metricsLoading");
-    expect(TRACE_EXPLORER).not.toContain(
-      "[activeSignalTab, metricsFetched, metricsLoading, traceIdFromUrl]",
+    expect(TRACE_SIGNALS).not.toContain("metricsFetched || metricsLoading");
+    expect(TRACE_SIGNALS).not.toContain(
+      "[activeSignalTab, metricsFetched, metricsLoading, traceId]",
     );
   });
 
   test("cancellation is a generation counter bumped only on tab/trace change or unmount", () => {
-    expect(TRACE_EXPLORER).toContain(
-      "const metricsLoadGenerationRef: React.MutableRefObject<number> = React.useRef<number>(0);",
+    expect(TRACE_SIGNALS).toContain(
+      "const metricsLoadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);",
     );
-    expect(TRACE_EXPLORER).toContain(
+    expect(TRACE_SIGNALS).toContain(
       "metricsLoadGenerationRef.current += 1; const generation: number = metricsLoadGenerationRef.current;",
     );
-    expect(TRACE_EXPLORER).toContain(
+    expect(TRACE_SIGNALS).toContain(
       "if (generation !== metricsLoadGenerationRef.current) { return; }",
     );
-    expect(TRACE_EXPLORER).toContain(
-      "return () => { metricsLoadGenerationRef.current += 1; }; }, [activeSignalTab, metricsFetched, traceIdFromUrl]);",
+    expect(TRACE_SIGNALS).toContain(
+      "return () => { metricsLoadGenerationRef.current += 1; }; }, [activeSignalTab, metricsFetched, traceId]);",
     );
   });
 
   test("a settled fetch always clears the spinner and marks the tab fetched", () => {
-    expect(TRACE_EXPLORER).toContain(
+    expect(TRACE_SIGNALS).toContain(
       "} finally { if (generation === metricsLoadGenerationRef.current) { setMetricsLoading(false); setMetricsFetched(true); } }",
     );
   });
 
   test("failures surface an error message instead of spinning", () => {
-    expect(TRACE_EXPLORER).toContain(
+    expect(TRACE_SIGNALS).toContain(
       "setMetricsError(API.getFriendlyMessage(err));",
     );
-    expect(TRACE_EXPLORER).toContain("<ErrorMessage message={metricsError} />");
+    expect(TRACE_SIGNALS).toContain("<ErrorMessage message={metricsError} />");
+  });
+});
+
+/*
+ * The trace detail page's docked span panel uses the same shape for its Logs
+ * and Exceptions tabs.
+ */
+describe("trace span panel lazy tabs", () => {
+  test("neither effect guards on or depends on its own loading flag", () => {
+    expect(TRACE_SPAN_PANEL).toContain(
+      'if (activeTab !== "logs" || logsFetched) { return; }',
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      'if (activeTab !== "exceptions" || exceptionsFetched) { return; }',
+    );
+    expect(TRACE_SPAN_PANEL).not.toContain("logsFetched || logsLoading");
+    expect(TRACE_SPAN_PANEL).not.toContain(
+      "exceptionsFetched || exceptionsLoading",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "}, [activeTab, logsFetched, spanId, props.traceId]);",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "}, [activeTab, exceptionsFetched, spanId]);",
+    );
+  });
+
+  test("cancellation is a generation counter bumped on span change or unmount", () => {
+    expect(TRACE_SPAN_PANEL).toContain(
+      "logsLoadGenerationRef.current += 1; const generation: number = logsLoadGenerationRef.current;",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "exceptionsLoadGenerationRef.current += 1; const generation: number = exceptionsLoadGenerationRef.current;",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "return () => { logsLoadGenerationRef.current += 1; };",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "return () => { exceptionsLoadGenerationRef.current += 1; };",
+    );
+  });
+
+  test("a settled fetch always clears the spinner and marks the tab fetched", () => {
+    expect(TRACE_SPAN_PANEL).toContain(
+      "} finally { if (generation === logsLoadGenerationRef.current) { setLogsLoading(false); setLogsFetched(true); } }",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "} finally { if (generation === exceptionsLoadGenerationRef.current) { setExceptionsLoading(false); setExceptionsFetched(true); } }",
+    );
+  });
+
+  test("selecting another span resets loading flags with fetched state", () => {
+    expect(TRACE_SPAN_PANEL).toContain(
+      "setLogsLoading(false); setLogsFetched(false);",
+    );
+    expect(TRACE_SPAN_PANEL).toContain(
+      "setExceptionsLoading(false); setExceptionsFetched(false);",
+    );
   });
 });
 

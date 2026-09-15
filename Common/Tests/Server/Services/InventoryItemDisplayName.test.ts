@@ -337,3 +337,69 @@ describe("existing InventoryItem display-name convergence", () => {
     );
   });
 });
+
+describe("InventoryItemService.deriveDisplayName for inferred dependencies", () => {
+  test("a database reads as its namespace, then its host, then its engine", () => {
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "postgresql",
+            "server.address": "db.internal",
+            "db.namespace": "orders",
+          },
+        }),
+      ),
+    ).toBe("orders");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "redis",
+            "server.address": "cache.internal",
+          },
+        }),
+      ),
+    ).toBe("cache.internal");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
+          identifyingAttributes: { "db.system.name": "sqlite" },
+        }),
+      ),
+    ).toBe("sqlite");
+  });
+
+  test("a remote service reads as the name callers gave it, then its host", () => {
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.RemoteService,
+          identifyingAttributes: { "peer.service": "stripe" },
+        }),
+      ),
+    ).toBe("stripe");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.RemoteService,
+          identifyingAttributes: {
+            "messaging.system": "kafka",
+            "server.address": "kafka-0.kafka",
+          },
+        }),
+      ),
+    ).toBe("kafka-0.kafka");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.RemoteService,
+          identifyingAttributes: { "rpc.service": "acme.ledger.v1.ledger" },
+        }),
+      ),
+    ).toBe("acme.ledger.v1.ledger");
+  });
+});

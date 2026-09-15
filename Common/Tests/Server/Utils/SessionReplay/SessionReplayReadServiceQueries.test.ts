@@ -4,6 +4,8 @@ import ExceptionInstanceService from "../../../../Server/Services/ExceptionInsta
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import SessionReplayReadService, {
   MAX_LIST_ROUTES,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
   MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_ACTIVITY_SUMMARY_CACHE_TTL_MS,
   SessionReplayApplicationActivitySummary,
@@ -17,15 +19,25 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplaySummariesRequest,
+  SessionReplaySummary,
   SessionReplayUserRollup,
   SessionReplayUsersRequest,
   SessionReplayUsersResult,
 } from "../../../../Server/Utils/SessionReplay/SessionReplayReadService";
+import logger from "../../../../Server/Utils/Logger";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { MAX_SESSION_REPLAY_READ_BYTES } from "../../../../Types/Rum/SessionReplay";
+import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+  MAX_SESSION_REPLAY_READ_BYTES,
+  SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
+  SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
+} from "../../../../Types/Rum/SessionReplay";
 import { SessionReplaySortBy } from "../../../../Types/Rum/SessionReplayApi";
+import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -135,6 +147,173 @@ describe("SessionReplayReadService statements", () => {
 
     return statementOf(headerQuerySpy).query;
   }
+
+  function summariesRequest(
+    overrides: Partial<SessionReplaySummariesRequest> = {},
+  ): SessionReplaySummariesRequest {
+    return {
+      projectId: projectId,
+      rumApplicationId: rumApplicationId,
+      sessionIds: ["session-a", "session-b"],
+      ...overrides,
+    };
+  }
+
+  describe("session summary batch", () => {
+    test("uses one application-scoped argMax query with only non-identity summary columns", async () => {
+      await SessionReplayReadService.getSessionSummaries(summariesRequest());
+
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = statementOf(headerQuerySpy);
+      const query: string = statement.query;
+
+      expect(query).toMatch(/FROM \{p\d+:Identifier\}/);
+      expect(query).toContain("projectId = ");
+      expect(query).toContain("rumApplicationId = ");
+      expect(query).toContain("sessionId IN (");
+      expect(query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(query).toContain("argMax(startTime, version)");
+      expect(query).toContain("argMax(entryUrl, version)");
+      expect(query).toContain("argMax(browserName, version)");
+      expect(query).toContain("argMax(browserVersion, version)");
+      expect(query).toContain("argMax(osName, version)");
+      expect(query).toContain("argMax(deviceType, version)");
+      expect(query).toContain("retentionDate >= now()");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toContain(" FINAL");
+
+      for (const forbiddenColumn of [
+        "identifiedUserKey",
+        "identifiedUserLabel",
+        "identifiedUserTraits",
+        "visitorId",
+        "payload",
+        "exitUrl",
+        "countryCode",
+      ]) {
+        expect(query).not.toContain(forbiddenColumn);
+      }
+
+      const values: Array<unknown> = boundValues(statement);
+      expect(values).toContain(AnalyticsTableName.RumSession);
+      expect(values).toContain(projectId.toString());
+      expect(values).toContain(rumApplicationId.toString());
+      expect(values).toContainEqual(["session-a", "session-b"]);
+    });
+
+    test("deduplicates ids, returns stable request order and omits missing or unexpected rows", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "not-requested",
+            aggStartTime: 1,
+          },
+          {
+            sessionId: "session-b",
+            aggStartTime: 1700000200000,
+            aggDurationMs: "45000",
+            aggEntryUrl: "https://example.com/checkout",
+            aggBrowserName: "Firefox",
+            aggBrowserVersion: "130",
+            aggOsName: "Linux",
+            aggDeviceType: "desktop",
+          },
+          {
+            sessionId: "session-a",
+            aggStartTime: 1700000100000,
+            aggDurationMs: 15000,
+            aggEntryUrl: "https://example.com/",
+            aggBrowserName: "Safari",
+            aggBrowserVersion: "18",
+            aggOsName: "iOS",
+            aggDeviceType: "mobile",
+          },
+          /* Defensive duplicate driver rows never duplicate the response. */
+          {
+            sessionId: "session-a",
+            aggStartTime: 2,
+          },
+        ]) as never,
+      );
+
+      const summaries: Array<SessionReplaySummary> =
+        await SessionReplayReadService.getSessionSummaries(
+          summariesRequest({
+            sessionIds: [
+              "session-a",
+              "session-b",
+              "session-a",
+              "missing-session",
+            ],
+          }),
+        );
+
+      expect(summaries).toEqual([
+        {
+          sessionId: "session-a",
+          startTime: new Date(1700000100000),
+          startTimeUnixMs: 1700000100000,
+          durationMs: 15000,
+          entryUrl: "https://example.com/",
+          browserName: "Safari",
+          browserVersion: "18",
+          osName: "iOS",
+          deviceType: "mobile",
+        },
+        {
+          sessionId: "session-b",
+          startTime: new Date(1700000200000),
+          startTimeUnixMs: 1700000200000,
+          durationMs: 45000,
+          entryUrl: "https://example.com/checkout",
+          browserName: "Firefox",
+          browserVersion: "130",
+          osName: "Linux",
+          deviceType: "desktop",
+        },
+      ]);
+
+      const values: Array<unknown> = boundValues(statementOf(headerQuerySpy));
+      expect(values).toContainEqual([
+        "session-a",
+        "session-b",
+        "missing-session",
+      ]);
+    });
+
+    test.each([
+      { name: "an empty batch", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+      {
+        name: "an oversized batch",
+        sessionIds: Array.from(
+          { length: MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1 },
+          (_value: unknown, index: number): string => {
+            return `session-${index}`;
+          },
+        ),
+      },
+    ])(
+      "rejects $name before querying",
+      async ({ sessionIds }: { sessionIds: Array<string> }) => {
+        await expect(
+          SessionReplayReadService.getSessionSummaries(
+            summariesRequest({ sessionIds: sessionIds }),
+          ),
+        ).rejects.toBeInstanceOf(BadDataException);
+
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+  });
 
   describe("list predicates are HAVING clauses over argMax aliases", () => {
     test("hasIdentifiedUser tests the digest alias, never the label", async () => {
@@ -623,6 +802,633 @@ describe("SessionReplayReadService statements", () => {
     });
   });
 
+  /*
+   * The bug: a user closed the tab, the recorder sent its final chunk, and
+   * the sessions table kept saying "Recording now" for 10-15 minutes -
+   * because the only fact the list returned was isFinalized, and the
+   * finalizer only runs once a session has been idle for ten minutes. The
+   * list now also says whether every tab of an unfinalized session has
+   * ended, read from the chunk rows by the shared rule, once the same
+   * grace the finalizer waits on has passed.
+   */
+  describe("hasRecordingEnded on the session list", () => {
+    /* An arbitrary fixed device clock: the end of a tab's final chunk. */
+    const FINAL_END: number = 1757000000000;
+    /*
+     * The SERVER unix ms the tab's newest chunk row was written (its
+     * version). Deliberately not FINAL_END: the grace is measured on the
+     * server clock, never on the device's.
+     */
+    const STORED_AT: number = FINAL_END + 2345;
+    /* The first server "now" at which STORED_AT is past the grace. */
+    const GRACE_PASSED: number =
+      STORED_AT + SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+
+    function request(
+      overrides: Partial<SessionReplayListRequest> = {},
+    ): SessionReplayListRequest {
+      return listRequest({ nowUnixMs: GRACE_PASSED, ...overrides });
+    }
+
+    function listRow(sessionId: string, isFinalized: boolean): JSONObject {
+      return {
+        sessionId: sessionId,
+        applicationId: rumApplicationId.toString(),
+        aggStartTime: FINAL_END - 60000,
+        aggEndTime: FINAL_END,
+        aggIsFinalized: isFinalized ? 1 : 0,
+        aggSealedReason: isFinalized ? "final-chunk" : "",
+      };
+    }
+
+    /* A tab whose final chunk ended at FINAL_END and nothing started after. */
+    function endedTabRow(
+      sessionId: string,
+      tabId: string,
+      overrides: JSONObject = {},
+    ): JSONObject {
+      return {
+        sessionId: sessionId,
+        tabId: tabId,
+        tabHasFinalChunk: 1,
+        tabFinalChunkEndUnixMs: FINAL_END,
+        tabLastChunkStartUnixMs: FINAL_END - 15000,
+        tabMaxChunkIndex: 4,
+        tabLastChunkStoredAtUnixMs: STORED_AT,
+        ...overrides,
+      };
+    }
+
+    /* A tab that has not sent a final chunk: maxIf's default end is epoch. */
+    function liveTabRow(
+      sessionId: string,
+      tabId: string,
+      overrides: JSONObject = {},
+    ): JSONObject {
+      return {
+        sessionId: sessionId,
+        tabId: tabId,
+        tabHasFinalChunk: 0,
+        tabFinalChunkEndUnixMs: 0,
+        tabLastChunkStartUnixMs: FINAL_END,
+        tabMaxChunkIndex: 4,
+        tabLastChunkStoredAtUnixMs: STORED_AT,
+        ...overrides,
+      };
+    }
+
+    function mockPage(rows: Array<JSONObject>): void {
+      headerQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+    }
+
+    function mockChunkFacts(rows: Array<JSONObject>): void {
+      chunkQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+    }
+
+    function endedBySessionId(
+      result: SessionReplayListResult,
+    ): Record<string, boolean> {
+      const ended: Record<string, boolean> = {};
+
+      for (const session of result.sessions) {
+        ended[session.sessionId] = session.hasRecordingEnded;
+      }
+
+      return ended;
+    }
+
+    test("the follow-up is one parameterised, application-pinned, per-tab key-range read over the chunk table", async () => {
+      mockPage([
+        listRow("s-1", false),
+        listRow("s-2", true),
+        listRow("s-3", false),
+      ]);
+
+      await SessionReplayReadService.listSessions(request());
+
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
+
+      const statement: Statement = statementOf(chunkQuerySpy);
+      const query: string = statement.query;
+      const bound: Array<unknown> = boundValues(statement);
+
+      /* The chunk table, bound as an identifier like every other read. */
+      expect(bound).toContain(AnalyticsTableName.RumSessionChunk);
+
+      /* The sort-key prefix (projectId, sessionId) plus the app pin. */
+      expect(whereSection(query)).toMatch(/projectId = \{p\d+:String\}/);
+      expect(whereSection(query)).toMatch(
+        /AND sessionId IN \(\{p\d+:Array\(String\)\}\)/,
+      );
+      expect(whereSection(query)).toMatch(
+        /AND rumApplicationId = \{p\d+:String\}/,
+      );
+      expect(whereSection(query)).toContain("retentionDate >= now()");
+      expect(bound).toContain(projectId.toString());
+      expect(bound).toContain(rumApplicationId.toString());
+
+      /* Only the unfinalized sessions of the page, bound, never spelled. */
+      expect(bound).toContainEqual(["s-1", "s-3"]);
+      expect(query).not.toContain("'s-1'");
+      expect(query).not.toContain("'s-3'");
+      for (const value of bound) {
+        if (Array.isArray(value)) {
+          expect(value).not.toContain("s-2");
+        }
+      }
+
+      /* Per tab, with exactly the five documented facts. */
+      expect(query).toContain("GROUP BY sessionId, tabId");
+      expect(query).toContain("max(toUInt8(isFinal)) AS tabHasFinalChunk");
+      expect(query).toContain(
+        "toFloat64(toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal))) AS tabFinalChunkEndUnixMs",
+      );
+      expect(query).toContain(
+        "toFloat64(toUnixTimestamp64Milli(max(chunkStartTime))) AS tabLastChunkStartUnixMs",
+      );
+      expect(query).toContain("toFloat64(max(chunkIndex)) AS tabMaxChunkIndex");
+      expect(query).toContain(
+        "toFloat64(max(version)) AS tabLastChunkStoredAtUnixMs",
+      );
+
+      /*
+       * The grace is judged in the process against the rows' server write
+       * time, not in SQL against the device clock or now64().
+       */
+      expect(query).not.toContain("now64(");
+
+      /* Maxima need no de-duplication, and the payload is never named. */
+      expect(query).not.toContain("LIMIT 1 BY");
+      expect(query).not.toMatch(/\bpayload\b(?!Bytes)/);
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+    });
+
+    test("an unfinalized session whose single tab sent its final chunk reads as ended once the grace has passed (the closed-tab regression)", async () => {
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([endedTabRow("s-1", "tab-1")]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions).toHaveLength(1);
+      expect(result.sessions[0]!.isFinalized).toBe(false);
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(true);
+    });
+
+    /*
+     * The flap this grace exists for: in a multi-page app, page A's final
+     * chunk lands while page B (a new tab id under the same session) has
+     * not stored its first chunk yet. For that moment the only tab the
+     * rows know about has ended, and without a grace the list would say
+     * "Recording ended" for a session that is still recording, then flip
+     * back on the next poll.
+     */
+    test.each([
+      ["stored just now", 0, false],
+      ["stored 20 s ago (page B's first chunk still on its way)", 20000, false],
+      [
+        "stored 1 ms short of the grace",
+        SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS - 1,
+        false,
+      ],
+      [
+        "stored exactly the grace ago",
+        SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
+        true,
+      ],
+      [
+        "stored well past the grace",
+        SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS + 5 * 60 * 1000,
+        true,
+      ],
+    ] as Array<[string, number, boolean]>)(
+      "a single sealed tab %s (%i ms old): hasRecordingEnded %s",
+      async (_label: string, ageMs: number, expected: boolean) => {
+        mockPage([listRow("s-1", false)]);
+        mockChunkFacts([endedTabRow("s-1", "tab-1")]);
+
+        const result: SessionReplayListResult =
+          await SessionReplayReadService.listSessions(
+            request({ nowUnixMs: STORED_AT + ageMs }),
+          );
+
+        expect(result.sessions[0]!.hasRecordingEnded).toBe(expected);
+      },
+    );
+
+    test("the grace is measured from the NEWEST stored chunk of any tab, not from the oldest seal", async () => {
+      /*
+       * Page A sealed and was stored long ago; page B sealed moments ago.
+       * Page C may still be about to register, so the session is not over.
+       */
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([
+        endedTabRow("s-1", "tab-page-a", {
+          tabLastChunkStoredAtUnixMs: STORED_AT - 10 * 60 * 1000,
+        }),
+        endedTabRow("s-1", "tab-page-b", {
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+        }),
+      ]);
+
+      const early: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(
+          request({ nowUnixMs: GRACE_PASSED - 1 }),
+        );
+      expect(early.sessions[0]!.hasRecordingEnded).toBe(false);
+
+      const late: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(
+          request({ nowUnixMs: GRACE_PASSED }),
+        );
+      expect(late.sessions[0]!.hasRecordingEnded).toBe(true);
+    });
+
+    test("the grace reads the rows' server write time, not the device's chunk clock", async () => {
+      /*
+       * A device clock hours behind the server: its final chunk "ended"
+       * long before now, but the row was stored seconds ago.
+       */
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([
+        endedTabRow("s-1", "tab-1", {
+          tabFinalChunkEndUnixMs: FINAL_END - 3 * 60 * 60 * 1000,
+          tabLastChunkStartUnixMs: FINAL_END - 3 * 60 * 60 * 1000 - 15000,
+        }),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(
+          request({ nowUnixMs: STORED_AT + 5000 }),
+        );
+
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(false);
+    });
+
+    test("without an injected clock the list measures the grace against Date.now()", async () => {
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([endedTabRow("s-1", "tab-1")]);
+
+      const nowSpy: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(GRACE_PASSED - 1);
+
+      const early: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(listRequest());
+      expect(early.sessions[0]!.hasRecordingEnded).toBe(false);
+
+      nowSpy.mockReturnValue(GRACE_PASSED);
+
+      const late: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(listRequest());
+      expect(late.sessions[0]!.hasRecordingEnded).toBe(true);
+    });
+
+    /*
+     * A tab that reached the per-session chunk cap never gets a final
+     * chunk: the ingest gate refuses every index past the last one, the
+     * recorder's own truncation seal included. It has ended all the same.
+     */
+    test.each([
+      [
+        "at the last permitted index, grace passed",
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+        GRACE_PASSED,
+        true,
+      ],
+      [
+        "at the last permitted index, inside the grace",
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+        GRACE_PASSED - 1,
+        false,
+      ],
+      [
+        "one index short of the cap, grace passed",
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 2,
+        GRACE_PASSED,
+        false,
+      ],
+    ] as Array<[string, number, number, boolean]>)(
+      "a capped tab with no final chunk %s (index %i, now %i): hasRecordingEnded %s",
+      async (
+        _label: string,
+        maxChunkIndex: number,
+        nowUnixMs: number,
+        expected: boolean,
+      ) => {
+        mockPage([listRow("s-1", false)]);
+        mockChunkFacts([
+          liveTabRow("s-1", "tab-1", { tabMaxChunkIndex: maxChunkIndex }),
+        ]);
+
+        const result: SessionReplayListResult =
+          await SessionReplayReadService.listSessions(
+            request({ nowUnixMs: nowUnixMs }),
+          );
+
+        expect(result.sessions[0]!.hasRecordingEnded).toBe(expected);
+      },
+    );
+
+    test("one live tab among ended ones keeps the whole session recording", async () => {
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([
+        endedTabRow("s-1", "tab-1"),
+        liveTabRow("s-1", "tab-2"),
+        endedTabRow("s-1", "tab-3"),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(false);
+    });
+
+    test("an older recorder's trailing chunk inside the tolerance still ends the tab; one past it does not", async () => {
+      mockPage([listRow("s-trailing", false), listRow("s-resumed", false)]);
+      mockChunkFacts([
+        endedTabRow("s-trailing", "tab-1", {
+          tabLastChunkStartUnixMs:
+            FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
+        }),
+        endedTabRow("s-resumed", "tab-1", {
+          tabLastChunkStartUnixMs:
+            FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+        }),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-trailing": true,
+        "s-resumed": false,
+      });
+    });
+
+    test("each session is judged on its own tabs and its own stored times", async () => {
+      mockPage([
+        listRow("s-ended", false),
+        listRow("s-live", false),
+        listRow("s-mixed", false),
+        listRow("s-recent", false),
+      ]);
+      mockChunkFacts([
+        endedTabRow("s-ended", "tab-1"),
+        endedTabRow("s-ended", "tab-2"),
+        liveTabRow("s-live", "tab-1"),
+        endedTabRow("s-mixed", "tab-1"),
+        liveTabRow("s-mixed", "tab-2"),
+        endedTabRow("s-recent", "tab-1", {
+          tabLastChunkStoredAtUnixMs: GRACE_PASSED - 1000,
+        }),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-ended": true,
+        "s-live": false,
+        "s-mixed": false,
+        "s-recent": false,
+      });
+    });
+
+    test("a finalized session is never 'ended', even when chunk facts for it come back", async () => {
+      mockPage([listRow("s-final", true), listRow("s-open", false)]);
+      mockChunkFacts([
+        endedTabRow("s-final", "tab-1"),
+        endedTabRow("s-open", "tab-1"),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-final": false,
+        "s-open": true,
+      });
+      expect(boundValues(statementOf(chunkQuerySpy))).toContainEqual([
+        "s-open",
+      ]);
+    });
+
+    test("a page of only finalized sessions runs no follow-up query", async () => {
+      mockPage([listRow("s-1", true), listRow("s-2", true)]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+      expect(endedBySessionId(result)).toEqual({ "s-1": false, "s-2": false });
+    });
+
+    test("an empty page runs no follow-up query", async () => {
+      mockPage([]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions).toHaveLength(0);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("the look-ahead row past the page size is not asked about", async () => {
+      mockPage([listRow("s-1", false), listRow("s-2", false)]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request({ limit: 1 }));
+
+      expect(result.sessions).toHaveLength(1);
+      expect(result.nextCursor).not.toBeNull();
+      expect(boundValues(statementOf(chunkQuerySpy))).toContainEqual(["s-1"]);
+    });
+
+    test("an unfinalized session with no chunk rows yet is not 'ended'", async () => {
+      mockPage([listRow("s-1", false), listRow("s-2", false)]);
+      mockChunkFacts([endedTabRow("s-2", "tab-1")]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({ "s-1": false, "s-2": true });
+    });
+
+    test("a thrown follow-up leaves every row false and still returns the list", async () => {
+      const warnSpy: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((): void => {
+          return;
+        });
+
+      mockPage([listRow("s-1", false), listRow("s-2", true)]);
+      chunkQuerySpy.mockRejectedValue(new Error("clickhouse down") as never);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions).toHaveLength(2);
+      expect(endedBySessionId(result)).toEqual({ "s-1": false, "s-2": false });
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    test("a follow-up whose body cannot be parsed degrades the same way", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {
+        return;
+      });
+
+      mockPage([listRow("s-1", false)]);
+      chunkQuerySpy.mockResolvedValue({
+        json: async (): Promise<JSONObject> => {
+          throw new Error("truncated body");
+        },
+      } as never);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(false);
+    });
+
+    test("ClickHouse's quoted numbers parse, and a missing clock is never read as ended", async () => {
+      mockPage([
+        listRow("s-quoted", false),
+        listRow("s-no-start", false),
+        listRow("s-no-end", false),
+        listRow("s-garbled", false),
+        listRow("s-no-stored-at", false),
+        listRow("s-blank-stored-at", false),
+        listRow("s-no-index", false),
+      ]);
+      mockChunkFacts([
+        {
+          sessionId: "s-quoted",
+          tabId: "tab-1",
+          tabHasFinalChunk: "1",
+          tabFinalChunkEndUnixMs: String(FINAL_END),
+          tabLastChunkStartUnixMs: String(FINAL_END - 15000),
+          tabMaxChunkIndex: "4",
+          tabLastChunkStoredAtUnixMs: String(STORED_AT),
+        },
+        {
+          sessionId: "s-no-start",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabMaxChunkIndex: 4,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+        },
+        {
+          sessionId: "s-no-end",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+          tabMaxChunkIndex: 4,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+        },
+        {
+          sessionId: "s-garbled",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: "not-a-number",
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+          tabMaxChunkIndex: 4,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+        },
+        /*
+         * A missing write time must not read as 0 - epoch is older than
+         * any grace, which would skip it outright.
+         */
+        {
+          sessionId: "s-no-stored-at",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+          tabMaxChunkIndex: 4,
+        },
+        {
+          sessionId: "s-blank-stored-at",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+          tabMaxChunkIndex: 4,
+          tabLastChunkStoredAtUnixMs: " ",
+        },
+        /*
+         * A missing chunk index only means the cap rule cannot apply; a
+         * sealed tab is still judged by its seal.
+         */
+        {
+          sessionId: "s-no-index",
+          tabId: "tab-1",
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+        },
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-quoted": true,
+        "s-no-start": false,
+        "s-no-end": false,
+        "s-garbled": false,
+        "s-no-stored-at": false,
+        "s-blank-stored-at": false,
+        "s-no-index": true,
+      });
+    });
+
+    test("a missing or garbled chunk index never reads as capped", async () => {
+      mockPage([listRow("s-no-index", false), listRow("s-garbled", false)]);
+      mockChunkFacts([
+        liveTabRow("s-no-index", "tab-1", { tabMaxChunkIndex: undefined }),
+        liveTabRow("s-garbled", "tab-1", { tabMaxChunkIndex: "Infinity" }),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-no-index": false,
+        "s-garbled": false,
+      });
+    });
+
+    test("a chunk row for a session that was not asked about decides nothing", async () => {
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([
+        endedTabRow("s-1", "tab-1"),
+        liveTabRow("someone-else", "tab-1"),
+        endedTabRow("", "tab-1"),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(true);
+    });
+
+    test("the follow-up does not change the list statement or its filters", async () => {
+      mockPage([listRow("s-1", false)]);
+
+      const query: string = await listQuery({ isFinalized: false });
+
+      /* "Live" stays "not finalized"; the chunk facts never reach HAVING. */
+      expect(havingSection(query)).toMatch(/aggIsFinalized = \{p\d+:Bool\}/);
+      expect(query).not.toContain("isFinal)");
+      expect(query).not.toContain("tabHasFinalChunk");
+      expect(query).not.toContain("tabLastChunkStoredAtUnixMs");
+    });
+  });
+
   describe("getSessionHeader", () => {
     const headerRow: JSONObject = {
       sessionId: "s-1",
@@ -741,6 +1547,30 @@ describe("SessionReplayReadService statements", () => {
 
       expect(older!.identifiedUserKey).toBe("");
       expect(older!.visitorId).toBe("");
+    });
+
+    /*
+     * The header read is also the authorization lookup behind every chunk
+     * and heartbeat request (cached 30s), so it must not grow a chunk-table
+     * read. It answers false; getManifest judges the field.
+     */
+    test("never reads the chunk table and leaves hasRecordingEnded to the manifest", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { ...headerRow, aggIsFinalized: 0, aggSealedReason: "final-chunk" },
+        ]) as never,
+      );
+
+      const header: SessionReplaySessionHeader | null =
+        await SessionReplayReadService.getSessionHeader({
+          projectId: projectId,
+          sessionId: "s-1",
+          rumApplicationId: rumApplicationId,
+        });
+
+      expect(header!.isFinalized).toBe(false);
+      expect(header!.hasRecordingEnded).toBe(false);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
     });
 
     test("an ambiguous session id is refused with an actionable message", async () => {
@@ -1355,6 +2185,7 @@ describe("SessionReplayReadService statements", () => {
         recorderCapabilities: [],
         identifiedUserKey: "",
         visitorId: "",
+        hasRecordingEnded: false,
         ...overrides,
       };
     }
@@ -1459,6 +2290,382 @@ describe("SessionReplayReadService statements", () => {
       expect(manifest.header.maxChunkIndex).toBe(1);
       expect(manifest.header.endTimeUnixMs).toBe(1700000150000);
       expect(manifest.header.endTime.getTime()).toBe(1700000150000);
+    });
+
+    /*
+     * The player's Live pill reads the manifest header. The header read
+     * itself never judges hasRecordingEnded (it is also the cached
+     * authorization lookup), so the manifest does, with the same helper
+     * and the same statement as the list.
+     */
+    describe("hasRecordingEnded on the manifest header", () => {
+      const FINAL_END: number = 1700000150000;
+      /* Server write time of the newest chunk row (its version). */
+      const STORED_AT: number = FINAL_END + 1500;
+      const GRACE_PASSED: number =
+        STORED_AT + SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+
+      function endedTabRow(
+        tabId: string,
+        overrides: JSONObject = {},
+      ): JSONObject {
+        return {
+          sessionId: "s-1",
+          tabId: tabId,
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabLastChunkStartUnixMs: FINAL_END - 16000,
+          tabMaxChunkIndex: 1,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+          ...overrides,
+        };
+      }
+
+      function liveTabRow(
+        tabId: string,
+        overrides: JSONObject = {},
+      ): JSONObject {
+        return {
+          sessionId: "s-1",
+          tabId: tabId,
+          tabHasFinalChunk: 0,
+          tabFinalChunkEndUnixMs: 0,
+          tabLastChunkStartUnixMs: FINAL_END,
+          tabMaxChunkIndex: 1,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+          ...overrides,
+        };
+      }
+
+      async function manifestAt(
+        nowUnixMs: number | undefined,
+      ): Promise<SessionReplayManifest> {
+        return SessionReplayReadService.getManifest({
+          header: header({ isFinalized: false }),
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionId: "s-1",
+          ...(nowUnixMs !== undefined && { nowUnixMs: nowUnixMs }),
+        });
+      }
+
+      function mockManifestThenFacts(facts: Array<JSONObject>): void {
+        chunkQuerySpy
+          .mockResolvedValueOnce(fakeResultSet(chunkRows) as never)
+          .mockResolvedValueOnce(fakeResultSet(facts) as never);
+      }
+
+      test("an unfinalized session whose every tab sent its final chunk is ended once the grace has passed, read pinned to the authorized application", async () => {
+        mockManifestThenFacts([
+          endedTabRow("tab-1"),
+          endedTabRow("tab-2", {
+            tabLastChunkStartUnixMs: FINAL_END + 4,
+          }),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(chunkQuerySpy).toHaveBeenCalledTimes(2);
+
+        /* The manifest statement goes first and is unchanged. */
+        const manifestQuery: string = statementOf(chunkQuerySpy, 0).query;
+        expect(manifestQuery).toContain("LIMIT 1 BY tabId, chunkIndex");
+        expect(manifestQuery).not.toContain("tabHasFinalChunk");
+
+        const ended: Statement = statementOf(chunkQuerySpy, 1);
+        expect(ended.query).toContain("GROUP BY sessionId, tabId");
+        expect(ended.query).toMatch(
+          /AND sessionId IN \(\{p\d+:Array\(String\)\}\)/,
+        );
+        expect(ended.query).toMatch(/AND rumApplicationId = \{p\d+:String\}/);
+        expect(ended.query).toContain(
+          "toFloat64(max(chunkIndex)) AS tabMaxChunkIndex",
+        );
+        expect(ended.query).toContain(
+          "toFloat64(max(version)) AS tabLastChunkStoredAtUnixMs",
+        );
+        expect(boundValues(ended)).toContainEqual(["s-1"]);
+        expect(boundValues(ended)).toContain(rumApplicationId.toString());
+        expect(boundValues(ended)).toContain(projectId.toString());
+
+        expect(manifest.header.isFinalized).toBe(false);
+        expect(manifest.header.hasRecordingEnded).toBe(true);
+        /* The live reconciliation still happens alongside it. */
+        expect(manifest.header.durationMs).toBe(150000);
+        expect(manifest.header.chunkCount).toBe(3);
+      });
+
+      /*
+       * The player's Live pill must not switch off while a multi-page
+       * app's next page is still registering its first chunk.
+       */
+      test.each([
+        ["stored just now", 0, false],
+        [
+          "stored 1 ms short of the grace",
+          SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS - 1,
+          false,
+        ],
+        [
+          "stored exactly the grace ago",
+          SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
+          true,
+        ],
+      ] as Array<[string, number, boolean]>)(
+        "a single sealed tab %s (%i ms old): hasRecordingEnded %s",
+        async (_label: string, ageMs: number, expected: boolean) => {
+          mockManifestThenFacts([endedTabRow("tab-1")]);
+
+          const manifest: SessionReplayManifest = await manifestAt(
+            STORED_AT + ageMs,
+          );
+
+          expect(manifest.header.hasRecordingEnded).toBe(expected);
+        },
+      );
+
+      test("a capped tab with no final chunk is ended after the grace, not before", async () => {
+        const capped: JSONObject = liveTabRow("tab-1", {
+          tabMaxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+        });
+
+        mockManifestThenFacts([capped]);
+        expect(
+          (await manifestAt(GRACE_PASSED - 1)).header.hasRecordingEnded,
+        ).toBe(false);
+
+        mockManifestThenFacts([capped]);
+        expect((await manifestAt(GRACE_PASSED)).header.hasRecordingEnded).toBe(
+          true,
+        );
+      });
+
+      test("without an injected clock the manifest measures the grace against Date.now()", async () => {
+        const nowSpy: jest.SpyInstance = jest
+          .spyOn(Date, "now")
+          .mockReturnValue(GRACE_PASSED - 1);
+
+        mockManifestThenFacts([endedTabRow("tab-1")]);
+        expect((await manifestAt(undefined)).header.hasRecordingEnded).toBe(
+          false,
+        );
+
+        nowSpy.mockReturnValue(GRACE_PASSED);
+
+        mockManifestThenFacts([endedTabRow("tab-1")]);
+        expect((await manifestAt(undefined)).header.hasRecordingEnded).toBe(
+          true,
+        );
+      });
+
+      test("one tab still recording keeps the header live", async () => {
+        mockManifestThenFacts([endedTabRow("tab-1"), liveTabRow("tab-2")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("a tab that kept recording past the tolerance after its final chunk keeps the header live", async () => {
+        mockManifestThenFacts([
+          endedTabRow("tab-1", {
+            tabLastChunkStartUnixMs:
+              FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+          }),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("a finalized header runs no second read and is still returned untouched", async () => {
+        chunkQuerySpy.mockResolvedValue(fakeResultSet(chunkRows) as never);
+
+        const finalized: SessionReplaySessionHeader = header({
+          isFinalized: true,
+          durationMs: 150000,
+        });
+
+        const manifest: SessionReplayManifest =
+          await SessionReplayReadService.getManifest({
+            header: finalized,
+            projectId: projectId,
+            rumApplicationId: rumApplicationId,
+            sessionId: "s-1",
+            nowUnixMs: GRACE_PASSED,
+          });
+
+        expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
+        expect(manifest.header).toBe(finalized);
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("a failed ended read answers 'not ended' and never fails the manifest", async () => {
+        const warnSpy: jest.SpyInstance = jest
+          .spyOn(logger, "warn")
+          .mockImplementation((): void => {
+            return;
+          });
+
+        chunkQuerySpy
+          .mockResolvedValueOnce(fakeResultSet(chunkRows) as never)
+          .mockRejectedValueOnce(new Error("clickhouse down") as never);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.tabs).toHaveLength(2);
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+        expect(manifest.header.chunkCount).toBe(3);
+        expect(warnSpy).toHaveBeenCalled();
+      });
+
+      test("a failed manifest read still fails, whatever the ended read answered", async () => {
+        chunkQuerySpy
+          .mockRejectedValueOnce(new Error("manifest down") as never)
+          .mockResolvedValueOnce(
+            fakeResultSet([endedTabRow("tab-1")]) as never,
+          );
+
+        await expect(manifestAt(GRACE_PASSED)).rejects.toThrow("manifest down");
+      });
+
+      test("an unfinalized header with no chunk rows is not ended and keeps its fields", async () => {
+        const provisional: SessionReplaySessionHeader = header({
+          isFinalized: false,
+        });
+
+        const manifest: SessionReplayManifest =
+          await SessionReplayReadService.getManifest({
+            header: provisional,
+            projectId: projectId,
+            rumApplicationId: rumApplicationId,
+            sessionId: "s-1",
+            nowUnixMs: GRACE_PASSED,
+          });
+
+        expect(manifest.tabs).toHaveLength(0);
+        expect(manifest.header).toEqual({
+          ...provisional,
+          hasRecordingEnded: false,
+        });
+      });
+
+      /*
+       * The list badge and the player's Live pill are two reads of one
+       * helper. Fed the same chunk facts at the same server "now", they
+       * must give the same answer, at every edge of the rule.
+       */
+      describe("the list and the manifest agree", () => {
+        const scenarios: Array<[string, Array<JSONObject>, number, boolean]> = [
+          [
+            "a sealed tab inside the grace",
+            [endedTabRow("tab-1")],
+            GRACE_PASSED - 1,
+            false,
+          ],
+          [
+            "a sealed tab at the grace",
+            [endedTabRow("tab-1")],
+            GRACE_PASSED,
+            true,
+          ],
+          [
+            "a capped non-final tab inside the grace",
+            [
+              liveTabRow("tab-1", {
+                tabMaxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+              }),
+            ],
+            GRACE_PASSED - 1,
+            false,
+          ],
+          [
+            "a capped non-final tab at the grace",
+            [
+              liveTabRow("tab-1", {
+                tabMaxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+              }),
+            ],
+            GRACE_PASSED,
+            true,
+          ],
+          [
+            "a non-final tab one index short of the cap",
+            [
+              liveTabRow("tab-1", {
+                tabMaxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 2,
+              }),
+            ],
+            GRACE_PASSED,
+            false,
+          ],
+          [
+            "an old sealed tab next to a freshly sealed one",
+            [
+              endedTabRow("tab-1", {
+                tabLastChunkStoredAtUnixMs: STORED_AT - 10 * 60 * 1000,
+              }),
+              endedTabRow("tab-2"),
+            ],
+            GRACE_PASSED - 1,
+            false,
+          ],
+          [
+            "a sealed tab next to a live one",
+            [endedTabRow("tab-1"), liveTabRow("tab-2")],
+            GRACE_PASSED,
+            false,
+          ],
+        ];
+
+        test.each(scenarios)(
+          "%s",
+          async (
+            _label: string,
+            facts: Array<JSONObject>,
+            nowUnixMs: number,
+            expected: boolean,
+          ) => {
+            /*
+             * Answer each chunk-table statement by what it is, so the
+             * list's single follow-up and the manifest's pair can share
+             * one mock regardless of order.
+             */
+            chunkQuerySpy.mockImplementation(
+              async (statement: Statement): Promise<unknown> => {
+                return fakeResultSet(
+                  statement.query.includes("tabHasFinalChunk")
+                    ? facts
+                    : chunkRows,
+                );
+              },
+            );
+            headerQuerySpy.mockResolvedValue(
+              fakeResultSet([
+                {
+                  sessionId: "s-1",
+                  applicationId: rumApplicationId.toString(),
+                  aggStartTime: FINAL_END - 60000,
+                  aggEndTime: FINAL_END,
+                  aggIsFinalized: 0,
+                  aggSealedReason: "",
+                },
+              ]) as never,
+            );
+
+            const list: SessionReplayListResult =
+              await SessionReplayReadService.listSessions(
+                listRequest({ nowUnixMs: nowUnixMs }),
+              );
+            const manifest: SessionReplayManifest = await manifestAt(nowUnixMs);
+
+            expect(list.sessions).toHaveLength(1);
+            expect(list.sessions[0]!.hasRecordingEnded).toBe(expected);
+            expect(manifest.header.hasRecordingEnded).toBe(expected);
+          },
+        );
+      });
     });
   });
 
@@ -1658,6 +2865,234 @@ describe("SessionReplayReadService statements", () => {
       const headers: Statement = statementOf(headerQuerySpy);
       expect(whereSection(headers.query)).toContain("AND sessionId = ");
       expect(boundValues(headers)).toContain("s-9");
+    });
+
+    test("binds both live-instance and finalized-header RUM matches to the exception application", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "scoped-live-session" }]) as never,
+      );
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "shared-fingerprint",
+        primaryEntityId: primaryEntityId,
+        primaryEntityType: ServiceType.RealUserMonitor,
+        accessibleRumApplicationIds: null,
+        limit: 5,
+      });
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).toContain("AND primaryEntityType = ");
+      expect(boundValues(instances)).toContain(primaryEntityId.toString());
+      expect(boundValues(instances)).toContain(ServiceType.RealUserMonitor);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const where: string = whereSection(headers.query);
+      expect(where).toMatch(/AND rumApplicationId = \{p\d+:String\}/);
+      expect(where).toContain("hasAny(exceptionFingerprints");
+      expect(where).toContain("OR sessionId IN (");
+      expect(headers.query).toContain(
+        "HAVING (hasAny(aggExceptionFingerprints",
+      );
+      expect(boundValues(headers)).toContain(primaryEntityId.toString());
+      expect(boundValues(headers)).toContainEqual(["scoped-live-session"]);
+    });
+
+    test("a scoped backend exception admits only instance-proven sessions", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "backend-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "backend-session",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+            matchedApplicationCount: 1,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]?.sessionId).toBe("backend-session");
+      expect(sessions[0]?.rumApplicationId).toBe(rumApplicationId.toString());
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).toContain(
+        "ifNull(primaryEntityType, '') = '' OR primaryEntityType = ",
+      );
+      expect(boundValues(instances)).toContain(ServiceType.OpenTelemetry);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(whereSection(headers.query)).toContain("sessionId IN (");
+      expect(headers.query).not.toContain("hasAny(exceptionFingerprints");
+      expect(headers.query).not.toContain("hasAny(aggExceptionFingerprints");
+      expect(boundValues(headers)).toContainEqual(["backend-session"]);
+    });
+
+    test("an id-only legacy scope uses the same conservative instance and ambiguity guards", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "legacy-session" }]) as never,
+      );
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "legacy-session",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+            matchedApplicationCount: 1,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toHaveLength(1);
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(instances.query).not.toContain("AND primaryEntityType = ");
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(headers.query).not.toContain("hasAny(exceptionFingerprints");
+      expect(headers.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(headers.query).toContain("QUALIFY matchedApplicationCount = 1");
+    });
+
+    test("rejects a scoped backend session id shared by two applications before authorization and limit", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+      const accessibleApplicationId: ObjectID = ObjectID.generate();
+      const startTime: Date = new Date("2026-08-14T10:00:00.000Z");
+      const endTime: Date = new Date("2026-08-14T11:00:00.000Z");
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "colliding-session" }]) as never,
+      );
+      /* The selected pre-limit window count also makes the mapper fail closed. */
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "colliding-session",
+            applicationId: accessibleApplicationId.toString(),
+            aggStartTime: startTime.getTime(),
+            matchedApplicationCount: 2,
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "shared-fingerprint",
+          primaryEntityId: primaryEntityId,
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: [accessibleApplicationId],
+          startTime: startTime,
+          endTime: endTime,
+          limit: 1,
+        });
+
+      expect(sessions).toEqual([]);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const where: string = whereSection(headers.query);
+      const qualifyIndex: number = headers.query.indexOf(
+        "QUALIFY matchedApplicationCount = 1",
+      );
+      const authorizationIndex: number = headers.query.indexOf(
+        "rumApplicationId IN (",
+      );
+      const orderIndex: number = headers.query.indexOf("ORDER BY");
+      const limitIndex: number = headers.query.indexOf("LIMIT");
+
+      expect(headers.query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(where).not.toContain("rumApplicationId IN (");
+      expect(where).not.toContain("startTime >= ");
+      expect(headers.query).toMatch(/aggStartTime >= \{p\d+:Int64\}/);
+      expect(headers.query).toMatch(/aggStartTime <= \{p\d+:Int64\}/);
+      expect(qualifyIndex).toBeGreaterThan(headers.query.indexOf("GROUP BY"));
+      expect(authorizationIndex).toBeGreaterThan(qualifyIndex);
+      expect(orderIndex).toBeGreaterThan(authorizationIndex);
+      expect(limitIndex).toBeGreaterThan(orderIndex);
+      expect(boundValues(headers)).toContainEqual([
+        accessibleApplicationId.toString(),
+      ]);
+      expect(boundValues(headers)).toContain(startTime.getTime());
+      expect(boundValues(headers)).toContain(endTime.getTime());
+    });
+
+    test("a scoped backend exception with no proven session fails closed", async () => {
+      exceptionQuerySpy.mockResolvedValue(fakeResultSet([]) as never);
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityId: ObjectID.generate(),
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+      expect(sessions).toEqual([]);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects a type without an id or an invalid entity type before querying", async () => {
+      await expect(
+        SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityType: ServiceType.OpenTelemetry,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+
+      await expect(
+        SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          primaryEntityId: ObjectID.generate(),
+          primaryEntityType: "invalid" as ServiceType,
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+
+      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
     test("a pinned session the instance table has never seen falls back to the fingerprint alone", async () => {

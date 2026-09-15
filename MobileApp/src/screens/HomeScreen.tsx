@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Pressable,
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useActiveProject } from "../hooks/useProject";
@@ -20,132 +19,223 @@ import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { useNow } from "../hooks/useNow";
 import type { MainTabParamList } from "../navigation/types";
 import type { ProjectItem } from "../api/types";
-import GradientButton from "../components/GradientButton";
-import ScreenIntro from "../components/ScreenIntro";
+import AppText from "../components/AppText";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
 import EmptyState from "../components/EmptyState";
+import IconBadge from "../components/IconBadge";
+import { ListGroup, ListItem } from "../components/ListGroup";
+import QueryErrorNotice from "../components/QueryErrorNotice";
+import ScreenIntro from "../components/ScreenIntro";
 import SectionHeader from "../components/SectionHeader";
+import StatusPill, { type StatusTone } from "../components/StatusPill";
 import { formatDuration, millisecondsUntil } from "../utils/duration";
+import { withAlpha } from "../utils/color";
 import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
 import { isProjectSsoDenied } from "../sso/ssoDenials";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
-interface StatCardProps {
-  count: number | undefined;
+
+/*
+ * Every count on Home is either a number the server reported or "--". The
+ * placeholder is not decoration: a count that is still loading, or whose
+ * request failed, arrives from useAllProjectCounts as a fallback 0, and on
+ * this screen a 0 reads as "nothing needs you".
+ */
+function formatCount(count: number | undefined, known: boolean): string {
+  return known ? String(count ?? 0) : "--";
+}
+
+function countAccessibilityLabel(
+  label: string,
+  count: number | undefined,
+  known: boolean,
+): string {
+  return known
+    ? `${count ?? 0} ${label}. Tap to view.`
+    : `${label}, not available yet. Tap to view.`;
+}
+
+interface AttentionTileProps {
   label: string;
+  count: number | undefined;
+  known: boolean;
+  /** Still waiting for the counts, as opposed to having failed to get them. */
+  checking: boolean;
   accentColor: string;
   iconName: keyof typeof Ionicons.glyphMap;
-  isLoading: boolean;
+  stacked: boolean;
+  accessibilityHint: string;
+  testID: string;
   onPress: () => void;
-  compact?: boolean;
 }
-function StatCard({
-  count,
+
+/** One of the two large "Needs attention" tiles: a count first, then what it counts. */
+function AttentionTile({
   label,
+  count,
+  known,
+  checking,
   accentColor,
   iconName,
-  isLoading,
+  stacked,
+  accessibilityHint,
+  testID,
   onPress,
-  compact = false,
-}: StatCardProps): React.JSX.Element {
+}: AttentionTileProps): React.JSX.Element {
   const { theme } = useTheme();
   const { lightImpact } = useHaptics();
-  const countLabel: React.JSX.Element = (
-    <Text
-      style={{
-        fontSize: compact ? 20 : 36,
-        fontWeight: "700",
-        fontVariant: ["tabular-nums"],
-        color: compact || count === 0 ? theme.colors.textPrimary : accentColor,
-      }}
-    >
-      {isLoading ? "--" : count ?? 0}
-    </Text>
-  );
+  const active: boolean = known && (count ?? 0) > 0;
+
+  /*
+   * The word carries the verdict and the dot only repeats it. "All clear" is
+   * only ever said about a count the server actually reported.
+   */
+  const statusLine: string = !known
+    ? checking
+      ? "Checking…"
+      : "Unavailable"
+    : active
+      ? "Needs response"
+      : "All clear";
+  const statusDotColor: string = !known
+    ? theme.colors.textTertiary
+    : active
+      ? accentColor
+      : theme.colors.statusSuccess;
+
   return (
-    <Pressable
+    <Card
+      testID={testID}
       onPress={() => {
         lightImpact();
         onPress();
       }}
-      accessibilityLabel={
-        isLoading
-          ? `${label}, not available yet. Tap to view.`
-          : `${count ?? 0} ${label}. Tap to view.`
-      }
-      accessibilityRole="button"
-      style={({ pressed }: { pressed: boolean }) => {
-        return {
-          flex: compact ? undefined : 1,
-          minHeight: compact ? 66 : 152,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          flexDirection: compact ? "row" : "column",
-          alignItems: compact ? "center" : "flex-start",
-          gap: compact ? 14 : 10,
-          backgroundColor: pressed
-            ? theme.colors.backgroundTertiary
-            : theme.colors.backgroundElevated,
-          borderRadius: compact ? 0 : 16,
-          borderWidth: compact ? 0 : 1,
-          borderColor: theme.colors.borderSubtle,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.borderSubtle,
-        };
-      }}
+      accessibilityLabel={countAccessibilityLabel(label, count, known)}
+      accessibilityHint={accessibilityHint}
+      style={[
+        {
+          flex: stacked ? undefined : 1,
+          minHeight: 156,
+          gap: spacing.xs,
+        },
+        active
+          ? { borderColor: withAlpha(accentColor, theme.dark ? 0.5 : 0.32) }
+          : null,
+      ]}
     >
-      {compact ? (
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 11,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: accentColor + "10",
-          }}
-        >
-          <Ionicons name={iconName} size={20} color={accentColor} />
-        </View>
-      ) : (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "stretch",
-            justifyContent: "space-between",
-          }}
-        >
-          <Ionicons name={iconName} size={21} color={accentColor} />
-          <Ionicons
-            name="arrow-forward"
-            size={16}
-            color={theme.colors.textTertiary}
-          />
-        </View>
-      )}
-      {!compact ? countLabel : null}
-      <Text
+      <View
         style={{
-          flex: compact ? 1 : undefined,
-          fontSize: compact ? 15 : 16,
-          lineHeight: 23,
-          fontWeight: "600",
-          color: theme.colors.textPrimary,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: spacing.sm,
         }}
       >
-        {label}
-      </Text>
-      {compact ? countLabel : null}
-      {compact ? (
+        <IconBadge name={iconName} color={accentColor} />
         <Ionicons
           name="chevron-forward"
-          size={16}
+          size={18}
           color={theme.colors.textTertiary}
         />
-      ) : null}
-    </Pressable>
+      </View>
+      <AppText
+        testID={`${testID}-count`}
+        variant="largeTitle"
+        color={active ? accentColor : theme.colors.textPrimary}
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {formatCount(count, known)}
+      </AppText>
+      <AppText variant="headline">{label}</AppText>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.xs + 2,
+        }}
+      >
+        <View
+          testID={`${testID}-status-dot`}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: statusDotColor,
+          }}
+        />
+        <AppText variant="footnote" tone="secondary">
+          {statusLine}
+        </AppText>
+      </View>
+    </Card>
   );
 }
+
+interface CountRowProps {
+  label: string;
+  count: number | undefined;
+  known: boolean;
+  iconName: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  /** Colour for a non-zero count that deserves a second look. */
+  highlightColor?: string;
+  accessibilityHint: string;
+  testID: string;
+  onPress: () => void;
+}
+
+/** A grouped-list row that opens a filtered list and shows how many it holds. */
+function CountRow({
+  label,
+  count,
+  known,
+  iconName,
+  iconColor,
+  highlightColor,
+  accessibilityHint,
+  testID,
+  onPress,
+}: CountRowProps): React.JSX.Element {
+  const { theme } = useTheme();
+  const { lightImpact } = useHaptics();
+  const highlighted: boolean =
+    Boolean(highlightColor) && known && (count ?? 0) > 0;
+
+  return (
+    <ListItem
+      testID={testID}
+      title={label}
+      icon={iconName}
+      iconColor={iconColor}
+      showChevron
+      accessibilityLabel={countAccessibilityLabel(label, count, known)}
+      accessibilityHint={accessibilityHint}
+      onPress={() => {
+        lightImpact();
+        onPress();
+      }}
+      trailing={
+        <AppText
+          testID={`${testID}-count`}
+          variant="title3"
+          weight="700"
+          color={
+            highlighted
+              ? highlightColor
+              : known
+                ? theme.colors.textPrimary
+                : theme.colors.textTertiary
+          }
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {formatCount(count, known)}
+        </AppText>
+      }
+    />
+  );
+}
+
 function getGreeting(): string {
   const hour: number = new Date().getHours();
   if (hour < 12) {
@@ -245,6 +335,7 @@ export default function HomeScreen(): React.JSX.Element {
    * of them is real.
    */
   const countIsKnown: boolean = !anyLoading && !countsError;
+  const countsChecking: boolean = anyLoading && !countsError;
 
   const { lightImpact } = useHaptics();
 
@@ -310,20 +401,26 @@ export default function HomeScreen(): React.JSX.Element {
       setRefreshing(false);
     }
   };
+
+  const refreshControl: React.JSX.Element = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={theme.colors.actionPrimary}
+      colors={[theme.colors.actionPrimary]}
+      progressBackgroundColor={theme.colors.backgroundElevated}
+    />
+  );
+
   if (!isLoadingProjects && projectList.length === 0) {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPadding }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.actionPrimary}
-          />
-        }
+        refreshControl={refreshControl}
       >
         <EmptyState
+          icon={projectLoadError ? "error" : "default"}
           title={
             projectLoadError ? "Could Not Load Projects" : "No Projects Found"
           }
@@ -358,9 +455,6 @@ export default function HomeScreen(): React.JSX.Element {
   }
   const dutyKnown: boolean = !onCallLoading && !onCallError;
   const dutyActive: boolean = dutyKnown && onCallSummary.isOnCall;
-  const dutyColor: string = dutyActive
-    ? theme.colors.oncallActive
-    : theme.colors.textSecondary;
   const onCallHeadline: string = onCallLoading
     ? "On-Call"
     : onCallError
@@ -385,22 +479,28 @@ export default function HomeScreen(): React.JSX.Element {
     : dutyActive
       ? "ON CALL"
       : "OFF CALL";
+  const onCallTone: StatusTone = onCallError
+    ? "warning"
+    : dutyActive
+      ? "success"
+      : "neutral";
+  const onCallIconColor: string = onCallError
+    ? theme.colors.statusWarning
+    : dutyActive
+      ? theme.colors.oncallActive
+      : theme.colors.actionPrimary;
+  const stackTiles: boolean = fontScale > 1.3;
+
   return (
     <ScrollView
       testID="home-scroll"
       style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
-        padding: 20,
+        padding: spacing.xl,
         paddingBottom: bottomPadding,
-        gap: 24,
+        gap: spacing.xxl,
       }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={theme.colors.actionPrimary}
-        />
-      }
+      refreshControl={refreshControl}
     >
       <ScreenIntro
         eyebrow={getGreeting()}
@@ -409,8 +509,16 @@ export default function HomeScreen(): React.JSX.Element {
         style={{ marginBottom: 0 }}
       />
       {unauthenticatedSsoProjects.length > 0 ? (
-        <Pressable
-          accessibilityRole="button"
+        <Banner
+          testID="home-sso-banner"
+          tone="warning"
+          icon="key-outline"
+          title="SSO Authentication Required"
+          message={`Sign in with SSO to see activity from ${unauthenticatedSsoProjects
+            .map((project: ProjectItem) => {
+              return project.name;
+            })
+            .join(", ")}.`}
           accessibilityLabel="Some projects require SSO authentication. Tap to authenticate."
           onPress={() => {
             lightImpact();
@@ -419,81 +527,33 @@ export default function HomeScreen(): React.JSX.Element {
               initial: false,
             });
           }}
-          style={{
-            padding: 16,
-            borderRadius: 14,
-            gap: 8,
-            backgroundColor: theme.colors.severityWarningBg,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "700",
-              color: theme.colors.severityWarning,
-            }}
-          >
-            SSO Authentication Required
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {unauthenticatedSsoProjects
-              .map((project: ProjectItem) => {
-                return project.name;
-              })
-              .join(", ")}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: theme.colors.actionPrimary,
-            }}
-          >
-            Connect projects →
-          </Text>
-        </Pressable>
+        />
       ) : null}
       <View>
         <SectionHeader title="Needs attention" iconName="flash-outline" />
         {countsError ? (
-          <View style={{ marginBottom: 16, gap: 12 }}>
-            <Text
-              accessibilityRole="alert"
-              style={{
-                fontSize: 14,
-                lineHeight: 21,
-                color: theme.colors.severityWarning,
-              }}
-            >
-              Counts are unavailable. Open a list or retry to check the latest
-              status.
-            </Text>
-            <GradientButton
-              label="Retry counts"
-              variant="secondary"
-              onPress={refetch}
-              icon="refresh-outline"
-            />
-          </View>
+          <QueryErrorNotice
+            message="Counts are unavailable. Open a list or retry to check the latest status."
+            retryLabel="Retry counts"
+            onRetry={refetch}
+          />
         ) : null}
         <View
           style={{
-            flexDirection: fontScale > 1.3 ? "column" : "row",
-            gap: 12,
+            flexDirection: stackTiles ? "column" : "row",
+            gap: spacing.md,
           }}
         >
-          <StatCard
+          <AttentionTile
+            testID="home-tile-incidents"
             count={incidentCount}
             label="Active Incidents"
             accentColor={theme.colors.severityCritical}
             iconName="warning-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            checking={countsChecking}
+            stacked={stackTiles}
+            accessibilityHint="Opens active incidents in the inbox"
             onPress={() => {
               return navigation.navigate("Inbox", {
                 screen: "InboxList",
@@ -505,12 +565,16 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-          <StatCard
+          <AttentionTile
+            testID="home-tile-alerts"
             count={alertCount}
             label="Active Alerts"
             accentColor={theme.colors.severityMajor}
             iconName="notifications-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            checking={countsChecking}
+            stacked={stackTiles}
+            accessibilityHint="Opens active alerts in the inbox"
             onPress={() => {
               return navigation.navigate("Inbox", {
                 screen: "InboxList",
@@ -524,96 +588,60 @@ export default function HomeScreen(): React.JSX.Element {
           />
         </View>
       </View>
-      <Pressable
-        accessibilityRole="button"
+      <Card
+        testID="home-oncall-card"
         accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
         onPress={() => {
           lightImpact();
           navigation.navigate("OnCall");
         }}
-        style={({ pressed }: { pressed: boolean }) => {
-          return {
-            padding: 18,
-            borderRadius: 18,
-            backgroundColor: pressed
-              ? theme.colors.backgroundTertiary
-              : theme.colors.cardAccent,
-            flexDirection: "row",
-            gap: 14,
-            alignItems: "center",
-          };
-        }}
       >
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: theme.colors.backgroundSecondary,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            gap: spacing.md,
           }}
         >
+          <IconBadge
+            testID="home-oncall-icon"
+            name={dutyActive ? "call" : "call-outline"}
+            color={onCallIconColor}
+            size="lg"
+            shape="circle"
+          />
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <StatusPill
+              testID="home-oncall-status"
+              label={onCallBadgeLabel}
+              tone={onCallTone}
+              dotColor={dutyActive ? theme.colors.oncallActive : undefined}
+              size="sm"
+            />
+            <AppText variant="title3">{onCallHeadline}</AppText>
+            <AppText variant="subhead" tone="secondary">
+              {onCallDetailLine}
+            </AppText>
+          </View>
           <Ionicons
-            name="call-outline"
-            size={20}
-            color={theme.colors.actionPrimary}
+            name="chevron-forward"
+            size={18}
+            color={theme.colors.textTertiary}
           />
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "700",
-              letterSpacing: 1.2,
-              color: dutyColor,
-            }}
-          >
-            {onCallBadgeLabel}
-          </Text>
-          <Text
-            style={{
-              fontSize: 18,
-              lineHeight: 24,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {onCallHeadline}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {onCallDetailLine}
-          </Text>
-        </View>
-        <Ionicons
-          name="arrow-forward"
-          size={20}
-          color={theme.colors.actionPrimary}
-        />
-      </Pressable>
+      </Card>
       <View>
         <SectionHeader title="Service health" iconName="pulse-outline" />
-        <View
-          style={{
-            borderRadius: 18,
-            overflow: "hidden",
-            borderWidth: 1,
-            borderColor: theme.colors.borderSubtle,
-          }}
-        >
-          <StatCard
-            compact
+        <ListGroup testID="home-service-health">
+          <CountRow
+            testID="home-row-monitor-issues"
             count={inoperationalMonitorCount}
             label="Monitor issues"
-            accentColor={theme.colors.severityCritical}
+            iconColor={theme.colors.statusError}
+            highlightColor={theme.colors.statusError}
             iconName="alert-circle-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            accessibilityHint="Opens monitors that report a problem"
             onPress={() => {
               return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
@@ -621,13 +649,14 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-          <StatCard
-            compact
+          <CountRow
+            testID="home-row-all-monitors"
             count={monitorCount}
             label="All monitors"
-            accentColor={theme.colors.oncallActive}
+            iconColor={theme.colors.statusSuccess}
             iconName="pulse-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            accessibilityHint="Opens every monitor"
             onPress={() => {
               return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
@@ -635,13 +664,14 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-          <StatCard
-            compact
+          <CountRow
+            testID="home-row-disabled-monitors"
             count={disabledMonitorCount}
             label="Disabled monitors"
-            accentColor={theme.colors.textTertiary}
+            iconColor={theme.colors.textSecondary}
             iconName="pause-circle-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            accessibilityHint="Opens monitors whose checks are switched off"
             onPress={() => {
               return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
@@ -649,35 +679,26 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-        </View>
+        </ListGroup>
       </View>
       <View>
         <SectionHeader title="Grouped events" iconName="layers-outline" />
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 22,
-            color: theme.colors.textSecondary,
-            marginBottom: 12,
-          }}
+        <AppText
+          variant="subhead"
+          tone="secondary"
+          style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
         >
           Episodes bring related incidents or alerts together.
-        </Text>
-        <View
-          style={{
-            borderRadius: 18,
-            overflow: "hidden",
-            borderWidth: 1,
-            borderColor: theme.colors.borderSubtle,
-          }}
-        >
-          <StatCard
-            compact
+        </AppText>
+        <ListGroup testID="home-grouped-events">
+          <CountRow
+            testID="home-row-incident-episodes"
             count={incidentEpisodeCount}
             label="Incident Episodes"
-            accentColor={theme.colors.actionPrimary}
+            iconColor={theme.colors.severityCritical}
             iconName="layers-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            accessibilityHint="Opens active incident episodes in the inbox"
             onPress={() => {
               return navigation.navigate("Inbox", {
                 screen: "InboxList",
@@ -689,13 +710,14 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-          <StatCard
-            compact
+          <CountRow
+            testID="home-row-alert-episodes"
             count={alertEpisodeCount}
             label="Alert Episodes"
-            accentColor={theme.colors.actionPrimary}
+            iconColor={theme.colors.severityMajor}
             iconName="layers-outline"
-            isLoading={!countIsKnown}
+            known={countIsKnown}
+            accessibilityHint="Opens active alert episodes in the inbox"
             onPress={() => {
               return navigation.navigate("Inbox", {
                 screen: "InboxList",
@@ -707,7 +729,7 @@ export default function HomeScreen(): React.JSX.Element {
               });
             }}
           />
-        </View>
+        </ListGroup>
       </View>
     </ScrollView>
   );

@@ -7,6 +7,7 @@ import OTelIngestService from "../../../../Server/Services/OpenTelemetryIngestSe
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
+  SearchDetectionsResult,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller, {
   GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE,
@@ -96,6 +97,10 @@ function client(
   let index: number = 0;
   return {
     testAuthentication: jest.fn(async (): Promise<void> => {}),
+    // The created-time passes answer quietly; these cases drive the alerts view.
+    searchDetections: jest.fn(async (): Promise<SearchDetectionsResult> => {
+      return { detections: [], nextPageToken: null, truncated: false };
+    }),
     fetchDetectionAlerts: jest.fn(async (): Promise<FetchAlertsResult> => {
       return results[Math.min(index++, results.length - 1)]!;
     }),
@@ -170,9 +175,24 @@ describe("Google SecOps connection diagnostics and replay", () => {
     ).toEqual([
       "Validate configuration",
       "Authenticate with Google",
-      "Read detections from the configured instance",
+      "Read rule detections by created time",
+      "Read curated rule detections by created time",
+      "Read alerts view by detection time",
       "Normalize detections",
     ]);
+    // One record per pass: the search probes ask for a single-item page.
+    expect(api.searchDetections).toHaveBeenCalledTimes(2);
+    expect(api.searchDetections).toHaveBeenCalledWith(
+      expect.objectContaining({
+        listBasis: "CREATED_TIME",
+        alertingOnly: true,
+        pageSize: 1,
+        curated: false,
+      }),
+    );
+    expect(api.searchDetections).toHaveBeenCalledWith(
+      expect.objectContaining({ curated: true, pageSize: 1 }),
+    );
     expect(api.testAuthentication).toHaveBeenCalledTimes(1);
     expect(api.fetchDetectionAlerts).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -238,7 +258,7 @@ describe("Google SecOps connection diagnostics and replay", () => {
     expect(result.status).toBe("failed");
     expect(result.checks[1]?.status).toBe("success");
     expect(result.checks[result.checks.length - 1]?.name).toMatch(
-      /Read detections/,
+      /Read alerts view/,
     );
     expect(result.error).toContain("403");
   });
@@ -363,7 +383,7 @@ describe("Google SecOps connection diagnostics and replay", () => {
     expect(lastUpdate()["lastError"]).toMatch(/complete/);
   });
 
-  test("a partial first poll anchors its window so a delayed retry cannot skip detections", async (): Promise<void> => {
+  test("a partial first poll anchors its window so a delayed retry re-covers it from the same start in half the chunk", async (): Promise<void> => {
     const item: GoogleSecOpsConnection = connection();
     delete item.cursor;
     const first: GoogleSecOpsRunResult =
@@ -372,7 +392,11 @@ describe("Google SecOps connection diagnostics and replay", () => {
         { type: "poll" },
         client([fetched([], { complete: false })]),
       );
+    expect(first.chunkMinutes).toBe(24 * 60);
+    expect(first.nextChunkMinutes).toBe(12 * 60);
     item.cursor = String(lastUpdate()["cursor"]);
+    // The row is reloaded with the result it was written with.
+    item.lastPollResult = lastUpdate()["lastPollResult"] as JSONObject;
     getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
       new Date("2026-09-10T14:00:00Z"),
     );
@@ -383,7 +407,16 @@ describe("Google SecOps connection diagnostics and replay", () => {
         client([fetched()]),
       );
     expect(retry.windowStart).toBe(first.windowStart);
-    expect(retry.windowEnd).toBe("2026-09-10T14:00:00.000Z");
+    /*
+     * Review finding alerts-view-budget-pins-cursor-forever (F1): the retry
+     * used to re-read exactly the same day, which on a busy tenant never
+     * fitted and pinned the cursor for good. It now keeps the start and
+     * reads half the chunk, measured from the anchored cursor.
+     */
+    expect(retry.windowEnd).toBe("2026-09-10T00:01:00.000Z");
+    expect(retry.chunkMinutes).toBe(12 * 60);
+    expect(retry.warnings.join(" ")).toMatch(/12 hour windows/);
+    expect(lastUpdate()["cursor"]).toBe("2026-09-10T00:01:00.000Z");
   });
 
   test("a mixed normalization failure preserves retry coverage even after other records import", async (): Promise<void> => {
@@ -412,19 +445,31 @@ describe("Google SecOps connection diagnostics and replay", () => {
     expect(lastUpdate()).not.toHaveProperty("cursor");
   });
 
-  test("unrecognized payloads are reported and cannot make a poll falsely healthy", async (): Promise<void> => {
+  test("unrecognized payloads are counted and warned without holding the cursor", async (): Promise<void> => {
     const result: GoogleSecOpsRunResult =
       await GoogleSecOpsPoller.executeConnection(
         connection(),
         { type: "poll" },
         client([fetched([{ arbitrary: "envelope" }, detection()])]),
       );
+    /*
+     * A permanently unrecognizable object used to hold the cursor, which
+     * pinned the window until the 24 hour chunk could never reach the
+     * present. It is now counted, warned, and shown as a "warn" check.
+     */
     expect(result).toMatchObject({
-      status: "partial",
+      status: "success",
+      complete: true,
       rejectedCount: 1,
       ingestedCount: 1,
     });
-    expect(lastUpdate()).not.toHaveProperty("cursor");
+    expect(result.warnings.join(" ")).toMatch(/discarded/);
+    expect(
+      result.checks.find((check: GoogleSecOpsDiagnosticCheck): boolean => {
+        return check.name === "Normalize detections";
+      })?.status,
+    ).toBe("warn");
+    expect(lastUpdate()["cursor"]).toBe(NOW.toISOString());
   });
 
   test("replaying a previously imported alert skips its persisted event uid", async (): Promise<void> => {
@@ -498,12 +543,18 @@ describe("Google SecOps connection diagnostics and replay", () => {
           { type: "poll" },
           api,
         );
+      // Two search passes plus three alerts-view requests.
       expect(result).toMatchObject({
         complete: true,
         status: "success",
         fetchedCount: 2,
         ingestedCount: 2,
-        requestCount: 3,
+        requestCount: 5,
+        sourceCounts: {
+          ruleDetections: 0,
+          curatedDetections: 0,
+          alertsView: 3,
+        },
       });
       const calls: Array<Array<{ startTime: Date; endTime: Date }>> =
         getJestSpyOn(api, "fetchDetectionAlerts").mock.calls;
@@ -522,28 +573,49 @@ describe("Google SecOps connection diagnostics and replay", () => {
     ]);
     const result: GoogleSecOpsRunResult =
       await GoogleSecOpsPoller.executeConnection(connection(), RANGE, api);
+    // Four search requests (two bases per pass for a preview) plus three alerts-view requests.
     expect(result).toMatchObject({
       complete: true,
       fetchedCount: 2,
-      requestCount: 3,
+      requestCount: 7,
+      basis: "detection-time",
     });
   });
 
-  test("perpetually truncated responses stop at a fixed budget and hold cursor", async (): Promise<void> => {
+  test("perpetually truncated responses stop at the alerts view budget, hold the cursor and narrow the next chunk", async (): Promise<void> => {
     const result: GoogleSecOpsRunResult =
       await GoogleSecOpsPoller.executeConnection(
         connection(),
         { type: "poll" },
         client([fetched([detection()], { truncatedByCount: true })]),
       );
+    /*
+     * Review findings alerts-view-budget-pins-cursor-forever and
+     * budget-skipped-passes-reported-success (F1b): the alerts view has its
+     * own sixteen requests next to the two search pages, its check says the
+     * budget stopped it, and the old "Narrow the time range" advice is gone.
+     */
     expect(result).toMatchObject({
       status: "partial",
-      requestCount: 12,
+      requestCount: 18,
       ingestedCount: 1,
       complete: false,
+      chunkMinutes: 5,
+      nextChunkMinutes: 2,
     });
+    const alertsCheck: GoogleSecOpsDiagnosticCheck | undefined =
+      result.checks.find((check: GoogleSecOpsDiagnosticCheck): boolean => {
+        return check.name === "Read alerts view by detection time";
+      });
+    expect(alertsCheck?.status).toBe("warn");
+    expect(alertsCheck?.message).toContain(
+      "stopped by the request budget after 16 requests",
+    );
     expect(lastUpdate()).not.toHaveProperty("cursor");
-    expect(result.warnings.join(" ")).toMatch(/request limit/);
+    expect(result.warnings.join(" ")).not.toMatch(/request limit/);
+    expect(lastUpdate()["lastError"]).toContain(
+      "This window holds more records than one poll can read; the next poll reads a 2 minute window from the same starting point.",
+    );
   });
 
   test("stale cursors process the earliest backlog instead of skipping to yesterday", async (): Promise<void> => {
@@ -556,7 +628,8 @@ describe("Google SecOps connection diagnostics and replay", () => {
         client([fetched()]),
       );
     expect(result.windowStart).toBe("2026-09-01T11:59:00.000Z");
-    expect(result.windowEnd).toBe("2026-09-02T11:59:00.000Z");
+    // F1: the 24 hour chunk is measured from the cursor, not the overlapped start.
+    expect(result.windowEnd).toBe("2026-09-02T12:00:00.000Z");
     expect(lastUpdate()["cursor"]).toBe(result.windowEnd);
   });
 
@@ -756,6 +829,13 @@ describe("Google SecOps connection diagnostics and replay", () => {
     expect(result.windowStart).toBe("2026-09-10T11:57:00.000Z");
     expect(result.includeNonAlertingDetections).toBe(true);
     expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    // The next chunk length lives on the previous result, so it is reloaded too.
+    expect(
+      getJestSpyOn(GoogleSecOpsConnectionService, "findOneById").mock
+        .calls[0]![0],
+    ).toMatchObject({
+      select: { cursor: true, lastPollResult: true },
+    });
   });
 });
 

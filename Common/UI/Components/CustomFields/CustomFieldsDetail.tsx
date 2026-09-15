@@ -5,7 +5,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
-import Card, { CardButtonSchema } from "../Card/Card";
+import Card, { CardButtonSchema, CardHeaderLayout } from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import { DropdownOption } from "../Dropdown/Dropdown";
@@ -95,6 +95,8 @@ export interface ComponentProps {
    * somebody edits it here.
    */
   onValuesLoaded?: ((customFields: JSONObject) => void) | undefined;
+  // Handed to the Card; "stacked" suits a narrow column.
+  headerLayout?: CardHeaderLayout | undefined;
 }
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
@@ -362,6 +364,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       buttons={cardButtons}
+      headerLayout={props.headerLayout}
     >
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
         {isLoading && !loadError && <ComponentLoader />}

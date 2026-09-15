@@ -44,19 +44,26 @@ import {
 import LlmSpanPanel from "./LlmSpanPanel";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import { makeSpanSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
+import {
+  AttributeEntry,
+  flattenSpanAttributes,
+} from "../../Utils/TraceDetailPresentation";
 
 export interface SpanDetailsPanelProps {
   span: Span;
   service?: Service | undefined;
+  /*
+   * The span's entity when it is not a loaded Service (a RUM application, a
+   * host), resolved by the explorer. Its name and type label replace
+   * "Service: unknown service".
+   */
+  entity?: ResolvedTelemetryEntity | undefined;
   // Base route to the span's full trace (without the spanId highlight query).
   traceRoute?: Route | undefined;
   // Adds an `attributes.<key>:<value>` chip to the parent explorer's filters.
   onFilterByAttribute?: ((key: string, value: string) => void) | undefined;
-}
-
-interface AttributeEntry {
-  key: string;
-  value: string;
 }
 
 type PanelTabId = "details" | "logs" | "exceptions";
@@ -81,35 +88,6 @@ function getStatusColor(status: number | undefined | null): string {
     return "#10b981";
   }
   return "#9ca3af";
-}
-
-// Flatten (possibly nested) span attributes into sorted dotted key/value pairs.
-function flattenAttributes(
-  obj: JSONObject | undefined,
-  prefix: string = "",
-): Array<AttributeEntry> {
-  if (!obj) {
-    return [];
-  }
-  const out: Array<AttributeEntry> = [];
-  for (const key of Object.keys(obj)) {
-    const value: unknown = (obj as Record<string, unknown>)[key];
-    const full: string = prefix ? `${prefix}.${key}` : key;
-    if (value === null || value === undefined) {
-      continue;
-    }
-    if (typeof value === "object" && !Array.isArray(value)) {
-      out.push(...flattenAttributes(value as JSONObject, full));
-    } else {
-      out.push({
-        key: full,
-        value: Array.isArray(value) ? JSON.stringify(value) : String(value),
-      });
-    }
-  }
-  return out.sort((left: AttributeEntry, right: AttributeEntry): number => {
-    return left.key.localeCompare(right.key);
-  });
 }
 
 const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
@@ -366,7 +344,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     };
   }, [activeTab, logsFetched, spanIdStr, traceIdStr]);
 
-  // Exceptions tab: the same span-scoped ExceptionInstance read SpanViewer runs.
+  // Exceptions tab: the same span-scoped ExceptionInstance read TraceSpanPanel runs.
   useEffect(() => {
     if (activeTab !== "exceptions" || exceptionsFetched) {
       return;
@@ -438,8 +416,12 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     spanDurationInUnixNano: durationNano,
   });
 
-  const serviceName: string = service?.name || "unknown service";
-  const serviceColor: string = service?.serviceColor?.toString() || "#64748b";
+  const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
+    service,
+    entity: props.entity,
+  });
+  const serviceName: string = entityDisplay.name;
+  const serviceColor: string = entityDisplay.color || "#64748b";
 
   const statusColor: string = getStatusColor(span.statusCode);
   const statusLabel: string = getStatusLabel(span.statusCode);
@@ -461,7 +443,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     "";
 
   const attributeEntries: Array<AttributeEntry> = useMemo(() => {
-    return flattenAttributes(fullSpan?.attributes as JSONObject | undefined);
+    return flattenSpanAttributes(
+      fullSpan?.attributes as JSONObject | undefined,
+    );
   }, [fullSpan]);
 
   const attributesAsJson: string | null = useMemo(() => {
@@ -572,7 +556,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     "text-[11px] uppercase tracking-wide text-gray-400";
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
-    { label: "Service", value: serviceName },
+    { label: entityDisplay.typeLabel, value: serviceName },
     { label: "Status", value: statusLabel },
     { label: "Duration", value: durationLabel },
     { label: "Span Kind", value: kindLabel },

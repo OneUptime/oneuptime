@@ -16,7 +16,7 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { executeRun: jest.fn() },
+      default: { executeRun: jest.fn(), markRunFailed: jest.fn() },
       GOOGLE_SECOPS_RUN_JOB: "SecurityEvents:RunGoogleSecOpsConnection",
       GOOGLE_SECOPS_RUN_TIMEOUT_MS: 600_000,
     };
@@ -76,6 +76,62 @@ test("passes execution failures back to the queue for retry", async () => {
   await expect(
     runGoogleSecOpsConnection({ data: { runId: RUN_ID } } as QueueJob),
   ).rejects.toThrow("database unavailable");
+  // A single-attempt job IS the last attempt, so the row is stamped.
+  expect(GoogleSecOpsRunExecutor.markRunFailed).toHaveBeenCalledWith(
+    new ObjectID(RUN_ID),
+    "database unavailable",
+  );
+});
+
+test("an earlier BullMQ attempt rethrows without stamping the run", async () => {
+  (GoogleSecOpsRunExecutor.executeRun as jest.Mock).mockRejectedValueOnce(
+    new Error("lock timeout"),
+  );
+  await expect(
+    runGoogleSecOpsConnection({
+      data: { runId: RUN_ID },
+      opts: { attempts: 3 },
+      attemptsMade: 0,
+    } as unknown as QueueJob),
+  ).rejects.toThrow("lock timeout");
+  expect(GoogleSecOpsRunExecutor.markRunFailed).not.toHaveBeenCalled();
+});
+
+test("the last BullMQ attempt stamps the redacted reason on the run before rethrowing", async () => {
+  (GoogleSecOpsRunExecutor.executeRun as jest.Mock).mockRejectedValueOnce(
+    new Error(
+      'Redis client is not connected {"access_token":"ya29.leaked-token"}',
+    ),
+  );
+  await expect(
+    runGoogleSecOpsConnection({
+      data: { runId: RUN_ID },
+      opts: { attempts: 3 },
+      attemptsMade: 2,
+    } as unknown as QueueJob),
+  ).rejects.toThrow("Redis client is not connected");
+  expect(GoogleSecOpsRunExecutor.markRunFailed).toHaveBeenCalledTimes(1);
+  const [runId, reason] = (GoogleSecOpsRunExecutor.markRunFailed as jest.Mock)
+    .mock.calls[0] as [ObjectID, string];
+  expect(runId).toEqual(new ObjectID(RUN_ID));
+  expect(reason).toContain("Redis client is not connected");
+  expect(reason).not.toContain("leaked-token");
+});
+
+test("a failed stamp does not mask the original failure", async () => {
+  (GoogleSecOpsRunExecutor.executeRun as jest.Mock).mockRejectedValueOnce(
+    new Error("original failure"),
+  );
+  (GoogleSecOpsRunExecutor.markRunFailed as jest.Mock).mockRejectedValueOnce(
+    new Error("database still down"),
+  );
+  await expect(
+    runGoogleSecOpsConnection({
+      data: { runId: RUN_ID },
+      opts: { attempts: 1 },
+      attemptsMade: 0,
+    } as unknown as QueueJob),
+  ).rejects.toThrow("original failure");
 });
 
 test("existing zero-argument cron functions remain callable with a queue job", async () => {

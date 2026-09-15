@@ -1,18 +1,31 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   Pressable,
   ActivityIndicator,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
+import { radius, spacing, touchTarget } from "../../theme/tokens";
 import { useScreenPadding } from "../../hooks/useScreenPadding";
+import AppText from "../../components/AppText";
+import Banner from "../../components/Banner";
+import Card from "../../components/Card";
+import GradientButton from "../../components/GradientButton";
+import IconBadge from "../../components/IconBadge";
+import { ListGroup } from "../../components/ListGroup";
 import ScreenIntro from "../../components/ScreenIntro";
+import StatusPill from "../../components/StatusPill";
 import { getServerUrl } from "../../storage/serverUrl";
-import { buildSsoLoginUrl, isProjectScopedKind } from "../../sso/providerUrl";
+import {
+  buildSsoLoginUrl,
+  isProjectScopedKind,
+  type SsoProviderKind,
+} from "../../sso/providerUrl";
 import {
   openSsoAuthSession,
   type SsoAuthSessionOutcome,
@@ -25,11 +38,49 @@ import type {
   SelectableSsoProvider,
   SettingsStackParamList,
 } from "../../navigation/types";
+import { getInitials } from "../../utils/text";
 
 type Props = NativeStackScreenProps<
   SettingsStackParamList,
   "SSOProviderSelect"
 >;
+
+/** The protocol a provider speaks, shown so admins' naming is not the only clue. */
+function getProtocolLabel(kind: SsoProviderKind): string {
+  return kind === "project-oidc" || kind === "global-oidc" ? "OIDC" : "SAML";
+}
+
+function ProjectAvatar({ name }: { name: string }): React.JSX.Element {
+  const { theme } = useTheme();
+  const initials: string = getInitials(name);
+  return (
+    <View
+      testID="sso-project-avatar"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: radius.md,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.cardAccent,
+      }}
+    >
+      {initials ? (
+        <AppText variant="callout" weight="700" tone="accent">
+          {initials}
+        </AppText>
+      ) : (
+        <Ionicons
+          name="folder-outline"
+          size={20}
+          color={theme.colors.actionPrimary}
+        />
+      )}
+    </View>
+  );
+}
 
 export default function SSOProviderSelectScreen({
   route,
@@ -104,142 +155,93 @@ export default function SSOProviderSelectScreen({
     },
   );
 
-  const renderProviderList: (
-    items: Array<SelectableSsoProvider>,
+  const renderProviderRow: (
+    provider: SelectableSsoProvider,
   ) => React.JSX.Element = (
-    items: Array<SelectableSsoProvider>,
+    provider: SelectableSsoProvider,
   ): React.JSX.Element => {
+    const isAuthenticating: boolean = authenticatingId === provider._id;
+    const anyAuthenticating: boolean = authenticatingId !== null;
+    const projectScoped: boolean = isProjectScopedKind(provider.kind);
+
     return (
-      <View
-        style={{
-          borderRadius: 14,
-          overflow: "hidden",
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+      <Pressable
+        key={provider._id}
+        testID={`sso-provider-${provider._id}`}
+        accessibilityRole="button"
+        accessibilityLabel={provider.name}
+        accessibilityHint="Opens your provider in a secure browser and returns you here after sign-in."
+        accessibilityState={{
+          disabled: anyAuthenticating,
+          busy: isAuthenticating,
+        }}
+        aria-disabled={anyAuthenticating}
+        aria-busy={isAuthenticating}
+        onPress={() => {
+          return handleSelectProvider(provider);
+        }}
+        disabled={anyAuthenticating}
+        style={({ pressed }: { pressed: boolean }): StyleProp<ViewStyle> => {
+          return {
+            opacity: anyAuthenticating && !isAuthenticating ? 0.55 : 1,
+            backgroundColor:
+              pressed || isAuthenticating
+                ? theme.colors.backgroundTertiary
+                : "transparent",
+          };
         }}
       >
-        {items.map((provider: SelectableSsoProvider, index: number) => {
-          const isLast: boolean = index === items.length - 1;
-          const isAuthenticating: boolean = authenticatingId === provider._id;
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+            minHeight: touchTarget + spacing.lg,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md + 2,
+          }}
+        >
+          <IconBadge
+            name={
+              projectScoped ? "shield-checkmark-outline" : "business-outline"
+            }
+          />
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              gap: spacing.xs,
+              alignItems: "flex-start",
+            }}
+          >
+            <AppText variant="headline">{provider.name}</AppText>
+            {provider.description ? (
+              <AppText variant="footnote" tone="secondary">
+                {provider.description}
+              </AppText>
+            ) : null}
+            <StatusPill
+              testID={`sso-provider-protocol-${provider._id}`}
+              size="sm"
+              tone="neutral"
+              label={getProtocolLabel(provider.kind)}
+            />
+          </View>
 
-          return (
-            <Pressable
-              key={provider._id}
-              accessibilityRole="button"
-              accessibilityLabel={provider.name}
-              accessibilityHint="Opens your provider in a secure browser and returns you here after sign-in."
-              accessibilityState={{
-                disabled: authenticatingId !== null,
-                busy: isAuthenticating,
-              }}
-              aria-disabled={authenticatingId !== null}
-              aria-busy={isAuthenticating}
-              onPress={() => {
-                return handleSelectProvider(provider);
-              }}
-              disabled={authenticatingId !== null}
-              style={{
-                opacity:
-                  authenticatingId !== null && !isAuthenticating ? 0.6 : 1,
-                ...(!isLast
-                  ? {
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.colors.borderSubtle,
-                    }
-                  : {}),
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 16,
-                  paddingVertical: 20,
-                }}
-              >
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: theme.colors.iconBackground,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
-                  }}
-                >
-                  <Ionicons
-                    name={
-                      isProjectScopedKind(provider.kind)
-                        ? "shield-checkmark-outline"
-                        : "globe-outline"
-                    }
-                    size={18}
-                    color={theme.colors.actionPrimary}
-                  />
-                </View>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "600",
-                      color: theme.colors.textPrimary,
-                    }}
-                  >
-                    {provider.name}
-                  </Text>
-                  {provider.description ? (
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        lineHeight: 21,
-                        marginTop: 3,
-                        color: theme.colors.textSecondary,
-                      }}
-                    >
-                      {provider.description}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {isAuthenticating ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.actionPrimary}
-                  />
-                ) : (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={theme.colors.textTertiary}
-                  />
-                )}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-    );
-  };
-
-  const renderSectionHeading: (label: string) => React.JSX.Element = (
-    label: string,
-  ): React.JSX.Element => {
-    return (
-      <Text
-        accessibilityRole="header"
-        style={{
-          fontSize: 12,
-          fontWeight: "600",
-          marginBottom: 10,
-          marginLeft: 4,
-          color: theme.colors.textTertiary,
-          letterSpacing: 0.8,
-        }}
-      >
-        {label}
-      </Text>
+          {isAuthenticating ? (
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.actionPrimary}
+            />
+          ) : (
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={theme.colors.textTertiary}
+            />
+          )}
+        </View>
+      </Pressable>
     );
   };
 
@@ -247,132 +249,109 @@ export default function SSOProviderSelectScreen({
     <ScrollView
       testID="sso-provider-scroll"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom,
+        gap: spacing.lg,
+      }}
     >
       <ScreenIntro
         title="Choose your provider"
         compact
         description="Continue with your work account."
+        style={{ marginBottom: 0 }}
       />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 20,
-          paddingVertical: 16,
-          borderBottomWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-        }}
-      >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            backgroundColor: theme.colors.iconBackground,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 14,
-          }}
-        >
-          <Ionicons
-            name="folder-outline"
-            size={18}
-            color={theme.colors.actionPrimary}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
-              letterSpacing: -0.3,
-            }}
-          >
-            {projectName}
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              marginTop: 2,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Select an SSO provider to sign in
-          </Text>
-        </View>
-      </View>
 
-      <Text
-        style={{
-          fontSize: 14,
-          lineHeight: 21,
-          color: theme.colors.textSecondary,
-          marginBottom: 24,
-        }}
-      >
-        A secure browser will open for sign-in. You will return to your projects
-        when you are done.
-      </Text>
-      {authenticatingId ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{
-            fontSize: 15,
-            lineHeight: 23,
-            color: theme.colors.actionPrimary,
-            marginBottom: 16,
-          }}
-        >
-          Continue signing in with your provider in the browser…
-        </Text>
-      ) : null}
-      {error ? (
+      <Card testID="sso-project-card">
         <View
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
           style={{
             flexDirection: "row",
-            alignItems: "flex-start",
-            marginBottom: 16,
-            padding: 12,
-            borderRadius: 12,
-            backgroundColor: theme.colors.statusErrorBg,
+            alignItems: "center",
+            gap: spacing.md,
           }}
         >
-          <Ionicons
-            name="alert-circle"
-            size={16}
-            color={theme.colors.statusError}
-            style={{ marginRight: 8, marginTop: 1 }}
-          />
-          <Text
+          <ProjectAvatar name={projectName} />
+          <View
             style={{
-              fontSize: 13,
               flex: 1,
-              color: theme.colors.statusError,
+              minWidth: 0,
+              gap: spacing.xs,
+              alignItems: "flex-start",
             }}
           >
-            {error}
-          </Text>
+            <AppText variant="headline" numberOfLines={2}>
+              {projectName}
+            </AppText>
+            <AppText variant="footnote" tone="secondary">
+              Select an SSO provider to sign in
+            </AppText>
+          </View>
         </View>
+      </Card>
+
+      <View accessibilityLiveRegion="polite" collapsable={false}>
+        <Banner
+          testID="sso-provider-browser-notice"
+          tone={authenticatingId ? "accent" : "info"}
+          icon={authenticatingId ? "open-outline" : "lock-closed-outline"}
+          message={
+            authenticatingId
+              ? "Continue signing in with your provider in the browser…"
+              : "A secure browser will open for sign-in. You will return to your projects when you are done."
+          }
+        />
+      </View>
+
+      {error ? (
+        <View accessibilityLiveRegion="polite" collapsable={false}>
+          <Banner testID="sso-provider-error" tone="danger" message={error} />
+        </View>
+      ) : null}
+
+      {providers.length === 0 ? (
+        <Card testID="sso-provider-empty" padding={spacing.xxl}>
+          <View style={{ alignItems: "center", gap: spacing.sm }}>
+            <IconBadge name="key-outline" size="lg" shape="circle" />
+            <AppText
+              accessibilityRole="header"
+              variant="headline"
+              align="center"
+              style={{ marginTop: spacing.xs }}
+            >
+              No providers available
+            </AppText>
+            <AppText variant="subhead" tone="secondary" align="center">
+              No single sign-on provider is enabled for this project. Ask your
+              admin to set one up, then try again.
+            </AppText>
+            <GradientButton
+              label="Back to projects"
+              variant="tonal"
+              icon="arrow-back"
+              onPress={() => {
+                navigation.goBack();
+              }}
+              style={{ marginTop: spacing.md, alignSelf: "stretch" }}
+            />
+          </View>
+        </Card>
       ) : null}
 
       {globalProviders.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          {renderSectionHeading("Your organization")}
-          {renderProviderList(globalProviders)}
-        </View>
+        <ListGroup title="Your organization" testID="sso-provider-global">
+          {globalProviders.map(renderProviderRow)}
+        </ListGroup>
       ) : null}
 
       {projectProviders.length > 0 ? (
-        <View>
-          {renderSectionHeading(
-            globalProviders.length > 0 ? "This project" : "Available providers",
-          )}
-          {renderProviderList(projectProviders)}
-        </View>
+        <ListGroup
+          title={
+            globalProviders.length > 0 ? "This project" : "Available providers"
+          }
+          testID="sso-provider-project"
+        >
+          {projectProviders.map(renderProviderRow)}
+        </ListGroup>
       ) : null}
     </ScrollView>
   );

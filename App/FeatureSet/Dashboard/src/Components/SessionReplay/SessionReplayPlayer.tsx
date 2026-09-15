@@ -113,6 +113,8 @@ import {
   describeFootageAbsence,
   findTab,
   findTabContinuingAfter,
+  isManifestAwaitingFinalization,
+  isManifestRecordingLive,
   parseManifest,
   pickInitialTab,
   tabHasFootage,
@@ -146,8 +148,14 @@ import {
   fetchReplayUserSessions,
   findAdjacentUserSessions,
   mergeReplayUserSessions,
+  overlayCurrentReplayUserSession,
   resolveReplayUserSessionsKind,
 } from "./ReplayUserSessions";
+import {
+  getReplayClientLabel,
+  getReplayRecorderKindLabel,
+  isMobileSessionReplay,
+} from "./ReplayRecorderKind";
 
 /*
  * The composition root of the player: manifest transport, the chunk
@@ -181,7 +189,8 @@ export const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
 const HEARTBEAT_TICK_MS: number = 1000;
 
 /*
- * Live sessions re-fetch the manifest this often. The request carries
+ * Unfinalized sessions re-fetch the manifest this often - live ones, and
+ * ended ones until the finalized header lands. The request carries
  * isRefresh + viewId so the server reuses the audit row (WP-S2): ONE
  * audit row per view, however long the viewer follows a live session.
  */
@@ -543,6 +552,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [scale, setScale] = useState<number>(1);
   const [scrubberHeightPx, setScrubberHeightPx] = useState<number>(240);
   const [isTheater, setIsTheater] = useState<boolean>(false);
+  const [isTextSelectionEnabled, setIsTextSelectionEnabled] =
+    useState<boolean>(false);
+  const [isReplayDocumentReady, setIsReplayDocumentReady] =
+    useState<boolean>(false);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
     urlState.signalId,
@@ -592,6 +605,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     useRef<SessionReplayManifest | null>(null);
   const activeTabIdRef: React.MutableRefObject<string> = useRef<string>("");
   const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
+  const isTextSelectionEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const pendingTextSelectionActionRef: React.MutableRefObject<
+    (() => void) | null
+  > = useRef<(() => void) | null>(null);
   const hasRevealedSignalRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   /* Bumped per user-sessions lookup so a superseded response cannot land. */
@@ -601,6 +619,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   engineRef.current = engine;
   manifestRef.current = manifest;
   activeTabIdRef.current = activeTabId;
+  isTextSelectionEnabledRef.current = isTextSelectionEnabled;
+
+  /* ReplayStage restores its read-only inspection state in a layout effect. */
+  useEffect(() => {
+    if (isTextSelectionEnabled) {
+      return;
+    }
+
+    const pendingAction: (() => void) | null =
+      pendingTextSelectionActionRef.current;
+
+    if (!pendingAction) {
+      return;
+    }
+
+    pendingTextSelectionActionRef.current = null;
+    pendingAction();
+  }, [isTextSelectionEnabled]);
 
   /* ---- Chunk transport. ---- */
 
@@ -683,12 +719,22 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     setReplayerFactory(null);
     setActiveTabId("");
     setTelemetrySignals(NO_SIGNALS);
+    pendingTextSelectionActionRef.current = null;
+    isTextSelectionEnabledRef.current = false;
+    setIsTextSelectionEnabled(false);
+    setIsReplayDocumentReady(false);
     hasRevealedSignalRef.current = false;
 
     /*
      * INSTANT FEEL: the rrweb download starts at mount, the manifest is
      * fetched alongside it, and the first chunks go on the wire the moment
      * the manifest resolves - before the Replayer has finished arriving.
+     */
+    /*
+     * React Native view-tree recordings deliberately use this same player:
+     * that recorder serializes its native tree as rrweb-compatible synthetic
+     * snapshot and mutation events. recorderKind changes the explanation in
+     * the shell, not the playback engine.
      */
     const rrwebModulePromise: Promise<RrwebModule> =
       (async (): Promise<RrwebModule> => {
@@ -971,6 +1017,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return engine.onReplayer((event: ReplayEngineReplayerEvent): void => {
       if (event.type === "created") {
         replayerRef.current = event.replayer;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
 
         if (!prefs.mouseTrail) {
           try {
@@ -979,11 +1028,35 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             /* A config rrweb rejects is cosmetic; playback continues. */
           }
         }
+      } else if (event.type === "fullsnapshot-rebuilded") {
+        replayerRef.current = event.replayer;
+
+        try {
+          const replayDocument: Document | null =
+            event.replayer.iframe.contentDocument;
+          const isReady: boolean =
+            replayDocument !== null &&
+            replayDocument.documentElement !== null &&
+            replayDocument.body !== null;
+          setIsReplayDocumentReady(isReady);
+
+          if (!isReady) {
+            isTextSelectionEnabledRef.current = false;
+            setIsTextSelectionEnabled(false);
+          }
+        } catch {
+          setIsReplayDocumentReady(false);
+          isTextSelectionEnabledRef.current = false;
+          setIsTextSelectionEnabled(false);
+        }
       } else if (
         event.type === "destroyed" &&
         replayerRef.current === event.replayer
       ) {
         replayerRef.current = null;
+        setIsReplayDocumentReady(false);
+        isTextSelectionEnabledRef.current = false;
+        setIsTextSelectionEnabled(false);
       }
     });
   }, [engine, prefs.mouseTrail]);
@@ -1096,6 +1169,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       hasError: current.counts.errorCount > 0,
       errorCount: current.counts.errorCount,
       isFinalized: current.isFinalized,
+      hasRecordingEnded: current.hasRecordingEnded,
       identifiedUserKey: identifiedUserKey,
       visitorId: visitorId,
       identifiedUserLabel: current.details.identifiedUserLabel,
@@ -1162,13 +1236,31 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     manifest?.startTimeUnixMs,
   ]);
 
-  /* ---- Live sessions: re-poll the manifest and append new footage. ---- */
+  /* ---- Unfinalized sessions: re-poll the manifest and append new footage. ---- */
 
-  const isLive: boolean = manifest !== null && !manifest.isFinalized;
+  /*
+   * Two questions an unfinalized session answers differently once every
+   * one of its tabs has closed:
+   *
+   * - isAwaitingFinalization: the header is still provisional. The poll
+   *   below keeps running on it, because the finalized header (counts,
+   *   duration, sealed reason) only arrives through a refresh, a trailing
+   *   chunk posted as the tab closed can still land, and each refresh
+   *   carries the latest hasRecordingEnded.
+   * - isLive: footage may still be recorded. The Live pill, the "caught
+   *   up with the live recording" overlay and data-replay-live follow
+   *   this one, so a session whose tabs have all closed stops calling
+   *   itself Live the moment the server says so - not 10-15 minutes
+   *   later, when the idle finalizer got to it.
+   */
+  const isAwaitingFinalization: boolean =
+    manifest !== null && isManifestAwaitingFinalization(manifest);
+  const isLive: boolean =
+    manifest !== null && isManifestRecordingLive(manifest);
   const viewId: string = manifest?.viewId ?? "";
 
   useEffect(() => {
-    if (!isLive) {
+    if (!isAwaitingFinalization) {
       return;
     }
 
@@ -1232,7 +1324,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       isCancelled = true;
       clearInterval(timer);
     };
-  }, [isLive, viewId, rumApplicationIdString, sessionId, backendStore]);
+  }, [
+    isAwaitingFinalization,
+    viewId,
+    rumApplicationIdString,
+    sessionId,
+    backendStore,
+  ]);
 
   /* ---- Heartbeat: time actually WATCHED, flushed on the way out. ---- */
 
@@ -1469,12 +1567,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      */
     return [
       {
-        label: "Browser",
+        label: getReplayClientLabel(details.recorderKind),
         value: [details.browserName, details.browserVersion]
           .filter(Boolean)
           .join(" "),
       },
       { label: "OS", value: details.osName },
+      {
+        label: "Source",
+        value: isMobileSessionReplay(details.recorderKind)
+          ? getReplayRecorderKindLabel(details.recorderKind)
+          : "",
+      },
       { label: "Device", value: details.deviceType },
       { label: "Country", value: details.countryCode },
       {
@@ -1489,8 +1593,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     });
   }, [manifest]);
 
+  /*
+   * The sealed reason is a claim about how the recording ENDED, so it is
+   * quoted once the recording has - finalized, or every tab closed. A
+   * live session's provisional header can already carry "final-chunk"
+   * from a page the user navigated away from, and must not be told it
+   * "ended normally" while its next page is still recording.
+   */
   const sealedReason: SealedReasonCopy | null = useMemo(() => {
-    return manifest && manifest.isFinalized
+    return manifest && (manifest.isFinalized || manifest.hasRecordingEnded)
       ? getSealedReasonCopy(manifest.sealedReason)
       : null;
   }, [manifest]);
@@ -1657,7 +1768,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   /* ---- Actions. ---- */
 
-  const seekTo: (offsetMs: number) => void = useCallback(
+  const runAfterTextSelectionExit: (action: () => void) => void = useCallback(
+    (action: () => void): void => {
+      if (
+        !isTextSelectionEnabledRef.current &&
+        pendingTextSelectionActionRef.current === null
+      ) {
+        action();
+        return;
+      }
+
+      pendingTextSelectionActionRef.current = action;
+      isTextSelectionEnabledRef.current = false;
+      setIsTextSelectionEnabled(false);
+    },
+    [],
+  );
+
+  const dispatchSeek: (offsetMs: number) => void = useCallback(
     (offsetMs: number): void => {
       seekTokenRef.current += 1;
       engineRef.current?.dispatch({
@@ -1669,6 +1797,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [],
   );
 
+  const seekTo: (offsetMs: number) => void = useCallback(
+    (offsetMs: number): void => {
+      runAfterTextSelectionExit((): void => {
+        dispatchSeek(offsetMs);
+      });
+    },
+    [dispatchSeek, runAfterTextSelectionExit],
+  );
+
   const playPause: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
 
@@ -1676,19 +1813,43 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       return;
     }
 
+    if (current.getSnapshot().intent !== "playing") {
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "PLAY" });
+      });
+      return;
+    }
+
     current.dispatch({
       type: current.getSnapshot().intent === "playing" ? "PAUSE" : "PLAY",
     });
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const watchAgain: () => void = useCallback((): void => {
-    seekTo(0);
-    engineRef.current?.dispatch({ type: "PLAY" });
-  }, [seekTo]);
+    runAfterTextSelectionExit((): void => {
+      dispatchSeek(0);
+      engineRef.current?.dispatch({ type: "PLAY" });
+    });
+  }, [dispatchSeek, runAfterTextSelectionExit]);
+
+  const changeTextSelection: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      if (isEnabled) {
+        engineRef.current?.dispatch({ type: "PAUSE" });
+        pendingTextSelectionActionRef.current = null;
+      }
+
+      isTextSelectionEnabledRef.current = isEnabled;
+      setIsTextSelectionEnabled(isEnabled);
+    },
+    [],
+  );
 
   const retry: () => void = useCallback((): void => {
-    engineRef.current?.dispatch({ type: "RETRY" });
-  }, []);
+    runAfterTextSelectionExit((): void => {
+      engineRef.current?.dispatch({ type: "RETRY" });
+    });
+  }, [runAfterTextSelectionExit]);
 
   const stillLoadingRetry: () => void = useCallback((): void => {
     const current: ReplayEngine | null = engineRef.current;
@@ -1700,13 +1861,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     const latest: ReplayEngineSnapshot = current.getSnapshot();
 
     if (latest.error && latest.error.retryable) {
-      current.dispatch({ type: "RETRY" });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "RETRY" });
+      });
       return;
     }
 
     /* Nothing halted: a fresh seek to the same offset restarts the fetch. */
     seekTo(latest.currentTimeMs);
-  }, [seekTo]);
+  }, [runAfterTextSelectionExit, seekTo]);
 
   const setSpeed: (speed: number) => void = useCallback(
     (speed: number): void => {
@@ -1729,9 +1892,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   const skipIdle: (band: ReplayIdleBand) => void = useCallback(
     (band: ReplayIdleBand): void => {
-      engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     },
-    [],
+    [runAfterTextSelectionExit],
   );
 
   const skipIdleJump: () => void = useCallback((): void => {
@@ -1748,9 +1913,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
 
     if (band) {
-      current.dispatch({ type: "IDLE_SKIP", band: band });
+      runAfterTextSelectionExit((): void => {
+        current.dispatch({ type: "IDLE_SKIP", band: band });
+      });
     }
-  }, []);
+  }, [runAfterTextSelectionExit]);
 
   const switchTab: (tabId: string) => void = useCallback(
     (tabId: string): void => {
@@ -1767,24 +1934,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         return;
       }
 
-      const loader: ChunkLoader = createLoader(target);
-
       if (engineRef.current) {
-        loaderRef.current = loader;
-        /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
-        engineRef.current.dispatch({
-          type: "TAB_SWITCH",
-          tabId: tabId,
-          loader: loader,
+        runAfterTextSelectionExit((): void => {
+          const loader: ChunkLoader = createLoader(target);
+          loaderRef.current = loader;
+          /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
+          engineRef.current?.dispatch({
+            type: "TAB_SWITCH",
+            tabId: tabId,
+            loader: loader,
+          });
+          setActiveTabId(tabId);
         });
-      } else {
-        pendingLoaderRef.current?.dispose();
-        pendingLoaderRef.current = loader;
+        return;
       }
 
+      const loader: ChunkLoader = createLoader(target);
+      pendingLoaderRef.current?.dispose();
+      pendingLoaderRef.current = loader;
       setActiveTabId(tabId);
     },
-    [createLoader],
+    [createLoader, runAfterTextSelectionExit],
   );
 
   const toggleTheater: () => void = useCallback((): void => {
@@ -1918,12 +2088,48 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [rumApplicationIdString, sessionId, railTab],
   );
 
+  /*
+   * The lookup's rows with the watched session's entry kept in step with
+   * the manifest poll. The lookup itself runs once per session, so its
+   * row for this session says "Recording now" for as long as the page is
+   * open; the Live pill, fed by the poll, goes out when the last tab
+   * closes. Overlaying the latest manifest's two flags onto that one entry
+   * keeps the menu's dot and the pill telling the same story, without
+   * re-running the lookup. Keyed on the flags rather than the manifest
+   * object, which every poll replaces.
+   */
+  const manifestSessionId: string = manifest
+    ? manifest.sessionId || sessionId
+    : "";
+  const isManifestFinalized: boolean = manifest?.isFinalized ?? false;
+  const hasManifestRecordingEnded: boolean =
+    manifest?.hasRecordingEnded ?? false;
+
+  const displayedUserSessions: ReplayUserSessionsState =
+    useMemo((): ReplayUserSessionsState => {
+      return overlayCurrentReplayUserSession(
+        userSessions,
+        manifestSessionId
+          ? {
+              sessionId: manifestSessionId,
+              isFinalized: isManifestFinalized,
+              hasRecordingEnded: hasManifestRecordingEnded,
+            }
+          : null,
+      );
+    }, [
+      userSessions,
+      manifestSessionId,
+      isManifestFinalized,
+      hasManifestRecordingEnded,
+    ]);
+
   const adjacentUserSessions: ReplayAdjacentUserSessions =
     useMemo((): ReplayAdjacentUserSessions => {
-      return userSessions.status === "ready"
-        ? findAdjacentUserSessions(userSessions.sessions, sessionId)
+      return displayedUserSessions.status === "ready"
+        ? findAdjacentUserSessions(displayedUserSessions.sessions, sessionId)
         : { newer: null, older: null };
-    }, [userSessions, sessionId]);
+    }, [displayedUserSessions, sessionId]);
 
   /* "{" and "}": the same two steps the header's arrow buttons take. */
   const openOlderUserSession: () => void = useCallback((): void => {
@@ -2420,7 +2626,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 sessionId={sessionId}
               />
             ),
-            userSessions: userSessions,
+            userSessions: displayedUserSessions,
             onOpenUserSession: openUserSession,
           }}
         />
@@ -2497,6 +2703,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   scale: scale,
                   fit: fit,
                   onFitChange: setFit,
+                  canSelectText:
+                    isPlayable && engine !== null && isReplayDocumentReady,
+                  isTextSelectionEnabled: isTextSelectionEnabled,
+                  onTextSelectionChange: changeTextSelection,
                   onPlayPause: playPause,
                   onWatchAgain: watchAgain,
                   onRetry: retry,
@@ -2519,6 +2729,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                           viewportHeight={manifest.details.viewportHeight}
                           isTheater={isTheater}
                           fit={fit}
+                          isTextSelectionEnabled={isTextSelectionEnabled}
                           onScaleChange={setScale}
                           reservedBottomHeightPx={scrubberHeightPx + 24}
                         />
@@ -2731,6 +2942,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         }}
         sessionId={manifest.sessionId || sessionId}
         details={manifest.details}
+        hasRecordingEnded={manifest.hasRecordingEnded}
         fidelityNotices={manifest.fidelityNotices}
         gaps={manifest.gaps}
         onOpenRailTab={openRailTab}

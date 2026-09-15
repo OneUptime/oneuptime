@@ -1,8 +1,10 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import MonitorCard from "./MonitorCard";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
 import { rgbToHex } from "../utils/color";
 import {
   makeMonitor,
@@ -28,9 +30,35 @@ interface PressHandlers {
   onResponderGrant?: (event: unknown) => void;
 }
 
+/**
+ * The resolved style of a host element. Styles may arrive as arrays, so they
+ * are flattened rather than read as a plain object.
+ */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 function cardSurface(): RenderedElement {
   return screen.getByRole("button");
@@ -174,7 +202,7 @@ describe("Status markers preserve server colours while text stays readable", () 
     const label: RenderedElement = screen.getByText("Degraded");
     const dot: RenderedElement = screen.getByTestId("response-status-marker");
 
-    expect(styleOf(label).color).toBe(darkColors.textPrimary);
+    expect(styleOf(label).color).toBe(lightColors.textPrimary);
     expect(styleOf(dot).backgroundColor).toBe(
       rgbToHex({ r: 245, g: 158, b: 11 }),
     );
@@ -212,7 +240,7 @@ describe("Status markers preserve server colours while text stays readable", () 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unknown")).color).toBe(
-      darkColors.textPrimary,
+      lightColors.textPrimary,
     );
     expect(styleOf(screen.getByText("Unknown")).color).not.toBe("#000000");
   });
@@ -228,7 +256,7 @@ describe("Status markers preserve server colours while text stays readable", () 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unknown")).color).toBe(
-      darkColors.textPrimary,
+      lightColors.textPrimary,
     );
   });
 });
@@ -305,7 +333,7 @@ describe("Pressing the row", () => {
     );
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
 
     await fireEvent.press(screen.getByText("api.example.com"));
@@ -317,7 +345,7 @@ describe("Pressing the row", () => {
     await render(<MonitorCard monitor={makeMonitor()} onPress={noop} />);
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundElevated,
+      lightColors.backgroundElevated,
     );
   });
 
@@ -327,7 +355,7 @@ describe("Pressing the row", () => {
     await holdDown(cardSurface());
 
     expect(styleOf(cardSurface()).backgroundColor).toBe(
-      darkColors.backgroundTertiary,
+      lightColors.backgroundTertiary,
     );
   });
 });
@@ -400,7 +428,7 @@ describe("A monitor with active monitoring switched off", () => {
     );
 
     expect(styleOf(statusStripe()).backgroundColor).toBe(
-      darkColors.textTertiary,
+      lightColors.textTertiary,
     );
   });
 
@@ -440,5 +468,91 @@ describe("A monitor with active monitoring switched off", () => {
     await fireEvent.press(screen.getByText("api.example.com"));
 
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("The card surface", () => {
+  test("it is a rounded, padded, bordered card on the elevated surface", async () => {
+    await render(<MonitorCard monitor={makeMonitor()} onPress={noop} />);
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    });
+  });
+
+  test("pressing keeps the shape and only changes the fill", async () => {
+    await render(<MonitorCard monitor={makeMonitor()} onPress={noop} />);
+
+    await holdDown(cardSurface());
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockColorScheme = "dark";
+  });
+
+  test("the card, name, status and type read from the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <MonitorCard monitor={makeMonitor()} onPress={noop} />
+      </ThemeProvider>,
+    );
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(screen.getByText("api.example.com")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Operational")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Website")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+  });
+
+  test("a disabled monitor's dot uses the dark neutral, not the light one", async () => {
+    await render(
+      <ThemeProvider>
+        <MonitorCard
+          monitor={makeMonitor({ disableActiveMonitoring: true })}
+          onPress={noop}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      darkColors.textTertiary,
+    );
+  });
+
+  test("holding a finger on a dark card uses the dark pressed fill", async () => {
+    await render(
+      <ThemeProvider>
+        <MonitorCard monitor={makeMonitor()} onPress={noop} />
+      </ThemeProvider>,
+    );
+
+    await holdDown(cardSurface());
+
+    expect(cardSurface()).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
   });
 });

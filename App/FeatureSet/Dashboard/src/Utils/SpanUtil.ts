@@ -1,8 +1,5 @@
-import { Black } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
-import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import Service from "Common/Models/DatabaseModels/Service";
+import { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
@@ -164,30 +161,5 @@ export default class SpanUtil {
     }
 
     return statusCodeText;
-  }
-
-  public static getGanttChartBarColor(data: {
-    span: Span;
-    telemetryServices: Array<Service>;
-  }): {
-    barColor: Color;
-  } {
-    const service: Service | undefined = data.telemetryServices.find(
-      (service: Service) => {
-        return service.id?.toString() === data.span.primaryEntityId?.toString();
-      },
-    );
-
-    if (!service || !service.serviceColor) {
-      return {
-        barColor: Black,
-      };
-    }
-
-    const barColor: Color = service.serviceColor;
-
-    return {
-      barColor,
-    };
   }
 }

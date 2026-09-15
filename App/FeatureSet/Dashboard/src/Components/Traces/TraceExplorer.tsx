@@ -1,371 +1,345 @@
-import DashboardLogsViewer from "../Logs/LogsViewer";
-import SpanStatusElement from "../Span/SpanStatusElement";
-import SpanViewer from "../Span/SpanViewer";
 import FlameGraph from "./FlameGraph";
 import TraceServiceMap from "./TraceServiceMap";
-import TraceScopedFlamegraph from "./TraceScopedFlamegraph";
-import ExceptionInstanceTable from "../Exceptions/ExceptionInstanceTable";
-import ServiceElement from "..//Service/ServiceElement";
-import Navigation from "Common/UI/Utils/Navigation";
+import TraceHeader from "./TraceDetail/TraceHeader";
+import TraceOperations from "./TraceDetail/TraceOperations";
+import TraceSignals from "./TraceDetail/TraceSignals";
+import TraceSpanPanel from "./TraceDetail/TraceSpanPanel";
+import TraceWaterfall from "./TraceDetail/TraceWaterfall";
+import ExceptionSegmentedControl from "../Exceptions/ExceptionSegmentedControl";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import Route from "Common/Types/API/Route";
-import ProjectUtil from "Common/UI/Utils/Project";
-import SpanUtil, {
-  DivisibilityFactor,
-  IntervalUnit,
-} from "../../Utils/SpanUtil";
-import CriticalPathUtil, {
-  SpanData,
-  CriticalPathResult,
-  ServiceBreakdown,
-} from "Common/Utils/Traces/CriticalPath";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  OperationSummary,
+  ServiceSummary,
+  SpanLoadState,
+  TraceServiceInfo,
+  TraceSummary,
+  buildServiceInfoMap,
+  getServiceInfo,
+  getSpanLoadState,
+  pluralize,
+  summarizeOperations,
+  summarizeServices,
+  summarizeTrace,
+} from "../../Utils/TraceDetailPresentation";
+import {
+  FULL_VIEWPORT,
+  SpanTree,
+  SpanVisibility,
+  TimeViewport,
+  WaterfallNode,
+  WaterfallRow,
+  WaterfallSpan,
+  buildSpanFilterPredicate,
+  buildSpanTree,
+  countMatches,
+  filterSpanTree,
+  flattenVisibleRows,
+  getCollapsibleSpanIds,
+  getViewportForSpan,
+  revealSpans,
+  toCriticalPathSpanData,
+  toWaterfallSpans,
+} from "../../Utils/TraceWaterfall";
+import Span from "Common/Models/AnalyticsModels/Span";
+import Service from "Common/Models/DatabaseModels/Service";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Select from "Common/Types/BaseDatabase/Select";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Link from "Common/UI/Components/Link/Link";
-import Card from "Common/UI/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { GanttChartBar } from "Common/UI/Components/GanttChart/Bar/Index";
-import GanttChart, {
-  GanttChartProps,
-} from "Common/UI/Components/GanttChart/Index";
-import { GanttChartRow } from "Common/UI/Components/GanttChart/Row/Row";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
+import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import Query from "Common/Types/BaseDatabase/Query";
-import Select from "Common/Types/BaseDatabase/Select";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
-import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import Service from "Common/Models/DatabaseModels/Service";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import {
-  CrossSignalQueryParams,
-  TelemetryCrossSignalScope,
-  toMetricsExplorerQueryParams,
-} from "Common/Utils/Telemetry/CrossSignalScope";
-import {
-  ProfilePresenceGate,
-  TraceCorrelatedMetricItem,
-  TraceMetricSeries,
-  buildTraceFlamegraphRequest,
-  describeDroppedScopeFields,
-  getProfilePresenceGate,
-  groupMetricsForTrace,
-} from "../../Utils/TraceCorrelatedSignals";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import CriticalPathUtil, {
+  CriticalPathResult,
+  SpanSelfTime,
+} from "Common/Utils/Traces/CriticalPath";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-enum TraceViewMode {
-  Waterfall = "Waterfall",
-  FlameGraph = "Flame Graph",
-  ServiceMap = "Service Map",
-}
+export type TraceViewMode =
+  | "waterfall"
+  | "flamegraph"
+  | "servicemap"
+  | "operations";
 
-const INITIAL_SPAN_FETCH_SIZE: number = 500;
-const SPAN_PAGE_SIZE: number = 500;
+export const INITIAL_SPAN_FETCH_SIZE: number = 500;
+export const SPAN_PAGE_SIZE: number = 500;
 const MAX_SPAN_FETCH_BATCH: number = LIMIT_PER_PROJECT;
 
-type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
+const EMPTY_ID_SET: Set<string> = new Set();
 
-// Server-enforced cap on POST /telemetry/metrics/for-trace.
-const METRICS_FOR_TRACE_LIMIT: number = 500;
-// Metric links widen the trace's window so near-instant traces still chart.
-const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
-const MAX_SAMPLED_METRIC_VALUES: number = 5;
-
-function formatTraceMetricValue(value: number): string {
-  if (!Number.isFinite(value)) {
-    return "-";
-  }
-  if (Math.abs(value) >= 1000) {
-    return Math.round(value).toLocaleString();
-  }
-  if (Number.isInteger(value)) {
-    return value.toLocaleString();
-  }
-  return value.toFixed(2);
-}
+const SPAN_SELECT: Select<Span> = {
+  startTime: true,
+  endTime: true,
+  startTimeUnixNano: true,
+  endTimeUnixNano: true,
+  name: true,
+  traceId: true,
+  parentSpanId: true,
+  spanId: true,
+  kind: true,
+  primaryEntityId: true,
+  durationUnixNano: true,
+  statusCode: true,
+};
 
 export interface ComponentProps {
   traceId: string;
+  // Spans named by the link that opened the page (?spanId=a,b).
   highlightSpanIds?: string[];
 }
 
-type BarTooltipFunctionProps = {
-  span: Span;
-  timelineStartTimeUnixNano: number;
-  divisibilityFactor: DivisibilityFactor;
-};
-
-type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
+function isEditableTarget(target: EventTarget | null): boolean {
+  const element: HTMLElement | null = target as HTMLElement | null;
+  if (!element || !element.tagName) {
+    return false;
+  }
+  return (
+    element.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName.toUpperCase())
+  );
+}
 
 const TraceExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [telemetryServices, setServices] = React.useState<Service[]>([]);
+  const traceId: string = props.traceId;
 
-  const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
+  const [services, setServices] = useState<Array<Service>>([]);
+  const [spans, setSpans] = useState<Array<Span>>([]);
+  const [totalSpanCount, setTotalSpanCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isLoadingMoreSpans, setIsLoadingMoreSpans] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const highlightSpanIds: string[] = React.useMemo(() => {
-    if (!props.highlightSpanIds || props.highlightSpanIds.length === 0) {
-      return [];
-    }
-
-    return props.highlightSpanIds
-      .map((spanId: string) => {
-        return spanId.trim();
-      })
-      .filter((spanId: string) => {
-        return spanId.length > 0;
-      });
-  }, [props.highlightSpanIds]);
-
-  const traceIdFromUrl: string = props.traceId;
-
-  const [error, setError] = React.useState<string | null>(null);
-
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-
-  const [spans, setSpans] = React.useState<Span[]>([]);
-
-  const [totalSpanCount, setTotalSpanCount] = React.useState<number>(0);
-
-  const [isLoadingMoreSpans, setIsLoadingMoreSpans] =
-    React.useState<boolean>(false);
-
-  // UI State Enhancements
-  const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
-  const [viewMode, setViewMode] = React.useState<TraceViewMode>(
-    TraceViewMode.Waterfall,
+  const [viewMode, setViewMode] = useState<TraceViewMode>("waterfall");
+  const [searchText, setSearchText] = useState<string>("");
+  const [errorsOnly, setErrorsOnly] = useState<boolean>(false);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Array<string>>(
+    [],
   );
-  const [spanSearchText, setSpanSearchText] = React.useState<string>("");
-  const [showCriticalPath, setShowCriticalPath] =
-    React.useState<boolean>(false);
-
-  const [traceId, setTraceId] = React.useState<string | null>(null);
+  const [showCriticalPath, setShowCriticalPath] = useState<boolean>(false);
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(EMPTY_ID_SET);
+  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
+  const [viewport, setViewport] = useState<TimeViewport>(FULL_VIEWPORT);
+  const [revealRequest, setRevealRequest] = useState<number>(0);
 
   // "Fix performance with AI" (the FixPerformance recipe) state.
   const [isCreatingPerfFixTask, setIsCreatingPerfFixTask] =
-    React.useState<boolean>(false);
-  const [perfFixRunId, setPerfFixRunId] = React.useState<string | null>(null);
-  const [perfFixError, setPerfFixError] = React.useState<string | null>(null);
+    useState<boolean>(false);
+  const [perfFixRunId, setPerfFixRunId] = useState<string | null>(null);
+  const [perfFixError, setPerfFixError] = useState<string | null>(null);
 
-  // Correlated-signals strip under the waterfall (Logs stays the default).
-  const [activeSignalTab, setActiveSignalTab] =
-    React.useState<CorrelatedSignalTab>("logs");
+  // Responses from a previous trace (or an older refresh) never land.
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+  const appliedLinkRef: React.MutableRefObject<string> = useRef<string>("");
+  const loadedSpanCountRef: React.MutableRefObject<number> = useRef<number>(0);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
 
-  /*
-   * Profile-tab gate: sampleCount from POST /telemetry/profiles/
-   * trace-presence, checked once per trace so the tab only exists when the
-   * flame graph would have data. The ref mirror lets the Gantt bar tooltips
-   * (built inside a chart-construction closure) read the current value
-   * without forcing a chart rebuild when it resolves.
-   */
-  const [profileSampleCount, setProfileSampleCount] = React.useState<number>(0);
-  const profileSampleCountRef: React.MutableRefObject<number> =
-    React.useRef<number>(0);
+  loadedSpanCountRef.current = spans.length;
 
-  // Metrics tab: fetched lazily on first open.
-  const [traceMetricSeries, setTraceMetricSeries] = React.useState<
-    Array<TraceMetricSeries>
-  >([]);
-  const [metricsLoading, setMetricsLoading] = React.useState<boolean>(false);
-  const [metricsFetched, setMetricsFetched] = React.useState<boolean>(false);
-  const [metricsError, setMetricsError] = React.useState<string | null>(null);
-
-  /*
-   * Generation counter for the lazy metrics fetch (same pattern as
-   * TraceScopedFlamegraph's loadGenerationRef): the effect's cleanup bumps
-   * the counter only when the tab/trace actually changes or the explorer
-   * unmounts, so a stale response can never write state — and the effect's
-   * own loading-state writes can never cancel the in-flight request.
-   */
-  const metricsLoadGenerationRef: React.MutableRefObject<number> =
-    React.useRef<number>(0);
-
-  const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
-    null,
+  const fetchSpanPage: (
+    skip: number,
+    limit: number,
+  ) => Promise<ListResult<Span>> = useCallback(
+    async (skip: number, limit: number): Promise<ListResult<Span>> => {
+      return AnalyticsModelAPI.getList<Span>({
+        modelType: Span,
+        select: SPAN_SELECT,
+        query: {
+          traceId: traceId,
+        },
+        sort: {
+          startTimeUnixNano: SortOrder.Ascending,
+        },
+        skip,
+        limit,
+      });
+    },
+    [traceId],
   );
 
-  const [divisibilityFactor, setDivisibilityFactor] =
-    React.useState<DivisibilityFactor>({
-      divisibilityFactorNumber: 1000,
-      intervalUnit: IntervalUnit.Milliseconds,
-    });
+  const loadTrace: (mode: "initial" | "refresh") => Promise<void> = useCallback(
+    async (mode: "initial" | "refresh"): Promise<void> => {
+      loadGenerationRef.current += 1;
+      const generation: number = loadGenerationRef.current;
 
-  // Service Filter State
-  const [selectedServiceIds, setSelectedServiceIds] = React.useState<string[]>(
-    [],
-  );
-
-  const fetchServices: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
-      const telemetryServicesResult: ListResult<Service> =
-        await ModelAPI.getList<Service>({
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          modelType: Service,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-          select: {
-            name: true,
-            _id: true,
-            serviceColor: true,
-          },
-        });
-
-      setServices(telemetryServicesResult.data);
-    }, []);
-
-  type FetchSpansParams = {
-    limit: number;
-    skip: number;
-    mode: "replace" | "append";
-  };
-
-  type FetchSpansFunction = (params: FetchSpansParams) => Promise<number>;
-
-  const fetchSpans: FetchSpansFunction = React.useCallback(
-    async ({ limit, skip, mode }: FetchSpansParams): Promise<number> => {
-      if (mode === "replace") {
+      if (mode === "initial") {
         setIsLoading(true);
-        setIsLoadingMoreSpans(false);
       } else {
-        setIsLoadingMoreSpans(true);
+        setIsRefreshing(true);
       }
+      setIsLoadingMoreSpans(false);
+      setError(null);
+
+      // A refresh keeps as many spans as the reader had already loaded.
+      const limit: number = Math.min(
+        MAX_SPAN_FETCH_BATCH,
+        Math.max(INITIAL_SPAN_FETCH_SIZE, loadedSpanCountRef.current),
+      );
 
       try {
-        const select: Select<Span> = {
-          startTime: true,
-          endTime: true,
-          startTimeUnixNano: true,
-          endTimeUnixNano: true,
-          name: true,
-          traceId: true,
-          parentSpanId: true,
-          spanId: true,
-          kind: true,
-          primaryEntityId: true,
-          durationUnixNano: true,
-          statusCode: true,
-        };
-
-        const traceId: string = traceIdFromUrl;
-        setTraceId(traceId);
-
-        const spanResult: ListResult<Span> =
-          await AnalyticsModelAPI.getList<Span>({
-            modelType: Span,
-            select: select,
+        const [servicesResult, spanResult] = await Promise.all([
+          ModelAPI.getList<Service>({
             query: {
-              traceId: traceId,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            modelType: Service,
             sort: {
-              startTimeUnixNano: SortOrder.Ascending,
+              name: SortOrder.Ascending,
             },
-            skip,
-            limit,
-          });
+            select: {
+              name: true,
+              _id: true,
+              serviceColor: true,
+            },
+          }),
+          fetchSpanPage(
+            0,
+            mode === "initial" ? INITIAL_SPAN_FETCH_SIZE : limit,
+          ),
+        ]);
 
-        const fetchedSpans: Span[] = [...spanResult.data];
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
 
-        setTotalSpanCount((prevCount: number): number => {
-          if (spanResult.count && spanResult.count > 0) {
-            return spanResult.count;
-          }
-
-          if (mode === "replace") {
-            return fetchedSpans.length;
-          }
-
-          return Math.max(prevCount, skip + fetchedSpans.length);
-        });
-
-        let updatedSpans: Span[] = [];
-
-        setSpans((prevSpans: Span[]): Span[] => {
-          if (mode === "replace") {
-            updatedSpans = fetchedSpans;
-          } else {
-            updatedSpans = [...prevSpans, ...fetchedSpans];
-          }
-
-          return updatedSpans;
-        });
-
-        const availableSpanIds: Set<string> = new Set(
-          updatedSpans
-            .map((span: Span) => {
-              return span.spanId?.toString();
-            })
-            .filter((spanId: string | undefined): spanId is string => {
-              return Boolean(spanId);
-            }),
+        setServices(servicesResult.data);
+        setSpans(spanResult.data);
+        setTotalSpanCount(
+          spanResult.count && spanResult.count > 0
+            ? spanResult.count
+            : spanResult.data.length,
         );
-
-        setSelectedSpans((prevSelectedSpans: string[]): string[] => {
-          if (prevSelectedSpans.length === 0) {
-            return prevSelectedSpans;
-          }
-
-          return prevSelectedSpans.filter((spanId: string) => {
-            return availableSpanIds.has(spanId);
-          });
-        });
-
-        return fetchedSpans.length;
+      } catch (err) {
+        if (generation === loadGenerationRef.current) {
+          setError(API.getFriendlyMessage(err));
+        }
       } finally {
-        if (mode === "replace") {
+        if (generation === loadGenerationRef.current) {
           setIsLoading(false);
-        } else {
-          setIsLoadingMoreSpans(false);
+          setIsRefreshing(false);
         }
       }
     },
-    [traceIdFromUrl],
+    [fetchSpanPage],
   );
 
-  const fetchItems: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
-      setError(null);
+  // A new trace starts from a clean slate.
+  useEffect(() => {
+    setServices([]);
+    setSpans([]);
+    setTotalSpanCount(0);
+    setError(null);
+    setViewMode("waterfall");
+    setSearchText("");
+    setErrorsOnly(false);
+    setSelectedServiceIds([]);
+    setShowCriticalPath(false);
+    setCollapsedIds(EMPTY_ID_SET);
+    setSelectedSpanId(null);
+    setViewport(FULL_VIEWPORT);
+    setIsCreatingPerfFixTask(false);
+    setPerfFixRunId(null);
+    setPerfFixError(null);
+    appliedLinkRef.current = "";
+    loadedSpanCountRef.current = 0;
 
-      try {
-        await Promise.all([
-          fetchServices(),
-          fetchSpans({
-            limit: INITIAL_SPAN_FETCH_SIZE,
-            skip: 0,
-            mode: "replace",
-          }),
-        ]);
-      } catch (err) {
+    void loadTrace("initial");
+
+    return () => {
+      loadGenerationRef.current += 1;
+    };
+  }, [traceId]);
+
+  const loadState: SpanLoadState = getSpanLoadState({
+    loadedSpanCount: spans.length,
+    totalSpanCount,
+    pageSize: SPAN_PAGE_SIZE,
+  });
+
+  const loadMoreSpans: (loadAll: boolean) => Promise<void> = async (
+    loadAll: boolean,
+  ): Promise<void> => {
+    if (!loadState.hasMore || isLoadingMoreSpans) {
+      return;
+    }
+
+    const generation: number = loadGenerationRef.current;
+    let loaded: number = spans.length;
+    let remaining: number = loadState.remainingSpanCount;
+
+    setIsLoadingMoreSpans(true);
+    setError(null);
+
+    try {
+      do {
+        const batchSize: number = Math.min(
+          loadAll ? MAX_SPAN_FETCH_BATCH : SPAN_PAGE_SIZE,
+          remaining,
+        );
+        const result: ListResult<Span> = await fetchSpanPage(loaded, batchSize);
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        const fetched: Array<Span> = result.data;
+        loaded += fetched.length;
+        remaining -= fetched.length;
+        setSpans((previous: Array<Span>) => {
+          return [...previous, ...fetched];
+        });
+
+        if (fetched.length < batchSize) {
+          // The server has nothing more, whatever the count said.
+          setTotalSpanCount(loaded);
+          break;
+        }
+
+        if (result.count && result.count > 0) {
+          setTotalSpanCount(result.count);
+          remaining = result.count - loaded;
+        }
+      } while (loadAll && remaining > 0);
+    } catch (err) {
+      if (generation === loadGenerationRef.current) {
         setError(API.getFriendlyMessage(err));
       }
-    }, [fetchServices, fetchSpans]);
+    } finally {
+      if (generation === loadGenerationRef.current) {
+        setIsLoadingMoreSpans(false);
+      }
+    }
+  };
 
   /*
    * Human-triggered FixPerformance: ask the server to analyze this trace's
@@ -374,8 +348,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * server's rejections are a feature, not a failure mode — "no
    * deterministic performance pattern found" means the button stays honest.
    */
-  const createPerformanceFixTask: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
+  const createPerformanceFixTask: () => Promise<void> =
+    async (): Promise<void> => {
       setIsCreatingPerfFixTask(true);
       setPerfFixError(null);
 
@@ -387,7 +361,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 "/ai-investigation/create-performance-fix-task",
             ),
             data: {
-              traceId: traceIdFromUrl,
+              traceId: traceId,
             },
             headers: ModelAPI.getCommonHeaders(),
           });
@@ -406,1922 +380,899 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       }
 
       setIsCreatingPerfFixTask(false);
-    }, [traceIdFromUrl]);
+    };
 
-  const getBarTooltip: GetBarTooltipFunction = (
-    data: BarTooltipFunctionProps,
-  ): ReactElement => {
-    const { span, timelineStartTimeUnixNano, divisibilityFactor } = data;
+  const waterfallSpans: Array<WaterfallSpan> = useMemo(() => {
+    return toWaterfallSpans(spans);
+  }, [spans]);
 
+  const tree: SpanTree = useMemo(() => {
+    return buildSpanTree(waterfallSpans);
+  }, [waterfallSpans]);
+
+  /*
+   * Telemetry without a service.name is tagged with the project id and has no
+   * Service row; fold a synthetic "Unknown Service" in when a span references
+   * it, so it renders with a name instead of a blank.
+   */
+  const servicesWithUnknown: Array<Service> = useMemo(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      return services;
+    }
+    return TelemetryServiceUtil.withUnknownServiceIfReferenced({
+      services,
+      referencedServiceIds: new Set(
+        waterfallSpans
+          .map((span: WaterfallSpan) => {
+            return span.serviceId;
+          })
+          .filter(Boolean),
+      ),
+      projectId,
+    });
+  }, [services, waterfallSpans]);
+
+  const serviceInfoById: Map<string, TraceServiceInfo> = useMemo(() => {
+    return buildServiceInfoMap(servicesWithUnknown);
+  }, [servicesWithUnknown]);
+
+  const serviceNameById: Map<string, string> = useMemo(() => {
+    const map: Map<string, string> = new Map();
+    for (const [id, info] of serviceInfoById.entries()) {
+      map.set(id, info.name);
+    }
+    return map;
+  }, [serviceInfoById]);
+
+  const selfTimes: Map<string, SpanSelfTime> = useMemo(() => {
+    return CriticalPathUtil.computeSelfTimes(
+      toCriticalPathSpanData(waterfallSpans),
+    );
+  }, [waterfallSpans]);
+
+  const summary: TraceSummary = useMemo(() => {
+    return summarizeTrace(tree, totalSpanCount);
+  }, [tree, totalSpanCount]);
+
+  const serviceSummaries: Array<ServiceSummary> = useMemo(() => {
+    return summarizeServices({
+      spans: waterfallSpans,
+      selfTimes,
+      serviceInfoById,
+    });
+  }, [waterfallSpans, selfTimes, serviceInfoById]);
+
+  const visibility: Map<string, SpanVisibility> | null = useMemo(() => {
+    return filterSpanTree(
+      tree,
+      buildSpanFilterPredicate({
+        searchText,
+        errorsOnly,
+        serviceIds: selectedServiceIds,
+        serviceNameById,
+      }),
+    );
+  }, [tree, searchText, errorsOnly, selectedServiceIds, serviceNameById]);
+
+  const matchCount: number = countMatches(visibility);
+
+  const rows: Array<WaterfallRow> = useMemo(() => {
+    return flattenVisibleRows(tree, collapsedIds, visibility);
+  }, [tree, collapsedIds, visibility]);
+
+  // Matches in tree order, collapsed or not, for "next / previous match".
+  const matchIds: Array<string> = useMemo(() => {
+    if (!visibility) {
+      return [];
+    }
+    return flattenVisibleRows(tree, EMPTY_ID_SET, visibility)
+      .filter((row: WaterfallRow) => {
+        return !row.isContext;
+      })
+      .map((row: WaterfallRow) => {
+        return row.node.span.spanId;
+      });
+  }, [tree, visibility]);
+
+  const criticalPath: CriticalPathResult | null = useMemo(() => {
+    if (!showCriticalPath || waterfallSpans.length === 0) {
+      return null;
+    }
+    return CriticalPathUtil.computeCriticalPath(
+      toCriticalPathSpanData(waterfallSpans),
+    );
+  }, [showCriticalPath, waterfallSpans]);
+
+  const criticalPathSpanIds: Set<string> | null = useMemo(() => {
+    return criticalPath ? new Set(criticalPath.criticalPathSpanIds) : null;
+  }, [criticalPath]);
+
+  const visibleSpanModels: Array<Span> = useMemo(() => {
+    if (!visibility) {
+      return spans;
+    }
+    return spans.filter((_span: Span, index: number) => {
+      const waterfallSpan: WaterfallSpan | undefined = waterfallSpans[index];
+      return Boolean(waterfallSpan && visibility.has(waterfallSpan.spanId));
+    });
+  }, [spans, waterfallSpans, visibility]);
+
+  const operations: Array<OperationSummary> = useMemo(() => {
+    const matchingSpans: Array<WaterfallSpan> = visibility
+      ? waterfallSpans.filter((span: WaterfallSpan) => {
+          return visibility.get(span.spanId) === "match";
+        })
+      : waterfallSpans;
+    return summarizeOperations({ spans: matchingSpans, selfTimes });
+  }, [waterfallSpans, visibility, selfTimes]);
+
+  const linkedSpanIds: Set<string> = useMemo(() => {
+    return new Set(
+      (props.highlightSpanIds || [])
+        .map((spanId: string) => {
+          return spanId.trim();
+        })
+        .filter((spanId: string) => {
+          return spanId.length > 0;
+        }),
+    );
+  }, [props.highlightSpanIds]);
+
+  const selectSpan: (spanId: string | null) => void = useCallback(
+    (spanId: string | null): void => {
+      if (spanId) {
+        setCollapsedIds((previous: Set<string>) => {
+          return revealSpans(tree, previous, [spanId]);
+        });
+        setRevealRequest((request: number) => {
+          return request + 1;
+        });
+      }
+      setSelectedSpanId(spanId);
+    },
+    [tree],
+  );
+
+  /*
+   * Open the span a link pointed at, once per trace: expand its ancestors,
+   * select it and scroll to it. A span in a batch that has not loaded yet is
+   * picked up when that batch arrives.
+   */
+  useEffect(() => {
+    if (linkedSpanIds.size === 0 || tree.spanCount === 0) {
+      return;
+    }
+    const linkKey: string = `${traceId}|${[...linkedSpanIds].join(",")}`;
+    if (appliedLinkRef.current === linkKey) {
+      return;
+    }
+    const presentIds: Array<string> = [...linkedSpanIds].filter(
+      (spanId: string) => {
+        return tree.nodesById.has(spanId);
+      },
+    );
+    if (presentIds.length === 0) {
+      return;
+    }
+    appliedLinkRef.current = linkKey;
+    setCollapsedIds((previous: Set<string>) => {
+      return revealSpans(tree, previous, presentIds);
+    });
+    setSelectedSpanId(presentIds[0]!);
+    setRevealRequest((request: number) => {
+      return request + 1;
+    });
+  }, [tree, linkedSpanIds, traceId]);
+
+  // A refresh that no longer contains the selected span closes its panel.
+  useEffect(() => {
+    if (selectedSpanId && !isLoading && !tree.nodesById.has(selectedSpanId)) {
+      setSelectedSpanId(null);
+    }
+  }, [tree, selectedSpanId, isLoading]);
+
+  // "/" focuses the span search from anywhere on the page.
+  useEffect(() => {
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (
+        event.key !== "/" ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  const goToMatch: (direction: 1 | -1) => void = (direction: 1 | -1): void => {
+    if (matchIds.length === 0) {
+      return;
+    }
+    const currentIndex: number = selectedSpanId
+      ? matchIds.indexOf(selectedSpanId)
+      : -1;
+    const nextIndex: number =
+      currentIndex === -1
+        ? direction === 1
+          ? 0
+          : matchIds.length - 1
+        : (currentIndex + direction + matchIds.length) % matchIds.length;
+    if (viewMode === "operations") {
+      setViewMode("waterfall");
+    }
+    selectSpan(matchIds[nextIndex]!);
+  };
+
+  const toggleService: (serviceId: string) => void = (
+    serviceId: string,
+  ): void => {
+    setSelectedServiceIds((previous: Array<string>) => {
+      return previous.includes(serviceId)
+        ? previous.filter((id: string) => {
+            return id !== serviceId;
+          })
+        : [...previous, serviceId];
+    });
+  };
+
+  const clearFilters: () => void = (): void => {
+    setSearchText("");
+    setErrorsOnly(false);
+    setSelectedServiceIds([]);
+  };
+
+  const shareUrl: string = useMemo(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+    try {
+      const url: globalThis.URL = new globalThis.URL(window.location.href);
+      url.searchParams.delete("spanId");
+      return url.toString();
+    } catch {
+      return window.location.href;
+    }
+  }, [traceId]);
+
+  const traceWindow: { startTime: Date; endTime: Date } | null = useMemo(() => {
+    if (tree.spanCount === 0) {
+      return null;
+    }
+    return {
+      startTime: new Date(Math.floor(tree.startTimeUnixNano / 1000000)),
+      endTime: new Date(Math.ceil(tree.endTimeUnixNano / 1000000)),
+    };
+  }, [tree]);
+
+  const selectedNode: WaterfallNode | undefined = selectedSpanId
+    ? tree.nodesById.get(selectedSpanId)
+    : undefined;
+
+  const hasActiveFilter: boolean = visibility !== null;
+
+  if (isLoading && spans.length === 0) {
     return (
-      <div className="px-3 py-2 min-w-60 cursor-default rounded-md border border-gray-200 bg-white/90 backdrop-blur-sm shadow-lg">
-        <div className="bar-tooltip-title text-sm text-gray-800 font-semibold mb-3 leading-snug">
-          {span.name}
+      <div
+        className="mb-8 space-y-4"
+        data-testid="trace-loading"
+        aria-busy="true"
+        aria-label="Loading trace"
+      >
+        <div className="animate-pulse rounded-xl border border-gray-200 bg-white p-5">
+          <div className="h-3 w-40 rounded bg-gray-200" />
+          <div className="mt-3 h-5 w-2/3 rounded bg-gray-200" />
+          <div className="mt-3 h-3 w-1/3 rounded bg-gray-100" />
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
+            {[0, 1, 2, 3, 4].map((index: number): ReactElement => {
+              return <div key={index} className="h-10 rounded bg-gray-100" />;
+            })}
+          </div>
         </div>
-        <div className="bar-tooltip-description text-gray-600 text-[11px] space-y-2">
-          <div className="flex justify-between">
-            <div className="font-medium text-gray-700">Span ID</div>
-            <div className="ml-2 font-mono text-gray-800 truncate max-w-40">
-              {span.spanId?.toString()}
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <div className="font-medium text-gray-700">Status</div>
-            <div className="ml-2">
-              <SpanStatusElement
-                spanStatusCode={span.statusCode!}
-                traceId={span.traceId?.toString()}
-                title={
-                  "Status: " +
-                  SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
-                }
-                titleClassName="mt-0.5"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <div>
-              <div className="font-medium text-gray-700">Seen</div>
-              <div className="text-gray-800">
-                {OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                  span.startTime!,
-                )}
+        <div className="animate-pulse space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((index: number): ReactElement => {
+            return (
+              <div key={index} className="flex items-center gap-4">
+                <div
+                  className="h-4 rounded bg-gray-100"
+                  style={{
+                    width: `${20 + ((index * 7) % 12)}%`,
+                    marginLeft: `${(index % 4) * 16}px`,
+                  }}
+                />
+                <div className="h-3 flex-1 rounded bg-gray-50">
+                  <div
+                    className="h-3 rounded bg-gray-200"
+                    style={{
+                      marginLeft: `${index * 6}%`,
+                      width: `${60 - index * 6}%`,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="font-medium text-gray-700">Kind</div>
-              <div className="text-gray-800">
-                {SpanUtil.getSpanKindFriendlyName(span.kind!)}
-              </div>
-            </div>
-            <div>
-              <div className="font-medium text-gray-700">Start</div>
-              <div className="text-gray-800">
-                {SpanUtil.getSpanStartsAtAsString({
-                  timelineStartTimeUnixNano,
-                  divisibilityFactor: divisibilityFactor,
-                  spanStartTimeUnixNano: span.startTimeUnixNano!,
-                })}
-              </div>
-            </div>
-            <div>
-              <div className="font-medium text-gray-700">End</div>
-              <div className="text-gray-800">
-                {SpanUtil.getSpanEndsAtAsString({
-                  timelineStartTimeUnixNano,
-                  divisibilityFactor: divisibilityFactor,
-                  spanEndTimeUnixNano: span.endTimeUnixNano!,
-                })}
-              </div>
-            </div>
-            <div className="col-span-2">
-              <div className="font-medium text-gray-700">Duration</div>
-              <div className="text-gray-800">
-                {SpanUtil.getSpanDurationAsString({
-                  spanDurationInUnixNano: span.durationUnixNano!,
-                  divisibilityFactor: divisibilityFactor,
-                })}
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 pt-2 border-t border-gray-200">
-            <button
-              className="text-blue-600 hover:text-blue-800 text-[11px] font-medium"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                /*
-                 * When this trace has profile samples, the Profile tab in
-                 * the correlated-signals strip below already renders them —
-                 * jump there instead of leaving the page. Without samples
-                 * the tab does not exist, so fall back to the raw-profiles
-                 * list filtered to this trace (landing on the unfiltered
-                 * overview would force the user to re-find the trace by
-                 * hand).
-                 */
-                if (profileSampleCountRef.current > 0) {
-                  setActiveSignalTab("profile");
-                  document
-                    .getElementById("trace-correlated-signals")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
-                const traceId: string =
-                  span.traceId?.toString() || props.traceId;
-                const profilesRoute: Route = new Route(
-                  `${RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
-                  ).toString()}?traceId=${traceId}`,
-                );
-                Navigation.navigate(profilesRoute, {
-                  openInNewTab: true,
-                });
-              }}
-            >
-              View Profiles for this Trace
-            </button>
-          </div>
+            );
+          })}
         </div>
       </div>
     );
-  };
+  }
 
-  type SpanToBarFunctionProps = {
-    span: Span;
-    timelineStartTimeUnixNano: number;
-    divisibilityFactor: DivisibilityFactor;
-  };
-
-  type SpanToBarFunction = (data: SpanToBarFunctionProps) => GanttChartBar;
-
-  const spanToBar: SpanToBarFunction = (
-    data: SpanToBarFunctionProps,
-  ): GanttChartBar => {
-    const { span, timelineStartTimeUnixNano, divisibilityFactor } = data;
-
-    const spanColor: {
-      barColor: Color;
-    } = SpanUtil.getGanttChartBarColor({
-      span: span,
-      telemetryServices: telemetryServices,
-    });
-
-    return {
-      id: span.spanId!,
-      label:
-        span.statusCode === SpanStatus.Error ? (
-          <div className="mt-0.5">
-            <SpanStatusElement
-              spanStatusCode={span.statusCode!}
-              traceId={span.traceId?.toString()}
-              title={
-                "Status: " +
-                SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
-              }
-            />
-          </div>
-        ) : (
-          <></>
-        ),
-      barColor: spanColor.barColor,
-      barTimelineStart:
-        (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
-        divisibilityFactor.divisibilityFactorNumber,
-      barTimelineEnd:
-        (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
-        divisibilityFactor.divisibilityFactorNumber,
-      rowId: span.spanId!,
-      tooltip: getBarTooltip({
-        span,
-        timelineStartTimeUnixNano,
-        divisibilityFactor: divisibilityFactor,
-      }),
-    };
-  };
-
-  type GetBarsFunctionProps = {
-    rootSpan: Span;
-    allSpans: Span[];
-    timelineStartTimeUnixNano: number;
-    divisibilityFactor: DivisibilityFactor;
-  };
-
-  type GetRowDescriptionFunction = (data: {
-    telemetryService: Service;
-    span: Span;
-  }) => ReactElement;
-
-  const getRowDescription: GetRowDescriptionFunction = (data: {
-    telemetryService: Service;
-    span: Span;
-  }): ReactElement => {
-    const { telemetryService } = data;
-
+  if (error && spans.length === 0) {
     return (
-      <div className="flex space-x-5">
-        <ServiceElement
-          service={telemetryService}
-          serviceNameClassName="mt-0.5"
+      <div className="mb-8" data-testid="trace-error">
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            void loadTrace("initial");
+          }}
         />
       </div>
     );
-  };
-
-  type GetRowsFunction = (data: GetBarsFunctionProps) => Array<GanttChartRow>;
-
-  const getRows: GetRowsFunction = (
-    data: GetBarsFunctionProps,
-  ): Array<GanttChartRow> => {
-    const {
-      rootSpan,
-      allSpans,
-      timelineStartTimeUnixNano,
-      divisibilityFactor,
-    } = data;
-
-    if (!rootSpan) {
-      return [];
-    }
-
-    const telemetryService: Service | undefined = telemetryServices.find(
-      (service: Service) => {
-        return service._id?.toString() === rootSpan.primaryEntityId?.toString();
-      },
-    );
-
-    const rootRow: GanttChartRow = {
-      rowInfo: {
-        title: <div className="truncate">{rootSpan.name!}</div>,
-        description: telemetryService ? (
-          getRowDescription({
-            telemetryService,
-            span: rootSpan,
-          })
-        ) : (
-          <></>
-        ),
-        id: ObjectID.generate().toString(),
-      },
-      bars: [
-        spanToBar({
-          span: rootSpan,
-          timelineStartTimeUnixNano,
-          divisibilityFactor,
-        }),
-      ],
-      childRows: [],
-    };
-
-    const currentSpan: Span = rootSpan;
-
-    const currentSpanId: string | undefined = currentSpan.spanId;
-
-    const childSpans: Array<Span> = allSpans.filter((span: Span) => {
-      return span.parentSpanId?.toString() === currentSpanId?.toString();
-    });
-
-    for (const span of childSpans) {
-      const childRows: Array<GanttChartRow> | null = getRows({
-        rootSpan: span,
-        allSpans,
-        timelineStartTimeUnixNano,
-        divisibilityFactor,
-      });
-
-      for (const row of childRows) {
-        rootRow.childRows.push(row);
-      }
-    }
-
-    return [rootRow];
-  };
-
-  React.useEffect(() => {
-    setSpans([]);
-    setSelectedSpans([]);
-    setTotalSpanCount(0);
-    setGanttChart(null);
-    setTraceId(null);
-    setError(null);
-    setIsLoading(false);
-    setIsLoadingMoreSpans(false);
-    setIsCreatingPerfFixTask(false);
-    setPerfFixRunId(null);
-    setPerfFixError(null);
-    setActiveSignalTab("logs");
-    setProfileSampleCount(0);
-    profileSampleCountRef.current = 0;
-    setTraceMetricSeries([]);
-    setMetricsLoading(false);
-    setMetricsFetched(false);
-    setMetricsError(null);
-  }, [traceIdFromUrl]);
-
-  React.useEffect(() => {
-    fetchItems().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [fetchItems]);
-
-  /*
-   * The Profile tab must be gated up front (it only renders when this trace
-   * actually has profile samples), so presence is checked eagerly per trace;
-   * the flame graph itself still loads lazily on first tab open. A failed
-   * check hides the tab rather than crashing the strip.
-   */
-  React.useEffect(() => {
-    let cancelled: boolean = false;
-
-    const checkProfilePresence: () => Promise<void> =
-      async (): Promise<void> => {
-        const requestBody: JSONObject | null = buildTraceFlamegraphRequest({
-          traceId: traceIdFromUrl,
-        });
-
-        if (!requestBody) {
-          return;
-        }
-
-        try {
-          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.post<JSONObject>({
-              url: URL.fromString(APP_API_URL.toString()).addRoute(
-                "/telemetry/profiles/trace-presence",
-              ),
-              data: requestBody,
-              headers: ModelAPI.getCommonHeaders(),
-            });
-
-          if (cancelled) {
-            return;
-          }
-
-          if (response instanceof HTTPErrorResponse) {
-            throw response;
-          }
-
-          const gate: ProfilePresenceGate = getProfilePresenceGate(
-            response.data as JSONObject,
-          );
-          setProfileSampleCount(gate.sampleCount);
-          profileSampleCountRef.current = gate.sampleCount;
-        } catch {
-          if (!cancelled) {
-            setProfileSampleCount(0);
-            profileSampleCountRef.current = 0;
-          }
-        }
-      };
-
-    void checkProfilePresence();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [traceIdFromUrl]);
-
-  // If the gate closes while Profile is selected, fall back to the default tab.
-  React.useEffect(() => {
-    if (activeSignalTab === "profile" && profileSampleCount === 0) {
-      setActiveSignalTab("logs");
-    }
-  }, [activeSignalTab, profileSampleCount]);
-
-  // Metrics tab: reverse exemplar lookup, fetched on first open only.
-  React.useEffect(() => {
-    if (activeSignalTab !== "metrics" || metricsFetched) {
-      return;
-    }
-
-    metricsLoadGenerationRef.current += 1;
-    const generation: number = metricsLoadGenerationRef.current;
-
-    const loadTraceMetrics: () => Promise<void> = async (): Promise<void> => {
-      if (!traceIdFromUrl) {
-        setMetricsFetched(true);
-        return;
-      }
-
-      setMetricsLoading(true);
-      setMetricsError(null);
-
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/metrics/for-trace",
-            ),
-            data: {
-              traceId: traceIdFromUrl,
-              limit: METRICS_FOR_TRACE_LIMIT,
-            },
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (generation !== metricsLoadGenerationRef.current) {
-          return;
-        }
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const items: Array<TraceCorrelatedMetricItem> = ((
-          response.data as JSONObject
-        )["items"] || []) as unknown as Array<TraceCorrelatedMetricItem>;
-        setTraceMetricSeries(groupMetricsForTrace(items));
-      } catch (err) {
-        if (generation === metricsLoadGenerationRef.current) {
-          setMetricsError(API.getFriendlyMessage(err));
-          setTraceMetricSeries([]);
-        }
-      } finally {
-        if (generation === metricsLoadGenerationRef.current) {
-          setMetricsLoading(false);
-          setMetricsFetched(true);
-        }
-      }
-    };
-
-    void loadTraceMetrics();
-
-    return () => {
-      // Invalidate in-flight responses when the tab/trace changes or on unmount.
-      metricsLoadGenerationRef.current += 1;
-    };
-  }, [activeSignalTab, metricsFetched, traceIdFromUrl]);
-
-  const loadedSpanCount: number = spans.length;
-
-  const hasMoreSpans: boolean =
-    totalSpanCount > 0 ? totalSpanCount > loadedSpanCount : false;
-
-  const remainingSpanCount: number = hasMoreSpans
-    ? totalSpanCount - loadedSpanCount
-    : 0;
-
-  const nextPageSpanCount: number = hasMoreSpans
-    ? Math.min(SPAN_PAGE_SIZE, remainingSpanCount)
-    : 0;
-
-  const isShowingAllSpans: boolean =
-    totalSpanCount > 0 &&
-    !hasMoreSpans &&
-    loadedSpanCount > INITIAL_SPAN_FETCH_SIZE;
-
-  const nextPageDisplayCount: number =
-    nextPageSpanCount > 0 ? nextPageSpanCount : SPAN_PAGE_SIZE;
-
-  const handleShowNextSpans: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
-      if (!hasMoreSpans || isLoadingMoreSpans) {
-        return;
-      }
-
-      setError(null);
-
-      const remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
-      const nextBatchSize: number = Math.max(
-        1,
-        Math.min(SPAN_PAGE_SIZE, remaining),
-      );
-
-      try {
-        await fetchSpans({
-          limit: nextBatchSize,
-          skip: loadedSpanCount,
-          mode: "append",
-        });
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    }, [
-      fetchSpans,
-      hasMoreSpans,
-      isLoadingMoreSpans,
-      totalSpanCount,
-      loadedSpanCount,
-    ]);
-
-  const handleShowAllSpans: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
-      if (!hasMoreSpans || isLoadingMoreSpans) {
-        return;
-      }
-
-      setError(null);
-
-      let remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
-      let nextSkip: number = loadedSpanCount;
-
-      try {
-        while (remaining > 0) {
-          const batchSize: number = Math.min(MAX_SPAN_FETCH_BATCH, remaining);
-          const fetchedCount: number = await fetchSpans({
-            limit: batchSize,
-            skip: nextSkip,
-            mode: "append",
-          });
-
-          if (fetchedCount === 0) {
-            break;
-          }
-
-          remaining -= fetchedCount;
-          nextSkip += fetchedCount;
-
-          if (fetchedCount < batchSize) {
-            break;
-          }
-        }
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    }, [
-      fetchSpans,
-      hasMoreSpans,
-      isLoadingMoreSpans,
-      totalSpanCount,
-      loadedSpanCount,
-    ]);
-
-  /*
-   * Derived values for summary / filtering
-   * Services involved in this trace only
-   */
-  const servicesInTrace: Service[] = React.useMemo(() => {
-    if (spans.length === 0) {
-      return [];
-    }
-    const serviceIdsInTrace: Set<string> = new Set(
-      spans
-        .filter((s: Span) => {
-          return Boolean(s.primaryEntityId);
-        })
-        .map((s: Span) => {
-          return s.primaryEntityId!.toString();
-        }),
-    );
-    return telemetryServices.filter((svc: Service) => {
-      return serviceIdsInTrace.has(svc._id!.toString());
-    });
-  }, [telemetryServices, spans]);
-
-  // Map primaryEntityId -> { total, error }
-  const serviceSpanStats: Record<string, { total: number; error: number }> =
-    React.useMemo(() => {
-      const stats: Record<string, { total: number; error: number }> = {};
-      for (const span of spans) {
-        const id: string | undefined = span.primaryEntityId?.toString();
-        if (!id) {
-          continue;
-        }
-        const serviceStats: { total: number; error: number } =
-          stats[id] ?? (stats[id] = { total: 0, error: 0 });
-        serviceStats.total += 1;
-        if (span.statusCode === SpanStatus.Error) {
-          serviceStats.error += 1;
-        }
-      }
-      return stats;
-    }, [spans]);
-
-  /*
-   * Telemetry without a service.name is tagged with the projectId
-   * (ServiceType.Unknown) and has no Service row. When a span in this
-   * trace references it, fold a synthetic "Unknown Service" into the
-   * resolved service list so the existing primaryEntityId -> Service lookups
-   * (filter chips, span rows, search) render it instead of a blank
-   * name. Idempotent and returns the same array reference when nothing
-   * is unattributed, so this does not trigger an extra render.
-   */
-  React.useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-    const referencedServiceIds: Set<string> = new Set(
-      spans
-        .map((span: Span) => {
-          return span.primaryEntityId?.toString() || "";
-        })
-        .filter((id: string) => {
-          return Boolean(id);
-        }),
-    );
-    setServices((previousServices: Service[]) => {
-      return TelemetryServiceUtil.withUnknownServiceIfReferenced({
-        services: previousServices,
-        referencedServiceIds,
-        projectId,
-      });
-    });
-  }, [spans]);
-
-  // Prune selected services if they disappear (new fetch)
-  React.useEffect(() => {
-    if (selectedServiceIds.length === 0) {
-      return;
-    }
-    const validIds: Set<string> = new Set(
-      servicesInTrace.map((s: Service) => {
-        return s._id!.toString();
-      }),
-    );
-    const stillValid: string[] = selectedServiceIds.filter((id: string) => {
-      return validIds.has(id);
-    });
-    if (stillValid.length !== selectedServiceIds.length) {
-      setSelectedServiceIds(stillValid);
-    }
-  }, [servicesInTrace, selectedServiceIds]);
-
-  // Final spans after applying filters (including search)
-  const displaySpans: Span[] = React.useMemo(() => {
-    let filtered: Span[] = spans;
-    if (showErrorsOnly) {
-      filtered = filtered.filter((s: Span): boolean => {
-        return s.statusCode === SpanStatus.Error;
-      });
-    }
-    if (selectedServiceIds.length > 0) {
-      filtered = filtered.filter((s: Span): boolean => {
-        return s.primaryEntityId
-          ? selectedServiceIds.includes(s.primaryEntityId.toString())
-          : false;
-      });
-    }
-    if (spanSearchText.trim().length > 0) {
-      const searchLower: string = spanSearchText.trim().toLowerCase();
-      filtered = filtered.filter((s: Span): boolean => {
-        // Match against span name
-        if (s.name?.toLowerCase().includes(searchLower)) {
-          return true;
-        }
-        // Match against span ID
-        if (s.spanId?.toLowerCase().includes(searchLower)) {
-          return true;
-        }
-        // Match against service name
-        const service: Service | undefined = telemetryServices.find(
-          (svc: Service) => {
-            return svc._id?.toString() === s.primaryEntityId?.toString();
-          },
-        );
-        if (service?.name?.toLowerCase().includes(searchLower)) {
-          return true;
-        }
-        return false;
-      });
-    }
-    return filtered;
-  }, [
-    spans,
-    showErrorsOnly,
-    selectedServiceIds,
-    spanSearchText,
-    telemetryServices,
-  ]);
-
-  // Search match count for display
-  const searchMatchCount: number = React.useMemo(() => {
-    if (spanSearchText.trim().length === 0) {
-      return 0;
-    }
-    return displaySpans.length;
-  }, [displaySpans, spanSearchText]);
-
-  // Critical path computation
-  const criticalPathResult: CriticalPathResult | null = React.useMemo(() => {
-    if (!showCriticalPath || spans.length === 0) {
-      return null;
-    }
-    const spanDataList: SpanData[] = spans.map((s: Span): SpanData => {
-      return {
-        spanId: s.spanId!,
-        parentSpanId: s.parentSpanId || undefined,
-        startTimeUnixNano: s.startTimeUnixNano!,
-        endTimeUnixNano: s.endTimeUnixNano!,
-        durationUnixNano: s.durationUnixNano!,
-        primaryEntityId: s.primaryEntityId?.toString(),
-        name: s.name,
-      };
-    });
-    return CriticalPathUtil.computeCriticalPath(spanDataList);
-  }, [showCriticalPath, spans]);
-
-  // Service latency breakdown
-  const serviceBreakdown: ServiceBreakdown[] = React.useMemo(() => {
-    if (spans.length === 0) {
-      return [];
-    }
-    const spanDataList: SpanData[] = spans.map((s: Span): SpanData => {
-      return {
-        spanId: s.spanId!,
-        parentSpanId: s.parentSpanId || undefined,
-        startTimeUnixNano: s.startTimeUnixNano!,
-        endTimeUnixNano: s.endTimeUnixNano!,
-        durationUnixNano: s.durationUnixNano!,
-        primaryEntityId: s.primaryEntityId?.toString(),
-        name: s.name,
-      };
-    });
-    return CriticalPathUtil.computeServiceBreakdown(spanDataList);
-  }, [spans]);
-
-  const spanStats: {
-    totalSpans: number;
-    errorSpans: number;
-    servicesCount: number;
-    durationString: string;
-  } = React.useMemo(() => {
-    if (spans.length === 0) {
-      return {
-        totalSpans: 0,
-        errorSpans: 0,
-        servicesCount: 0,
-        durationString: "-",
-      };
-    }
-
-    let minStart: number = spans[0]!.startTimeUnixNano!;
-    let maxEnd: number = spans[0]!.endTimeUnixNano!;
-    let errorCount: number = 0;
-    const serviceIds: Set<string> = new Set();
-
-    for (const span of spans) {
-      if (span.startTimeUnixNano! < minStart) {
-        minStart = span.startTimeUnixNano!;
-      }
-      if (span.endTimeUnixNano! > maxEnd) {
-        maxEnd = span.endTimeUnixNano!;
-      }
-      if (span.statusCode === SpanStatus.Error) {
-        errorCount++;
-      }
-      if (span.primaryEntityId) {
-        serviceIds.add(span.primaryEntityId.toString());
-      }
-    }
-
-    const durationString: string = SpanUtil.getSpanDurationAsString({
-      spanDurationInUnixNano: maxEnd - minStart,
-      divisibilityFactor,
-    });
-
-    return {
-      totalSpans: spans.length,
-      errorSpans: errorCount,
-      servicesCount: serviceIds.size,
-      durationString,
-    };
-  }, [spans, divisibilityFactor]);
-
-  /*
-   * The trace's wall-clock window (padded), used to scope metric-explorer
-   * links from the Metrics tab. Null until spans arrive.
-   */
-  const traceMetricsWindow: { startTime: Date; endTime: Date } | null =
-    React.useMemo(() => {
-      let min: Date | null = null;
-      let max: Date | null = null;
-
-      for (const span of spans) {
-        const start: Date | null = span.startTime
-          ? OneUptimeDate.fromString(span.startTime as unknown as string)
-          : null;
-        const end: Date | null = span.endTime
-          ? OneUptimeDate.fromString(span.endTime as unknown as string)
-          : null;
-
-        if (start && !isNaN(start.getTime()) && (!min || start < min)) {
-          min = start;
-        }
-
-        if (end && !isNaN(end.getTime()) && (!max || end > max)) {
-          max = end;
-        }
-      }
-
-      if (!min || !max) {
-        return null;
-      }
-
-      return {
-        startTime: OneUptimeDate.addRemoveMinutes(
-          min,
-          -TRACE_METRIC_WINDOW_PADDING_MINUTES,
-        ),
-        endTime: OneUptimeDate.addRemoveMinutes(
-          max,
-          TRACE_METRIC_WINDOW_PADDING_MINUTES,
-        ),
-      };
-    }, [spans]);
-
-  /*
-   * The scope every metric link carries: this trace over its (padded)
-   * window. The serializer cannot express a trace filter in the metric
-   * explorer's grammar — its `dropped` report is what the hint above the
-   * table surfaces, so the narrowing is never silent.
-   */
-  const metricLinkDroppedHints: Array<string> = React.useMemo(() => {
-    if (!traceMetricsWindow) {
-      return [];
-    }
-
-    const scope: TelemetryCrossSignalScope = {
-      traceIds: [traceIdFromUrl],
-      startTime: traceMetricsWindow.startTime,
-      endTime: traceMetricsWindow.endTime,
-    };
-
-    const serialized: CrossSignalQueryParams =
-      toMetricsExplorerQueryParams(scope);
-
-    return describeDroppedScopeFields(serialized.dropped);
-  }, [traceMetricsWindow, traceIdFromUrl]);
-
-  type GetMetricExplorerUrlFunction = (metricName: string) => URL | null;
-
-  const getMetricExplorerUrl: GetMetricExplorerUrlFunction = (
-    metricName: string,
-  ): URL | null => {
-    if (!traceMetricsWindow) {
-      return null;
-    }
-
-    const scope: TelemetryCrossSignalScope = {
-      traceIds: [traceIdFromUrl],
-      startTime: traceMetricsWindow.startTime,
-      endTime: traceMetricsWindow.endTime,
-    };
-
-    const serialized: CrossSignalQueryParams = toMetricsExplorerQueryParams(
-      scope,
-      metricName,
-    );
-
-    const route: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.METRIC_VIEW] as Route,
-    );
-    const currentUrl: URL = Navigation.getCurrentURL();
-    const targetUrl: URL = new URL(
-      currentUrl.protocol,
-      currentUrl.hostname,
-      route,
-    );
-
-    for (const paramName of Object.keys(serialized.params)) {
-      targetUrl.addQueryParam(
-        paramName,
-        serialized.params[paramName] as string,
-        true,
-      );
-    }
-
-    return targetUrl;
-  };
-
-  React.useEffect(() => {
-    // convert spans to gantt chart
-
-    if (displaySpans.length === 0) {
-      setGanttChart(null);
-      return;
-    }
-
-    let timelineStartTimeUnixNano: number = displaySpans[0]!.startTimeUnixNano!;
-    let timelineEndTimeUnixNano: number =
-      displaySpans[displaySpans.length - 1]!.endTimeUnixNano!;
-
-    for (const span of displaySpans) {
-      if (span.startTimeUnixNano! < timelineStartTimeUnixNano) {
-        timelineStartTimeUnixNano = span.startTimeUnixNano!;
-      }
-      if (span.endTimeUnixNano! > timelineEndTimeUnixNano) {
-        timelineEndTimeUnixNano = span.endTimeUnixNano!;
-      }
-    }
-
-    const startTimeline: number = 0;
-
-    const newDivisibilityFactor: DivisibilityFactor =
-      SpanUtil.getDivisibilityFactor(
-        timelineEndTimeUnixNano - timelineStartTimeUnixNano,
-      );
-
-    setDivisibilityFactor(newDivisibilityFactor);
-
-    const divisibilityFactorNumber: number =
-      newDivisibilityFactor.divisibilityFactorNumber;
-
-    const endTimeline: number =
-      (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
-      divisibilityFactorNumber;
-
-    const intervalTemp: number = Math.round(endTimeline / 100) * 10;
-    const numberOfDigitsInIntervalTemp: number = intervalTemp.toString().length;
-    const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
-
-    /*
-     * Improved root span detection:
-     * 1. Root if parentSpanId is null/undefined/empty string.
-     * 2. Root if parentSpanId does not exist among spanIds (orphan) – common when trace is truncated.
-     */
-    const allSpanIds: Set<string> = new Set(
-      displaySpans
-        .map((s: Span) => {
-          return s.spanId?.toString();
-        })
-        .filter((id: string | undefined): id is string => {
-          return Boolean(id);
-        }),
-    );
-
-    const rootSpans: Span[] = displaySpans.filter((span: Span) => {
-      const p: string | undefined = span.parentSpanId?.toString();
-      if (!p || p.trim() === "") {
-        return true; // explicit root
-      }
-      if (!allSpanIds.has(p)) {
-        return true; // orphan -> treat as root
-      }
-      return false;
-    });
-
-    // If still no roots (edge case), just treat first as root to avoid empty array.
-    const effectiveRootSpans: Span[] =
-      rootSpans.length > 0 ? rootSpans : [displaySpans[0]!];
-
-    let allRows: GanttChartRow[] = effectiveRootSpans.flatMap(
-      (rootSpan: Span) => {
-        return getRows({
-          rootSpan,
-          allSpans: displaySpans,
-          timelineStartTimeUnixNano,
-          divisibilityFactor: newDivisibilityFactor,
-        });
-      },
-    );
-
-    /*
-     * Fallback: If after building hierarchy we only have 1 row but many spans, the
-     * hierarchy likely failed (e.g., every span references a missing parent in a chain)
-     * or produced an unhelpful single path. Display a flat list so user can still see all.
-     */
-    if (allRows.length === 1 && displaySpans.length > 10) {
-      allRows = displaySpans.map((span: Span) => {
-        const telemetryService: Service | undefined = telemetryServices.find(
-          (service: Service) => {
-            return service._id?.toString() === span.primaryEntityId?.toString();
-          },
-        );
-        return {
-          rowInfo: {
-            id: ObjectID.generate().toString(),
-            title: <div className="truncate">{span.name || span.spanId}</div>,
-            description: telemetryService ? (
-              getRowDescription({ telemetryService, span })
-            ) : (
-              <></>
-            ),
-          },
-          bars: [
-            spanToBar({
-              span,
-              timelineStartTimeUnixNano,
-              divisibilityFactor: newDivisibilityFactor,
-            }),
-          ],
-          childRows: [],
-        } as GanttChartRow;
-      });
-    }
-
-    const displaySpanIds: Set<string> = new Set(
-      displaySpans
-        .map((span: Span) => {
-          return span.spanId?.toString();
-        })
-        .filter((id: string | undefined): id is string => {
-          return Boolean(id);
-        }),
-    );
-
-    // Combine highlight span IDs with critical path span IDs
-    let allHighlightSpanIds: string[] = highlightSpanIds.filter(
-      (spanId: string) => {
-        return displaySpanIds.has(spanId);
-      },
-    );
-
-    if (
-      criticalPathResult &&
-      criticalPathResult.criticalPathSpanIds.length > 0
-    ) {
-      const criticalPathIds: string[] =
-        criticalPathResult.criticalPathSpanIds.filter((spanId: string) => {
-          return displaySpanIds.has(spanId);
-        });
-      allHighlightSpanIds = [
-        ...new Set([...allHighlightSpanIds, ...criticalPathIds]),
-      ];
-    }
-
-    const highlightableSpanIds: string[] = allHighlightSpanIds;
-
-    const ganttChart: GanttChartProps = {
-      id: "chart",
-      selectedBarIds: selectedSpans,
-      rows: allRows,
-      onBarSelectChange(barIds: Array<string>) {
-        setSelectedSpans(barIds);
-      },
-      timeline: {
-        start: startTimeline,
-        end: Math.ceil(endTimeline / interval) * interval,
-        interval: interval,
-        intervalUnit: newDivisibilityFactor.intervalUnit,
-      },
-      highlightBarIds: highlightableSpanIds,
-    };
-
-    setGanttChart(ganttChart);
-  }, [displaySpans, selectedSpans, highlightSpanIds, criticalPathResult]);
-
-  if (isLoading && spans.length === 0) {
-    return <PageLoader isVisible={true} />;
   }
 
-  const hasBlockingError: boolean = Boolean(error && spans.length === 0);
-
-  if (hasBlockingError) {
-    return <ErrorMessage message={error!} />;
-  }
-
-  const showInlineError: boolean = Boolean(error && spans.length > 0);
-
-  /*
-   * Correlated-signals strip tabs. Profile only exists when the trace has
-   * profile samples (presence-gated); its label carries the sample count so
-   * the user knows what is behind the tab before opening it.
-   */
-  const signalTabs: Array<{
-    id: CorrelatedSignalTab;
+  const viewOptions: Array<{
+    value: TraceViewMode;
     label: string;
-    count: number | null;
+    hint?: string;
   }> = [
-    { id: "logs", label: "Logs", count: null },
-    { id: "exceptions", label: "Exceptions", count: null },
+    { value: "waterfall", label: "Waterfall" },
+    { value: "flamegraph", label: "Flame graph" },
+    { value: "servicemap", label: "Service map" },
     {
-      id: "metrics",
-      label: "Metrics",
-      count: metricsFetched ? traceMetricSeries.length : null,
+      value: "operations",
+      label: "Operations",
+      hint: operations.length.toLocaleString(),
     },
-    ...(profileSampleCount > 0
-      ? [
-          {
-            id: "profile" as CorrelatedSignalTab,
-            label: "Profile",
-            count: profileSampleCount,
-          },
-        ]
-      : []),
   ];
 
-  const serviceLegend: ReactElement = (
-    <div className="flex flex-wrap gap-2">
-      {servicesInTrace.length > 0 ? (
-        <button
-          type="button"
-          onClick={() => {
-            return setSelectedServiceIds([]);
-          }}
-          className={`group relative flex items-center space-x-1 rounded-md border text-[11px] font-medium px-2 py-1 transition-all backdrop-blur ${
-            selectedServiceIds.length === 0
-              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-              : "bg-white/60 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-white"
-          }`}
-        >
-          <span>All</span>
-          {selectedServiceIds.length > 0 ? (
-            <span className="inline-block rounded bg-black/10 px-1 text-[10px] font-semibold">
-              {servicesInTrace.length}
-            </span>
-          ) : (
-            <></>
-          )}
-        </button>
-      ) : (
-        <></>
-      )}
-      {servicesInTrace.map((service: Service) => {
-        const id: string = service._id!.toString();
-        const isSelected: boolean = selectedServiceIds.includes(id);
-        const counts: { total: number; error: number } | undefined =
-          serviceSpanStats[id];
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setSelectedServiceIds((prev: string[]): string[] => {
-                if (prev.includes(id)) {
-                  return prev.filter((p: string) => {
-                    return p !== id;
-                  });
-                }
-                return [...prev, id];
-              });
+  const renderView: () => ReactElement = (): ReactElement => {
+    if (viewMode === "flamegraph") {
+      return (
+        <div className="rounded-lg border border-gray-200 p-4">
+          <FlameGraph
+            spans={visibleSpanModels}
+            telemetryServices={servicesWithUnknown}
+            onSpanSelect={(spanId: string) => {
+              selectSpan(spanId);
             }}
-            title={
-              service.name +
-              (counts
-                ? ` – ${counts.total} span${counts.total !== 1 ? "s" : ""}`
-                : "")
+            selectedSpanId={selectedSpanId || undefined}
+          />
+        </div>
+      );
+    }
+
+    if (viewMode === "servicemap") {
+      return (
+        <div className="rounded-lg border border-gray-200 p-4">
+          <TraceServiceMap
+            spans={visibleSpanModels}
+            telemetryServices={servicesWithUnknown}
+            onSpanSelect={(spanId: string) => {
+              selectSpan(spanId);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (viewMode === "operations") {
+      return (
+        <TraceOperations
+          operations={operations}
+          serviceInfoById={serviceInfoById}
+          onSelectOperation={(operation: OperationSummary) => {
+            setSearchText(operation.name);
+            setViewMode("waterfall");
+            selectSpan(operation.slowestSpanId);
+          }}
+        />
+      );
+    }
+
+    return (
+      <TraceWaterfall
+        tree={tree}
+        rows={rows}
+        serviceInfoById={serviceInfoById}
+        selectedSpanId={selectedSpanId}
+        onSelectSpan={selectSpan}
+        onSetCollapsed={(spanId: string, isCollapsed: boolean) => {
+          setCollapsedIds((previous: Set<string>) => {
+            if (previous.has(spanId) === isCollapsed) {
+              return previous;
             }
-            className={`group relative flex items-center space-x-2 rounded-md border px-2 py-1 text-[11px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-indigo-500 ${
-              isSelected
-                ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-sm"
-                : "bg-white/60 border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300"
-            }`}
-          >
-            <span
-              className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10"
-              style={{
-                backgroundColor: String(
-                  (service.serviceColor as unknown as string) || "#6366f1",
-                ),
-              }}
-            />
-            <span className="truncate max-w-28">{service.name}</span>
-            {counts ? (
-              <span className="flex items-center space-x-1 text-[10px] font-semibold">
-                <span
-                  className={`px-1 rounded ${
-                    counts.error > 0
-                      ? "bg-red-100 text-red-600"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {counts.total}
-                </span>
-                {counts.error > 0 ? (
-                  <span className="px-1 rounded bg-rose-500/20 text-rose-600">
-                    {counts.error}
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </span>
-            ) : (
-              <></>
-            )}
-            {isSelected ? (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[9px] shadow ring-1 ring-white">
-                ✓
-              </span>
-            ) : (
-              <></>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
+            const next: Set<string> = new Set(previous);
+            if (isCollapsed) {
+              next.add(spanId);
+            } else {
+              next.delete(spanId);
+            }
+            return next;
+          });
+        }}
+        onExpandAll={() => {
+          setCollapsedIds(EMPTY_ID_SET);
+        }}
+        onCollapseAll={() => {
+          const collapsible: Set<string> = getCollapsibleSpanIds(tree);
+          // Keep the roots open so the reader still sees their children.
+          for (const root of tree.roots) {
+            collapsible.delete(root.span.spanId);
+          }
+          setCollapsedIds(collapsible);
+        }}
+        linkedSpanIds={linkedSpanIds}
+        criticalPathSpanIds={criticalPathSpanIds}
+        searchText={searchText}
+        viewport={viewport}
+        onViewportChange={setViewport}
+        revealRequest={revealRequest}
+        emptyMessage="No spans match the current filters."
+      />
+    );
+  };
 
   return (
-    <Fragment>
-      <div className="mb-8 space-y-6">
-        <Card
-          title={"Trace Explorer"}
-          description={
-            traceId ? (
-              <div className="inline-flex items-center flex-wrap gap-2">
-                <span className="font-medium text-gray-600">Trace ID:</span>
-                <code className="text-xs font-mono px-2 py-1 rounded bg-gray-100 text-gray-800 border border-gray-200">
-                  {traceId}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void navigator.clipboard
-                      .writeText(traceId)
-                      .then(() => {
-                        // Nothing to surface here; the copy simply succeeded.
-                      })
-                      .catch(() => {
-                        // Clipboard is unavailable — fail silently.
-                      });
-                  }}
-                  className="group relative inline-flex items-center space-x-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 shadow-sm transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-                  aria-label="Copy trace id"
-                >
-                  <span className="inline-block h-3 w-3 text-gray-500 group-hover:text-gray-700">
-                    📋
-                  </span>
-                  <span>Copy</span>
-                </button>
-              </div>
-            ) : (
-              "Traces for the request operation."
-            )
+    <div className="mb-8 space-y-4" data-testid="trace-explorer">
+      {tree.spanCount > 0 ? (
+        <TraceHeader
+          traceId={traceId}
+          summary={summary}
+          serviceInfoById={serviceInfoById}
+          services={serviceSummaries}
+          selectedServiceIds={selectedServiceIds}
+          onToggleService={toggleService}
+          onClearServices={() => {
+            setSelectedServiceIds([]);
+          }}
+          onShowErrors={() => {
+            setErrorsOnly(true);
+            if (viewMode === "operations") {
+              setViewMode("waterfall");
+            }
+          }}
+          isRefreshing={isRefreshing}
+          onRefresh={() => {
+            void loadTrace("refresh");
+          }}
+          shareUrl={shareUrl}
+          isCreatingPerformanceFix={isCreatingPerfFixTask}
+          performanceFixRoute={
+            perfFixRunId
+              ? RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                  { modelId: perfFixRunId },
+                )
+              : null
           }
-          buttons={[
-            {
-              ...getRefreshButton(),
-              className: "py-0 pr-0 pl-1 mt-1",
-              onClick: async () => {
-                await fetchItems();
-              },
-              disabled: isLoading,
-            },
-          ]}
+          performanceFixError={perfFixError}
+          onCreatePerformanceFix={() => {
+            void createPerformanceFixTask();
+          }}
+        />
+      ) : (
+        <div
+          className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center"
+          data-testid="trace-empty"
         >
-          {/* Summary Stats */}
-          <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
-                Spans
-              </div>
-              <div className="mt-1 text-lg font-semibold text-gray-800 flex items-baseline space-x-2">
-                <span>{spanStats.totalSpans.toLocaleString()}</span>
-                {hasMoreSpans ? (
-                  <span className="text-xs font-medium text-gray-500">
-                    of {totalSpanCount.toLocaleString()}
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
-                Errors
-              </div>
-              <div className="mt-1 text-lg font-semibold text-red-600 flex items-center space-x-1">
-                <span>{spanStats.errorSpans}</span>
-                {spanStats.errorSpans > 0 ? (
-                  <span className="text-[10px] font-medium bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
-                    {(
-                      (spanStats.errorSpans / (spanStats.totalSpans || 1)) *
-                      100
-                    ).toFixed(0)}
-                    %
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
-                Services
-              </div>
-              <div className="mt-1 text-lg font-semibold text-gray-800">
-                {spanStats.servicesCount}
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
-                Duration
-              </div>
-              <div className="mt-1 text-lg font-semibold text-gray-800">
-                {spanStats.durationString}
-              </div>
-            </div>
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
+            <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-500" />
           </div>
+          <h2 className="mt-3 text-base font-semibold text-gray-900">
+            No spans found for this trace
+          </h2>
+          <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+            Spans usually arrive within a minute of the request finishing.
+            Refresh to check again, or look for its logs below.
+          </p>
+          <p className="mt-2 font-mono text-xs text-gray-400">{traceId}</p>
+          <div className="mt-4 flex justify-center">
+            <Button
+              title="Refresh"
+              icon={IconProp.Refresh}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              isLoading={isRefreshing}
+              onClick={() => {
+                void loadTrace("refresh");
+              }}
+            />
+          </div>
+        </div>
+      )}
 
-          {/*
-            One quiet action: hand this trace's span tree to the server's
-            deterministic analyzer and, when a mechanical performance
-            pattern is found (N+1, dominant span, sequential siblings),
-            enqueue an AI performance-fix pull request (the FixPerformance
-            recipe). Rejections — including "no deterministic pattern
-            found" — surface inline: the button never pretends.
-          */}
-          <div className="mb-4">
-            {perfFixRunId ? (
-              <Alert
-                type={AlertType.SUCCESS}
-                strongTitle="Performance fix task created"
-                title={
-                  <span>
-                    AI will open a pull request grounded in this trace&apos;s
-                    span-tree evidence.{" "}
-                    <Link
-                      className="underline"
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                        { modelId: perfFixRunId },
-                      )}
-                    >
-                      View task progress
-                    </Link>
-                    .
-                  </span>
-                }
+      {tree.spanCount > 0 && (
+        <section
+          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+          data-testid="trace-spans"
+        >
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
+            {/* Four views do not fit a phone's width: let them scroll. */}
+            <div className="max-w-full overflow-x-auto">
+              <ExceptionSegmentedControl<TraceViewMode>
+                label="Trace view"
+                options={viewOptions}
+                value={viewMode}
+                onChange={setViewMode}
+                testId="trace-view"
               />
-            ) : (
-              <>
-                {perfFixError ? (
-                  <div className="mb-3">
-                    <Alert
-                      type={AlertType.DANGER}
-                      strongTitle="Could not create the performance fix task"
-                      title={<span>{perfFixError}</span>}
-                    />
-                  </div>
-                ) : (
-                  <></>
-                )}
-                <Button
-                  title="Fix performance with AI"
-                  icon={IconProp.Bolt}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  isLoading={isCreatingPerfFixTask}
-                  onClick={() => {
-                    createPerformanceFixTask().catch(() => {
-                      // handled inside createPerformanceFixTask
-                    });
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex min-w-0 flex-1 items-center sm:flex-none">
+                <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center">
+                  <Icon
+                    icon={IconProp.Search}
+                    className="h-4 w-4 text-gray-400"
+                  />
+                </span>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchText}
+                  placeholder="Search spans by name, ID or service"
+                  aria-label="Search spans"
+                  data-testid="trace-search"
+                  className={`w-full rounded-md border border-gray-300 py-1.5 pl-8 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-80 ${searchText.trim().length > 0 ? "pr-36" : "pr-8"}`}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchText(event.target.value);
+                  }}
+                  onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      goToMatch(event.shiftKey ? -1 : 1);
+                    } else if (event.key === "Escape") {
+                      setSearchText("");
+                    }
                   }}
                 />
-              </>
-            )}
+                <div className="absolute right-1.5 flex items-center gap-0.5">
+                  {searchText.trim().length > 0 ? (
+                    <>
+                      <span
+                        className="mr-1 whitespace-nowrap text-xs tabular-nums text-gray-500"
+                        data-testid="trace-search-count"
+                        aria-live="polite"
+                      >
+                        {matchIds.length > 0 &&
+                        selectedSpanId &&
+                        matchIds.includes(selectedSpanId)
+                          ? `${matchIds.indexOf(selectedSpanId) + 1} of ${matchCount}`
+                          : pluralize(matchCount, "match", "matches")}
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+                        aria-label="Previous match"
+                        disabled={matchCount === 0}
+                        onClick={() => {
+                          goToMatch(-1);
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.ChevronUp}
+                          className="h-3.5 w-3.5"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+                        aria-label="Next match"
+                        disabled={matchCount === 0}
+                        onClick={() => {
+                          goToMatch(1);
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.ChevronDown}
+                          className="h-3.5 w-3.5"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        aria-label="Clear search"
+                        onClick={() => {
+                          setSearchText("");
+                        }}
+                      >
+                        <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <kbd
+                      className="rounded border border-gray-200 bg-gray-50 px-1.5 font-sans text-[10px] text-gray-400"
+                      title="Press / to search"
+                    >
+                      /
+                    </kbd>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-pressed={errorsOnly}
+                data-testid="trace-errors-only"
+                disabled={summary.errorCount === 0 && !errorsOnly}
+                title={
+                  summary.errorCount === 0
+                    ? "No span in this trace has an error status"
+                    : "Show only spans with an error status"
+                }
+                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                  errorsOnly
+                    ? "border-red-300 bg-red-50 text-red-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+                onClick={() => {
+                  setErrorsOnly(!errorsOnly);
+                }}
+              >
+                <Icon icon={IconProp.Error} className="h-4 w-4" />
+                Errors only
+                <span
+                  className={`rounded-full px-1.5 text-xs tabular-nums ${errorsOnly ? "bg-red-100" : "bg-gray-100 text-gray-600"}`}
+                >
+                  {summary.errorCount.toLocaleString()}
+                </span>
+              </button>
+              {viewMode === "waterfall" && (
+                <button
+                  type="button"
+                  aria-pressed={showCriticalPath}
+                  data-testid="trace-critical-path"
+                  title="Highlight the chain of spans that determined how long the trace took"
+                  className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium ${
+                    showCriticalPath
+                      ? "border-gray-800 bg-gray-900 text-white"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                  onClick={() => {
+                    setShowCriticalPath(!showCriticalPath);
+                  }}
+                >
+                  <Icon icon={IconProp.Bolt} className="h-4 w-4" />
+                  Critical path
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-0.5">
-                {Object.values(TraceViewMode).map((mode: TraceViewMode) => {
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => {
-                        setViewMode(mode);
-                      }}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
-                        viewMode === mode
-                          ? "bg-white text-gray-800 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="Search spans by name, ID, or service..."
-                  value={spanSearchText}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setSpanSearchText(e.target.value);
-                  }}
-                  className="text-xs border border-gray-200 rounded-md px-3 py-1.5 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400"
-                />
-                {spanSearchText.length > 0 ? (
-                  <div className="absolute right-2 flex items-center space-x-1">
-                    <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                      {searchMatchCount} of {spans.length}
+          {(hasActiveFilter ||
+            (showCriticalPath && criticalPath && viewMode === "waterfall")) && (
+            <div
+              className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50/60 px-4 py-2 text-xs text-gray-600"
+              data-testid="trace-filter-summary"
+            >
+              {hasActiveFilter && (
+                <>
+                  <span className="font-medium text-gray-700">
+                    {pluralize(matchCount, "span")} of{" "}
+                    {tree.spanCount.toLocaleString()} match
+                  </span>
+                  {searchText.trim() && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-gray-200">
+                      Search: “{searchText.trim()}”
+                      <button
+                        type="button"
+                        aria-label="Remove search filter"
+                        className="text-gray-400 hover:text-gray-700"
+                        onClick={() => {
+                          setSearchText("");
+                        }}
+                      >
+                        <Icon icon={IconProp.Close} className="h-3 w-3" />
+                      </button>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSpanSearchText("");
-                      }}
-                      className="text-gray-400 hover:text-gray-600 text-xs"
-                    >
-                      x
-                    </button>
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
+                  )}
+                  {errorsOnly && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-gray-200">
+                      Errors only
+                      <button
+                        type="button"
+                        aria-label="Remove errors only filter"
+                        className="text-gray-400 hover:text-gray-700"
+                        onClick={() => {
+                          setErrorsOnly(false);
+                        }}
+                      >
+                        <Icon icon={IconProp.Close} className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedServiceIds.map((serviceId: string): ReactElement => {
+                    const service: TraceServiceInfo = getServiceInfo(
+                      serviceInfoById,
+                      serviceId,
+                    );
+                    return (
+                      <span
+                        key={serviceId}
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-gray-200"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-sm"
+                          style={{ backgroundColor: service.color }}
+                          aria-hidden="true"
+                        />
+                        {service.name}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${service.name} filter`}
+                          className="text-gray-400 hover:text-gray-700"
+                          onClick={() => {
+                            toggleService(serviceId);
+                          }}
+                        >
+                          <Icon icon={IconProp.Close} className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                    data-testid="trace-clear-filters"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </button>
+                </>
+              )}
+              {showCriticalPath && criticalPath && viewMode === "waterfall" && (
+                <span
+                  className={hasActiveFilter ? "sm:ml-auto" : ""}
+                  data-testid="trace-critical-path-summary"
+                >
+                  <span className="font-medium text-gray-800">
+                    Critical path:
+                  </span>{" "}
+                  {pluralize(criticalPath.criticalPathSpanIds.length, "span")} ·
+                  outlined in the waterfall; other spans are dimmed
+                </span>
+              )}
             </div>
+          )}
 
-            {/* Toolbar Row 2: Filters & Controls */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    return setShowErrorsOnly(false);
-                  }}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
-                    !showErrorsOnly
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  All Spans
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    return setShowErrorsOnly(true);
-                  }}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
-                    showErrorsOnly
-                      ? "bg-red-600 text-white border-red-600 shadow-sm"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <span>Errors Only</span>
-                  {spanStats.errorSpans > 0 ? (
-                    <span className="text-[10px] bg-white/20 rounded px-1">
-                      {spanStats.errorSpans}
+          {(loadState.hasMore || (error && spans.length > 0)) && (
+            <div
+              className="flex flex-col gap-2 border-b border-gray-200 bg-sky-50/60 px-4 py-2 text-xs text-sky-900 sm:flex-row sm:items-center sm:justify-between"
+              data-testid="trace-load-more"
+            >
+              {error && spans.length > 0 ? (
+                <span className="text-red-700" role="alert">
+                  {error}
+                </span>
+              ) : (
+                <span>
+                  Showing {loadState.loadedSpanCount.toLocaleString()} of{" "}
+                  {loadState.totalSpanCount.toLocaleString()} spans. Large
+                  traces load in batches; totals above cover the loaded spans.
+                </span>
+              )}
+              {loadState.hasMore && (
+                <div className="flex flex-none items-center gap-2">
+                  {isLoadingMoreSpans ? (
+                    <span className="inline-flex items-center gap-2 font-medium">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
+                      Loading spans…
                     </span>
                   ) : (
-                    <></>
-                  )}
-                </button>
-
-                {/* Critical Path Toggle */}
-                {viewMode === TraceViewMode.Waterfall ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCriticalPath((prev: boolean) => {
-                        return !prev;
-                      });
-                    }}
-                    className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
-                      showCriticalPath
-                        ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <span>Critical Path</span>
-                  </button>
-                ) : (
-                  <></>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-3 text-xs text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 rounded-full bg-rose-500" />
-                  <span>Error</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>OK</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 rounded-full bg-amber-500" />
-                  <span>Other</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Service Legend */}
-          {servicesInTrace.length > 0 ? (
-            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
-                  Services
-                </div>
-                {selectedServiceIds.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      return setSelectedServiceIds([]);
-                    }}
-                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-                  >
-                    Clear Filters
-                  </button>
-                ) : (
-                  <></>
-                )}
-              </div>
-              {serviceLegend}
-              {selectedServiceIds.length > 0 ? (
-                <div className="mt-3 text-[11px] text-gray-500 flex items-center space-x-2">
-                  <span>
-                    {selectedServiceIds.length} filter
-                    {selectedServiceIds.length > 1 ? "s" : ""} active
-                  </span>
-                  <span className="inline-block h-1 w-1 rounded-full bg-gray-300" />
-                  <span>
-                    {displaySpans.length} span
-                    {displaySpans.length !== 1 ? "s" : ""} shown
-                  </span>
-                </div>
-              ) : (
-                <></>
-              )}
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {showInlineError ? (
-            <div className="mb-4">
-              <ErrorMessage message={error!} />
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {hasMoreSpans ? (
-            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
-              <div className="text-xs text-amber-700 md:max-w-xl">
-                Showing {loadedSpanCount.toLocaleString()} of{" "}
-                {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer
-                responsive, spans load in batches; metrics and the chart
-                currently reflect the spans shown below.
-              </div>
-              <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                {isLoadingMoreSpans ? (
-                  <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                    <span>Loading spans...</span>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleShowNextSpans();
-                      }}
-                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
-                    >
-                      {`Show next ${nextPageDisplayCount.toLocaleString()} span${nextPageDisplayCount === 1 ? "" : "s"}`}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleShowAllSpans();
-                      }}
-                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
-                    >
-                      {`Show all remaining ${remainingSpanCount.toLocaleString()} span${remainingSpanCount === 1 ? "" : "s"}`}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : isShowingAllSpans ? (
-            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-              Showing all {totalSpanCount.toLocaleString()} spans.
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {/* Service Latency Breakdown */}
-          {serviceBreakdown.length > 1 ? (
-            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium mb-2">
-                Latency Breakdown by Service
-              </div>
-              <div className="space-y-1.5">
-                {serviceBreakdown.map((breakdown: ServiceBreakdown) => {
-                  const service: Service | undefined = telemetryServices.find(
-                    (s: Service) => {
-                      return s._id?.toString() === breakdown.primaryEntityId;
-                    },
-                  );
-                  const serviceName: string = service?.name || "Unknown";
-                  const serviceColor: string = String(
-                    (service?.serviceColor as unknown as string) || "#6366f1",
-                  );
-                  const percent: number = Math.min(
-                    breakdown.percentOfTrace,
-                    100,
-                  );
-
-                  return (
-                    <div
-                      key={breakdown.primaryEntityId}
-                      className="flex items-center space-x-2"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10 flex-shrink-0"
-                        style={{
-                          backgroundColor: serviceColor,
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-md border border-sky-200 bg-white px-2.5 py-1 font-medium text-sky-800 hover:bg-gray-50"
+                        data-testid="trace-load-next"
+                        onClick={() => {
+                          void loadMoreSpans(false);
                         }}
-                      />
-                      <span className="text-[11px] font-medium text-gray-700 w-24 truncate">
-                        {serviceName}
-                      </span>
-                      <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${Math.max(percent, 1)}%`,
-                            backgroundColor: serviceColor,
-                            opacity: 0.7,
+                      >
+                        Load{" "}
+                        {pluralize(
+                          loadState.nextBatchSize,
+                          "more span",
+                          "more spans",
+                        )}
+                      </button>
+                      {loadState.remainingSpanCount >
+                        loadState.nextBatchSize && (
+                        <button
+                          type="button"
+                          className="rounded-md border border-sky-200 bg-white px-2.5 py-1 font-medium text-sky-800 hover:bg-gray-50"
+                          data-testid="trace-load-all"
+                          onClick={() => {
+                            void loadMoreSpans(true);
                           }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-gray-500 w-20 text-right">
-                        {SpanUtil.getSpanDurationAsString({
-                          spanDurationInUnixNano: breakdown.selfTimeUnixNano,
-                          divisibilityFactor: divisibilityFactor,
-                        })}{" "}
-                        ({percent.toFixed(1)}%)
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {/* Critical Path Info */}
-          {showCriticalPath && criticalPathResult ? (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              <span className="font-medium">Critical Path:</span>{" "}
-              {criticalPathResult.criticalPathSpanIds.length} spans,{" "}
-              {SpanUtil.getSpanDurationAsString({
-                spanDurationInUnixNano:
-                  criticalPathResult.criticalPathDurationUnixNano,
-                divisibilityFactor: divisibilityFactor,
-              })}{" "}
-              of{" "}
-              {SpanUtil.getSpanDurationAsString({
-                spanDurationInUnixNano:
-                  criticalPathResult.totalTraceDurationUnixNano,
-                divisibilityFactor: divisibilityFactor,
-              })}{" "}
-              total trace duration (highlighted in waterfall)
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {/* Main Visualization */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            {viewMode === TraceViewMode.Waterfall ? (
-              <>
-                {ganttChart ? (
-                  <GanttChart chart={ganttChart} />
-                ) : (
-                  <div className="p-8">
-                    <ErrorMessage message={"No spans found"} />
-                  </div>
-                )}
-              </>
-            ) : viewMode === TraceViewMode.FlameGraph ? (
-              <div className="p-4">
-                <FlameGraph
-                  spans={displaySpans}
-                  telemetryServices={telemetryServices}
-                  onSpanSelect={(spanId: string) => {
-                    setSelectedSpans([spanId]);
-                  }}
-                  selectedSpanId={
-                    selectedSpans.length > 0 ? selectedSpans[0] : undefined
-                  }
-                />
-              </div>
-            ) : viewMode === TraceViewMode.ServiceMap ? (
-              <div className="p-4">
-                <TraceServiceMap
-                  spans={displaySpans}
-                  telemetryServices={telemetryServices}
-                  onSpanSelect={(spanId: string) => {
-                    setSelectedSpans([spanId]);
-                  }}
-                />
-              </div>
-            ) : (
-              <></>
-            )}
-          </div>
-        </Card>
-
-        {traceId ? (
-          <div className="mt-2 md:mt-5" id="trace-correlated-signals">
-            {/* Correlated signals: every other signal this trace touched. */}
-            <div className="mb-3 flex items-center space-x-1 rounded-lg bg-gray-100 p-0.5 w-fit">
-              {signalTabs.map(
-                (tab: {
-                  id: CorrelatedSignalTab;
-                  label: string;
-                  count: number | null;
-                }): ReactElement => {
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveSignalTab(tab.id);
-                      }}
-                      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                        activeSignalTab === tab.id
-                          ? "bg-white text-gray-800 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      {tab.count !== null ? (
-                        <span className="rounded bg-gray-200/70 px-1 text-[10px] font-semibold text-gray-500">
-                          {tab.count.toLocaleString()}
-                        </span>
-                      ) : (
-                        <></>
+                        >
+                          Load all{" "}
+                          {loadState.remainingSpanCount.toLocaleString()}
+                        </button>
                       )}
-                    </button>
-                  );
-                },
+                    </>
+                  )}
+                </div>
               )}
             </div>
+          )}
 
-            {activeSignalTab === "logs" ? (
-              <DashboardLogsViewer
-                id={"traces-logs-viewer"}
-                noLogsMessage="No logs found for this trace."
-                traceIds={[traceId]}
-                limit={LIMIT_PER_PROJECT}
-                enableRealtime={false}
-              />
-            ) : (
-              <></>
-            )}
-
-            {activeSignalTab === "exceptions" ? (
-              <ExceptionInstanceTable
-                title="Exceptions for this Trace"
-                description="Exception instances captured on this trace's spans."
-                query={{ traceId: traceId } as Query<ExceptionInstance>}
-                disableUrlState={true}
-              />
-            ) : (
-              <></>
-            )}
-
-            {activeSignalTab === "metrics" ? (
-              <Card
-                title="Metrics for this Trace"
-                description="Metric datapoints recorded by this trace's spans (exemplars), grouped by metric name."
-              >
-                {metricsLoading ? (
-                  <div className="flex h-32 items-center justify-center">
-                    <ComponentLoader />
-                  </div>
-                ) : metricsError ? (
-                  <ErrorMessage message={metricsError} />
-                ) : traceMetricSeries.length === 0 ? (
-                  <ErrorMessage message="No metric datapoints reference this trace." />
-                ) : (
-                  <div className="space-y-3">
-                    {metricLinkDroppedHints.length > 0 ? (
-                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                        Metric links open the explorer over this trace&apos;s
-                        time window (±{TRACE_METRIC_WINDOW_PADDING_MINUTES}{" "}
-                        min). Not carried over:{" "}
-                        {metricLinkDroppedHints.join(", ")}.
-                      </div>
-                    ) : (
-                      <></>
+          <div className="flex items-start gap-4 p-4">
+            <div className="min-w-0 flex-1">{renderView()}</div>
+            {selectedNode && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-gray-900/30 xl:hidden"
+                  aria-hidden="true"
+                  onClick={() => {
+                    setSelectedSpanId(null);
+                  }}
+                />
+                <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg overflow-hidden border-l border-gray-200 bg-white shadow-xl xl:sticky xl:inset-auto xl:top-4 xl:z-auto xl:h-[min(760px,calc(100vh-2rem))] xl:w-[420px] xl:max-w-none xl:flex-none xl:rounded-lg xl:border xl:shadow-none 2xl:w-[480px]">
+                  <TraceSpanPanel
+                    traceId={traceId}
+                    span={selectedNode.span}
+                    service={getServiceInfo(
+                      serviceInfoById,
+                      selectedNode.span.serviceId,
                     )}
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                      <table className="min-w-full divide-y divide-gray-200 text-xs">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-gray-500">
-                              Metric
-                            </th>
-                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-gray-500">
-                              Sampled Values
-                            </th>
-                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
-                              Min
-                            </th>
-                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
-                              Max
-                            </th>
-                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
-                              Spans
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
-                          {traceMetricSeries.map(
-                            (series: TraceMetricSeries): ReactElement => {
-                              const explorerUrl: URL | null =
-                                getMetricExplorerUrl(series.name);
-                              const sampledValues: string = series.points
-                                .slice(-MAX_SAMPLED_METRIC_VALUES)
-                                .map(
-                                  (
-                                    point: TraceCorrelatedMetricItem,
-                                  ): string => {
-                                    return formatTraceMetricValue(point.value);
-                                  },
-                                )
-                                .join(", ");
-                              return (
-                                <tr key={series.name}>
-                                  <td className="max-w-xs truncate px-3 py-2 font-mono text-gray-800">
-                                    {explorerUrl ? (
-                                      <Link
-                                        to={explorerUrl}
-                                        openInNewTab={true}
-                                        className="text-indigo-600 hover:text-indigo-700 hover:underline"
-                                        title={`Open ${series.name} in the metric explorer over this trace's window`}
-                                      >
-                                        {series.name}
-                                      </Link>
-                                    ) : (
-                                      <span title={series.name}>
-                                        {series.name}
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-gray-600">
-                                    {sampledValues}
-                                    {series.points.length >
-                                    MAX_SAMPLED_METRIC_VALUES ? (
-                                      <span className="ml-1 text-gray-400">
-                                        (of {series.points.length})
-                                      </span>
-                                    ) : (
-                                      <></>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
-                                    {formatTraceMetricValue(series.minValue)}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
-                                    {formatTraceMetricValue(series.maxValue)}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
-                                    {series.distinctSpanCount}
-                                  </td>
-                                </tr>
-                              );
-                            },
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            ) : (
-              <></>
-            )}
-
-            {activeSignalTab === "profile" && profileSampleCount > 0 ? (
-              <Card
-                title="Profile for this Trace"
-                description={`Flame graph built from the ${profileSampleCount.toLocaleString()} profile sample${profileSampleCount === 1 ? "" : "s"} recorded during this trace.`}
-              >
-                <TraceScopedFlamegraph traceId={traceId} />
-              </Card>
-            ) : (
-              <></>
+                    parentSpan={
+                      tree.parentById.has(selectedNode.span.spanId)
+                        ? tree.nodesById.get(
+                            tree.parentById.get(selectedNode.span.spanId)!,
+                          )!.span
+                        : null
+                    }
+                    parentService={
+                      tree.parentById.has(selectedNode.span.spanId)
+                        ? getServiceInfo(
+                            serviceInfoById,
+                            tree.nodesById.get(
+                              tree.parentById.get(selectedNode.span.spanId)!,
+                            )!.span.serviceId,
+                          )
+                        : null
+                    }
+                    childCount={selectedNode.children.length}
+                    selfTime={selfTimes.get(selectedNode.span.spanId)}
+                    traceStartUnixNano={tree.startTimeUnixNano}
+                    traceDurationUnixNano={tree.durationUnixNano}
+                    isOnCriticalPath={Boolean(
+                      criticalPathSpanIds?.has(selectedNode.span.spanId),
+                    )}
+                    onClose={() => {
+                      setSelectedSpanId(null);
+                    }}
+                    onSelectSpan={(spanId: string) => {
+                      selectSpan(spanId);
+                    }}
+                    onZoomToSpan={() => {
+                      setViewMode("waterfall");
+                      setViewport(
+                        getViewportForSpan({
+                          span: selectedNode.span,
+                          traceStartUnixNano: tree.startTimeUnixNano,
+                          traceDurationUnixNano: tree.durationUnixNano,
+                        }),
+                      );
+                    }}
+                  />
+                </div>
+              </>
             )}
           </div>
-        ) : (
-          <></>
-        )}
+        </section>
+      )}
 
-        {selectedSpans.length > 0 && spans.length > 0 ? (
-          (() => {
-            const selectedSpan: Span | undefined = spans.find((span: Span) => {
-              return span.spanId?.toString() === selectedSpans[0]!;
-            });
-
-            if (!selectedSpan) {
-              return <></>;
-            }
-
-            const telemetryService: Service | undefined =
-              telemetryServices.find((service: Service) => {
-                return (
-                  service._id?.toString() ===
-                  selectedSpan.primaryEntityId?.toString()
-                );
-              });
-
-            if (!telemetryService) {
-              return <></>;
-            }
-
-            return (
-              <SideOver
-                title="View Span"
-                description="View the span details."
-                onClose={() => {
-                  setSelectedSpans([]);
-                }}
-                size={SideOverSize.Large}
-              >
-                <SpanViewer
-                  id={"span-viewer"}
-                  openTelemetrySpanId={selectedSpans[0] as string}
-                  traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
-                  onClose={() => {
-                    setSelectedSpans([]);
-                  }}
-                  telemetryService={telemetryService}
-                  divisibilityFactor={divisibilityFactor}
-                  allTraceSpans={spans}
-                />
-              </SideOver>
-            );
-          })()
-        ) : (
-          <></>
-        )}
-      </div>
-    </Fragment>
+      <TraceSignals traceId={traceId} traceWindow={traceWindow} />
+    </div>
   );
 };
 

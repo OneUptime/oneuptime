@@ -543,6 +543,26 @@ export default class Transport {
    * was captured for), then the retry queue oldest-first. The page is going
    * away and nothing else will ever post those, so anything left over is an
    * acknowledged loss recorded as a dropped chunk.
+   *
+   * The SEALING frame itself is never the loss. When the last piece of a
+   * final flush cannot fit the quota on its own, its footage is dropped and
+   * an EMPTY frame is sent in its place: the same envelope, the same chunk
+   * index, payload "[]", with the dropped events added to droppedEvents.
+   * Dropping the whole frame, as this used to, meant a tab that was closed
+   * sent no request at all: the session never learned it had ended, sat in
+   * "Recording now" until the idle finalizer ran, and the sealing index was
+   * a hole in the chunk sequence.
+   *
+   * This is the BACKSTOP. The ordinary oversized seal - one indivisible
+   * event bigger than a keepalive request, such as a large DOM insertion
+   * right before the tab closed - is emptied by the chunker before any
+   * index is minted (Chunker.closeSplit), so the older pieces of the split
+   * keep the budget that piece could never use. What still reaches this is
+   * a piece that fits the chunker's payload budget but not once its
+   * envelope is added. Only a frame whose envelope says isFinal gets a
+   * stand-in; a non-final tail (a hidden tab's early flush, the only
+   * terminal flush that is not final now that every pagehide seals) seals
+   * nothing, so it is dropped and counted as before.
    */
   public sendTerminal(chunks: Array<TerminalChunk>): boolean {
     if (chunks.length === 0) {
@@ -579,18 +599,48 @@ export default class Transport {
     let totalBytes: number = 0;
     let dropped: number = 0;
 
-    /* Size of the sealing frame, for the diagnostics when it is the one lost. */
+    /*
+     * Size of the sealing frame as the split built it, for the diagnostics
+     * when it is the one that could not fit.
+     */
     let sealingBytes: number = 0;
+
+    /*
+     * Events whose sealing frame was over the quota and went out as an empty
+     * stand-in; null when the sealing frame went out whole (or was not a
+     * final one).
+     */
+    let emptiedSealingEvents: number | null = null;
 
     for (let index: number = 0; index < candidates.length; index++) {
       const candidate: TerminalChunk = candidates[index] as TerminalChunk;
-      const frame: PayloadBytes = Transport.buildIdentityFrame(
+      let frame: PayloadBytes = Transport.buildIdentityFrame(
         candidate.envelope,
         candidate.payload,
       );
 
+      /*
+       * Set only for the sealing frame, and only when it is replaced. The
+       * stand-in is an envelope and two bytes of payload, and the envelope
+       * is held under 8 KB by the server's own rule, so it always fits an
+       * empty request - but the diagnostics below are driven by what was
+       * actually selected, never by what was merely attempted.
+       */
+      let standInFor: number | null = null;
+
       if (index === 0) {
         sealingBytes = frame.length;
+
+        if (
+          candidate.envelope.isFinal &&
+          frame.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES
+        ) {
+          frame = Transport.buildIdentityFrame(
+            Transport.buildEmptySealingEnvelope(candidate.envelope),
+            "[]",
+          );
+          standInFor = candidate.envelope.eventCount;
+        }
       }
 
       if (
@@ -599,6 +649,10 @@ export default class Transport {
       ) {
         dropped++;
         continue;
+      }
+
+      if (standInFor !== null) {
+        emptiedSealingEvents = standInFor;
       }
 
       selected.push({
@@ -610,14 +664,45 @@ export default class Transport {
 
     this.droppedChunks += dropped;
 
+    /*
+     * The same code for both outcomes, because the loss it reports is the
+     * same kind - the footage of the last piece a page-exit flush tried to
+     * send - and the detail says which one happened: `sealed` is true when
+     * an empty final frame still went out in its place (the session is
+     * sealed and the index is not a hole), false when the tail was a
+     * non-final one and was dropped whole.
+     *
+     * The `sealed: false` message says exactly what that is now. Every
+     * pagehide seals, and a final tail always sends at least its stand-in,
+     * so nothing is selected only when a NON-final tail - the keepalive
+     * flush of a tab that was hidden - could not fit (its payload fits the
+     * budget, so its envelope pushed it over). The tab did not close: the
+     * session stays open, and the lost events are a gap in the middle of
+     * the recording, not a recording that ends early.
+     */
+    if (emptiedSealingEvents !== null) {
+      debugWarn(
+        "final-chunk-too-large",
+        "The final chunk was over the keepalive quota; its events were dropped and an empty final chunk sealed the session in its place.",
+        {
+          bytes: sealingBytes,
+          maxBytes: SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+          droppedEvents: emptiedSealingEvents,
+          droppedChunks: dropped,
+          sealed: true,
+        },
+      );
+    }
+
     if (selected.length === 0) {
       debugWarn(
         "final-chunk-too-large",
-        "The final chunk was over the keepalive quota and was dropped.",
+        "A non-final chunk sent as the tab was hidden was over the keepalive quota and was dropped; the session stays open with a gap.",
         {
           bytes: sealingBytes,
           maxBytes: SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
           droppedChunks: dropped,
+          sealed: false,
         },
       );
 
@@ -687,6 +772,50 @@ export default class Transport {
       this.droppedChunks += selected.length;
       return false;
     }
+  }
+
+  /*
+   * The envelope of the empty frame that seals a session in place of a
+   * final piece too large for the keepalive quota.
+   *
+   * Everything that makes it the SEALING frame is kept: the chunk index (so
+   * the sequence has no hole), isFinal, the meta the header is built from,
+   * the per-chunk signals, trace ids and routes the finalizer sums and
+   * unions, the fidelity notices. What changes is only what describes the
+   * footage it no longer carries:
+   *
+   *   eventCount       0, and those events are added to droppedEvents, the
+   *                    same disclosure every other drop path uses.
+   *   hasFullSnapshot  false: an empty chunk is no seek anchor.
+   *   offsets          both collapse to the END of the dropped piece. An
+   *                    empty chunk claims no span of footage, so the player
+   *                    does not draw one it cannot play; the end is kept
+   *                    because it is when the recording really stopped,
+   *                    which keeps the session's duration and is what the
+   *                    server's "has this tab ended" rule compares later
+   *                    chunks against. It is never earlier than the piece's
+   *                    own start, which is never earlier than the previous
+   *                    chunk's end, so start <= end and the sequence stays
+   *                    monotonic.
+   */
+  public static buildEmptySealingEnvelope(
+    envelope: SessionReplayChunkEnvelope,
+  ): SessionReplayChunkEnvelope {
+    const endOffsetMs: number = Math.max(
+      envelope.chunkStartOffsetMs,
+      envelope.chunkEndOffsetMs,
+    );
+
+    const sealing: SessionReplayChunkEnvelope = {
+      ...envelope,
+      chunkStartOffsetMs: endOffsetMs,
+      chunkEndOffsetMs: endOffsetMs,
+      eventCount: 0,
+      hasFullSnapshot: false,
+      droppedEvents: envelope.droppedEvents + envelope.eventCount,
+    };
+
+    return sealing;
   }
 
   private static buildIdentityFrame(

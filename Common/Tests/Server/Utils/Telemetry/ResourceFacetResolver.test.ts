@@ -1,6 +1,7 @@
 import ResourceFacetResolver, {
   RESOURCE_FACET_KEYS,
   ResolvedFacetValue,
+  ResourceFacetEntity,
 } from "../../../../Server/Utils/Telemetry/ResourceFacetResolver";
 import ServiceService from "../../../../Server/Services/ServiceService";
 import HostService from "../../../../Server/Services/HostService";
@@ -10,6 +11,13 @@ import KubernetesClusterService from "../../../../Server/Services/KubernetesClus
 import ServerlessFunctionService from "../../../../Server/Services/ServerlessFunctionService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import RumApplicationService from "../../../../Server/Services/RumApplicationService";
+import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
+import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
+import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
+import CephClusterService from "../../../../Server/Services/CephClusterService";
+import IoTFleetService from "../../../../Server/Services/IoTFleetService";
+import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
+import { SERVICE_FACET_KEYS } from "../../../../Types/Telemetry/ResourceEntityFacet";
 import ObjectID from "../../../../Types/ObjectID";
 import Search from "../../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
@@ -100,6 +108,41 @@ const SERVICES: Array<{
     facetKeys: ["rumApplicationId"],
     identifierField: "appIdentifier",
   },
+  /*
+   * Docker Swarm and Ceph join on `name` at ingest but carry a stable
+   * descriptive id (`swarmId` / `fsid`) that is searched too.
+   */
+  {
+    name: "DockerSwarmCluster",
+    service: DockerSwarmClusterService as any,
+    facetKeys: ["dockerSwarmClusterId"],
+    identifierField: "swarmId",
+  },
+  {
+    name: "CephCluster",
+    service: CephClusterService as any,
+    facetKeys: ["cephClusterId"],
+    identifierField: "fsid",
+  },
+  // `name` IS the ingest join key — no second column to search.
+  {
+    name: "ProxmoxCluster",
+    service: ProxmoxClusterService as any,
+    facetKeys: ["proxmoxClusterId"],
+    identifierField: null,
+  },
+  {
+    name: "VMwareVCenter",
+    service: VMwareVCenterService as any,
+    facetKeys: ["vmwareVCenterId"],
+    identifierField: null,
+  },
+  {
+    name: "IoTFleet",
+    service: IoTFleetService as any,
+    facetKeys: ["iotFleetId"],
+    identifierField: null,
+  },
 ];
 
 const spies: Map<string, FindBySpy> = new Map<string, FindBySpy>();
@@ -146,6 +189,11 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "serverlessFunctionId",
     "cloudResourceId",
     "rumApplicationId",
+    "dockerSwarmClusterId",
+    "proxmoxClusterId",
+    "vmwareVCenterId",
+    "cephClusterId",
+    "iotFleetId",
   ])("%s is a resource facet", (facetKey: string) => {
     expect(ResourceFacetResolver.isResourceFacet(facetKey)).toBe(true);
   });
@@ -158,12 +206,30 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "hostid",
     " hostId",
     "resource.host.name",
+    "constructor",
+    "__proto__",
+    "iotDeviceId",
+    "statusCode",
   ])("%j is not a resource facet", (facetKey: string) => {
     expect(ResourceFacetResolver.isResourceFacet(facetKey)).toBe(false);
   });
 
-  test("the exported key set has exactly the nine supported keys", () => {
-    expect(RESOURCE_FACET_KEYS.size).toBe(9);
+  test("the exported key set is the Services facet plus every catalog resource type", () => {
+    expect([...RESOURCE_FACET_KEYS]).toEqual([
+      ...SERVICE_FACET_KEYS,
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+  });
+
+  test.each([...RESOURCE_FACET_CATALOG_KEYS])(
+    "catalog key %s is a resource facet",
+    (facetKey: string) => {
+      expect(ResourceFacetResolver.isResourceFacet(facetKey)).toBe(true);
+    },
+  );
+
+  test("the exported key set has exactly the fourteen supported keys, each routed to a service", () => {
+    expect(RESOURCE_FACET_KEYS.size).toBe(14);
     const routed: Array<string> = SERVICES.flatMap(
       (entry: { facetKeys: Array<string> }) => {
         return entry.facetKeys;
@@ -410,6 +476,286 @@ describe("ResourceFacetResolver.resolve display names", () => {
       expect(byId.get(anonymous)).toBe("Unknown");
     });
   }
+});
+
+describe("ResourceFacetResolver name-only resource types", () => {
+  const NAME_ONLY: Array<{ name: string; facetKey: string }> = SERVICES.filter(
+    (entry: { name: string; identifierField: string | null }): boolean => {
+      return entry.identifierField === null && entry.name !== "Service";
+    },
+  ).map(
+    (entry: {
+      name: string;
+      facetKeys: Array<string>;
+    }): { name: string; facetKey: string } => {
+      return { name: entry.name, facetKey: entry.facetKeys[0]! };
+    },
+  );
+
+  test("covers Proxmox, vCenter and IoT fleet", () => {
+    expect(
+      NAME_ONLY.map((entry: { name: string }): string => {
+        return entry.name;
+      }).sort(),
+    ).toEqual(["IoTFleet", "ProxmoxCluster", "VMwareVCenter"]);
+  });
+
+  for (const entry of NAME_ONLY) {
+    test(`${entry.name} searches name alone with a trimmed plain Search and selects id + name`, async () => {
+      await ResourceFacetResolver.resolve(PROJECT_ID, [
+        {
+          facetKey: entry.facetKey,
+          counts: new Map<string, number>(),
+          searchText: "  prod-eu ",
+        },
+      ]);
+
+      const args: FindByArgs = lastArgs(entry.name);
+      const name: unknown = args.query["name"];
+      expect(name).toBeInstanceOf(Search);
+      expect(name).not.toBeInstanceOf(MultiSearch);
+      expect((name as Search<string>).value).toBe("prod-eu");
+      expect(args.query["projectId"]).toBe(PROJECT_ID);
+      expect(args.select).toEqual({ _id: true, name: true });
+      expect(args.props).toEqual({ isRoot: true });
+      expect(args.skip.toNumber()).toBe(0);
+      expect(args.limit.toNumber()).toBe(500);
+    });
+
+    test(`${entry.name} without search text is scoped to the project only`, async () => {
+      await ResourceFacetResolver.resolve(PROJECT_ID, [
+        { facetKey: entry.facetKey, counts: new Map<string, number>() },
+      ]);
+
+      expect(lastArgs(entry.name).query).toEqual({ projectId: PROJECT_ID });
+    });
+
+    test(`${entry.name} shows its name, or Unknown when it has none`, async () => {
+      const named: string = ObjectID.generate().toString();
+      const anonymous: string = ObjectID.generate().toString();
+
+      rowsByService.set(entry.name, [
+        { _id: named, name: "prod-eu" },
+        { _id: anonymous, name: "" },
+      ]);
+
+      const result: Record<
+        string,
+        Array<ResolvedFacetValue>
+      > = await ResourceFacetResolver.resolve(PROJECT_ID, [
+        {
+          facetKey: entry.facetKey,
+          counts: new Map<string, number>([[named, 3]]),
+        },
+      ]);
+
+      expect(result[entry.facetKey]).toEqual([
+        { value: named, count: 3, displayName: "prod-eu" },
+        { value: anonymous, count: 0, displayName: "Unknown" },
+      ]);
+    });
+  }
+});
+
+describe("ResourceFacetResolver.listEntities", () => {
+  test("lists each facet's rows without counts, keyed by facet", async () => {
+    const hostId: string = ObjectID.generate().toString();
+    const fleetId: string = ObjectID.generate().toString();
+    rowsByService.set("Host", [{ _id: hostId, name: "web-1" }]);
+    rowsByService.set("IoTFleet", [{ _id: fleetId, name: "sensors" }]);
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "hostId" },
+      { facetKey: "iotFleetId" },
+      { facetKey: "cephClusterId" },
+    ]);
+
+    expect(listed).toEqual({
+      hostId: [{ id: hostId, displayName: "web-1" }],
+      iotFleetId: [{ id: fleetId, displayName: "sensors" }],
+      cephClusterId: [],
+    });
+  });
+
+  test("keeps Postgres order — listing does not sort", async () => {
+    rowsByService.set("KubernetesCluster", [
+      { _id: "b", name: "zeta" },
+      { _id: "a", name: "alpha" },
+    ]);
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "kubernetesClusterId" },
+    ]);
+
+    expect(listed["kubernetesClusterId"]).toEqual([
+      { id: "b", displayName: "zeta" },
+      { id: "a", displayName: "alpha" },
+    ]);
+  });
+
+  test("drops rows without an id, so an empty list means nothing to count", async () => {
+    rowsByService.set("DockerSwarmCluster", [
+      { name: "no-id" },
+      { _id: "", name: "empty-id" },
+      { _id: null, name: "null-id" },
+    ]);
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "dockerSwarmClusterId" },
+    ]);
+
+    expect(listed["dockerSwarmClusterId"]).toEqual([]);
+  });
+
+  test("passes search text and limit through to the lookup", async () => {
+    await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "cephClusterId", searchText: " 9b2c ", limit: 42 },
+    ]);
+
+    const args: FindByArgs = lastArgs("CephCluster");
+    expect((args.query["name"] as MultiSearch).fields).toEqual([
+      "name",
+      "fsid",
+    ]);
+    expect((args.query["name"] as MultiSearch).value).toBe("9b2c");
+    expect(args.limit.toNumber()).toBe(42);
+  });
+
+  test("a failing lookup lists [] for that facet only", async () => {
+    const fleetId: string = ObjectID.generate().toString();
+    rowsByService.set("IoTFleet", [{ _id: fleetId, name: "sensors" }]);
+    spyFor("ProxmoxCluster").mockImplementation(async (): Promise<any> => {
+      throw new Error("postgres down");
+    });
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "proxmoxClusterId" },
+      { facetKey: "iotFleetId" },
+    ]);
+
+    expect(listed["proxmoxClusterId"]).toEqual([]);
+    expect(listed["iotFleetId"]).toEqual([
+      { id: fleetId, displayName: "sensors" },
+    ]);
+  });
+
+  test("an unknown key lists [] without touching any service", async () => {
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "severityText" },
+      { facetKey: "constructor" },
+    ]);
+
+    expect(listed).toEqual({ severityText: [], constructor: [] });
+    for (const entry of SERVICES) {
+      expect(spyFor(entry.name)).not.toHaveBeenCalled();
+    }
+  });
+
+  test("no specs lists nothing and queries nothing", async () => {
+    await expect(
+      ResourceFacetResolver.listEntities(PROJECT_ID, []),
+    ).resolves.toEqual({});
+    for (const entry of SERVICES) {
+      expect(spyFor(entry.name)).not.toHaveBeenCalled();
+    }
+  });
+
+  test("resolve is listEntities followed by mergeCounts", async () => {
+    rowsByService.set("VMwareVCenter", [
+      { _id: "1", name: "vc-b" },
+      { _id: "2", name: "vc-a" },
+    ]);
+    const counts: Map<string, number> = new Map<string, number>([["1", 9]]);
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "vmwareVCenterId" },
+    ]);
+    const resolved: Record<
+      string,
+      Array<ResolvedFacetValue>
+    > = await ResourceFacetResolver.resolve(PROJECT_ID, [
+      { facetKey: "vmwareVCenterId", counts },
+    ]);
+
+    expect(resolved["vmwareVCenterId"]).toEqual(
+      ResourceFacetResolver.mergeCounts(listed["vmwareVCenterId"]!, counts),
+    );
+  });
+});
+
+describe("ResourceFacetResolver.mergeCounts", () => {
+  test("attaches counts, defaults missing ones to 0 and sorts busiest first", () => {
+    expect(
+      ResourceFacetResolver.mergeCounts(
+        [
+          { id: "a", displayName: "quiet" },
+          { id: "b", displayName: "busy" },
+          { id: "c", displayName: "also-quiet" },
+        ],
+        new Map<string, number>([
+          ["b", 12],
+          ["ghost", 99],
+        ]),
+      ),
+    ).toEqual([
+      { value: "b", count: 12, displayName: "busy" },
+      { value: "c", count: 0, displayName: "also-quiet" },
+      { value: "a", count: 0, displayName: "quiet" },
+    ]);
+  });
+
+  test("never invents a value for a counted id that was not listed", () => {
+    expect(
+      ResourceFacetResolver.mergeCounts(
+        [],
+        new Map<string, number>([["ghost", 5]]),
+      ),
+    ).toEqual([]);
+  });
+
+  test("drops entities with an empty id", () => {
+    expect(
+      ResourceFacetResolver.mergeCounts(
+        [
+          { id: "", displayName: "blank" },
+          { id: "x", displayName: "kept" },
+        ],
+        new Map<string, number>(),
+      ),
+    ).toEqual([{ value: "x", count: 0, displayName: "kept" }]);
+  });
+
+  test("does not mutate the entity list it was given", () => {
+    const entities: Array<ResourceFacetEntity> = [
+      { id: "a", displayName: "zeta" },
+      { id: "b", displayName: "alpha" },
+    ];
+
+    ResourceFacetResolver.mergeCounts(entities, new Map<string, number>());
+
+    expect(entities).toEqual([
+      { id: "a", displayName: "zeta" },
+      { id: "b", displayName: "alpha" },
+    ]);
+  });
 });
 
 describe("ResourceFacetResolver.resolve count merge and ordering", () => {

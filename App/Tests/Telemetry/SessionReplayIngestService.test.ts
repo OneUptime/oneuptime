@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -306,6 +313,7 @@ import SessionReplayGateCache, {
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import SessionReplayHealthCounters from "Common/Server/Utils/SessionReplay/SessionReplayHealthCounters";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import logger from "Common/Server/Utils/Logger";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import SessionReplayScrubService from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import SessionReplayChunkStore from "../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore";
@@ -907,12 +915,44 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
   });
 
   /*
-   * Audit finding ingest-5. A request whose every frame asserts consent
-   * Unknown against a RequireExplicit policy used to be accepted (202) and
-   * dropped in the worker, where the recorder could never learn it.
+   * Audit finding ingest-5. A request with no Granted frame against a
+   * RequireExplicit policy used to be accepted (202) and dropped in the
+   * worker, where the recorder could never learn it. This includes a stale
+   * recorder still asserting NotRequired after the server policy changed.
    */
   describe("consent at the gate", () => {
-    test("is refused with a reason, and WITHOUT a stop", async () => {
+    test.each([
+      ["Unknown frames", ["Unknown", "Unknown"]],
+      ["NotRequired frames", ["NotRequired", "NotRequired"]],
+      ["mixed non-Granted frames", ["Unknown", "NotRequired"]],
+      ["a missing consent assertion", []],
+    ])(
+      "refuses %s with a reason, and WITHOUT a stop",
+      async (_description: string, consentStates: Array<string>) => {
+        getPolicyMock.mockResolvedValue(
+          buildPolicy({
+            consentMode: SessionReplayConsentMode.RequireExplicit,
+          }) as never,
+        );
+
+        const decision: SessionReplayGateDecision =
+          await SessionReplayIngestService.gateChunkRequest({
+            ...baseGateInput,
+            consentStates: consentStates,
+          });
+
+        expect(decision.outcome).toBe(SessionReplayGateOutcome.Refused);
+        expect(decision.directive).toBe("continue");
+        expect(decision.reason).toBe("consent-required");
+        /* Refused before any counter is charged. */
+        expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
+        expect(recordRefusalMock).toHaveBeenCalledWith(
+          expect.objectContaining({ reason: "consent-required" }),
+        );
+      },
+    );
+
+    test("a mixed batch with a Granted frame passes the gate", async () => {
       getPolicyMock.mockResolvedValue(
         buildPolicy({
           consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -922,30 +962,7 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
       const decision: SessionReplayGateDecision =
         await SessionReplayIngestService.gateChunkRequest({
           ...baseGateInput,
-          consentStates: ["Unknown", "Unknown"],
-        });
-
-      expect(decision.outcome).toBe(SessionReplayGateOutcome.Refused);
-      expect(decision.directive).toBe("continue");
-      expect(decision.reason).toBe("consent-required");
-      /* Refused before any counter is charged. */
-      expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
-      expect(recordRefusalMock).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "consent-required" }),
-      );
-    });
-
-    test("a mixed batch passes the gate; the worker drops the Unknown frames", async () => {
-      getPolicyMock.mockResolvedValue(
-        buildPolicy({
-          consentMode: SessionReplayConsentMode.RequireExplicit,
-        }) as never,
-      );
-
-      const decision: SessionReplayGateDecision =
-        await SessionReplayIngestService.gateChunkRequest({
-          ...baseGateInput,
-          consentStates: ["Unknown", "Granted"],
+          consentStates: ["Unknown", "NotRequired", "Granted"],
         });
 
       expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
@@ -1579,7 +1596,30 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     expect(submitMock).not.toHaveBeenCalled();
   });
 
-  test("FAILS CLOSED: an Unknown consent state is dropped when consent is required", async () => {
+  test.each<[SessionReplayChunkEnvelope["consentState"]]>([
+    ["Unknown"],
+    ["NotRequired"],
+  ])(
+    "FAILS CLOSED: a %s consent state is dropped when consent is required",
+    async (consentState: SessionReplayChunkEnvelope["consentState"]) => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, consentState }])),
+      );
+
+      expect(submitMock).not.toHaveBeenCalled();
+      expect(recordDropMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "consent-not-granted" }),
+      );
+    },
+  );
+
+  test("under explicit consent a mixed job stores only Granted frames", async () => {
     getPolicyMock.mockResolvedValue(
       buildPolicy({
         consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -1587,10 +1627,28 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     );
 
     await SessionReplayIngestService.processFromQueue(
-      buildJobData(buildBody([{ chunkIndex: 0, consentState: "Unknown" }])),
+      buildJobData(
+        buildBody([
+          { chunkIndex: 0, consentState: "Unknown" },
+          { chunkIndex: 1, consentState: "NotRequired" },
+          { chunkIndex: 2, consentState: "Granted" },
+        ]),
+      ),
     );
 
-    expect(submitMock).not.toHaveBeenCalled();
+    const storedChunks: Array<JSONObject> =
+      getSubmittedRows("RumSessionChunkV1");
+    expect(storedChunks).toHaveLength(1);
+    expect(storedChunks[0]?.["chunkIndex"]).toBe(2);
+    expect(recordDropMock).toHaveBeenCalledTimes(2);
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
   });
 
   test("an Unknown consent state is accepted when the app does not require consent", async () => {
@@ -2890,7 +2948,7 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
 
       expect(markChunkReceivedMock).not.toHaveBeenCalled();
       expect(recordDropMock).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "consent-unknown" }),
+        expect.objectContaining({ reason: "consent-not-granted" }),
       );
     });
 
@@ -3205,5 +3263,796 @@ describe("SessionReplayIngestService.processFromQueue - anonymous visitor id", (
     const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
 
     expect(header["visitorId"]).toBe("");
+  });
+});
+
+/*
+ * Ended tabs are registered for early finalization.
+ *
+ * github.com/OneUptime/oneuptime/issues/3642: after a user closed the tab,
+ * the sessions table kept saying "Recording now" for 10-15 minutes. The
+ * recorder DID send a final chunk on pagehide, but ingest registered it in
+ * replay:active:<projectId> exactly like any other chunk, so the finalizer
+ * could only notice the tab was gone by waiting out its 10-minute idle
+ * window on a 5-minute cron. The final chunk now also lands in
+ * replay:ended:<projectId>, under the same member and the SAME score, which
+ * is what the every-minute ended-session finalizer reads and compares.
+ */
+describe("SessionReplayIngestService.processFromQueue - ended tabs for early finalization", () => {
+  const ACTIVE_KEY: string = `replay:active:${PROJECT_ID.toString()}`;
+  const ENDED_KEY: string = `replay:ended:${PROJECT_ID.toString()}`;
+  const TTL_SECONDS: number = 6 * 60 * 60;
+
+  const SESSION_A: string = "a".repeat(32);
+  const SESSION_B: string = "c".repeat(32);
+  const SESSION_C: string = "d".repeat(32);
+
+  const loggerWarnMock: MockedFn = logger.warn as unknown as MockedFn;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    zaddMock.mockReset();
+    expireMock.mockReset();
+    saddMock.mockReset();
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  /*
+   * Undo the Date.now spy, and the per-test Redis failure implementations,
+   * so nothing here leaks into a describe added after this one.
+   */
+  afterEach(() => {
+    jest.restoreAllMocks();
+    zaddMock.mockReset();
+    expireMock.mockReset();
+    saddMock.mockReset();
+  });
+
+  /* Every ZADD made against one key, in call order. */
+  function getZaddCallsFor(key: string): Array<Array<unknown>> {
+    return zaddMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return call[0] === key;
+    });
+  }
+
+  /*
+   * The single ZADD against a key, decoded from its flat
+   * [score, member, score, member, ...] argument list. Fails the test if
+   * the key was written more than once, since one multi-member ZADD per
+   * key per job is part of the contract.
+   */
+  function getZaddedMembers(key: string): Map<string, number> {
+    const calls: Array<Array<unknown>> = getZaddCallsFor(key);
+
+    expect(calls).toHaveLength(1);
+
+    const args: Array<unknown> = calls[0]!.slice(1);
+    const members: Map<string, number> = new Map<string, number>();
+
+    expect(args.length % 2).toBe(0);
+
+    for (let i: number = 0; i < args.length; i += 2) {
+      expect(typeof args[i]).toBe("number");
+      expect(typeof args[i + 1]).toBe("string");
+      expect(members.has(args[i + 1] as string)).toBe(false);
+
+      members.set(args[i + 1] as string, args[i] as number);
+    }
+
+    return members;
+  }
+
+  /*
+   * Date.now() hands out a DIFFERENT value on every call, so a
+   * regression that stamps the ended set with its own Date.now() (rather
+   * than reusing the active ZADD's score) produces scores that disagree
+   * and fails the equality assertions, instead of passing by luck inside
+   * one millisecond.
+   */
+  function makeClockTickOnEveryRead(): void {
+    let now: number = 1_900_000_000_000;
+
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      now += 7;
+      return now;
+    });
+  }
+
+  function getWarnings(): Array<string> {
+    return loggerWarnMock.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((message: unknown): message is string => {
+        return typeof message === "string";
+      });
+  }
+
+  describe("which tabs are registered as ended", () => {
+    test("REGRESSION: a final chunk writes both sets, with an identical member and score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 7, tabId: "tab-1", isFinal: true }]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect([...active.keys()]).toEqual([member]);
+      expect([...ended.keys()]).toEqual([member]);
+      expect(ended.get(member)).toBe(active.get(member));
+    });
+
+    test("a single-chunk session that closes on chunk 0 is registered as ended", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, tabId: "tab-1", isFinal: true }]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("a non-final chunk writes only the active set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, tabId: "tab-1" },
+            { chunkIndex: 1, tabId: "tab-1" },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ACTIVE_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+      expect(zaddMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a mixed batch of sessions and tabs lists only the final ones as ended, all under one score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            /* Session A, tab 1: closed. */
+            { sessionId: SESSION_A, tabId: "tab-1", chunkIndex: 3 },
+            {
+              sessionId: SESSION_A,
+              tabId: "tab-1",
+              chunkIndex: 4,
+              isFinal: true,
+            },
+            /* Session A, tab 2: the same session still open in another tab. */
+            { sessionId: SESSION_A, tabId: "tab-2", chunkIndex: 9 },
+            /* Session B, one tab: closed. */
+            {
+              sessionId: SESSION_B,
+              tabId: "tab-3",
+              chunkIndex: 12,
+              isFinal: true,
+            },
+            /* Session C, one tab: still recording. */
+            { sessionId: SESSION_C, tabId: "tab-4", chunkIndex: 0 },
+          ]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+
+      expect([...active.keys()].sort()).toEqual(
+        [
+          `${SESSION_A}:tab-1`,
+          `${SESSION_A}:tab-2`,
+          `${SESSION_B}:tab-3`,
+          `${SESSION_C}:tab-4`,
+        ].sort(),
+      );
+      expect([...ended.keys()].sort()).toEqual(
+        [`${SESSION_A}:tab-1`, `${SESSION_B}:tab-3`].sort(),
+      );
+
+      /* Every member of both sets carries the one score of this job. */
+      const scores: Set<number> = new Set<number>([
+        ...active.values(),
+        ...ended.values(),
+      ]);
+
+      expect(scores.size).toBe(1);
+    });
+
+    test("an ended member is always also an active member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { sessionId: SESSION_A, tabId: "tab-1", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-2", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-3" },
+          ]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+
+      for (const member of getZaddedMembers(ENDED_KEY).keys()) {
+        expect(active.has(member)).toBe(true);
+      }
+    });
+
+    test("a tab's final chunk sent twice in one body is ONE ended member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 5, tabId: "tab-1", isFinal: true },
+            /* A catch-up request re-sending the same final chunk. */
+            { chunkIndex: 5, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 6, tabId: "tab-1", isFinal: true },
+          ]),
+        ),
+      );
+
+      /* getZaddedMembers itself fails on a repeated member. */
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(1);
+      expect(getZaddedMembers(ENDED_KEY).size).toBe(1);
+    });
+
+    test("two tabs sharing a session id are two ended members, not one", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 2, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 8, tabId: "tab-2", isFinal: true },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()].sort()).toEqual(
+        [`${SESSION_A}:tab-1`, `${SESSION_A}:tab-2`].sort(),
+      );
+    });
+
+    test("a re-delivered job re-registers the tab as ended under a fresh score", async () => {
+      makeClockTickOnEveryRead();
+
+      const jobData: SessionReplayIngestJobData = buildJobData(
+        buildBody([{ chunkIndex: 4, tabId: "tab-1", isFinal: true }]),
+      );
+
+      await SessionReplayIngestService.processFromQueue(jobData);
+
+      const firstScore: number = getZaddedMembers(ENDED_KEY).get(
+        `${SESSION_A}:tab-1`,
+      )!;
+
+      zaddMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(jobData);
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect(ended.get(member)).toBe(active.get(member));
+      expect(ended.get(member)).toBeGreaterThan(firstScore);
+    });
+  });
+
+  /*
+   * A tab that reached the per-session chunk cap.
+   *
+   * The recorder's truncation seal is minted index
+   * MAX_SESSION_REPLAY_CHUNKS_PER_SESSION, which the gate and the worker
+   * both refuse, and the recorder then shuts down, so closing the tab later
+   * sends nothing either. The chunk at the LAST PERMITTED index is the last
+   * row the tab will ever have, and the shared rule
+   * (Common/Utils/Rum/SessionReplayRecordingEnded) counts a tab that stored
+   * it as ended. Before this, such a tab had no ended member at all and kept
+   * "Recording now" for the whole idle window.
+   */
+  describe("a tab's last permitted chunk index is registered as ended", () => {
+    const LAST_PERMITTED_INDEX: number =
+      MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1;
+
+    test("REGRESSION: a NON-final chunk at the last permitted index writes both sets, with an identical member and score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-1" }]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect(LAST_PERMITTED_INDEX).toBe(479);
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...active.keys()]).toEqual([member]);
+      expect([...ended.keys()]).toEqual([member]);
+      expect(ended.get(member)).toBe(active.get(member));
+      expect(expireMock).toHaveBeenCalledWith(ENDED_KEY, TTL_SECONDS);
+    });
+
+    test("a non-final chunk one index short of it (478) writes only the active set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" }]),
+        ),
+      );
+
+      expect(LAST_PERMITTED_INDEX - 1).toBe(478);
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ACTIVE_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+    });
+
+    test("in one body, only the tab that reached the last permitted index is listed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" },
+            { chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-2" },
+            { chunkIndex: 12, tabId: "tab-3" },
+          ]),
+        ),
+      );
+
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(3);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-2`,
+      ]);
+    });
+
+    test("a tab whose last permitted chunk is also its final chunk is ONE ended member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" },
+            {
+              chunkIndex: LAST_PERMITTED_INDEX,
+              tabId: "tab-1",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      /* getZaddedMembers itself fails on a repeated member. */
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("the refused truncation seal past the cap does not stop the last permitted chunk beside it from being listed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-1" },
+            /* The recorder's disclosure chunk: dropped as session-chunk-cap. */
+            {
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+              tabId: "tab-1",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("a last-permitted-index chunk that was dropped is not listed", async () => {
+      (isSessionErased as jest.Mock).mockImplementation(((data: {
+        sessionId: string;
+      }): Promise<boolean> => {
+        return Promise.resolve(data.sessionId === SESSION_A);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              sessionId: SESSION_A,
+              chunkIndex: LAST_PERMITTED_INDEX,
+              tabId: "tab-1",
+            },
+            { sessionId: SESSION_B, chunkIndex: 3, tabId: "tab-2" },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+    });
+  });
+
+  /*
+   * Only final frames that became chunk rows are listed. A dropped one left
+   * nothing in ClickHouse for the finalizer to find, while the active
+   * registration keeps covering every frame, as it always has.
+   */
+  describe("a final frame that was dropped is not listed as ended", () => {
+    test("a consent-dropped final frame is left out, while a written one beside it is listed", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              sessionId: SESSION_A,
+              tabId: "tab-1",
+              isFinal: true,
+              consentState: "Unknown",
+            },
+            {
+              sessionId: SESSION_B,
+              tabId: "tab-2",
+              isFinal: true,
+              consentState: "Granted",
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_B}:tab-2`,
+      ]);
+      /* Unchanged: the active registration still names every frame. */
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(2);
+    });
+
+    test("a final frame over the per-session chunk cap is left out, and the ended set is not touched", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 3, tabId: "tab-1" },
+            {
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+              tabId: "tab-2",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ACTIVE_KEY)).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+    });
+
+    test("an incompletely scrubbed final frame is left out", async () => {
+      scrubEventsMock.mockResolvedValueOnce({
+        isComplete: false,
+        nodesVisited: 1,
+        stringsScrubbed: 0,
+        skippedOversizedStrings: 0,
+        skippedStructuralStrings: 0,
+        truncatedAtDepth: true,
+      } as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            /* Scrubbed first, and incomplete: dropped. */
+            { chunkIndex: 6, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 2, tabId: "tab-2" },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+    });
+
+    test("an erased session's final frame is left out", async () => {
+      (isSessionErased as jest.Mock).mockImplementation(((data: {
+        sessionId: string;
+      }): Promise<boolean> => {
+        return Promise.resolve(data.sessionId === SESSION_A);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { sessionId: SESSION_A, tabId: "tab-1", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-2", isFinal: true },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_B}:tab-2`,
+      ]);
+    });
+
+    test("a job whose every frame was dropped registers nothing at all", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(zaddMock).not.toHaveBeenCalled();
+      expect(expireMock).not.toHaveBeenCalled();
+      expect(saddMock).not.toHaveBeenCalled();
+    });
+
+    test("a rejected flush registers the final chunk in neither set", async () => {
+      const flushed: Promise<void> = Promise.reject(
+        new Error("clickhouse refused the insert"),
+      );
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+      submitMock.mockResolvedValue({ flushed: flushed } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).rejects.toThrow();
+
+      expect(zaddMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("key housekeeping", () => {
+    test("the TTL is refreshed on both keys, to the active set's TTL", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(expireMock).toHaveBeenCalledWith(ACTIVE_KEY, TTL_SECONDS);
+      expect(expireMock).toHaveBeenCalledWith(ENDED_KEY, TTL_SECONDS);
+      expect(expireMock).toHaveBeenCalledTimes(2);
+    });
+
+    test("the project is still added to the finalizer's index", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(saddMock).toHaveBeenCalledTimes(1);
+      expect(saddMock).toHaveBeenCalledWith(
+        "replay:active:projects",
+        PROJECT_ID.toString(),
+      );
+    });
+
+    /*
+     * The finalizer's project-index reconcile SCANs replay:active:* and
+     * reads every match as a project's active set, so the ended key must
+     * not live under that prefix.
+     */
+    test("the ended key is outside the replay:active: prefix", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      const writtenKeys: Array<unknown> = zaddMock.mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return call[0];
+        },
+      );
+
+      expect(writtenKeys).toEqual([ACTIVE_KEY, ENDED_KEY]);
+      expect(ENDED_KEY.startsWith("replay:active:")).toBe(false);
+    });
+
+    test("the active set is written before the ended set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(zaddMock.mock.invocationCallOrder).toHaveLength(2);
+      expect(zaddMock.mock.calls[0]![0]).toBe(ACTIVE_KEY);
+      expect(zaddMock.mock.calls[1]![0]).toBe(ENDED_KEY);
+    });
+  });
+
+  describe("best-effort: Redis failures never fail the job", () => {
+    test("a failed active ZADD is swallowed and logged, and no orphan ended member is written", async () => {
+      zaddMock.mockRejectedValueOnce(new Error("READONLY replica") as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The rows landed; only the registration was lost. */
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("could not register active sessions") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("a failed ended ZADD is swallowed and logged, and the active registration stands", async () => {
+      zaddMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("OOM command not allowed"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(getZaddCallsFor(ACTIVE_KEY)).toHaveLength(1);
+      expect(expireMock).toHaveBeenCalledWith(ACTIVE_KEY, TTL_SECONDS);
+      expect(saddMock).toHaveBeenCalledTimes(1);
+      /* The TTL refresh after the failed ZADD is skipped, not attempted. */
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("could not register ended sessions") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
+
+    /*
+     * The warning used to promise "finalized on the idle window instead".
+     * That is not what happens when the same session has another tab with a
+     * candidate: that tab's check reads THIS tab's rows too, and finalizes
+     * the session early once the grace (measured on the rows, not on Redis)
+     * has passed. An operator reading the log must not be misled about
+     * which path will pick the session up.
+     */
+    test("REGRESSION: the failed ended ZADD warning names both the other-tab path and the idle window", async () => {
+      zaddMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("OOM command not allowed"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      const endedWarnings: Array<string> = getWarnings().filter(
+        (message: string): boolean => {
+          return message.includes("could not register ended sessions");
+        },
+      );
+
+      expect(endedWarnings).toHaveLength(1);
+      expect(endedWarnings[0]).toContain("another tab of the same session");
+      expect(endedWarnings[0]).toContain("idle window");
+      expect(endedWarnings[0]).not.toContain("on the idle window instead");
+    });
+
+    test("a failed project-index SADD still lets the ended tab be listed", async () => {
+      saddMock.mockRejectedValueOnce(new Error("connection reset") as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The active member landed, so its ended twin may too. */
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(loggerWarnMock).toHaveBeenCalled();
+    });
+
+    test("a failed ended TTL refresh is swallowed too", async () => {
+      expireMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("timeout"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(1);
+    });
+
+    /*
+     * This used to return silently, leaving an operator with a stuck
+     * "Recording now" badge and nothing in the logs to explain it.
+     */
+    test("a disconnected Redis writes nothing and logs a warning naming the project and the sweep", async () => {
+      redisConnected = false;
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The recording itself is still written. */
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+
+      expect(zaddMock).not.toHaveBeenCalled();
+      expect(expireMock).not.toHaveBeenCalled();
+      expect(saddMock).not.toHaveBeenCalled();
+
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("Redis is not connected") &&
+            message.includes(PROJECT_ID.toString()) &&
+            message.includes("never-finalized sweep")
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("a disconnected Redis warns for a non-final chunk as well", async () => {
+      redisConnected = false;
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, tabId: "tab-1" }])),
+      );
+
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("Redis is not connected") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
   });
 });

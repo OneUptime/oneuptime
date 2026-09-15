@@ -22,6 +22,8 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
  *    entries no longer share a name (settings-setup-5);
  *  - the audit page's Viewed By filter is wired (settings-setup-9), the
  *    watched-time bucket matches the server (settings-setup-10);
+ *  - the policy card's model id is stable across renders and its Recording
+ *    pill reads health itself, not from a closure frozen at mount;
  *  - no Dashboard replay file imports a server service into the bundle.
  */
 
@@ -55,6 +57,75 @@ const INSTALL_PANEL: string = readSource(
 const PRIVACY_SUMMARY: string = readSource(
   "Components/SessionReplay/PrivacySummaryCard.tsx",
 );
+const GENERAL_RUM_SETTINGS_PATH: string = "Pages/Rum/View/Settings.tsx";
+const GENERAL_RUM_SETTINGS_PAGE: string = readSource(GENERAL_RUM_SETTINGS_PATH);
+
+function importSpecifierFor(
+  source: string,
+  importedIdentifier: string,
+): string | null {
+  const importStatements: Array<RegExpMatchArray> = Array.from(
+    source.matchAll(
+      new RegExp("import\\s+[\\s\\S]*?from\\s+[\"']([^\"']+)[\"'];", "g"),
+    ),
+  );
+  const matchingImport: RegExpMatchArray | undefined = importStatements.find(
+    (statement: RegExpMatchArray): boolean => {
+      return (statement[0] || "").includes(importedIdentifier);
+    },
+  );
+
+  return matchingImport?.[1] || null;
+}
+
+function resolveDashboardImport(
+  importerRelativePath: string,
+  importSpecifier: string,
+): string {
+  const importer: string = nodePath.join(DASHBOARD_SRC, importerRelativePath);
+  const unresolved: string = nodePath.resolve(
+    nodePath.dirname(importer),
+    importSpecifier,
+  );
+  const candidates: Array<string> = [
+    unresolved,
+    `${unresolved}.tsx`,
+    `${unresolved}.ts`,
+    nodePath.join(unresolved, "Index.tsx"),
+    nodePath.join(unresolved, "Index.ts"),
+  ];
+  const resolved: string | undefined = candidates.find((candidate: string) => {
+    return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
+  });
+
+  if (!resolved) {
+    throw new Error(
+      `Could not resolve ${importSpecifier} from ${importerRelativePath}`,
+    );
+  }
+
+  return resolved;
+}
+
+function generalRumSettingsImplementation(): string {
+  const componentName: string = "SessionReplayRetentionSettingsCard";
+  const importSpecifier: string | null = importSpecifierFor(
+    GENERAL_RUM_SETTINGS_PAGE,
+    componentName,
+  );
+
+  if (!importSpecifier) {
+    return GENERAL_RUM_SETTINGS_PAGE;
+  }
+
+  return `${GENERAL_RUM_SETTINGS_PAGE}\n${fs.readFileSync(
+    resolveDashboardImport(GENERAL_RUM_SETTINGS_PATH, importSpecifier),
+    "utf8",
+  )}`;
+}
+
+const GENERAL_RUM_SETTINGS_IMPLEMENTATION: string =
+  generalRumSettingsImplementation();
 
 /* The docs page the guide's per-step links point into. */
 const SESSION_REPLAY_DOC: string = nodePath.join(
@@ -117,7 +188,62 @@ function indexOfOrFail(haystack: string, needle: string): number {
   return index;
 }
 
+const BLOCK_COMMENT_PATTERN: RegExp = new RegExp("/\\*[\\s\\S]*?\\*/", "g");
+const LINE_COMMENT_PATTERN: RegExp = new RegExp("^\\s*//.*$", "gm");
+const DECLARATION_END_PATTERN: RegExp = new RegExp("\\n\\};?\\n");
+
+/* Code only: a comment explaining the old bug may name what it did. */
+function stripComments(source: string): string {
+  return source
+    .replace(BLOCK_COMMENT_PATTERN, "")
+    .replace(LINE_COMMENT_PATTERN, "");
+}
+
+/*
+ * One top-level declaration, from its opening to the "}" or "};" that closes
+ * it. Prettier indents everything inside a declaration, so the first brace on
+ * a line of its own is the closing one.
+ */
+function topLevelDeclaration(source: string, opening: RegExp): string {
+  const start: RegExpMatchArray | null = source.match(opening);
+
+  expect({ opening: opening.source, found: start !== null }).toEqual({
+    opening: opening.source,
+    found: true,
+  });
+
+  const rest: string = source.slice(start?.index ?? 0);
+  const end: RegExpMatchArray | null = rest.match(DECLARATION_END_PATTERN);
+
+  expect({ opening: opening.source, closed: end !== null }).toEqual({
+    opening: opening.source,
+    closed: true,
+  });
+
+  return rest.slice(0, (end?.index ?? rest.length) + (end?.[0].length ?? 0));
+}
+
 describe("Application replay settings page composition", () => {
+  test("general RUM Settings and Replay Policy bind the same dedicated retention field", () => {
+    const retentionFieldPattern: RegExp = new RegExp(
+      "field\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true\\s*,?\\s*\\}",
+      "g",
+    );
+    const generalBindings: Array<string> =
+      GENERAL_RUM_SETTINGS_IMPLEMENTATION.match(retentionFieldPattern) || [];
+    const replayPolicyBindings: Array<string> =
+      APP_SETTINGS_PAGE.match(retentionFieldPattern) || [];
+
+    /* Each surface has one editable field and one read-view field. */
+    expect(generalBindings).toHaveLength(2);
+    expect(replayPolicyBindings).toHaveLength(2);
+    expect(GENERAL_RUM_SETTINGS_PAGE).toMatch(
+      new RegExp(
+        "SessionReplayRetentionSettingsCard|sessionReplayRetentionInDays",
+      ),
+    );
+  });
+
   test("composes health -> policy -> privacy summary -> install test -> targeted capture, in that order", () => {
     const health: number = indexOfOrFail(
       APP_SETTINGS_PAGE,
@@ -229,6 +355,135 @@ describe("Application replay settings page composition", () => {
       "The session row - counts, signals, device - expires together with its footage",
     );
     expect(PRIVACY_SUMMARY).toContain("expires with it");
+  });
+});
+
+const PAGE_COMPONENT_OPENING: RegExp = new RegExp(
+  "const RumApplicationSessionReplaySettings\\s*:\\s*FunctionComponent<",
+);
+const PILL_OPENING: RegExp = new RegExp(
+  "export function EffectiveRecordingStatePill\\s*\\(",
+);
+/* Argument lists allow the trailing comma prettier adds when it breaks them. */
+const MODEL_ID_STRING_PATTERN: RegExp = new RegExp(
+  "const\\s+(\\w+)\\s*:\\s*string\\s*=\\s*Navigation\\.getLastParamAsString\\(\\s*1\\s*,?\\s*\\)",
+);
+/* Accepts React.useMemo and an omitted return type as well. */
+const MEMOIZED_MODEL_ID_PATTERN: RegExp = new RegExp(
+  "const\\s+modelId\\s*:\\s*ObjectID\\s*=\\s*(?:React\\.)?useMemo\\(\\s*\\(\\s*\\)\\s*(?::\\s*ObjectID\\s*)?=>\\s*" +
+    "(?:\\{\\s*return\\s+)?new\\s+ObjectID\\(\\s*(\\w+)\\s*,?\\s*\\)\\s*;?\\s*\\}?\\s*," +
+    "\\s*\\[([^\\]]*)\\]\\s*,?\\s*\\)",
+);
+const ON_ITEM_LOADED_LIFT_PATTERN: RegExp = new RegExp(
+  "onItemLoaded\\s*:\\s*\\(\\s*item\\s*:\\s*RumApplication\\s*,?\\s*\\)\\s*:\\s*void\\s*=>\\s*" +
+    "\\{\\s*setApplication\\(\\s*item\\s*,?\\s*\\)",
+);
+const RECORDING_FIELD_PATTERN: RegExp = new RegExp(
+  'field:\\s*\\{\\s*isSessionReplayEnabled:\\s*true\\s*\\},\\s*title:\\s*"Recording",\\s*fieldType:\\s*FieldType\\.Element,\\s*getElement:',
+);
+const NEXT_FIELD_PATTERN: RegExp = new RegExp("\\bfield:\\s*\\{");
+const DIAGNOSIS_IDENTIFIER_PATTERN: RegExp = new RegExp("\\bdiagnosis\\b");
+const PILL_ELEMENT_PATTERN: RegExp = new RegExp(
+  "<EffectiveRecordingStatePill\\s[\\s\\S]*?isApplicationEnabled=\\{\\s*item\\.isSessionReplayEnabled\\s*\\}[\\s\\S]*?/>",
+);
+const HEALTH_CALL_PATTERN: RegExp = new RegExp(
+  "useSessionReplayHealth\\(",
+  "g",
+);
+const PILL_HEALTH_PATTERN: RegExp = new RegExp(
+  "useSessionReplayHealth\\(\\s*props\\.rumApplicationId\\b",
+);
+const PILL_STATE_PATTERN: RegExp = new RegExp(
+  "describeEffectiveRecordingState\\(\\s*props\\.isApplicationEnabled\\s*,",
+);
+
+const APP_SETTINGS_CODE: string = stripComments(APP_SETTINGS_PAGE);
+
+/* Sliced per test, so a missing declaration fails the test, not the suite. */
+function pageComponentBody(): string {
+  return topLevelDeclaration(APP_SETTINGS_CODE, PAGE_COMPONENT_OPENING);
+}
+
+describe("Replay policy card does not reload in a loop", () => {
+  /*
+   * ModelDetail refetches when its modelId changes by identity. The page
+   * lifts every loaded row into state through onItemLoaded, so each load
+   * re-renders the page: an id built fresh in render handed the card a new
+   * ObjectID on every render and the card sat on its loading bar forever.
+   * The lift is pinned alongside the memo because it is what makes the memo
+   * load-bearing - neither may go on the belief the other covers it.
+   */
+  test("modelId is memoized on the route param, because onItemLoaded re-renders the page", () => {
+    const pageBody: string = pageComponentBody();
+
+    expect(pageBody).not.toContain("getLastParamAsObjectID");
+
+    const idString: RegExpMatchArray | null = pageBody.match(
+      MODEL_ID_STRING_PATTERN,
+    );
+
+    expect(idString?.[1]).toBeDefined();
+
+    const memo: RegExpMatchArray | null = pageBody.match(
+      MEMOIZED_MODEL_ID_PATTERN,
+    );
+
+    expect(memo).not.toBeNull();
+
+    const dependencies: Array<string> = (memo?.[2] ?? "")
+      .split(",")
+      .map((name: string): string => {
+        return name.trim();
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+
+    expect({ builtFrom: memo?.[1], dependencies }).toEqual({
+      builtFrom: idString?.[1],
+      dependencies: [idString?.[1]],
+    });
+
+    expect(pageBody).toMatch(ON_ITEM_LOADED_LIFT_PATTERN);
+  });
+
+  /*
+   * ModelDetail builds its field renderers once, at mount, before health has
+   * answered. A getElement that reads the page's diagnosis keeps that first
+   * (null) value, so the pill would read "project switch not checked yet"
+   * for the life of the page.
+   */
+  test("the Recording field renders EffectiveRecordingStatePill and reads no page-level diagnosis", () => {
+    const pageBody: string = pageComponentBody();
+    const field: RegExpMatchArray | null = pageBody.match(
+      RECORDING_FIELD_PATTERN,
+    );
+
+    expect(field).not.toBeNull();
+
+    const afterGetElement: string = pageBody.slice(
+      (field?.index ?? 0) + (field?.[0].length ?? 0),
+    );
+    const nextField: RegExpMatchArray | null =
+      afterGetElement.match(NEXT_FIELD_PATTERN);
+    const getElement: string = afterGetElement.slice(
+      0,
+      nextField?.index ?? afterGetElement.length,
+    );
+
+    expect(getElement).toMatch(PILL_ELEMENT_PATTERN);
+    expect(getElement).not.toMatch(DIAGNOSIS_IDENTIFIER_PATTERN);
+  });
+
+  test("the pill subscribes to health itself and the page component no longer does", () => {
+    const pageBody: string = pageComponentBody();
+    const pill: string = topLevelDeclaration(APP_SETTINGS_CODE, PILL_OPENING);
+
+    expect(pill).toMatch(PILL_HEALTH_PATTERN);
+    expect(pill).toMatch(PILL_STATE_PATTERN);
+
+    /* A page-level subscription re-rendered the page on every health poll. */
+    expect(pageBody.match(HEALTH_CALL_PATTERN)).toBeNull();
   });
 });
 
@@ -430,12 +685,14 @@ describe("Bundle hygiene", () => {
     const pageFiles: Array<string> = [
       "Pages/Rum/View/SessionReplaySettings.tsx",
       "Pages/Rum/View/SessionReplayAudit.tsx",
+      "Pages/Rum/View/SessionReplayHealth.tsx",
       "Pages/Rum/Settings/SessionReplay.tsx",
     ];
     const ownedComponents: Array<string> = [
       "useSessionReplayHealth.ts",
-      "RecordingHealthStrip.tsx",
       "RecordingHealthCard.tsx",
+      "RecordingHealthDashboard.tsx",
+      "RecordingHealthModel.ts",
       "RecorderDiagnosticsExplainer.ts",
       "SessionReplayInstallSnippet.tsx",
       "PrivacySummaryCard.tsx",

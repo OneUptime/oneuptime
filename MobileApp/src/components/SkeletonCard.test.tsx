@@ -1,8 +1,25 @@
 import React from "react";
-import { AccessibilityInfo, Animated } from "react-native";
+import { AccessibilityInfo, Animated, StyleSheet } from "react-native";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import SkeletonCard from "./SkeletonCard";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * The placeholder shown while a list or a detail screen is still fetching.
@@ -27,12 +44,27 @@ type Style = Record<string, unknown>;
 
 const LOADING_LABEL: string = "Loading content";
 
+/** The steady opacity the placeholder bars hold for reduce motion. */
+const STEADY_OPACITY: number = 0.8;
+
+function styleOf(element: Rendered): Style {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Style;
+}
+
 function loadingView(): Rendered {
   return screen.getByLabelText(LOADING_LABEL);
 }
 
+/**
+ * The layer that pulses. Only the placeholder bars fade; the card surface
+ * under them stays solid, so the pulse is read from the bars' layer.
+ */
+function pulseLayer(): Rendered {
+  return screen.getAllByTestId("skeleton-pulse")[0] as Rendered;
+}
+
 function opacityOf(element: Rendered): unknown {
-  return (element.props.style as Style).opacity;
+  return styleOf(element).opacity;
 }
 
 /**
@@ -45,12 +77,11 @@ function opacityOf(element: Rendered): unknown {
  */
 function textLineCount(): number {
   return screen.container.queryAll((node: Rendered) => {
-    const style: Style | undefined = node.props.style as Style | undefined;
-
-    if (!style) {
+    if (!node.props.style) {
       return false;
     }
 
+    const style: Style = styleOf(node);
     return style.height === 12 && typeof style.width === "string";
   }).length;
 }
@@ -68,6 +99,7 @@ describe("Announcing that something is loading", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    mockColorScheme = "light";
   });
 
   test("the card variant is a labelled progress indicator", async () => {
@@ -178,7 +210,7 @@ describe("The pulse and the reduce-motion setting", () => {
     await render(<SkeletonCard />);
 
     await waitFor(() => {
-      expect(opacityOf(loadingView())).toBe(0.5);
+      expect(opacityOf(pulseLayer())).toBe(STEADY_OPACITY);
     });
 
     expect(loop).not.toHaveBeenCalled();
@@ -186,15 +218,16 @@ describe("The pulse and the reduce-motion setting", () => {
 
   test("and it holds the placeholder at a steady, readable opacity instead", async () => {
     /*
-     * Not the 0.3 it starts at. Stillness is the point, but a placeholder that
-     * is also barely visible is a different accessibility problem.
+     * Not the resting value it starts at, and not the faint end of the pulse.
+     * Stillness is the point, but a placeholder that is also barely visible
+     * is a different accessibility problem.
      */
     answerReduceMotionWith(true);
 
     await render(<SkeletonCard variant="detail" />);
 
     await waitFor(() => {
-      expect(opacityOf(loadingView())).toBe(0.5);
+      expect(opacityOf(pulseLayer())).toBe(STEADY_OPACITY);
     });
   });
 
@@ -233,7 +266,7 @@ describe("The pulse and the reduce-motion setting", () => {
     await render(<SkeletonCard />);
 
     await waitFor(() => {
-      expect(opacityOf(loadingView())).toBe(0.5);
+      expect(opacityOf(pulseLayer())).toBe(STEADY_OPACITY);
     });
 
     expect(loop).not.toHaveBeenCalled();
@@ -249,5 +282,130 @@ describe("The pulse and the reduce-motion setting", () => {
     await waitFor(() => {
       expect(textLineCount()).toBe(2);
     });
+  });
+});
+
+describe("The placeholder has the shape of the card it stands in for", () => {
+  beforeEach(() => {
+    answerReduceMotionWith(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    mockColorScheme = "light";
+  });
+
+  test("the list card is a rounded, padded, bordered card like ResponseRow", async () => {
+    await render(<SkeletonCard />);
+
+    expect(loadingView()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    });
+  });
+
+  test("it leads with a status dot, like the row it stands in for", async () => {
+    await render(<SkeletonCard />);
+
+    const dots: Rendered[] = screen.container.queryAll((node: Rendered) => {
+      if (!node.props.style) {
+        return false;
+      }
+      const style: Style = styleOf(node);
+      return style.width === 10 && style.height === 10;
+    });
+    expect(dots.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("the surface stays solid while only the bars pulse", async () => {
+    /*
+     * Fading the whole card lets the canvas flicker through it, which in dark
+     * mode reads as a rendering fault rather than as loading.
+     */
+    await render(<SkeletonCard />);
+
+    await waitFor(() => {
+      expect(opacityOf(pulseLayer())).toBe(STEADY_OPACITY);
+    });
+    expect(opacityOf(loadingView())).toBeUndefined();
+  });
+
+  test("the compact variant keeps the same card surface", async () => {
+    await render(<SkeletonCard variant="compact" />);
+
+    expect(loadingView()).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+  });
+
+  test("the detail variant sits in the screen gutter and draws two cards", async () => {
+    await render(<SkeletonCard variant="detail" />);
+
+    expect(loadingView()).toHaveStyle({ padding: spacing.xl });
+    const cards: Rendered[] = screen.container.queryAll((node: Rendered) => {
+      if (!node.props.style) {
+        return false;
+      }
+      const style: Style = styleOf(node);
+      return (
+        style.borderRadius === radius.lg &&
+        style.backgroundColor === lightColors.backgroundElevated
+      );
+    });
+    expect(cards).toHaveLength(2);
+  });
+
+  test("bars use the default border token, which stays visible on a card", async () => {
+    await render(<SkeletonCard />);
+
+    const bars: Rendered[] = screen.container.queryAll((node: Rendered) => {
+      if (!node.props.style) {
+        return false;
+      }
+      return styleOf(node).backgroundColor === lightColors.borderDefault;
+    });
+    expect(bars.length).toBeGreaterThan(0);
+  });
+
+  test("in dark mode the surface and bars read from the dark palette", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <SkeletonCard />
+      </ThemeProvider>,
+    );
+
+    expect(loadingView()).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+      borderRadius: radius.lg,
+    });
+    const lightBars: Rendered[] = screen.container.queryAll(
+      (node: Rendered) => {
+        if (!node.props.style) {
+          return false;
+        }
+        const color: unknown = styleOf(node).backgroundColor;
+        return (
+          color === lightColors.borderDefault ||
+          color === lightColors.backgroundTertiary
+        );
+      },
+    );
+    expect(lightBars).toHaveLength(0);
+    const darkBars: Rendered[] = screen.container.queryAll((node: Rendered) => {
+      if (!node.props.style) {
+        return false;
+      }
+      return styleOf(node).backgroundColor === darkColors.borderDefault;
+    });
+    expect(darkBars.length).toBeGreaterThan(0);
   });
 });

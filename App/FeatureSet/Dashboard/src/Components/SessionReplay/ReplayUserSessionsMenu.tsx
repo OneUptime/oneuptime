@@ -14,6 +14,7 @@ import {
   ReplayUserSessionsKind,
   describeReplayUserSession,
 } from "./ReplayUserSessions";
+import { isSessionReplayRecordingLive } from "./SessionReplayPlayability";
 import { ReplayPill, ReplayToolButton } from "./ReplayUi";
 
 /*
@@ -306,13 +307,29 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       {isCurrent && (
                         <ReplayPill tone="accent">Watching</ReplayPill>
                       )}
-                      {!item.isFinalized && (
+                      {/*
+                       * Red and pulsing only while footage may still
+                       * arrive. A session whose every tab has closed is
+                       * over - the finalizer has yet to count it, which
+                       * is not something the viewer can watch happen - so
+                       * it gets the same dot, gray and still.
+                       */}
+                      {isSessionReplayRecordingLive(item) && (
                         <span
                           role="img"
                           aria-label="Recording now"
                           title="Still being recorded"
                           data-testid="replay-user-session-live"
                           className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-500"
+                        />
+                      )}
+                      {!item.isFinalized && item.hasRecordingEnded === true && (
+                        <span
+                          role="img"
+                          aria-label="Recording ended"
+                          title="Recording ended; still being finalized"
+                          data-testid="replay-user-session-ended"
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400"
                         />
                       )}
                       {item.errorCount > 0 && (

@@ -1,9 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  getAppearancePreference,
   getBiometricEnabled,
   getCriticalAlertsEnabled,
+  setAppearancePreference,
   setBiometricEnabled,
   setCriticalAlertsEnabled,
+  type AppearancePreference,
 } from "./preferences";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
@@ -66,5 +69,82 @@ describe("getCriticalAlertsEnabled", () => {
     await setBiometricEnabled(false);
 
     expect(await getCriticalAlertsEnabled()).toBe(true);
+  });
+});
+
+/*
+ * Settings -> Appearance. Absent means "follow the device", and so does any
+ * value this build does not recognise, so a newer build's value (or a
+ * half-written one) can never strand someone on a palette they did not pick.
+ */
+describe("appearance preference", () => {
+  const KEY: string = "oneuptime_appearance";
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  test("a fresh install follows the system", async () => {
+    expect(await getAppearancePreference()).toBe("system");
+  });
+
+  test.each(["light", "dark"] as Array<AppearancePreference>)(
+    "round-trips an explicit %s choice under its own key",
+    async (preference: AppearancePreference) => {
+      await setAppearancePreference(preference);
+
+      expect(await getAppearancePreference()).toBe(preference);
+      expect(await AsyncStorage.getItem(KEY)).toBe(preference);
+    },
+  );
+
+  test("the last explicit choice wins", async () => {
+    await setAppearancePreference("dark");
+    await setAppearancePreference("light");
+
+    expect(await getAppearancePreference()).toBe("light");
+  });
+
+  test('choosing "system" removes the stored value instead of saving it', async () => {
+    await setAppearancePreference("dark");
+    await setAppearancePreference("system");
+
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith(KEY);
+    expect(AsyncStorage.setItem).not.toHaveBeenCalledWith(KEY, "system");
+    expect(await getAppearancePreference()).toBe("system");
+  });
+
+  test('choosing "system" with nothing stored is harmless', async () => {
+    await setAppearancePreference("system");
+
+    expect(await getAppearancePreference()).toBe("system");
+  });
+
+  test.each(["sepia", "Dark", "LIGHT", "", "true", "system", " dark"])(
+    "an unrecognised stored value %p is read as system",
+    async (stored: string) => {
+      await AsyncStorage.setItem(KEY, stored);
+
+      expect(await getAppearancePreference()).toBe("system");
+    },
+  );
+
+  test("does not disturb the other preferences", async () => {
+    await setBiometricEnabled(true);
+    await setCriticalAlertsEnabled(true);
+    await setAppearancePreference("dark");
+    await setAppearancePreference("system");
+
+    expect(await getBiometricEnabled()).toBe(true);
+    expect(await getCriticalAlertsEnabled()).toBe(true);
+  });
+
+  test("the other preferences do not disturb it", async () => {
+    await setAppearancePreference("light");
+    await setBiometricEnabled(false);
+    await setCriticalAlertsEnabled(false);
+
+    expect(await getAppearancePreference()).toBe("light");
   });
 });

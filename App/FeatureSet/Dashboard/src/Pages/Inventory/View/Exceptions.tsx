@@ -14,6 +14,7 @@ const InventoryItemExceptions: FunctionComponent<
         return (
           <ExceptionsViewer
             entityKeysFilter={[signal.entityKey]}
+            entityKeyDisplays={signal.entityKeyDisplays}
             emptyMessage="No exceptions found for this inventory item."
           />
         );

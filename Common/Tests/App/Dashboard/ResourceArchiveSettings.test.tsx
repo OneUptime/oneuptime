@@ -336,12 +336,22 @@ test("RUM keeps application Settings separate from Session Replay policy", async
       href: resourceRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS),
     },
     {
+      title: "Health",
+      href: resourceRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH),
+    },
+    {
       title: "Replay Policy",
       href: resourceRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS),
     },
     {
       title: "Replay Access Log",
       href: resourceRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT),
+    },
+    {
+      title: "Documentation",
+      href: resourceRoute(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+      ),
     },
   ]);
 });

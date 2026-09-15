@@ -14,6 +14,7 @@ const InventoryItemProfiles: FunctionComponent<
         return (
           <ProfileTable
             entityKeys={[signal.entityKey]}
+            entityKeyDisplays={signal.entityKeyDisplays}
             noItemsMessage="No performance profiles found for this inventory item."
           />
         );

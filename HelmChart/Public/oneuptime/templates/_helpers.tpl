@@ -945,6 +945,26 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
       fieldPath: status.podIP
 {{- end }}
 
+{{/*
+Kubernetes identity for OneUptime's own telemetry. Without it the OpenTelemetry
+SDK only reports host.name — the pod hostname — so every pod that ever ran is
+catalogued as a separate "host". Usage:
+  include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "app"))
+*/}}
+{{- define "oneuptime.env.telemetryIdentity" }}
+{{- include "oneuptime.env.pod" . }}
+- name: POD_UID
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.uid
+- name: K8S_DEPLOYMENT_NAME
+  value: {{ .DeploymentName | quote }}
+{{- if .Values.openTelemetryExporter.kubernetesClusterName }}
+- name: K8S_CLUSTER_NAME
+  value: {{ .Values.openTelemetryExporter.kubernetesClusterName | quote }}
+{{- end }}
+{{- end }}
+
 
 
 {{- define "oneuptime.service" }}

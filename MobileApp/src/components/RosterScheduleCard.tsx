@@ -1,9 +1,19 @@
 import React from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import {
+  View,
+  Pressable,
+  ActivityIndicator,
+  type ViewStyle,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 import { formatShiftTime, formatTimeUntil } from "../utils/duration";
 import type { OnCallUserRef, ProjectOnCallScheduleItem } from "../api/types";
+import AppText from "./AppText";
+import Card from "./Card";
+import StatusPill from "./StatusPill";
 
 interface RosterScheduleCardProps {
   entry: ProjectOnCallScheduleItem;
@@ -17,6 +27,31 @@ export function displayNameForUser(user: OnCallUserRef | null): string {
   return user ? user.name || user.email || "Unnamed user" : "Nobody";
 }
 
+/**
+ * One or two letters for an avatar: the first letters of the first two words
+ * of a name, or the first character of an email address.
+ */
+export function getInitials(label: string): string {
+  const trimmed: string = label.trim();
+
+  if (!trimmed) {
+    return "?";
+  }
+
+  if (trimmed.includes("@") && !trimmed.includes(" ")) {
+    return trimmed.charAt(0).toUpperCase();
+  }
+
+  const words: string[] = trimmed.split(/\s+/).filter(Boolean);
+  return words
+    .slice(0, 2)
+    .map((word: string) => {
+      return word.charAt(0);
+    })
+    .join("")
+    .toUpperCase();
+}
+
 /** Current coverage and the next handoff remain separate, explicit facts. */
 export default function RosterScheduleCard({
   entry,
@@ -26,14 +61,13 @@ export default function RosterScheduleCard({
   isSharingCalendar = false,
 }: RosterScheduleCardProps): React.JSX.Element {
   const { theme } = useTheme();
+  const { colors } = theme;
   const schedule: ProjectOnCallScheduleItem["item"] = entry.item;
   const isCovered: boolean = Boolean(schedule.currentUserOnRoster);
   const isMe: boolean = Boolean(
     currentUserId && schedule.currentUserOnRoster?._id === currentUserId,
   );
-  const accent: string = isCovered
-    ? theme.colors.oncallActive
-    : theme.colors.severityWarning;
+  const currentName: string = displayNameForUser(schedule.currentUserOnRoster);
   const handoffLabel: string | null = formatTimeUntil(
     schedule.rosterHandoffAt,
     now,
@@ -44,29 +78,23 @@ export default function RosterScheduleCard({
   );
 
   return (
-    <View
+    <Card
       testID={`roster-card-${schedule._id}`}
-      style={{
-        borderRadius: 18,
-        padding: 18,
-        backgroundColor: theme.colors.backgroundElevated,
-        borderLeftWidth: isCovered ? 0 : 3,
-        borderLeftColor: accent,
-      }}
+      style={
+        isCovered
+          ? undefined
+          : { borderColor: withAlpha(colors.statusWarning, 0.45) }
+      }
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Text
-          style={{
-            flex: 1,
-            fontSize: 17,
-            fontWeight: "600",
-            lineHeight: 24,
-            letterSpacing: -0.2,
-            color: theme.colors.textPrimary,
-          }}
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
+      >
+        <AppText
+          variant="headline"
+          style={{ flex: 1, fontSize: 17, lineHeight: 23 }}
         >
           {schedule.name}
-        </Text>
+        </AppText>
         {onShareCalendar ? (
           <Pressable
             testID={`roster-share-${schedule._id}`}
@@ -82,152 +110,161 @@ export default function RosterScheduleCard({
             onPress={(): void => {
               onShareCalendar(entry);
             }}
-            style={({ pressed }: { pressed: boolean }) => {
+            style={({ pressed }: { pressed: boolean }): ViewStyle => {
               return {
-                width: 48,
-                height: 48,
-                borderRadius: 12,
+                width: touchTarget,
+                height: touchTarget,
+                borderRadius: radius.md,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: pressed
-                  ? theme.colors.backgroundTertiary
-                  : theme.colors.iconBackground,
+                  ? colors.backgroundTertiary
+                  : colors.cardAccent,
                 opacity: isSharingCalendar ? 0.6 : 1,
               };
             }}
           >
             {isSharingCalendar ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.actionPrimary}
-              />
+              <ActivityIndicator size="small" color={colors.actionPrimary} />
             ) : (
               <Ionicons
                 name="share-outline"
                 size={19}
-                color={theme.colors.actionPrimary}
+                color={colors.actionPrimary}
               />
             )}
           </Pressable>
         ) : null}
       </View>
+
       <View
+        testID={`roster-coverage-${schedule._id}`}
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          marginTop: 14,
+          gap: spacing.md,
+          marginTop: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.md,
+          backgroundColor: isCovered
+            ? colors.backgroundTertiary
+            : colors.statusWarningBg,
         }}
       >
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: isCovered
-              ? theme.colors.oncallActiveBg
-              : theme.colors.severityWarningBg,
+              ? colors.oncallActiveBg
+              : withAlpha(colors.statusWarning, theme.dark ? 0.2 : 0.14),
           }}
         >
-          <Ionicons
-            name={isCovered ? "person-outline" : "person-remove-outline"}
-            size={18}
-            color={accent}
-          />
+          {isCovered ? (
+            <AppText
+              variant="subhead"
+              weight="700"
+              color={colors.oncallActive}
+              accessible={false}
+            >
+              {getInitials(currentName)}
+            </AppText>
+          ) : (
+            <Ionicons
+              name="person-remove-outline"
+              size={18}
+              color={colors.statusWarning}
+            />
+          )}
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text
+        <View style={{ flex: 1, gap: spacing.xxs }}>
+          <View
             style={{
-              fontSize: 13,
-              lineHeight: 19,
-              color: theme.colors.textSecondary,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs + 2,
             }}
           >
-            On call now
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              lineHeight: 23,
-              fontWeight: "600",
-              color: isCovered ? theme.colors.textPrimary : accent,
-            }}
+            <View
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: isCovered
+                  ? colors.oncallActive
+                  : colors.statusWarning,
+              }}
+            />
+            <AppText
+              variant="caption"
+              color={isCovered ? colors.textSecondary : colors.statusWarning}
+            >
+              {isCovered ? "On call now" : "Coverage gap"}
+            </AppText>
+          </View>
+          <AppText
+            variant="headline"
+            color={isCovered ? colors.textPrimary : colors.statusWarning}
           >
-            {isCovered
-              ? displayNameForUser(schedule.currentUserOnRoster)
-              : "Nobody on call"}
-          </Text>
+            {isCovered ? currentName : "Nobody on call"}
+          </AppText>
         </View>
-        {isMe ? (
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: theme.colors.oncallActive,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 6,
-              backgroundColor: theme.colors.oncallActiveBg,
-            }}
-          >
-            YOU
-          </Text>
-        ) : null}
+        {isMe ? <StatusPill label="YOU" tone="success" size="sm" /> : null}
       </View>
+
       {handoffLabel || schedule.nextUserOnRoster ? (
-        <View
-          style={{
-            marginTop: 14,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.borderSubtle,
-            gap: 7,
-          }}
-        >
+        <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           {handoffLabel ? (
             <View
               style={{
                 flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                gap: 6,
+                alignItems: "center",
+                gap: spacing.xs + 2,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  lineHeight: 20,
-                  color: theme.colors.textSecondary,
-                }}
-              >
+              <Ionicons
+                name="log-out-outline"
+                size={15}
+                color={colors.textTertiary}
+              />
+              <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
                 Handoff
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  lineHeight: 20,
-                  fontWeight: "600",
-                  color: theme.colors.textPrimary,
-                  fontVariant: ["tabular-nums"],
-                }}
+              </AppText>
+              <AppText
+                variant="footnote"
+                weight="600"
+                style={{ fontVariant: ["tabular-nums"] }}
               >
                 {handoffLabel}
-              </Text>
+              </AppText>
             </View>
           ) : null}
           {schedule.nextUserOnRoster ? (
-            <Text
+            <View
               style={{
-                fontSize: 14,
-                lineHeight: 21,
-                color: theme.colors.textSecondary,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.xs + 2,
               }}
-            >{`Next: ${displayNameForUser(schedule.nextUserOnRoster)}${nextStartLabel ? ` · ${nextStartLabel}` : ""}`}</Text>
+            >
+              <Ionicons
+                name="arrow-forward-circle-outline"
+                size={15}
+                color={colors.textTertiary}
+                style={{ marginTop: 1 }}
+              />
+              <AppText
+                variant="footnote"
+                tone="secondary"
+                style={{ flex: 1 }}
+              >{`Next: ${displayNameForUser(schedule.nextUserOnRoster)}${nextStartLabel ? ` · ${nextStartLabel}` : ""}`}</AppText>
+            </View>
           ) : null}
         </View>
       ) : null}
-    </View>
+    </Card>
   );
 }

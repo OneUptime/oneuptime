@@ -131,7 +131,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "config-recorder-version-invalid": {
     explanation:
-      "The server named no published recorder version, so no artifact can load. This deployment does not build the recorder.",
+      "The server did not name exact lowercase latest as the recorder artifact, so no artifact can load.",
     isOutcome: true,
   },
   "config-accepted": { explanation: "The policy was accepted." },
@@ -142,7 +142,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   "config-value-unrecognised": {
     explanation:
       "This recorder build does not know a value the server sent and used the safest option instead. The recorder is older than the server.",
-    action: "A cached recorder refreshes within its cache window.",
+    action: "Reload the page so it fetches the latest recorder.",
   },
 
   /* ---- Index.ts ---- */
@@ -332,7 +332,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "final-chunk-too-large": {
     explanation:
-      "The final chunk was over the browser's keepalive quota and was dropped; the last seconds before the page closed are missing.",
+      "A chunk sent as the page went away was over the browser's keepalive quota. With sealed: true in the detail it was the final chunk: its events were dropped, so the last seconds before the page closed are missing, and an empty final chunk sealed the session in its place, so the session still ends with the tab instead of waiting for the idle timeout. With sealed: false it was not a final chunk: that chunk was dropped whole, nothing was sealed, and the session stays open with a gap where the chunk was.",
   },
   "final-flush-partial": {
     explanation:

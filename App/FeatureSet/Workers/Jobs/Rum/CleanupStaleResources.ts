@@ -1,8 +1,11 @@
 import RunCron from "../../Utils/Cron";
 import {
+  ConditionalMemberRemoval,
   SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
   SESSION_REPLAY_ACTIVITY_ABANDON_MS,
   getActiveSessionsKey,
+  getEndedSessionsKey,
+  removeActivityMembersIfNotNewer,
 } from "./FinalizeSessions";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
@@ -35,7 +38,11 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  *      path rather than through the finalizer. Left alone, the sorted set
  *      is an unbounded Redis leak on a Redis that runs with persistence
  *      off and (per the deployment docs) a noeviction policy — so the
- *      leak eventually refuses writes on the INGEST path.
+ *      leak eventually refuses writes on the INGEST path. The per-project
+ *      ended-session set (replay:ended:<projectId>) is reaped under the
+ *      same cutoff for the same reason. Every removal is conditional on
+ *      the score that was read, so an entry the ingest path refreshed in
+ *      the meantime survives.
  *
  * The two jobs are deliberately split by cutoff so they cannot fight over
  * the same entries: the finalizer owns everything newer than the abandon
@@ -61,6 +68,42 @@ const MAX_ABANDONED_MEMBERS_PER_PROJECT: number = 5000;
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/*
+ * The capped, oldest-first range of a sorted set at or below the cutoff,
+ * each member paired with the score it was read at - which is the threshold
+ * its conditional removal must not exceed.
+ */
+async function readMembersAtOrBefore(
+  client: ClientType,
+  key: string,
+  cutoffUnixMs: number,
+): Promise<Array<ConditionalMemberRemoval>> {
+  const membersWithScores: Array<string> = await client.zrangebyscore(
+    key,
+    "-inf",
+    cutoffUnixMs,
+    "WITHSCORES",
+    "LIMIT",
+    0,
+    MAX_ABANDONED_MEMBERS_PER_PROJECT,
+  );
+
+  const entries: Array<ConditionalMemberRemoval> = [];
+
+  for (
+    let index: number = 0;
+    index + 1 < membersWithScores.length;
+    index += 2
+  ) {
+    entries.push({
+      member: membersWithScores[index]!,
+      maxScore: Number(membersWithScores[index + 1]),
+    });
+  }
+
+  return entries;
 }
 
 export async function pruneAbandonedSessionActivity(): Promise<number> {
@@ -113,22 +156,64 @@ export async function pruneAbandonedSessionActivity(): Promise<number> {
        * run) and the reaped count has to be reportable, because a
        * non-zero count here means recordings were lost and that should be
        * visible in the logs rather than silent.
+       *
+       * The removal is conditional on the score read here. Between the read
+       * and the removal the ingest path can ZADD the same member again (the
+       * tab of a long-silent session sent a chunk after all), and a plain
+       * ZREM would delete that fresh entry: the session would then only be
+       * finalized by the hourly sweep, hours later, instead of by the
+       * finalizer's next run.
        */
-      const abandoned: Array<string> = await client.zrangebyscore(
-        activeKey,
-        "-inf",
-        cutoffUnixMs,
-        "LIMIT",
-        0,
-        MAX_ABANDONED_MEMBERS_PER_PROJECT,
-      );
+      const abandoned: Array<ConditionalMemberRemoval> =
+        await readMembersAtOrBefore(client, activeKey, cutoffUnixMs);
 
       if (abandoned.length > 0) {
-        removed += await client.zrem(activeKey, abandoned);
-
-        logger.warn(
-          `${JOB_NAME}: reaped ${abandoned.length} session activity entr(ies) older than ${Math.round(SESSION_REPLAY_ACTIVITY_ABANDON_MS / 60000)} minutes for project ${projectId}; the finalizer never got to them. Their headers are sealed by the finalizer's sweep; if this repeats every run, check whether Rum:FinalizeSessions is failing.`,
+        const reaped: number = await removeActivityMembersIfNotNewer(
+          client,
+          activeKey,
+          abandoned,
         );
+
+        removed += reaped;
+
+        if (reaped > 0) {
+          logger.warn(
+            `${JOB_NAME}: reaped ${reaped} session activity entr(ies) older than ${Math.round(SESSION_REPLAY_ACTIVITY_ABANDON_MS / 60000)} minutes for project ${projectId}; the finalizer never got to them. Their headers are sealed by the finalizer's sweep; if this repeats every run, check whether Rum:FinalizeSessions is failing.`,
+          );
+        }
+      }
+
+      /*
+       * The ended set (see the Redis contract in FinalizeSessions) gets the
+       * same abandon cutoff. Rum:FinalizeEndedSessions removes a candidate
+       * once its check has an answer, and keeps it only while the session is
+       * settling inside its one-minute grace or was deferred to the next
+       * run's budget. So one this old is a session whose check keeps
+       * THROWING (or whose settling never ends, which takes a clock skew of
+       * hours between the ingest and worker hosts), and would otherwise be
+       * retried every minute for as long as ingest keeps refreshing the
+       * key's TTL. Its activity entry went above
+       * (or will, under the same cutoff), so the sweep still seals it.
+       * Conditional for the same reason as above: a final chunk that lands
+       * in between re-queues the tab with a newer score.
+       */
+      const endedKey: string = getEndedSessionsKey(projectId);
+
+      const staleEnded: Array<ConditionalMemberRemoval> =
+        await readMembersAtOrBefore(client, endedKey, cutoffUnixMs);
+
+      if (staleEnded.length > 0) {
+        const reapedEnded: number = await removeActivityMembersIfNotNewer(
+          client,
+          endedKey,
+          staleEnded,
+        );
+
+        if (reapedEnded > 0) {
+          logger.debug(
+            `${JOB_NAME}: reaped ${reapedEnded} ended-session candidate(s) older than ${Math.round(SESSION_REPLAY_ACTIVITY_ABANDON_MS / 60000)} minutes for project ${projectId}.`,
+          );
+        }
       }
 
       const remaining: number = await client.zcard(activeKey);

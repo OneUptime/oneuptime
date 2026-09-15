@@ -8,7 +8,18 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { describe, expect, test, jest, beforeEach } from "@jest/globals";
+import {
+  DarkTheme,
+  DefaultTheme,
+  type Theme as NavigationTheme,
+} from "@react-navigation/native";
 import RootNavigator from "./RootNavigator";
+import {
+  ThemeProvider,
+  darkColors,
+  lightColors,
+  type ColorTokens,
+} from "../theme";
 import { AuthProvider, useAuth } from "../hooks/useAuth";
 import {
   login as apiLogin,
@@ -24,6 +35,29 @@ import {
 } from "../storage/ssoTokens";
 import { consumeInitialSsoCallbackUrl } from "../sso/deepLink";
 import { unregisterPushToken } from "../hooks/pushTokenUtils";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+/*
+ * What the NavigationContainer handed down, as the screen inside it sees it.
+ * The lock-screen stub publishes it on every render.
+ */
+const mockNavigationThemeProbe: { current: NavigationTheme | null } = {
+  current: null,
+};
 
 jest.mock("../hooks/useProject", () => {
   return {
@@ -115,6 +149,10 @@ jest.mock("../screens/BiometricLockScreen", () => {
     }: {
       onSuccess: () => void;
     }): React.JSX.Element {
+      const { useTheme: useNavigationTheme } = jest.requireActual(
+        "@react-navigation/native",
+      ) as { useTheme: () => NavigationTheme };
+      mockNavigationThemeProbe.current = useNavigationTheme();
       return ReactModule.createElement(
         TextComponent,
         { testID: "biometric-lock", onPress: onSuccess },
@@ -366,6 +404,8 @@ async function signInAsTheNextResponder(): Promise<void> {
 
 beforeEach(() => {
   authProbe.current = null;
+  mockSystemScheme = "light";
+  mockNavigationThemeProbe.current = null;
 
   /* A configured server, a stored session, nothing waiting from SSO. */
   hasServerUrlSpy().mockResolvedValue(true as never);
@@ -446,5 +486,80 @@ describe("RootNavigator with the biometric lock switched on", () => {
     await passTheLock();
 
     expect(screen.queryByTestId("biometric-lock")).toBeNull();
+  });
+});
+
+describe("The navigation theme RootNavigator provides", () => {
+  /*
+   * React Navigation paints its own chrome - native stack backgrounds, the
+   * card behind a pushed screen, the default header and tab colours - from
+   * this theme, not from ours. Left on DefaultTheme in dark mode, a push
+   * flashes a white card across a dark app, which at 3am is the brightest
+   * thing in the room.
+   */
+  async function renderThemedApp(
+    scheme: "light" | "dark",
+  ): Promise<NavigationTheme> {
+    mockSystemScheme = scheme;
+
+    await render(
+      <ThemeProvider>
+        <AuthProvider>
+          <AuthProbe />
+          <RootNavigator />
+        </AuthProvider>
+      </ThemeProvider>,
+    );
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("biometric-lock")).toBeTruthy();
+      expect(mockNavigationThemeProbe.current).not.toBeNull();
+    });
+
+    return mockNavigationThemeProbe.current as NavigationTheme;
+  }
+
+  function expectPaletteColours(
+    theme: NavigationTheme,
+    colors: ColorTokens,
+  ): void {
+    expect(theme.colors).toEqual({
+      primary: colors.actionPrimary,
+      background: colors.backgroundPrimary,
+      card: colors.backgroundSecondary,
+      text: colors.textPrimary,
+      border: colors.borderDefault,
+      notification: colors.severityCritical,
+    });
+  }
+
+  test("a light device gets a light navigation theme in the app's colours", async () => {
+    const theme: NavigationTheme = await renderThemedApp("light");
+
+    expect(theme.dark).toBe(false);
+    expectPaletteColours(theme, lightColors);
+    expect(theme.fonts).toEqual(DefaultTheme.fonts);
+  });
+
+  test("a dark device gets a dark navigation theme in the app's dark colours", async () => {
+    const theme: NavigationTheme = await renderThemedApp("dark");
+
+    expect(theme.dark).toBe(true);
+    expectPaletteColours(theme, darkColors);
+    expect(theme.fonts).toEqual(DarkTheme.fonts);
+    expect(theme.colors.background).not.toBe(DefaultTheme.colors.background);
+  });
+
+  test("without a ThemeProvider it falls back to the light theme", async () => {
+    await renderApp();
+
+    await waitFor((): void => {
+      expect(mockNavigationThemeProbe.current).not.toBeNull();
+    });
+
+    expect(mockNavigationThemeProbe.current?.dark).toBe(false);
+    expect(mockNavigationThemeProbe.current?.colors.background).toBe(
+      lightColors.backgroundPrimary,
+    );
   });
 });

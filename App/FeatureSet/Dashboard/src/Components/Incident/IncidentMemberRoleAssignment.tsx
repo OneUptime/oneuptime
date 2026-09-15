@@ -23,11 +23,14 @@ import UserUtil from "Common/UI/Utils/User";
 import Color from "Common/Types/Color";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   incidentId: ObjectID;
   className?: string;
   onMemberChange?: () => Promise<void>;
+  // "stacked" when the card sits in a narrow column; see Card.
+  headerLayout?: CardHeaderLayout | undefined;
 }
 
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
@@ -233,6 +236,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       onRefresh={fetchData}
       emptyStateMessage="Configure incident roles in Incidents > Settings > Roles to start assigning team members."
       className={props.className || ""}
+      headerLayout={props.headerLayout}
     />
   );
 };

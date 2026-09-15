@@ -13,6 +13,10 @@ export type MonitorEvaluationEventType =
   | "monitor-status-changed"
   | "probe-agreement";
 
+export type MonitorEvaluationCriteriaSkipCause =
+  | "disabled"
+  | "earlier-criterion-matched";
+
 export interface MonitorEvaluationFilterResult {
   checkOn: CheckOn;
   filterType?: FilterType | undefined;
@@ -30,6 +34,7 @@ export interface MonitorEvaluationCriteriaResult {
   filters: Array<MonitorEvaluationFilterResult>;
   skipped?: boolean | undefined;
   skipReason?: string | undefined;
+  skipCause?: MonitorEvaluationCriteriaSkipCause | undefined;
 }
 
 export interface MonitorEvaluationEvent {

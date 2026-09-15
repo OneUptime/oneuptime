@@ -1,10 +1,44 @@
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { StyleSheet } from "react-native";
+import { render, screen, within } from "@testing-library/react-native";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import FeedTimeline from "./FeedTimeline";
 import { makeColor, makeFeedItem } from "../__tests__/testSupport";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { withAlpha } from "../utils/color";
 import type { ColorField, FeedItem } from "../api/types";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 /*
  * The activity feed on every detail screen: who acknowledged what, when the
@@ -19,48 +53,25 @@ import type { ColorField, FeedItem } from "../api/types";
  */
 
 type Rendered = ReturnType<typeof screen.getByText>;
-type Style = Record<string, unknown>;
 
 const NO_TIMESTAMP: string = "—";
 
 /**
- * The coloured dots down the left-hand rail, one per entry.
- *
- * They carry neither text nor label, so the only handle on them is the shape
- * the component gives them; the fully-round border radius is what separates
- * them from every other small box on the card.
+ * The coloured dots down the left-hand rail, one per entry, in render order.
  */
 function dotColors(): string[] {
-  return screen.container
-    .queryAll((node: Rendered) => {
-      const style: Style | undefined = node.props.style as Style | undefined;
-
-      if (!style) {
-        return false;
-      }
-
-      return style.width === 10 && style.borderRadius === 9999;
-    })
-    .map((node: Rendered) => {
-      return (node.props.style as { backgroundColor: string }).backgroundColor;
-    });
+  return screen.queryAllByTestId("feed-entry-dot").map((node: Rendered) => {
+    return StyleSheet.flatten(node.props.style).backgroundColor as string;
+  });
 }
 
 /**
- * The hairlines joining one dot to the next. There should be one fewer of
- * these than there are entries: a rail that carries on past the last entry
- * reads as a feed that has more to show.
+ * The lines joining one dot to the next. There should be one fewer of these
+ * than there are entries: a rail that carries on past the last entry reads as
+ * a feed that has more to show.
  */
 function connectorCount(): number {
-  return screen.container.queryAll((node: Rendered) => {
-    const style: Style | undefined = node.props.style as Style | undefined;
-
-    if (!style) {
-      return false;
-    }
-
-    return style.width === 1 && style.flex === 1;
-  }).length;
+  return screen.queryAllByTestId("feed-entry-connector").length;
 }
 
 describe("A feed with entries in it", () => {
@@ -225,7 +236,7 @@ describe("The colour of an entry's dot", () => {
       <FeedTimeline feed={[makeFeedItem({ displayColor: undefined })]} />,
     );
 
-    expect(dotColors()).toEqual([darkColors.actionPrimary]);
+    expect(dotColors()).toEqual([lightColors.actionPrimary]);
   });
 
   test("a colour object with no channels in it falls back to neutral grey", async () => {
@@ -256,7 +267,7 @@ describe("The colour of an entry's dot", () => {
       />,
     );
 
-    expect(dotColors()).toEqual(["#dc2626", darkColors.actionPrimary]);
+    expect(dotColors()).toEqual(["#dc2626", lightColors.actionPrimary]);
   });
 });
 
@@ -289,5 +300,112 @@ describe("A feed with nothing in it", () => {
     await render(<FeedTimeline feed={[]} />);
 
     expect(screen.queryByText(NO_TIMESTAMP)).toBeNull();
+  });
+});
+
+describe("The shape of the timeline", () => {
+  test("entries render in the order the server sent them, newest first", async () => {
+    await render(
+      <FeedTimeline
+        feed={[
+          makeFeedItem({
+            _id: "feed-3",
+            feedInfoInMarkdown: "Resolved by Ada",
+          }),
+          makeFeedItem({
+            _id: "feed-2",
+            feedInfoInMarkdown: "Acknowledged by Grace",
+          }),
+          makeFeedItem({
+            _id: "feed-1",
+            feedInfoInMarkdown: "Incident created",
+          }),
+        ]}
+      />,
+    );
+
+    const entries: Rendered[] = screen.getAllByTestId("feed-entry");
+
+    expect(entries).toHaveLength(3);
+    expect(within(entries[0]).getByText("Resolved by Ada")).toBeTruthy();
+    expect(within(entries[1]).getByText("Acknowledged by Grace")).toBeTruthy();
+    expect(within(entries[2]).getByText("Incident created")).toBeTruthy();
+    expect(within(entries[0]).queryByText("Incident created")).toBeNull();
+  });
+
+  test("each dot sits on a soft halo of its own colour", async () => {
+    await render(
+      <FeedTimeline
+        feed={[
+          makeFeedItem({ displayColor: makeColor({ r: 34, g: 197, b: 94 }) }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-entry-halo")).toHaveStyle({
+      backgroundColor: withAlpha("#22c55e", 0.16),
+    });
+  });
+
+  test("the connecting line is a quiet hairline, not a second accent", async () => {
+    await render(
+      <FeedTimeline
+        feed={[
+          makeFeedItem({ _id: "feed-1" }),
+          makeFeedItem({ _id: "feed-2" }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-entry-connector")).toHaveStyle({
+      width: 2,
+      backgroundColor: lightColors.borderSubtle,
+    });
+  });
+
+  test("the time reads as relative first, with the full date beside it", async () => {
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.parse("2026-08-30T12:06:00.000Z"));
+
+    await render(
+      <FeedTimeline
+        feed={[makeFeedItem({ postedAt: "2026-08-30T10:06:00.000Z" })]}
+      />,
+    );
+
+    const time: Rendered = screen.getByTestId("feed-entry-time");
+    expect(String(time.props.children)).toMatch(/^2h ago · .*2026/);
+    expect(time).toHaveStyle({ color: lightColors.textTertiary });
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  test("the rail, times and fallback dot follow the dark palette", async () => {
+    await render(
+      <ThemeProvider>
+        <FeedTimeline
+          feed={[
+            makeFeedItem({ _id: "feed-1", displayColor: undefined }),
+            makeFeedItem({ _id: "feed-2" }),
+          ]}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(dotColors()[0]).toBe(darkColors.actionPrimary);
+    expect(screen.getByTestId("feed-entry-connector")).toHaveStyle({
+      backgroundColor: darkColors.borderSubtle,
+    });
+    expect(screen.getAllByTestId("feed-entry-time")[0]).toHaveStyle({
+      color: darkColors.textTertiary,
+    });
+    expect(screen.getAllByTestId("feed-entry-halo")[0]).toHaveStyle({
+      backgroundColor: withAlpha(darkColors.actionPrimary, 0.24),
+    });
   });
 });

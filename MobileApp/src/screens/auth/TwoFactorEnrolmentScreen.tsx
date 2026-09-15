@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Platform,
-  Linking,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../theme";
+import { View, Platform, Linking } from "react-native";
+import { radius, spacing, useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { LoginResponse } from "../../api/auth";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import AuthLayout, { AuthStep } from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthLink,
+  AuthNotice,
+  AuthStep,
+  AuthTextField,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
+import Card from "../../components/Card";
 import GradientButton from "../../components/GradientButton";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
@@ -58,6 +58,13 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
   const [code, setCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * Where the current error belongs. A link that no app could open is a step
+   * one problem and is shown beside the setup key; anything else is about the
+   * code, and outlines the code field.
+   */
+  const [isOpenError, setIsOpenError] = useState<boolean>(false);
   const [didOpenAuthenticator, setDidOpenAuthenticator] =
     useState<boolean>(false);
 
@@ -78,6 +85,7 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
        * interrupting the flow for -- the secret is printed below and can be
        * typed in by hand, which is the whole reason it is printed.
        */
+      setIsOpenError(true);
       setError(
         "No authenticator app on this device could open that link. Add the setup key below to your authenticator app instead.",
       );
@@ -89,10 +97,12 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
       return;
     }
     if (!code.trim()) {
+      setIsOpenError(false);
       setError("Enter the code your authenticator app is showing.");
       return;
     }
 
+    setIsOpenError(false);
     setError(null);
     setIsLoading(true);
 
@@ -131,6 +141,7 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
         mode: followUp === "show-codes" ? "show" : "offer",
       });
     } catch (err: unknown) {
+      setIsOpenError(false);
       setError(getFriendlyErrorMessage(err));
     } finally {
       setIsLoading(false);
@@ -148,10 +159,13 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
     navigation.navigate("Login");
   };
 
+  const codeError: string | null = error && !isOpenError ? error : null;
+
   return (
     <AuthLayout
       title="Protect your account"
       eyebrow="TWO-FACTOR SETUP"
+      icon="shield-checkmark-outline"
       compact
       description="Set up an authenticator in two steps to finish signing in securely."
     >
@@ -165,64 +179,71 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
         label="Add to Authenticator App"
         onPress={openInAuthenticator}
         icon="open-outline"
+        variant="tonal"
         disabled={!otpUrl}
+        style={authPrimaryButtonStyle}
       />
 
       {didOpenAuthenticator ? (
-        <Text
+        <AuthNotice
           testID="opened-authenticator-hint"
-          style={{
-            fontSize: 14,
-            marginTop: 10,
-            textAlign: "center",
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Come back here and enter the six digit code it is showing.
-        </Text>
+          tone="success"
+          icon="return-down-back"
+          live
+          message="Come back here and enter the six digit code it is showing."
+          style={{ marginTop: spacing.md }}
+        />
+      ) : null}
+
+      {error && isOpenError ? (
+        <AuthNotice
+          tone="danger"
+          message={error}
+          style={{ marginTop: spacing.md }}
+        />
       ) : null}
 
       {secret ? (
-        <View style={{ marginTop: 20 }}>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 8,
-              color: theme.colors.textSecondary,
-            }}
-          >
+        <Card
+          variant="outlined"
+          testID="enrolment-secret-card"
+          style={{ marginTop: spacing.lg, gap: spacing.sm }}
+        >
+          <AppText variant="subhead" weight="600" tone="secondary">
             Or add this setup key by hand
-          </Text>
+          </AppText>
           <View
             style={{
-              padding: 14,
-              borderRadius: 12,
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderDefault,
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.sm,
+              backgroundColor: theme.colors.backgroundTertiary,
             }}
           >
-            <Text
+            <AppText
               testID="enrolment-secret"
               selectable={true}
+              variant="headline"
+              align="center"
               style={{
-                fontSize: 16,
-                letterSpacing: 1.5,
+                letterSpacing: 2,
                 fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                color: theme.colors.textPrimary,
               }}
             >
               {secret}
-            </Text>
+            </AppText>
           </View>
-        </View>
+          <AppText variant="footnote" tone="secondary">
+            Press and hold the key to copy it. Choose a time-based key if your
+            app asks.
+          </AppText>
+        </Card>
       ) : null}
 
       <View
         style={{
-          marginTop: 24,
-          paddingTop: 16,
+          marginTop: spacing.xxl,
+          paddingTop: spacing.xl,
           borderTopWidth: 1,
           borderTopColor: theme.colors.borderSubtle,
         }}
@@ -232,116 +253,49 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
           title="Confirm the setup"
           description="Enter the current six-digit code from your authenticator app."
         />
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "600",
-            marginBottom: 8,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Code
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: theme.colors.borderDefault,
-          }}
-        >
-          <Ionicons
-            name="keypad-outline"
-            size={18}
-            color={theme.colors.textTertiary}
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
+        <View style={{ gap: spacing.xl }}>
+          <AuthTextField
             testID="enrolment-code-input"
+            containerTestID="enrolment-code-field"
+            variant="code"
+            label="Six-digit code"
             accessibilityLabel="Authenticator code"
             editable={!isLoading}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 24,
-              letterSpacing: 5,
-              color: theme.colors.textPrimary,
-            }}
+            errorMessage={codeError}
             value={code}
             onChangeText={(text: string) => {
               setCode(text);
               setError(null);
             }}
-            placeholder="123456"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholder="000000"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="number-pad"
             textContentType="oneTimeCode"
+            autoComplete="one-time-code"
             returnKeyType="go"
             onSubmitEditing={submit}
           />
-        </View>
 
-        {error ? (
-          <View
-            accessible
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-start",
-              marginTop: 12,
-            }}
-          >
-            <Ionicons
-              name="alert-circle"
-              size={14}
-              color={theme.colors.statusError}
-              style={{ marginRight: 6, marginTop: 2 }}
-            />
-            <Text
-              style={{
-                fontSize: 14,
-                flex: 1,
-                color: theme.colors.statusError,
-              }}
-            >
-              {error}
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={{ marginTop: 24 }}>
           <GradientButton
             label="Verify and Sign In"
             onPress={submit}
             loading={isLoading}
             disabled={isLoading}
+            style={authPrimaryButtonStyle}
           />
         </View>
       </View>
 
-      <TouchableOpacity
-        accessibilityRole="button"
-        testID="sign-in-as-different-user"
-        onPress={startOver}
-        disabled={isLoading}
-        style={{
-          marginTop: 12,
-          minHeight: 48,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-          Sign in as a different user
-        </Text>
-      </TouchableOpacity>
+      <View style={{ marginTop: spacing.md }}>
+        <AuthLink
+          label="Sign in as a different user"
+          tone="secondary"
+          testID="sign-in-as-different-user"
+          onPress={startOver}
+          disabled={isLoading}
+        />
+      </View>
     </AuthLayout>
   );
 }

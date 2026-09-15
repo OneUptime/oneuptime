@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,18 +88,28 @@ const DockerHostLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Container Logs"
-      description="Live OpenTelemetry logs from all containers on this Docker host. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
+      {/*
+       * The pinned attributes are machine values (hostIdentifier, runtime
+       * slug) that the filter must keep matching. The display overrides make
+       * the locked chips read "Docker Host: <name>" and "Runtime: docker"
+       * instead of raw OTel resource keys and the host's machine id.
+       */}
       <DashboardLogsViewer
         id={`docker-host-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.host.name": "Docker Host",
+          "resource.container.runtime": "Runtime",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier || "",
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No container logs found. Make sure the Docker agent's filelog receiver is configured and the collector is running."
       />
-    </Card>
+    </Fragment>
   );
 };
 

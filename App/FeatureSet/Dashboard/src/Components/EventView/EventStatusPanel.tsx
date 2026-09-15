@@ -26,6 +26,17 @@ export interface EventStateAction {
   id?: string | undefined;
 }
 
+/*
+ * A short "label value" pair shown under the header pills, e.g.
+ * { label: "Declared", value: "Sep 14, 18:01" } or
+ * { label: "Monitor", value: <Link ...>checkout-api</Link> }.
+ */
+export interface EventStatusFact {
+  label: string;
+  value: string | ReactElement;
+  icon?: IconProp | undefined;
+}
+
 export interface ComponentProps {
   states: Array<EventStateItem>; // ordered by state order.
   identifier?: string | undefined; // e.g. "INC-42", "#42" — shown at the start of the panel.
@@ -50,6 +61,12 @@ export interface ComponentProps {
   isDisabled?: boolean | undefined;
   /* Optional full-width context shown inside the titled header card. */
   headerNotice?: ReactElement | undefined;
+  /*
+   * Optional context facts for the titled header layout, rendered as one
+   * wrapping row below the pills. Facts with an empty value are skipped, so
+   * callers can pass optional ones without filtering first.
+   */
+  facts?: Array<EventStatusFact> | undefined;
 }
 
 const EventStatusPanel: FunctionComponent<ComponentProps> = (
@@ -273,6 +290,20 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     currentState || props.severity || props.isPrivate || props.durationStartsAt,
   );
 
+  const visibleFacts: Array<EventStatusFact> = (props.facts || []).filter(
+    (fact: EventStatusFact) => {
+      if (!fact || !fact.label) {
+        return false;
+      }
+
+      if (typeof fact.value === "string") {
+        return fact.value.trim().length > 0;
+      }
+
+      return Boolean(fact.value);
+    },
+  );
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       {props.title ? (
@@ -300,6 +331,34 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
               {metaItems}
             </div>
+          )}
+          {visibleFacts.length > 0 && (
+            <dl
+              data-testid="event-status-facts"
+              className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm"
+            >
+              {visibleFacts.map((fact: EventStatusFact, index: number) => {
+                return (
+                  <div
+                    key={`${fact.label}-${index}`}
+                    className="inline-flex min-w-0 max-w-full items-start gap-1.5"
+                  >
+                    <dt className="inline-flex flex-shrink-0 items-center gap-1.5 text-gray-500">
+                      {fact.icon && (
+                        <Icon
+                          icon={fact.icon}
+                          className="h-4 w-4 text-gray-400"
+                        />
+                      )}
+                      <span>{translateString(fact.label) || fact.label}</span>
+                    </dt>
+                    <dd className="min-w-0 break-words font-medium text-gray-900">
+                      {fact.value}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
           )}
           {props.headerNotice && (
             <div className="mt-3">{props.headerNotice}</div>

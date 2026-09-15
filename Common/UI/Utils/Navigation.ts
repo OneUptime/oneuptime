@@ -228,8 +228,23 @@ abstract class Navigation {
 
       let isOnThisPage: boolean = true;
 
-      const routeItems: Array<string> = route.toString().split("/");
-      const currentPathItems: Array<string> = current.toString().split("/");
+      /*
+       * React Router resolves `/page` and `/page/` to the same route. Match
+       * that behavior here so side-menu selection and the compact mobile
+       * label do not disappear when a bookmarked URL carries a trailing
+       * slash. Keep `/` intact so the root route still has a segment.
+       */
+      const trimTrailingSlashes: (path: string) => string = (
+        path: string,
+      ): string => {
+        return path.length > 1 ? path.replace(/\/+$/, "") : path;
+      };
+      const routeItems: Array<string> = trimTrailingSlashes(
+        route.toString(),
+      ).split("/");
+      const currentPathItems: Array<string> = trimTrailingSlashes(
+        current.toString(),
+      ).split("/");
       if (routeItems.length !== currentPathItems.length) {
         return false;
       }

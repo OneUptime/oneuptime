@@ -335,6 +335,8 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
 import GoogleSecOpsConnectionRunService from "./GoogleSecOpsConnectionRunService";
+import SecurityEventConnectionService from "./SecurityEventConnectionService";
+import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -766,6 +768,8 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   GoogleSecOpsConnectionService,
   GoogleSecOpsConnectionRunService,
+  SecurityEventConnectionService,
+  SecurityEventConnectionRunService,
   ThreatIntelFeedService,
   AlertNoteTemplateService,
   AlertFeedService,

@@ -647,6 +647,25 @@ const MESSAGE_BUCKETS: Array<MessageBucket> = [
     explains: /before Chronicle/i,
   },
   {
+    /*
+     * The created-time passes a poll runs first (legacySearchDetections
+     * and legacySearchCuratedDetections). Same shape as the alerts fetch
+     * buckets, reached earlier in a poll.
+     */
+    name: "Chronicle rejecting the detections search",
+    matches: /^Google SecOps detections search failed \(HTTP /,
+    side: "google",
+    quoted: "Google SecOps detections search failed (HTTP ...)",
+    explains: /Chronicle[^.]*reject/i,
+  },
+  {
+    name: "Chronicle answering the detections search with an unreadable body",
+    matches: /^Google SecOps detections search returned /,
+    side: "google",
+    quoted: "Google SecOps detections search returned ...",
+    explains: /Chronicle answered .?200/i,
+  },
+  {
     name: "Chronicle rejecting the alerts request",
     matches: /^Google SecOps alerts fetch failed \(HTTP /,
     side: "google",
@@ -869,14 +888,15 @@ describe("Every error prefix the guidance names is really produced", () => {
 
     /*
      * The lead's own claim, and the reason the taxonomy can key on the
-     * prefix at all: only two of the client's messages carry a status, so
-     * "no status" is not a discriminator worth reading anything into.
+     * prefix at all: only three of the client's messages carry a status
+     * (token exchange, detections search, alerts fetch), so "no status" is
+     * not a discriminator worth reading anything into.
      */
     test(`${guidance.name} says how many prefixes carry a status, correctly`, () => {
-      expect(clientHttpErrorTemplates.length).toBe(2);
-      expect(new Set(httpErrorPrefixes).size).toBe(2);
+      expect(clientHttpErrorTemplates.length).toBe(3);
+      expect(new Set(httpErrorPrefixes).size).toBe(3);
       expect(guidance.lastError).toMatch(
-        /only two prefixes carry an HTTP status/i,
+        /only three prefixes carry an HTTP status/i,
       );
     });
 
@@ -990,6 +1010,33 @@ describe("Every error prefix the guidance names is really produced", () => {
   test("the alerts fetch really is the Chronicle request", () => {
     expect(fetchDetectionAlertsBody).toContain(alertsFetchPrefix);
     expect(fetchDetectionAlertsBody).not.toContain(tokenExchangePrefix);
+  });
+
+  /*
+   * The detections search is the third HTTP prefix and the first Chronicle
+   * request a poll makes; it too builds the Chronicle URL only after the
+   * token exchange has been awaited.
+   */
+  test("the detections search really is a Chronicle request made after the token exchange", () => {
+    const searchDetectionsBody: string = sliceBetween(
+      clientSource,
+      "public async searchDetections(",
+      "private clearCachedAccessToken(",
+    );
+    const searchPrefix: string = httpErrorPrefixes.find(
+      (prefix: string): boolean => {
+        return searchDetectionsBody.includes(prefix);
+      },
+    ) as string;
+
+    expect(searchPrefix).toBeTruthy();
+    expect(searchPrefix).not.toBe(tokenExchangePrefix);
+    expect(searchPrefix).not.toBe(alertsFetchPrefix);
+    expect(
+      searchDetectionsBody.indexOf("await this.getAccessToken()"),
+    ).toBeLessThan(searchDetectionsBody.indexOf("this.getApiBaseUrl()"));
+    expect(searchDetectionsBody).toContain("legacySearchDetections");
+    expect(searchDetectionsBody).toContain("legacySearchCuratedDetections");
   });
 
   /*
@@ -1359,4 +1406,82 @@ describe('"Never" really means the poll was never attempted', () => {
       "**Last Polled: Never** means the poll job has not run for this connection yet",
     );
   });
+});
+
+/*
+ * Review findings alerts-view-budget-pins-cursor-forever and
+ * partial-poll-permanent-stall-docs-remediation-false. A window holding
+ * more detections than one poll can read used to pin the cursor forever,
+ * and the guidance told the reader to narrow the time range or shorten the
+ * poll interval, neither of which a scheduled poll can act on. Polling now
+ * narrows its window from the same starting point and, for a single minute
+ * that still cannot be read, moves past it and names it in Last Error. Both
+ * texts must quote those warnings as the poller words them (the FIXES
+ * contract's exact text) and must not bring back the old advice or the
+ * scope control the form no longer shows.
+ */
+const NARROWING_WARNING_FRAGMENTS: Array<string> = [
+  "This window holds more records than one poll can read; the next poll reads a ",
+  " minute window from the same starting point.",
+];
+const FORCED_ADVANCE_WARNING_FRAGMENTS: Array<string> = [
+  "More records were created in the one minute from ",
+  " than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.",
+];
+/* Imperative interval advice ("Shorten the poll interval"), not a denial of it. */
+const SHORTEN_INTERVAL_ADVICE_PATTERN: RegExp =
+  /\bshorten the (?:\*\*)?poll interval|shorter poll interval/i;
+const SWITCH_SCOPE_PATTERN: RegExp = /switch the scope/i;
+const OLD_SCOPE_OPTION_PATTERN: RegExp = /\*\*Alerts and detections\*\*/;
+
+describe("Partial-poll guidance matches what polling does", () => {
+  /*
+   * The quoted warnings are only true while the poller emits them, so the
+   * same fragments are read off the producing source.
+   */
+  test("the Google SecOps poller emits the warnings the guidance quotes", () => {
+    for (const fragment of NARROWING_WARNING_FRAGMENTS.concat(
+      FORCED_ADVANCE_WARNING_FRAGMENTS,
+    )) {
+      expect({ fragment, emitted: pollerSource.includes(fragment) }).toEqual({
+        fragment,
+        emitted: true,
+      });
+    }
+  });
+
+  const partialGuidanceTexts: Array<{ name: string; text: string }> = [
+    { name: "the integration doc", text: docsSource },
+    { name: "the in-product help", text: pageGuidance },
+  ];
+
+  for (const guidance of partialGuidanceTexts) {
+    test(`${guidance.name} quotes the narrowing and forced-advance warnings`, () => {
+      for (const fragment of NARROWING_WARNING_FRAGMENTS.concat(
+        FORCED_ADVANCE_WARNING_FRAGMENTS,
+      )) {
+        expect({ fragment, quoted: guidance.text.includes(fragment) }).toEqual({
+          fragment,
+          quoted: true,
+        });
+      }
+    });
+
+    test(`${guidance.name} sends a skipped minute to the import control that ships`, () => {
+      expect(guidance.text).toContain("**Import this time range**");
+      expect(guidance.text).toMatch(/local time[^.]*UTC/);
+    });
+
+    test(`${guidance.name} does not bring back advice polling cannot act on`, () => {
+      expect(guidance.text).not.toMatch(SHORTEN_INTERVAL_ADVICE_PATTERN);
+      expect(guidance.text).not.toContain(
+        "The recovery request limit was reached",
+      );
+      expect(guidance.text).not.toMatch(SWITCH_SCOPE_PATTERN);
+      expect(guidance.text).not.toMatch(OLD_SCOPE_OPTION_PATTERN);
+      expect(guidance.text).toContain(
+        "select **Detections** under **Data to import**",
+      );
+    });
+  }
 });

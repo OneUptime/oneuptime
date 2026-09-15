@@ -2,7 +2,7 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
-import Detail from "../Detail/Detail";
+import Detail, { DetailStyle } from "../Detail/Detail";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "../Loader/Loader";
@@ -11,14 +11,11 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
-import {
-  PromiseVoidFunction,
-  VoidFunction,
-} from "../../../Types/FunctionTypes";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -30,11 +27,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelId: ObjectID;
   modelAPI?: typeof ModelAPI | undefined;
   onError?: ((error: string) => void) | undefined;
-  onItemLoaded?: (item: TBaseModel) => void | undefined;
+  onItemLoaded?: ((item: TBaseModel) => void) | undefined;
   refresher?: undefined | boolean;
   showDetailsInNumberOfColumns?: number | undefined;
   onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
   selectMoreFields?: Select<TBaseModel>;
+  // Forwarded to Detail. Leave unset for the default layout.
+  style?: DetailStyle | undefined;
 }
 
 const ModelDetail: <TBaseModel extends BaseModel>(
@@ -42,7 +41,6 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const [fields, setFields] = useState<Array<DetailField<TBaseModel>>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [item, setItem] = useState<TBaseModel | null>(null);
@@ -50,6 +48,19 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const [onBeforeFetchData, setOnBeforeFetchData] = useState<
     JSONObject | undefined
   >(undefined);
+
+  /*
+   * Bumped by every fetch (and on unmount). A response only lands if no newer
+   * fetch has started since, so a slow earlier request can never overwrite
+   * the item - or call onItemLoaded with - what a later one already loaded.
+   */
+  const fetchGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      fetchGenerationRef.current++;
+    };
+  }, []);
 
   type HasPermissionToReadFieldFunction = (fieldName: string) => boolean;
 
@@ -152,9 +163,18 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       return relationSelect;
     };
 
-  const setDetailFields: VoidFunction = (): void => {
-    // set fields.
+  type GetDetailFieldsFunction = () => Array<DetailField<TBaseModel>>;
 
+  /*
+   * Derived on every render rather than stored once at mount. A getElement
+   * usually closes over the page's state and props (a resend handler, a
+   * translation function, a field set that depends on data the page loads
+   * later), and a copy captured at mount keeps rendering - and calling back
+   * with - those first values forever.
+   */
+  const getDetailFields: GetDetailFieldsFunction = (): Array<
+    DetailField<TBaseModel>
+  > => {
     const userPermissions: Array<Permission> =
       PermissionUtil.getAllPermissions();
 
@@ -206,16 +226,19 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       }
     }
 
-    setFields(fieldsToSet);
+    return fieldsToSet;
   };
 
-  useEffect(() => {
-    if (props.modelType) {
-      setDetailFields();
-    }
-  }, [onBeforeFetchData, props.modelType]);
-
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
+    fetchGenerationRef.current++;
+    const generation: number = fetchGenerationRef.current;
+
+    type IsStaleFunction = () => boolean;
+
+    const isStale: IsStaleFunction = (): boolean => {
+      return generation !== fetchGenerationRef.current;
+    };
+
     // get item.
     setIsLoading(true);
     props.onLoadingChange?.(true);
@@ -223,6 +246,11 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     try {
       if (props.onBeforeFetch) {
         const model: JSONObject = await props.onBeforeFetch();
+
+        if (isStale()) {
+          return;
+        }
+
         setOnBeforeFetchData(model);
       }
 
@@ -236,6 +264,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
           ...getRelationSelect(),
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item) {
         setError(
@@ -253,6 +285,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
       setItem(item);
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
       props.onError?.(API.getFriendlyMessage(err));
     }
@@ -260,11 +296,19 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     props.onLoadingChange?.(false);
   };
 
+  /*
+   * Keyed on the id's string, not the ObjectID. Pages build that ObjectID
+   * inline (Navigation.getLastParamAsObjectID(), ObjectID.getZeroObjectID(),
+   * ProjectUtil.getCurrentProjectId()), each of which returns a new instance
+   * per call - so keying on identity refetched, and flashed the loader, on
+   * every parent re-render, and looped forever on a page whose onItemLoaded
+   * set state. A page that needs fresh data has to say so through refresher.
+   */
   useAsyncEffect(async () => {
     if (props.modelId && props.modelType) {
       await fetchItem();
     }
-  }, [props.modelId, props.refresher, props.modelType]);
+  }, [props.modelId?.toString(), props.refresher, props.modelType]);
 
   if (isLoading) {
     return (
@@ -310,8 +354,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     <Detail
       id={props.id}
       item={item}
-      fields={fields}
+      fields={getDetailFields()}
       showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
+      style={props.style}
     />
   );
 };

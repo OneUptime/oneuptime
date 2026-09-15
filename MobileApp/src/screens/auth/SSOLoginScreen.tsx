@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   ActivityIndicator,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../theme";
+import { spacing, useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import {
   fetchAllGlobalProviders,
@@ -29,8 +28,18 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import AuthLayout from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthDivider,
+  AuthNotice,
+  AuthTextField,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
+import Banner from "../../components/Banner";
+import Card from "../../components/Card";
 import GradientButton from "../../components/GradientButton";
+import IconBadge from "../../components/IconBadge";
+import { ListGroup } from "../../components/ListGroup";
 
 type SSOLoginNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -45,13 +54,15 @@ type SSOLoginNavigationProp = NativeStackNavigationProp<
  */
 const EMAIL_PATTERN: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const EMAIL_REQUIRED_MESSAGE: string = "Email is required.";
+const EMAIL_INVALID_MESSAGE: string = "Please enter a valid email address.";
+
 export default function SSOLoginScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { setIsAuthenticated } = useAuth();
   const navigation: SSOLoginNavigationProp =
     useNavigation<SSOLoginNavigationProp>();
   const [email, setEmail] = useState("");
-  const [emailFocused, setEmailFocused] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
   const [isSSOLoading, setIsSSOLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,12 +101,12 @@ export default function SSOLoginScreen(): React.JSX.Element {
     const trimmedEmail: string = email.trim();
 
     if (!trimmedEmail) {
-      setError("Email is required.");
+      setError(EMAIL_REQUIRED_MESSAGE);
       return;
     }
 
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
-      setError("Please enter a valid email address.");
+      setError(EMAIL_INVALID_MESSAGE);
       return;
     }
 
@@ -233,14 +244,12 @@ export default function SSOLoginScreen(): React.JSX.Element {
     name: string;
     description?: string | undefined;
     icon: keyof typeof Ionicons.glyphMap;
-    isLast: boolean;
     onPress: () => void;
   }) => React.JSX.Element = (data: {
     key: string;
     name: string;
     description?: string | undefined;
     icon: keyof typeof Ionicons.glyphMap;
-    isLast: boolean;
     onPress: () => void;
   }): React.JSX.Element => {
     return (
@@ -251,69 +260,34 @@ export default function SSOLoginScreen(): React.JSX.Element {
         accessibilityHint="Opens your organization's secure sign-in in the browser."
         disabled={isSSOLoading}
         onPress={data.onPress}
-        style={{
-          marginBottom: data.isLast ? 0 : 10,
-          borderRadius: 16,
-          minHeight: 64,
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderWidth: 1,
-          borderColor: theme.colors.borderDefault,
-          overflow: "hidden",
-        }}
-      >
-        <View
-          style={{
+        style={({ pressed }: { pressed: boolean }): ViewStyle => {
+          return {
+            minHeight: 64,
             flexDirection: "row",
             alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-          }}
-        >
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              backgroundColor: theme.colors.iconBackground,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 12,
-            }}
-          >
-            <Ionicons
-              name={data.icon}
-              size={18}
-              color={theme.colors.actionPrimary}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: theme.colors.textPrimary,
-              }}
-            >
-              {data.name}
-            </Text>
-            {data.description ? (
-              <Text
-                style={{
-                  fontSize: 14,
-                  marginTop: 2,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {data.description}
-              </Text>
-            ) : null}
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+            gap: spacing.md,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            backgroundColor: pressed
+              ? theme.colors.backgroundTertiary
+              : "transparent",
+          };
+        }}
+      >
+        <IconBadge name={data.icon} />
+        <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+          <AppText variant="headline">{data.name}</AppText>
+          {data.description ? (
+            <AppText variant="footnote" tone="secondary">
+              {data.description}
+            </AppText>
+          ) : null}
         </View>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={theme.colors.textTertiary}
+        />
       </Pressable>
     );
   };
@@ -325,32 +299,33 @@ export default function SSOLoginScreen(): React.JSX.Element {
       }
 
       return (
-        <View
-          accessible
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
+        <AuthNotice
+          tone="danger"
+          message={error}
+          style={{ marginTop: spacing.md }}
+        />
+      );
+    };
+
+  const renderAuthenticating: () => React.JSX.Element =
+    (): React.JSX.Element => {
+      return (
+        <Card
           style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            marginTop: 12,
+            alignItems: "center",
+            gap: spacing.md,
+            paddingVertical: spacing.xxxl,
           }}
         >
-          <Ionicons
-            name="alert-circle"
-            size={14}
-            color={theme.colors.statusError}
-            style={{ marginRight: 6, marginTop: 2 }}
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              flex: 1,
-              color: theme.colors.statusError,
-            }}
+          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+          <AppText
+            variant="subhead"
+            tone="secondary"
+            accessibilityLiveRegion="polite"
           >
-            {error}
-          </Text>
-        </View>
+            Authenticating...
+          </AppText>
+        </Card>
       );
     };
 
@@ -358,7 +333,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
     (): React.JSX.Element | null => {
       if (isLoadingGlobal) {
         return (
-          <View style={{ alignItems: "center", paddingVertical: 12 }}>
+          <View style={{ alignItems: "center", paddingVertical: spacing.md }}>
             <ActivityIndicator
               size="small"
               color={theme.colors.actionPrimary}
@@ -372,62 +347,22 @@ export default function SSOLoginScreen(): React.JSX.Element {
       }
 
       return (
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 10,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Sign in with your organization
-          </Text>
+        <View>
+          <ListGroup title="Sign in with your organization">
+            {globalProviders.map((provider: GlobalSSOProvider) => {
+              return renderProviderRow({
+                key: provider._id,
+                name: provider.name,
+                description: provider.description,
+                icon: "globe-outline",
+                onPress: () => {
+                  return handleGlobalSSOLogin(provider);
+                },
+              });
+            })}
+          </ListGroup>
 
-          {globalProviders.map((provider: GlobalSSOProvider, index: number) => {
-            return renderProviderRow({
-              key: provider._id,
-              name: provider.name,
-              description: provider.description,
-              icon: "globe-outline",
-              isLast: index === globalProviders.length - 1,
-              onPress: () => {
-                return handleGlobalSSOLogin(provider);
-              },
-            });
-          })}
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 24,
-            }}
-          >
-            <View
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: theme.colors.borderDefault,
-              }}
-            />
-            <Text
-              style={{
-                marginHorizontal: 12,
-                fontSize: 12,
-                color: theme.colors.textTertiary,
-              }}
-            >
-              Or continue with email
-            </Text>
-            <View
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: theme.colors.borderDefault,
-              }}
-            />
-          </View>
+          <AuthDivider label="Or continue with email" />
         </View>
       );
     };
@@ -437,79 +372,43 @@ export default function SSOLoginScreen(): React.JSX.Element {
       <View>
         {renderGlobalSection()}
 
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "600",
-            marginBottom: 8,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Email
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: emailFocused
-              ? theme.colors.actionPrimary
-              : theme.colors.borderDefault,
-          }}
-        >
-          <Ionicons
-            name="mail-outline"
-            size={18}
-            color={
-              emailFocused
-                ? theme.colors.actionPrimary
-                : theme.colors.textTertiary
-            }
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 16,
-              color: theme.colors.textPrimary,
-            }}
+        <View style={{ gap: spacing.xl }}>
+          <AuthTextField
+            label="Email"
+            containerTestID="sso-email-field"
+            icon="mail-outline"
+            accessibilityLabel="Email"
             value={email}
             editable={!isLoadingProviders && !isSSOLoading}
+            /*
+             * Only the address checks outline the field. A provider that
+             * refused the sign-in is not something wrong with what was typed.
+             */
+            invalid={
+              error === EMAIL_REQUIRED_MESSAGE ||
+              error === EMAIL_INVALID_MESSAGE
+            }
             onChangeText={(text: string) => {
               setEmail(text);
               setError(null);
             }}
-            onFocus={() => {
-              return setEmailFocused(true);
-            }}
-            onBlur={() => {
-              return setEmailFocused(false);
-            }}
             placeholder="you@example.com"
-            placeholderTextColor={theme.colors.textTertiary}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
             textContentType="emailAddress"
             returnKeyType="go"
-            accessibilityLabel="Email"
             onSubmitEditing={handleFetchProviders}
           />
-        </View>
 
-        {renderError()}
+          {error ? <AuthNotice tone="danger" message={error} /> : null}
 
-        <View style={{ marginTop: 24 }}>
           <GradientButton
             label="Continue"
             onPress={handleFetchProviders}
             loading={isLoadingProviders}
             disabled={isLoadingProviders}
+            style={authPrimaryButtonStyle}
           />
         </View>
       </View>
@@ -518,20 +417,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
 
   const renderProjectStep: () => React.JSX.Element = (): React.JSX.Element => {
     if (isSSOLoading) {
-      return (
-        <View style={{ alignItems: "center", paddingVertical: 32 }}>
-          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-          <Text
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Authenticating...
-          </Text>
-        </View>
-      );
+      return renderAuthenticating();
     }
 
     // Group providers by the project they belong to.
@@ -552,40 +438,26 @@ export default function SSOLoginScreen(): React.JSX.Element {
     }
 
     return (
-      <View>
+      <View style={{ gap: spacing.xl }}>
         {Object.entries(grouped).map(
           ([projectId, group]: [
             string,
             { projectName: string; items: Array<SSOProvider> },
           ]) => {
             return (
-              <View key={projectId} style={{ marginBottom: 20 }}>
-                <Text
-                  style={{
-                    fontSize: 17,
-                    fontWeight: "700",
-                    color: theme.colors.textPrimary,
-                    marginBottom: 10,
-                    paddingHorizontal: 4,
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  {group.projectName}
-                </Text>
-
-                {group.items.map((provider: SSOProvider, index: number) => {
+              <ListGroup key={projectId} title={group.projectName}>
+                {group.items.map((provider: SSOProvider) => {
                   return renderProviderRow({
                     key: provider._id,
                     name: provider.name,
                     description: provider.description,
                     icon: "shield-checkmark-outline",
-                    isLast: index === group.items.length - 1,
                     onPress: () => {
                       return handleSSOLogin(provider);
                     },
                   });
                 })}
-              </View>
+              </ListGroup>
             );
           },
         )}
@@ -600,68 +472,33 @@ export default function SSOLoginScreen(): React.JSX.Element {
       title="Sign in with your team"
       compact
       eyebrow="SINGLE SIGN-ON"
+      icon="business-outline"
       description={
         providers
           ? "Select your SSO provider"
           : "Choose your provider or enter your email"
       }
     >
-      {isSSOLoading && !providers ? (
-        <View style={{ alignItems: "center", paddingVertical: 32 }}>
-          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-          <Text
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Authenticating...
-          </Text>
-        </View>
-      ) : providers ? (
-        renderProjectStep()
-      ) : (
-        renderEmailStep()
-      )}
+      {isSSOLoading && !providers
+        ? renderAuthenticating()
+        : providers
+          ? renderProjectStep()
+          : renderEmailStep()}
 
-      <View
-        style={{
-          paddingVertical: 16,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.borderSubtle,
-          marginTop: 24,
-          flexDirection: "row",
-          alignItems: "flex-start",
-        }}
-      >
-        <Ionicons
-          name="shield-checkmark-outline"
-          size={22}
-          color={theme.colors.actionPrimary}
-          style={{ marginRight: 12 }}
-        />
-        <Text
-          style={{
-            flex: 1,
-            fontSize: 14,
-            lineHeight: 21,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Your provider opens in a secure browser. After signing in, you will
-          return to OneUptime automatically.
-        </Text>
-      </View>
+      <Banner
+        tone="neutral"
+        icon="lock-closed-outline"
+        message="Your provider opens in a secure browser. After signing in, you will return to OneUptime automatically."
+        style={{ marginTop: spacing.xxl }}
+      />
 
-      <View style={{ marginTop: 16 }}>
-        <GradientButton
-          label={providers ? "Use a different email" : "Back to Login"}
-          onPress={handleBack}
-          variant="secondary"
-          icon="arrow-back-outline"
-        />
-      </View>
+      <GradientButton
+        label={providers ? "Use a different email" : "Back to Login"}
+        onPress={handleBack}
+        variant="secondary"
+        icon="arrow-back"
+        style={{ marginTop: spacing.lg }}
+      />
     </AuthLayout>
   );
 }

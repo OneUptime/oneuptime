@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, type ViewStyle } from "react-native";
+import { View, Text, Pressable, type ViewStyle } from "react-native";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing, typography } from "../theme/tokens";
 
 interface Segment<T extends string> {
   key: T;
@@ -21,36 +22,33 @@ export default function SegmentedControl<T extends string>({
   style,
 }: SegmentedControlProps<T>): React.JSX.Element {
   const { theme } = useTheme();
-  const activeContentColor: string = theme.colors.actionPrimary;
 
   return (
     <View
+      accessibilityRole="tablist"
       style={{
         flexDirection: "row",
-        marginHorizontal: 20,
-        marginTop: 12,
-        marginBottom: 8,
-        borderRadius: 12,
-        padding: 4,
+        marginHorizontal: spacing.xl,
+        marginTop: spacing.md,
+        marginBottom: spacing.sm,
+        borderRadius: radius.md,
+        padding: 3,
+        gap: 3,
         backgroundColor: theme.colors.backgroundTertiary,
-        borderWidth: 0,
-        borderColor: theme.colors.borderGlass,
         ...style,
       }}
     >
-      {segments.map((segment: Segment<T>, index: number) => {
+      {segments.map((segment: Segment<T>) => {
         const isActive: boolean = segment.key === selected;
         return (
-          <TouchableOpacity
+          <Pressable
             key={segment.key}
-            activeOpacity={0.7}
             /*
-             * Which of the two segments is showing is conveyed visually by a
-             * filled background and nothing else, and a filled background is
-             * not something a screen reader can read out. Without the role and
-             * the selected state, VoiceOver and TalkBack announce two
-             * identical, unrelated buttons - "Alerts", "Episodes" - and give a
-             * responder no way to tell which list is under them.
+             * Which segment is showing is conveyed visually by a filled
+             * background, which a screen reader cannot read out. Without the
+             * role and the selected state, VoiceOver and TalkBack announce
+             * identical, unrelated buttons and give a responder no way to tell
+             * which list is under them.
              */
             accessibilityRole="tab"
             accessibilityLabel={segment.label}
@@ -59,34 +57,36 @@ export default function SegmentedControl<T extends string>({
             onPress={() => {
               return onSelect(segment.key);
             }}
-            style={{
-              flex: 1,
-              minHeight: 48,
-              justifyContent: "center",
-              alignItems: "center",
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              borderRadius: 9,
-              marginLeft: index > 0 ? 4 : 0,
-              backgroundColor: isActive
-                ? theme.colors.backgroundElevated
-                : "transparent",
+            style={({ pressed }: { pressed: boolean }): ViewStyle => {
+              return {
+                flex: 1,
+                minHeight: 44,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.sm,
+                borderRadius: radius.md - 3,
+                backgroundColor: isActive
+                  ? theme.colors.backgroundElevated
+                  : "transparent",
+                opacity: pressed && !isActive ? 0.6 : 1,
+                ...(isActive ? elevation("card", theme.dark) : {}),
+              };
             }}
           >
             <Text
               style={{
-                fontSize: 14,
+                ...typography.subhead,
                 textAlign: "center",
-                fontWeight: "600",
+                fontWeight: isActive ? "700" : "500",
                 color: isActive
-                  ? activeContentColor
+                  ? theme.colors.textPrimary
                   : theme.colors.textSecondary,
-                letterSpacing: 0.2,
               }}
             >
               {segment.label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>

@@ -2,22 +2,22 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
-import ServiceModel from "../../../Models/DatabaseModels/Service";
-import HostModel from "../../../Models/DatabaseModels/Host";
-import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
-import PodmanHostModel from "../../../Models/DatabaseModels/PodmanHost";
-import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
-import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
-import CloudResourceModel from "../../../Models/DatabaseModels/CloudResource";
-import RumApplicationModel from "../../../Models/DatabaseModels/RumApplication";
+import { RESOURCE_FACET_CATALOG_KEYS } from "../../../Types/Telemetry/ResourceFacetCatalog";
+import { SERVICE_FACET_KEYS } from "../../../Types/Telemetry/ResourceEntityFacet";
+import FindBy from "../../Types/Database/FindBy";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
+import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import CephClusterService from "../../Services/CephClusterService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
 import RumApplicationService from "../../Services/RumApplicationService";
+import IoTFleetService from "../../Services/IoTFleetService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -28,32 +28,145 @@ import CaptureSpan from "./CaptureSpan";
  * shows up regardless of recent telemetry activity, and the sidebar search
  * matches across the full set (not just the loaded subset).
  *
- * `serviceId` is the pre-rename alias of `primaryEntityId`, kept so stale
- * clients keep resolving the Services facet across a deploy.
+ * The Services facet (`primaryEntityId`, plus `serviceId` — its pre-rename
+ * alias, kept so stale clients keep resolving across a deploy) and every
+ * resource type in the shared catalog. Derived from the catalog so a new
+ * resource type cannot be offered by the explorers yet silently skipped
+ * here; the listing table below must carry a row for each key (pinned
+ * by ResourceFacetResolver.test).
  */
-export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
-  "primaryEntityId",
-  "serviceId",
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
-  "serverlessFunctionId",
-  "cloudResourceId",
-  "rumApplicationId",
+export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set<string>([
+  ...SERVICE_FACET_KEYS,
+  ...RESOURCE_FACET_CATALOG_KEYS,
 ]);
 
-export interface ResourceFacetSpec {
+/*
+ * What a caller asks to list: the facet, an optional partial-match filter
+ * typed into that facet's sidebar search, and a page size.
+ */
+export interface ResourceFacetListSpec {
   facetKey: string;
-  counts: Map<string, number>;
   searchText?: string | undefined;
   limit?: number | undefined;
+}
+
+export interface ResourceFacetSpec extends ResourceFacetListSpec {
+  counts: Map<string, number>;
+}
+
+// One Postgres row of a resource facet, before any telemetry count is known.
+export interface ResourceFacetEntity {
+  id: string;
+  displayName: string;
 }
 
 export interface ResolvedFacetValue {
   value: string;
   count: number;
   displayName: string;
+}
+
+/*
+ * Only `findBy` is used, and it is always called through the service
+ * instance (never a captured method reference), so a test spying on the
+ * instance intercepts it.
+ */
+interface ResourceFacetSourceService {
+  findBy: (findBy: FindBy<any>) => Promise<Array<any>>;
+}
+
+interface ResourceFacetListing {
+  service: ResourceFacetSourceService;
+  /*
+   * The row's telemetry-facing identifier: searched together with `name`
+   * and used as the display name when a row has no name. `null` when the
+   * row has no second identifying column worth searching — Services, and
+   * the resource types whose `name` IS the ingest join key
+   * (`findOrCreateByName`: Proxmox cluster, vCenter, IoT fleet) — which
+   * search `name` alone.
+   */
+  identifierField: string | null;
+}
+
+/*
+ * facetKey -> where its value list lives. One table instead of one query
+ * method per type: every resource type lists the same way (project-scoped,
+ * root, first `limit` rows, optional name search), so the only per-type
+ * facts are the service and the identifier column.
+ *
+ * Ceph and Docker Swarm also join on `name`, but carry a stable descriptive
+ * id (`fsid` / `swarmId`) an operator may well paste into the search box,
+ * so it is searched too.
+ *
+ * Built on first use rather than at module load: the services pull in much
+ * of the server, and a module cycle that reached this file first would
+ * otherwise capture an `undefined` service and every lookup would quietly
+ * degrade to [].
+ */
+let resourceFacetListings: ReadonlyMap<string, ResourceFacetListing> | null =
+  null;
+
+function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
+  if (resourceFacetListings) {
+    return resourceFacetListings;
+  }
+
+  const serviceListing: ResourceFacetListing = {
+    service: ServiceService,
+    identifierField: null,
+  };
+
+  resourceFacetListings = new Map<string, ResourceFacetListing>([
+    ["primaryEntityId", serviceListing],
+    ["serviceId", serviceListing],
+    ["hostId", { service: HostService, identifierField: "hostIdentifier" }],
+    [
+      "dockerHostId",
+      { service: DockerHostService, identifierField: "hostIdentifier" },
+    ],
+    [
+      "podmanHostId",
+      { service: PodmanHostService, identifierField: "hostIdentifier" },
+    ],
+    [
+      "kubernetesClusterId",
+      {
+        service: KubernetesClusterService,
+        identifierField: "clusterIdentifier",
+      },
+    ],
+    [
+      "dockerSwarmClusterId",
+      { service: DockerSwarmClusterService, identifierField: "swarmId" },
+    ],
+    [
+      "proxmoxClusterId",
+      { service: ProxmoxClusterService, identifierField: null },
+    ],
+    [
+      "vmwareVCenterId",
+      { service: VMwareVCenterService, identifierField: null },
+    ],
+    ["cephClusterId", { service: CephClusterService, identifierField: "fsid" }],
+    [
+      "serverlessFunctionId",
+      {
+        service: ServerlessFunctionService,
+        identifierField: "functionIdentifier",
+      },
+    ],
+    [
+      "cloudResourceId",
+      { service: CloudResourceService, identifierField: "resourceIdentifier" },
+    ],
+    [
+      "rumApplicationId",
+      { service: RumApplicationService, identifierField: "appIdentifier" },
+    ],
+    ["iotFleetId", { service: IoTFleetService, identifierField: null }],
+  ]);
+
+  return resourceFacetListings;
 }
 
 export default class ResourceFacetResolver {
@@ -63,21 +176,61 @@ export default class ResourceFacetResolver {
     return RESOURCE_FACET_KEYS.has(facetKey);
   }
 
+  /*
+   * One-shot form: list every spec's entities and merge the counts the
+   * caller already has. Callers that want to skip counting a facet with
+   * nothing to count (see ResourceFacetPlanner) use listEntities and
+   * mergeCounts separately.
+   */
   @CaptureSpan()
   public static async resolve(
     projectId: ObjectID,
     specs: Array<ResourceFacetSpec>,
   ): Promise<Record<string, Array<ResolvedFacetValue>>> {
-    const results: Array<readonly [string, Array<ResolvedFacetValue>]> =
+    const entities: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(projectId, specs);
+
+    return Object.fromEntries(
+      specs.map(
+        (
+          spec: ResourceFacetSpec,
+        ): readonly [string, Array<ResolvedFacetValue>] => {
+          return [
+            spec.facetKey,
+            ResourceFacetResolver.mergeCounts(
+              entities[spec.facetKey] || [],
+              spec.counts,
+            ),
+          ] as const;
+        },
+      ),
+    );
+  }
+
+  /*
+   * Phase one: the Postgres rows behind each facet, keyed by facet. Runs the
+   * lookups in parallel; a failing lookup degrades to [] for that facet
+   * only, and a key that is not a resource facet lists [] without a query.
+   * Rows without an id are dropped here, so an empty list reliably means
+   * "nothing to count".
+   */
+  @CaptureSpan()
+  public static async listEntities(
+    projectId: ObjectID,
+    specs: Array<ResourceFacetListSpec>,
+  ): Promise<Record<string, Array<ResourceFacetEntity>>> {
+    const results: Array<readonly [string, Array<ResourceFacetEntity>]> =
       await Promise.all(
         specs.map(
           async (
-            spec: ResourceFacetSpec,
-          ): Promise<readonly [string, Array<ResolvedFacetValue>]> => {
+            spec: ResourceFacetListSpec,
+          ): Promise<readonly [string, Array<ResourceFacetEntity>]> => {
             try {
-              const values: Array<ResolvedFacetValue> =
-                await ResourceFacetResolver.resolveOne(projectId, spec);
-              return [spec.facetKey, values] as const;
+              const entities: Array<ResourceFacetEntity> =
+                await ResourceFacetResolver.listOne(projectId, spec);
+              return [spec.facetKey, entities] as const;
             } catch {
               return [spec.facetKey, []] as const;
             }
@@ -88,403 +241,22 @@ export default class ResourceFacetResolver {
     return Object.fromEntries(results);
   }
 
-  private static async resolveOne(
-    projectId: ObjectID,
-    spec: ResourceFacetSpec,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const limit: number = spec.limit ?? ResourceFacetResolver.DEFAULT_LIMIT;
-    const searchText: string | undefined =
-      spec.searchText && spec.searchText.trim().length > 0
-        ? spec.searchText.trim()
-        : undefined;
-
-    switch (spec.facetKey) {
-      case "primaryEntityId":
-      case "serviceId":
-        return ResourceFacetResolver.queryServices(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "hostId":
-        return ResourceFacetResolver.queryHosts(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "dockerHostId":
-        return ResourceFacetResolver.queryDockerHosts(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "podmanHostId":
-        return ResourceFacetResolver.queryPodmanHosts(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "kubernetesClusterId":
-        return ResourceFacetResolver.queryKubernetesClusters(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "serverlessFunctionId":
-        return ResourceFacetResolver.queryServerlessFunctions(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "cloudResourceId":
-        return ResourceFacetResolver.queryCloudResources(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      case "rumApplicationId":
-        return ResourceFacetResolver.queryRumApplications(
-          projectId,
-          spec.counts,
-          searchText,
-          limit,
-        );
-      default:
-        return [];
-    }
-  }
-
-  private static async queryServices(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new Search<string>(searchText);
-    }
-
-    const services: Array<ServiceModel> = await ServiceService.findBy({
-      query: query as any,
-      select: {
-        _id: true,
-        name: true,
-      },
-      limit: new PositiveNumber(limit),
-      skip: new PositiveNumber(0),
-      props: { isRoot: true },
-    });
-
-    return ResourceFacetResolver.mergeCounts(
-      services.map((s: ServiceModel): { id: string; displayName: string } => {
-        return {
-          id: s._id ? s._id.toString() : "",
-          displayName: s.name || "Unknown",
-        };
-      }),
-      counts,
-    );
-  }
-
-  private static async queryHosts(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "hostIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const hosts: Array<HostModel> = await HostService.findBy({
-      query: query as any,
-      select: {
-        _id: true,
-        name: true,
-        hostIdentifier: true,
-      },
-      limit: new PositiveNumber(limit),
-      skip: new PositiveNumber(0),
-      props: { isRoot: true },
-    });
-
-    return ResourceFacetResolver.mergeCounts(
-      hosts.map((h: HostModel): { id: string; displayName: string } => {
-        return {
-          id: h._id ? h._id.toString() : "",
-          displayName: h.name || h.hostIdentifier || "Unknown",
-        };
-      }),
-      counts,
-    );
-  }
-
-  private static async queryDockerHosts(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "hostIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const dockerHosts: Array<DockerHostModel> = await DockerHostService.findBy({
-      query: query as any,
-      select: {
-        _id: true,
-        name: true,
-        hostIdentifier: true,
-      },
-      limit: new PositiveNumber(limit),
-      skip: new PositiveNumber(0),
-      props: { isRoot: true },
-    });
-
-    return ResourceFacetResolver.mergeCounts(
-      dockerHosts.map(
-        (d: DockerHostModel): { id: string; displayName: string } => {
-          return {
-            id: d._id ? d._id.toString() : "",
-            displayName: d.name || d.hostIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
-  private static async queryPodmanHosts(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "hostIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const podmanHosts: Array<PodmanHostModel> = await PodmanHostService.findBy({
-      query: query as any,
-      select: {
-        _id: true,
-        name: true,
-        hostIdentifier: true,
-      },
-      limit: new PositiveNumber(limit),
-      skip: new PositiveNumber(0),
-      props: { isRoot: true },
-    });
-
-    return ResourceFacetResolver.mergeCounts(
-      podmanHosts.map(
-        (p: PodmanHostModel): { id: string; displayName: string } => {
-          return {
-            id: p._id ? p._id.toString() : "",
-            displayName: p.name || p.hostIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
-  private static async queryKubernetesClusters(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "clusterIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const clusters: Array<KubernetesClusterModel> =
-      await KubernetesClusterService.findBy({
-        query: query as any,
-        select: {
-          _id: true,
-          name: true,
-          clusterIdentifier: true,
-        },
-        limit: new PositiveNumber(limit),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
-
-    return ResourceFacetResolver.mergeCounts(
-      clusters.map(
-        (c: KubernetesClusterModel): { id: string; displayName: string } => {
-          return {
-            id: c._id ? c._id.toString() : "",
-            displayName: c.name || c.clusterIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
-  private static async queryServerlessFunctions(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "functionIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const functions: Array<ServerlessFunctionModel> =
-      await ServerlessFunctionService.findBy({
-        query: query as any,
-        select: {
-          _id: true,
-          name: true,
-          functionIdentifier: true,
-        },
-        limit: new PositiveNumber(limit),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
-
-    return ResourceFacetResolver.mergeCounts(
-      functions.map(
-        (f: ServerlessFunctionModel): { id: string; displayName: string } => {
-          return {
-            id: f._id ? f._id.toString() : "",
-            displayName: f.name || f.functionIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
-  private static async queryCloudResources(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "resourceIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const resources: Array<CloudResourceModel> =
-      await CloudResourceService.findBy({
-        query: query as any,
-        select: {
-          _id: true,
-          name: true,
-          resourceIdentifier: true,
-        },
-        limit: new PositiveNumber(limit),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
-
-    return ResourceFacetResolver.mergeCounts(
-      resources.map(
-        (r: CloudResourceModel): { id: string; displayName: string } => {
-          return {
-            id: r._id ? r._id.toString() : "",
-            displayName: r.name || r.resourceIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
-  private static async queryRumApplications(
-    projectId: ObjectID,
-    counts: Map<string, number>,
-    searchText: string | undefined,
-    limit: number,
-  ): Promise<Array<ResolvedFacetValue>> {
-    const query: Record<string, unknown> = { projectId };
-    if (searchText) {
-      query["name"] = new MultiSearch({
-        fields: ["name", "appIdentifier"],
-        value: searchText,
-      });
-    }
-
-    const apps: Array<RumApplicationModel> = await RumApplicationService.findBy(
-      {
-        query: query as any,
-        select: {
-          _id: true,
-          name: true,
-          appIdentifier: true,
-        },
-        limit: new PositiveNumber(limit),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      },
-    );
-
-    return ResourceFacetResolver.mergeCounts(
-      apps.map(
-        (a: RumApplicationModel): { id: string; displayName: string } => {
-          return {
-            id: a._id ? a._id.toString() : "",
-            displayName: a.name || a.appIdentifier || "Unknown",
-          };
-        },
-      ),
-      counts,
-    );
-  }
-
   /*
-   * Combine Postgres-sourced entities with counts from the ClickHouse sample.
+   * Phase two: combine Postgres-sourced entities with counts from ClickHouse.
    * Entities without a count default to 0 (they exist in the project but
-   * had no telemetry in the active window). Sorts active-first so the
-   * highest-traffic resources surface at the top of the sidebar.
+   * had no telemetry in the active window); counts for ids that are not
+   * listed are never invented. Sorts active-first so the highest-traffic
+   * resources surface at the top of the sidebar.
    */
-  private static mergeCounts(
-    entities: Array<{ id: string; displayName: string }>,
+  public static mergeCounts(
+    entities: Array<ResourceFacetEntity>,
     counts: Map<string, number>,
   ): Array<ResolvedFacetValue> {
     const out: Array<ResolvedFacetValue> = entities
-      .filter((e: { id: string }): boolean => {
+      .filter((e: ResourceFacetEntity): boolean => {
         return e.id.length > 0;
       })
-      .map((e: { id: string; displayName: string }): ResolvedFacetValue => {
+      .map((e: ResourceFacetEntity): ResolvedFacetValue => {
         return {
           value: e.id,
           count: counts.get(e.id) || 0,
@@ -500,5 +272,68 @@ export default class ResourceFacetResolver {
     });
 
     return out;
+  }
+
+  private static async listOne(
+    projectId: ObjectID,
+    spec: ResourceFacetListSpec,
+  ): Promise<Array<ResourceFacetEntity>> {
+    const listing: ResourceFacetListing | undefined =
+      getResourceFacetListings().get(spec.facetKey);
+
+    if (!listing) {
+      return [];
+    }
+
+    const limit: number = spec.limit ?? ResourceFacetResolver.DEFAULT_LIMIT;
+    const searchText: string | undefined =
+      spec.searchText && spec.searchText.trim().length > 0
+        ? spec.searchText.trim()
+        : undefined;
+    const identifierField: string | null = listing.identifierField;
+
+    const query: Record<string, unknown> = { projectId };
+    const select: Record<string, boolean> = { _id: true, name: true };
+
+    if (identifierField) {
+      select[identifierField] = true;
+    }
+
+    if (searchText) {
+      query["name"] = identifierField
+        ? new MultiSearch({
+            fields: ["name", identifierField],
+            value: searchText,
+          })
+        : new Search<string>(searchText);
+    }
+
+    const rows: Array<Record<string, unknown>> = await listing.service.findBy({
+      query: query as any,
+      select: select as any,
+      limit: new PositiveNumber(limit),
+      skip: new PositiveNumber(0),
+      props: { isRoot: true },
+    });
+
+    return rows
+      .map((row: Record<string, unknown>): ResourceFacetEntity => {
+        const id: unknown = row["_id"];
+        const name: unknown = row["name"];
+        const identifier: unknown = identifierField
+          ? row[identifierField]
+          : undefined;
+
+        return {
+          id: id ? String(id) : "",
+          displayName:
+            (typeof name === "string" && name) ||
+            (typeof identifier === "string" && identifier) ||
+            "Unknown",
+        };
+      })
+      .filter((entity: ResourceFacetEntity): boolean => {
+        return entity.id.length > 0;
+      });
   }
 }

@@ -135,6 +135,9 @@ function Probe(props: { range: RangeStartAndEndDateTime }): React.ReactElement {
       <span data-testid="updated">
         {data.lastUpdatedAt?.toISOString() || ""}
       </span>
+      <span data-testid="range-start">
+        {data.rangeStart?.toISOString() || ""}
+      </span>
       <button type="button" onClick={data.reload}>
         Reload topology
       </button>
@@ -173,6 +176,33 @@ describe("topology inventory loading", () => {
       new GreaterThanOrEqual<Date>(FIRST_RANGE.startAndEndDate!.startValue),
     );
     expect(screen.getByTestId("updated").textContent).not.toBe("");
+  });
+
+  test("loads what the maps need to judge activity and describe resources", async () => {
+    render(<Probe range={FIRST_RANGE} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
+    });
+    const entityRequest: { select: Record<string, boolean> } =
+      getListMock.mock.calls[0]![0];
+    const relationshipRequest: { select: Record<string, boolean> } =
+      getListMock.mock.calls[1]![0];
+    expect(entityRequest.select).toMatchObject({
+      entityKey: true,
+      entityType: true,
+      source: true,
+      lastSeenAt: true,
+      descriptiveAttributes: true,
+      identifyingAttributes: true,
+    });
+    expect(relationshipRequest.select).toMatchObject({
+      callCount: true,
+      lastSeenAt: true,
+    });
+    // The snapshot remembers the range start it was loaded for.
+    expect(screen.getByTestId("range-start")).toHaveTextContent(
+      FIRST_RANGE.startAndEndDate!.startValue.toISOString(),
+    );
   });
 
   test("only publishes a snapshot after inventory and relationships both finish", async () => {

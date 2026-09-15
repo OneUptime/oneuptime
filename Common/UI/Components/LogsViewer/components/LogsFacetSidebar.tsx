@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import {
   FacetData,
   FacetValue,
@@ -16,6 +22,24 @@ import Dictionary from "../../../../Types/Dictionary";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import { getSeverityColor } from "./severityColors";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
+import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
+import { mergeFacetValueDisplayMap } from "../LogsEntityNames";
+import IconProp from "../../../../Types/Icon/IconProp";
+import {
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+  getResourceFacetDefinition,
+  isCatalogResourceFacetKey,
+} from "../../../../Types/Telemetry/ResourceFacetCatalog";
+import HiddenFacetsFooter from "../../TelemetryViewer/components/HiddenFacetsFooter";
+import {
+  FacetVisibility,
+  computeFacetVisibility,
+  getSidebarFacetEmptyStateText,
+} from "../../TelemetryViewer/FacetVisibility";
+import useFacetSearchExemptions, {
+  FacetSearchExemptions,
+} from "../../TelemetryViewer/useFacetSearchExemptions";
 
 export interface LogsFacetSidebarProps {
   facetData: FacetData;
@@ -25,6 +49,12 @@ export interface LogsFacetSidebarProps {
   dockerHostMap?: Dictionary<DockerHost>;
   podmanHostMap?: Dictionary<PodmanHost>;
   kubernetesClusterMap?: Dictionary<KubernetesCluster>;
+  /*
+   * Generic resolver names for resource facet values the maps above do not
+   * hold (e.g. a RUM application id under "Service"). Used only when the
+   * server sent no displayName and no preloaded map names the value.
+   */
+  entityNameMap?: TelemetryEntityNameMap | undefined;
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
@@ -43,13 +73,21 @@ export interface LogsFacetSidebarProps {
     | undefined;
 }
 
-const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
-  "primaryEntityId",
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
-]);
+/*
+ * Facets whose search box also asks the server: the Service facet and every
+ * resource type in the catalog, all resolved against Postgres.
+ */
+function isServerSearchableFacetKey(key: string): boolean {
+  return key === "primaryEntityId" || isCatalogResourceFacetKey(key);
+}
+
+/*
+ * Only resource facets fold away while empty — an empty list there means the
+ * project has no resource of that type. Service and severity always show.
+ */
+function isHideableFacetKey(key: string): boolean {
+  return isCatalogResourceFacetKey(key);
+}
 
 const SEVERITY_ORDER: Array<string> = [
   LogSeverity.Fatal,
@@ -167,19 +205,37 @@ function buildClusterDisplayMap(
 }
 
 function getFacetTitle(key: string): string {
+  const resourceDefinition: ResourceFacetDefinition | undefined =
+    getResourceFacetDefinition(key);
+
+  if (resourceDefinition) {
+    return resourceDefinition.label;
+  }
+
   const titleMap: Record<string, string> = {
     severityText: "Severity",
     primaryEntityId: "Service",
-    hostId: "Host",
-    dockerHostId: "Docker Host",
-    podmanHostId: "Podman Host",
-    kubernetesClusterId: "Kubernetes Cluster",
     traceId: "Trace ID",
     spanId: "Span ID",
   };
 
   return titleMap[key] || key;
 }
+
+function getFacetIcon(key: string): IconProp | undefined {
+  if (key === "primaryEntityId" || key === "serviceId") {
+    return IconProp.SquareStack;
+  }
+
+  return getResourceFacetDefinition(key)?.icon;
+}
+
+// Severity, then Service, then resources in catalog order.
+const PRIORITY_FACET_KEYS: ReadonlyArray<string> = [
+  "severityText",
+  "primaryEntityId",
+  ...RESOURCE_FACET_CATALOG_KEYS,
+];
 
 const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   props: LogsFacetSidebarProps,
@@ -189,45 +245,60 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   }, []);
 
   const serviceDisplayMap: Record<string, string> = useMemo(() => {
-    return buildServiceDisplayMap(props.serviceMap);
-  }, [props.serviceMap]);
+    return mergeFacetValueDisplayMap(
+      buildServiceDisplayMap(props.serviceMap),
+      props.entityNameMap,
+    );
+  }, [props.serviceMap, props.entityNameMap]);
 
   const serviceColorMap: Record<string, string> = useMemo(() => {
     return buildServiceColorMap(props.serviceMap);
   }, [props.serviceMap]);
 
   const hostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildHostDisplayMap(props.hostMap);
-  }, [props.hostMap]);
+    return mergeFacetValueDisplayMap(
+      buildHostDisplayMap(props.hostMap),
+      props.entityNameMap,
+    );
+  }, [props.hostMap, props.entityNameMap]);
 
   const dockerHostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildDockerHostDisplayMap(props.dockerHostMap);
-  }, [props.dockerHostMap]);
+    return mergeFacetValueDisplayMap(
+      buildDockerHostDisplayMap(props.dockerHostMap),
+      props.entityNameMap,
+    );
+  }, [props.dockerHostMap, props.entityNameMap]);
 
   const podmanHostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildPodmanHostDisplayMap(props.podmanHostMap);
-  }, [props.podmanHostMap]);
+    return mergeFacetValueDisplayMap(
+      buildPodmanHostDisplayMap(props.podmanHostMap),
+      props.entityNameMap,
+    );
+  }, [props.podmanHostMap, props.entityNameMap]);
 
   const clusterDisplayMap: Record<string, string> = useMemo(() => {
-    return buildClusterDisplayMap(props.kubernetesClusterMap);
-  }, [props.kubernetesClusterMap]);
+    return mergeFacetValueDisplayMap(
+      buildClusterDisplayMap(props.kubernetesClusterMap),
+      props.entityNameMap,
+    );
+  }, [props.kubernetesClusterMap, props.entityNameMap]);
+
+  /*
+   * Resource types the viewer preloads no map for (Proxmox, vCenter, Ceph,
+   * ...) still get the resolver's names underneath the server displayName.
+   */
+  const entityNameDisplayMap: Record<string, string> = useMemo(() => {
+    return mergeFacetValueDisplayMap({}, props.entityNameMap);
+  }, [props.entityNameMap]);
 
   const facetKeys: Array<string> = useMemo(() => {
-    const priorityKeys: Array<string> = [
-      "severityText",
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ];
     const otherKeys: Array<string> = Object.keys(props.facetData).filter(
       (key: string) => {
-        return !priorityKeys.includes(key);
+        return !PRIORITY_FACET_KEYS.includes(key);
       },
     );
     return [
-      ...priorityKeys.filter((key: string) => {
+      ...PRIORITY_FACET_KEYS.filter((key: string) => {
         return props.facetData[key] !== undefined;
       }),
       ...otherKeys.sort(),
@@ -251,6 +322,32 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     return map;
   }, [props.activeFilters]);
 
+  const [showHidden, setShowHidden] = useState<boolean>(false);
+  const facetListId: string = useId();
+
+  const facetSearch: FacetSearchExemptions = useFacetSearchExemptions({
+    facetData: props.facetData,
+    onFacetSearchChange: props.onFacetSearchChange,
+  });
+
+  const visibility: FacetVisibility = useMemo(() => {
+    return computeFacetVisibility({
+      keys: facetKeys,
+      facetData: props.facetData,
+      isHideable: isHideableFacetKey,
+      activeValuesByKey: activeValuesByKey,
+      searchExemptKeys: facetSearch.searchExemptKeys,
+      showHidden: showHidden,
+      getTitle: getFacetTitle,
+    });
+  }, [
+    facetKeys,
+    props.facetData,
+    activeValuesByKey,
+    facetSearch.searchExemptKeys,
+    showHidden,
+  ]);
+
   return (
     <div className="flex h-full w-56 flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white">
       <div className="border-b border-gray-100 px-3 py-2.5">
@@ -265,7 +362,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div id={facetListId} className="flex-1 overflow-y-auto">
         {props.savedViews && props.savedViews.length > 0 && (
           <SavedViewsFacetSection
             savedViews={props.savedViews}
@@ -275,13 +372,13 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
           />
         )}
 
-        {facetKeys.map((key: string) => {
+        {visibility.visibleKeys.map((key: string) => {
           const values: Array<FacetValue> = props.facetData[key] || [];
 
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;
 
-          if (key === "primaryEntityId") {
+          if (key === "primaryEntityId" || key === "serviceId") {
             valueDisplayMap = serviceDisplayMap;
             valueColorMap = serviceColorMap;
           } else if (key === "hostId") {
@@ -294,13 +391,13 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
             valueDisplayMap = clusterDisplayMap;
           } else if (key === "severityText") {
             valueColorMap = severityColorMap;
+          } else if (isCatalogResourceFacetKey(key)) {
+            valueDisplayMap = entityNameDisplayMap;
           }
 
           const onSearchChange: ((text: string) => void) | undefined =
-            RESOURCE_FACET_KEYS.has(key) && props.onFacetSearchChange
-              ? (text: string) => {
-                  props.onFacetSearchChange!(key, text);
-                }
+            isServerSearchableFacetKey(key)
+              ? facetSearch.getSearchChangeHandler(key)
               : undefined;
 
           return (
@@ -315,9 +412,29 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
               valueColorMap={valueColorMap}
               activeValues={activeValuesByKey[key]}
               onSearchChange={onSearchChange}
+              icon={getFacetIcon(key)}
+              searchText={facetSearch.searchTextByKey[key] ?? ""}
+              onSearchTextChange={(text: string) => {
+                facetSearch.setSearchText(key, text);
+              }}
+              emptyStateText={getSidebarFacetEmptyStateText({
+                isHideable: isHideableFacetKey(key),
+                emptyStateNoun: getResourceFacetDefinition(key)?.pluralLabel,
+                searchedAtArrivalText: facetSearch.searchedAtArrivalByKey[key],
+              })}
             />
           );
         })}
+
+        <HiddenFacetsFooter
+          hiddenCount={visibility.hiddenCount}
+          hiddenTitles={visibility.hiddenTitles}
+          isShowingHidden={showHidden}
+          controlsId={facetListId}
+          onToggle={() => {
+            setShowHidden(!showHidden);
+          }}
+        />
       </div>
     </div>
   );

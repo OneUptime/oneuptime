@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import {
   render,
   screen,
@@ -20,6 +20,8 @@ import {
   makeAlertState,
   makeNamedEntityWithColor,
 } from "../__tests__/testSupport";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius, spacing } from "../theme/tokens";
 import type {
   AlertItem,
   AlertState,
@@ -139,6 +141,21 @@ jest.mock("../hooks/useScreenPadding", () => {
   return {
     useScreenPadding: () => {
       return 248;
+    },
+  };
+});
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
     },
   };
 });
@@ -470,6 +487,7 @@ async function swipeToAcknowledge(label: string): Promise<void> {
 }
 
 beforeEach(() => {
+  mockColorScheme = "light";
   mockRoute.params = undefined;
   mockAlerts.current = alertsWith();
   mockEpisodes.current = episodesWith();
@@ -1270,4 +1288,485 @@ test("a state refresh failure keeps cached alerts readable with a retry notice",
   expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
   expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
   expect(screen.getByText("2 results")).toBeTruthy();
+});
+
+type Style = Record<string, unknown>;
+
+function styleOf(element: RenderedElement): Style {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Style;
+}
+
+function isSelected(element: RenderedElement): boolean | undefined {
+  return (
+    element.props.accessibilityState as { selected?: boolean } | undefined
+  )?.selected;
+}
+
+async function renderAlertsScreenDark(): Promise<void> {
+  mockColorScheme = "dark";
+  const QueryWrapper: ReturnType<typeof createQueryWrapper> =
+    createQueryWrapper(createTestQueryClient());
+  await render(<AlertsScreen />, {
+    wrapper: ({ children }: { children: React.ReactNode }) => {
+      return (
+        <ThemeProvider>
+          <QueryWrapper>{children}</QueryWrapper>
+        </ThemeProvider>
+      );
+    },
+  });
+}
+
+describe("The alerts/episodes switch", () => {
+  beforeEach(() => {
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+    mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
+  });
+
+  test("both views are always offered as buttons, with the current one selected", async () => {
+    await renderAlertsScreen();
+
+    const itemsButton: RenderedElement = screen.getByRole("button", {
+      name: "Alerts",
+    });
+    const episodesButton: RenderedElement = screen.getByRole("button", {
+      name: "Episodes",
+    });
+    expect(isSelected(itemsButton)).toBe(true);
+    expect(isSelected(episodesButton)).toBe(false);
+
+    await fireEvent.press(episodesButton);
+
+    expect(isSelected(screen.getByRole("button", { name: "Alerts" }))).toBe(
+      false,
+    );
+    expect(isSelected(screen.getByRole("button", { name: "Episodes" }))).toBe(
+      true,
+    );
+  });
+
+  test("each half explains what it shows to a screen reader", async () => {
+    await renderAlertsScreen();
+
+    expect(
+      screen.getByRole("button", { name: "Alerts" }).props.accessibilityHint,
+    ).toBe("Show individual alerts");
+    expect(
+      screen.getByRole("button", { name: "Episodes" }).props.accessibilityHint,
+    ).toBe("Show related alerts grouped into episodes");
+  });
+
+  test("the line under the switch describes the list that is showing", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByText("Each alert, listed on its own.")).toBeTruthy();
+    expect(
+      screen.queryByText("Related alerts, grouped into episodes."),
+    ).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
+
+    expect(
+      screen.getByText("Related alerts, grouped into episodes."),
+    ).toBeTruthy();
+    expect(screen.queryByText("Each alert, listed on its own.")).toBeNull();
+  });
+
+  test("choosing the view that is already showing changes nothing", async () => {
+    await renderAlertsScreen();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Alerts" }));
+
+    expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeTruthy();
+    expect(isSelected(screen.getByRole("button", { name: "Alerts" }))).toBe(
+      true,
+    );
+  });
+
+  test("a Home shortcut into episodes selects the Episodes half", async () => {
+    mockRoute.params = { initialSegment: "episodes" };
+
+    await renderAlertsScreen();
+
+    expect(isSelected(screen.getByRole("button", { name: "Episodes" }))).toBe(
+      true,
+    );
+    expect(screen.queryByLabelText(ACTIVE_ALERT_LABEL)).toBeNull();
+  });
+
+  test("the switch is a filled track whose selected half is a raised card", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByTestId("response-view-switch")).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+      borderRadius: radius.md,
+    });
+    const selected: RenderedElement = screen.getByTestId(
+      "response-view-alerts",
+    );
+    const unselected: RenderedElement = screen.getByTestId(
+      "response-view-episodes",
+    );
+    expect(selected).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      minHeight: 44,
+    });
+    expect(styleOf(selected).boxShadow).toEqual(expect.any(String));
+    expect(unselected).toHaveStyle({ backgroundColor: "transparent" });
+    expect(styleOf(unselected).boxShadow).toBeUndefined();
+  });
+
+  test("switching views keeps the search and the state filter", async () => {
+    await renderAlertsScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Active only" }));
+    await fireEvent.changeText(
+      screen.getByLabelText("Search alerts and episodes"),
+      "acme",
+    );
+
+    await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
+
+    expect(
+      screen.getByLabelText("Search alerts and episodes").props.value,
+    ).toBe("acme");
+    expect(
+      isSelected(screen.getByRole("button", { name: "Active only" })),
+    ).toBe(true);
+    expect(screen.getByRole("button", { name: "Reset filters" })).toBeTruthy();
+  });
+});
+
+describe("Section headings and their counts", () => {
+  beforeEach(() => {
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
+  });
+
+  test("each heading carries its own count beside it", async () => {
+    await renderAlertsScreen();
+
+    const active: RenderedElement = screen.getByRole("header", {
+      name: "Active",
+    });
+    const resolved: RenderedElement = screen.getByRole("header", {
+      name: "Resolved",
+    });
+    /* Heading and count share one row, which the web build reads together. */
+    expect(active.parent).toBe(
+      screen.getByTestId("response-section-active-count").parent,
+    );
+    expect(resolved.parent).toBe(
+      screen.getByTestId("response-section-resolved-count").parent,
+    );
+    expect(
+      screen.getByTestId("response-section-active-count"),
+    ).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("response-section-resolved-count"),
+    ).toHaveTextContent("1");
+  });
+
+  test("headings use the design system's title style", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByRole("header", { name: "Active" })).toHaveStyle({
+      fontSize: 18,
+      fontWeight: "600",
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("the active count is tinted as needing attention, the resolved one is neutral", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByTestId("response-section-active-count")).toHaveStyle({
+      backgroundColor: lightColors.statusErrorBg,
+      borderRadius: radius.pill,
+    });
+    expect(screen.getByTestId("response-section-resolved-count")).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+      borderRadius: radius.pill,
+    });
+  });
+
+  test("the count is the full section total, not the rendered page", async () => {
+    mockAlerts.current = alertsWith({
+      items: Array.from({ length: 30 }, (_: unknown, index: number) => {
+        return {
+          ...activeAlert(),
+          item: { ...activeAlert().item, _id: `active-${index}` },
+        };
+      }),
+    });
+
+    await renderAlertsScreen();
+
+    expect(
+      screen.getByTestId("response-section-active-count"),
+    ).toHaveTextContent("30");
+    /* The list renders at most one page of rows at a time. */
+    expect(
+      screen.getAllByRole("button", { name: ACTIVE_ALERT_LABEL }).length,
+    ).toBeLessThanOrEqual(20);
+  });
+});
+
+describe("Filter chips and reset", () => {
+  beforeEach(() => {
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
+  });
+
+  test("there is nothing to reset until a filter is applied", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.queryByRole("button", { name: "Reset filters" })).toBeNull();
+    expect(isSelected(screen.getByRole("button", { name: "All states" }))).toBe(
+      true,
+    );
+  });
+
+  test("Active only hides the resolved section, Resolved only hides the active one", async () => {
+    await renderAlertsScreen();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Active only" }));
+    expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
+    expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
+    expect(screen.getByText("1 result")).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolved only" }),
+    );
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
+    expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
+    expect(screen.getByText("Certificate expiring")).toBeTruthy();
+  });
+
+  test("reset restores every section, the All chip and an empty search", async () => {
+    await renderAlertsScreen();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolved only" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search alerts and episodes"),
+      "nothing like this",
+    );
+    expect(screen.getByText("No matching alerts")).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Reset filters" }),
+    );
+
+    expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
+    expect(isSelected(screen.getByRole("button", { name: "All states" }))).toBe(
+      true,
+    );
+    expect(
+      screen.getByLabelText("Search alerts and episodes").props.value,
+    ).toBe("");
+    expect(screen.getByText("2 results")).toBeTruthy();
+  });
+});
+
+describe("Empty and error states stay distinct", () => {
+  test("an empty account says so, with nothing to retry or clear", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByText("No alerts")).toBeTruthy();
+    expect(
+      screen.getByText("Alerts in this project will appear here."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull();
+    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.getByText("0 results")).toBeTruthy();
+  });
+
+  test("a filtered list with no matches offers to clear the filters instead", async () => {
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+    await renderAlertsScreen();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolved only" }),
+    );
+
+    expect(screen.getByText("No matching alerts")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  });
+
+  test("a failure shows a retry, no result count and no empty-list copy", async () => {
+    mockAlerts.current = alertsWith({ isError: true });
+    await renderAlertsScreen();
+
+    expect(screen.getByText("Something went wrong")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.queryByText("No alerts")).toBeNull();
+    expect(screen.queryByText(/results?$/)).toBeNull();
+    expect(screen.queryByTestId("response-list")).toBeNull();
+  });
+
+  test("loading and error pages keep the gutter and the tab bar clearance", async () => {
+    mockAlerts.current = alertsWith({ isLoading: true });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <AlertsScreen />,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    expect(screen.getByTestId("response-list-loading")).toBeTruthy();
+    expect(
+      screen.getByTestId("response-list-status").props.contentContainerStyle,
+    ).toEqual(
+      expect.objectContaining({ padding: spacing.xl, paddingBottom: 248 }),
+    );
+    expect(screen.getAllByLabelText("Loading content")).toHaveLength(3);
+    for (const skeleton of screen.getAllByLabelText("Loading content")) {
+      expect(skeleton).toHaveStyle({
+        backgroundColor: lightColors.backgroundElevated,
+        borderRadius: radius.lg,
+      });
+    }
+
+    mockAlerts.current = alertsWith({ isError: true });
+    await view.rerender(<AlertsScreen />);
+    expect(screen.getByText("Something went wrong")).toBeTruthy();
+    expect(
+      screen.getByTestId("response-list-status").props.contentContainerStyle,
+    ).toEqual(
+      expect.objectContaining({ padding: spacing.xl, paddingBottom: 248 }),
+    );
+  });
+
+  test("the list itself uses the screen gutter", async () => {
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+    await renderAlertsScreen();
+
+    expect(
+      screen.getByTestId("response-list").props.contentContainerStyle,
+    ).toEqual(
+      expect.objectContaining({ padding: spacing.xl, paddingBottom: 248 }),
+    );
+  });
+});
+
+describe("The acknowledge swipe as drawn", () => {
+  beforeEach(() => {
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+  });
+
+  test("the fill uses the success token and its label the inverse text token", async () => {
+    await renderAlertsScreen();
+
+    expect(screen.getByTestId("swipe-action-right")).toHaveStyle({
+      backgroundColor: lightColors.statusSuccess,
+      borderRadius: radius.lg,
+      bottom: spacing.md,
+    });
+    expect(screen.getByText("Acknowledge")).toHaveStyle({
+      color: lightColors.textInverse,
+    });
+  });
+
+  test("a resolved row has no swipe panel behind it at all", async () => {
+    mockAlerts.current = alertsWith({ items: [resolvedAlert()] });
+    await renderAlertsScreen();
+
+    expect(screen.queryByTestId("swipe-action-right")).toBeNull();
+    expect(screen.queryByTestId("swipe-action-left")).toBeNull();
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
+  });
+
+  test("the canvas, headings, counts and cards read from the dark palette", async () => {
+    await renderAlertsScreenDark();
+
+    expect(screen.getByRole("header", { name: "Active" })).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByTestId("response-section-active-count")).toHaveStyle({
+      backgroundColor: darkColors.statusErrorBg,
+    });
+    expect(screen.getByTestId("response-section-resolved-count")).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+    expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(screen.getByTestId("response-screen")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+  });
+
+  test("the view switch uses the dark track and raised segment", async () => {
+    await renderAlertsScreenDark();
+
+    expect(screen.getByTestId("response-view-switch")).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+    expect(screen.getByTestId("response-view-alerts")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+  });
+
+  test("the acknowledge swipe keeps a readable label on the dark fill", async () => {
+    await renderAlertsScreenDark();
+
+    expect(screen.getByTestId("swipe-action-right")).toHaveStyle({
+      backgroundColor: darkColors.statusSuccess,
+    });
+    expect(screen.getByText("Acknowledge")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
+  });
+
+  test("nothing on the dark list is painted in light-palette white", async () => {
+    await renderAlertsScreenDark();
+
+    const white: RenderedElement[] = screen.container.queryAll(
+      (node: RenderedElement) => {
+        if (!node.props.style) {
+          return false;
+        }
+        const style: Style = styleOf(node);
+        return [style.backgroundColor, style.color, style.borderColor].some(
+          (value: unknown) => {
+            return (
+              typeof value === "string" &&
+              ["#ffffff", "#fff", "white"].includes(value.toLowerCase())
+            );
+          },
+        );
+      },
+    );
+    expect(white).toHaveLength(0);
+  });
+
+  test("the empty state is drawn in dark tokens too", async () => {
+    mockAlerts.current = alertsWith();
+    await renderAlertsScreenDark();
+
+    expect(screen.getByText("No alerts")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+  });
+
+  test("the error state is drawn in dark tokens too", async () => {
+    mockAlerts.current = alertsWith({ isError: true });
+    await renderAlertsScreenDark();
+
+    expect(screen.getByText("Something went wrong")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+  });
 });

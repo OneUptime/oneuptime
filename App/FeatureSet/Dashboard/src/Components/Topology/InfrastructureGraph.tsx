@@ -4,530 +4,406 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import ReactFlow, {
   Background,
   BackgroundVariant,
   Controls,
   Edge,
-  Handle,
   MarkerType,
   Node,
   NodeProps,
-  Position,
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
-import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
-import EntityType from "Common/Types/Telemetry/EntityType";
+import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import computeNestedLayout, {
-  NestedLayoutBox,
-} from "../../Utils/NestedGraphLayout";
-import computeInfraParenting, { infraEdgeId } from "./InfrastructureNesting";
-import ServiceNodeCard from "./ServiceNodeCard";
-import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
-import { getInfrastructureGraphNodeKeys } from "./TopologyInventoryData";
+import { getInventoryTypeIcon } from "../Inventory/InventoryTypeCatalog";
+import TopologyNodeCard, {
+  TOPOLOGY_NODE_HEIGHT,
+  TOPOLOGY_NODE_WIDTH,
+  TopologyNodeStat,
+} from "./TopologyNodeCard";
+import {
+  InfrastructureNode,
+  InfrastructureTopologyModel,
+  describeInfrastructureNode,
+  summarizeCounts,
+} from "./InfrastructureTopologyModel";
+import { formatLastSeen } from "./TopologyActivity";
+import { HEALTH_COLORS, metaForEntityType } from "./TopologyMeta";
 
 /*
- * Infrastructure topology: the co-occurrence containment graph (runs-on /
- * member-of / hosted-on / part-of / instance-of). Service-to-service call
- * edges live in the sibling Service Map tab.
+ * The map of ONE level of the infrastructure tree: the things directly inside
+ * the selected scope, and the services running on them. Never the whole
+ * estate at once — a fleet stays one grouped card until the user opens it, so
+ * the drawing stays a handful of readable cards at every level instead of
+ * hundreds of boxes.
  *
- * Containment renders as NESTING, not arrows (see InfrastructureNesting.ts
- * for how each node's single parent is picked):
- *   - structural containment nests a pod in its node, a container in its
- *     host, and so on — the mental model of a rack diagram; and
- *   - workload grouping nests the fleet of hosts/pods a service runs on
- *     inside that service, so "one service across 120 hosts" reads as one
- *     labelled box instead of 120 loose boxes tied to a hub by 120 edges.
- * Relationships not expressed by the nesting still render as edges, with
- * plain-language labels on hover.
+ * Services sit in a column on the left with an arrow to every card they run
+ * on, so the picture reads as "what runs where".
  */
 
-const LEAF_WIDTH: number = 200;
-const LEAF_HEIGHT: number = 48;
-/*
- * Light, neutral border for leaf cards — the type is carried by the color
- * dot, so 120 fleet chips read as a calm texture, not 120 loud borders.
- */
-const LEAF_BORDER_COLOR: string = "#e2e8f0";
+export const MAX_MAP_CARDS: number = 48;
+// Taller columns than this shrink the whole drawing below readable size.
+const MAX_ROWS_PER_COLUMN: number = 8;
+const COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 120;
+const CARD_GAP_X: number = TOPOLOGY_NODE_WIDTH + 28;
+const CARD_GAP_Y: number = TOPOLOGY_NODE_HEIGHT + 24;
+const OVERFLOW_ID: string = "__more__";
+const SERVICE_PREFIX: string = "service:";
 
-const LAYOUT_OPTIONS: {
-  leafWidth: number;
-  leafHeight: number;
-  padding: number;
-  headerHeight: number;
-  gapX: number;
-  gapY: number;
-  rootGapX: number;
-  rootGapY: number;
-  maxRowWidth: number;
-} = {
-  leafWidth: LEAF_WIDTH,
-  leafHeight: LEAF_HEIGHT,
-  padding: 16,
-  headerHeight: 44,
-  gapX: 14,
-  gapY: 12,
-  rootGapX: 48,
-  rootGapY: 44,
-  maxRowWidth: 1500,
-};
+export interface ComponentProps {
+  model: InfrastructureTopologyModel;
+  /** Nodes drawn as cards — normally the scope's children. */
+  nodeIds: Array<string>;
+  onOpenNode: (id: string) => void;
+  onOpenService?: ((serviceKey: string) => void) | undefined;
+  onShowAll?: (() => void) | undefined;
+  now?: Date | undefined;
+}
 
-interface ContainerNodeData {
+interface CardData {
+  kind: "infrastructure" | "service" | "overflow";
   title: string;
-  typeLabel: string;
+  subtitle: string;
+  icon: IconProp;
   color: string;
-  /** e.g. "120 hosts" — visible child count, from the applied layout. */
-  countLabel: string;
+  statusColor: string;
+  statusLabel: string;
+  stats: Array<TopologyNodeStat>;
+  footer?: string | undefined;
+  stacked: boolean;
   dimmed: boolean;
 }
 
-interface LeafNodeData {
-  title: string;
-  typeLabel: string;
-  color: string;
-  /** Standalone leaves show their type; grouped chips omit it (redundant). */
-  showType: boolean;
-  dimmed: boolean;
-}
-
-/*
- * A container box: a strong type-colored header (name, type, and a count
- * pill), children render inside. Invisible handles so edges touching the
- * container still attach (custom React Flow nodes without <Handle>s silently
- * drop their edges).
- */
-const InfraContainerNode: FunctionComponent<NodeProps<ContainerNodeData>> = (
-  props: NodeProps<ContainerNodeData>,
+const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
+  props: NodeProps<CardData>,
 ): ReactElement => {
-  const { data } = props;
+  const { translateString } = useTranslateValue();
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        border: `2px solid ${data.color}`,
-        borderRadius: 12,
-        background: `${data.color}0d`,
-        opacity: data.dimmed ? 0.35 : 1,
-        cursor: "pointer",
-      }}
-    >
-      <Handle
-        type="target"
-        position={Position.Top}
-        isConnectable={false}
-        style={{ opacity: 0, pointerEvents: "none" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        isConnectable={false}
-        style={{ opacity: 0, pointerEvents: "none" }}
-      />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          padding: "8px 12px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 3,
-              backgroundColor: data.color,
-              flexShrink: 0,
-              boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--ou-text-primary, #111827)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {data.title}
-          </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 400,
-              color: "#6b7280",
-              flexShrink: 0,
-            }}
-          >
-            {data.typeLabel}
-          </span>
-        </div>
-        <span
-          style={{
-            flexShrink: 0,
-            fontSize: 11,
-            fontWeight: 600,
-            color: data.color,
-            background: `${data.color}1a`,
-            borderRadius: 999,
-            padding: "2px 8px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {data.countLabel}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-/*
- * A leaf node: the shared service-graph card so the Infrastructure map and
- * the Service Map speak one visual language. Type is carried by the color
- * dot; the border stays a calm neutral.
- */
-const InfraLeafNode: FunctionComponent<NodeProps<LeafNodeData>> = (
-  props: NodeProps<LeafNodeData>,
-): ReactElement => {
-  const { data } = props;
-  return (
-    <ServiceNodeCard
-      label={data.title}
-      health="unknown"
-      borderColor={LEAF_BORDER_COLOR}
-      colorDot={data.color}
-      dimmed={data.dimmed}
-      statLines={
-        data.showType
-          ? [
-              <span key="type" style={{ color: "#6b7280" }}>
-                {data.typeLabel}
-              </span>,
-            ]
-          : undefined
+    <TopologyNodeCard
+      testId={`infrastructure-map-node-${props.id}`}
+      title={props.data.title}
+      subtitle={translateString(props.data.subtitle) || props.data.subtitle}
+      icon={props.data.icon}
+      color={props.data.color}
+      statusColor={props.data.statusColor}
+      statusLabel={
+        translateString(props.data.statusLabel) || props.data.statusLabel
       }
+      stats={props.data.stats}
+      footer={props.data.footer}
+      stacked={props.data.stacked}
+      dimmed={props.data.dimmed}
     />
   );
 };
 
-const INFRA_NODE_TYPES: Record<string, FunctionComponent<NodeProps>> = {
-  infraContainer: InfraContainerNode as FunctionComponent<NodeProps>,
-  infraLeaf: InfraLeafNode as FunctionComponent<NodeProps>,
+const NODE_TYPES: Record<string, FunctionComponent<NodeProps<CardData>>> = {
+  infrastructureCard: InfrastructureCard,
 };
 
-export interface ComponentProps {
-  entities: Array<InventoryItem>;
-  relationships: Array<InventoryItemRelationship>;
-  onSelectResource?: (key: string) => void;
+export function cardForNode(
+  model: InfrastructureTopologyModel,
+  node: InfrastructureNode,
+  now: Date,
+): CardData {
+  const typeMeta: { label: string; color: string } = metaForEntityType(
+    node.entityType || undefined,
+  );
+  const services: Array<string> = node.serviceKeys.map(
+    (key: string): string => {
+      return model.serviceByKey.get(key)?.displayName || key;
+    },
+  );
+  const footer: string | undefined =
+    services.length > 0
+      ? `Runs ${services.slice(0, 3).join(", ")}${services.length > 3 ? ` +${services.length - 3}` : ""}`
+      : undefined;
+  const parent: InfrastructureNode | undefined = node.parentId
+    ? model.nodes.get(node.parentId)
+    : undefined;
+  const location: string =
+    parent && parent.kind === "resource" ? ` · ${parent.name}` : "";
+  const subtitle: string =
+    node.kind === "group"
+      ? `${typeMeta.label} replicas${location}`
+      : node.kind === "category"
+        ? "Category"
+        : `${typeMeta.label}${location}`;
+  return {
+    kind: "infrastructure",
+    title: node.name,
+    subtitle,
+    icon:
+      node.kind === "group"
+        ? IconProp.Squares
+        : getInventoryTypeIcon(node.entityType || ""),
+    color: typeMeta.color,
+    statusColor: node.isActive ? HEALTH_COLORS.healthy : HEALTH_COLORS.unknown,
+    /*
+     * One line says whether it is running and what it is made of; a machine
+     * says when it last reported instead.
+     */
+    statusLabel: `${node.isActive ? "Active" : "Inactive"} · ${
+      node.kind === "resource" && node.childIds.length === 0
+        ? `seen ${formatLastSeen(node.lastSeenAt || undefined, now)}`
+        : node.kind === "resource"
+          ? summarizeCounts(node.countsByType, 2)
+          : describeInfrastructureNode(node)
+    }`,
+    stats: [],
+    footer,
+    stacked: node.kind === "group",
+    dimmed: !node.isActive,
+  };
+}
+
+export interface InfrastructureMapLayout {
+  nodes: Array<Node<CardData>>;
+  edges: Array<Edge>;
+}
+
+export function layoutInfrastructureMap(data: {
+  model: InfrastructureTopologyModel;
+  nodeIds: Array<string>;
+  now: Date;
+}): InfrastructureMapLayout {
+  const { model } = data;
+  const cards: Array<InfrastructureNode> = data.nodeIds
+    .map((id: string): InfrastructureNode | undefined => {
+      return model.nodes.get(id);
+    })
+    .filter(
+      (node: InfrastructureNode | undefined): node is InfrastructureNode => {
+        return Boolean(node);
+      },
+    );
+  /*
+   * Cards that run something come first, so they sit next to the service
+   * column and their arrows stay short; the rest keep tree order.
+   */
+  const ordered: Array<InfrastructureNode> = cards
+    .map((node: InfrastructureNode, index: number) => {
+      return { node, index };
+    })
+    .sort(
+      (
+        a: { node: InfrastructureNode; index: number },
+        b: { node: InfrastructureNode; index: number },
+      ): number => {
+        return (
+          Number(b.node.serviceKeys.length > 0) -
+            Number(a.node.serviceKeys.length > 0) || a.index - b.index
+        );
+      },
+    )
+    .map((item: { node: InfrastructureNode; index: number }) => {
+      return item.node;
+    });
+  const shown: Array<InfrastructureNode> =
+    ordered.length > MAX_MAP_CARDS
+      ? ordered.slice(0, MAX_MAP_CARDS - 1)
+      : ordered;
+  const overflow: number = cards.length - shown.length;
+
+  // Services ordered by the first card they run on, to keep arrows untangled.
+  const firstCardIndex: Map<string, number> = new Map<string, number>();
+  shown.forEach((node: InfrastructureNode, index: number) => {
+    for (const key of node.serviceKeys) {
+      if (!firstCardIndex.has(key)) {
+        firstCardIndex.set(key, index);
+      }
+    }
+  });
+  const serviceKeys: Array<string> = Array.from(firstCardIndex.keys()).sort(
+    (a: string, b: string): number => {
+      return (
+        firstCardIndex.get(a)! - firstCardIndex.get(b)! ||
+        (model.serviceByKey.get(a)?.displayName || a).localeCompare(
+          model.serviceByKey.get(b)?.displayName || b,
+        )
+      );
+    },
+  );
+
+  /*
+   * Card slots, column by column. Cards that run a service fill the columns
+   * nearest the service column, so an arrow never has to pass behind another
+   * card to reach its target; everything else starts in the next column.
+   * Without services there are no arrows, and a compact grid reads best.
+   */
+  const slots: Map<string, { column: number; row: number }> = new Map<
+    string,
+    { column: number; row: number }
+  >();
+  const slotIds: Array<string> = [
+    ...shown.map((node: InfrastructureNode): string => {
+      return node.id;
+    }),
+    ...(overflow > 0 ? [OVERFLOW_ID] : []),
+  ];
+  let rows: number = 0;
+  if (serviceKeys.length === 0) {
+    const columns: number = Math.max(
+      1,
+      Math.min(3, Math.round(Math.sqrt(slotIds.length * 0.6))),
+    );
+    slotIds.forEach((id: string, index: number) => {
+      slots.set(id, {
+        column: index % columns,
+        row: Math.floor(index / columns),
+      });
+    });
+    rows = Math.ceil(slotIds.length / columns);
+  } else {
+    const running: number = shown.filter(
+      (node: InfrastructureNode): boolean => {
+        return node.serviceKeys.length > 0;
+      },
+    ).length;
+    const rowsPerColumn: number = Math.max(
+      MAX_ROWS_PER_COLUMN,
+      Math.ceil(running / 3),
+    );
+    const runningColumns: number = Math.ceil(running / rowsPerColumn);
+    slotIds.forEach((id: string, index: number) => {
+      const isRunning: boolean = index < running;
+      const position: number = isRunning ? index : index - running;
+      slots.set(id, {
+        column:
+          (isRunning ? 0 : runningColumns) +
+          Math.floor(position / rowsPerColumn),
+        row: position % rowsPerColumn,
+      });
+    });
+    rows = Math.min(rowsPerColumn, Math.max(running, slotIds.length - running));
+  }
+  const offsetX: number = serviceKeys.length > 0 ? COLUMN_GAP : 0;
+
+  const nodes: Array<Node<CardData>> = [];
+  const serviceColumnHeight: number = serviceKeys.length * CARD_GAP_Y;
+  const cardAreaHeight: number = rows * CARD_GAP_Y;
+  const serviceOffsetY: number = Math.max(
+    0,
+    (cardAreaHeight - serviceColumnHeight) / 2,
+  );
+  const cardOffsetY: number = Math.max(
+    0,
+    (serviceColumnHeight - cardAreaHeight) / 2,
+  );
+
+  serviceKeys.forEach((key: string, index: number) => {
+    const placements: number = shown.filter(
+      (node: InfrastructureNode): boolean => {
+        return node.serviceKeys.includes(key);
+      },
+    ).length;
+    nodes.push({
+      id: `${SERVICE_PREFIX}${key}`,
+      type: "infrastructureCard",
+      position: { x: 0, y: serviceOffsetY + index * CARD_GAP_Y },
+      data: {
+        kind: "service",
+        title: model.serviceByKey.get(key)?.displayName || key,
+        subtitle: "Service",
+        icon: IconProp.SquareStack,
+        color: metaForEntityType("service").color,
+        statusColor: "#6366f1",
+        statusLabel: `Runs on ${placements} of these`,
+        stats: [],
+        stacked: false,
+        dimmed: false,
+      },
+    });
+  });
+
+  const positionOf: (id: string) => { x: number; y: number } = (
+    id: string,
+  ): { x: number; y: number } => {
+    const slot: { column: number; row: number } = slots.get(id)!;
+    return {
+      x: offsetX + slot.column * CARD_GAP_X,
+      y: cardOffsetY + slot.row * CARD_GAP_Y,
+    };
+  };
+
+  shown.forEach((node: InfrastructureNode) => {
+    nodes.push({
+      id: node.id,
+      type: "infrastructureCard",
+      position: positionOf(node.id),
+      data: cardForNode(model, node, data.now),
+    });
+  });
+
+  if (overflow > 0) {
+    nodes.push({
+      id: OVERFLOW_ID,
+      type: "infrastructureCard",
+      position: positionOf(OVERFLOW_ID),
+      data: {
+        kind: "overflow",
+        title: `${overflow} more`,
+        subtitle: "Not drawn",
+        icon: IconProp.TableCells,
+        color: "#64748b",
+        statusColor: "#94a3b8",
+        statusLabel: "Open the list to see everything",
+        stats: [],
+        stacked: true,
+        dimmed: false,
+      },
+    });
+  }
+
+  const edges: Array<Edge> = [];
+  for (const node of shown) {
+    for (const key of node.serviceKeys) {
+      edges.push({
+        id: `${key}->${node.id}`,
+        source: `${SERVICE_PREFIX}${key}`,
+        target: node.id,
+        type: "default",
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#a5b4fc" },
+        style: { stroke: "#a5b4fc", strokeWidth: 1.5 },
+      });
+    }
+  }
+
+  return { nodes, edges };
 }
 
 const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-
-  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
 
-  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    for (const entity of props.entities) {
-      if (entity.entityKey) {
-        map.set(entity.entityKey, entity);
-      }
-    }
-    return map;
-  }, [props.entities]);
-
-  const infraEdges: Array<InventoryItemRelationship> = useMemo(() => {
-    return props.relationships.filter(
-      (relationship: InventoryItemRelationship) => {
-        return (
-          relationship.relationshipType !== EntityRelationshipType.DependsOn &&
-          Boolean(relationship.fromEntityKey) &&
-          Boolean(relationship.toEntityKey)
-        );
-      },
-    );
-  }, [props.relationships]);
-
-  // Every current Inventory item, plus any unresolved relationship endpoints.
-  const graphNodeKeys: Set<string> = useMemo(() => {
-    return getInfrastructureGraphNodeKeys({
-      entities: props.entities,
-      infrastructureRelationships: infraEdges,
+  const layout: InfrastructureMapLayout = useMemo(() => {
+    return layoutInfrastructureMap({
+      model: props.model,
+      nodeIds: props.nodeIds,
+      now: props.now || new Date(),
     });
-  }, [infraEdges, props.entities]);
+  }, [props.model, props.nodeIds, props.now]);
 
-  const { baseNodes, edges } = useMemo((): {
-    baseNodes: Array<Node>;
-    edges: Array<Edge>;
-    appliedParent: Map<string, string>;
-  } => {
-    const visibleKeys: Set<string> = graphNodeKeys;
+  const layoutKey: string = layout.nodes
+    .map((node: Node<CardData>): string => {
+      return node.id;
+    })
+    .join("|");
 
-    const visibleEdges: Array<InventoryItemRelationship> = infraEdges.filter(
-      (relationship: InventoryItemRelationship) => {
-        return (
-          visibleKeys.has(relationship.fromEntityKey!) &&
-          visibleKeys.has(relationship.toEntityKey!)
-        );
-      },
-    );
-
-    const entityTypeByKey: Map<string, EntityType | string | undefined> =
-      new Map<string, EntityType | string | undefined>();
-    for (const key of visibleKeys) {
-      entityTypeByKey.set(key, entityByKey.get(key)?.entityType);
-    }
-
-    const { parentOf, nestingEdgeByChild } = computeInfraParenting(
-      visibleEdges.map((relationship: InventoryItemRelationship) => {
-        return {
-          fromEntityKey: relationship.fromEntityKey!,
-          toEntityKey: relationship.toEntityKey!,
-          relationshipType: relationship.relationshipType!,
-        };
-      }),
-      entityTypeByKey,
-    );
-
-    const layout: Map<string, NestedLayoutBox> = computeNestedLayout(
-      Array.from(visibleKeys),
-      parentOf,
-      LAYOUT_OPTIONS,
-    );
-
-    /*
-     * Read the APPLIED hierarchy back from the sanitized layout — NOT from
-     * parentOf. computeNestedLayout silently drops cycle/self/unknown
-     * parent links, so anything that styles or hides nodes must agree with
-     * where they were actually placed, or a dropped link leaves a
-     * leaf-sized box wearing container chrome and an edge that is neither
-     * drawn nor nested.
-     */
-    const appliedParent: Map<string, string> = new Map<string, string>();
-    const childCount: Map<string, number> = new Map<string, number>();
-    const childTypeOfParent: Map<string, Set<string>> = new Map<
-      string,
-      Set<string>
-    >();
-    for (const [key, box] of layout) {
-      if (box.parentId) {
-        appliedParent.set(key, box.parentId);
-        childCount.set(box.parentId, (childCount.get(box.parentId) || 0) + 1);
-        const set: Set<string> =
-          childTypeOfParent.get(box.parentId) || new Set<string>();
-        set.add(entityByKey.get(key)?.entityType || "unknown");
-        childTypeOfParent.set(box.parentId, set);
-      }
-    }
-    const hasChildren: Set<string> = new Set<string>(appliedParent.values());
-
-    // Only hide an edge if the nesting it expresses was actually applied.
-    const consumedEdgeIds: Set<string> = new Set<string>();
-    for (const [childKey, selection] of nestingEdgeByChild) {
-      if (appliedParent.get(childKey) === selection.parentKey) {
-        consumedEdgeIds.add(selection.edgeId);
-      }
-    }
-
-    /*
-     * React Flow requires a parent node to appear in the array before its
-     * children — order by nesting depth (read from the same sanitized
-     * layout, so order and hierarchy can never disagree). Depth is memoized
-     * once rather than re-walked inside the sort comparator.
-     */
-    const depthByKey: Map<string, number> = new Map<string, number>();
-    const depthOf: (key: string) => number = (key: string): number => {
-      const cached: number | undefined = depthByKey.get(key);
-      if (cached !== undefined) {
-        return cached;
-      }
-      let depth: number = 0;
-      let cursor: string | undefined = appliedParent.get(key);
-      const guard: Set<string> = new Set<string>([key]);
-      while (cursor && !guard.has(cursor) && depth < 100) {
-        guard.add(cursor);
-        depth++;
-        cursor = appliedParent.get(cursor);
-      }
-      depthByKey.set(key, depth);
-      return depth;
-    };
-
-    /*
-     * Code-unit compare (matches computeNestedLayout's .sort()) for a
-     * deterministic, locale-independent order.
-     */
-    const orderedKeys: Array<string> = Array.from(visibleKeys).sort(
-      (a: string, b: string) => {
-        const diff: number = depthOf(a) - depthOf(b);
-        if (diff !== 0) {
-          return diff;
-        }
-        return a < b ? -1 : a > b ? 1 : 0;
-      },
-    );
-
-    const countLabelFor: (key: string) => string = (key: string): string => {
-      const count: number = childCount.get(key) || 0;
-      const types: Set<string> = childTypeOfParent.get(key) || new Set();
-      if (types.size === 1) {
-        const only: string = Array.from(types)[0]!;
-        const noun: string = metaForEntityType(only).label.toLowerCase();
-        return `${count} ${noun}${count === 1 ? "" : "s"}`;
-      }
-      return `${count} item${count === 1 ? "" : "s"}`;
-    };
-
-    const builtNodes: Array<Node> = orderedKeys.map((key: string): Node => {
-      const entity: InventoryItem | undefined = entityByKey.get(key);
-      const label: string =
-        entity?.displayName || `Undiscovered resource · ${key}`;
-      const typeMeta: { label: string; color: string } = metaForEntityType(
-        entity?.entityType,
-      );
-      const box: NestedLayoutBox = layout.get(key) || {
-        x: 0,
-        y: 0,
-        width: LEAF_WIDTH,
-        height: LEAF_HEIGHT,
-        parentId: null,
-      };
-      const isContainer: boolean = hasChildren.has(key);
-
-      const common: Partial<Node> = {
-        position: { x: box.x, y: box.y },
-        ...(box.parentId
-          ? { parentNode: box.parentId, extent: "parent" as const }
-          : {}),
-      };
-
-      if (isContainer) {
-        return {
-          id: key,
-          type: "infraContainer",
-          ...common,
-          data: {
-            title: label,
-            typeLabel: typeMeta.label,
-            color: typeMeta.color,
-            countLabel: countLabelFor(key),
-            dimmed: false,
-          } as ContainerNodeData,
-          style: { width: box.width, height: box.height },
-        } as Node;
-      }
-
-      return {
-        id: key,
-        type: "infraLeaf",
-        ...common,
-        data: {
-          title: label,
-          typeLabel: typeMeta.label,
-          color: typeMeta.color,
-          showType: !box.parentId,
-          dimmed: false,
-        } as LeafNodeData,
-      } as Node;
-    });
-
-    const builtEdges: Array<Edge> = visibleEdges
-      .filter((relationship: InventoryItemRelationship) => {
-        const id: string = infraEdgeId(
-          relationship.fromEntityKey!,
-          relationship.relationshipType!,
-          relationship.toEntityKey!,
-        );
-        /*
-         * Nesting expresses one relationship. Keep every other connection,
-         * including a shared resource's links to services outside its group.
-         */
-        return !consumedEdgeIds.has(id);
-      })
-      .map((relationship: InventoryItemRelationship): Edge => {
-        const id: string = infraEdgeId(
-          relationship.fromEntityKey!,
-          relationship.relationshipType!,
-          relationship.toEntityKey!,
-        );
-        return {
-          id,
-          source: relationship.fromEntityKey!,
-          target: relationship.toEntityKey!,
-          type: "smoothstep",
-          data: { relationshipType: relationship.relationshipType },
-          labelStyle: { fontSize: 11, fill: "#374151" },
-          labelBgStyle: {
-            fill: "var(--ou-surface-primary, #ffffff)",
-            fillOpacity: 0.9,
-          },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-          style: { stroke: "#94a3b8" },
-        };
-      });
-
-    return { baseNodes: builtNodes, edges: builtEdges, appliedParent };
-  }, [infraEdges, graphNodeKeys, entityByKey]);
-
-  /*
-   * Hover labels live in a separate cheap memo: only the edges array
-   * changes on hover, so React Flow never rebuilds (and re-measures)
-   * every node while the mouse crosses edges.
-   */
-  const displayEdges: Array<Edge> = useMemo(() => {
-    if (!hoveredEdgeId) {
-      return edges;
-    }
-    return edges.map((edge: Edge): Edge => {
-      if (edge.id !== hoveredEdgeId) {
-        return edge;
-      }
-      return {
-        ...edge,
-        label: labelForRelationship(
-          (edge.data as { relationshipType?: string } | undefined)
-            ?.relationshipType,
-        ),
-      };
-    });
-  }, [edges, hoveredEdgeId]);
-
-  /*
-   * Re-fit when the visible graph changes. A new controlled `nodes` array
-   * wipes React Flow's measured dimensions, and fitView no-ops (returns
-   * false) until nodes re-measure — retry on animation frames until it
-   * lands. Only structural changes (focus / node count) refit, not dimming.
-   */
   useEffect(() => {
     let raf: number = 0;
     let attempts: number = 16;
     const tryFit: () => void = (): void => {
       const didFit: boolean = Boolean(
         flowInstance.current &&
-          baseNodes.length > 0 &&
-          flowInstance.current.fitView({ padding: 0.15, maxZoom: 1 }),
+          layout.nodes.length > 0 &&
+          flowInstance.current.fitView({ padding: 0.16, maxZoom: 1 }),
       );
       if (!didFit && attempts > 0) {
         attempts--;
@@ -538,26 +414,43 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [baseNodes]);
+  }, [layoutKey]);
 
-  if (baseNodes.length === 0) {
+  if (layout.nodes.length === 0) {
     return (
       <div role="status" className="p-10 text-center text-sm text-gray-500">
-        {translateString("No resources in this map")}
+        {translateString("Nothing to draw here") || "Nothing to draw here"}
       </div>
     );
   }
 
+  let drawingHeight: number = 0;
+  for (const node of layout.nodes) {
+    drawingHeight = Math.max(
+      drawingHeight,
+      node.position.y + TOPOLOGY_NODE_HEIGHT,
+    );
+  }
+
   return (
-    <div style={{ height: "min(65vh, 680px)", minHeight: 360, width: "100%" }}>
+    <div
+      style={{
+        height: Math.round(
+          Math.min(820, Math.max(380, drawingHeight * 0.85 + 100)),
+        ),
+        width: "100%",
+      }}
+      className="bg-slate-50"
+      data-testid="infrastructure-map"
+    >
       <ReactFlow
-        nodes={baseNodes}
-        edges={displayEdges}
-        nodeTypes={INFRA_NODE_TYPES}
+        nodes={layout.nodes}
+        edges={layout.edges}
+        nodeTypes={NODE_TYPES}
         fitView={true}
-        fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
-        minZoom={0.05}
-        maxZoom={2}
+        fitViewOptions={{ padding: 0.16, maxZoom: 1 }}
+        minZoom={0.1}
+        maxZoom={1.5}
         proOptions={{ hideAttribution: true }}
         nodesDraggable={false}
         nodesConnectable={false}
@@ -566,19 +459,21 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
           flowInstance.current = instance;
         }}
         onNodeClick={(_event: React.MouseEvent, node: Node) => {
-          props.onSelectResource?.(node.id);
-        }}
-        onEdgeMouseEnter={(_event: React.MouseEvent, edge: Edge) => {
-          setHoveredEdgeId(edge.id);
-        }}
-        onEdgeMouseLeave={() => {
-          setHoveredEdgeId(null);
+          if (node.id === OVERFLOW_ID) {
+            props.onShowAll?.();
+            return;
+          }
+          if (node.id.startsWith(SERVICE_PREFIX)) {
+            props.onOpenService?.(node.id.substring(SERVICE_PREFIX.length));
+            return;
+          }
+          props.onOpenNode(node.id);
         }}
       >
         <Controls showInteractive={false} />
         <Background
           variant={BackgroundVariant.Dots}
-          gap={20}
+          gap={22}
           size={1}
           color="var(--ou-chart-grid, #cbd5e1)"
         />

@@ -1,14 +1,17 @@
-import Config, { RECORDER_VERSION_PATTERN } from "../src/Config";
+import Config, {
+  LATEST_RECORDER_VERSION as CONFIG_LATEST_RECORDER_VERSION,
+} from "../src/Config";
 import {
   ARTIFACT_CONTENT_TYPE,
   ARTIFACT_ROUTE_PREFIX,
+  LATEST_RECORDER_ROUTE_PATH,
+  LATEST_RECORDER_VERSION as MANIFEST_LATEST_RECORDER_VERSION,
   LOADER_CACHE_CONTROL,
   LOADER_ROUTE_PATH,
   RECORDER_CACHE_CONTROL,
   RecorderManifest,
-  RECORDER_VERSION_PATTERN as MANIFEST_VERSION_PATTERN,
   getArtifactFilePath,
-  getPinnedRecorderPath,
+  getLatestRecorderPath,
   getRecorderIntegrity,
   getRecorderManifest,
   getRecorderVersion,
@@ -64,34 +67,6 @@ const childProcess: ChildProcess = require("child_process") as ChildProcess;
 
 const PACKAGE_ROOT: string = nodePath.join(__dirname, "..");
 
-const packageJson: { version: string } = require(
-  nodePath.join(PACKAGE_ROOT, "package.json"),
-) as { version: string };
-
-/*
- * Read as TEXT, not required: esbuild.config.js loads esbuild, whose startup
- * invariant check fails under jsdom. The regex literal is what needs
- * comparing, and it is unambiguous in the source.
- */
-function readBuildVersionPattern(): string {
-  const source: string = fs.readFileSync(
-    nodePath.join(PACKAGE_ROOT, "esbuild.config.js"),
-    "utf8",
-  );
-
-  /*
-   * Hoisted to a const rather than used inline: prettier and wrap-regex
-   * disagree about parenthesising a regex literal in a member expression,
-   * and fixing for one re-breaks the other.
-   */
-  const declarationPattern: RegExp =
-    /^const RECORDER_VERSION_PATTERN = \/(.+)\/;$/m;
-
-  const match: RegExpExecArray | null = declarationPattern.exec(source);
-
-  return match && match[1] !== undefined ? match[1] : "";
-}
-
 function buildIfMissing(): void {
   if (
     fs.existsSync(
@@ -111,13 +86,18 @@ function buildIfMissing(): void {
   );
 }
 
+const TEST_RECORDER_BASE64: string = "A".repeat(64);
+
 function validManifest(): Record<string, unknown> {
   return {
-    recorderVersion: "11.7.3",
+    recorderVersion: MANIFEST_LATEST_RECORDER_VERSION,
     rrwebVersion: "2.1.1",
     files: {
-      "recorder.js": { bytes: 100, integrity: "sha384-aaa" },
-      "loader.js": { bytes: 10, integrity: "sha384-bbb" },
+      "recorder.js": {
+        bytes: 100,
+        integrity: `sha384-${TEST_RECORDER_BASE64}`,
+      },
+      "loader.js": { bytes: 10, integrity: `sha384-${"B".repeat(64)}` },
     },
   };
 }
@@ -128,35 +108,19 @@ describe("recorder manifest", (): void => {
     resetRecorderManifestCache();
   }, 120000);
 
-  /*
-   * The pattern is written out three times - in the browser config, in this
-   * server-side reader, and in the build - because none of the three may
-   * import either of the others. If they ever drift, the build stamps a
-   * version the loader then refuses to turn into a URL, and the recorder goes
-   * silent with no error anywhere.
-   */
-  it("uses one version grammar in the browser, the server and the build", (): void => {
-    expect(MANIFEST_VERSION_PATTERN.source).toBe(
-      RECORDER_VERSION_PATTERN.source,
-    );
-    expect(readBuildVersionPattern()).toBe(RECORDER_VERSION_PATTERN.source);
-  });
-
-  /*
-   * THE regression test for the version skew. The version the server would
-   * advertise has to be the version the build actually published, and it has
-   * to be one the loader will accept.
-   */
-  it("advertises exactly the version the build stamped", (): void => {
+  it("advertises the mutable latest artifact", (): void => {
     const manifest: RecorderManifest | null = getRecorderManifest();
 
     expect(manifest).not.toBeNull();
-    expect(getRecorderVersion()).toBe(packageJson.version);
-    expect(manifest?.recorderVersion).toBe(packageJson.version);
+    expect(CONFIG_LATEST_RECORDER_VERSION).toBe("latest");
+    expect(MANIFEST_LATEST_RECORDER_VERSION).toBe("latest");
+    expect(getRecorderVersion()).toBe("latest");
+    expect(manifest?.recorderVersion).toBe("latest");
     expect(Config.isValidRecorderVersion(getRecorderVersion())).toBe(true);
+    expect(Config.isValidRecorderVersion("13.0.4")).toBe(false);
   });
 
-  it("publishes an SHA-384 integrity hash for the pinned artifact", (): void => {
+  it("publishes an SHA-384 integrity hash for the latest artifact", (): void => {
     const integrity: string | null = getRecorderIntegrity();
 
     expect(integrity).toMatch(/^sha384-/);
@@ -172,12 +136,15 @@ describe("recorder manifest", (): void => {
   it("names the routes and cache policy the two-stage load depends on", (): void => {
     expect(ARTIFACT_ROUTE_PREFIX).toBe("/telemetry/session-replay");
     expect(LOADER_ROUTE_PATH).toBe("/telemetry/session-replay/v1/recorder.js");
+    expect(LATEST_RECORDER_ROUTE_PATH).toBe(
+      "/telemetry/session-replay/latest/recorder.js",
+    );
 
     /* Short, because the stub is the rollback mechanism. */
     expect(LOADER_CACHE_CONTROL).toBe("public, max-age=300");
 
-    /* A year and immutable, because the path is version-pinned. */
-    expect(RECORDER_CACHE_CONTROL).toBe("public, max-age=31536000, immutable");
+    /* Mutable latest bytes must never outlive the SRI returned by config. */
+    expect(RECORDER_CACHE_CONTROL).toBe("no-store");
     expect(ARTIFACT_CONTENT_TYPE).toContain("application/javascript");
   });
 
@@ -193,30 +160,36 @@ describe("recorder manifest", (): void => {
     expect(getArtifactFilePath("")).toBeNull();
   });
 
-  /*
-   * The immutable cache header is only truthful for an exact version match.
-   * Serving today's bytes under yesterday's version number, cached for a
-   * year, is unrecoverable.
-   */
-  it("serves the pinned path only for the version it published", (): void => {
-    const version: string | null = getRecorderVersion();
-
-    expect(version).not.toBeNull();
-    expect(getPinnedRecorderPath(version as string)).toContain("recorder.js");
-    expect(getPinnedRecorderPath("1.0.0")).toBeNull();
-    expect(getPinnedRecorderPath("../../../etc/passwd")).toBeNull();
+  it("resolves the latest artifact without a caller-controlled path", (): void => {
+    expect(getLatestRecorderPath()).toContain("public/dist/recorder.js");
   });
 
   describe("validateManifest", (): void => {
     it("accepts a well-formed manifest", (): void => {
-      expect(validateManifest(validManifest())?.recorderVersion).toBe("11.7.3");
+      expect(validateManifest(validManifest())?.recorderVersion).toBe(
+        MANIFEST_LATEST_RECORDER_VERSION,
+      );
     });
 
-    it("rejects a version the loader would refuse to use", (): void => {
-      const manifest: Record<string, unknown> = validManifest();
-      manifest["recorderVersion"] = "latest";
+    it("rejects every recorder label except latest", (): void => {
+      for (const recorderVersion of ["11.7.3", "stable", "", "LATEST"]) {
+        const manifest: Record<string, unknown> = validManifest();
+        manifest["recorderVersion"] = recorderVersion;
 
-      expect(validateManifest(manifest)).toBeNull();
+        expect(validateManifest(manifest)).toBeNull();
+      }
+    });
+
+    it("rejects malformed SHA-384 integrity", (): void => {
+      for (const recorderIntegrity of [`sha384-${"A".repeat(63)}`, "sha384-"]) {
+        const manifest: Record<string, unknown> = validManifest();
+        (manifest["files"] as Record<string, unknown>)["recorder.js"] = {
+          bytes: 100,
+          integrity: recorderIntegrity,
+        };
+
+        expect(validateManifest(manifest)).toBeNull();
+      }
     });
 
     /*

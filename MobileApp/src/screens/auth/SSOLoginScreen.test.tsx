@@ -1,12 +1,31 @@
 import React from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 import {
   render,
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import SSOLoginScreen from "./SSOLoginScreen";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 import {
   fetchAllGlobalProviders,
   fetchProjectProvidersForEmail,
@@ -181,6 +200,7 @@ async function submitEmail(email: string): Promise<void> {
 }
 
 beforeEach(() => {
+  mockSystemScheme = "light";
   globalDiscovery().mockResolvedValue(found<GlobalSSOProvider>([]));
   projectDiscovery().mockResolvedValue(found<SSOProvider>([]));
   authSession().mockResolvedValue({ status: "cancelled" });
@@ -1162,5 +1182,134 @@ describe("Getting back out", () => {
     await waitFor(() => {
       expect(mockNavigation.navigate).toHaveBeenCalledWith("Login");
     });
+  });
+});
+
+function emailFieldStyle(): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId("sso-email-field").props.style,
+  ) as ViewStyle;
+}
+
+describe("How single sign-on looks", () => {
+  test("organization providers are full-size button rows under one heading", async () => {
+    globalDiscovery().mockResolvedValue(
+      found([
+        globalProvider(),
+        globalProvider({ _id: "global-oidc-1", name: "Acme Entra ID" }),
+      ]),
+    );
+
+    await renderScreen();
+
+    const heading: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "header",
+      { name: "Sign in with your organization" },
+    );
+    expect(heading).toBeTruthy();
+    for (const name of ["Acme Corporate SAML", "Acme Entra ID"]) {
+      const row: ReturnType<typeof screen.getByRole> = screen.getByRole(
+        "button",
+        { name },
+      );
+      expect(
+        StyleSheet.flatten(row.props.style).minHeight,
+      ).toBeGreaterThanOrEqual(64);
+      expect(row.props.accessibilityHint).toMatch(/secure sign-in/);
+    }
+    expect(
+      within(screen.getByTestId("auth-form")).getAllByText(
+        "Sign in with your Acme account",
+      ),
+    ).toHaveLength(2);
+  });
+
+  test("project providers are grouped under their project as headings", async () => {
+    projectDiscovery().mockResolvedValue(
+      found([
+        projectProvider(),
+        projectProvider({
+          _id: "provider-2",
+          name: "Acme Azure",
+          projectId: "project-2",
+          project: { name: "Acme Staging" },
+        }),
+      ]),
+    );
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    expect(
+      await screen.findByRole("header", { name: "Acme Production" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Acme Staging" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Acme Okta" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Acme Azure" })).toBeTruthy();
+  });
+
+  test("an address that fails the check outlines the email field with one alert", async () => {
+    await renderScreen();
+
+    await submitEmail("not-an-address");
+
+    expect(
+      await screen.findByText("Please enter a valid email address."),
+    ).toBeTruthy();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(emailFieldStyle().borderColor).toBe(lightColors.statusError);
+
+    await fireEvent.changeText(screen.getByLabelText("Email"), "user@acme.com");
+    expect(emailFieldStyle().borderColor).toBe(lightColors.borderDefault);
+  });
+
+  test("a provider that refuses the sign-in is an alert that does not blame the email field", async () => {
+    globalDiscovery().mockResolvedValue(found([globalProvider()]));
+    authSession().mockResolvedValue({
+      status: "error",
+      message: "SSO login failed: access_denied",
+    });
+
+    await renderScreen();
+    await fireEvent.press(await screen.findByLabelText("Acme Corporate SAML"));
+
+    expect(
+      await screen.findByText("SSO login failed: access_denied"),
+    ).toBeTruthy();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(emailFieldStyle().borderColor).toBe(lightColors.borderDefault);
+  });
+
+  test("the secure-browser note is quiet context, not an alert", async () => {
+    await renderScreen();
+
+    expect(screen.getByText(/opens in a secure browser/)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("dark mode uses dark tokens, the dark keyboard and dark provider rows", async () => {
+    mockSystemScheme = "dark";
+    globalDiscovery().mockResolvedValue(found([globalProvider()]));
+
+    await render(
+      <ThemeProvider>
+        <SSOLoginScreen />
+      </ThemeProvider>,
+    );
+    await screen.findByText("Email");
+
+    expect(screen.getByLabelText("Email").props.keyboardAppearance).toBe(
+      "dark",
+    );
+    expect(emailFieldStyle().backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
+    expect(screen.getByText("Acme Corporate SAML")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(
+      StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
+        .backgroundColor,
+    ).toBe(darkColors.backgroundPrimary);
   });
 });

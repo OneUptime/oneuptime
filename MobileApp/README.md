@@ -2,6 +2,9 @@
 
 Expo + React Native mobile app for OneUptime on-call management.
 
+The app's visual rules, colour tokens (light and dark) and shared components
+are documented in the [design system](docs/DESIGN_SYSTEM.md).
+
 For store updates, follow the [mobile publishing guide](RELEASING.md). It includes
 the existing app identifiers, EAS builds, store review steps, and release handoff
 instructions for maintainers and AI agents.

@@ -17,6 +17,8 @@ import ReplayUsers from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Se
 import Documentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Documentation";
 import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
+import ReplayHealth from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayHealth";
+import ReplayDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayDocumentation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -39,12 +41,28 @@ const sessionId = "a".repeat(32);
 const tabId = "b".repeat(32);
 const secondTabId = "c".repeat(32);
 const empty = params.get("fixture") === "empty";
+const mobileRecording = params.get("recorder") === "mobile";
 const now = Date.now();
 const started = now - 7 * 60 * 1000;
 const count = empty ? 0 : Number(params.get("count") || 8);
 const requests = [];
+// Every ModelAPI.getItem, so a spec can count the policy card's fetches apart
+// from the layout's name fetch and the edit form's own read.
+const getItemRequests = [];
+const savedModels = [];
+// ?health=hold: /ingest-status waits for window.__sessionReplayFixture.releaseHealth().
+let releaseHealth = () => {};
+const healthGate =
+  params.get("health") === "hold"
+    ? new Promise((resolve) => {
+        releaseHealth = resolve;
+      })
+    : Promise.resolve();
 const fixture = {
   requests,
+  getItemRequests,
+  savedModels,
+  releaseHealth: () => releaseHealth(),
   failList: params.get("fixture") === "error",
   sessionId,
   tabId,
@@ -52,17 +70,34 @@ const fixture = {
   appId,
 };
 window.__sessionReplayFixture = fixture;
-const app = Object.assign(new RumApplication(), {
-  _id: appId,
-  name: "Storefront Web",
-  appIdentifier: "storefront-web",
-  sessionReplayEnabled: true,
-  sessionReplayAllowedOrigins: ["https://shop.example.com"],
+const policyValues = {
+  isSessionReplayEnabled: true,
+  sessionReplayAllowedOrigins: mobileRecording
+    ? ["app://com.oneuptime.responder"]
+    : ["https://shop.example.com"],
   sessionReplaySamplePercentage: 100,
   sessionReplayCaptureTrigger: "Always",
   sessionReplayMaskingMode: "MaskInputsOnly",
+  sessionReplayConsentMode: "NotRequired",
   sessionReplayRetentionInDays: 30,
-});
+  sessionReplayCaptureUserIdentity: true,
+  sessionReplayCaptureGeo: true,
+  sessionReplayRecordCanvas: false,
+};
+/*
+ * A fresh instance per read, as the real API returns. A shared instance lets
+ * React skip the state update when a page stores the loaded row, which hides
+ * any render loop that the row feeds.
+ */
+function makeApp() {
+  return Object.assign(new RumApplication(), {
+    _id: appId,
+    name: mobileRecording ? "Responder Mobile" : "Storefront Web",
+    appIdentifier: mobileRecording ? "responder-mobile" : "storefront-web",
+    ...policyValues,
+  });
+}
+const app = makeApp();
 const project = Object.assign(new Project(), {
   _id: projectId,
   name: "Commerce",
@@ -74,8 +109,33 @@ PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(projectId);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: projectId });
-ModelAPI.getItem = async (options) =>
-  options.modelType === Project ? project : app;
+ModelAPI.getItem = async (options) => {
+  getItemRequests.push({
+    modelType: options.modelType === Project ? "Project" : "RumApplication",
+    id: options.id?.toString(),
+    selectKeys: Object.keys(options.select || {}),
+  });
+  return options.modelType === Project ? project : makeApp();
+};
+ModelAPI.createOrUpdate = async (options) => {
+  const values = {};
+  for (const key of Object.keys(policyValues).concat(
+    Object.keys(options.model).filter((name) =>
+      name.startsWith("sessionReplay"),
+    ),
+  )) {
+    const value = options.model[key];
+    if (value !== undefined) values[key] = value;
+  }
+  savedModels.push({
+    formType: options.formType,
+    id: options.model._id?.toString(),
+    values: JSON.parse(JSON.stringify(values)),
+  });
+  // Later reads return what was saved, as the server would.
+  Object.assign(policyValues, values);
+  return new HTTPResponse(200, {}, {});
+};
 ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
 ModelAPI.updateById = async () => app;
@@ -124,19 +184,39 @@ const records = Array.from({ length: count }, (_, index) => {
     clickCount: 9 + index * 2,
     traceCount: index % 2 === 0 ? 4 : 0,
     triggerReason: hasError ? "error" : index === 4 ? "frustration" : "sampled",
-    entryUrl: "https://shop.example.com/collections",
-    exitUrl:
-      index % 2
+    entryUrl: mobileRecording
+      ? "/on-call"
+      : "https://shop.example.com/collections",
+    exitUrl: mobileRecording
+      ? index % 2
+        ? "/incidents"
+        : "/alerts"
+      : index % 2
         ? "https://shop.example.com/cart"
         : "https://shop.example.com/checkout",
-    routes:
-      index % 2
+    routes: mobileRecording
+      ? index % 2
+        ? ["/on-call", "/incidents"]
+        : ["/on-call", "/alerts"]
+      : index % 2
         ? ["/collections", "/products/linen-shirt", "/cart"]
         : ["/collections", "/cart", "/checkout"],
-    browserName: ["Chrome", "Safari", "Firefox"][index % 3],
-    browserVersion: "131.0",
-    osName: ["macOS", "iOS", "Windows"][index % 3],
-    deviceType: index % 3 === 1 ? "mobile" : "desktop",
+    browserName: mobileRecording
+      ? "Responder Mobile"
+      : ["Chrome", "Safari", "Firefox"][index % 3],
+    browserVersion: mobileRecording ? "4.8.1" : "131.0",
+    osName: mobileRecording
+      ? index % 2 === 0
+        ? "iOS"
+        : "Android"
+      : ["macOS", "iOS", "Windows"][index % 3],
+    deviceType: mobileRecording
+      ? index % 2 === 0
+        ? "ios"
+        : "android"
+      : index % 3 === 1
+        ? "mobile"
+        : "desktop",
     countryCode: ["GB", "US", "DE"][index % 3],
     identifiedUserLabel,
     identifiedUserKey: identifiedUserLabel
@@ -146,19 +226,28 @@ const records = Array.from({ length: count }, (_, index) => {
     identifiedUserTraits:
       index % 4 === 2 ? {} : { plan: "Pro", account: "Commerce" },
     tags: { release: "2026.09.11", environment: "production" },
-    maskingMode: "MaskInputsOnly",
-    fidelityNotices: [],
+    maskingMode: mobileRecording ? "MaskAllText" : "MaskInputsOnly",
+    fidelityNotices: mobileRecording
+      ? [
+          "mobile-images-opaque",
+          "mobile-webview-opaque",
+          "mobile-animation-sampled",
+        ]
+      : [],
     expiresAtUnixMs: now + 29 * 86400000,
   };
 });
 const health = {
-  isProjectAllowed: true,
+  // ?project=off: the project-wide master switch is off.
+  isProjectAllowed: params.get("project") !== "off",
   isApplicationEnabled: true,
-  appIdentifier: "storefront-web",
-  allowedOrigins: ["https://shop.example.com"],
+  appIdentifier: mobileRecording ? "responder-mobile" : "storefront-web",
+  allowedOrigins: mobileRecording
+    ? ["app://com.oneuptime.responder"]
+    : ["https://shop.example.com"],
   samplePercentage: 100,
   captureTrigger: "Always",
-  consentMode: "Implicit",
+  consentMode: "NotRequired",
   maskingMode: "MaskInputsOnly",
   retentionInDays: 30,
   publishedRecorderVersion: "13.0.0",
@@ -183,6 +272,44 @@ const health = {
     "frustration",
   ],
 };
+/*
+ * ?health= swaps the ingest-status answer for one of the diagnosis states the
+ * Replay Health page has to draw; absent is the healthy default above.
+ */
+const healthScenario = params.get("health");
+if (healthScenario === "refusing") {
+  Object.assign(health, {
+    refusalsLast24h: [
+      { reason: "origin-not-allowed", count: 212 },
+      { reason: "rate-limited", count: 9 },
+    ],
+    dropsLast24h: [{ reason: "scrub-incomplete", count: 3 }],
+    allowedOrigins: [],
+    projectBytesUsedToday: 900000000,
+  });
+}
+if (healthScenario === "disabled") {
+  Object.assign(health, {
+    isProjectAllowed: false,
+    lastChunkReceivedAt: new Date(now - 3 * 86400000).toISOString(),
+    lastConfigFetchAt: new Date(now - 3 * 86400000).toISOString(),
+    sessionsLast24h: 0,
+    playableSessionsLast24h: 0,
+  });
+}
+if (healthScenario === "never") {
+  Object.assign(health, {
+    lastChunkReceivedAt: null,
+    lastConfigFetchAt: null,
+    lastSessionStartedAt: null,
+    sessionsLast24h: 0,
+    playableSessionsLast24h: 0,
+    refusalsLast24h: null,
+    dropsLast24h: null,
+    projectBytesUsedToday: null,
+    recorderCapabilities: null,
+  });
+}
 function listMatches(row, filters) {
   if (filters.hasError && !row.hasError) return false;
   if (filters.hasFrustration && !row.rageClickCount && !row.deadClickCount)
@@ -374,7 +501,7 @@ const manifestChunks = Array.from({ length: 3 }, (_, index) => ({
   refreshRageCount: 0,
   routeCount: 1,
   clickCount: 4,
-  url: "https://shop.example.com/checkout",
+  url: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
 }));
 API.get = async () => new HTTPResponse(200, { data: [], count: 0 }, {});
 API.post = async ({ url, data }) => {
@@ -382,7 +509,10 @@ API.post = async ({ url, data }) => {
   requests.push({ route, data });
   if (route === "list") return new HTTPResponse(200, listResult(data), {});
   if (route === "users") return new HTTPResponse(200, usersResult(data), {});
-  if (route === "ingest-status") return new HTTPResponse(200, health, {});
+  if (route === "ingest-status") {
+    await healthGate;
+    return new HTTPResponse(200, health, {});
+  }
   if (route === "manifest") {
     const row =
       records.find((item) => item.sessionId === data.sessionId) || records[0];
@@ -396,8 +526,10 @@ API.post = async ({ url, data }) => {
           consentState: "Granted",
           recorderVersion: "13.0.0",
           rrwebVersion: "2.0.0",
-          viewportWidth: 1200,
-          viewportHeight: 760,
+          recorderKind: mobileRecording ? "rn-view-tree" : "dom",
+          schemaVersion: 1,
+          viewportWidth: mobileRecording ? 390 : 1200,
+          viewportHeight: mobileRecording ? 844 : 760,
           recorderCapabilities: health.recorderCapabilities,
           traceIds: [],
           exceptionFingerprints: [],
@@ -429,21 +561,166 @@ API.post = async ({ url, data }) => {
 };
 
 let nodeId;
+let recordedScrollNodeId;
 function textNode(textContent) {
   return { type: 3, id: nodeId++, textContent };
 }
 function element(tagName, attributes, children = []) {
   return { type: 2, id: nodeId++, tagName, attributes, childNodes: children };
 }
+function mobileSnapshot() {
+  const maskedText = (id) => ({
+    type: 3,
+    id,
+    textContent: "\u2022\u2022\u2022",
+  });
+  const view = (id, type, style, children = []) => ({
+    type: 2,
+    id,
+    tagName: "div",
+    attributes: {
+      "data-oneuptime-mobile-view": type,
+      style: `position:absolute;box-sizing:border-box;${style}`,
+    },
+    childNodes: children,
+  });
+  const screen = view(
+    10,
+    "view",
+    "left:0;top:0;width:390px;height:844px;background:#f6f7f9;overflow:hidden",
+    [
+      view(
+        20,
+        "view",
+        "left:0;top:0;width:390px;height:104px;background:#ffffff;border-bottom:1px solid #e5e7eb",
+        [
+          view(
+            21,
+            "text",
+            "left:24px;top:54px;width:188px;height:26px;color:#192132;font-size:20px",
+            [maskedText(22)],
+          ),
+        ],
+      ),
+      view(
+        30,
+        "view",
+        "left:18px;top:128px;width:354px;height:192px;background:#ffffff;border:1px solid #e3e6eb;border-radius:14px",
+        [
+          view(
+            31,
+            "text",
+            "left:18px;top:20px;width:260px;height:22px;color:#192132;font-size:16px",
+            [maskedText(32)],
+          ),
+          view(
+            33,
+            "text",
+            "left:18px;top:56px;width:310px;height:48px;color:#667085;font-size:14px",
+            [maskedText(34)],
+          ),
+          view(
+            35,
+            "image",
+            "left:18px;top:126px;width:42px;height:42px;background:#eef0f3;border-radius:21px",
+          ),
+          view(
+            36,
+            "text",
+            "left:74px;top:136px;width:194px;height:20px;color:#344054;font-size:14px",
+            [maskedText(37)],
+          ),
+        ],
+      ),
+      view(
+        40,
+        "masked",
+        "left:18px;top:342px;width:354px;height:116px;background:#e8ebef;border-radius:14px",
+      ),
+      view(
+        50,
+        "view",
+        "left:18px;top:482px;width:354px;height:210px;background:#ffffff;border:1px solid #e3e6eb;border-radius:14px",
+        [
+          view(
+            51,
+            "input",
+            "left:18px;top:24px;width:318px;height:48px;background:#fafbfc;border:1px solid #d1d5db;border-radius:8px;color:#667085",
+            [maskedText(52)],
+          ),
+          view(
+            53,
+            "webview",
+            "left:18px;top:92px;width:318px;height:92px;background:#eef0f3;border-radius:8px",
+          ),
+        ],
+      ),
+      view(
+        60,
+        "view",
+        "left:18px;top:724px;width:354px;height:52px;background:#292524;border-radius:9px",
+        [
+          view(
+            61,
+            "text",
+            "left:116px;top:15px;width:122px;height:22px;color:#ffffff;font-size:16px",
+            [maskedText(62)],
+          ),
+        ],
+      ),
+    ],
+  );
+
+  return {
+    type: 0,
+    id: 1,
+    childNodes: [
+      { type: 1, id: 2, name: "html", publicId: "", systemId: "" },
+      {
+        type: 2,
+        id: 3,
+        tagName: "html",
+        attributes: {},
+        childNodes: [
+          { type: 2, id: 4, tagName: "head", attributes: {}, childNodes: [] },
+          {
+            type: 2,
+            id: 5,
+            tagName: "body",
+            attributes: {
+              style:
+                "margin:0;width:390px;height:844px;overflow:hidden;background:#f6f7f9;font-family:-apple-system,BlinkMacSystemFont,sans-serif",
+            },
+            childNodes: [screen],
+          },
+        ],
+      },
+    ],
+  };
+}
 function snapshot() {
   nodeId = 10;
-  const css = `*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#192132;font:16px -apple-system,BlinkMacSystemFont,sans-serif}header{background:white;padding:26px 52px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.brand{font-size:22px;font-weight:750;letter-spacing:3px}main{max-width:1080px;margin:38px auto;display:grid;grid-template-columns:1fr 360px;gap:28px}section,aside{background:white;border:1px solid #e3e6eb;border-radius:12px;padding:30px}h1{font-size:28px;margin:0 0 8px}h2{font-size:19px;margin:0 0 20px}.muted{color:#6b7280;font-size:14px}.field{border:1px solid #d1d5db;border-radius:7px;padding:14px;margin:9px 0 18px;background:#fafbfc}.label{font-size:13px;font-weight:600;margin-top:14px}.total{display:flex;justify-content:space-between;margin:20px 0}.product{padding:20px 0;border-bottom:1px solid #eee}button{width:100%;padding:16px;background:#292524;color:white;border:0;border-radius:7px;font-size:15px;font-weight:600}.notice{margin-top:18px;padding:13px;background:#fff7ed;color:#9a3412;border-radius:6px;font-size:13px}.steps{margin:22px 0;color:#78716c;font-size:13px}.swatch{background:#d6cfbf;width:50px;height:60px;float:left;border-radius:4px;margin-right:16px}`;
+  const css = `*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#192132;font:16px -apple-system,BlinkMacSystemFont,sans-serif}header{background:white;padding:26px 52px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.brand{font-size:22px;font-weight:750;letter-spacing:3px}main{max-width:1080px;margin:38px auto;display:grid;grid-template-columns:1fr 360px;gap:28px}section,aside{background:white;border:1px solid #e3e6eb;border-radius:12px;padding:30px}h1{font-size:28px;margin:0 0 8px;user-select:none}h2{font-size:19px;margin:0 0 20px}.muted{color:#6b7280;font-size:14px}.field{border:1px solid #d1d5db;border-radius:7px;padding:14px;margin:9px 0 18px;background:#fafbfc}.label{font-size:13px;font-weight:600;margin-top:14px}.total{display:flex;justify-content:space-between;margin:20px 0}.product{padding:20px 0;border-bottom:1px solid #eee}button{width:100%;padding:16px;background:#292524;color:white;border:0;border-radius:7px;font-size:15px;font-weight:600}.notice{margin-top:18px;padding:13px;background:#fff7ed;color:#9a3412;border-radius:6px;font-size:13px}.steps{margin:22px 0;color:#78716c;font-size:13px}.swatch{background:#d6cfbf;width:50px;height:60px;float:left;border-radius:4px;margin-right:16px}`;
   const field = (label) =>
     element("div", {}, [
       element("div", { class: "label" }, [textNode(label)]),
       element("div", { class: "field" }, [textNode("••••••••••••••••")]),
     ]);
   const clockText = { type: 3, id: 7, textContent: "Reviewing order · 0:00" };
+  const recordedScroll = element(
+    "div",
+    {
+      id: "fixture-recorded-scroll",
+      tabindex: "-1",
+      style: "height:48px;overflow:auto;border:1px solid #d1d5db",
+    },
+    [
+      element("div", { style: "height:260px;padding:8px" }, [
+        textNode("Recorded scroll position"),
+      ]),
+    ],
+  );
+  recordedScrollNodeId = recordedScroll.id;
   const body = element("body", {}, [
     element("header", {}, [
       element("span", { class: "brand" }, [textNode("FORM & FIELD")]),
@@ -455,6 +732,30 @@ function snapshot() {
         element("p", { class: "muted" }, [
           textNode("Thoughtfully made essentials, delivered to your door."),
         ]),
+        element("a", { id: "fixture-account-link", href: "#account" }, [
+          textNode("View account details"),
+        ]),
+        element(
+          "input",
+          {
+            id: "fixture-recorded-search",
+            type: "search",
+            value: "recorded search",
+          },
+          [],
+        ),
+        element(
+          "input",
+          {
+            id: "fixture-readonly-range",
+            type: "range",
+            min: "0",
+            max: "100",
+            value: "25",
+            style: "width:100%",
+          },
+          [],
+        ),
         element("div", { class: "steps" }, [
           textNode("1. Information   /   2. Shipping   /   3. Payment"),
         ]),
@@ -462,6 +763,7 @@ function snapshot() {
         field("Email address"),
         field("Delivery address"),
         field("Card number"),
+        recordedScroll,
         element("button", { id: "place-order" }, [
           textNode("Place order · £128.00"),
         ]),
@@ -516,17 +818,30 @@ function chunkEvents(index, startTime) {
       type: 4,
       timestamp,
       data: {
-        href: "https://shop.example.com/checkout",
-        width: 1200,
-        height: 760,
+        href: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
+        width: mobileRecording ? 390 : 1200,
+        height: mobileRecording ? 844 : 760,
       },
     },
     {
       type: 2,
       timestamp: timestamp + 1,
-      data: { node: snapshot(), initialOffset: { top: 0, left: 0 } },
+      data: {
+        node: mobileRecording ? mobileSnapshot() : snapshot(),
+        initialOffset: { top: 0, left: 0 },
+      },
     },
   ];
+  events.push({
+    type: 3,
+    timestamp: timestamp + 9000,
+    data: {
+      source: 3,
+      id: recordedScrollNodeId,
+      x: 0,
+      y: 120,
+    },
+  });
   for (let at = 1000; at < 30000; at += 2500) {
     const time = offset + at;
     events.push({
@@ -534,13 +849,24 @@ function chunkEvents(index, startTime) {
       timestamp: timestamp + at,
       data: {
         source: 0,
-        texts: [
-          {
-            id: 7,
-            value: `Reviewing order · ${Math.floor(time / 60000)}:${String(Math.floor(time / 1000) % 60).padStart(2, "0")}`,
-          },
-        ],
-        attributes: [],
+        texts: mobileRecording
+          ? [{ id: 32, value: "•••" }]
+          : [
+              {
+                id: 7,
+                value: `Reviewing order · ${Math.floor(time / 60000)}:${String(Math.floor(time / 1000) % 60).padStart(2, "0")}`,
+              },
+            ],
+        attributes: mobileRecording
+          ? [
+              {
+                id: 60,
+                attributes: {
+                  style: `position:absolute;box-sizing:border-box;left:18px;top:724px;width:354px;height:52px;background:${at % 5000 === 1000 ? "#44403c" : "#292524"};border-radius:9px`,
+                },
+              },
+            ]
+          : [],
         removes: [],
         adds: [],
       },
@@ -549,8 +875,10 @@ function chunkEvents(index, startTime) {
       type: 3,
       timestamp: timestamp + at + 1,
       data: {
-        source: 1,
-        positions: [{ id: 7, x: 390 + at / 200, y: 560, timeOffset: 0 }],
+        source: mobileRecording ? 6 : 1,
+        positions: mobileRecording
+          ? [{ id: 60, x: 195, y: 750, timeOffset: 0 }]
+          : [{ id: 7, x: 390 + at / 200, y: 560, timeOffset: 0 }],
       },
     });
   }
@@ -563,15 +891,35 @@ function chunkEvents(index, startTime) {
         payload: { ...payload, atUnixMs: timestamp + at },
       },
     });
-  custom(3000, "click", {
-    selector: "button#place-order",
-    text: "Place order",
-    x: 520,
-    y: 640,
-  });
+  if (mobileRecording) {
+    events.push({
+      type: 3,
+      timestamp: timestamp + 2999,
+      data: { source: 2, type: 7, id: 60, x: 195, y: 750 },
+    });
+    events.push({
+      type: 3,
+      timestamp: timestamp + 3001,
+      data: { source: 2, type: 9, id: 60, x: 195, y: 750 },
+    });
+    custom(3000, "touch", {
+      targetType: "view",
+      x: 195,
+      y: 750,
+    });
+  } else {
+    custom(3000, "click", {
+      selector: "button#place-order",
+      text: "Place order",
+      x: 520,
+      y: 640,
+    });
+  }
   custom(6000, "network", {
     method: "POST",
-    url: "https://shop.example.com/api/checkout",
+    url: mobileRecording
+      ? "https://api.example.com/v1/incidents/acknowledge"
+      : "https://shop.example.com/api/checkout",
     status: index === 0 ? 500 : 200,
     durationMs: 482,
     failed: index === 0,
@@ -596,8 +944,8 @@ function chunkEvents(index, startTime) {
       y: 640,
     });
   custom(21000, "route", {
-    from: "https://shop.example.com/cart",
-    to: "https://shop.example.com/checkout",
+    from: mobileRecording ? "/on-call" : "https://shop.example.com/cart",
+    to: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
   });
   return events.sort((a, b) => a.timestamp - b.timestamp);
 }
@@ -666,6 +1014,11 @@ createRoot(document.getElementById("root")).render(
         <Route path="documentation" element={<Documentation />} />
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />
+        <Route path="session-replay-health" element={<ReplayHealth />} />
+        <Route
+          path="session-replay-documentation"
+          element={<ReplayDocumentation />}
+        />
       </Route>
     </Routes>
   </BrowserRouter>,

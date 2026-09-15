@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useNavigation,
@@ -8,6 +8,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useNow } from "../hooks/useNow";
@@ -22,6 +23,11 @@ import GradientButton from "../components/GradientButton";
 import SegmentedControl from "../components/SegmentedControl";
 import SectionHeader from "../components/SectionHeader";
 import UserPickerModal from "../components/UserPickerModal";
+import AppText from "../components/AppText";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
+import IconBadge from "../components/IconBadge";
+import { getInitials } from "../components/RosterScheduleCard";
 import { formatShiftTime, formatShiftWindow } from "../utils/duration";
 import { getFriendlyErrorMessage } from "../utils/error";
 import {
@@ -227,330 +233,366 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
     }
   };
 
+  const prefilledRange: string | null = prefilledWindow
+    ? formatShiftWindow(
+        prefilledWindow.startsAt.toISOString(),
+        prefilledWindow.endsAt.toISOString(),
+      )
+    : null;
+
   return (
     <>
       <ScrollView
         testID="create-override-scroll"
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+        contentContainerStyle={{
+          padding: spacing.xl,
+          paddingBottom: bottomPadding,
+        }}
         keyboardShouldPersistTaps="handled"
       >
         <ScreenIntro
           title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
           description="A clear handoff, for exactly as long as you need."
         />
-        <View
-          style={{
-            backgroundColor: theme.colors.backgroundElevated,
-            borderRadius: 22,
-            padding: 18,
-          }}
-        >
-          {prefilledWindow ? (
+
+        {prefilledWindow ? (
+          <Card testID="prefilled-shift" variant="tinted">
             <View
-              testID="prefilled-shift"
               style={{
-                paddingBottom: 22,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.borderSubtle,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.md,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 14,
-                  lineHeight: 21,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Cover for my shift
-              </Text>
-              <Text
-                style={{
-                  fontSize: 20,
-                  lineHeight: 28,
-                  fontWeight: "600",
-                  marginTop: 6,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {prefill?.scheduleName ?? "On-call shift"}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 15,
-                  lineHeight: 22,
-                  marginTop: 6,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {formatShiftWindow(
-                  prefilledWindow.startsAt.toISOString(),
-                  prefilledWindow.endsAt.toISOString(),
-                ) ?? ""}
-              </Text>
-            </View>
-          ) : (
-            <View>
-              <SectionHeader title="Coverage type" />
-              <SegmentedControl<OverrideDirection>
-                style={{ marginHorizontal: 0, marginTop: 0 }}
-                segments={[
-                  { key: "cover-me", label: "Cover for me" },
-                  { key: "take-over", label: "I'll take over" },
-                ]}
-                selected={direction}
-                onSelect={(key: OverrideDirection) => {
-                  selectionFeedback();
-                  setDirection(key);
-                  setError(null);
-                }}
+              <IconBadge
+                name="calendar-outline"
+                color={theme.colors.actionPrimary}
+                background={theme.colors.backgroundElevated}
               />
+              <View style={{ flex: 1, gap: spacing.xxs }}>
+                <AppText variant="footnote" tone="secondary">
+                  Cover for my shift
+                </AppText>
+                <AppText variant="title3">
+                  {prefill?.scheduleName ?? "On-call shift"}
+                </AppText>
+                {prefilledRange ? (
+                  <AppText variant="subhead" tone="secondary">
+                    {prefilledRange}
+                  </AppText>
+                ) : null}
+              </View>
             </View>
-          )}
-          <View style={{ marginTop: 26 }}>
-            <SectionHeader
-              title={
-                prefilledWindow
-                  ? "Who will cover this shift?"
-                  : direction === "cover-me"
-                    ? "Who will cover for you?"
-                    : "Who are you covering for?"
-              }
-            />
-            <Pressable
-              testID="open-user-picker"
-              accessibilityRole="button"
-              accessibilityLabel={
-                counterpart
-                  ? `Selected ${counterpartName}. Tap to change.`
-                  : "Choose a teammate"
-              }
-              onPress={() => {
-                if (!projectUsers.isError) {
-                  setIsPickerOpen(true);
-                }
+          </Card>
+        ) : (
+          <View>
+            <SectionHeader title="Coverage type" />
+            <SegmentedControl<OverrideDirection>
+              style={{ marginHorizontal: 0, marginTop: 0, marginBottom: 0 }}
+              segments={[
+                { key: "cover-me", label: "Cover for me" },
+                { key: "take-over", label: "I'll take over" },
+              ]}
+              selected={direction}
+              onSelect={(key: OverrideDirection) => {
+                selectionFeedback();
+                setDirection(key);
+                setError(null);
               }}
+            />
+          </View>
+        )}
+
+        <View style={{ marginTop: spacing.xxl }}>
+          <SectionHeader
+            title={
+              prefilledWindow
+                ? "Who will cover this shift?"
+                : direction === "cover-me"
+                  ? "Who will cover for you?"
+                  : "Who are you covering for?"
+            }
+          />
+          <Card
+            testID="open-user-picker"
+            accessibilityLabel={
+              counterpart
+                ? `Selected ${counterpartName}. Tap to change.`
+                : "Choose a teammate"
+            }
+            onPress={() => {
+              if (!projectUsers.isError) {
+                setIsPickerOpen(true);
+              }
+            }}
+            padding={spacing.md + 2}
+          >
+            <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                paddingVertical: 14,
-                gap: 12,
-                minHeight: 64,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.borderDefault,
+                gap: spacing.md,
+                minHeight: 44,
               }}
             >
               <View
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: theme.colors.iconBackground,
+                  backgroundColor: counterpart
+                    ? theme.colors.actionPrimary
+                    : theme.colors.cardAccent,
+                }}
+              >
+                {counterpart ? (
+                  <AppText
+                    variant="subhead"
+                    weight="700"
+                    color={theme.colors.textInverse}
+                  >
+                    {getInitials(counterpartName)}
+                  </AppText>
+                ) : (
+                  <Ionicons
+                    name="person-add-outline"
+                    size={19}
+                    color={theme.colors.actionPrimary}
+                  />
+                )}
+              </View>
+              <View style={{ flex: 1, gap: spacing.xxs }}>
+                <AppText
+                  variant="headline"
+                  color={
+                    counterpart
+                      ? theme.colors.textPrimary
+                      : theme.colors.actionPrimary
+                  }
+                >
+                  {counterpart ? counterpartName : "Choose a teammate"}
+                </AppText>
+                <AppText
+                  testID="coverage-project-name"
+                  variant="footnote"
+                  tone="secondary"
+                >
+                  {projectList[0]?.name ?? "No project available"}
+                </AppText>
+              </View>
+              {counterpart ? (
+                <AppText variant="subhead" weight="600" tone="accent">
+                  Change
+                </AppText>
+              ) : null}
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={theme.colors.textTertiary}
+              />
+            </View>
+          </Card>
+          {projectUsers.isError ? (
+            <View
+              testID="coverage-teammates-error"
+              accessibilityRole="alert"
+              style={{
+                marginTop: spacing.md,
+                padding: spacing.lg,
+                borderRadius: radius.lg,
+                backgroundColor: theme.colors.statusErrorBg,
+                gap: spacing.md,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: spacing.md,
                 }}
               >
                 <Ionicons
-                  name="person-outline"
-                  size={19}
-                  color={theme.colors.actionPrimary}
+                  name="cloud-offline-outline"
+                  size={20}
+                  color={theme.colors.statusError}
+                  style={{ marginTop: 1 }}
                 />
-              </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    lineHeight: 23,
-                    fontWeight: "600",
-                    color: counterpart
-                      ? theme.colors.textPrimary
-                      : theme.colors.actionPrimary,
-                  }}
-                >
-                  {counterpart ? counterpartName : "Choose a teammate"}
-                </Text>
-                <Text
-                  testID="coverage-project-name"
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  {projectList[0]?.name ?? "No project available"}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={17}
-                color={theme.colors.textTertiary}
-              />
-            </Pressable>
-            {projectUsers.isError ? (
-              <View
-                testID="coverage-teammates-error"
-                accessibilityRole="alert"
-                style={{ marginTop: 14 }}
-              >
-                <Text
-                  style={{
-                    color: theme.colors.statusError,
-                    fontSize: 14,
-                    lineHeight: 21,
-                  }}
+                <AppText
+                  variant="subhead"
+                  color={theme.colors.statusError}
+                  style={{ flex: 1 }}
                 >
                   Could not load your teammates. Try again to choose who will
                   handle this coverage.
-                </Text>
-                <GradientButton
-                  testID="retry-coverage-teammates"
-                  label="Retry loading teammates"
-                  variant="secondary"
-                  loading={isRetryingUsers}
-                  onPress={retryUsers}
-                  style={{ marginTop: 12 }}
-                />
+                </AppText>
               </View>
-            ) : null}
-          </View>
-          {!prefilledWindow ? (
-            <View style={{ marginTop: 26 }}>
-              <SectionHeader title="How long?" />
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {DURATION_PRESETS.map(
-                  (preset: { label: string; hours: number }) => {
-                    const isSelected: boolean = preset.hours === durationHours;
-                    return (
-                      <Pressable
-                        key={preset.hours}
-                        testID={`duration-${preset.hours}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Override lasts ${preset.label}`}
-                        {...getToggleAccessibilityProps(isSelected)}
-                        onPress={() => {
-                          selectionFeedback();
-                          setDurationHours(preset.hours);
-                          setError(null);
-                        }}
-                        style={{
-                          flexGrow: 1,
-                          flexBasis: "28%",
-                          paddingVertical: 12,
-                          paddingHorizontal: 8,
-                          minHeight: 48,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: 12,
-                          backgroundColor: isSelected
-                            ? theme.colors.textPrimary
-                            : theme.colors.backgroundPrimary,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            lineHeight: 21,
-                            fontWeight: "600",
-                            color: isSelected
-                              ? theme.colors.textInverse
-                              : theme.colors.textSecondary,
-                          }}
-                        >
-                          {preset.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  },
-                )}
-              </View>
-              <Text
-                style={{
-                  fontSize: 14,
-                  lineHeight: 22,
-                  color: theme.colors.textSecondary,
-                  marginTop: 14,
-                }}
-              >
-                Starts when you confirm. Your usual routing resumes
-                automatically when coverage ends.
-              </Text>
+              <GradientButton
+                testID="retry-coverage-teammates"
+                label="Retry loading teammates"
+                icon="refresh-outline"
+                variant="secondary"
+                size="sm"
+                loading={isRetryingUsers}
+                onPress={retryUsers}
+              />
             </View>
           ) : null}
         </View>
-        <View
-          testID="override-preview"
-          style={{
-            marginTop: 28,
-            paddingBottom: 24,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.borderSubtle,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              fontWeight: "600",
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Review your coverage
-          </Text>
-          <Text
-            style={{
-              fontSize: 18,
-              lineHeight: 27,
-              fontWeight: "600",
-              marginTop: 8,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {previewSentence}
-          </Text>
-          {endsAtLabel ? (
-            <Text
+
+        {!prefilledWindow ? (
+          <View style={{ marginTop: spacing.xxl }}>
+            <SectionHeader title="How long?" />
+            <View
               style={{
-                fontSize: 14,
-                lineHeight: 22,
-                marginTop: 8,
-                color: theme.colors.textSecondary,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: spacing.sm,
               }}
             >
-              {startsNow
-                ? `Starts now, ends ${endsAtLabel}.`
-                : `Starts ${formatShiftTime(prefilledWindow?.startsAt.toISOString() ?? null) ?? "with the shift"}, ends ${endsAtLabel}.`}
-            </Text>
-          ) : null}
-        </View>
-        {error ? (
-          <View
-            testID="override-error"
-            accessibilityRole="alert"
-            style={{
-              marginTop: 18,
-              padding: 16,
-              borderRadius: 14,
-              backgroundColor: theme.colors.statusErrorBg,
-            }}
-          >
-            <Text
+              {DURATION_PRESETS.map(
+                (preset: { label: string; hours: number }) => {
+                  const isSelected: boolean = preset.hours === durationHours;
+                  return (
+                    <Pressable
+                      key={preset.hours}
+                      testID={`duration-${preset.hours}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Override lasts ${preset.label}`}
+                      {...getToggleAccessibilityProps(isSelected)}
+                      onPress={() => {
+                        selectionFeedback();
+                        setDurationHours(preset.hours);
+                        setError(null);
+                      }}
+                      style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                        return {
+                          flexGrow: 1,
+                          flexBasis: "28%",
+                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.sm,
+                          minHeight: touchTarget,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: radius.md,
+                          borderWidth: 1,
+                          borderColor: isSelected
+                            ? theme.colors.actionPrimary
+                            : theme.colors.borderDefault,
+                          backgroundColor: isSelected
+                            ? theme.colors.actionPrimary
+                            : pressed
+                              ? theme.colors.backgroundTertiary
+                              : theme.colors.backgroundElevated,
+                        };
+                      }}
+                    >
+                      <AppText
+                        variant="subhead"
+                        weight="600"
+                        color={
+                          isSelected
+                            ? theme.colors.textInverse
+                            : theme.colors.textPrimary
+                        }
+                      >
+                        {preset.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+            <View
               style={{
-                fontSize: 14,
-                lineHeight: 22,
-                color: theme.colors.statusError,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.xs + 2,
+                marginTop: spacing.md,
+                marginHorizontal: spacing.xs,
               }}
             >
-              {error}
-            </Text>
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={theme.colors.textTertiary}
+                style={{ marginTop: 1 }}
+              />
+              <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
+                Starts when you confirm. Your usual routing resumes
+                automatically when coverage ends.
+              </AppText>
+            </View>
           </View>
         ) : null}
+
+        <Card
+          testID="override-preview"
+          variant="tinted"
+          style={{ marginTop: spacing.xxl }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+            }}
+          >
+            <Ionicons
+              name="eye-outline"
+              size={16}
+              color={theme.colors.actionPrimary}
+            />
+            <AppText variant="footnote" weight="600" tone="accent">
+              Review your coverage
+            </AppText>
+          </View>
+          <AppText variant="title3" style={{ marginTop: spacing.sm }}>
+            {previewSentence}
+          </AppText>
+          {endsAtLabel ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.xs + 2,
+                marginTop: spacing.sm,
+              }}
+            >
+              <Ionicons
+                name="time-outline"
+                size={15}
+                color={theme.colors.textSecondary}
+                style={{ marginTop: 3 }}
+              />
+              <AppText variant="subhead" tone="secondary" style={{ flex: 1 }}>
+                {startsNow
+                  ? `Starts now, ends ${endsAtLabel}.`
+                  : `Starts ${formatShiftTime(prefilledWindow?.startsAt.toISOString() ?? null) ?? "with the shift"}, ends ${endsAtLabel}.`}
+              </AppText>
+            </View>
+          ) : null}
+        </Card>
+
+        {error ? (
+          <Banner
+            testID="override-error"
+            tone="danger"
+            message={error}
+            style={{ marginTop: spacing.lg }}
+          />
+        ) : null}
+
         <GradientButton
           testID="submit-override"
           label="Confirm coverage"
+          icon="checkmark-circle-outline"
           loading={overrides.isCreating}
           onPress={onSubmit}
-          style={{ marginTop: 24 }}
+          style={{ marginTop: spacing.xl }}
         />
       </ScrollView>
       <UserPickerModal

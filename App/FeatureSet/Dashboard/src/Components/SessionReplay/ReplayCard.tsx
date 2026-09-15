@@ -15,6 +15,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -89,6 +90,13 @@ export interface ReplayCardProps {
   exceptionInstanceId?: string | undefined;
   /* Exception group fingerprint, when the caller only has the group. */
   fingerprint?: string | undefined;
+  /*
+   * Exception-group service scope. A fingerprint alone is not globally
+   * unique, so exception pages should provide this whenever it is known.
+   */
+  primaryEntityId?: ObjectID | undefined;
+  /* Disambiguates which entity table primaryEntityId belongs to when known. */
+  primaryEntityType?: ServiceType | undefined;
   /* Absolute time of the occurrence, used to position playback. */
   errorTimeUnixMs?: number | undefined;
   className?: string | undefined;
@@ -158,13 +166,21 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
-  const { rumApplicationId, sessionId, fingerprint, errorTimeUnixMs } = props;
+  const {
+    rumApplicationId,
+    sessionId,
+    fingerprint,
+    primaryEntityId,
+    primaryEntityType,
+    errorTimeUnixMs,
+  } = props;
   /*
    * Navigation-derived ObjectIDs are new objects on every render, so the
    * callback below keys on the string. Otherwise every parent re-render
    * refires the lookup.
    */
   const rumApplicationIdString: string = rumApplicationId?.toString() ?? "";
+  const primaryEntityIdString: string = primaryEntityId?.toString() ?? "";
 
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
@@ -193,6 +209,10 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             ),
             data: {
               fingerprint: fingerprint,
+              ...(primaryEntityIdString
+                ? { primaryEntityId: primaryEntityIdString }
+                : {}),
+              ...(primaryEntityType ? { primaryEntityType } : {}),
               /*
                * Pins the search to the occurrence's own session, and lets
                * the server derive a partition window from the moment
@@ -270,7 +290,14 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
         }
       }
     },
-    [rumApplicationIdString, sessionId, fingerprint, errorTimeUnixMs],
+    [
+      rumApplicationIdString,
+      sessionId,
+      fingerprint,
+      primaryEntityIdString,
+      primaryEntityType,
+      errorTimeUnixMs,
+    ],
   );
 
   useEffect(() => {
@@ -485,7 +512,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
                       return (
                         <li
-                          key={row.summary.sessionId}
+                          key={`${row.rumApplicationId}:${row.summary.sessionId}`}
                           className="flex items-center justify-between gap-3 py-1.5 text-xs text-gray-600"
                           data-testid="replay-card-session-row"
                         >

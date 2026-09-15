@@ -12,15 +12,10 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
-import {
-  DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
-  SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-} from "Common/Types/Rum/SessionReplay";
 import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -32,6 +27,10 @@ import RecordingHealthCard, {
 import PrivacySummaryCard from "../../../Components/SessionReplay/PrivacySummaryCard";
 import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
 import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
+import {
+  formatSessionReplayRetention,
+  SESSION_REPLAY_RETENTION_OPTIONS,
+} from "../../../Components/SessionReplay/SessionReplayRetention";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
   SessionReplayHealthSnapshot,
@@ -40,6 +39,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 
@@ -58,22 +58,6 @@ import React, {
  * undone for recordings already taken, and tightening it does not scrub
  * recordings already stored.
  */
-
-/*
- * Retention is a closed set rather than a free number: under expiry-based
- * partitioning each distinct value creates its own ClickHouse partition per
- * ingest day, and it bounds the blast radius of a mis-set value.
- */
-const RETENTION_OPTIONS: Array<DropdownOption> =
-  SESSION_REPLAY_ALLOWED_RETENTION_DAYS.map((days: number): DropdownOption => {
-    return {
-      label:
-        days === DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS
-          ? `${days} days (default)`
-          : `${days} day${days === 1 ? "" : "s"}`,
-      value: days,
-    };
-  });
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
 export const REPLAY_POLICY_ANCHOR_ID: string = "replay-policy";
@@ -119,6 +103,34 @@ export function describeEffectiveRecordingState(
   }
 }
 
+/*
+ * The Recording pill reads the health poller itself instead of a diagnosis
+ * handed down by the page. ModelDetail builds its field renderers once, when
+ * it mounts, so a getElement that closes over page state keeps the value that
+ * state had on that render. Health has not answered by then, so the pill
+ * used to read "On (project switch not checked yet)" forever. The poller is
+ * shared per application (RecordingHealthCard already subscribes to it), so
+ * this adds no request.
+ */
+export function EffectiveRecordingStatePill(props: {
+  rumApplicationId: ObjectID | string;
+  isApplicationEnabled: boolean | undefined;
+}): ReactElement {
+  const health: SessionReplayHealthSnapshot = useSessionReplayHealth(
+    props.rumApplicationId,
+    { pollIntervalMs: SESSION_REPLAY_HEALTH_POLL_SLOW_MS },
+  );
+
+  const diagnosis: RecordingHealthDiagnosis | null = health.isLoading
+    ? null
+    : health.diagnosis;
+
+  const state: { text: string; color: typeof Green } =
+    describeEffectiveRecordingState(props.isApplicationEnabled, diagnosis);
+
+  return <Pill color={state.color} text={state.text} />;
+}
+
 function Chips(props: {
   values: Array<string> | undefined;
   emptyCopy: string;
@@ -160,7 +172,19 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
    * Route is ":id/session-replay-settings", so the model id is one segment
    * before the end. Same as Pages/Rum/View/Clients.tsx.
    */
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelIdString: string = Navigation.getLastParamAsString(1);
+
+  /*
+   * ModelDetail refetches whenever the modelId it is handed changes by
+   * identity, and this page lifts the loaded policy into state. A fresh
+   * ObjectID per render would therefore refetch on every render, forever:
+   * each load re-rendered the page, which handed the card a new id, which
+   * loaded again, so the policy card sat on its loading bar. The id is
+   * memoized on the route param it came from.
+   */
+  const modelId: ObjectID = useMemo((): ObjectID => {
+    return new ObjectID(modelIdString);
+  }, [modelIdString]);
 
   /*
    * The loaded policy, captured from the detail card so the 0% alert and
@@ -168,14 +192,6 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
    * an edit (the card refetches on save and calls onItemLoaded again).
    */
   const [application, setApplication] = useState<RumApplication | null>(null);
-
-  const health: SessionReplayHealthSnapshot = useSessionReplayHealth(modelId, {
-    pollIntervalMs: SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
-  });
-
-  const diagnosis: RecordingHealthDiagnosis | null = health.isLoading
-    ? null
-    : health.diagnosis;
 
   const recordsNothing: boolean =
     application !== null &&
@@ -430,8 +446,8 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               title: "Retention",
               stepId: "limits",
               fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: RETENTION_OPTIONS,
-              required: false,
+              dropdownOptions: SESSION_REPLAY_RETENTION_OPTIONS,
+              required: true,
               description:
                 "How long recordings are kept. Defaults to 7 days, not the 15 the other telemetry pillars use: replay is the highest-sensitivity pillar and a short retention is itself a privacy control. The session row - counts, signals, device - expires together with its footage; only the session's logs, spans and exceptions follow the telemetry retention.",
             },
@@ -459,13 +475,17 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 title: "Recording",
                 fieldType: FieldType.Element,
                 getElement: (item: RumApplication): ReactElement => {
-                  const state: { text: string; color: typeof Green } =
-                    describeEffectiveRecordingState(
-                      item.isSessionReplayEnabled,
-                      diagnosis,
-                    );
-
-                  return <Pill color={state.color} text={state.text} />;
+                  /*
+                   * The id comes from the loaded row, not from this render's
+                   * modelId: ModelDetail keeps the closure from its first
+                   * render, and the row is what the card is showing.
+                   */
+                  return (
+                    <EffectiveRecordingStatePill
+                      rumApplicationId={item.id?.toString() || modelIdString}
+                      isApplicationEnabled={item.isSessionReplayEnabled}
+                    />
+                  );
                 },
               },
               {
@@ -701,9 +721,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {days
-                        ? `${days} day${days === 1 ? "" : "s"}`
-                        : `not set (defaults to ${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days)`}
+                      {formatSessionReplayRetention(days)}
                     </span>
                   );
                 },

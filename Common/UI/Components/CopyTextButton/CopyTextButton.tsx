@@ -33,7 +33,13 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    await Clipboard.copyToClipboard(props.textToBeCopied);
+    // A refused or unavailable clipboard resolves false; "Copied!" would lie.
+    const succeeded: boolean = await Clipboard.copyToClipboard(
+      props.textToBeCopied,
+    );
+    if (!succeeded) {
+      return;
+    }
     setCopied(true);
     setTimeout(() => {
       setCopied(false);

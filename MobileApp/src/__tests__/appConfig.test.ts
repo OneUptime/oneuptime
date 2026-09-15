@@ -199,13 +199,20 @@ describe("The entitlement is applied when explicitly switched on", () => {
   });
 });
 
-describe("The native launch screen matches the light app", () => {
+describe("The native launch screen matches the app", () => {
+  test("the app follows the device appearance so dark mode reaches native controls", () => {
+    /*
+     * "light" pinned every native surface - alerts, the keyboard, pickers - to
+     * the light appearance even while the app itself rendered its dark theme.
+     */
+    expect(staticApp.userInterfaceStyle).toBe("automatic");
+  });
+
   test("every iOS and Android splash declaration uses the same light canvas and wordmark", () => {
     const options: SplashDefinition = splashPluginOptions();
-    expect(staticApp.userInterfaceStyle).toBe("light");
     for (const splash of [options, options.ios, options.android]) {
       expect(splash).toMatchObject({
-        backgroundColor: "#F6F7F9",
+        backgroundColor: "#F3F4F7",
         image: "./assets/splash-light.png",
       });
     }

@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const VMwareVCenterLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="vCenter Logs"
-      description="OpenTelemetry logs ingested with this vCenter's vmware.vcenter.name resource attribute — ESXi syslog forwarded through the agent's optional syslog receiver lands here. Use the filter bar to scope by severity, host, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -101,10 +98,16 @@ const VMwareVCenterLogs: FunctionComponent<
        * attributes-equality filter into the query itself — that defeats the
        * OR. Drop the attribute fallback (here and in the logQuery merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip value is already the vCenter's name, so only the key needs a
+       * label: "vCenter" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`vmware-vcenter-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.vmware.vcenter.name": "vCenter",
+        }}
         entityScope={{
           entityKeys: [
             keyForVMwareVCenter(
@@ -119,7 +122,7 @@ const VMwareVCenterLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found. The VMware agent ships metrics only by default — enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page) to see ESXi syslog here, or send any OpenTelemetry logs stamped with this vCenter's vmware.vcenter.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

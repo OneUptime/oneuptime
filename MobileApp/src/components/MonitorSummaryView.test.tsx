@@ -1,8 +1,37 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import MonitorSummaryView from "./MonitorSummaryView";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius, spacing } from "../theme/tokens";
 import type { MonitorProbeItem, ProbeMonitorResponse } from "../api/monitors";
+
+/*
+ * The device appearance ThemeProvider follows. react-native exposes
+ * useColorScheme through a getter that cannot be spied on, so the module
+ * behind it is replaced.
+ */
+const mockColorScheme: { current: "light" | "dark" } = { current: "light" };
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme.current;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme.current = "light";
+});
 
 /*
  * This block is the only place in the app where a responder sees what the
@@ -750,5 +779,332 @@ describe("Choosing between probes", () => {
     );
 
     expect(screen.getByText("No monitoring data available yet.")).toBeTruthy();
+  });
+
+  test("probes are toggle buttons that announce which one is showing", async () => {
+    await renderSummary("Website", [EAST, WEST]);
+
+    const east: RenderedElement = screen.getByRole("button", {
+      name: "US East",
+    });
+    expect(east.props.accessibilityState.selected).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "EU West" }).props.accessibilityState
+        .selected,
+    ).toBe(false);
+
+    await fireEvent.press(screen.getByRole("button", { name: "EU West" }));
+
+    expect(
+      screen.getByRole("button", { name: "EU West" }).props.accessibilityState
+        .selected,
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "US East" }).props.accessibilityState
+        .selected,
+    ).toBe(false);
+  });
+
+  test("the selected probe is a soft accent chip and the others are outlined", async () => {
+    await renderSummary("Website", [EAST, WEST]);
+
+    expect(screen.getByTestId("monitor-probe-0")).toHaveStyle({
+      backgroundColor: lightColors.cardAccent,
+      borderColor: lightColors.actionPrimary,
+      borderRadius: radius.pill,
+    });
+    expect(screen.getByTestId("monitor-probe-1")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderDefault,
+    });
+    expect(flatStyle(screen.getByText("US East")).color).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(flatStyle(screen.getByText("EU West")).color).toBe(
+      lightColors.textPrimary,
+    );
+  });
+});
+
+type RenderedElement = ReturnType<typeof screen.getByText>;
+
+function flatStyle(element: RenderedElement): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props["style"]) ?? {}) as ViewStyle &
+    TextStyle;
+}
+
+async function renderInTheme(
+  scheme: "light" | "dark",
+  monitorType: string | undefined,
+  probeItems: MonitorProbeItem[],
+): Promise<void> {
+  mockColorScheme.current = scheme;
+  await render(
+    <ThemeProvider>
+      <MonitorSummaryView monitorType={monitorType} probeItems={probeItems} />
+    </ThemeProvider>,
+  );
+}
+
+function serverProbe(
+  metrics: NonNullable<ProbeMonitorResponse["basicInfrastructureMetrics"]>,
+): MonitorProbeItem {
+  return probeWith({ isOnline: true, basicInfrastructureMetrics: metrics });
+}
+
+describe("The summary card surface", () => {
+  test("is a rounded, bordered card in light mode", async () => {
+    await renderSummary("Website", [probeWith(ONLINE_WEBSITE)]);
+
+    expect(screen.getByTestId("monitor-summary-card")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderColor: lightColors.borderSubtle,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+    });
+  });
+
+  test("takes the dark surface on a dark device", async () => {
+    await renderInTheme("dark", "Website", [probeWith(ONLINE_WEBSITE)]);
+
+    expect(screen.getByTestId("monitor-summary-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+    });
+    for (const tile of screen.getAllByTestId("monitor-metric-tile")) {
+      expect(tile).toHaveStyle({
+        backgroundColor: darkColors.backgroundPrimary,
+      });
+    }
+    expect(flatStyle(screen.getByText("Online")).color).toBe(
+      darkColors.statusSuccess,
+    );
+    expect(flatStyle(screen.getByText("342")).color).toBe(
+      darkColors.textPrimary,
+    );
+  });
+
+  test("an empty card still looks deliberate and explains itself", async () => {
+    await renderSummary("Website", []);
+
+    expect(screen.getByTestId("monitor-summary-card")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+    expect(
+      screen.getByText(
+        "Measurements appear here after a probe checks this monitor.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("monitor-metric-grid")).toBeNull();
+  });
+
+  test("the empty state follows dark mode", async () => {
+    await renderInTheme("dark", "Website", []);
+
+    expect(
+      flatStyle(screen.getByText("No monitoring data available yet.")).color,
+    ).toBe(darkColors.textPrimary);
+    expect(screen.getByTestId("monitor-summary-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+  });
+});
+
+describe("Metric tiles", () => {
+  test("each tile and row is read out as one labelled measurement", async () => {
+    await renderSummary("Website", [probeWith(ONLINE_WEBSITE)]);
+
+    expect(screen.getByLabelText("Status: Online")).toBeTruthy();
+    expect(screen.getByLabelText("Status Code: 200")).toBeTruthy();
+    expect(screen.getByLabelText("Response Time: 342 ms")).toBeTruthy();
+    expect(screen.getByLabelText("URL: https://api.example.com")).toBeTruthy();
+  });
+
+  test("a percentage is spoken with its sign, and a missing one as not reported", async () => {
+    await renderSummary("Server", [
+      serverProbe({ cpuMetrics: { percentUsed: 41 } }),
+    ]);
+
+    expect(screen.getByLabelText("CPU: 41%")).toBeTruthy();
+    expect(screen.getByLabelText("Memory: not reported")).toBeTruthy();
+    expect(screen.getByLabelText("Disk: not reported")).toBeTruthy();
+  });
+
+  test("tiles are soft wells on the card with tabular figures", async () => {
+    await renderSummary("Website", [probeWith(ONLINE_WEBSITE)]);
+
+    const tiles: RenderedElement[] = screen.getAllByTestId(
+      "monitor-metric-tile",
+    );
+    expect(tiles).toHaveLength(3);
+    for (const tile of tiles) {
+      expect(tile).toHaveStyle({
+        backgroundColor: lightColors.backgroundPrimary,
+        borderRadius: radius.md,
+        padding: spacing.md,
+      });
+    }
+    expect(flatStyle(screen.getByText("200")).fontVariant).toEqual([
+      "tabular-nums",
+    ]);
+  });
+
+  test("online and offline are told apart by word and by colour", async () => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <MonitorSummaryView
+        monitorType="Website"
+        probeItems={[probeWith(ONLINE_WEBSITE)]}
+      />,
+    );
+
+    expect(flatStyle(screen.getByText("Online")).color).toBe(
+      lightColors.statusSuccess,
+    );
+
+    await view.rerender(
+      <MonitorSummaryView
+        monitorType="Website"
+        probeItems={[probeWith({ ...ONLINE_WEBSITE, isOnline: false })]}
+      />,
+    );
+
+    expect(flatStyle(screen.getByText("Offline")).color).toBe(
+      lightColors.statusError,
+    );
+  });
+
+  test("a failure cause reads in the error colour", async () => {
+    await renderSummary("API", [
+      probeWith({
+        ...ONLINE_WEBSITE,
+        isOnline: false,
+        failureCause: "Service Unavailable",
+      }),
+    ]);
+
+    expect(flatStyle(screen.getByText("Service Unavailable")).color).toBe(
+      lightColors.statusError,
+    );
+    expect(screen.getByLabelText("Error: Service Unavailable")).toBeTruthy();
+  });
+
+  test("usage readings draw a bar filled to their percentage, clamped to the track", async () => {
+    await renderSummary("Server", [
+      serverProbe({
+        cpuMetrics: { percentUsed: 41.4 },
+        memoryMetrics: { percentUsed: 130 },
+        diskMetrics: [{ diskPath: "/", percentUsed: -5 }],
+      }),
+    ]);
+
+    const widths: unknown[] = screen
+      .getAllByTestId("monitor-metric-bar-fill")
+      .map((fill: RenderedElement) => {
+        return flatStyle(fill).width;
+      });
+    expect(widths).toEqual(["41.4%", "100%", "0%"]);
+  });
+
+  test("a reading that was not reported gets no bar", async () => {
+    await renderSummary("Server", [
+      serverProbe({ cpuMetrics: { percentUsed: 20 } }),
+    ]);
+
+    expect(screen.getAllByTestId("monitor-metric-bar")).toHaveLength(1);
+  });
+
+  test("high usage turns the figure and its bar red, normal usage does not", async () => {
+    await renderSummary("Server", [
+      serverProbe({
+        cpuMetrics: { percentUsed: 91 },
+        memoryMetrics: { percentUsed: 20 },
+        diskMetrics: [{ diskPath: "/", percentUsed: 30 }],
+      }),
+    ]);
+
+    expect(flatStyle(screen.getByText("91")).color).toBe(
+      lightColors.statusError,
+    );
+    expect(flatStyle(screen.getByText("20")).color).toBe(
+      lightColors.textPrimary,
+    );
+    const fills: RenderedElement[] = screen.getAllByTestId(
+      "monitor-metric-bar-fill",
+    );
+    expect(fills[0]).toHaveStyle({ backgroundColor: lightColors.statusError });
+    expect(fills[1]).toHaveStyle({ backgroundColor: lightColors.accentCyan });
+    expect(fills[2]).toHaveStyle({
+      backgroundColor: lightColors.statusSuccess,
+    });
+  });
+
+  test.each([
+    ["one tile fills the row", "Ping", { isOnline: true }, "100%"],
+    [
+      "two tiles share a row",
+      "Ping",
+      { isOnline: true, responseTimeInMs: 4 },
+      "45%",
+    ],
+    ["three tiles share a row", "Website", ONLINE_WEBSITE, "30%"],
+  ] as Array<[string, string, ProbeMonitorResponse, ViewStyle["flexBasis"]]>)(
+    "%s",
+    async (
+      _name: string,
+      monitorType: string,
+      response: ProbeMonitorResponse,
+      basis: ViewStyle["flexBasis"],
+    ) => {
+      await renderSummary(monitorType, [probeWith(response)]);
+
+      for (const cell of screen.getAllByTestId("monitor-metric-cell")) {
+        expect(cell).toHaveStyle({ flexBasis: basis, flexGrow: 1 });
+      }
+    },
+  );
+
+  test("four volumes' worth of tiles sit two by two", async () => {
+    await renderSummary("Server", [
+      serverProbe({
+        cpuMetrics: { percentUsed: 10 },
+        memoryMetrics: { percentUsed: 20 },
+        diskMetrics: [
+          { diskPath: "/", percentUsed: 30 },
+          { diskPath: "/var", percentUsed: 40 },
+        ],
+      }),
+    ]);
+
+    const cells: RenderedElement[] = screen.getAllByTestId(
+      "monitor-metric-cell",
+    );
+    expect(cells).toHaveLength(4);
+    for (const cell of cells) {
+      expect(cell).toHaveStyle({ flexBasis: "45%" });
+    }
+    expect(screen.getByTestId("monitor-metric-grid")).toHaveStyle({
+      padding: spacing.lg,
+      gap: spacing.sm,
+      flexWrap: "wrap",
+    });
+  });
+
+  test("detail rows are separated by hairlines in the theme's subtle border", async () => {
+    await renderInTheme("dark", "Website", [probeWith(ONLINE_WEBSITE)]);
+
+    const rows: RenderedElement[] = screen.getAllByTestId(
+      "monitor-summary-info-row",
+    );
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row).toHaveStyle({
+        borderTopWidth: 1,
+        borderTopColor: darkColors.borderSubtle,
+      });
+    }
+    expect(
+      flatStyle(within(rows[0]!).getByText("https://api.example.com")).color,
+    ).toBe(darkColors.textPrimary);
   });
 });

@@ -328,6 +328,19 @@ export default class GoogleSecOpsRunExecutor {
     return stored as unknown as GoogleSecOpsRunResult;
   }
 
+  /*
+   * For the queue job wrapper: when BullMQ exhausts its attempts on an
+   * exception thrown outside executeRun's own try/catch (a lock timeout, a
+   * database error while reading the run), the run row would otherwise sit
+   * in "queued" until the twenty-minute stale sweep blames worker health.
+   */
+  public static async markRunFailed(
+    runId: ObjectID,
+    error: string,
+  ): Promise<void> {
+    await this.failRun(runId, error);
+  }
+
   private static async failRun(runId: ObjectID, error: string): Promise<void> {
     await GoogleSecOpsConnectionRunService.updateOneById({
       id: runId,
@@ -447,9 +460,42 @@ export default class GoogleSecOpsRunExecutor {
           scheduled: true,
         });
       } catch (error) {
-        logger.debug(
-          `Google SecOps: skipped scheduled operation: ${redactLogString(ConnectorErrorMessage.toMessage(error))}`,
+        const message: string = redactLogString(
+          ConnectorErrorMessage.toMessage(error),
         );
+
+        /*
+         * An admission conflict (a run is already queued or running) is the
+         * expected steady state for a slow poll and stays quiet. Anything
+         * else — Redis, the database, the reseller gate — is a scheduler
+         * failure the operator needs to see at the default log level, and on
+         * the connection row, or an overdue connection has no explanation.
+         */
+        if (message.includes("already has a queued or running operation")) {
+          logger.debug(
+            `Google SecOps: skipped scheduled operation for ${connection.id.toString()}: ${message}`,
+          );
+          continue;
+        }
+
+        logger.error(
+          `Google SecOps: could not queue the scheduled poll for ${connection.id.toString()}: ${message}`,
+        );
+
+        const connectionId: ObjectID = connection.id;
+
+        await ConnectorErrorMessage.recordFailure({
+          label: `GoogleSecOpsRunExecutor: connection ${connectionId.toString()}`,
+          write: async (): Promise<void> => {
+            await GoogleSecOpsConnectionService.updateOneById({
+              id: connectionId,
+              data: {
+                lastError: `Scheduler could not queue a poll: ${message}`,
+              },
+              props: { isRoot: true },
+            });
+          },
+        });
       }
     }
   }

@@ -131,6 +131,48 @@ export const SESSION_REPLAY_IDLE_ROLLOVER_MS: number = 30 * 60 * 1000;
 export const SESSION_REPLAY_MAX_SESSION_MS: number = 4 * 60 * 60 * 1000;
 
 /*
+ * When a recording counts as over.
+ *
+ * A session is finalized - its aggregates counted and its "Recording now"
+ * badge dropped - either when no chunk has arrived for
+ * SESSION_REPLAY_IDLE_FINALIZE_MS, or, much sooner, once every tab of it
+ * has ended (see Common/Utils/Rum/SessionReplayRecordingEnded.ts: the
+ * recorder seals a tab on pagehide) and SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS
+ * has passed since the server stored the newest chunk of any of those tabs.
+ * The Dashboard applies the same grace before it calls a session "ended",
+ * so the list, the player and the finalizer agree.
+ *
+ * The idle window stays long because a live tab can be silent for minutes:
+ * the recorder only flushes when something happened. The grace is short
+ * because a final chunk says the tab is gone; it only has to cover the next
+ * page of a multi-page app registering its first chunk under the same
+ * session id (up to one flush interval after it loads), and a queue backlog
+ * between the two.
+ */
+export const SESSION_REPLAY_IDLE_FINALIZE_MS: number = 10 * 60 * 1000;
+export const SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS: number = 60 * 1000;
+
+/*
+ * How long after its final chunk's END a tab may still have started a chunk
+ * and be counted as ended.
+ *
+ * Older recorders, which stay cached on customer pages for as long as the
+ * pinned artifact lives, can post one more non-final chunk after the final
+ * one: on a visible tab the browser fires pagehide BEFORE visibilitychange,
+ * and their hidden handler flushed the visibility event it had just
+ * recorded. That trailing chunk starts at pagehide, but a chunk's end is
+ * its LAST BUFFERED EVENT, which can be up to one flush interval before
+ * pagehide when the user sat still before closing the tab. Hence one flush
+ * interval plus a margin for timer throttling.
+ *
+ * Nothing legitimate records under the same (session, tab) after a seal
+ * other than a back/forward-cache restore, and current recorders give a
+ * restored page a new tab id, so a wider bound cannot hide a live tab.
+ */
+export const SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS: number =
+  SESSION_REPLAY_FLUSH_INTERVAL_MS + 10 * 1000;
+
+/*
  * fetch(keepalive) quota is 64KB combined per origin across all in-flight
  * keepalive requests, so the terminal flush gets one request under this
  * cap rather than several that would silently fail against the quota.
@@ -152,6 +194,27 @@ export const SESSION_REPLAY_CONTENT_TYPE: string =
 /* Header carrying the RUM application identifier, needed pre-decode. */
 export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
   "x-oneuptime-app-identifier";
+
+/*
+ * The transport surface that is asking for replay policy. This is separate
+ * from the recorderKind inside a chunk envelope because authentication runs
+ * before the request body is read. Absence deliberately means the historic
+ * DOM recorder; only the exact `rn-view-tree` value selects the mobile
+ * contract.
+ */
+export const SESSION_REPLAY_RECORDER_KIND_HEADER: string =
+  "x-oneuptime-replay-recorder-kind";
+
+/*
+ * Native applications have no browser-controlled Origin header. The mobile
+ * recorder sends its Android package name / iOS bundle identifier here and
+ * the ingest guard maps it to an exact app:// origin for allowlist matching.
+ * It is not the RUM application identifier above: several app binaries may
+ * intentionally report to one configured RUM application.
+ */
+export const SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER: string =
+  "x-oneuptime-mobile-app-identifier";
+export const SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH: number = 255;
 
 /*
  * Header carrying the host page's end-user reference on the CONFIG fetch,
@@ -329,11 +392,49 @@ export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
   "mousemove-50ms",
 ];
 
+/*
+ * Capabilities emitted by the React Native recorder on its first chunk.
+ * Kept separate from the DOM baseline above: otherwise every perfectly
+ * healthy web recording would appear to be missing mobile-only features.
+ */
+export const SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES: ReadonlyArray<string> =
+  [
+    "mobile-view-tree",
+    "mobile-touch-events",
+    "custom-events",
+    "traits",
+    "tags",
+    "visibility",
+    "visitor-id",
+    "route-events",
+    "js-errors",
+  ];
+
 /* How the payload bytes were compressed by the recorder. */
 export type SessionReplayPayloadEncoding = "gzip" | "identity";
 
 /* Which recorder produced the frame — web DOM, or a mobile view tree. */
 export type SessionReplayRecorderKind = "dom" | "rn-view-tree";
+
+/*
+ * Strict parser for the recorder-kind REQUEST header. The wire envelope has
+ * a backwards-compatible fallback for old stored chunks, but a config fetch
+ * must never silently reinterpret a typo as web policy. Header absence is
+ * the only legacy fallback.
+ */
+export function parseSessionReplayRecorderKindHeader(
+  value: unknown,
+): SessionReplayRecorderKind | null {
+  if (value === undefined || value === null) {
+    return "dom";
+  }
+
+  if (value === "dom" || value === "rn-view-tree") {
+    return value;
+  }
+
+  return null;
+}
 
 /* State of the consent handshake at the moment the chunk was cut. */
 export type SessionReplayConsentState = "Granted" | "NotRequired" | "Unknown";
@@ -383,6 +484,14 @@ export enum SessionReplayFidelityNotice {
    * footage recovers, but playback may skip or freeze around those points.
    */
   RecorderError = "recorder-error",
+  /* Native Image pixels are represented by an opaque placeholder. */
+  MobileImagesOpaque = "mobile-images-opaque",
+  /* WebView contents cannot be inspected from the React Native view tree. */
+  MobileWebViewOpaque = "mobile-webview-opaque",
+  /* Native canvas / drawing surfaces are represented as opaque regions. */
+  MobileCanvasOpaque = "mobile-canvas-opaque",
+  /* Animation state is sampled at snapshots rather than reproduced framewise. */
+  MobileAnimationSampled = "mobile-animation-sampled",
 }
 
 /* Why a session stopped accumulating chunks. */

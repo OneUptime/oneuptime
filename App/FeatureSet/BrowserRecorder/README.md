@@ -176,39 +176,45 @@ does not put OneUptime's own output into the customer's session.
 
 `/telemetry/session-replay/v1/recorder.js` is a **~1.9 KB gzip loader stub**
 served with `Cache-Control: max-age=300`. It fetches the policy, honours
-`enabled` / consent / DNT / GPC, and only then injects the pinned artifact at
-`/telemetry/session-replay/v<semver>/recorder.js`, which is immutable for a
-year and carries an SRI hash.
+`enabled` / consent / DNT / GPC, and only then injects the mutable artifact at
+`/telemetry/session-replay/latest/recorder.js`. The recorder response is
+`Cache-Control: no-store` and carries the SRI hash returned by config.
 
 This split is the whole reason a bad masking release is recoverable. Without
 it, a regression is live in every customer's browser for the full cache TTL
 with no remedy — they are third parties, and we cannot reach their end users.
-With it, rolling back is one field in the config response, and the kill switch
-stops **recording** rather than merely stopping ingest.
+With it, deploying replacement bytes changes what `latest` serves immediately,
+and the kill switch stops **recording** rather than merely stopping ingest.
 
-`public/dist/manifest.json` carries the version, the gzip sizes and the
-SHA-384 integrity hashes. It is the **single source of truth** for which
-version is published: read it through `Manifest.ts` (`getRecorderVersion()`,
-`getRecorderIntegrity()`, `getPinnedRecorderPath()`), never from an
-independently-defaulted env var. Two answers to "which version is live" cannot
-be kept in step by hand, and the failure mode is silent — a loader told to
-fetch a version that was never published just 404s and the page records
-nothing.
+`public/dist/manifest.json` carries the literal recorder label `latest`, the
+gzip sizes and the SHA-384 integrity hashes. It is the **single source of
+truth** for whether the artifact was built and which integrity value config
+must return: read it through `Manifest.ts` (`getRecorderVersion()`,
+`getRecorderIntegrity()`, `getLatestRecorderPath()`), never from an
+independently-defaulted env var.
 
-`src/Config.ts` validates `recorderVersion` against
-`/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/` before it will build an artifact
-URL, and refuses to build one at all otherwise. The same pattern is asserted in
-the build and in `Manifest.ts`; `Tests/RecorderManifest.test.ts` fails if the
-three ever drift.
+`src/Config.ts` accepts only exact lowercase `latest` and builds the fixed URL
+above. Any other value is rejected before it can become a script URL.
+
+The transition from the former versioned contract has one bounded compatibility
+window: the v1 loader itself is cached for five minutes, so a browser still
+running that older loader will reject `latest` until its loader cache expires.
+Subsequent recorder replacements keep the same contract and do not repeat this
+transition.
+
+`no-store` is intentional. Reusing old bytes at this mutable URL while config
+advertises a new SRI value would make the browser reject the recorder — the
+original failure mode. The trade-off is that `recorder.js` is downloaded on
+each page load rather than held in a long-lived browser cache.
 
 ### The route the artifacts need
 
 Not mounted by this package — it has no server. Whatever mounts it must serve:
 
-| path                                              | file                    | headers                                                              |
-| ------------------------------------------------- | ----------------------- | -------------------------------------------------------------------- |
-| `/telemetry/session-replay/v1/recorder.js`        | `public/dist/loader.js` | `Cache-Control: public, max-age=300`                                 |
-| `/telemetry/session-replay/v<semver>/recorder.js` | `public/dist/recorder.js` (only when `<semver>` equals the manifest's version) | `Cache-Control: public, max-age=31536000, immutable` |
+| path                                           | file                      | headers                              |
+| ---------------------------------------------- | ------------------------- | ------------------------------------ |
+| `/telemetry/session-replay/v1/recorder.js`     | `public/dist/loader.js`   | `Cache-Control: public, max-age=300` |
+| `/telemetry/session-replay/latest/recorder.js` | `public/dist/recorder.js` | `Cache-Control: no-store`            |
 
 Both need `Content-Type: application/javascript; charset=utf-8`,
 `Access-Control-Allow-Origin: *` (the artifact is loaded cross-origin with
@@ -286,14 +292,60 @@ minted at all. `getVisitorId()` returns it.
     its `fetch` issued at all. An open chunk larger than the budget still
     goes out through the ordinary path, which is the only one that can carry
     it — a tab hidden midway through a heavy interval can lose that tail.
-  - Hiding does NOT seal the session. Only `pagehide` (with
-    `persisted !== true`) sends `isFinal`.
+  - Hiding does NOT seal the session. **Every `pagehide` does**, whatever
+    `event.persisted` says. A page entering the back/forward cache
+    (`persisted === true`) is sealed like any other: most cached pages are
+    never restored — the user closes the browser and the cached document is
+    evicted without another event — and the server only calls a session
+    ended once every one of its tabs has, so one unsealed cached page used
+    to keep the whole session "Recording now" until the idle finalizer ran.
+    A page the browser kills or discards without `pagehide` still sends
+    nothing and is left to the idle finalizer.
+  - **A page restored from the back/forward cache records as a new tab.**
+    On `pageshow` with `persisted === true` the sealed tab stays sealed: the
+    recorder mints a fresh tab id, starts its chunk sequence (and the
+    per-tab chunk cap) again at 0, re-checks the session's idle and duration
+    limits (rotating onto a new session if they have passed), and opens
+    chunk 0 on a full snapshot carrying the meta, the way a reloaded page
+    would, followed by the `bfcache-restore` marker and fidelity notice.
+    Nothing is ever minted under the old tab id again; `onSessionChange`
+    listeners are told the new tab id.
+  - **Nothing is posted after the seal.** Closing a visible tab fires
+    `pagehide` BEFORE `visibilitychange` to hidden, so once the final chunk
+    has gone the hidden handler, the flush timer and every other flush path
+    stand down for that session and tab, and events recorded afterwards
+    (the visibility change itself, rrweb's teardown mutations) are not
+    uploaded. The server reads "a final chunk, and no chunk started after
+    it" as *this tab has ended* and stops showing the session as recording
+    without waiting out the idle window. Hiding first and closing second
+    still sends a non-final chunk and then the final one. The seal is lifted
+    only by something that starts a new recording: a session rotation or a
+    consent re-grant (a new session id), or a back/forward-cache restore (a
+    new tab id).
   - The sealing chunk goes first, then the rest of the split newest-first,
     then chunks still waiting for a retry. What one request cannot carry is
     cut at the chunker, before a chunk index is minted for it, and reported
     as `droppedEvents` on the envelope with a `final-flush-truncated`
     diagnostic — an index minted for a request that is never issued is a hole
-    the player reports as a missing chunk forever.
+    the player reports as a missing chunk forever. Every piece beside the
+    sealing one is charged its own envelope (8 KB) as well as its payload,
+    so what is minted is what the request can carry.
+  - **A sealing frame always goes on the wire.** When the newest piece of a
+    final flush cannot fit one request by itself (one indivisible event
+    larger than the 48 KB payload budget, such as a big DOM insertion just
+    before the tab closed), the chunker drops its events and seals with an
+    empty final piece instead: payload `[]`, `eventCount` 0, the dropped
+    events added to `droppedEvents`, both offsets at the dropped footage's
+    end, and the same signals, routes and meta. That piece costs the budget
+    only its two bytes, so the older footage of the split still goes out
+    beside it. The `final-chunk-too-large` diagnostic reports it with
+    `sealed: true`. The transport keeps the same substitution as a backstop
+    for a final frame that goes over the 56 KB quota only once its envelope
+    is added.
+  - A non-final terminal flush is now only a hidden tab's early flush. If
+    its frame does not fit it is dropped whole, and `final-chunk-too-large`
+    reports `sealed: false`: the tab did not close, so the session stays
+    open with a gap.
 - **`traceparent` injection is opt-in per origin, and skips `Request`
   objects.** By default `NetworkRecorder` only READS a traceparent the host
   page already set. When the application's **trace propagation origins**
@@ -339,8 +391,9 @@ user really saw.
 **`unload` and `beforeunload` are never registered.** Both disqualify the
 customer's page from the back/forward cache. A RUM vendor degrading its own
 customer's Core Web Vitals in order to collect data about them has failed at
-its job. Terminal flushes use `visibilitychange` and `pagehide`, branching on
-`event.persisted`. Asserted by both a runtime and a source-level test.
+its job. Terminal flushes use `visibilitychange` and `pagehide`, and a page
+restored from the cache is picked up on `pageshow` (`event.persisted`).
+Asserted by both a runtime and a source-level test.
 
 **The terminal flush is `fetch(keepalive)`, not `sendBeacon`.** `sendBeacon`
 cannot set request headers, and the ingest middleware reads the auth token

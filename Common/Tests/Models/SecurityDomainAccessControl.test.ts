@@ -1,5 +1,6 @@
 import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import GoogleSecOpsConnection from "../../Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
 import ThreatIntelFeed from "../../Models/DatabaseModels/ThreatIntelFeed";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "../../Models/AnalyticsModels/ThreatIntelIndicator";
@@ -71,6 +72,8 @@ const buildSecurityModels: BuildSecurityModelsFunction =
     const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
     const googleSecOpsConnection: GoogleSecOpsConnection =
       new GoogleSecOpsConnection();
+    const securityEventConnection: SecurityEventConnection =
+      new SecurityEventConnection();
     const securityEvent: SecurityEvent = new SecurityEvent();
     const threatIntelIndicator: ThreatIntelIndicator =
       new ThreatIntelIndicator();
@@ -99,6 +102,14 @@ const buildSecurityModels: BuildSecurityModelsFunction =
         update: googleSecOpsConnection.updateRecordPermissions,
         delete: googleSecOpsConnection.deleteRecordPermissions,
         columns: columnsOf(googleSecOpsConnection),
+      },
+      {
+        name: "SecurityEventConnection",
+        read: securityEventConnection.readRecordPermissions,
+        create: securityEventConnection.createRecordPermissions,
+        update: securityEventConnection.updateRecordPermissions,
+        delete: securityEventConnection.deleteRecordPermissions,
+        columns: columnsOf(securityEventConnection),
       },
       {
         name: "SecurityEvent",
@@ -165,6 +176,7 @@ describe("Security domain access control", () => {
       "DetectionRule",
       "GoogleSecOpsConnection",
       "SecurityEvent",
+      "SecurityEventConnection",
       "ThreatIntelFeed",
       "ThreatIntelIndicator",
     ]);
@@ -246,8 +258,9 @@ describe("Security domain access control", () => {
       for (const [column, accessControl] of model.columns) {
         /*
          * `read: []` is a deliberate "nobody reads this through the API" -
-         * GoogleSecOpsConnection.serviceAccountJson is the one that matters.
-         * Those must stay closed, which the credential test below asserts.
+         * GoogleSecOpsConnection.serviceAccountJson and
+         * SecurityEventConnection.secrets are the ones that matter. Those
+         * must stay closed, which the credential tests below assert.
          */
         if (!accessControl?.read || accessControl.read.length === 0) {
           continue;
@@ -298,6 +311,30 @@ describe("Security domain access control", () => {
   });
 
   /*
+   * The framework connections store every provider's credential (client
+   * secrets, API tokens, AWS secret keys) as one encrypted JSON string.
+   * Like the SecOps key it is write-only: SecurityAdmin configures and
+   * rotates it, nobody reads it back through the API. The non-secret
+   * config column, by contrast, is what the edit form and the table show,
+   * so it follows the table into the Security tiers.
+   */
+  test("the framework connection secrets stay unreadable by everyone", () => {
+    const model: SecurityEventConnection = new SecurityEventConnection();
+    const secrets: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("secrets");
+    const config: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("config");
+
+    expect(secrets).toBeDefined();
+    expect(secrets?.read).toEqual([]);
+    expect(secrets?.create).toContain(Permission.SecurityAdmin);
+    expect(secrets?.update).toContain(Permission.SecurityAdmin);
+    expect(model.getTableColumnMetadata("secrets").encrypted).toBe(true);
+
+    expect(config?.read).toEqual(expect.arrayContaining(SECURITY_TIERS));
+  });
+
+  /*
    * Tier semantics, so "Viewer" keeps meaning read-only and the three tiers
    * stay distinguishable from each other. A family whose Viewer can delete is
    * three names for one role.
@@ -344,22 +381,29 @@ describe("Security domain access control", () => {
    * Pointing the project at a Chronicle instance, and holding the credential
    * that reads it, is administration of the SIEM rather than use of it.
    */
-  test("only the Admin tier configures the SecOps connector", () => {
-    const model: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+  test.each<[string, GoogleSecOpsConnection | SecurityEventConnection]>([
+    ["GoogleSecOpsConnection", new GoogleSecOpsConnection()],
+    ["SecurityEventConnection", new SecurityEventConnection()],
+  ])(
+    "only the Admin tier configures the %s connector",
+    (
+      _name: string,
+      model: GoogleSecOpsConnection | SecurityEventConnection,
+    ) => {
+      for (const list of [
+        model.createRecordPermissions,
+        model.updateRecordPermissions,
+        model.deleteRecordPermissions,
+      ]) {
+        expect(list).toContain(Permission.SecurityAdmin);
+        expect(list).not.toContain(Permission.SecurityMember);
+        expect(list).not.toContain(Permission.SecurityViewer);
+      }
 
-    for (const list of [
-      model.createRecordPermissions,
-      model.updateRecordPermissions,
-      model.deleteRecordPermissions,
-    ]) {
-      expect(list).toContain(Permission.SecurityAdmin);
-      expect(list).not.toContain(Permission.SecurityMember);
-      expect(list).not.toContain(Permission.SecurityViewer);
-    }
-
-    expect(model.readRecordPermissions).toContain(Permission.SecurityMember);
-    expect(model.readRecordPermissions).toContain(Permission.SecurityViewer);
-  });
+      expect(model.readRecordPermissions).toContain(Permission.SecurityMember);
+      expect(model.readRecordPermissions).toContain(Permission.SecurityViewer);
+    },
+  );
 
   /*
    * The Member tier is what makes the family usable without handing out admin:

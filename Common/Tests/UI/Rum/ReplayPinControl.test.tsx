@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import ObjectID from "../../../Types/ObjectID";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { REPLAY_CONTROL_HEIGHT_CLASS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
 
 /*
  * Pin / Unpin on the player header.
@@ -85,6 +86,14 @@ function renderControl(): ReturnType<typeof render> {
   );
 }
 
+function expectReplayActionButton(button: HTMLElement): void {
+  expect(button.className).toContain(REPLAY_CONTROL_HEIGHT_CLASS);
+  expect(button.className).toContain("rounded-lg");
+  expect(button.className).toContain("w-8");
+  expect(button.className).toContain("sm:w-auto");
+  expect(button.className).not.toContain("btn-outline-secondary");
+}
+
 beforeEach(() => {
   getListMock.mockReset();
   createMock.mockReset();
@@ -97,9 +106,10 @@ describe("ReplayPinControl initial load", () => {
 
     renderControl();
 
-    expect(await screen.findByTestId("replay-pin-button")).toHaveTextContent(
-      "Pin recording",
-    );
+    const button: HTMLElement = await screen.findByTestId("replay-pin-button");
+
+    expect(button).toHaveTextContent("Pin recording");
+    expectReplayActionButton(button);
     expect(screen.queryByTestId("replay-pin-status")).not.toBeInTheDocument();
   });
 
@@ -122,11 +132,16 @@ describe("ReplayPinControl initial load", () => {
 
     renderControl();
 
-    expect(await screen.findByTestId("replay-pin-error")).toHaveTextContent(
-      "Database is unavailable",
-    );
+    const error: HTMLElement = await screen.findByTestId("replay-pin-error");
 
-    fireEvent.click(screen.getByTestId("replay-pin-retry"));
+    expect(error).toHaveTextContent("Database is unavailable");
+    expect(error.className).toContain("whitespace-normal");
+    expect(error.className).not.toContain("truncate");
+
+    const retry: HTMLElement = screen.getByTestId("replay-pin-retry");
+
+    expectReplayActionButton(retry);
+    fireEvent.click(retry);
 
     expect(await screen.findByTestId("replay-pin-button")).toHaveTextContent(
       "Pin recording",
@@ -139,9 +154,11 @@ describe("ReplayPinControl initial load", () => {
 
     renderControl();
 
-    expect(await screen.findByTestId("replay-pin-status")).toHaveTextContent(
-      PIN_PENDING_COPY,
-    );
+    const status: HTMLElement = await screen.findByTestId("replay-pin-status");
+
+    expect(status).toHaveTextContent(PIN_PENDING_COPY);
+    expect(status.className).toContain("max-w-full");
+    expect(status.querySelector(".truncate")).not.toBeNull();
     expect(PIN_PENDING_COPY).toContain("when the recording ends");
     expect(PIN_PENDING_COPY).toContain("10 minutes");
   });
@@ -162,6 +179,7 @@ describe("ReplayPinControl initial load", () => {
 
     expect(status).toHaveTextContent("Pinned");
     expect(status.getAttribute("title")).toContain("pinned retention until");
+    expectReplayActionButton(screen.getByTestId("replay-unpin-button"));
   });
 });
 
@@ -185,6 +203,45 @@ describe("ReplayPinControl pin", () => {
       .calls[0]![0] as { model: { sessionId?: string } };
 
     expect(created.model.sessionId).toBe(SESSION_ID);
+  });
+
+  it("keeps the pin action stable and announces it as busy while creating", async () => {
+    let resolveCreate: (() => void) | undefined;
+
+    getListMock.mockResolvedValue(listResult([]));
+    createMock.mockImplementation((): Promise<void> => {
+      return new Promise<void>((resolve: () => void): void => {
+        resolveCreate = resolve;
+      });
+    });
+
+    renderControl();
+
+    const button: HTMLElement = await screen.findByTestId("replay-pin-button");
+
+    fireEvent.click(button);
+
+    await waitFor((): void => {
+      const workingButton: HTMLElement =
+        screen.getByTestId("replay-pin-button");
+
+      expect(workingButton).toBeDisabled();
+      expect(workingButton).toHaveAttribute("aria-busy", "true");
+      expect(workingButton).toHaveTextContent("Pin recording");
+      expectReplayActionButton(workingButton);
+    });
+
+    await act(async (): Promise<void> => {
+      resolveCreate?.();
+      await Promise.resolve();
+    });
+
+    await waitFor((): void => {
+      const idleButton: HTMLElement = screen.getByTestId("replay-pin-button");
+
+      expect(idleButton).not.toBeDisabled();
+      expect(idleButton).not.toHaveAttribute("aria-busy");
+    });
   });
 
   it("surfaces a create failure with the server's message and offers a retry", async () => {

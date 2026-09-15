@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const ProxmoxClusterLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Cluster Logs"
-      description="OpenTelemetry logs ingested with this cluster's proxmox.cluster.name resource attribute. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -101,10 +98,16 @@ const ProxmoxClusterLogs: FunctionComponent<
        * attributes-equality filter into the query itself — that defeats the
        * OR. Drop the attribute fallback (here and in the logQuery merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip value is already the cluster's name, so only the key needs a
+       * label: "Cluster" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`proxmox-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.proxmox.cluster.name": "Cluster",
+        }}
         entityScope={{
           entityKeys: [
             keyForProxmoxCluster(
@@ -119,7 +122,7 @@ const ProxmoxClusterLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found. The Proxmox agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this cluster's proxmox.cluster.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

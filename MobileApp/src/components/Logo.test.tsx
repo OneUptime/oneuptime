@@ -1,8 +1,29 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import Logo from "./Logo";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockSystemScheme = "light";
+});
 
 /*
  * The mark on the sign-in, server-URL, two-factor and biometric-lock screens -
@@ -186,5 +207,73 @@ describe("What the logo is made of", () => {
 
     expect(style.width).toBe(72);
     expect(style.height).toBe(72);
+  });
+});
+
+describe("The logo follows the theme", () => {
+  /*
+   * The letters used to default to a fixed near-black. The moment the app
+   * followed the system into dark mode, every caller that did not pass a
+   * colour drew an invisible wordmark on the dark canvas.
+   */
+  function logoXml(): string {
+    return (screen.getByTestId("logo").children[0] as RenderedElement).props
+      .xml as string;
+  }
+
+  async function renderThemed(ui: React.ReactElement): Promise<void> {
+    await render(
+      <ThemeProvider>
+        <View testID="logo">{ui}</View>
+      </ThemeProvider>,
+    );
+  }
+
+  test("outside a provider the letters use the light theme's primary text", async () => {
+    await render(<Logo variant="wordmark" />);
+
+    const xml: string = svg().props.xml as string;
+    expect(xml).toContain(`fill="${lightColors.textPrimary}"`);
+    expect(xml).toContain(`fill="${lightColors.actionPrimary}"`);
+    expect(xml).not.toContain("#17212F");
+    expect(xml).not.toContain("#3155D9");
+  });
+
+  test("in dark mode the wordmark letters and square switch to the dark tokens", async () => {
+    mockSystemScheme = "dark";
+    await renderThemed(<Logo variant="wordmark" size={26} />);
+
+    const xml: string = logoXml();
+    expect(xml).toContain(`fill="${darkColors.textPrimary}"`);
+    expect(xml).toContain(`fill="${darkColors.actionPrimary}"`);
+    expect(xml).not.toContain(`fill="${lightColors.textPrimary}"`);
+  });
+
+  test("in dark mode the square mark's letters are light too", async () => {
+    mockSystemScheme = "dark";
+    await renderThemed(<Logo />);
+
+    const xml: string = logoXml();
+    expect(xml).toContain(`fill="${darkColors.textPrimary}"`);
+    expect(xml).not.toContain("rgb(100%, 100%, 100%)");
+  });
+
+  test("in light mode the themed wordmark is the dark primary text", async () => {
+    mockSystemScheme = "light";
+    await renderThemed(<Logo variant="wordmark" />);
+
+    expect(logoXml()).toContain(`fill="${lightColors.textPrimary}"`);
+  });
+
+  test("an explicit colour and accent still win over the theme", async () => {
+    mockSystemScheme = "dark";
+    await renderThemed(
+      <Logo variant="wordmark" color="#FFFFFF" accentColor="#7ED957" />,
+    );
+
+    const xml: string = logoXml();
+    expect(xml).toContain('fill="#FFFFFF"');
+    expect(xml).toContain('fill="#7ED957"');
+    expect(xml).not.toContain(`fill="${darkColors.textPrimary}"`);
   });
 });

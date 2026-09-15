@@ -1,12 +1,18 @@
-import React, { useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { View, Text, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  SafeAreaInsetsContext,
+  type EdgeInsets,
+} from "react-native-safe-area-context";
 import { useTheme } from "../theme";
+import { elevation, typography } from "../theme/tokens";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 export default function OfflineBanner(): React.JSX.Element | null {
   const { theme } = useTheme();
   const { isConnected, isInternetReachable } = useNetworkStatus();
+  const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   const slideAnim: Animated.Value = useRef(new Animated.Value(-60)).current;
 
   const isOffline: boolean = !isConnected || isInternetReachable === false;
@@ -43,16 +49,13 @@ export default function OfflineBanner(): React.JSX.Element | null {
         left: 0,
         right: 0,
         zIndex: 100,
-        paddingTop: 50,
+        /* Clear the status bar and notch on any device, not a guessed 50 points. */
+        paddingTop: (insets?.top ?? 0) + 8,
         paddingBottom: 10,
         paddingHorizontal: 16,
         backgroundColor: theme.colors.statusError,
         transform: [{ translateY: slideAnim }],
-        shadowColor: theme.colors.statusError,
-        shadowOpacity: 0.3,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-        elevation: 8,
+        ...elevation("raised", theme.dark),
       }}
     >
       <View
@@ -65,15 +68,14 @@ export default function OfflineBanner(): React.JSX.Element | null {
         <Ionicons
           name="cloud-offline-outline"
           size={16}
-          color={theme.colors.backgroundPrimary}
-          style={{ marginRight: 8, opacity: 0.9 }}
+          color={theme.colors.textInverse}
+          style={{ marginRight: 8 }}
         />
         <Text
           style={{
-            fontSize: 14,
+            ...typography.subhead,
             fontWeight: "600",
-            letterSpacing: -0.5,
-            color: theme.colors.backgroundPrimary,
+            color: theme.colors.textInverse,
           }}
         >
           No internet connection

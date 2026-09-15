@@ -1,9 +1,24 @@
 import React from "react";
 import { Text, processColor } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import GradientHeader from "./GradientHeader";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * The wash of light behind the top of every screen. It is absolutely
@@ -93,8 +108,8 @@ describe("The colours it fades between", () => {
     await render(<GradientHeader />);
 
     expect(gradientLayer().props.colors).toEqual([
-      processColor(darkColors.gradientStart),
-      processColor(darkColors.gradientEnd),
+      processColor(lightColors.gradientStart),
+      processColor(lightColors.gradientEnd),
     ]);
   });
 
@@ -131,5 +146,35 @@ describe("What it holds", () => {
 
     expect(frameStyle().height).toBe(200);
     expect(gradientLayer().props.colors).toHaveLength(2);
+  });
+});
+
+describe("Touches and the theme", () => {
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test("the wash never takes a touch meant for the header above it", async () => {
+    await render(<GradientHeader />);
+
+    expect(
+      screen.container.queryAll((node: RenderedElement): boolean => {
+        return node.props.pointerEvents === "none";
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("in dark mode it fades between the dark palette's gradient stops", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <GradientHeader />
+      </ThemeProvider>,
+    );
+
+    expect(gradientLayer().props.colors).toEqual([
+      processColor(darkColors.gradientStart),
+      processColor(darkColors.gradientEnd),
+    ]);
   });
 });

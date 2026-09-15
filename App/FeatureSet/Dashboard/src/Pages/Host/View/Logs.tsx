@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -87,10 +87,7 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   return (
-    <Card
-      title="Host Logs"
-      description="Live OpenTelemetry logs from this host. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -98,10 +95,21 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * `logQuery.attributes` stays for the histogram / facet scoping —
        * display behavior is unchanged. Drop the attribute fallback (here and
        * in the logQuery merge) once deploy-date + max retention has passed.
+       *
+       * The attribute value is the machine's host.name (hostIdentifier), which
+       * is what the filter must match — but the locked chip would read
+       * "resource.host.name: ip-10-0-0-12". The display overrides label it
+       * "Host: <name>" without touching the filter.
        */}
       <DashboardLogsViewer
         id={`host-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.host.name": "Host",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier!,
+        }}
         entityScope={{
           entityKeys: [
             keyForHost(
@@ -116,7 +124,7 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         enableRealtime={true}
         noLogsMessage="No logs found for this host. Make sure your OTel collector forwards logs with the host.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

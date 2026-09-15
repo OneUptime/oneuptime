@@ -9,6 +9,7 @@ import {
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
+import TraceContextPropagation from "./Telemetry/TraceContextPropagation";
 import GzipRequestBodyMiddleware from "../Middleware/GzipRequestBody";
 import CorsOptions, {
   CORS_EXPOSED_HEADERS,
@@ -80,6 +81,15 @@ app.set("view engine", "ejs");
  * getClientIp() agree.
  */
 app.set("trust proxy", TrustedProxyHops);
+/*
+ * First middleware, so the SERVER span that continues the caller's trace is
+ * active for everything the request does — see TraceContextPropagation. The
+ * outgoing half is installed here too, because every OneUptime process that
+ * talks to another one starts through this module. Both are no-ops unless
+ * span export is configured.
+ */
+app.use(TraceContextPropagation.incomingRequestMiddleware);
+TraceContextPropagation.installOutgoingRequestTracer();
 app.use(CookieParser());
 
 export type BodyParserVerify = (

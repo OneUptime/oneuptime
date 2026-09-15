@@ -1,13 +1,32 @@
 import React from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 import {
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import BackupCodesScreen from "./BackupCodesScreen";
 import type { MockedFunction } from "jest-mock";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * THE ONLY SCREEN IN THE APP THAT CAN LOSE SOMETHING IRRECOVERABLE.
@@ -272,6 +291,7 @@ function sharedMessage(): string {
 }
 
 beforeEach(() => {
+  mockSystemScheme = "light";
   exitSteps.length = 0;
   mockAuthListeners.clear();
   mockPendingBackupCodes = null;
@@ -702,5 +722,192 @@ describe("The route param is a hint; the codes decide", () => {
     await renderScreen({ mode: "offer", codes: MINTED_CODES });
 
     expect(isDisabled("backup-codes-continue")).toBe(true);
+  });
+});
+
+function styleOf(element: { props: { style?: unknown } }): ViewStyle {
+  return StyleSheet.flatten(element.props.style as ViewStyle) as ViewStyle;
+}
+
+describe("How the codes are presented", () => {
+  test("every code sits in its own equal cell, two to a row, inside one card", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    const card: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("backup-codes-list");
+    const cells: Array<ReturnType<typeof screen.getByTestId>> =
+      within(card).getAllByTestId("backup-code-cell");
+
+    expect(cells).toHaveLength(MINTED_CODES.length);
+    for (const cell of cells) {
+      expect(styleOf(cell)).toMatchObject({
+        width: "48.5%",
+        backgroundColor: lightColors.backgroundTertiary,
+      });
+    }
+    expect(within(card).getAllByTestId("backup-code-value")).toHaveLength(
+      MINTED_CODES.length,
+    );
+    expect(styleOf(card).backgroundColor).toBe(lightColors.backgroundElevated);
+  });
+
+  test("codes are selectable, monospaced and centred so they are easy to copy by hand", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    for (const code of screen.getAllByTestId("backup-code-value")) {
+      expect(code.props.selectable).toBe(true);
+      expect(styleOf(code)).toMatchObject({
+        textAlign: "center",
+        color: lightColors.textPrimary,
+      });
+      expect((styleOf(code) as { fontFamily?: string }).fontFamily).toMatch(
+        /Menlo|monospace/,
+      );
+    }
+  });
+
+  test("the card says how many codes there are and offers the share sheet from inside it", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+    const card: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("backup-codes-list");
+
+    expect(within(card).getByText("8 codes")).toBeTruthy();
+    expect(
+      within(card).getByRole("button", { name: "Save or Share Codes" }),
+    ).toBeTruthy();
+  });
+
+  test("the one-time warning is shown without interrupting as an alert", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    expect(
+      screen.getByText(/only time these codes will be shown/i),
+    ).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("The saved-codes gate", () => {
+  test("the checkbox is visibly unticked and Continue is disabled at first", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    expect(
+      styleOf(screen.getByTestId("backup-codes-saved-checkbox")),
+    ).toMatchObject({
+      borderWidth: 1,
+      borderColor: lightColors.borderDefault,
+      backgroundColor: lightColors.backgroundElevated,
+    });
+    expect(isDisabled("backup-codes-continue")).toBe(true);
+    expect(
+      Number(styleOf(screen.getByTestId("backup-codes-continue")).opacity),
+    ).toBeLessThan(1);
+  });
+
+  test("ticking it highlights the row and enables Continue; unticking locks it again", async () => {
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    await fireEvent.press(screen.getByTestId("backup-codes-saved-checkbox"));
+
+    expect(
+      styleOf(screen.getByTestId("backup-codes-saved-checkbox")),
+    ).toMatchObject({
+      borderWidth: 2,
+      borderColor: lightColors.actionPrimary,
+      backgroundColor: lightColors.cardAccent,
+    });
+    expect(isDisabled("backup-codes-continue")).toBe(false);
+    expect(styleOf(screen.getByTestId("backup-codes-continue")).opacity).toBe(
+      1,
+    );
+
+    await fireEvent.press(screen.getByTestId("backup-codes-saved-checkbox"));
+
+    expect(isDisabled("backup-codes-continue")).toBe(true);
+    await fireEvent.press(screen.getByTestId("backup-codes-continue"));
+    expect(mockCompletePendingLogin).not.toHaveBeenCalled();
+  });
+
+  test("a share failure is an alert beside Continue, and the gate still holds", async () => {
+    mockShare.mockRejectedValue(new Error("Share sheet unavailable"));
+    await renderScreen({ mode: "show", codes: MINTED_CODES });
+
+    await fireEvent.press(screen.getByText("Save or Share Codes"));
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText("Share sheet unavailable")).toBeTruthy();
+    expect(isDisabled("backup-codes-continue")).toBe(true);
+  });
+
+  test("the offer's skip link is quiet and waits while codes are generated", async () => {
+    let finish: ((codes: Array<string>) => void) | undefined;
+    mockGenerateBackupCodes.mockImplementation((): Promise<Array<string>> => {
+      return new Promise((resolve: (codes: Array<string>) => void) => {
+        finish = resolve;
+      });
+    });
+    await renderScreen({ mode: "offer", codes: null });
+
+    expect(screen.getByText("Skip for now")).toHaveStyle({
+      color: lightColors.textSecondary,
+    });
+
+    fireEvent.press(screen.getByTestId("generate-backup-codes"));
+
+    await waitFor(() => {
+      expect(isDisabled("skip-backup-codes")).toBe(true);
+    });
+    expect(
+      screen.getByTestId("generate-backup-codes").props.accessibilityState.busy,
+    ).toBe(true);
+
+    finish?.(GENERATED_CODES);
+    await screen.findByTestId("backup-codes-list");
+  });
+});
+
+describe("Recovery codes in dark mode", () => {
+  async function renderDark(): Promise<void> {
+    mockSystemScheme = "dark";
+    mockRouteMode = "show";
+    mockSetPendingBackupCodes(MINTED_CODES);
+    await render(
+      <ThemeProvider>
+        <BackupCodesScreen />
+      </ThemeProvider>,
+    );
+  }
+
+  test("the card, cells and codes use the dark tokens", async () => {
+    await renderDark();
+
+    expect(
+      styleOf(screen.getByTestId("backup-codes-list")).backgroundColor,
+    ).toBe(darkColors.backgroundElevated);
+    expect(
+      styleOf(screen.getAllByTestId("backup-code-cell")[0]!).backgroundColor,
+    ).toBe(darkColors.backgroundTertiary);
+    expect(screen.getAllByTestId("backup-code-value")[0]).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(styleOf(screen.getByTestId("auth-keyboard")).backgroundColor).toBe(
+      darkColors.backgroundPrimary,
+    );
+  });
+
+  test("the ticked gate uses the dark accent", async () => {
+    await renderDark();
+
+    await fireEvent.press(screen.getByTestId("backup-codes-saved-checkbox"));
+
+    expect(
+      styleOf(screen.getByTestId("backup-codes-saved-checkbox")),
+    ).toMatchObject({
+      borderColor: darkColors.actionPrimary,
+      backgroundColor: darkColors.cardAccent,
+    });
+    expect(
+      styleOf(screen.getByTestId("backup-codes-continue")).backgroundColor,
+    ).toBe(darkColors.actionPrimary);
   });
 });

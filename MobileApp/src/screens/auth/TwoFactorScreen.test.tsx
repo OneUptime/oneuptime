@@ -1,5 +1,7 @@
 import React from "react";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -8,6 +10,8 @@ import {
 } from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import TwoFactorScreen from "./TwoFactorScreen";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
 import type { LoginResponse, TwoFactorMethod } from "../../api/auth";
 import type { PendingTwoFactor } from "../../hooks/useAuth";
 import type { MockedFunction } from "jest-mock";
@@ -83,6 +87,21 @@ const mockWasBackupCodeOfferSkippedRecently: MockedFunction<WasOfferSkipped> =
  * exists.
  */
 let mockPendingTwoFactor: PendingTwoFactor | null = null;
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("../../hooks/useAuth", () => {
   return {
@@ -217,6 +236,7 @@ async function typeBackupCodeAndSignIn(code: string): Promise<void> {
 }
 
 beforeEach(() => {
+  mockSystemScheme = "light";
   mockPendingTwoFactor = null;
   mockVerifyTotpAuth.mockResolvedValue(accepted());
   mockVerifyBackupCode.mockResolvedValue(accepted());
@@ -769,5 +789,236 @@ describe("Getting back out of a screen", () => {
     await fireEvent.press(screen.getByTestId("sign-in-as-different-user"));
 
     expect(mockCancelTwoFactor).toHaveBeenCalledTimes(1);
+  });
+});
+
+function flatView(testID: string): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId(testID).props.style,
+  ) as ViewStyle;
+}
+
+function flatText(testID: string): TextStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId(testID).props.style,
+  ) as TextStyle;
+}
+
+describe("The authenticator code field", () => {
+  test("is a big, centred, numeric field that invites one-time-code autofill", async () => {
+    await renderChallenge();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+
+    const input: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("totp-code-input");
+    expect(input.props.accessibilityLabel).toBe("Authenticator code");
+    expect(screen.getByText("Six-digit code")).toBeTruthy();
+    expect(input.props.keyboardType).toBe("number-pad");
+    expect(input.props.textContentType).toBe("oneTimeCode");
+    expect(input.props.autoComplete).toBe("one-time-code");
+    expect(input.props.autoCorrect).toBe(false);
+    expect(input.props.placeholderTextColor).toBe(lightColors.textTertiary);
+    expect(input.props.keyboardAppearance).toBe("light");
+    expect(flatText("totp-code-input").fontSize).toBeGreaterThanOrEqual(28);
+    expect(flatText("totp-code-input").textAlign).toBe("center");
+    expect(flatView("totp-code-field").minHeight).toBeGreaterThanOrEqual(64);
+  });
+
+  test("names the authenticator the code must come from", async () => {
+    await renderChallenge(
+      challenge({ totpAuthList: [PHONE_AUTHENTICATOR, LAPTOP_AUTHENTICATOR] }),
+    );
+    await openCodeEntryFor(LAPTOP_AUTHENTICATOR);
+
+    expect(screen.getByText(LAPTOP_AUTHENTICATOR.name)).toBeTruthy();
+    expect(screen.queryByText(PHONE_AUTHENTICATOR.name)).toBeNull();
+  });
+
+  test("keeps exactly what was typed and submits it trimmed", async () => {
+    await renderChallenge();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+
+    await fireEvent.changeText(
+      screen.getByTestId("totp-code-input"),
+      " 123456 ",
+    );
+    expect(screen.getByTestId("totp-code-input").props.value).toBe(" 123456 ");
+
+    await fireEvent(screen.getByTestId("totp-code-input"), "submitEditing");
+
+    await waitFor(() => {
+      expect(mockVerifyTotpAuth).toHaveBeenCalledWith({
+        twoFactorAuthId: PHONE_AUTHENTICATOR._id,
+        code: "123456",
+      });
+    });
+  });
+
+  test("focus rings the field in the action colour", async () => {
+    await renderChallenge();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+
+    expect(flatView("totp-code-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+    await fireEvent(screen.getByTestId("totp-code-input"), "focus");
+    expect(flatView("totp-code-field")).toMatchObject({
+      borderColor: lightColors.actionPrimary,
+      borderWidth: 2,
+    });
+  });
+
+  test("an empty code outlines the field in red with one alert, and typing clears both", async () => {
+    await renderChallenge();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+
+    await fireEvent.press(screen.getByText("Verify"));
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(flatView("totp-code-field").borderColor).toBe(
+      lightColors.statusError,
+    );
+
+    await fireEvent.changeText(screen.getByTestId("totp-code-input"), "1");
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(flatView("totp-code-field").borderColor).toBe(
+      lightColors.borderDefault,
+    );
+  });
+
+  test("while a code is being checked the field locks and Verify reports busy", async () => {
+    let finish: ((response: LoginResponse) => void) | undefined;
+    mockVerifyTotpAuth.mockImplementation((): Promise<LoginResponse> => {
+      return new Promise((resolve: (response: LoginResponse) => void) => {
+        finish = resolve;
+      });
+    });
+    await renderChallenge();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+    await fireEvent.changeText(screen.getByTestId("totp-code-input"), "123456");
+
+    fireEvent.press(screen.getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Verify" }).props.accessibilityState,
+      ).toMatchObject({ busy: true, disabled: true });
+    });
+    expect(screen.getByTestId("totp-code-input").props.editable).toBe(false);
+    expect(
+      screen.getByTestId("back-to-methods").props.accessibilityState.disabled,
+    ).toBe(true);
+    expect(
+      screen.getByTestId("sign-in-as-different-user").props.accessibilityState
+        .disabled,
+    ).toBe(true);
+
+    await act(async () => {
+      finish?.(accepted());
+    });
+
+    await waitFor(() => {
+      expect(mockCompletePendingLogin).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("The method picker", () => {
+  test("offers each authenticator as a full-size button row", async () => {
+    await renderChallenge(
+      challenge({ totpAuthList: [PHONE_AUTHENTICATOR, LAPTOP_AUTHENTICATOR] }),
+    );
+
+    for (const method of [PHONE_AUTHENTICATOR, LAPTOP_AUTHENTICATOR]) {
+      const row: ReturnType<typeof screen.getByRole> = screen.getByRole(
+        "button",
+        { name: `Use ${method.name}` },
+      );
+      expect(row.props.testID).toBe(`totp-method-${method._id}`);
+      expect(
+        StyleSheet.flatten(row.props.style).minHeight,
+      ).toBeGreaterThanOrEqual(48);
+    }
+  });
+
+  test("a security key is listed but is not a button", async () => {
+    await renderChallenge(
+      challenge({ totpAuthList: [], webAuthnList: [SECURITY_KEY] }),
+    );
+
+    expect(
+      screen.getByTestId(`webauthn-method-${SECURITY_KEY._id}`).props
+        .accessibilityRole,
+    ).toBeUndefined();
+    expect(
+      screen.queryByRole("button", { name: `Use ${SECURITY_KEY.name}` }),
+    ).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("The backup code field", () => {
+  test("is labelled, keeps autocorrect off and shows its error inline", async () => {
+    await renderChallenge();
+    await fireEvent.press(screen.getByTestId("lost-access-link"));
+
+    expect(screen.getByText("Backup code")).toBeTruthy();
+    const input: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("backup-code-input");
+    expect(input.props.autoCapitalize).toBe("none");
+    expect(input.props.autoCorrect).toBe(false);
+    expect(input.props.spellCheck).toBe(false);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(flatView("backup-code-field").borderColor).toBe(
+      lightColors.statusError,
+    );
+  });
+});
+
+describe("Two factor in dark mode", () => {
+  async function renderDark(): Promise<void> {
+    mockSystemScheme = "dark";
+    mockPendingTwoFactor = challenge();
+    await render(
+      <ThemeProvider>
+        <TwoFactorScreen />
+      </ThemeProvider>,
+    );
+  }
+
+  test("the code field uses dark tokens and the dark keyboard", async () => {
+    await renderDark();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+
+    const input: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("totp-code-input");
+    expect(input.props.keyboardAppearance).toBe("dark");
+    expect(input.props.placeholderTextColor).toBe(darkColors.textTertiary);
+    expect(flatText("totp-code-input").color).toBe(darkColors.textPrimary);
+    expect(flatView("totp-code-field")).toMatchObject({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderDefault,
+    });
+    expect(
+      StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
+        .backgroundColor,
+    ).toBe(darkColors.backgroundPrimary);
+  });
+
+  test("a refused code is drawn in the dark error colour", async () => {
+    await renderDark();
+    await openCodeEntryFor(PHONE_AUTHENTICATOR);
+    await fireEvent.press(screen.getByText("Verify"));
+
+    expect(flatView("totp-code-field").borderColor).toBe(
+      darkColors.statusError,
+    );
+    expect(
+      screen.getByText("Enter the code from your authenticator app."),
+    ).toHaveStyle({ color: darkColors.statusError });
   });
 });

@@ -351,34 +351,63 @@ describe("header hierarchy", () => {
     expect(screen.getByTestId("replay-header").textContent).not.toContain("|");
   });
 
-  /*
-   * Row 2 is a shelf under a hairline. Its actions are the only
-   * outlined-looking things on the header, and their accessible names
-   * are the words printed on them (WCAG 2.5.3), not their tooltips.
-   */
+  /* Visible labels remain the accessible names (WCAG 2.5.3), not tooltips. */
   it("names the action buttons by the word printed on them", () => {
     render(<ReplayHeader {...makeHeaderProps()} />);
 
+    const toolbar: HTMLElement = screen.getByRole("group", {
+      name: "Session recording controls",
+    });
+
     ["Copy link", "Wide", "Theater", "Session details"].forEach(
       (label: string): void => {
-        expect(screen.getByRole("button", { name: label })).toHaveTextContent(
-          label,
-        );
+        expect(
+          within(toolbar).getByRole("button", { name: label }),
+        ).toHaveTextContent(label);
       },
     );
   });
 
-  it("puts the layout toggles on one shared track", () => {
+  it("separates recording commands from layout state on two shared tracks", () => {
     render(<ReplayHeader {...makeHeaderProps()} />);
 
-    const group: HTMLElement = screen.getByRole("group", {
+    const recordingActions: HTMLElement = screen.getByRole("group", {
+      name: "Recording actions",
+    });
+    const playerLayout: HTMLElement = screen.getByRole("group", {
       name: "Player layout",
     });
 
-    expect(within(group).getByTestId("replay-toggle-wide")).toBeInTheDocument();
+    expect(recordingActions.className).toContain("bg-gray-100");
+    expect(playerLayout.className).toContain("bg-gray-100");
     expect(
-      within(group).getByTestId("replay-toggle-theater"),
+      within(recordingActions).getByTestId("replay-copy-link"),
+    ).not.toHaveAttribute("aria-pressed");
+    expect(
+      within(recordingActions).getByTestId("replay-open-details"),
+    ).not.toHaveAttribute("aria-pressed");
+    expect(
+      within(playerLayout).getByTestId("replay-toggle-wide"),
     ).toBeInTheDocument();
+    expect(
+      within(playerLayout).getByTestId("replay-toggle-theater"),
+    ).toBeInTheDocument();
+  });
+
+  it("uses one control height and radius across every built-in header action", () => {
+    render(<ReplayHeader {...makeHeaderProps()} />);
+
+    ["Copy link", "Session details", "Wide", "Theater"].forEach(
+      (label: string): void => {
+        const button: HTMLElement = screen.getByRole("button", {
+          name: label,
+        });
+
+        expect(button.className).toContain(REPLAY_CONTROL_HEIGHT_CLASS);
+        expect(button.className).toContain("rounded-lg");
+        expect(button.className).not.toContain("btn-outline-secondary");
+      },
+    );
   });
 
   /*

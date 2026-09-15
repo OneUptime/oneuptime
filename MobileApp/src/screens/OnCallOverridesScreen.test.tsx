@@ -1,14 +1,17 @@
 import React from "react";
-import { Alert } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import {
   act,
   render,
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { beforeEach, afterEach, describe, expect, test } from "@jest/globals";
 import OnCallOverridesScreen from "./OnCallOverridesScreen";
+import { lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { OnCallOverrideItem } from "../api/types";
 import type { UseOnCallOverridesResult } from "../hooks/useOnCallOverrides";
 
@@ -242,3 +245,156 @@ describe("Refresh recovery", () => {
     },
   );
 });
+
+describe("Coverage layout", () => {
+  let alertSpy: jest.SpyInstance;
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    mockCancel.mockReset();
+    mockRefetch.mockReset();
+    mockOverrides.current = {
+      active: [],
+      upcoming: [],
+      past: [],
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch,
+      cancelOverride: mockCancel,
+      isCancelling: false,
+      createOverride: jest.fn(),
+      isCreating: false,
+    };
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
+      return undefined;
+    });
+  });
+  afterEach(() => {
+    alertSpy.mockRestore();
+  });
+
+  test("stat tiles count what is live and what is scheduled, on card surfaces", async (): Promise<void> => {
+    mockOverrides.current.active = [override("a1"), override("a2")];
+    mockOverrides.current.upcoming = [override("u1")];
+    mockOverrides.current.past = [override("p1")];
+
+    await render(<OnCallOverridesScreen />);
+
+    const active: HostElement = screen.getByTestId("coverage-count-active");
+    expect(within(active).getByText("2")).toBeTruthy();
+    expect(within(active).getByText("Active now")).toBeTruthy();
+    expect(active.props.accessibilityLabel).toBe("2 active now");
+    const upcoming: HostElement = screen.getByTestId("coverage-count-upcoming");
+    expect(within(upcoming).getByText("1")).toBeTruthy();
+    expect(upcoming.props.accessibilityLabel).toBe("1 scheduled");
+
+    for (const testID of ["coverage-count-active", "coverage-count-upcoming"]) {
+      const style: Record<string, unknown> = flatStyle(testID);
+      expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+      expect(style.borderRadius).toBe(radius.lg);
+    }
+  });
+
+  test("the primary action stays the one filled button", async (): Promise<void> => {
+    await render(<OnCallOverridesScreen />);
+
+    expect(flatStyle("new-override").backgroundColor).toBe(
+      lightColors.actionPrimary,
+    );
+    expect(
+      screen.getByRole("button", { name: "Arrange coverage" }),
+    ).toBeTruthy();
+  });
+
+  test("with nothing arranged, an outlined card explains overrides", async (): Promise<void> => {
+    await render(<OnCallOverridesScreen />);
+
+    const empty: HostElement = screen.getByTestId("overrides-empty");
+    expect(within(empty).getByText("No overrides yet")).toBeTruthy();
+    expect(flatStyle("overrides-empty").borderRadius).toBe(radius.lg);
+    expect(screen.queryByTestId("coverage-counts")).toBeNull();
+  });
+
+  test("sections run live, scheduled, ended and each shows its count", async (): Promise<void> => {
+    mockOverrides.current.active = [override("a1")];
+    mockOverrides.current.upcoming = [override("u1"), override("u2")];
+    mockOverrides.current.past = [override("p1")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(
+      screen.getAllByTestId(/^overrides-section-/).map((node: HostElement) => {
+        return node.props.testID;
+      }),
+    ).toEqual([
+      "overrides-section-active",
+      "overrides-section-upcoming",
+      "overrides-section-past",
+    ]);
+    expect(
+      within(screen.getByTestId("overrides-section-upcoming")).getByText("2"),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("overrides-section-past")).queryByText(
+        "Cancel override",
+      ),
+    ).toBeNull();
+  });
+
+  test("keeping the override does nothing; confirming shows progress on that card only", async (): Promise<void> => {
+    let finishCancel: () => void = (): void => {};
+    mockCancel.mockImplementation(() => {
+      return new Promise<void>((resolve: () => void) => {
+        finishCancel = resolve;
+      });
+    });
+    mockOverrides.current.active = [override("active")];
+    mockOverrides.current.upcoming = [override("upcoming")];
+
+    await render(<OnCallOverridesScreen />);
+
+    await fireEvent.press(screen.getByTestId("override-cancel-active"));
+    const buttons: Array<{
+      text: string;
+      style?: string;
+      onPress?: () => void;
+    }> = alertSpy.mock.calls[0]![2];
+    buttons
+      .find((button: { text: string }) => {
+        return button.text === "Keep it";
+      })
+      ?.onPress?.();
+    expect(mockCancel).not.toHaveBeenCalled();
+
+    await act(async () => {
+      buttons
+        .find((button: { style?: string }) => {
+          return button.style === "destructive";
+        })
+        ?.onPress?.();
+    });
+
+    expect(
+      screen.getByTestId("override-cancel-active").props.accessibilityState,
+    ).toEqual({ disabled: true, busy: true });
+    expect(
+      screen.getByTestId("override-cancel-upcoming").props.accessibilityState,
+    ).toEqual({ disabled: false, busy: false });
+
+    await act(async () => {
+      finishCancel();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("override-cancel-active").props.accessibilityState,
+      ).toEqual({ disabled: false, busy: false });
+    });
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

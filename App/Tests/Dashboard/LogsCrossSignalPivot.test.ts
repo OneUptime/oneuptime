@@ -3,6 +3,11 @@ import fs from "fs";
 import path from "path";
 import TimeRange from "Common/Types/Time/TimeRange";
 import type RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
 import type {
   LogsPivotScopeInput,
   LogsPivotScopeResult,
@@ -839,6 +844,61 @@ describe("applyLogsFacetFiltersToQuery", () => {
     );
   });
 
+  test("an attribute chip is written into a COPY of the query's attributes, never the map handed in", () => {
+    /*
+     * The viewer's base query carries the host page's own `logQuery.attributes`
+     * object. Writing the chip into it pinned the chip to the page: remove
+     * the chip and the list, chart and facets kept filtering by it, and it
+     * came back as a page-locked chip whose tooltip claimed the page pinned
+     * it.
+     */
+    const pinned: Record<string, unknown> = {
+      "resource.host.name": "web-01",
+    };
+    const query: Record<string, unknown> = { attributes: pinned };
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ "attributes.env": ["prod"] }),
+    );
+
+    expect(query["attributes"]).toEqual({
+      "resource.host.name": "web-01",
+      env: "prod",
+    });
+    expect(query["attributes"]).not.toBe(pinned);
+    expect(pinned).toEqual({ "resource.host.name": "web-01" });
+  });
+
+  test("chips applied over a typed query: a chip wins its own column, typed values on other keys survive", () => {
+    /*
+     * The search bar's submit hands the viewer a query whose `attributes`
+     * hold only what was typed. The viewer re-applies the chips on top so a
+     * chip the user can see stays true — it wins over a typed value for the
+     * same key — while typed filters on other keys are kept.
+     */
+    const typed: Record<string, unknown> = {
+      attributes: { env: "typed", "http.method": "GET" },
+      severityText: "Warning",
+    };
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      typed as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({
+        "attributes.env": ["chip"],
+        "attributes.k8s.namespace": ["payments"],
+        severityText: ["Error"],
+      }),
+    );
+
+    expect(typed["attributes"]).toEqual({
+      env: "chip",
+      "http.method": "GET",
+      "k8s.namespace": "payments",
+    });
+    expect(typed["severityText"]).toBe("Error");
+  });
+
   test("a body chip never becomes an Includes set", () => {
     const query: Record<string, unknown> = {};
 
@@ -1049,6 +1109,199 @@ describe("applyLogsFacetFiltersToQuery", () => {
     expect(query["resourceFilters"]).toEqual({
       kubernetesClusterId: ["k8s-1"],
     });
+  });
+});
+
+/*
+ * Proxmox, vCenter, Ceph, Docker Swarm, serverless, cloud, RUM and IoT
+ * facets are on screen now, so their chips have to behave exactly like a
+ * host or Kubernetes chip at every hop: compiled into `resourceFilters`
+ * (never a column predicate on a column Log does not have), carried by the
+ * traces / logs pivots, and named — not shown as a raw key — when a target
+ * cannot carry them. Walked over the catalog so a new type is covered here
+ * the moment it is added.
+ */
+describe("every catalog resource facet (pivot and query compilation)", () => {
+  const RESOURCE_ID: string = "0195d6c1-0000-7000-8000-0000000000c9";
+  const OTHER_RESOURCE_ID: string = "0195d6c1-0000-7000-8000-0000000000ca";
+
+  const catalogKeys: Array<[string]> = RESOURCE_FACET_CATALOG_KEYS.map(
+    (facetKey: string): [string] => {
+      return [facetKey];
+    },
+  );
+
+  test.each(catalogKeys)(
+    "a %s chip compiles into resourceFilters, not a column predicate",
+    (facetKey: string) => {
+      const query: Record<string, unknown> = {};
+
+      Pivot.applyLogsFacetFiltersToQuery(
+        query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+        facets({ [facetKey]: [RESOURCE_ID, OTHER_RESOURCE_ID] }),
+      );
+
+      expect(query[facetKey]).toBeUndefined();
+      expect(query["primaryEntityId"]).toBeUndefined();
+      expect(query["resourceFilters"]).toEqual({
+        [facetKey]: [RESOURCE_ID, OTHER_RESOURCE_ID],
+      });
+    },
+  );
+
+  test("one chip per catalog type becomes one resourceFilters group each, beside the Service", () => {
+    const entries: Record<string, Array<string>> = {
+      primaryEntityId: ["svc-1"],
+    };
+    const expected: Record<string, Array<string>> = {};
+
+    for (const facetKey of RESOURCE_FACET_CATALOG_KEYS) {
+      entries[facetKey] = [`${facetKey}-id`];
+      expected[facetKey] = [`${facetKey}-id`];
+    }
+
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets(entries),
+    );
+
+    expect(query["primaryEntityId"]).toBe("svc-1");
+    expect(query["resourceFilters"]).toEqual(expected);
+
+    for (const facetKey of RESOURCE_FACET_CATALOG_KEYS) {
+      expect(query[facetKey]).toBeUndefined();
+    }
+  });
+
+  test("removing the last new-type chip clears its stale resourceFilters", () => {
+    const query: Record<string, unknown> = {
+      resourceFilters: { proxmoxClusterId: [RESOURCE_ID] },
+    };
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ proxmoxClusterId: [] }),
+    );
+
+    expect(query["resourceFilters"]).toBeUndefined();
+    expect(query["proxmoxClusterId"]).toBeUndefined();
+  });
+
+  test.each(catalogKeys)(
+    "a %s chip rides resourceFacetSelections into the pivot scope and is not dropped",
+    (facetKey: string) => {
+      const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+        input({
+          serviceIds: ["svc-1"],
+          appliedFacetFilters: facets({ [facetKey]: [RESOURCE_ID] }),
+        }),
+      );
+
+      expect(result.scope.serviceIds).toEqual(["svc-1"]);
+      expect(result.scope.resourceFacetSelections).toEqual({
+        [facetKey]: [RESOURCE_ID],
+      });
+      expect(result.dropped).toEqual([]);
+    },
+  );
+
+  test.each(catalogKeys)(
+    "the traces pivot carries a %s chip as its own filter tuple",
+    (facetKey: string) => {
+      const result: CrossSignalParams = tracesPivot(
+        input({
+          appliedFacetFilters: facets({
+            [facetKey]: [RESOURCE_ID, OTHER_RESOURCE_ID],
+          }),
+        }),
+      );
+
+      const filterTuples: Array<[string, string]> = JSON.parse(
+        result.params["filters"] as string,
+      );
+
+      expect(filterTuples).toEqual([
+        [facetKey, RESOURCE_ID],
+        [facetKey, OTHER_RESOURCE_ID],
+      ]);
+      expect(result.dropped).toEqual([]);
+    },
+  );
+
+  test.each(catalogKeys)(
+    "a %s chip survives the logs pivot -> URL -> list-query round trip",
+    (facetKey: string) => {
+      const serialized: CrossSignalParams = toLogsExplorerQueryParams({
+        resourceFacetSelections: { [facetKey]: [RESOURCE_ID] },
+        startTime: WINDOW_START,
+        endTime: WINDOW_END,
+      });
+
+      const tuples: Array<[string, Array<string>]> = JSON.parse(
+        serialized.params["filters"] as string,
+      );
+
+      expect(tuples).toEqual([[facetKey, [RESOURCE_ID]]]);
+
+      const query: Record<string, unknown> = {};
+      Pivot.applyLogsFacetFiltersToQuery(
+        query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+        new Map(
+          tuples.map(
+            ([key, values]: [string, Array<string>]): [string, Set<string>] => {
+              return [key, new Set(values)];
+            },
+          ),
+        ),
+      );
+
+      expect(query["resourceFilters"]).toEqual({ [facetKey]: [RESOURCE_ID] });
+      expect(query[facetKey]).toBeUndefined();
+    },
+  );
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): [string, string] => {
+        return [definition.facetKey, definition.pluralLabel];
+      },
+    ),
+  )(
+    "the metrics pivot reports a %s chip dropped, and the hint names it",
+    (facetKey: string, pluralLabel: string) => {
+      const result: CrossSignalParams = metricsPivot(
+        input({ appliedFacetFilters: facets({ [facetKey]: [RESOURCE_ID] }) }),
+      );
+
+      expect(result.dropped).toEqual([facetKey]);
+
+      const hint: string = Pivot.formatDroppedScopeHint(result.dropped);
+
+      expect(hint).not.toContain(facetKey);
+      expect(hint.toLowerCase()).toBe(
+        `not carried over: ${pluralLabel.toLowerCase()}`,
+      );
+    },
+  );
+
+  test("pins the dropped-scope label of every resource facet", () => {
+    expect(Pivot.formatDroppedScopeHint([...RESOURCE_FACET_CATALOG_KEYS])).toBe(
+      "Not carried over: hosts, Docker hosts, Podman hosts, Kubernetes clusters, " +
+        "Docker Swarm clusters, Proxmox clusters, vCenters, Ceph clusters, " +
+        "serverless functions, cloud resources, RUM applications, IoT fleets",
+    );
+  });
+
+  test("resource labels never collide, so the hint never swallows a dropped type", () => {
+    const labels: Array<string> = RESOURCE_FACET_CATALOG_KEYS.map(
+      (facetKey: string): string => {
+        return Pivot.formatDroppedScopeHint([facetKey]);
+      },
+    );
+
+    expect(new Set(labels).size).toBe(RESOURCE_FACET_CATALOG_KEYS.length);
   });
 });
 

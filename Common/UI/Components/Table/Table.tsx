@@ -43,6 +43,10 @@ export interface ComponentProps<T extends GenericObject> {
    * bound and pagination switches to a prev/next-only UI.
    */
   hasMore?: boolean | undefined;
+  /** Page sizes offered by the shared ModelTable-style footer. */
+  itemsOnPageOptions?: Array<number> | undefined;
+  /** Optional stable id for consumers that need to target this footer. */
+  paginationDataTestId?: string | undefined;
   itemsOnPage: number;
   error: string;
   isLoading: boolean;
@@ -496,9 +500,13 @@ const Table: TableFunction = <T extends GenericObject>(
               hasMore={props.hasMore}
               itemsOnCurrentPage={props.data.length}
               itemsOnPage={props.itemsOnPage}
+              itemsOnPageOptions={props.itemsOnPageOptions}
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}
               isError={Boolean(props.error)}
+              {...(props.paginationDataTestId
+                ? { dataTestId: props.paginationDataTestId }
+                : {})}
             />
           )}
         </div>

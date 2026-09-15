@@ -41,8 +41,8 @@ import {
 export interface LogsCrossSignalScope {
   serviceIds?: Array<string> | undefined;
   /*
-   * Non-Service resource facet selections (host / docker host / podman host
-   * / Kubernetes cluster), keyed by facet. Kept separate from serviceIds
+   * Non-Service resource facet selections (host, Docker / Podman host,
+   * Kubernetes / Proxmox cluster, …), keyed by facet. Kept separate from serviceIds
    * because the target explorer has to resolve them through the resource's
    * entity key — folding a cluster id into serviceIds carried a filter that
    * matches nothing.
@@ -411,11 +411,24 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   sessionIds: "sessions",
   startTime: "window start",
   endTime: "window end",
-  // Resource facet keys, as reported dropped by the metrics serializer.
+  /*
+   * Resource facet keys, as reported dropped by the metrics serializer —
+   * one per resource facet catalog entry (a test holds the two in step).
+   * Read mid-sentence ("Not carried over: services, Proxmox clusters"), so
+   * generic nouns are lower case and product names / acronyms keep theirs.
+   */
   hostId: "hosts",
-  dockerHostId: "docker hosts",
-  podmanHostId: "podman hosts",
+  dockerHostId: "Docker hosts",
+  podmanHostId: "Podman hosts",
   kubernetesClusterId: "Kubernetes clusters",
+  dockerSwarmClusterId: "Docker Swarm clusters",
+  proxmoxClusterId: "Proxmox clusters",
+  vmwareVCenterId: "vCenters",
+  cephClusterId: "Ceph clusters",
+  serverlessFunctionId: "serverless functions",
+  cloudResourceId: "cloud resources",
+  rumApplicationId: "RUM applications",
+  iotFleetId: "IoT fleets",
 };
 
 type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;
@@ -485,10 +498,11 @@ type ApplyLogsFacetFiltersToQueryFunction = (
  * Semantics:
  *  - the Services facet compiles to a `primaryEntityId` predicate — that
  *    column holds Service ids for OTLP telemetry;
- *  - host / docker host / podman host / Kubernetes cluster selections ride
- *    `query.resourceFilters` instead, keyed by facet. The server resolves
- *    each id to the resource's entity key and matches
- *    `primaryEntityId IN (...) OR hasAny(entityKeys, ...)`, because for
+ *  - every other resource selection (host, Docker / Podman host,
+ *    Kubernetes / Proxmox / Ceph cluster, vCenter, … — one per resource
+ *    facet catalog entry) rides `query.resourceFilters` instead, keyed by
+ *    facet. The server resolves each id to the resource's entity key and
+ *    matches `primaryEntityId IN (...) OR hasAny(entityKeys, ...)`, because for
  *    telemetry that carries a `service.name` the resource is not the row's
  *    primary entity at all. Each facet is its own AND group, so a cluster
  *    and a service intersect;
@@ -545,8 +559,16 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
         const attributeKey: string = key.substring(
           ATTRIBUTE_FACET_PREFIX.length,
         );
-        const existing: Record<string, unknown> =
-          ((query as any).attributes as Record<string, unknown>) || {};
+        /*
+         * A COPY, never the map that was handed in. The viewer's base query
+         * carries the host page's own `logQuery.attributes` object; writing
+         * the chip into it pinned the chip to the page — remove the chip and
+         * the list, chart and facets kept filtering by it, and it came back
+         * as a page-locked chip whose tooltip claimed the page pinned it.
+         */
+        const existing: Record<string, unknown> = {
+          ...(((query as any).attributes as Record<string, unknown>) || {}),
+        };
 
         /*
          * An attribute chip carries the value exactly as it was typed into

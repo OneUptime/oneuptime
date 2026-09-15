@@ -47,6 +47,10 @@ const VIEW_PATH: string = path.join(
   DASHBOARD_SRC,
   "Pages/Rum/View/SessionReplayView.tsx",
 );
+const STAGE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components/SessionReplay/ReplayStage.tsx",
+);
 
 /*
  * Comments are stripped before searching: the player's header explains why
@@ -61,6 +65,7 @@ function stripComments(source: string): string {
 
 const SOURCE: string = stripComments(fs.readFileSync(PLAYER_PATH, "utf8"));
 const VIEW_SOURCE: string = stripComments(fs.readFileSync(VIEW_PATH, "utf8"));
+const STAGE_SOURCE: string = stripComments(fs.readFileSync(STAGE_PATH, "utf8"));
 
 function listSourceFiles(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -160,6 +165,15 @@ describe("engine ownership", () => {
     );
   });
 
+  test("mobile synthetic events use the same rrweb-compatible engine", () => {
+    expect(SOURCE).toContain(
+      "createReplayEngine(\n      createBrowserReplayEngineDeps(loader, replayerFactory),",
+    );
+    expect(SOURCE).not.toMatch(
+      /recorderKind[^\n]*(createReplayEngine|createBrowserReplayEngineDeps)/,
+    );
+  });
+
   test("the engine is disposed when it is replaced or the player unmounts", () => {
     const disposeEffect: string = slice(
       SOURCE,
@@ -220,12 +234,114 @@ describe("playback intent", () => {
   });
 });
 
+describe("read-only text selection", () => {
+  test("enabling selection pauses before exposing the replay document", () => {
+    const handler: string = slice(
+      SOURCE,
+      "const changeTextSelection:",
+      "const retry:",
+    );
+    const pauseIndex: number = handler.indexOf(
+      'engineRef.current?.dispatch({ type: "PAUSE" })',
+    );
+    const enableIndex: number = handler.indexOf(
+      "setIsTextSelectionEnabled(isEnabled)",
+    );
+
+    expect(pauseIndex).toBeGreaterThan(-1);
+    expect(enableIndex).toBeGreaterThan(pauseIndex);
+  });
+
+  test("playback and seeks wait for the replay document to leave selection mode", () => {
+    const exitCoordinator: string = slice(
+      SOURCE,
+      "const runAfterTextSelectionExit:",
+      "const dispatchSeek:",
+    );
+    const seekHandler: string = slice(
+      SOURCE,
+      "const seekTo:",
+      "const playPause:",
+    );
+    const playPauseHandler: string = slice(
+      SOURCE,
+      "const playPause:",
+      "const watchAgain:",
+    );
+    const watchAgainHandler: string = slice(
+      SOURCE,
+      "const watchAgain:",
+      "const changeTextSelection:",
+    );
+
+    expect(exitCoordinator).toContain(
+      "pendingTextSelectionActionRef.current = action",
+    );
+    expect(exitCoordinator).toContain("setIsTextSelectionEnabled(false)");
+    expect(seekHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(seekHandler).toContain("dispatchSeek(offsetMs)");
+    expect(playPauseHandler).toContain("runAfterTextSelectionExit((): void =>");
+    expect(watchAgainHandler).toContain(
+      "runAfterTextSelectionExit((): void =>",
+    );
+    expect(STAGE_SOURCE).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*for \(const replayer of replayersRef\.current\)/,
+    );
+  });
+
+  test("the same selection state is wired to the toolbar and replay stage", () => {
+    expect(SOURCE).toContain("isTextSelectionEnabled: isTextSelectionEnabled");
+    expect(SOURCE).toContain("onTextSelectionChange: changeTextSelection");
+    expect(SOURCE).toContain(
+      "isPlayable && engine !== null && isReplayDocumentReady",
+    );
+
+    const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
+    expect(stageProps).toContain(
+      "isTextSelectionEnabled={isTextSelectionEnabled}",
+    );
+  });
+
+  test("a session or engine reload cannot carry selection into autoplay", () => {
+    const manifestReset: string = slice(
+      SOURCE,
+      "setManifest(null);",
+      "const rrwebModulePromise:",
+    );
+
+    expect(manifestReset).toContain("setEngine(null)");
+    expect(manifestReset).toContain("setIsTextSelectionEnabled(false)");
+    expect(manifestReset).toContain("setIsReplayDocumentReady(false)");
+  });
+
+  test("the toggle becomes available only while a real replay document exists", () => {
+    const replayerLifecycle: string = slice(
+      SOURCE,
+      "return engine.onReplayer((event: ReplayEngineReplayerEvent): void =>",
+      "const store: ReplayBackendSignalsStore",
+    );
+
+    expect(SOURCE).toContain(
+      "const [isReplayDocumentReady, setIsReplayDocumentReady]",
+    );
+    expect(replayerLifecycle).toContain('event.type === "created"');
+    expect(replayerLifecycle).toContain(
+      'event.type === "fullsnapshot-rebuilded"',
+    );
+    expect(replayerLifecycle).toContain(
+      "event.replayer.iframe.contentDocument",
+    );
+    expect(replayerLifecycle).toContain("setIsReplayDocumentReady(false)");
+    expect(replayerLifecycle).toContain("setIsTextSelectionEnabled(false)");
+  });
+});
+
 describe("live sessions", () => {
   test("the poll re-fetches the manifest with isRefresh and the existing viewId", () => {
     const pollEffect: string = slice(
       SOURCE,
       "const poll: () => Promise<void>",
-      "}, [isLive, viewId,",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
     );
 
     expect(pollEffect).toContain("refresh: { viewId: viewId }");
@@ -265,11 +381,55 @@ describe("live sessions", () => {
     expect(auditWriting[0]).toContain("accessReason:");
   });
 
-  test("polling is gated on the session not being finalized", () => {
-    expect(SOURCE).toContain(
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642 split one flag in two. The
+   * poll keeps running until the finalized header lands - an ended
+   * session's counts only arrive through it - while "live" (the pill, the
+   * caught-up overlay) goes out as soon as every tab has closed.
+   */
+  test("polling is gated on the session not being finalized, not on it being live", () => {
+    expect(SOURCE).toMatch(
+      /const isAwaitingFinalization: boolean =\s*manifest !== null && isManifestAwaitingFinalization\(manifest\);/,
+    );
+    expect(SOURCE).toMatch(/if \(!isAwaitingFinalization\) \{\s*return;\s*\}/);
+    expect(SOURCE).not.toMatch(/if \(!isLive\) \{\s*return;\s*\}/);
+  });
+
+  test("live means not finalized AND not every tab has ended", () => {
+    expect(SOURCE).toMatch(
+      /const isLive: boolean =\s*manifest !== null && isManifestRecordingLive\(manifest\);/,
+    );
+    /* The old definition read every unfinalized session as live. */
+    expect(SOURCE).not.toContain(
       "const isLive: boolean = manifest !== null && !manifest.isFinalized;",
     );
-    expect(SOURCE).toMatch(/if \(!isLive\) \{\s*return;\s*\}/);
+  });
+
+  test("each refresh replaces the manifest, so hasRecordingEnded follows the server", () => {
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+
+    expect(pollEffect).toMatch(/\.\.\.refreshed,/);
+  });
+
+  test("the stage overlays, the root attribute and the header all read the live flag", () => {
+    expect(SOURCE).toContain('data-replay-live={isLive ? "true" : "false"}');
+    expect(SOURCE).toMatch(/sealedReason: sealedReason,\s*isLive: isLive,/);
+  });
+
+  test("the details panel is told when every tab has ended", () => {
+    const panel: string = slice(SOURCE, "<ReplayCorrelationPanel\n", "/>");
+
+    expect(panel).toContain("hasRecordingEnded={manifest.hasRecordingEnded}");
+  });
+
+  test("the sealed reason is quoted once the recording has ended, not while it is live", () => {
+    expect(SOURCE).toContain(
+      "manifest && (manifest.isFinalized || manifest.hasRecordingEnded)",
+    );
   });
 });
 
@@ -447,6 +607,18 @@ describe("the header", () => {
     expect(SOURCE).toMatch(/return Boolean\(fact\.value\);/);
   });
 
+  test("labels the mobile app and recording source without changing web facts", () => {
+    expect(SOURCE).toContain(
+      "label: getReplayClientLabel(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "value: isMobileSessionReplay(details.recorderKind)",
+    );
+    expect(SOURCE).toContain(
+      "getReplayRecorderKindLabel(details.recorderKind)",
+    );
+  });
+
   test("copy link builds the moment route with a zero pre-roll", () => {
     const builder: string = slice(
       SOURCE,
@@ -498,7 +670,7 @@ describe("this user's other sessions", () => {
   const lookup: string = slice(
     SOURCE,
     "const kind: ReplayUserSessionsKind = resolveReplayUserSessionsKind({",
-    "const isLive: boolean",
+    "const isAwaitingFinalization: boolean",
   );
 
   test("the lookup effect is keyed on the session, the identity keys and the clock, not the manifest object", () => {
@@ -545,7 +717,7 @@ describe("this user's other sessions", () => {
     );
     const pinIndex: number = headerElement.indexOf("pinControl: (");
     const stateIndex: number = headerElement.indexOf(
-      "userSessions: userSessions",
+      "userSessions: displayedUserSessions",
     );
     const openIndex: number = headerElement.indexOf(
       "onOpenUserSession: openUserSession",
@@ -586,8 +758,49 @@ describe("this user's other sessions", () => {
       "onNewerUserSession={openNewerUserSession}",
     );
     expect(SOURCE).toContain(
-      "findAdjacentUserSessions(userSessions.sessions, sessionId)",
+      "findAdjacentUserSessions(displayedUserSessions.sessions, sessionId)",
     );
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: the lookup runs once, so
+   * its row for the watched session kept pulsing "Recording now" after the
+   * poll turned the Live pill off. The header and the older/newer steps get
+   * the lookup state with that one entry overlaid from the latest manifest,
+   * and the overlay is keyed on the flags, never on the manifest object
+   * (which would be a new state for the header on every poll) - and never
+   * re-runs the lookup.
+   */
+  test("the watched session's menu entry follows the manifest poll, without re-running the lookup", () => {
+    const overlay: string = slice(
+      SOURCE,
+      "const displayedUserSessions: ReplayUserSessionsState =",
+      "const adjacentUserSessions",
+    );
+
+    expect(overlay).toContain("overlayCurrentReplayUserSession(");
+    expect(overlay).toContain("userSessions,");
+    expect(overlay).toContain("isFinalized: isManifestFinalized,");
+    expect(overlay).toContain("hasRecordingEnded: hasManifestRecordingEnded,");
+
+    const dependencies: string = slice(overlay, "}, [", "]);");
+
+    expect(dependencies).toContain("isManifestFinalized");
+    expect(dependencies).toContain("hasManifestRecordingEnded");
+    expect(dependencies).not.toMatch(/\bmanifest\b\s*,/);
+
+    expect(SOURCE).toMatch(
+      /const isManifestFinalized: boolean = manifest\?\.isFinalized \?\? false;/,
+    );
+    expect(SOURCE).toMatch(
+      /const hasManifestRecordingEnded: boolean =\s*manifest\?\.hasRecordingEnded \?\? false;/,
+    );
+
+    /* Nothing hands the header the raw, point-in-time lookup state. */
+    expect(SOURCE).not.toContain("userSessions: userSessions");
+    /* The lookup's dependencies do not grow the two flags. */
+    expect(lookup).not.toContain("manifest?.hasRecordingEnded");
+    expect(lookup).not.toContain("manifest?.isFinalized");
   });
 
   test("still never writes to the clipboard directly", () => {

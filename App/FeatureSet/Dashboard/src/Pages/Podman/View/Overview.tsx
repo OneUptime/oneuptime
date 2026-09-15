@@ -240,6 +240,11 @@ const PodmanHostOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string>("");
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so the details card re-reads
+   * Last Seen and Agent Version along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -859,6 +864,9 @@ const PodmanHostOverview: FunctionComponent<
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }, ms);
     return () => {
       clearInterval(timer);
@@ -877,6 +885,9 @@ const PodmanHostOverview: FunctionComponent<
   const onManualRefresh: () => void = (): void => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
+    });
+    setDetailsRefresher((prev: boolean) => {
+      return !prev;
     });
   };
 
@@ -1490,6 +1501,7 @@ const PodmanHostOverview: FunctionComponent<
       <div className="mb-6">{renderQuickLinks()}</div>
       <CardModelDetail<PodmanHost>
         name="Podman Host Details"
+        refresher={detailsRefresher}
         cardProps={{
           title: "Podman Host Details",
           description: "Overview of this Podman host.",

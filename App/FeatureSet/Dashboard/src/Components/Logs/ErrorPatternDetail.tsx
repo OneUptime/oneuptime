@@ -41,6 +41,16 @@ import {
   summarizeSharedAttributes,
 } from "../../Utils/LogsInsights";
 import { fetchErrorPatternCorrelation } from "./LogsInsightsApi";
+import {
+  LogsResourceDisplay,
+  LogsResourceRef,
+  buildLogsResourceTypeHints,
+  collectLogsResourceIds,
+  describeLogsResource,
+} from "./LogsResourceDisplay";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import EventName from "../../Utils/EventName";
@@ -222,13 +232,85 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
     props.pattern.sampleBody,
   );
 
+  /*
+   * The resources this pattern was seen on, with the type the server
+   * reported for each. Samples carry only an id, so they borrow the type of
+   * the matching resource row when there is one.
+   */
+  const resourceRefs: Array<LogsResourceRef> = useMemo(() => {
+    if (!correlation) {
+      return [];
+    }
+
+    return [
+      ...correlation.resources.map(
+        (resource: ErrorPatternResourceRow): LogsResourceRef => {
+          return {
+            resourceId: resource.resourceId,
+            resourceType: resource.resourceType,
+          };
+        },
+      ),
+      ...correlation.samples.map(
+        (sample: ErrorPatternSampleRow): LogsResourceRef => {
+          return { resourceId: sample.resourceId };
+        },
+      ),
+    ];
+  }, [correlation]);
+
+  /*
+   * A pattern's resources are Services only some of the time: a RUM
+   * application, host or cluster logs under its own id. The page's Service
+   * list names the Services; every other id is resolved against its own
+   * table (hinted by the reported type) so the drawer never shows a UUID.
+   */
+  const unnamedResourceIds: Array<string> = useMemo(() => {
+    return collectLogsResourceIds(resourceRefs, (resourceId: string) => {
+      return Boolean(props.serviceNameById.get(resourceId)?.name);
+    });
+  }, [resourceRefs, props.serviceNameById]);
+
+  const resourceTypeHints: Record<string, ServiceType> | undefined =
+    useMemo(() => {
+      return buildLogsResourceTypeHints(resourceRefs);
+    }, [resourceRefs]);
+
+  const resourceNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    unnamedResourceIds,
+    { typeHints: resourceTypeHints },
+  );
+
+  const resourceTypeById: Map<string, string> = useMemo(() => {
+    const map: Map<string, string> = new Map();
+
+    for (const ref of resourceRefs) {
+      if (ref.resourceType && !map.has(ref.resourceId)) {
+        map.set(ref.resourceId, ref.resourceType);
+      }
+    }
+
+    return map;
+  }, [resourceRefs]);
+
+  const describeResource: (resourceId: string) => LogsResourceDisplay =
+    useCallback(
+      (resourceId: string): LogsResourceDisplay => {
+        return describeLogsResource({
+          resourceId,
+          resourceType: resourceTypeById.get(resourceId),
+          nameMap: resourceNames,
+          knownName: props.serviceNameById.get(resourceId)?.name?.toString(),
+        });
+      },
+      [resourceTypeById, resourceNames, props.serviceNameById],
+    );
+
   const resourceLabel: (resourceId: string) => string = useCallback(
     (resourceId: string): string => {
-      return (
-        props.serviceNameById.get(resourceId)?.name?.toString() || resourceId
-      );
+      return describeResource(resourceId).name;
     },
-    [props.serviceNameById],
+    [describeResource],
   );
 
   /*
@@ -643,16 +725,24 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
             <ul className="space-y-1.5">
               {correlation.resources.map(
                 (resource: ErrorPatternResourceRow): ReactElement => {
+                  /*
+                   * "RUM Application", not the raw "RealUserMonitor" enum
+                   * the server reports.
+                   */
+                  const display: LogsResourceDisplay = describeResource(
+                    resource.resourceId,
+                  );
+
                   return (
                     <li
                       key={resource.resourceId}
                       className="flex items-center justify-between gap-3 rounded-md border border-gray-100 px-3 py-2"
                     >
                       <span className="min-w-0 break-words text-sm text-gray-800">
-                        {resourceLabel(resource.resourceId)}
-                        {resource.resourceType && (
+                        {display.name}
+                        {display.typeLabel && (
                           <span className="ml-2 text-xs text-gray-400">
-                            {resource.resourceType}
+                            {display.typeLabel}
                           </span>
                         )}
                       </span>

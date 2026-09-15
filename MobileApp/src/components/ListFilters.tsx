@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget, typography } from "../theme/tokens";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 
 interface FilterOption<T extends string> {
@@ -28,8 +29,15 @@ export default function ListFilters<T extends string>({
 }: ListFiltersProps<T>): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View style={{ marginTop: 12, gap: 4 }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+    <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
+      {/*
+       * Chips wrap rather than scroll sideways: a filter hidden past the edge
+       * of a small phone is a filter nobody finds.
+       */}
+      <View
+        testID="list-filter-chips"
+        style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+      >
         {options.map((option: FilterOption<T>) => {
           const active: boolean = option.key === selected;
           return (
@@ -43,33 +51,39 @@ export default function ListFilters<T extends string>({
               }}
               style={({ pressed }: { pressed: boolean }) => {
                 return {
-                  minHeight: 48,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 12,
+                  minHeight: touchTarget,
+                  paddingHorizontal: spacing.lg,
+                  borderRadius: radius.pill,
                   borderWidth: 1,
                   borderColor: active
                     ? theme.colors.actionPrimary
-                    : theme.colors.borderSubtle,
-                  backgroundColor: pressed
-                    ? theme.colors.backgroundTertiary
-                    : active
-                      ? theme.colors.cardAccent
+                    : theme.colors.borderDefault,
+                  backgroundColor: active
+                    ? theme.colors.actionPrimary
+                    : pressed
+                      ? theme.colors.backgroundTertiary
                       : theme.colors.backgroundElevated,
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
+                  justifyContent: "center",
+                  gap: spacing.xs + 2,
                 };
               }}
             >
+              {active ? (
+                <Ionicons
+                  name="checkmark"
+                  size={15}
+                  color={theme.colors.textInverse}
+                />
+              ) : null}
               <Text
                 style={{
-                  fontSize: 14,
-                  lineHeight: 20,
+                  ...typography.subhead,
                   fontWeight: "600",
                   color: active
-                    ? theme.colors.actionPrimary
-                    : theme.colors.textSecondary,
+                    ? theme.colors.textInverse
+                    : theme.colors.textPrimary,
                 }}
               >
                 {option.label}
@@ -81,19 +95,18 @@ export default function ListFilters<T extends string>({
       {resultCount !== undefined || onReset ? (
         <View
           style={{
-            minHeight: onReset ? 48 : 32,
+            minHeight: onReset ? touchTarget : 32,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            gap: spacing.md,
           }}
         >
           <Text
             accessibilityLiveRegion="polite"
             style={{
+              ...typography.footnote,
               flex: 1,
-              fontSize: 13,
-              lineHeight: 20,
               color: theme.colors.textSecondary,
             }}
           >
@@ -106,22 +119,23 @@ export default function ListFilters<T extends string>({
               accessibilityRole="button"
               accessibilityLabel="Reset filters"
               onPress={onReset}
+              hitSlop={8}
               style={{
-                minHeight: 48,
-                paddingHorizontal: 8,
+                minHeight: touchTarget,
+                paddingHorizontal: spacing.sm,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 5,
+                gap: spacing.xs,
               }}
             >
               <Ionicons
-                name="refresh-outline"
-                size={14}
+                name="close-circle-outline"
+                size={16}
                 color={theme.colors.actionPrimary}
               />
               <Text
                 style={{
-                  fontSize: 13,
+                  ...typography.footnote,
                   fontWeight: "600",
                   color: theme.colors.actionPrimary,
                 }}

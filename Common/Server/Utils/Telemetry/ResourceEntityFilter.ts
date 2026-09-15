@@ -1,17 +1,24 @@
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { JSONObject } from "../../../Types/JSON";
-import HostModel from "../../../Models/DatabaseModels/Host";
-import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
-import PodmanHostModel from "../../../Models/DatabaseModels/PodmanHost";
-import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
+import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import CephClusterService from "../../Services/CephClusterService";
+import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
+import IoTFleetService from "../../Services/IoTFleetService";
+import FindBy from "../../Types/Database/FindBy";
 import {
+  keyForCephCluster,
+  keyForDockerSwarmCluster,
   keyForHost,
   keyForKubernetesCluster,
+  keyForProxmoxCluster,
+  keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
 import {
   ResourceEntityFacetSelections,
@@ -35,7 +42,9 @@ import CaptureSpan from "./CaptureSpan";
  *                     matches rows written before `entityKeys` existed.
  *  - `entityKeys`  -> `hasAny(entityKeys, [...])`. The general membership
  *                     read: OTLP telemetry primary-keyed on its Service
- *                     still carries the host / cluster key here.
+ *                     still carries the host / cluster key here. Empty for
+ *                     resource types no OTLP resource declares as an
+ *                     entity (Serverless function, IoT fleet).
  *  - `attribute*`  -> `attributes['resource.<attr>'] IN (...)`. The
  *                     pre-`entityKeys` fallback, mirroring the entityScope
  *                     contract the resource detail pages already use, so
@@ -52,12 +61,54 @@ export interface ResourceEntityScope {
 interface ResourceFacetDefinition {
   /** Signal attribute the identifying value is stamped under. */
   attributeKey: string;
-  /** Read-side entity-key helper, mirroring the ingest-side resolver. */
-  entityKeyFor: (projectId: string, identifier: string) => string;
+  /**
+   * Read-side entity-key helper, mirroring the ingest-side resolver. Absent
+   * for resource types that never reach a signal's `entityKeys` — the scope
+   * then matches on the id and the attribute only.
+   */
+  entityKeyFor?:
+    | ((projectId: string, identifier: string) => string)
+    | undefined;
   findIdentifiers: (data: {
     projectId: ObjectID;
     ids: Array<ObjectID>;
   }) => Promise<Array<string>>;
+}
+
+/*
+ * Only `findBy` is used, called through the service instance at lookup
+ * time so a mocked or spied service is honoured.
+ */
+interface IdentifierLookupService {
+  findBy: (findBy: FindBy<any>) => Promise<Array<any>>;
+}
+
+/*
+ * The project-scoped `id -> identifying column` lookup every definition
+ * shares. Scoping by `projectId` is load-bearing: an id from another tenant
+ * must resolve to nothing, never to that tenant's identifier.
+ */
+function findIdentifierColumn(
+  service: IdentifierLookupService,
+  column: string,
+): ResourceFacetDefinition["findIdentifiers"] {
+  return async (data: {
+    projectId: ObjectID;
+    ids: Array<ObjectID>;
+  }): Promise<Array<string>> => {
+    const rows: Array<Record<string, unknown>> = await service.findBy({
+      query: { projectId: data.projectId, _id: new Includes(data.ids) },
+      select: { [column]: true },
+      limit: new PositiveNumber(data.ids.length),
+      skip: new PositiveNumber(0),
+      props: { isRoot: true },
+    });
+
+    return rows.map((row: Record<string, unknown>): string => {
+      const value: unknown = row[column];
+      return typeof value === "string" ? value : "";
+    });
+  };
 }
 
 /*
@@ -78,90 +129,114 @@ interface ResourceFacetDefinition {
  * honest reading — and it is the only identity an OTLP resource carries;
  * DockerHost / PodmanHost are inventory-mirrored types that no resource
  * ever declares (see EntityType).
+ *
+ * Docker Swarm / Proxmox / vCenter / Ceph clusters are root entities whose
+ * identity is their name alone (`<type>.name`, see the root identities in
+ * Utils/Telemetry/TelemetryEntity.ts), and
+ * that name is the Postgres row's `name` — the join key ingest writes with
+ * `findOrCreateByName`. Keys canonicalize (trim + lowercase) on both sides,
+ * so a row whose casing differs from the stamped attribute still matches
+ * through `entityKeys`; the attribute branch is an exact match. Docker
+ * Swarm leans on the entity-key branch most: a swarm cluster is rarely the
+ * primary entity (a container's synthesized service, or the Docker host,
+ * wins first).
+ *
+ * Serverless functions and IoT fleets have a resource attribute but no
+ * signal entity key (inventory-mirrored / no entity type at all), so they
+ * get the id + attribute branches only — the same `resource.faas.name` /
+ * `resource.iot.fleet.name` scope their detail pages use. The function
+ * identifier is `faas.name` (or `service.name` on a FaaS platform without
+ * one, which the attribute branch then simply does not match).
+ *
+ * Cloud resources and RUM applications intentionally have NO definition,
+ * so their selection stays `primaryEntityId IN (...)`:
+ *   - RUM telemetry is always primary-keyed on its application
+ *     (`getServiceNameFromAttributes` returns no service for RUM clients),
+ *     so the id already selects every row.
+ *   - A cloud resource's telemetry scope is a multi-attribute match
+ *     (platform + account + region, see CloudResourceTelemetryScope) that
+ *     the single-attribute branch cannot express; a partial match would
+ *     select other resources' rows.
+ * Id-only also keeps those selections consistent with their facet counts,
+ * which are `primaryEntityId`-based.
+ *
+ * Built on first use rather than at module load: the services pull in much
+ * of the server, and a module cycle that reached this file first would
+ * otherwise hand the table an `undefined` service — which the best-effort
+ * lookup below would silently turn into an id-only filter.
  */
-const FACET_DEFINITIONS: Record<string, ResourceFacetDefinition> = {
-  hostId: {
-    attributeKey: "resource.host.name",
-    entityKeyFor: keyForHost,
-    findIdentifiers: async (data: {
-      projectId: ObjectID;
-      ids: Array<ObjectID>;
-    }): Promise<Array<string>> => {
-      const rows: Array<HostModel> = await HostService.findBy({
-        query: { projectId: data.projectId, _id: new Includes(data.ids) },
-        select: { hostIdentifier: true },
-        limit: new PositiveNumber(data.ids.length),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
+let facetDefinitions: Record<string, ResourceFacetDefinition> | null = null;
 
-      return rows.map((row: HostModel): string => {
-        return row.hostIdentifier || "";
-      });
-    },
-  },
-  dockerHostId: {
-    attributeKey: "resource.host.name",
-    entityKeyFor: keyForHost,
-    findIdentifiers: async (data: {
-      projectId: ObjectID;
-      ids: Array<ObjectID>;
-    }): Promise<Array<string>> => {
-      const rows: Array<DockerHostModel> = await DockerHostService.findBy({
-        query: { projectId: data.projectId, _id: new Includes(data.ids) },
-        select: { hostIdentifier: true },
-        limit: new PositiveNumber(data.ids.length),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
+function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
+  if (facetDefinitions) {
+    return facetDefinitions;
+  }
 
-      return rows.map((row: DockerHostModel): string => {
-        return row.hostIdentifier || "";
-      });
+  facetDefinitions = {
+    hostId: {
+      attributeKey: "resource.host.name",
+      entityKeyFor: keyForHost,
+      findIdentifiers: findIdentifierColumn(HostService, "hostIdentifier"),
     },
-  },
-  podmanHostId: {
-    attributeKey: "resource.host.name",
-    entityKeyFor: keyForHost,
-    findIdentifiers: async (data: {
-      projectId: ObjectID;
-      ids: Array<ObjectID>;
-    }): Promise<Array<string>> => {
-      const rows: Array<PodmanHostModel> = await PodmanHostService.findBy({
-        query: { projectId: data.projectId, _id: new Includes(data.ids) },
-        select: { hostIdentifier: true },
-        limit: new PositiveNumber(data.ids.length),
-        skip: new PositiveNumber(0),
-        props: { isRoot: true },
-      });
+    dockerHostId: {
+      attributeKey: "resource.host.name",
+      entityKeyFor: keyForHost,
+      findIdentifiers: findIdentifierColumn(
+        DockerHostService,
+        "hostIdentifier",
+      ),
+    },
+    podmanHostId: {
+      attributeKey: "resource.host.name",
+      entityKeyFor: keyForHost,
+      findIdentifiers: findIdentifierColumn(
+        PodmanHostService,
+        "hostIdentifier",
+      ),
+    },
+    kubernetesClusterId: {
+      attributeKey: "resource.k8s.cluster.name",
+      entityKeyFor: keyForKubernetesCluster,
+      findIdentifiers: findIdentifierColumn(
+        KubernetesClusterService,
+        "clusterIdentifier",
+      ),
+    },
+    dockerSwarmClusterId: {
+      attributeKey: "resource.docker.swarm.cluster.name",
+      entityKeyFor: keyForDockerSwarmCluster,
+      findIdentifiers: findIdentifierColumn(DockerSwarmClusterService, "name"),
+    },
+    proxmoxClusterId: {
+      attributeKey: "resource.proxmox.cluster.name",
+      entityKeyFor: keyForProxmoxCluster,
+      findIdentifiers: findIdentifierColumn(ProxmoxClusterService, "name"),
+    },
+    vmwareVCenterId: {
+      attributeKey: "resource.vmware.vcenter.name",
+      entityKeyFor: keyForVMwareVCenter,
+      findIdentifiers: findIdentifierColumn(VMwareVCenterService, "name"),
+    },
+    cephClusterId: {
+      attributeKey: "resource.ceph.cluster.name",
+      entityKeyFor: keyForCephCluster,
+      findIdentifiers: findIdentifierColumn(CephClusterService, "name"),
+    },
+    serverlessFunctionId: {
+      attributeKey: "resource.faas.name",
+      findIdentifiers: findIdentifierColumn(
+        ServerlessFunctionService,
+        "functionIdentifier",
+      ),
+    },
+    iotFleetId: {
+      attributeKey: "resource.iot.fleet.name",
+      findIdentifiers: findIdentifierColumn(IoTFleetService, "name"),
+    },
+  };
 
-      return rows.map((row: PodmanHostModel): string => {
-        return row.hostIdentifier || "";
-      });
-    },
-  },
-  kubernetesClusterId: {
-    attributeKey: "resource.k8s.cluster.name",
-    entityKeyFor: keyForKubernetesCluster,
-    findIdentifiers: async (data: {
-      projectId: ObjectID;
-      ids: Array<ObjectID>;
-    }): Promise<Array<string>> => {
-      const rows: Array<KubernetesClusterModel> =
-        await KubernetesClusterService.findBy({
-          query: { projectId: data.projectId, _id: new Includes(data.ids) },
-          select: { clusterIdentifier: true },
-          limit: new PositiveNumber(data.ids.length),
-          skip: new PositiveNumber(0),
-          props: { isRoot: true },
-        });
-
-      return rows.map((row: KubernetesClusterModel): string => {
-        return row.clusterIdentifier || "";
-      });
-    },
-  },
-};
+  return facetDefinitions;
+}
 
 /**
  * Append the resolved resource scopes to a hand-written aggregation
@@ -390,7 +465,7 @@ export default class ResourceEntityFilter {
     };
 
     const definition: ResourceFacetDefinition | undefined =
-      FACET_DEFINITIONS[data.facetKey];
+      getFacetDefinitions()[data.facetKey];
 
     if (!definition) {
       return scope;
@@ -425,14 +500,20 @@ export default class ResourceEntityFilter {
     }
 
     const projectIdString: string = data.projectId.toString();
+    const entityKeyFor:
+      | ((projectId: string, identifier: string) => string)
+      | undefined = definition.entityKeyFor;
 
-    scope.entityKeys = Array.from(
-      new Set(
-        uniqueIdentifiers.map((identifier: string): string => {
-          return definition.entityKeyFor(projectIdString, identifier);
-        }),
-      ),
-    );
+    if (entityKeyFor) {
+      scope.entityKeys = Array.from(
+        new Set(
+          uniqueIdentifiers.map((identifier: string): string => {
+            return entityKeyFor(projectIdString, identifier);
+          }),
+        ),
+      );
+    }
+
     scope.attributeKey = definition.attributeKey;
     scope.attributeValues = uniqueIdentifiers;
 

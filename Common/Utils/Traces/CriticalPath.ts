@@ -288,9 +288,14 @@ export default class CriticalPathUtil {
     const selfTimes: Map<string, SpanSelfTime> =
       CriticalPathUtil.computeSelfTimes(spans);
 
-    // Find total trace duration
-    let traceStart: number = Number.MAX_SAFE_INTEGER;
-    let traceEnd: number = 0;
+    /*
+     * Find total trace duration. Real span timestamps are nanoseconds since the
+     * epoch (~1.7e18), far above Number.MAX_SAFE_INTEGER (~9e15), so the bounds
+     * must start at +/-Infinity: seeding the start with MAX_SAFE_INTEGER left it
+     * there, made the trace look 1.7e18 ns long and every service 0.0%.
+     */
+    let traceStart: number = Infinity;
+    let traceEnd: number = -Infinity;
     for (const span of spans) {
       if (span.startTimeUnixNano < traceStart) {
         traceStart = span.startTimeUnixNano;
@@ -299,7 +304,8 @@ export default class CriticalPathUtil {
         traceEnd = span.endTimeUnixNano;
       }
     }
-    const totalDuration: number = traceEnd - traceStart;
+    const totalDuration: number =
+      spans.length > 0 ? Math.max(0, traceEnd - traceStart) : 0;
 
     // Aggregate by service
     const serviceMap: Map<

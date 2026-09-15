@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../theme";
+import { View, TextInput } from "react-native";
+import { spacing } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { LoginResponse } from "../../api/auth";
 import { getServerUrl } from "../../storage/serverUrl";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import AuthLayout from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthDivider,
+  AuthLink,
+  AuthNotice,
+  AuthTextField,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
+import Card from "../../components/Card";
 import GradientButton from "../../components/GradientButton";
+import IconBadge from "../../components/IconBadge";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import { PasskeyProgress } from "../../passkeys/signIn";
 
@@ -19,19 +27,15 @@ type LoginNavigationProp = NativeStackNavigationProp<
 >;
 
 export default function LoginScreen(): React.JSX.Element {
-  const { theme } = useTheme();
   const { login, loginWithPasskey, setNeedsServerUrl } = useAuth();
   const navigation: LoginNavigationProp = useNavigation<LoginNavigationProp>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const passwordInput: React.RefObject<TextInput | null> =
     useRef<TextInput>(null);
   const [serverUrl, setServerUrlState] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
   const [passkeyProgress, setPasskeyProgress] =
     useState<PasskeyProgress | null>(null);
   const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
@@ -185,6 +189,8 @@ export default function LoginScreen(): React.JSX.Element {
     navigation.navigate("ServerUrl");
   };
 
+  const isBusy: boolean = isLoading || isPasskeyLoading;
+
   return (
     <AuthLayout
       showBrand
@@ -192,202 +198,65 @@ export default function LoginScreen(): React.JSX.Element {
       title="Welcome back"
       description="Sign in to your workspace."
     >
-      <View>
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "600",
-            marginBottom: 8,
-            color: theme.colors.textSecondary,
+      <View style={{ gap: spacing.lg }}>
+        <AuthTextField
+          label="Email"
+          containerTestID="login-email-field"
+          icon="mail-outline"
+          accessibilityLabel="Email"
+          value={email}
+          editable={!isBusy}
+          invalid={Boolean(error) && !email.trim()}
+          onChangeText={(text: string) => {
+            setEmail(text);
+            setError(null);
           }}
-        >
-          Email
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: emailFocused
-              ? theme.colors.actionPrimary
-              : theme.colors.borderDefault,
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          onSubmitEditing={() => {
+            passwordInput.current?.focus();
           }}
-        >
-          <Ionicons
-            name="mail-outline"
-            size={18}
-            color={
-              emailFocused
-                ? theme.colors.actionPrimary
-                : theme.colors.textTertiary
-            }
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            accessibilityLabel="Email"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 16,
-              color: theme.colors.textPrimary,
-            }}
-            value={email}
-            editable={!isLoading && !isPasskeyLoading}
-            onChangeText={(text: string) => {
-              setEmail(text);
-              setError(null);
-            }}
-            onFocus={() => {
-              return setEmailFocused(true);
-            }}
-            onBlur={() => {
-              return setEmailFocused(false);
-            }}
-            placeholder="you@example.com"
-            placeholderTextColor={theme.colors.textTertiary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            returnKeyType="next"
-            onSubmitEditing={() => {
-              passwordInput.current?.focus();
-            }}
-            submitBehavior="submit"
-          />
-        </View>
+          submitBehavior="submit"
+        />
 
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "600",
-            marginBottom: 8,
-            marginTop: 12,
-            color: theme.colors.textSecondary,
+        <AuthTextField
+          inputRef={passwordInput}
+          label="Password"
+          containerTestID="login-password-field"
+          icon="lock-closed-outline"
+          accessibilityLabel="Password"
+          revealable
+          value={password}
+          editable={!isBusy}
+          invalid={Boolean(error) && !password.trim()}
+          onChangeText={(text: string) => {
+            setPassword(text);
+            setError(null);
           }}
-        >
-          Password
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 56,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1.5,
-            borderColor: passwordFocused
-              ? theme.colors.actionPrimary
-              : theme.colors.borderDefault,
-          }}
-        >
-          <Ionicons
-            name="lock-closed-outline"
-            size={18}
-            color={
-              passwordFocused
-                ? theme.colors.actionPrimary
-                : theme.colors.textTertiary
-            }
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            ref={passwordInput}
-            accessibilityLabel="Password"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 16,
-              color: theme.colors.textPrimary,
-            }}
-            value={password}
-            editable={!isLoading && !isPasskeyLoading}
-            onChangeText={(text: string) => {
-              setPassword(text);
-              setError(null);
-            }}
-            onFocus={() => {
-              return setPasswordFocused(true);
-            }}
-            onBlur={() => {
-              return setPasswordFocused(false);
-            }}
-            placeholder="Your password"
-            placeholderTextColor={theme.colors.textTertiary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            autoComplete="current-password"
-            secureTextEntry={!showPassword}
-            textContentType="password"
-            returnKeyType="go"
-            onSubmitEditing={handleLogin}
-          />
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={
-              showPassword ? "Hide password" : "Show password"
-            }
-            onPress={() => {
-              setShowPassword(!showPassword);
-            }}
-            style={{
-              minWidth: 48,
-              minHeight: 48,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons
-              name={showPassword ? "eye-off-outline" : "eye-outline"}
-              size={22}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
+          placeholder="Your password"
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          autoComplete="current-password"
+          secureTextEntry
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={handleLogin}
+        />
 
-        {error ? (
-          <View
-            accessible
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-start",
-              marginTop: 12,
-            }}
-          >
-            <Ionicons
-              name="alert-circle"
-              size={14}
-              color={theme.colors.statusError}
-              style={{ marginRight: 6, marginTop: 2 }}
-            />
-            <Text
-              style={{
-                fontSize: 14,
-                flex: 1,
-                color: theme.colors.statusError,
-              }}
-            >
-              {error}
-            </Text>
-          </View>
-        ) : null}
+        {error ? <AuthNotice tone="danger" message={error} /> : null}
 
-        <View style={{ marginTop: 16 }}>
-          <GradientButton
-            label="Sign In"
-            onPress={handleLogin}
-            loading={isLoading}
-            disabled={isLoading || isPasskeyLoading}
-          />
-        </View>
+        <GradientButton
+          label="Sign In"
+          onPress={handleLogin}
+          loading={isLoading}
+          disabled={isBusy}
+          style={authPrimaryButtonStyle}
+        />
       </View>
 
       {/*
@@ -395,52 +264,20 @@ export default function LoginScreen(): React.JSX.Element {
        * somebody who has just failed to remember their password is
        * already looking.
        */}
-      <TouchableOpacity
-        accessibilityRole="button"
-        testID="forgot-password-link"
-        disabled={isLoading || isPasskeyLoading}
-        onPress={() => {
-          navigation.navigate("ForgotPassword");
-        }}
-        style={{
-          marginTop: 8,
-          minHeight: 48,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-          Forgot password?
-        </Text>
-      </TouchableOpacity>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          marginVertical: 16,
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            height: 1,
-            backgroundColor: theme.colors.borderSubtle,
-          }}
-        />
-        <Text style={{ fontSize: 13, color: theme.colors.textTertiary }}>
-          Other ways to sign in
-        </Text>
-        <View
-          style={{
-            flex: 1,
-            height: 1,
-            backgroundColor: theme.colors.borderSubtle,
+      <View style={{ marginTop: spacing.xs }}>
+        <AuthLink
+          label="Forgot password?"
+          testID="forgot-password-link"
+          disabled={isBusy}
+          onPress={() => {
+            navigation.navigate("ForgotPassword");
           }}
         />
       </View>
-      <View testID="alternative-sign-in" style={{ gap: 10 }}>
+
+      <AuthDivider label="Other ways to sign in" />
+
+      <View testID="alternative-sign-in" style={{ gap: spacing.md }}>
         <GradientButton
           testID="passkey-sign-in"
           label={
@@ -458,71 +295,40 @@ export default function LoginScreen(): React.JSX.Element {
             void handlePasskeyLogin();
           }}
           loading={isPasskeyLoading}
-          disabled={isLoading || isPasskeyLoading}
+          disabled={isBusy}
           icon="finger-print-outline"
           variant="secondary"
         />
         {isPasskeyLoading ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {passkeyProgress === "preparing"
-              ? "Preparing a secure sign-in…"
-              : passkeyProgress === "browser"
-                ? "Choose your passkey in the browser, then return to OneUptime."
-                : "Passkey confirmed. Completing your sign-in…"}
-          </Text>
+          <AuthNotice
+            tone="info"
+            live
+            icon={
+              passkeyProgress === "verifying"
+                ? "checkmark-circle"
+                : "finger-print-outline"
+            }
+            message={
+              passkeyProgress === "preparing"
+                ? "Preparing a secure sign-in…"
+                : passkeyProgress === "browser"
+                  ? "Choose your passkey in the browser, then return to OneUptime."
+                  : "Passkey confirmed. Completing your sign-in…"
+            }
+          />
         ) : null}
         {isPasskeyLoading && passkeyProgress !== "verifying" ? (
-          <TouchableOpacity
-            accessibilityRole="button"
+          <AuthLink
+            label="Cancel"
             accessibilityLabel="Cancel passkey sign-in"
             onPress={handleCancelPasskey}
-            style={{
-              minHeight: 48,
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 4,
-            }}
-          >
-            <Text style={{ color: theme.colors.actionPrimary, fontSize: 14 }}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
+          />
         ) : null}
         {passkeyError ? (
-          <Text
-            accessibilityRole="alert"
-            accessible
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.statusError,
-            }}
-          >
-            {passkeyError}
-          </Text>
+          <AuthNotice tone="danger" message={passkeyError} />
         ) : null}
         {passkeyNotice ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {passkeyNotice}
-          </Text>
+          <AuthNotice tone="neutral" live message={passkeyNotice} />
         ) : null}
 
         <GradientButton
@@ -530,93 +336,70 @@ export default function LoginScreen(): React.JSX.Element {
           onPress={handleSSOLogin}
           variant="secondary"
           icon="shield-checkmark-outline"
-          disabled={isLoading || isPasskeyLoading}
+          disabled={isBusy}
         />
       </View>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityState={{ expanded: showPasskeyHelp }}
-        aria-expanded={showPasskeyHelp}
-        onPress={(): void => {
-          setShowPasskeyHelp(!showPasskeyHelp);
-        }}
-        style={{
-          minHeight: 48,
-          justifyContent: "center",
-          marginTop: 0,
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-          New to passkeys?
-        </Text>
-      </TouchableOpacity>
-      {showPasskeyHelp ? (
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 21,
-            color: theme.colors.textSecondary,
+
+      <View style={{ marginTop: spacing.xs }}>
+        <AuthLink
+          label="New to passkeys?"
+          trailingIcon={showPasskeyHelp ? "chevron-up" : "chevron-down"}
+          accessibilityState={{ expanded: showPasskeyHelp }}
+          aria-expanded={showPasskeyHelp}
+          onPress={(): void => {
+            setShowPasskeyHelp(!showPasskeyHelp);
           }}
-        >
-          Sign in on the OneUptime website with your password or SSO. In your
-          profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
-          that passkey here on the same server.
-        </Text>
+        />
+      </View>
+      {showPasskeyHelp ? (
+        <Card variant="tinted" padding={spacing.lg}>
+          <AppText variant="subhead" tone="secondary">
+            Sign in on the OneUptime website with your password or SSO. In your
+            profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
+            that passkey here on the same server.
+          </AppText>
+        </Card>
       ) : null}
 
-      <View
-        style={{
-          marginTop: 20,
-          paddingTop: 16,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.borderSubtle,
-        }}
+      <Card
+        variant="outlined"
+        testID="connected-server"
+        style={{ marginTop: spacing.xxl }}
       >
-        <Text
+        <View
           style={{
-            fontSize: 12,
-            fontWeight: "600",
-            color: theme.colors.textTertiary,
-            letterSpacing: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
           }}
         >
-          CONNECTED SERVER
-        </Text>
-        {serverUrl ? (
-          <Text
-            selectable
-            style={{
-              marginTop: 6,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {serverUrl}
-          </Text>
-        ) : null}
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Change Server"
-          onPress={handleChangeServer}
-          disabled={isLoading || passkeyProgress === "verifying"}
+          <IconBadge name="server-outline" size="sm" />
+          <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+            <AppText variant="overline" tone="secondary">
+              Connected server
+            </AppText>
+            {serverUrl ? (
+              <AppText selectable variant="subhead" numberOfLines={2}>
+                {serverUrl}
+              </AppText>
+            ) : null}
+          </View>
+        </View>
+        <View
           style={{
-            minHeight: 48,
-            justifyContent: "center",
-            alignSelf: "flex-start",
+            marginTop: spacing.sm,
+            marginLeft: 30 + spacing.md,
           }}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: theme.colors.actionPrimary,
-            }}
-          >
-            Change Server
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <AuthLink
+            label="Change Server"
+            align="start"
+            icon="swap-horizontal-outline"
+            onPress={handleChangeServer}
+            disabled={isLoading || passkeyProgress === "verifying"}
+          />
+        </View>
+      </Card>
     </AuthLayout>
   );
 }

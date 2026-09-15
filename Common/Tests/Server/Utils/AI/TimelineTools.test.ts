@@ -1,6 +1,7 @@
 import {
   GetAlertTimelineTool,
   GetIncidentTimelineTool,
+  formatTimelineEntryCount,
 } from "../../../../Server/Utils/AI/Toolbox/TimelineTools";
 import {
   ToolContext,
@@ -306,6 +307,59 @@ describe("get_incident_timeline", () => {
     expect(result.dataForLlm).toContain("Newest public note.");
     expect(result.dataForLlm).not.toContain("Oldest note");
     expect(result.dataForLlm).toContain("Showing the newest 2 of 3");
+    // The label counts the entries shown, not the ones fetched.
+    expect(result.citationLabel).toBe("Incident #42 timeline (2 entries)");
+  });
+
+  test("a single entry reads as '1 entry' in the citation label", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+
+    mockIncidentSources({
+      feedItems: [
+        buildFeedItem({
+          info: "Incident created",
+          at: new Date("2026-08-01T09:45:00Z"),
+        }),
+      ],
+    });
+
+    const result: ToolExecutionResult = await GetIncidentTimelineTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.citationLabel).toBe("Incident #42 timeline (1 entry)");
+    expect(result.citationLabel).not.toContain("1 entries");
+  });
+
+  test("falls back to the incident id when it has no number", async () => {
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID.toString();
+    incident.title = "Checkout is down";
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident as never);
+
+    mockIncidentSources({
+      publicNotes: [
+        buildPublicNote({
+          note: "Investigating.",
+          at: new Date("2026-08-01T11:00:00Z"),
+        }),
+      ],
+    });
+
+    const result: ToolExecutionResult = await GetIncidentTimelineTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.citationLabel).toBe(
+      `Incident ${INCIDENT_ID.toString()} timeline (1 entry)`,
+    );
   });
 
   test("missing incidentId returns an error envelope, not a query", async () => {
@@ -355,6 +409,7 @@ describe("get_incident_timeline", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.widget).toBeUndefined();
+    expect(result.citationLabel).toBe("Incident #42 timeline (0 entries)");
   });
 
   test("required permissions derive from the incident read ACL", () => {
@@ -442,6 +497,58 @@ describe("get_alert_timeline", () => {
     expect(callArgs["props"]).toBe(ctx.props);
   });
 
+  test("a single alert entry reads as '1 entry' in the citation label", async () => {
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(buildAlert() as never);
+
+    const feedItem: AlertFeed = new AlertFeed();
+    feedItem._id = ObjectID.generate().toString();
+    feedItem.feedInfoInMarkdown = "Alert created";
+    feedItem.postedAt = new Date("2026-08-02T09:55:00Z");
+    feedItem.createdAt = new Date("2026-08-02T09:55:00Z");
+    feedItem.alertFeedEventType = AlertFeedEventType.AlertCreated;
+
+    jest
+      .spyOn(AlertStateTimelineService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertInternalNoteService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertFeedService, "findBy")
+      .mockResolvedValue([feedItem] as never);
+
+    const result: ToolExecutionResult = await GetAlertTimelineTool.execute(
+      { alertId: ALERT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.citationLabel).toBe("Alert #7 timeline (1 entry)");
+  });
+
+  test("an alert with no activity labels its timeline '0 entries'", async () => {
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(buildAlert() as never);
+    jest
+      .spyOn(AlertStateTimelineService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertInternalNoteService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(AlertFeedService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await GetAlertTimelineTool.execute(
+      { alertId: ALERT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(0);
+    expect(result.citationLabel).toBe("Alert #7 timeline (0 entries)");
+  });
+
   test("missing alertId returns an error envelope", async () => {
     const result: ToolExecutionResult = await GetAlertTimelineTool.execute(
       {},
@@ -468,5 +575,17 @@ describe("get_alert_timeline", () => {
 
   test("required permissions derive from the alert read ACL", () => {
     expect(GetAlertTimelineTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+describe("formatTimelineEntryCount", () => {
+  test.each([
+    [0, "0 entries"],
+    [1, "1 entry"],
+    [2, "2 entries"],
+    [11, "11 entries"],
+    [50, "50 entries"],
+  ])("%i reads as %s", (count: number, expected: string) => {
+    expect(formatTimelineEntryCount(count)).toBe(expected);
   });
 });

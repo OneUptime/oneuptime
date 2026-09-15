@@ -1,5 +1,4 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
-import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -23,8 +22,26 @@ import useLogsHistogram, {
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
 import {
   ATTRIBUTE_FACET_PREFIX,
+  applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  pickTypedLogFilter,
+  preserveBaseAttributesInTypedFilter,
+  serializeTypedLogFilter,
 } from "./LogsHistogramRequest";
+import {
+  LOGS_SIGNAL,
+  attachLogsLockedFilterDetails,
+  buildLogsLockedFilterActions,
+} from "./LogsLockedScope";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "../../Utils/LockedEntityKeyChips";
+import {
+  LOCKED_FILTER_SOURCE_PAGE,
+  LOCKED_FILTER_SOURCE_STORED_QUERY,
+} from "../../Utils/LockedTelemetryScope";
+import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
@@ -33,6 +50,12 @@ import {
   buildClearedLogsViewState,
   ClearedLogsViewState,
 } from "./LogsViewerDefaults";
+import {
+  LOGS_EXPLORER_FACET_KEYS,
+  buildLogsFacetFiltersFromQuery,
+  getLogsFacetChipDisplayKey,
+  getLogsQueryValues,
+} from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -44,10 +67,7 @@ import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
-import {
-  describeSearchValue,
-  queryValueToChipValues,
-} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -71,7 +91,16 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import useServiceNames from "../Telemetry/useServiceNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  applyLogsEntityChipDisplay,
+  buildFacetDisplayNames,
+  buildLogsEntityTypeHints,
+  buildLogsScopeEntityChips,
+  collectLogsEntityIds,
+} from "./LogsEntityChipDisplay";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -80,10 +109,6 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
-import {
-  ResourceEntityFacetSelections,
-  parseResourceEntityFacetSelections,
-} from "Common/Types/Telemetry/ResourceEntityFacet";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -97,10 +122,7 @@ import {
   InitialSavedViewResolution,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
-import {
-  LOGS_CHIP_FACET_KEYS,
-  buildSavedViewQueryForOverrides,
-} from "../../Utils/SavedViewQueryMerge";
+import { buildSavedViewQueryForOverrides } from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
@@ -131,6 +153,24 @@ import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 export interface ComponentProps {
   id: string;
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * What the `serviceIds` actually are. A log row's `primaryEntityId` is
+   * polymorphic — a RUM application page passes its RumApplication id here,
+   * a host page its Host id — so the locked scope chip reads e.g.
+   * "RUM Application: checkout-web" instead of "Service: <uuid>". Display
+   * only: the filter is the id either way. Omitted means "resolve it".
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
+   * Display-only overrides for the locked chips built from
+   * `logQuery.attributes`, keyed by the attribute key as it appears there
+   * (e.g. "resource.host.name"). A resource page scopes by a machine
+   * identifier the telemetry carries but already has the friendly name
+   * loaded; these let the chip show "Host: web-01" while the filter keeps
+   * matching the identifier.
+   */
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -156,6 +196,24 @@ export interface ComponentProps {
         attributeValue: string;
       }
     | undefined;
+  /*
+   * How the locked chips of an entity-key scope (`logQuery.entityKeys`, what
+   * an Inventory item's page pins) name their entity — "Kubernetes Pod:
+   * checkout-7d9f" rather than the key hash the filter matches on. Keyed by
+   * entity key; display only. A key without an entry still gets its chip,
+   * as "Resource: <key>": a filtered list under an empty chip bar is exactly
+   * what this exists to prevent.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  /*
+   * Whether `logQuery.entityKeys` is the page's own scope (an Inventory
+   * item's Logs tab) rather than a stored query the view was opened with.
+   * Log monitors write the same field from their "Filter by Infrastructure
+   * Entity" picker, so an incident's log snapshot, a companion Logs tab and
+   * the monitor preview carry entity keys nobody on the page pinned. Left
+   * unset, the chips say the stored query pinned them.
+   */
+  entityKeysPinnedByPage?: boolean | undefined;
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
@@ -190,14 +248,6 @@ export interface ComponentProps {
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
-/*
- * The facet keys read BACK out of a query into chips. Must stay the mirror
- * of what applyLogsFacetFiltersToQuery compiles INTO a query, or a filter
- * that survives a saved view / URL round-trip filters the list while no
- * chip says so — and the histogram, which builds its request from the
- * chips, then counts rows the list excludes.
- */
-const FACET_FILTER_KEYS: ReadonlyArray<string> = LOGS_CHIP_FACET_KEYS;
 
 interface InitialUrlState {
   facetFilters: Map<string, Set<string>>;
@@ -381,108 +431,6 @@ function loadSelectedColumns(viewerId: string): Array<string> {
   return [...DEFAULT_LOGS_TABLE_COLUMNS];
 }
 
-function getQueryValues(value: unknown): Array<string> {
-  if (value instanceof Includes) {
-    return value.values.map((item: string | number | ObjectID) => {
-      return item.toString();
-    });
-  }
-
-  /*
-   * The body chip compiles to a contains-match, so its stored form is a
-   * Search rather than a bare string. Without this branch a saved view or
-   * deep link carrying one round-trips into a filtered list with no chip.
-   */
-  if (value instanceof Search) {
-    const text: string = value.toString();
-
-    return text.trim().length > 0 ? [text] : [];
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    value instanceof ObjectID
-  ) {
-    return [value.toString()];
-  }
-
-  return [];
-}
-
-function buildFacetFiltersFromQuery(
-  query: Query<Log>,
-  baseQuery: Query<Log>,
-): Map<string, Set<string>> {
-  const nextFilters: Map<string, Set<string>> = new Map();
-
-  for (const facetKey of FACET_FILTER_KEYS) {
-    if ((baseQuery as any)[facetKey] !== undefined) {
-      continue;
-    }
-
-    const values: Array<string> = getQueryValues((query as any)[facetKey]);
-
-    if (values.length > 0) {
-      nextFilters.set(facetKey, new Set(values));
-    }
-  }
-
-  /*
-   * `attributes.<key>` chips, the same way. Attribute filters were the one
-   * group applyLogsFacetFiltersToQuery compiled INTO a query and nothing read
-   * back out, so a saved view carrying `@platform.team:a*` reopened with the
-   * filter applied and no chip showing it — and the next chip edit, which
-   * recompiles from the chips it can see, silently dropped it.
-   */
-  const savedAttributes: Record<string, unknown> =
-    ((query as any)["attributes"] as Record<string, unknown>) || {};
-  const baseAttributes: Record<string, unknown> =
-    ((baseQuery as any)["attributes"] as Record<string, unknown>) || {};
-
-  for (const attributeKey of Object.keys(savedAttributes)) {
-    // A filter pinned by the host page is not the user's to edit or remove.
-    if (baseAttributes[attributeKey] !== undefined) {
-      continue;
-    }
-
-    const chipValues: Array<string> = queryValueToChipValues(
-      savedAttributes[attributeKey],
-    );
-
-    if (chipValues.length > 0) {
-      nextFilters.set(
-        `${ATTRIBUTE_FACET_PREFIX}${attributeKey}`,
-        new Set(chipValues),
-      );
-    }
-  }
-
-  /*
-   * Host / docker / podman / Kubernetes chips live under `resourceFilters`
-   * rather than in a column of their own (see applyLogsFacetFiltersToQuery).
-   * Restoring them here is what makes a saved view keep its cluster chip:
-   * without it the chip row would come back empty and the next chip edit
-   * would recompile the query without the cluster.
-   */
-  const savedResourceFilters: ResourceEntityFacetSelections =
-    parseResourceEntityFacetSelections((query as any)["resourceFilters"]);
-
-  for (const facetKey of Object.keys(savedResourceFilters)) {
-    if ((baseQuery as any)[facetKey] !== undefined) {
-      continue;
-    }
-
-    const values: Array<string> = savedResourceFilters[facetKey] || [];
-
-    if (values.length > 0) {
-      nextFilters.set(facetKey, new Set(values));
-    }
-  }
-
-  return nextFilters;
-}
-
 function buildBaseQuery(props: ComponentProps): Query<Log> {
   const query: Query<Log> = {};
 
@@ -503,6 +451,24 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   if (props.logQuery && Object.keys(props.logQuery).length > 0) {
     for (const key in props.logQuery) {
       (query as any)[key] = (props.logQuery as any)[key] as any;
+    }
+
+    /*
+     * The attributes map is the one nested object the query is later written
+     * INTO (chips land in `attributes[<key>]`), so it must be this query's
+     * own copy — sharing the host's object turned every applied attribute
+     * chip into a permanent part of the page's scope.
+     */
+    const pinnedAttributes: unknown = (props.logQuery as any).attributes;
+
+    if (
+      pinnedAttributes &&
+      typeof pinnedAttributes === "object" &&
+      !Array.isArray(pinnedAttributes)
+    ) {
+      (query as any).attributes = {
+        ...(pinnedAttributes as Record<string, unknown>),
+      };
     }
   }
 
@@ -820,6 +786,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       time: true,
       projectId: true,
       primaryEntityId: true,
+      /*
+       * primaryEntityId is polymorphic. The row's type is the hint the
+       * shared viewer passes to the name resolver, so a RUM application or
+       * host id goes straight to its own table instead of probing each one.
+       */
+      primaryEntityType: true,
       spanId: true,
       traceId: true,
       sessionId: true,
@@ -840,12 +812,29 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.serviceIds]);
 
   /*
-   * Resolve the scoped service id(s) to names so the read-only "Service" chip
-   * shows the service name instead of a raw UUID. Filtering still uses the
-   * stable id (primaryEntityId); this only maps that id to a friendly label.
+   * Resolve every entity id a chip can show — the page's locked scope and
+   * any user / URL / saved-view `primaryEntityId` chip — in ONE lookup, so
+   * chips name the entity ("RUM Application: checkout-web") instead of
+   * showing a raw UUID. Not Service-only: a RUM application, host or
+   * cluster id lives in its own table. When the page said what its scope
+   * ids are, they are hinted straight to that table. Filtering still uses
+   * the stable id; this only maps that id to a label.
    */
-  const scopedServiceNameMap: Record<string, string> = useServiceNames(
-    props.serviceIds,
+  const entityChipIds: Array<string> = useMemo(() => {
+    return collectLogsEntityIds({
+      scopeIds: props.serviceIds,
+      appliedFacetFilters,
+    });
+  }, [props.serviceIds, appliedFacetFilters]);
+
+  const entityTypeHints: Record<string, ServiceType> | undefined =
+    useMemo(() => {
+      return buildLogsEntityTypeHints(props.serviceIds, props.scopeEntityType);
+    }, [props.serviceIds, props.scopeEntityType]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityChipIds,
+    { typeHints: entityTypeHints },
   );
 
   /*
@@ -916,7 +905,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const values: Array<string> = getQueryValues(
+    const values: Array<string> = getLogsQueryValues(
       (props.logQuery as any)["entityKeys"],
     );
 
@@ -1092,6 +1081,38 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     ],
   );
 
+  /*
+   * The slice of the list query the chart and the facet counts are built
+   * over, keyed by VALUE. `filterOptions` is rebuilt as a new object on every
+   * base-scope pass (including the one right after mount, which reproduces
+   * what the initializer already built), so keying the aggregate fetchers
+   * on the object itself refetched both endpoints twice per mount and, on a
+   * host prop change, once with the previous scope in the render before the
+   * query caught up. Keyed on this serialization they refetch exactly when
+   * what they would send changes.
+   */
+  const typedAggregateFilterKey: string = serializeTypedLogFilter(
+    filterOptions as unknown as Record<string, unknown>,
+  );
+
+  const typedAggregateFilter: Record<string, unknown> | undefined =
+    useMemo(() => {
+      return pickTypedLogFilter(
+        filterOptions as unknown as Record<string, unknown>,
+      );
+      /*
+       * Deliberately keyed on the serialized slice, not on filterOptions:
+       * equal content must be the same identity.
+       */
+    }, [typedAggregateFilterKey]);
+
+  /*
+   * Monotonic id of the latest facets request, so a slower earlier one
+   * cannot overwrite the counts of the scope on screen.
+   */
+  const facetRequestSequence: React.MutableRefObject<number> =
+    useRef<number>(0);
+
   // --- Fetch histogram ---
 
   const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> =
@@ -1109,6 +1130,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         attributes: logQueryAttributes,
         entityKeys: logQueryEntityKeys,
         appliedFacetFilters: appliedFacetFilters,
+        /*
+         * What the search bar typed lives only in the list query; without
+         * it the chart counted rows the list no longer showed.
+         */
+        typedFilter: typedAggregateFilter,
       });
 
       /*
@@ -1135,6 +1161,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       timeRange,
       logQueryAttributes,
       logQueryEntityKeys,
+      typedAggregateFilter,
     ]);
 
   const histogram: LogsHistogramState = useLogsHistogram(fetchHistogramBuckets);
@@ -1143,6 +1170,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const fetchFacets: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      /*
+       * The request the sidebar is waiting for right now. A response that
+       * comes back after the scope moved on (a host prop change, a new chip)
+       * is dropped rather than painted over the counts for the scope the
+       * reader is actually looking at — the same rule the histogram applies
+       * through its query identity.
+       */
+      const sequence: number = ++facetRequestSequence.current;
+
+      const isCurrent: () => boolean = (): boolean => {
+        return facetRequestSequence.current === sequence;
+      };
+
       try {
         setFacetLoading(true);
 
@@ -1153,14 +1193,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const requestData: JSONObject = {
           startTime: dateRange.startValue.toISOString(),
           endTime: dateRange.endValue.toISOString(),
-          facetKeys: [
-            "severityText",
-            "primaryEntityId",
-            "hostId",
-            "dockerHostId",
-            "podmanHostId",
-            "kubernetesClusterId",
-          ],
+          /*
+           * Every resource type in the catalog, not just the ones the
+           * viewer preloads: the server lists each resource of a type the
+           * project has (and nothing for a type it has none of, which the
+           * sidebar folds away), so asking for all of them costs nothing.
+           */
+          facetKeys: [...LOGS_EXPLORER_FACET_KEYS],
         } as JSONObject;
 
         if (serviceIdStrings) {
@@ -1206,10 +1245,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["facetSearchText"] = facetSearchTextActive;
         }
 
+        /*
+         * Same rule as the histogram: the typed search narrows the list, so
+         * the facet counts must be taken over the same rows.
+         */
+        applyTypedLogFilterToRequest(requestData, typedAggregateFilter);
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/facets",
           requestData,
         );
+
+        if (!isCurrent()) {
+          return;
+        }
 
         const facets: FacetData = (response.data["facets"] ||
           {}) as unknown as FacetData;
@@ -1217,9 +1266,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setFacetData(facets);
       } catch {
         // Facets are non-critical; silently degrade
-        setFacetData({});
+        if (isCurrent()) {
+          setFacetData({});
+        }
       } finally {
-        setFacetLoading(false);
+        // A superseded request must not switch off the loader of the live one.
+        if (isCurrent()) {
+          setFacetLoading(false);
+        }
       }
     }, [
       serviceIdStrings,
@@ -1230,6 +1284,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       logQueryAttributes,
       logQueryEntityKeys,
       facetSearchText,
+      typedAggregateFilter,
     ]);
 
   // --- Handlers (defined before effects that reference them) ---
@@ -1300,7 +1355,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         string,
         Set<string>
       > = options?.overrideFacetFilters ||
-      buildFacetFiltersFromQuery(mergedQuery, baseQuery);
+      buildLogsFacetFiltersFromQuery(mergedQuery, baseQuery);
 
       setTimeRange(nextTimeRange);
 
@@ -1590,11 +1645,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(
     (newFilter: Query<Log>): void => {
-      setFilterOptions(newFilter);
+      /*
+       * The bar's submit spreads a parsed `attributes` object over the
+       * query, which would drop the page's pinned attributes from the list
+       * while the locked chips still show them — keep them underneath, then
+       * re-apply the chips on top: a chip the user can see stays true (it
+       * wins over a typed value for the same column, as it always has), and
+       * a typed value for any other key survives. Without this second pass a
+       * typed `@env:prod` silently dropped an applied `k8s.namespace` chip
+       * from the list and the facets while the chart still honoured it.
+       */
+      setFilterOptions(
+        applyLogsFacetFiltersToQuery(
+          preserveBaseAttributesInTypedFilter(newFilter, logQueryAttributes),
+          appliedFacetFilters,
+        ),
+      );
       setPage(1);
       disableLiveMode();
     },
-    [disableLiveMode],
+    [disableLiveMode, logQueryAttributes, appliedFacetFilters],
   );
 
   const handlePageChange: (nextPage: number) => void = useCallback(
@@ -2108,23 +2178,47 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       [handleFacetInclude],
     );
 
-  // Build read-only base filter chips from props (serviceIds, traceIds, spanIds, logQuery attributes)
+  // Build read-only base filter chips from props (serviceIds, logQuery entityKeys, traceIds, spanIds, logQuery attributes)
   const baseActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    const filters: Array<ActiveFilter> = [];
+    /*
+     * The scope chip names the entity with its real type — "RUM Application"
+     * the moment the page says so, the resolved type otherwise, "Service"
+     * until then — and its resolved name, never the raw id.
+     */
+    const filters: Array<ActiveFilter> = buildLogsScopeEntityChips({
+      scopeIds: props.serviceIds,
+      nameMap: entityNameMap,
+      scopeEntityType: props.scopeEntityType,
+    });
 
-    if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const primaryEntityId of props.serviceIds) {
-        const serviceIdString: string = primaryEntityId.toString();
-        filters.push({
-          facetKey: "primaryEntityId",
-          value: serviceIdString,
-          displayKey: "Service",
-          displayValue:
-            scopedServiceNameMap[serviceIdString] || serviceIdString,
-          readOnly: true,
-        });
-      }
-    }
+    /*
+     * An entity-key scope — `logQuery.entityKeys`, which the server compiles
+     * to `hasAny(entityKeys, [...])` and an Inventory item's page pins alone
+     * — gets its own locked chip; without one the list was filtered under an
+     * empty chip bar. It sits with the entity chip because both say WHICH
+     * resource the page is about, ahead of the narrower trace / span /
+     * session ids.
+     *
+     * Built from the pinned logQuery only, never from `entityScope`: a
+     * Kubernetes-style page's attribute chip already explains its entity
+     * keys, and a second chip for the same scope would read as a second
+     * filter.
+     *
+     * The same source reaches the decoration step below, which re-describes
+     * every entity-key chip and would otherwise restore the page wording.
+     */
+    const entityKeysSource: string = props.entityKeysPinnedByPage
+      ? LOCKED_FILTER_SOURCE_PAGE
+      : LOCKED_FILTER_SOURCE_STORED_QUERY;
+
+    filters.push(
+      ...buildLockedEntityKeyChips({
+        rows: LOGS_SIGNAL,
+        entityKeys: logQueryEntityKeys,
+        displays: props.entityKeyDisplays,
+        source: entityKeysSource,
+      }),
+    );
 
     if (props.traceIds && props.traceIds.length > 0) {
       for (const traceId of props.traceIds) {
@@ -2164,39 +2258,64 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    filters.push(...buildAttributeFilterChips(logQueryAttributes));
+    filters.push(
+      ...buildAttributeFilterChips(logQueryAttributes, {
+        displayKeys: props.attributeFilterDisplayKeys,
+        displayValues: props.attributeFilterDisplayValues,
+      }),
+    );
 
-    return filters;
+    /*
+     * Every locked chip explains itself: what the server matches (the
+     * attribute, the entity key the page's entityScope adds, the entity id)
+     * and the search syntax that reproduces it on the main explorer.
+     */
+    return attachLogsLockedFilterDetails(filters, {
+      logQueryAttributes,
+      entityScope: props.entityScope,
+      entityKeysSource,
+    });
   }, [
     props.serviceIds,
+    props.scopeEntityType,
     props.traceIds,
     props.spanIds,
     props.sessionIds,
+    props.entityScope,
+    logQueryEntityKeys,
+    props.entityKeyDisplays,
+    props.entityKeysPinnedByPage,
     traceIdStrings,
     logQueryAttributes,
-    scopedServiceNameMap,
+    props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    entityNameMap,
   ]);
+
+  /*
+   * "Copy filter" / "Open in Logs" for the whole locked scope. Undefined on
+   * the main explorer (nothing is locked there), so nothing renders.
+   */
+  const lockedFilterActions: LockedFilterActionOptions | undefined =
+    useMemo(() => {
+      return buildLogsLockedFilterActions({
+        chips: baseActiveFilters,
+        logQueryAttributes,
+        timeRange,
+      });
+    }, [baseActiveFilters, logQueryAttributes, timeRange]);
+
+  /*
+   * Names the server already resolved for the entity facet. Derived once per
+   * facet response so the chip list does not rebuild on unrelated facets.
+   */
+  const entityFacetDisplayNames: Record<string, string> = useMemo(() => {
+    return buildFacetDisplayNames(facetData["primaryEntityId"]);
+  }, [facetData]);
 
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
     const filters: Array<ActiveFilter> = [];
-
-    const facetKeyDisplayNames: Record<string, string> = {
-      severityText: "Severity",
-      primaryEntityId: "Service",
-      hostId: "Host",
-      dockerHostId: "Docker Host",
-      podmanHostId: "Podman Host",
-      kubernetesClusterId: "Kubernetes Cluster",
-      traceId: "Trace",
-      spanId: "Span",
-      /*
-       * The one chip whose value is a substring rather than an exact id —
-       * "Message contains" says so, since "body: connection refused" reads
-       * like an equality the filter is not.
-       */
-      body: "Message contains",
-    };
 
     /*
      * A span chip only links out when the view pins down exactly one trace —
@@ -2208,10 +2327,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     ];
 
     for (const [facetKey, values] of appliedFacetFilters.entries()) {
-      // Strip the `attributes.` prefix so the chip reads as `<key>: <value>`.
-      const displayKey: string = facetKey.startsWith("attributes.")
-        ? facetKey.substring("attributes.".length)
-        : facetKeyDisplayNames[facetKey] || facetKey;
+      /*
+       * `<key>: <value>` for an attribute chip, the facet's label ("Proxmox
+       * Cluster", "Message contains") for everything else.
+       */
+      const displayKey: string = getLogsFacetChipDisplayKey(facetKey);
 
       const isAttributeFacet: boolean = facetKey.startsWith(
         ATTRIBUTE_FACET_PREFIX,
@@ -2240,8 +2360,28 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    return filters;
-  }, [appliedFacetFilters, traceIdStrings]);
+    /*
+     * Entity chips (a facet click, the search bar, a URL or saved view) carry
+     * an id. Name them here — the server's facet displayName first, the
+     * generic resolver for the ids it does not cover (a RUM application,
+     * host, cluster…) — so the shared viewer's own Service-only enrichment
+     * never has to know about other entity types. It only overrides a chip
+     * whose id IS a loaded Service, with that same service name.
+     */
+    return applyLogsEntityChipDisplay(filters, {
+      nameMap: entityNameMap,
+      scopeIds: props.serviceIds,
+      scopeEntityType: props.scopeEntityType,
+      knownNames: entityFacetDisplayNames,
+    });
+  }, [
+    appliedFacetFilters,
+    traceIdStrings,
+    entityNameMap,
+    props.serviceIds,
+    props.scopeEntityType,
+    entityFacetDisplayNames,
+  ]);
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -2417,6 +2557,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           resolveSpanRoute={resolveSpanRoute}
           getSessionRoute={getSessionRoute}
           signalPivotActions={signalPivotActions}
+          lockedFilterSignal="logs"
+          lockedFilterActions={lockedFilterActions}
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}

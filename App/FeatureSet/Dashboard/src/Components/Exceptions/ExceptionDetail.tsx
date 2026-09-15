@@ -1,186 +1,148 @@
 import Service from "Common/Models/DatabaseModels/Service";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import ProjectUtil from "Common/UI/Utils/Project";
-import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
-import { JSONObject } from "Common/Types/JSON";
 import Card from "Common/UI/Components/Card/Card";
-import Detail from "Common/UI/Components/Detail/Detail";
-import Field from "Common/UI/Components/Detail/Field";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import React, { FunctionComponent, ReactElement } from "react";
-import ServiceElement from "../Service/ServiceElement";
+import {
+  formatActiveSpan,
+  formatRelativeTime,
+} from "../../Utils/ExceptionDetailPresentation";
+import ExceptionDetailList, {
+  ExceptionDetailListItem,
+} from "./ExceptionDetailList";
+import ExceptionResource from "./ExceptionResource";
 
 export interface ComponentProps {
   exceptionType?: string | undefined;
-  message?: string | undefined;
-  stackTrace?: string | undefined;
   fingerprint?: string | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
-  occuranceCount?: number | undefined;
-  attributes?: JSONObject | undefined;
   primaryEntityId?: ObjectID | undefined;
   primaryEntityType?: ServiceType | undefined;
-  // The project's Services, for resolving a real OpenTelemetry primaryEntityId.
+  // The group's Service, for resolving a real OpenTelemetry primaryEntityId.
   services?: Array<Service> | undefined;
   firstSeenInRelease?: string | undefined;
   lastSeenInRelease?: string | undefined;
   environment?: string | undefined;
 }
 
-const ExceptionDetail: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const fields: Array<Field<ComponentProps>> = [];
+const NOT_RECORDED: ReactElement = (
+  <span className="text-gray-400">Not recorded</span>
+);
 
-  if (props.message) {
-    fields.push({
-      key: "message",
-      title: "Message",
-      description: "The message of the exception.",
-      fieldType: FieldType.InlineCode,
-    });
-  }
-
-  if (props.exceptionType) {
-    fields.push({
-      key: "exceptionType",
-      title: "Exception Type",
-      description: "The type of the exception.",
-      fieldType: FieldType.Text,
-    });
-  }
-
-  if (props.firstSeenInRelease) {
-    fields.push({
-      key: "firstSeenInRelease",
-      title: "Introduced In Release",
-      description:
-        "The release version where this exception was first observed.",
-      fieldType: FieldType.Text,
-    });
-  }
-
-  if (props.lastSeenInRelease) {
-    fields.push({
-      key: "lastSeenInRelease",
-      title: "Last Seen In Release",
-      description:
-        "The most recent release version where this exception was observed.",
-      fieldType: FieldType.Text,
-    });
-  }
-
-  if (props.environment) {
-    fields.push({
-      key: "environment",
-      title: "Environment",
-      description: "The deployment environment where this exception occurred.",
-      fieldType: FieldType.Text,
-    });
-  }
-
-  if (props.stackTrace) {
-    fields.push({
-      key: "stackTrace",
-      title: "Stack Trace",
-      description: "The stack trace of the exception.",
-      fieldType: FieldType.Code,
-    });
-  }
-
-  if (props.firstSeenAt) {
-    fields.push({
-      key: "firstSeenAt",
-      title: "First Seen At",
-      description: "The time the exception was first seen.",
-      fieldType: FieldType.DateTime,
-    });
-  }
-
-  if (props.lastSeenAt) {
-    fields.push({
-      key: "lastSeenAt",
-      title: "Last Seen At",
-      description: "The time the exception was last seen.",
-      fieldType: FieldType.DateTime,
-    });
-  }
-
-  if (props.occuranceCount) {
-    fields.push({
-      key: "occuranceCount",
-      title: "Occurance Count",
-      description: "The number of times this exception has occurred.",
-      fieldType: FieldType.Number,
-    });
-  }
-
-  if (props.fingerprint) {
-    fields.push({
-      key: "fingerprint",
-      title: "Fingerprint",
-      description: "SHA256 hash of this exception.",
-      fieldType: FieldType.InlineCode,
-    });
-  }
-
-  if (props.attributes) {
-    fields.push({
-      key: "attributes",
-      title: "Attributes",
-      description: "Additional attributes of the exception.",
-      fieldType: FieldType.JSON,
-    });
-  }
-
-  /*
-   * Resolve the resource this exception belongs to from its polymorphic
-   * (primaryEntityId, primaryEntityType): a real Service renders as a linked
-   * ServiceElement; the unattributed bucket renders as a non-linked
-   * synthetic "Unknown Service"; Host / DockerHost / KubernetesCluster
-   * render as a typed label. The bare "Unknown" fallback is omitted.
-   */
-  const serviceField: ReactElement | null = ((): ReactElement | null => {
-    const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
-      primaryEntityId: props.primaryEntityId,
-      primaryEntityType: props.primaryEntityType,
-      services: props.services || [],
-      projectId: ProjectUtil.getCurrentProjectId(),
-    });
-
-    if (service) {
-      return <ServiceElement service={service} />;
-    }
-
-    if (label && label !== "Unknown") {
-      return <div className="text-gray-700">{label}</div>;
-    }
-
-    return null;
-  })();
-
-  if (serviceField) {
-    fields.push({
-      key: "primaryEntityId",
-      title: "Telemetry Service",
-      description: "The resource that this exception was received from.",
-      fieldType: FieldType.Element,
-      getElement: () => {
-        return serviceField;
-      },
-    });
+function renderTime(date: Date | undefined): ReactElement {
+  if (!date) {
+    return NOT_RECORDED;
   }
 
   return (
+    <span>
+      {OneUptimeDate.getDateAsLocalShortDateTimeString(date)}
+      <span className="ml-1.5 text-gray-500">
+        ({formatRelativeTime(date) || "unknown"})
+      </span>
+    </span>
+  );
+}
+
+function renderText(value: string | undefined, isMono?: boolean): ReactElement {
+  if (!value) {
+    return NOT_RECORDED;
+  }
+
+  return <span className={isMono ? "font-mono text-[13px]" : ""}>{value}</span>;
+}
+
+/*
+ * The identity of the exception group: what it is, where it runs, which
+ * releases it spans and how it is grouped. Shown on the Overview under the
+ * occurrence trend.
+ */
+const ExceptionDetail: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const activeSpan: string | null = formatActiveSpan(
+    props.firstSeenAt,
+    props.lastSeenAt,
+  );
+
+  const items: Array<ExceptionDetailListItem> = [
+    {
+      label: "Exception type",
+      value: renderText(props.exceptionType, true),
+      testId: "exception-detail-type",
+    },
+    {
+      label: "Service",
+      value: (
+        <ExceptionResource
+          primaryEntityId={props.primaryEntityId}
+          primaryEntityType={props.primaryEntityType}
+          services={props.services}
+          fallback={NOT_RECORDED}
+        />
+      ),
+      testId: "exception-detail-service",
+    },
+    {
+      label: "Environment",
+      value: renderText(props.environment),
+      testId: "exception-detail-environment",
+    },
+    {
+      label: "Active for",
+      value: activeSpan ? <span>{activeSpan}</span> : NOT_RECORDED,
+      testId: "exception-detail-active-for",
+    },
+    {
+      label: "First seen",
+      value: renderTime(props.firstSeenAt),
+      hint: props.firstSeenInRelease
+        ? `Introduced in ${props.firstSeenInRelease}`
+        : undefined,
+      testId: "exception-detail-first-seen",
+    },
+    {
+      label: "Last seen",
+      value: renderTime(props.lastSeenAt),
+      hint: props.lastSeenInRelease
+        ? `Latest release ${props.lastSeenInRelease}`
+        : undefined,
+      testId: "exception-detail-last-seen",
+    },
+    {
+      label: "Fingerprint",
+      isWide: true,
+      value: props.fingerprint ? (
+        <span className="flex min-w-0 items-center gap-2">
+          <code
+            title="Occurrences with this fingerprint are grouped into this exception."
+            className="min-w-0 truncate rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
+          >
+            {props.fingerprint}
+          </code>
+          <CopyTextButton
+            textToBeCopied={props.fingerprint}
+            iconOnly={true}
+            size="xs"
+            title="Copy fingerprint"
+          />
+        </span>
+      ) : (
+        NOT_RECORDED
+      ),
+      testId: "exception-detail-fingerprint",
+    },
+  ];
+
+  return (
     <Card
-      title={"Exception Details"}
-      description={"Here are more details of this exception."}
+      title="Details"
+      description="How this exception is identified, where it runs, and which releases it spans."
     >
-      <div>
-        <Detail<ComponentProps> item={props} fields={fields} />
-      </div>
+      <ExceptionDetailList items={items} label="Exception details" />
     </Card>
   );
 };

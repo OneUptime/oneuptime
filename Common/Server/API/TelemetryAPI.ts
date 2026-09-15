@@ -12,6 +12,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import { parseExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
 import SourceMapResolver, {
@@ -104,10 +106,11 @@ import RumSession from "../../Models/AnalyticsModels/RumSession";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONArray, JSONObject } from "../../Types/JSON";
-import ResourceFacetResolver, {
-  ResolvedFacetValue,
-  ResourceFacetSpec,
-} from "../Utils/Telemetry/ResourceFacetResolver";
+import ResourceFacetResolver from "../Utils/Telemetry/ResourceFacetResolver";
+import ResourceFacetPlanner, {
+  ListedResourceFacets,
+} from "../Utils/Telemetry/ResourceFacetPlanner";
+import { RESOURCE_FACET_CATALOG_KEYS } from "../../Types/Telemetry/ResourceFacetCatalog";
 import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
@@ -130,6 +133,8 @@ import SessionReplayReadService, {
   DEFAULT_SESSION_REPLAY_USERS_LIMIT,
   MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
   MAX_SESSION_REPLAY_LIST_LIMIT,
+  MAX_SESSION_REPLAY_SESSION_ID_LENGTH,
+  MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE,
   MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
   SessionReplayApplicationActivitySummary,
@@ -142,6 +147,7 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplaySummary,
   SessionReplayUsersCursor,
   SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
@@ -760,9 +766,10 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (primaryEntityId /
-       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
-       * to filter client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId and
+       * every ResourceFacetCatalog key — hostId / kubernetesClusterId / ...)
+       * — other facets continue to filter client-side over the loaded value
+       * list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -780,79 +787,43 @@ router.post(
         await resolveResourceScopesFromBody(body, projectId);
 
       /*
-       * Run facet queries in parallel so a slow individual facet can't
-       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       * One ClickHouse GROUP BY per facet, in parallel so a slow facet can't
+       * starve the endpoint; per-facet errors degrade gracefully to [].
+       * Resource facets come back as the Postgres source-of-truth list
+       * (filtered by facetSearchText, enriched with displayName) with those
+       * counts merged in, so low-volume resources stay visible and search
+       * reaches resources outside the window. Their lists are fetched FIRST:
+       * a resource type the project has none of skips its ClickHouse scan
+       * entirely (see ResourceFacetPlanner).
        */
-      const facetResults: Array<readonly [string, Array<FacetValue>]> =
-        await Promise.all(
-          facetKeys.map(
-            async (
-              facetKey: string,
-            ): Promise<readonly [string, Array<FacetValue>]> => {
-              try {
-                const request: FacetRequest = {
-                  projectId,
-                  startTime,
-                  endTime,
-                  facetKey,
-                  limit,
-                  serviceIds,
-                  entityKeys,
-                  resourceScopes,
-                  severityTexts,
-                  bodySearchText,
-                  traceIds,
-                  spanIds,
-                  sessionIds,
-                  attributes,
-                };
-                const values: Array<FacetValue> =
-                  await LogAggregationService.getFacetValues(request);
-                return [facetKey, values] as const;
-              } catch {
-                return [facetKey, [] as Array<FacetValue>] as const;
-              }
-            },
-          ),
-        );
-
-      const facets: Record<string, Array<FacetValue>> = Object.fromEntries(
-        facetResults,
-      );
-
-      /*
-       * Replace resource-facet results with the Postgres source-of-truth list
-       * (filtered by facetSearchText and enriched with displayName). See the
-       * trace facets handler above for the rationale — same pattern, same
-       * benefit: low-volume resources stay visible and search can reach
-       * resources outside the ClickHouse sample window.
-       */
-      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
-        .filter((key: string): boolean => {
-          return ResourceFacetResolver.isResourceFacet(key);
-        })
-        .map((key: string): ResourceFacetSpec => {
-          const counts: Map<string, number> = new Map();
-          for (const fv of facets[key] || []) {
-            counts.set(fv.value, fv.count);
-          }
-          return {
-            facetKey: key,
-            counts,
-            searchText: facetSearchText?.[key],
+      const facets: Record<
+        string,
+        Array<FacetValue>
+      > = await ResourceFacetPlanner.countPerFacet({
+        projectId,
+        facetKeys,
+        facetSearchText,
+        limit,
+        countFacet: (facetKey: string): Promise<Array<FacetValue>> => {
+          const request: FacetRequest = {
+            projectId,
+            startTime,
+            endTime,
+            facetKey,
             limit,
+            serviceIds,
+            entityKeys,
+            resourceScopes,
+            severityTexts,
+            bodySearchText,
+            traceIds,
+            spanIds,
+            sessionIds,
+            attributes,
           };
-        });
-
-      if (resourceSpecs.length > 0) {
-        const resolved: Record<
-          string,
-          Array<ResolvedFacetValue>
-        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
-        for (const key of Object.keys(resolved)) {
-          facets[key] = resolved[key] as Array<FacetValue>;
-        }
-      }
+          return LogAggregationService.getFacetValues(request);
+        },
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -865,13 +836,16 @@ router.post(
 
 /**
  * Resolve the `resourceFilters` field — the explorers' non-Service resource
- * facet selections (Kubernetes cluster / host / docker host / podman host),
- * sent as Postgres ids — into the scopes the aggregation services compile.
+ * facet selections (any ResourceFacetCatalog type: host / Kubernetes cluster
+ * / Proxmox cluster / serverless function / ...), sent as Postgres ids —
+ * into the scopes the aggregation services compile.
  *
  * Kept out of the sync body parsers because turning an id into an entity
  * key needs a Postgres round trip: the id names a row whose identifying
- * value (`clusterIdentifier` / `hostIdentifier`) is what ingest hashed into
- * `entityKeys`.
+ * value (`hostIdentifier` / `clusterIdentifier` / a cluster `name` / ...) is
+ * what ingest hashed into `entityKeys` and stamped as a resource attribute.
+ * Types without such an identity keep an id-only scope (see
+ * ResourceEntityFilter).
  *
  * Returns undefined when nothing was selected so the request field stays
  * absent rather than becoming an empty array.
@@ -965,6 +939,30 @@ function parseAttributeFilterRecord(
   }
 
   return filters;
+}
+
+/*
+ * An exception scope that is present but malformed is a client bug, and
+ * dropping it would silently chart every span in the project under an
+ * exception's heading — so it is refused instead.
+ */
+function parseTraceExceptionScope(
+  raw: unknown,
+): TraceFilters["exceptionScope"] {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  const scope: TraceFilters["exceptionScope"] | null =
+    parseExceptionSpanScope(raw);
+
+  if (!scope) {
+    throw new BadDataException(
+      "exceptionScope must have a fingerprint and, optionally, a primaryEntityId UUID.",
+    );
+  }
+
+  return scope;
 }
 
 /*
@@ -1064,6 +1062,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
       typeof body["hasException"] === "boolean"
         ? (body["hasException"] as boolean)
         : undefined,
+    exceptionScope: parseTraceExceptionScope(body["exceptionScope"]),
     minDurationNano:
       typeof body["minDurationNano"] === "number"
         ? (body["minDurationNano"] as number)
@@ -1195,9 +1194,10 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (primaryEntityId /
-       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
-       * to filter client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId and
+       * every ResourceFacetCatalog key — hostId / kubernetesClusterId / ...)
+       * — other facets continue to filter client-side over the loaded value
+       * list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -1221,9 +1221,8 @@ router.post(
       };
 
       /*
-       * Resource facets (primaryEntityId / hostId / dockerHostId / k8s
-       * cluster ...) and statusCode are counted with an exact,
-       * projection-backed GROUP BY
+       * Resource facets (primaryEntityId and every ResourceFacetCatalog key)
+       * and statusCode are counted with an exact, projection-backed GROUP BY
        * in getResourceFacetCounts(). The recent-N sample below saturates with
        * whichever service is chattiest right now and reports 0 for every other
        * service regardless of its true volume over the window — the "top 1000"
@@ -1242,10 +1241,20 @@ router.post(
         },
       );
 
-      const needsAccurateCounts: boolean =
-        facetKeys.includes("statusCode") ||
-        facetKeys.some((key: string): boolean => {
-          return ResourceFacetResolver.isResourceFacet(key);
+      /*
+       * Resource facets list their Postgres rows FIRST. The exact counts are
+       * one shared GROUP BY for statusCode and every resource facet, so it
+       * only runs when statusCode is requested or some requested resource
+       * facet listed a row to merge counts into — a sidebar whose resource
+       * types the project has none of skips the scan entirely. The listing
+       * still overlaps the sample / root-span / exception queries.
+       */
+      const resourceListing: Promise<ListedResourceFacets> =
+        ResourceFacetPlanner.listResourceFacets({
+          projectId: databaseProps.tenantId,
+          facetKeys,
+          facetSearchText,
+          limit,
         });
       const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
       const wantsHasException: boolean = facetKeys.includes("hasException");
@@ -1266,8 +1275,15 @@ router.post(
        * the projection-backed sample / resource / root-span queries keeps it
        * off the critical path. Each query keeps its own degrade-to-empty catch.
        */
-      const [sampledFacets, accurate, rootSpanCounts, exceptionCounts]: [
+      const [
+        sampledFacets,
+        listedResourceFacets,
+        accurate,
+        rootSpanCounts,
+        exceptionCounts,
+      ]: [
         Record<string, Array<TraceFacetValue>>,
+        ListedResourceFacets,
         {
           serviceCounts: Map<string, number>;
           statusCounts: Map<string, number>;
@@ -1289,17 +1305,34 @@ router.post(
               );
             })
           : Promise.resolve({} as Record<string, Array<TraceFacetValue>>),
-        needsAccurateCounts
-          ? TraceAggregationService.getResourceFacetCounts(multiRequest).catch(
-              () => {
-                /*
-                 * Degrade gracefully: resource facets still enumerate via
-                 * Postgres (count 0), statusCode falls back to empty.
-                 */
-                return emptyAccurate;
-              },
-            )
-          : Promise.resolve(emptyAccurate),
+        resourceListing,
+        resourceListing.then(
+          (
+            listed: ListedResourceFacets,
+          ): Promise<{
+            serviceCounts: Map<string, number>;
+            statusCounts: Map<string, number>;
+          }> => {
+            if (
+              !ResourceFacetPlanner.needsTraceResourceFacetCounts({
+                facetKeys,
+                listed,
+              })
+            ) {
+              return Promise.resolve(emptyAccurate);
+            }
+
+            return TraceAggregationService.getResourceFacetCounts(
+              multiRequest,
+            ).catch(() => {
+              /*
+               * Degrade gracefully: resource facets still enumerate via
+               * Postgres (count 0), statusCode falls back to empty.
+               */
+              return emptyAccurate;
+            });
+          },
+        ),
         wantsRootSpan
           ? TraceAggregationService.getRootSpanCounts(multiRequest).catch(
               () => {
@@ -1360,38 +1393,27 @@ router.post(
       }
 
       /*
-       * Replace resource-facet results with the Postgres source-of-truth list
+       * Resource facets answer with the Postgres source-of-truth list
        * (filtered by facetSearchText and enriched with displayName). Every
        * resource facet shares the same exact primaryEntityId -> count map;
        * resource ids are globally unique, so each facet only ever resolves its own
        * entities. Entities with no telemetry in the window surface with count
        * 0 instead of being hidden, and the search box can find resources
-       * beyond the loaded subset.
+       * beyond the loaded subset. A facet that listed nothing answers [].
        */
-      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
-        .filter((key: string): boolean => {
-          return ResourceFacetResolver.isResourceFacet(key);
-        })
-        .map((key: string): ResourceFacetSpec => {
-          return {
-            facetKey: key,
-            counts: serviceCounts,
-            searchText: facetSearchText?.[key],
-            limit,
-          };
-        });
+      const resourceFacets: Record<
+        string,
+        Array<TraceFacetValue>
+      > = ResourceFacetPlanner.mergeResourceFacetCounts({
+        facetKeys,
+        listed: listedResourceFacets,
+        countsFor: (): Map<string, number> => {
+          return serviceCounts;
+        },
+      });
 
-      if (resourceSpecs.length > 0) {
-        const resolved: Record<
-          string,
-          Array<ResolvedFacetValue>
-        > = await ResourceFacetResolver.resolve(
-          databaseProps.tenantId,
-          resourceSpecs,
-        );
-        for (const key of Object.keys(resolved)) {
-          facets[key] = resolved[key] as Array<TraceFacetValue>;
-        }
+      for (const key of Object.keys(resourceFacets)) {
+        facets[key] = resourceFacets[key] || [];
       }
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -1651,10 +1673,7 @@ router.post(
         ? (body["facetKeys"] as Array<string>)
         : [
             "primaryEntityId",
-            "hostId",
-            "dockerHostId",
-            "podmanHostId",
-            "kubernetesClusterId",
+            ...RESOURCE_FACET_CATALOG_KEYS,
             "exceptionType",
             "environment",
           ];
@@ -1712,76 +1731,39 @@ router.post(
       const projectId: ObjectID = databaseProps.tenantId;
 
       /*
-       * Per-facet ClickHouse query in parallel. Per-facet errors degrade
+       * Per-facet ClickHouse query in parallel; per-facet errors degrade
        * gracefully to [] so a slow / failing facet can't block the others.
+       * Resource facets answer with the Postgres source-of-truth list
+       * (filtered by facetSearchText, enriched with displayName), listed
+       * first so a type with no rows skips its count query. Same flow as the
+       * log facets endpoint.
        */
-      const facetResults: Array<readonly [string, Array<ExceptionFacetValue>]> =
-        await Promise.all(
-          facetKeys.map(
-            async (
-              facetKey: string,
-            ): Promise<readonly [string, Array<ExceptionFacetValue>]> => {
-              try {
-                const request: ExceptionFacetRequest = {
-                  projectId,
-                  startTime,
-                  endTime,
-                  facetKey,
-                  limit,
-                  serviceIds,
-                  exceptionTypes,
-                  environments,
-                  fingerprints,
-                  traceIds,
-                  escaped,
-                  messageSearchText,
-                };
-                const values: Array<ExceptionFacetValue> =
-                  await ExceptionAggregationService.getFacetValues(request);
-                return [facetKey, values] as const;
-              } catch {
-                return [facetKey, [] as Array<ExceptionFacetValue>] as const;
-              }
-            },
-          ),
-        );
-
       const facets: Record<
         string,
         Array<ExceptionFacetValue>
-      > = Object.fromEntries(facetResults);
-
-      /*
-       * Replace resource-facet results with the Postgres source-of-truth list
-       * (filtered by facetSearchText and enriched with displayName). Same
-       * pattern as the trace/log facets endpoints.
-       */
-      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
-        .filter((key: string): boolean => {
-          return ResourceFacetResolver.isResourceFacet(key);
-        })
-        .map((key: string): ResourceFacetSpec => {
-          const counts: Map<string, number> = new Map();
-          for (const fv of facets[key] || []) {
-            counts.set(fv.value, fv.count);
-          }
-          return {
-            facetKey: key,
-            counts,
-            searchText: facetSearchText?.[key],
+      > = await ResourceFacetPlanner.countPerFacet({
+        projectId,
+        facetKeys,
+        facetSearchText,
+        limit,
+        countFacet: (facetKey: string): Promise<Array<ExceptionFacetValue>> => {
+          const request: ExceptionFacetRequest = {
+            projectId,
+            startTime,
+            endTime,
+            facetKey,
             limit,
+            serviceIds,
+            exceptionTypes,
+            environments,
+            fingerprints,
+            traceIds,
+            escaped,
+            messageSearchText,
           };
-        });
-
-      if (resourceSpecs.length > 0) {
-        const resolved: Record<
-          string,
-          Array<ResolvedFacetValue>
-        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
-        for (const key of Object.keys(resolved)) {
-          facets[key] = resolved[key] as Array<ExceptionFacetValue>;
-        }
-      }
+          return ExceptionAggregationService.getFacetValues(request);
+        },
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -1818,13 +1800,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : [
-            "primaryEntityId",
-            "hostId",
-            "dockerHostId",
-            "podmanHostId",
-            "kubernetesClusterId",
-          ];
+        : ["primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -1858,72 +1834,35 @@ router.post(
       const projectId: ObjectID = databaseProps.tenantId;
 
       /*
-       * Per-facet ClickHouse GROUP BY in parallel. Per-facet errors degrade
-       * to [] so a slow facet doesn't block the rest.
+       * Per-facet ClickHouse GROUP BY in parallel; per-facet errors degrade
+       * to [] so a slow facet doesn't block the rest. Resource facets answer
+       * with the Postgres source-of-truth list (filtered by facetSearchText,
+       * enriched with displayName), listed first so a type with no rows
+       * skips its count query. Same flow as the log / exception facets
+       * endpoints.
        */
-      const facetResults: Array<readonly [string, Array<MetricFacetValue>]> =
-        await Promise.all(
-          facetKeys.map(
-            async (
-              facetKey: string,
-            ): Promise<readonly [string, Array<MetricFacetValue>]> => {
-              try {
-                const request: MetricFacetRequest = {
-                  projectId,
-                  startTime,
-                  endTime,
-                  facetKey,
-                  limit,
-                  serviceIds,
-                  metricNames,
-                  attributes,
-                };
-                const values: Array<MetricFacetValue> =
-                  await MetricAggregationService.getFacetValues(request);
-                return [facetKey, values] as const;
-              } catch {
-                return [facetKey, [] as Array<MetricFacetValue>] as const;
-              }
-            },
-          ),
-        );
-
       const facets: Record<
         string,
         Array<MetricFacetValue>
-      > = Object.fromEntries(facetResults);
-
-      /*
-       * Replace resource-facet results with the Postgres source-of-truth list
-       * (filtered by facetSearchText and enriched with displayName). Same
-       * pattern as the trace / log / exception facets endpoints.
-       */
-      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
-        .filter((key: string): boolean => {
-          return ResourceFacetResolver.isResourceFacet(key);
-        })
-        .map((key: string): ResourceFacetSpec => {
-          const counts: Map<string, number> = new Map();
-          for (const fv of facets[key] || []) {
-            counts.set(fv.value, fv.count);
-          }
-          return {
-            facetKey: key,
-            counts,
-            searchText: facetSearchText?.[key],
+      > = await ResourceFacetPlanner.countPerFacet({
+        projectId,
+        facetKeys,
+        facetSearchText,
+        limit,
+        countFacet: (facetKey: string): Promise<Array<MetricFacetValue>> => {
+          const request: MetricFacetRequest = {
+            projectId,
+            startTime,
+            endTime,
+            facetKey,
             limit,
+            serviceIds,
+            metricNames,
+            attributes,
           };
-        });
-
-      if (resourceSpecs.length > 0) {
-        const resolved: Record<
-          string,
-          Array<ResolvedFacetValue>
-        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
-        for (const key of Object.keys(resolved)) {
-          facets[key] = resolved[key] as Array<MetricFacetValue>;
-        }
-      }
+          return MetricAggregationService.getFacetValues(request);
+        },
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -3544,7 +3483,7 @@ router.post(
  * Session replay playback
  * ---------------------------------------------------------------------
  *
- * These five routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
+ * These routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
  * both analytics models deliberately omit `crudApiPath`, so there is no
  * generic CRUD surface for them and ModelPermission is NEVER invoked on
  * this path.
@@ -3628,6 +3567,26 @@ const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
    * card on every exception page.
    */
   Permission.ReadRumSessionReplayPayload,
+];
+
+/*
+ * The optional audit-table enrichment must admit an audit-only reviewer so a
+ * 403 from the shared browser API does not navigate them away from the audit
+ * page. The handler still returns metadata only after a separate LIST-scope
+ * check for the resolved application; audit access alone receives an empty,
+ * successful response.
+ */
+const SESSION_REPLAY_SUMMARY_PERMISSIONS: Array<Permission> = [
+  ...SESSION_REPLAY_LIST_PERMISSIONS,
+  Permission.ReadRumSessionReplayAudit,
+];
+
+const requireSessionReplaySummaryAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+  }),
 ];
 
 const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
@@ -4074,6 +4033,40 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = (data: {
     application: data.application,
   });
 };
+
+type CanReadSessionReplayListMetadataFunction = (data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  application: RumApplication;
+}) => boolean;
+
+/*
+ * Audit-only roles may load the summaries route so the optional request can
+ * fail closed without a browser-wide forbidden redirect. They still must not
+ * gain the session-list metadata this endpoint projects. Re-evaluate the
+ * list scope against the already-resolved application and turn unsupported
+ * scope shapes into "no metadata" rather than an authorization error.
+ */
+const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction =
+  (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    application: RumApplication;
+  }): boolean => {
+    let scope: SessionReplayScope;
+
+    try {
+      scope = getSessionReplayLabelScope(
+        data.databaseProps,
+        SESSION_REPLAY_LIST_PERMISSIONS,
+      );
+    } catch {
+      return false;
+    }
+
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: data.application,
+    });
+  };
 
 /*
  * The set of applications a label-scoped caller may reach, for the
@@ -4559,8 +4552,6 @@ type ReadSessionIdFromBodyFunction = (body: JSONObject) => string;
  * callers exist - but it is a cap: an unbounded caller-supplied string
  * reaches ClickHouse as a bound parameter on a hot path.
  */
-const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
-
 const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   body: JSONObject,
 ): string => {
@@ -4577,6 +4568,51 @@ const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   }
 
   return sessionId;
+};
+
+type ReadSessionIdsFromBodyFunction = (body: JSONObject) => Array<string>;
+
+/*
+ * The summaries route accepts one audit-table page at a time. Validate the
+ * raw array before de-duplicating it so repeated values cannot be used to
+ * bypass the request-size ceiling, then preserve first-occurrence order.
+ */
+const readSessionIdsFromBody: ReadSessionIdsFromBodyFunction = (
+  body: JSONObject,
+): Array<string> => {
+  const value: unknown = body["sessionIds"];
+
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new BadDataException("sessionIds must be a non-empty array");
+  }
+
+  if (value.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+    throw new BadDataException(
+      `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+    );
+  }
+
+  const sessionIds: Array<string> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const sessionId of value) {
+    if (typeof sessionId !== "string" || sessionId.length === 0) {
+      throw new BadDataException("Every sessionId must be a non-empty string");
+    }
+
+    if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+      throw new BadDataException(
+        `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+      );
+    }
+
+    if (!seen.has(sessionId)) {
+      seen.add(sessionId);
+      sessionIds.push(sessionId);
+    }
+  }
+
+  return sessionIds;
 };
 
 /*
@@ -5126,6 +5162,79 @@ router.post(
          * filters" from "an older server that never said".
          */
         ignoredFilters: ignoredFilters as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Summary Batch Endpoint ---
+
+/*
+ * Audit rows store only the session id. Resolve one page of those ids into
+ * compact, non-identity session context. Audit-only callers receive an empty
+ * success; session-list metadata is returned only after the resolved
+ * application passes the list scope. The service performs one
+ * application-pinned argMax query, so this route never turns an audit page
+ * into an N+1 ClickHouse workload.
+ */
+router.post(
+  "/telemetry/rum/session-replay/summaries",
+  ...requireSessionReplaySummaryAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+      const sessionIds: Array<string> = readSessionIdsFromBody(body);
+
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_SUMMARY_PERMISSIONS,
+        });
+
+      if (
+        !canReadSessionReplayListMetadata({
+          databaseProps: databaseProps,
+          application: application,
+        })
+      ) {
+        return Response.sendJsonObjectResponse(req, res, { sessions: [] });
+      }
+
+      const sessions: Array<SessionReplaySummary> =
+        await SessionReplayReadService.getSessionSummaries({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionIds: sessionIds,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: sessions as unknown as JSONArray,
       });
     } catch (err: unknown) {
       next(err);
@@ -6056,6 +6165,32 @@ router.post(
         );
       }
 
+      const primaryEntityId: ObjectID | undefined =
+        readOptionalObjectIdFromBody(body, "primaryEntityId");
+      const rawPrimaryEntityType: unknown = body["primaryEntityType"];
+      let primaryEntityType: ServiceType | undefined = undefined;
+
+      if (
+        rawPrimaryEntityType !== undefined &&
+        rawPrimaryEntityType !== null &&
+        rawPrimaryEntityType !== ""
+      ) {
+        if (
+          typeof rawPrimaryEntityType !== "string" ||
+          !Object.values(ServiceType).includes(
+            rawPrimaryEntityType as ServiceType,
+          )
+        ) {
+          throw new BadDataException("primaryEntityType is not valid");
+        }
+
+        primaryEntityType = rawPrimaryEntityType as ServiceType;
+      }
+
+      if (primaryEntityId === undefined && primaryEntityType !== undefined) {
+        throw new BadDataException("primaryEntityId is required with its type");
+      }
+
       /*
        * An exception is not scoped to a RUM application, so there is no
        * single application to authorize against. Restrict the query to
@@ -6116,6 +6251,8 @@ router.post(
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
+          ...(primaryEntityId !== undefined && { primaryEntityId }),
+          ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),

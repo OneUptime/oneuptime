@@ -1,7 +1,11 @@
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import Config, { LoaderConfig, RecorderInitOptions } from "../src/Config";
+import Config, {
+  LATEST_RECORDER_VERSION,
+  LoaderConfig,
+  RecorderInitOptions,
+} from "../src/Config";
 import {
   DebugRecord,
   getDebugRecords,
@@ -71,7 +75,7 @@ function detailsOf(code: string): Array<Record<string, unknown>> {
 describe("Config diagnostics", (): void => {
   const validBody: Record<string, unknown> = {
     enabled: true,
-    recorderVersion: "12.0.0",
+    recorderVersion: LATEST_RECORDER_VERSION,
     maskingMode: SessionReplayMaskingMode.MaskAllText,
     consentMode: SessionReplayConsentMode.RequireExplicit,
     captureTrigger: SessionReplayCaptureTrigger.OnErrorOrFrustration,
@@ -79,7 +83,11 @@ describe("Config diagnostics", (): void => {
   };
 
   function bodyWith(extra: Record<string, unknown>): Record<string, unknown> {
-    return { enabled: true, recorderVersion: "12.0.0", ...extra };
+    return {
+      enabled: true,
+      recorderVersion: LATEST_RECORDER_VERSION,
+      ...extra,
+    };
   }
 
   const options: RecorderInitOptions = {
@@ -423,7 +431,7 @@ describe("Config diagnostics", (): void => {
         SessionReplayConsentMode.RequireExplicit,
       );
       expect(detail["maskingMode"]).toBe(SessionReplayMaskingMode.MaskAllText);
-      expect(detail["recorderVersion"]).toBe("12.0.0");
+      expect(detail["recorderVersion"]).toBe(LATEST_RECORDER_VERSION);
     });
   });
 

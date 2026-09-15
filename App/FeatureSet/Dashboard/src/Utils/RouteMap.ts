@@ -454,6 +454,17 @@ export const RumRoutePath: Dictionary<string> = {
    * whose id happened to be "settings".
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: `${RouteParams.ModelID}/session-replay-settings`,
+  /*
+   * Recording health on its own page. A hyphenated sibling for the same
+   * reason as the audit page: "session-replay/health" would be a session id
+   * to the player route.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]: `${RouteParams.ModelID}/session-replay-health`,
+  /*
+   * The setup guide and reference links. A sibling of /session-replay for
+   * the same reason as the pages above.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: `${RouteParams.ModelID}/session-replay-documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -611,6 +622,12 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
   [PageMap.EXCEPTIONS_VIEW_ROOT]: "",
   [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.EXCEPTIONS_VIEW_STACK_TRACE]: `${RouteParams.ModelID}/stack-trace`,
+  [PageMap.EXCEPTIONS_VIEW_OCCURRENCES]: `${RouteParams.ModelID}/occurrences`,
+  [PageMap.EXCEPTIONS_VIEW_CONTEXT]: `${RouteParams.ModelID}/context`,
+  [PageMap.EXCEPTIONS_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
+  [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
 };
 
@@ -4414,6 +4431,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
@@ -6235,6 +6264,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_STACK_TRACE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_STACK_TRACE]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_OCCURRENCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_OCCURRENCES]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_CONTEXT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_CONTEXT]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_SETTINGS]
     }`,
   ),
 

@@ -62,6 +62,11 @@ import {
 } from "../../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { LLMToolDefinition } from "../../../../../Server/Utils/LLM/LLMService";
 
+// A second project the same user belongs to.
+const otherProjectId: ObjectID = new ObjectID(
+  "33333333-3333-3333-3333-333333333333",
+);
+
 function contextFor(data: {
   allow?: Array<Permission>;
   block?: Array<Permission>;
@@ -105,6 +110,46 @@ function contextFor(data: {
   } as unknown as DatabaseCommonInteractionProps;
 
   return { projectId: projectId, props: props };
+}
+
+/*
+ * The shape of the evidence re-run bug: the caller holds every grant in the
+ * tenant their request names, but the tool is pointed at a different project
+ * (or the request is multi-tenant). The grants checked must be the grants of
+ * the project queried, so all of these must be refused.
+ */
+function mismatchedContexts(): Array<[string, ToolContext]> {
+  const allowed: ToolContext = contextFor({
+    allow: [Permission.ProjectOwner, Permission.ProjectMember],
+  });
+
+  return [
+    [
+      "a tool pointed at a project other than the request's tenant",
+      { projectId: otherProjectId, props: allowed.props },
+    ],
+    [
+      "a multi-tenant request, even inside the tenant",
+      {
+        projectId: projectId,
+        props: { ...allowed.props, isMultiTenantRequest: true },
+      },
+    ],
+    [
+      "a multi-tenant request pointed at another project",
+      {
+        projectId: otherProjectId,
+        props: { ...allowed.props, isMultiTenantRequest: true },
+      },
+    ],
+    [
+      "a request with no tenant at all",
+      {
+        projectId: projectId,
+        props: { ...allowed.props, tenantId: undefined },
+      },
+    ],
+  ];
 }
 
 const tools: Array<ObservabilityTool> = AIToolbox.getTools();
@@ -348,6 +393,62 @@ describe("AIToolbox.hasPermissionForTool", () => {
       true,
     );
   });
+
+  test.each(mismatchedContexts())(
+    "refuses %s despite the tenant's grants",
+    (_name: string, ctx: ToolContext) => {
+      expect(AIToolbox.hasPermissionForTool(tool, ctx)).toBe(false);
+    },
+  );
+
+  test("still lets a system (root) run query any project it is pointed at", () => {
+    expect(
+      AIToolbox.hasPermissionForTool(tool, {
+        projectId: otherProjectId,
+        props: { isRoot: true },
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("AIToolbox.isContextScopedToOneProject", () => {
+  test("accepts a caller whose tenant is the tool's project", () => {
+    expect(AIToolbox.isContextScopedToOneProject(contextFor({}))).toBe(true);
+  });
+
+  // Chat/Slack/Teams build the context from an ObjectID of the same value.
+  test("compares project ids by value, not identity", () => {
+    const ctx: ToolContext = contextFor({});
+
+    expect(
+      AIToolbox.isContextScopedToOneProject({
+        projectId: new ObjectID(projectId.toString()),
+        props: ctx.props,
+      }),
+    ).toBe(true);
+  });
+
+  test.each(mismatchedContexts())(
+    "rejects %s",
+    (_name: string, ctx: ToolContext) => {
+      expect(AIToolbox.isContextScopedToOneProject(ctx)).toBe(false);
+    },
+  );
+
+  test.each([
+    ["root", { isRoot: true }],
+    ["a master admin", { isMasterAdmin: true }],
+  ])("does not constrain %s", (_name: string, flags: JSONObject) => {
+    expect(
+      AIToolbox.isContextScopedToOneProject({
+        projectId: otherProjectId,
+        props: {
+          ...flags,
+          isMultiTenantRequest: true,
+        } as DatabaseCommonInteractionProps,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("AIToolbox.executeTool", () => {
@@ -407,6 +508,56 @@ describe("AIToolbox.executeTool", () => {
     expect(outcome.success).toBe(false);
     expect(outcome.errorMessage).toContain("Permission denied");
     expect(outcome.textForLlm).toContain("which permission is missing");
+  });
+
+  test.each(mismatchedContexts())(
+    "refuses %s without running the tool",
+    async (_name: string, ctx: ToolContext) => {
+      let ran: boolean = false;
+      lookupBehaviour = async (): Promise<JSONObject> => {
+        ran = true;
+        return {
+          dataForLlm: "rows from the wrong project",
+          rowCount: 1,
+          citationLabel: "Services",
+          redactionCount: 0,
+          isTruncated: false,
+        };
+      };
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: "lookup_context",
+        args: { type: "services" },
+        ctx,
+      });
+
+      expect(ran).toBe(false);
+      expect(outcome.success).toBe(false);
+      expect(outcome.result).toBeUndefined();
+      expect(outcome.errorMessage).toContain("Permission denied");
+      expect(outcome.errorMessage).toContain("not scoped to this project");
+      expect(outcome.textForLlm).not.toContain("rows from the wrong project");
+    },
+  );
+
+  test("runs a root context pointed at any project", async () => {
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      return {
+        dataForLlm: "services: checkout",
+        rowCount: 1,
+        citationLabel: "Services",
+        redactionCount: 0,
+        isTruncated: false,
+      };
+    };
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: { projectId: otherProjectId, props: { isRoot: true } },
+    });
+
+    expect(outcome.success).toBe(true);
   });
 
   test("refuses a blocked tool even when the user is otherwise permitted", async () => {

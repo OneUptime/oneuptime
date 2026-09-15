@@ -54,6 +54,9 @@ import {
   withTelemetryTabScopeParams,
 } from "../../Utils/TelemetryTabScope";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { getTraceEntityOptionLabel } from "./TracesEntityDisplay";
 
 function timeRangeLabel(range: RangeStartAndEndDateTime): string {
   if (range.range === TimeRange.CUSTOM) {
@@ -565,20 +568,59 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     });
   }, [services]);
 
+  /*
+   * Entity ids on this page the Service list does not name: a carried scope
+   * id (a RUM application or host id handed over from its own traces tab, or
+   * a service not in the list yet) and the entity behind a recent trace row.
+   * Resolved so the scope pill and the rows read as names, not UUIDs.
+   */
+  const unnamedEntityIds: Array<string> = useMemo(() => {
+    const knownIds: Set<string> = new Set<string>(
+      services.map((service: Service): string => {
+        return service.id?.toString() || "";
+      }),
+    );
+
+    return Array.from(
+      new Set<string>([
+        ...selectedServiceIds,
+        ...recentErrorTraces.map((trace: RecentTrace): string => {
+          return trace.primaryEntityId;
+        }),
+        ...recentSlowTraces.map((trace: RecentTrace): string => {
+          return trace.primaryEntityId;
+        }),
+      ]),
+    ).filter((id: string): boolean => {
+      return Boolean(id) && ObjectID.isValidUUID(id) && !knownIds.has(id);
+    });
+  }, [services, selectedServiceIds, recentErrorTraces, recentSlowTraces]);
+
+  const entityNames: TelemetryEntityNameMap =
+    useTelemetryEntityNames(unnamedEntityIds);
+
   const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
     return selectedServiceIds.map((serviceId: string): DropdownOption => {
       /*
        * A carried selection has to render even before the service list has
        * loaded — and even for a service that stopped reporting — or the user
-       * would have a filter they can see the effect of but not remove.
+       * would have a filter they can see the effect of but not remove. The
+       * entity lookup names it meanwhile (and names a non-Service entity at
+       * all); the id is the last resort.
        */
       return (
         serviceOptions.find((option: DropdownOption): boolean => {
           return option.value === serviceId;
-        }) || { value: serviceId, label: serviceId }
+        }) || {
+          value: serviceId,
+          label: getTraceEntityOptionLabel({
+            id: serviceId,
+            entityNames,
+          }),
+        }
       );
     });
-  }, [selectedServiceIds, serviceOptions]);
+  }, [selectedServiceIds, serviceOptions, entityNames]);
 
   /*
    * Editing the scope by hand means it is no longer the saved view's scope,
@@ -597,7 +639,12 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     const service: Service | undefined = services.find((s: Service) => {
       return s.id?.toString() === primaryEntityId;
     });
-    return service?.name?.toString() || "Unknown";
+    return getTraceEntityOptionLabel({
+      id: primaryEntityId,
+      knownLabel: service?.name?.toString(),
+      entityNames,
+      fallback: "Unknown",
+    });
   };
 
   const rangeLabel: string = timeRangeLabel(timeRange);

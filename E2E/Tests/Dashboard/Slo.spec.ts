@@ -190,6 +190,28 @@ test.describe("SLOs", () => {
     const form: Locator = page.locator("#create-ServiceLevelObjective-from");
     await form.waitFor({ state: "visible", timeout: 30000 });
 
+    const submitButton: Locator = page.getByTestId(
+      "modal-footer-submit-button",
+    );
+    const currentStep: Locator = form.locator('[aria-current="step"]');
+
+    /*
+     * The form is intentionally split into focused steps. Proving that a
+     * later field is absent here catches both missing formSteps wiring and a
+     * field accidentally assigned to the wrong step.
+     */
+    await expect(currentStep).toContainText("Basic Info");
+    await expect(form.getByLabel("Name")).toBeVisible();
+    await expect(
+      form.getByRole("combobox", { name: "Monitors", exact: true }),
+    ).toHaveCount(0);
+
+    await form.getByLabel("Name").fill(ctx.sloName);
+    await form.getByLabel("Description").fill(ctx.sloDescription);
+    await expect(submitButton).toContainText("Next");
+    await submitButton.click();
+    await expect(currentStep).toContainText("Monitors");
+
     /*
      * Monitors is an EntityDropdown (server-side typeahead), so type the
      * monitor's run-unique name and pick it out of the results rather than
@@ -229,8 +251,11 @@ test.describe("SLOs", () => {
     await page.getByTestId("modal-title").dispatchEvent("mousedown");
     await expect(page.getByTestId("entity-dropdown-menu")).toHaveCount(0);
 
-    await form.getByLabel("Name").fill(ctx.sloName);
-    await form.getByLabel("Description").fill(ctx.sloDescription);
+    await submitButton.click();
+
+    // The Objective step holds the target and all compliance-window fields.
+    await expect(currentStep).toContainText("Objective");
+    await expect(form.getByLabel("Target (%)")).toBeVisible();
     await form.getByLabel("Target (%)").fill("99.9");
 
     /*
@@ -241,7 +266,15 @@ test.describe("SLOs", () => {
      */
     await form.getByLabel("Window (Days)").fill("30");
 
-    await page.getByTestId("modal-footer-submit-button").click();
+    await submitButton.click();
+
+    // Labels is the optional final step, so its button performs the create.
+    await expect(currentStep).toContainText("Labels");
+    await expect(
+      form.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
+    ).toBeVisible();
+    await expect(submitButton).toContainText("Create Service Level Objective");
+    await submitButton.click();
     await modal.waitFor({ state: "hidden", timeout: 90000 });
 
     /*

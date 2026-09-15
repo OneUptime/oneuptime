@@ -16,6 +16,10 @@ import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import ChunkMath from "../../../Utils/Rum/ChunkMath";
 import {
+  SessionReplayTabEndFacts,
+  hasSessionRecordingEnded,
+} from "../../../Utils/Rum/SessionReplayRecordingEnded";
+import {
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
   MAX_SESSION_REPLAY_READ_BYTES,
   SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
@@ -35,6 +39,7 @@ import {
 } from "../../../Types/Rum/SessionReplayApi";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 
 /*
  * Bespoke ClickHouse reads for session-replay playback.
@@ -94,6 +99,15 @@ const READ_QUERY_SETTINGS: string = getQuerySettings({
 /* Page sizes for the session list. */
 export const DEFAULT_SESSION_REPLAY_LIST_LIMIT: number = 50;
 export const MAX_SESSION_REPLAY_LIST_LIMIT: number = 200;
+
+/*
+ * Audit tables resolve the opaque session ids on one page in a single
+ * ClickHouse read. Keep both the number of bound IN values and each value's
+ * size bounded; session ids are browser-minted 32-character hex strings, but
+ * older recorders and hand-written API callers may have stored another shape.
+ */
+export const MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE: number = 200;
+export const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
 
 /*
  * Page sizes for the per-user rollup (listUsers). Same figures as the
@@ -219,6 +233,11 @@ export interface SessionReplayListRequest {
    * as well.
    */
   includeIdentifiedUserLabel: boolean;
+  /*
+   * Server "now" in unix ms for the hasRecordingEnded grace. Absent means
+   * Date.now(); a test seam, like getApplicationActivitySummary's.
+   */
+  nowUnixMs?: number | undefined;
 }
 
 export interface SessionReplayListItem {
@@ -278,11 +297,50 @@ export interface SessionReplayListItem {
   tags: Record<string, string>;
   startTimeUnixMs: number;
   endTimeUnixMs: number;
+  /*
+   * True when the session is not finalized yet but every tab of it has
+   * ended (sent its final chunk, or stored its last permitted chunk
+   * index) and nothing has been stored for any of them for
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS, judged from the chunk rows by
+   * the shared rule in Common/Utils/Rum/SessionReplayRecordingEnded.ts.
+   * "Not finalized" only says the finalizer has not run; this says the
+   * recording itself is over, which is what the Dashboard needs to stop
+   * calling a closed tab "Recording now". The grace is the finalizer's
+   * own, measured on the same server clock, so a multi-page app's next
+   * page (a new tab id whose first chunk is still on its way) does not
+   * flip a live session to "ended" for a poll. Always false for a
+   * finalized session, and false when the chunk rows could not be read -
+   * the list never fails for it.
+   */
+  hasRecordingEnded: boolean;
 }
 
 export interface SessionReplayListResult {
   sessions: Array<SessionReplayListItem>;
   nextCursor: SessionReplayListCursor | null;
+}
+
+export interface SessionReplaySummariesRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  sessionIds: Array<string>;
+}
+
+/*
+ * Deliberately excludes every identity field. An audit list needs enough
+ * context to distinguish recordings, not the person or browser identifier
+ * attached to them.
+ */
+export interface SessionReplaySummary {
+  sessionId: string;
+  startTime: Date;
+  startTimeUnixMs: number;
+  durationMs: number;
+  entryUrl: string;
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
 }
 
 /* Routes projected onto a list row; the table shows three and says "(N pages)". */
@@ -425,6 +483,19 @@ export interface SessionReplaySessionHeader {
    */
   identifiedUserKey: string;
   visitorId: string;
+  /*
+   * Same meaning as SessionReplayListItem.hasRecordingEnded.
+   *
+   * JUDGED ONLY BY getManifest; getSessionHeader always answers false.
+   * The header read is also the authorization lookup behind every chunk
+   * and heartbeat request, and its result is cached for 30s there, so a
+   * chunk-table read on it would add a query to every uncached seek and
+   * cache an answer that goes stale the moment a tab closes. The manifest
+   * is the one read that hands the header to the Dashboard, it always
+   * resolves the header fresh, and it is pinned to the application the
+   * caller was authorized against - which the chunk read needs.
+   */
+  hasRecordingEnded: boolean;
   /*
    * Never populated by getSessionHeader. The manifest handler fills them
    * from getSessionIdentity ONLY after canReadIdentifiedUserLabel passes,
@@ -693,6 +764,36 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   { alias: "aggExpiresAt", expression: argMaxDate("retentionDate") },
   { alias: "aggTags", expression: argMaxColumn("tags") },
 ];
+
+/*
+ * The narrow projection used by the audit-table summary lookup. Derive it
+ * from the list's aggregates so live duration and replacement-row handling
+ * cannot drift between the two reads.
+ */
+const SESSION_SUMMARY_AGGREGATE_ALIASES: ReadonlyArray<string> = [
+  "aggStartTime",
+  "aggDurationMs",
+  "aggEntryUrl",
+  "aggBrowserName",
+  "aggBrowserVersion",
+  "aggOsName",
+  "aggDeviceType",
+];
+
+const SESSION_SUMMARY_AGGREGATES: Array<AggregatedColumn> =
+  SESSION_SUMMARY_AGGREGATE_ALIASES.map((alias: string): AggregatedColumn => {
+    const column: AggregatedColumn | undefined = HEADER_AGGREGATES.find(
+      (candidate: AggregatedColumn): boolean => {
+        return candidate.alias === alias;
+      },
+    );
+
+    if (!column) {
+      throw new Error(`HEADER_AGGREGATES has no column aliased ${alias}`);
+    }
+
+    return column;
+  });
 
 /* Only the manifest needs these; the list never renders them. */
 const HEADER_DETAIL_AGGREGATES: Array<AggregatedColumn> = [
@@ -1016,6 +1117,82 @@ function readDate(row: JSONObject, key: string): Date {
 }
 
 /*
+ * A number that has to be MEASURED, not defaulted. readNumber answers 0 for
+ * a missing or garbled value, which is the right degradation for a counter
+ * on a table row but the wrong one for a clock the "has this tab ended?"
+ * rule compares: a missing last-chunk start read as 0 would sit before
+ * every final chunk and call a live tab ended. NaN instead, which the
+ * shared rule refuses outright.
+ */
+function readMeasuredNumber(row: JSONObject, key: string): number {
+  const value: unknown = row[key];
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : Number.NaN;
+  }
+
+  /* Number("") and Number(" ") are 0, which is exactly the default above. */
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed: number = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  return Number.NaN;
+}
+
+/*
+ * The per-tab facts the shared rule in
+ * Common/Utils/Rum/SessionReplayRecordingEnded.ts is judged on, written
+ * exactly as that file documents them. The clocks and the version are
+ * wrapped in toFloat64 for the same reason as every wide column above:
+ * ClickHouse's JSON format quotes Int64 and UInt64 as strings. The chunk
+ * index is an Int32 and would come back as a number anyway; it is wrapped
+ * too so every fact in the group parses the same way. The aliases do not
+ * collide with a real column (see the NOTE on aliases at the top of this
+ * file).
+ *
+ * Two of the five are not about the tab's own clock:
+ *
+ * - tabMaxChunkIndex lets the rule call a tab that stored its last
+ *   permitted chunk index ended. The ingest gate refuses everything past
+ *   it, the recorder's own truncation seal included, so that tab never
+ *   gets a final chunk and would otherwise read as "recording" until the
+ *   idle finalizer.
+ * - tabLastChunkStoredAtUnixMs is max(version): the SERVER unix ms at
+ *   which the tab's newest chunk row was written. The grace is measured
+ *   on it, never on the device clock the chunk times come from.
+ */
+const TAB_HAS_FINAL_CHUNK_ALIAS: string = "tabHasFinalChunk";
+const TAB_FINAL_CHUNK_END_ALIAS: string = "tabFinalChunkEndUnixMs";
+const TAB_LAST_CHUNK_START_ALIAS: string = "tabLastChunkStartUnixMs";
+const TAB_MAX_CHUNK_INDEX_ALIAS: string = "tabMaxChunkIndex";
+const TAB_LAST_CHUNK_STORED_AT_ALIAS: string = "tabLastChunkStoredAtUnixMs";
+
+const TAB_END_FACT_AGGREGATES: Array<AggregatedColumn> = [
+  {
+    alias: TAB_HAS_FINAL_CHUNK_ALIAS,
+    expression: "max(toUInt8(isFinal))",
+  },
+  {
+    alias: TAB_FINAL_CHUNK_END_ALIAS,
+    expression:
+      "toFloat64(toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal)))",
+  },
+  {
+    alias: TAB_LAST_CHUNK_START_ALIAS,
+    expression: "toFloat64(toUnixTimestamp64Milli(max(chunkStartTime)))",
+  },
+  {
+    alias: TAB_MAX_CHUNK_INDEX_ALIAS,
+    expression: "toFloat64(max(chunkIndex))",
+  },
+  {
+    alias: TAB_LAST_CHUNK_STORED_AT_ALIAS,
+    expression: "toFloat64(max(version))",
+  },
+];
+
+/*
  * The capability list chunk 0 declared, filtered to the vocabulary this
  * build knows so a stored typo never reaches the player as a capability.
  */
@@ -1086,6 +1263,120 @@ export default class SessionReplayReadService {
   /* Test seam: the summary cache is process-local. */
   public static clearActivitySummaryCache(): void {
     activitySummaryCache.clear();
+  }
+
+  /*
+   * Resolve the opaque ids stored on audit rows into compact session facts.
+   * This is intentionally one bespoke query instead of N getSessionHeader
+   * calls (or AnalyticsModelAPI, which RumSession does not expose). The
+   * project and application are both pinned before the caller-controlled IN
+   * list, and argMax collapses provisional/finalized ReplacingMergeTree rows.
+   */
+  @CaptureSpan()
+  public static async getSessionSummaries(
+    request: SessionReplaySummariesRequest,
+  ): Promise<Array<SessionReplaySummary>> {
+    if (request.sessionIds.length === 0) {
+      throw new BadDataException("sessionIds must contain at least one id");
+    }
+
+    if (request.sessionIds.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+      throw new BadDataException(
+        `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+      );
+    }
+
+    for (const sessionId of request.sessionIds) {
+      if (typeof sessionId !== "string" || sessionId.length === 0) {
+        throw new BadDataException(
+          "Every sessionId must be a non-empty string",
+        );
+      }
+
+      if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+        throw new BadDataException(
+          `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+        );
+      }
+    }
+
+    /* Preserve first occurrence order while binding every id only once. */
+    const sessionIds: Array<string> = Array.from(
+      new Set<string>(request.sessionIds),
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+        sessionId,
+    `;
+
+    statement.append(`    ${toSelectList(SESSION_SUMMARY_AGGREGATES)}`);
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.rumApplicationId,
+        }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(
+      " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC",
+    );
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const requestedIds: Set<string> = new Set<string>(sessionIds);
+    const summariesById: Map<string, SessionReplaySummary> = new Map<
+      string,
+      SessionReplaySummary
+    >();
+
+    for (const row of response.data || []) {
+      const sessionId: string = readString(row, "sessionId");
+
+      /* A malformed/unexpected driver row can never add data to the reply. */
+      if (!requestedIds.has(sessionId) || summariesById.has(sessionId)) {
+        continue;
+      }
+
+      const startTime: Date = readDate(row, "aggStartTime");
+
+      summariesById.set(sessionId, {
+        sessionId: sessionId,
+        startTime: startTime,
+        startTimeUnixMs: startTime.getTime(),
+        durationMs: readNumber(row, "aggDurationMs"),
+        entryUrl: readString(row, "aggEntryUrl"),
+        browserName: readString(row, "aggBrowserName"),
+        browserVersion: readString(row, "aggBrowserVersion"),
+        osName: readString(row, "aggOsName"),
+        deviceType: readString(row, "aggDeviceType"),
+      });
+    }
+
+    /* Stable request order makes consumers deterministic; missing ids omit. */
+    return sessionIds.flatMap(
+      (sessionId: string): Array<SessionReplaySummary> => {
+        const summary: SessionReplaySummary | undefined =
+          summariesById.get(sessionId);
+
+        return summary ? [summary] : [];
+      },
+    );
   }
 
   /*
@@ -1304,6 +1595,8 @@ export default class SessionReplayReadService {
           tags: readStringMap(row, "aggTags"),
           startTimeUnixMs: startTime.getTime(),
           endTimeUnixMs: endTime.getTime(),
+          /* Judged below, only for the page's unfinalized sessions. */
+          hasRecordingEnded: false,
         };
 
         if (request.includeIdentifiedUserLabel) {
@@ -1317,6 +1610,44 @@ export default class SessionReplayReadService {
         return item;
       },
     );
+
+    /*
+     * "Recording now" or "recording ended"? The header cannot say: a
+     * provisional header stays unfinalized for the whole idle window
+     * after its last tab closed, which is how a closed tab kept its
+     * "Recording now" badge for 10-15 minutes. The chunk rows can, so the
+     * page's unfinalized sessions - and only those - get ONE follow-up
+     * read over the chunk table. A page of finalized sessions (the
+     * overwhelming majority of any list older than a few minutes) runs
+     * no second query at all.
+     *
+     * It is a separate statement rather than a JOIN on the list query
+     * because the list's own read is a range over the HEADER table's sort
+     * key, and joining the chunk table there would aggregate chunk rows
+     * for every session in the window before the LIMIT picked a page.
+     */
+    const unfinalizedSessionIds: Array<string> = sessions
+      .filter((session: SessionReplayListItem): boolean => {
+        return !session.isFinalized;
+      })
+      .map((session: SessionReplayListItem): string => {
+        return session.sessionId;
+      });
+
+    if (unfinalizedSessionIds.length > 0) {
+      const endedSessionIds: Set<string> =
+        await SessionReplayReadService.readRecordingEndedSessionIds({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          sessionIds: unfinalizedSessionIds,
+          nowUnixMs: request.nowUnixMs ?? Date.now(),
+        });
+
+      for (const session of sessions) {
+        session.hasRecordingEnded =
+          !session.isFinalized && endedSessionIds.has(session.sessionId);
+      }
+    }
 
     const lastSession: SessionReplayListItem | undefined =
       sessions[sessions.length - 1];
@@ -1719,6 +2050,12 @@ export default class SessionReplayReadService {
       recorderCapabilities: readRecorderCapabilities(row),
       identifiedUserKey: readString(row, "aggIdentifiedUserKey"),
       visitorId: readString(row, "aggVisitorId"),
+      /*
+       * Not judged here: see SessionReplaySessionHeader.hasRecordingEnded.
+       * getManifest, the read that returns this header to the Dashboard,
+       * replaces it for an unfinalized session.
+       */
+      hasRecordingEnded: false,
     };
   }
 
@@ -1870,6 +2207,11 @@ export default class SessionReplayReadService {
      */
     rumApplicationId: ObjectID;
     sessionId: string;
+    /*
+     * Server "now" in unix ms for the hasRecordingEnded grace. Absent
+     * means Date.now(); a test seam, like listSessions'.
+     */
+    nowUnixMs?: number | undefined;
   }): Promise<SessionReplayManifest> {
     /*
      * LIMIT 1 BY (tabId, chunkIndex) after ORDER BY ... version DESC
@@ -1929,8 +2271,38 @@ export default class SessionReplayReadService {
 
     statement.append(READ_QUERY_SETTINGS);
 
-    const dbResult: Results =
-      await RumSessionChunkService.executeQuery(statement);
+    /*
+     * Whether this unfinalized session's recording is already over, read
+     * alongside the manifest rather than after it: the player re-fetches
+     * the manifest every 30s while a session is not finalized, and this
+     * is what lets it stop calling a closed session "Live" once the
+     * ended grace has passed, instead of waiting for a finalizer run to
+     * seal the header. The same helper, the same grace and the same
+     * clock the list uses, so the list badge and the player pill can
+     * never disagree about one session.
+     *
+     * Its own grouped read rather than a fold over the rows below: those
+     * rows are capped at MAX_MANIFEST_ROWS in (tabId, chunkIndex) order, so
+     * a truncated manifest would lose a tab's newest chunks - exactly the
+     * rows that say whether it kept recording after its final chunk. A
+     * finalized header is authoritative and runs no second read. The
+     * helper never rejects (a failure answers "not ended"), so it cannot
+     * fail the manifest. The manifest statement is issued first.
+     */
+    const manifestResultPromise: Promise<Results> =
+      RumSessionChunkService.executeQuery(statement);
+
+    const endedSessionIdsPromise: Promise<Set<string>> = data.header.isFinalized
+      ? Promise.resolve(new Set<string>())
+      : SessionReplayReadService.readRecordingEndedSessionIds({
+          projectId: data.projectId,
+          rumApplicationId: data.rumApplicationId,
+          sessionIds: [data.sessionId],
+          nowUnixMs: data.nowUnixMs ?? Date.now(),
+        });
+
+    const [dbResult, endedSessionIds]: [Results, Set<string>] =
+      await Promise.all([manifestResultPromise, endedSessionIdsPromise]);
     const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
@@ -2040,6 +2412,7 @@ export default class SessionReplayReadService {
         liveDurationMs: liveDurationMs,
         liveEventCount: liveEventCount,
         liveMaxChunkIndex: liveMaxChunkIndex,
+        hasRecordingEnded: endedSessionIds.has(data.sessionId),
       }),
       tabs: tabs,
       isChunkIndexTruncated: rows.length >= MAX_MANIFEST_ROWS,
@@ -2051,6 +2424,10 @@ export default class SessionReplayReadService {
    * 0 and eventCount 0 while its chunk rows say otherwise; the manifest
    * has just read every chunk row, so it reports what the rows prove. A
    * finalized header is authoritative and returned untouched.
+   *
+   * hasRecordingEnded is set on every unfinalized header, including one
+   * whose chunk rows have not landed yet: getSessionHeader never judges
+   * it, so the manifest is the only place the field is ever true.
    */
   private static reconcileLiveHeader(data: {
     header: SessionReplaySessionHeader;
@@ -2058,9 +2435,17 @@ export default class SessionReplayReadService {
     liveDurationMs: number;
     liveEventCount: number;
     liveMaxChunkIndex: number;
+    hasRecordingEnded: boolean;
   }): SessionReplaySessionHeader {
-    if (data.header.isFinalized || data.chunkRowCount === 0) {
+    if (data.header.isFinalized) {
       return data.header;
+    }
+
+    if (data.chunkRowCount === 0) {
+      return {
+        ...data.header,
+        hasRecordingEnded: data.hasRecordingEnded,
+      };
     }
 
     const durationMs: number = Math.max(
@@ -2083,7 +2468,172 @@ export default class SessionReplayReadService {
         data.header.maxChunkIndex,
         data.liveMaxChunkIndex,
       ),
+      hasRecordingEnded: data.hasRecordingEnded,
     };
+  }
+
+  /*
+   * Which of these unfinalized sessions have stopped recording, judged by
+   * the shared rule (Common/Utils/Rum/SessionReplayRecordingEnded.ts) over
+   * their chunk rows. The one helper behind both the list badge and the
+   * player's Live pill.
+   *
+   * One statement for any number of sessions:
+   *
+   *   WHERE projectId = ? AND sessionId IN (...) AND rumApplicationId = ?
+   *   GROUP BY sessionId, tabId
+   *
+   * A KEY-RANGE READ. RumSessionChunk is sorted (and primary-keyed) by
+   * (projectId, sessionId, tabId, chunkIndex), so projectId plus a
+   * sessionId IN list is a prefix of the primary index: ClickHouse reads
+   * only the granules of the named sessions - a handful of narrow columns
+   * over at most a few hundred rows each - and never the payload column.
+   * The GROUP BY follows the same key order. rumApplicationId is a plain
+   * column filtered over those granules, and it is not optional: the
+   * table's replace key has no application in it, so two applications
+   * that share a browser-minted sessionId share one key space, and
+   * without the pin one application's closed tab could end another's
+   * recording.
+   *
+   * Grouped per tab, never per session, because the rule is per tab: a
+   * session shared by several tabs (or several page loads of a multi-page
+   * app) is over only when every one of them is. The five aggregates are
+   * maxima, so a redelivered chunk's duplicate row - or a pinned copy -
+   * cannot make a live tab look ended and no LIMIT 1 BY is needed. Such a
+   * row can carry a NEWER version than the original, which only restarts
+   * the grace once; it never shortens it. The retention filter is kept
+   * like on every other replay read.
+   *
+   * The grace. Every tab having ended is not enough on its own: in a
+   * multi-page app, page A's final chunk lands while page B - a new tab id
+   * under the same session - has not stored its first chunk yet, and for
+   * that moment the only tab the rows know about has ended. So the rule
+   * also wants the newest stored chunk of the session to be at least
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS older than nowUnixMs, the same
+   * grace the finalizer waits on, measured on the same server clock (the
+   * rows' version against this process's Date.now()). The list, the player
+   * and the finalizer therefore call a session ended at the same moment,
+   * give or take the finalizer's one-minute schedule, and none of them
+   * depends on Redis for it.
+   *
+   * Best-effort. A failure logs a warning and answers "nothing has ended",
+   * which is what the Dashboard showed before this existed; neither the
+   * list nor the manifest may fail because of it. A session with no chunk
+   * rows has no tabs, and no tabs is "not known", never "ended".
+   */
+  private static async readRecordingEndedSessionIds(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    sessionIds: Array<string>;
+    /* Server unix ms the grace is measured against. */
+    nowUnixMs: number;
+  }): Promise<Set<string>> {
+    const endedSessionIds: Set<string> = new Set<string>();
+
+    const sessionIds: Array<string> = Array.from(
+      new Set<string>(
+        data.sessionIds.filter((sessionId: string): boolean => {
+          return sessionId.length > 0;
+        }),
+      ),
+    );
+
+    if (sessionIds.length === 0) {
+      return endedSessionIds;
+    }
+
+    const statement: Statement = SQL`
+      SELECT
+        sessionId,
+        tabId,
+    `;
+
+    statement.append(`    ${toSelectList(TAB_END_FACT_AGGREGATES)}`);
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSessionChunk}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(" GROUP BY sessionId, tabId");
+    statement.append(READ_QUERY_SETTINGS);
+
+    let rows: Array<JSONObject>;
+
+    try {
+      const dbResult: Results =
+        await RumSessionChunkService.executeQuery(statement);
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      rows = response.data || [];
+    } catch (err: unknown) {
+      logger.warn(
+        "SessionReplayReadService: could not read chunk rows to tell whether unfinalized sessions have ended; reporting them as still recording",
+      );
+      logger.warn(err);
+
+      return endedSessionIds;
+    }
+
+    const requested: Set<string> = new Set<string>(sessionIds);
+    const tabsBySessionId: Map<
+      string,
+      Array<SessionReplayTabEndFacts>
+    > = new Map<string, Array<SessionReplayTabEndFacts>>();
+
+    for (const row of rows) {
+      const sessionId: string = readString(row, "sessionId");
+
+      /* Defensive: a row for a session nobody asked about decides nothing. */
+      if (!requested.has(sessionId)) {
+        continue;
+      }
+
+      const tab: SessionReplayTabEndFacts = {
+        hasFinalChunk: readBoolean(row, TAB_HAS_FINAL_CHUNK_ALIAS),
+        finalChunkEndUnixMs: readMeasuredNumber(row, TAB_FINAL_CHUNK_END_ALIAS),
+        lastChunkStartUnixMs: readMeasuredNumber(
+          row,
+          TAB_LAST_CHUNK_START_ALIAS,
+        ),
+        maxChunkIndex: readMeasuredNumber(row, TAB_MAX_CHUNK_INDEX_ALIAS),
+        lastChunkStoredAtUnixMs: readMeasuredNumber(
+          row,
+          TAB_LAST_CHUNK_STORED_AT_ALIAS,
+        ),
+      };
+
+      const existing: Array<SessionReplayTabEndFacts> | undefined =
+        tabsBySessionId.get(sessionId);
+
+      if (existing) {
+        existing.push(tab);
+      } else {
+        tabsBySessionId.set(sessionId, [tab]);
+      }
+    }
+
+    for (const [sessionId, tabs] of tabsBySessionId) {
+      if (hasSessionRecordingEnded(tabs, data.nowUnixMs)) {
+        endedSessionIds.add(sessionId);
+      }
+    }
+
+    return endedSessionIds;
   }
 
   /*
@@ -2263,14 +2813,28 @@ export default class SessionReplayReadService {
    * fingerprint present only on a superseded row does not produce a false
    * positive.
    *
-   * Always windowed. RumSession is partitioned by day, so without a
-   * window this scanned every partition the project ever wrote on every
-   * exception page load.
+   * Typed RUM and fully unscoped legacy lookups are windowed in WHERE for
+   * partition pruning. Scoped non-RUM and ID-only type-unknown lookups apply
+   * the window in QUALIFY: their instance-proven session ids must first be
+   * checked across every retained application in the project so a duplicate
+   * id cannot be hidden outside the caller's time or authorization scope.
    */
   @CaptureSpan()
   public static async getSessionsForException(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    /*
+     * Exception fingerprints are unique per primary entity, not per project.
+     * Keep this optional for older callers, but exception pages should always
+     * provide it so neither the live side index nor finalized headers can mix
+     * identically fingerprinted groups from different services.
+     */
+    primaryEntityId?: ObjectID | undefined;
+    /*
+     * Identifies the owning entity table. ID-only is accepted as a rolling
+     * compatibility mode and uses the conservative scoped-unknown branch.
+     */
+    primaryEntityType?: ServiceType | undefined;
     /*
      * null means "no label restriction". An EMPTY array means the caller
      * can reach no applications at all and must get no rows - the two are
@@ -2284,6 +2848,20 @@ export default class SessionReplayReadService {
     sessionId?: string | undefined;
     limit: number;
   }): Promise<Array<SessionReplayExceptionSession>> {
+    const hasPrimaryEntityId: boolean = data.primaryEntityId !== undefined;
+    const hasPrimaryEntityType: boolean = data.primaryEntityType !== undefined;
+
+    if (!hasPrimaryEntityId && hasPrimaryEntityType) {
+      throw new BadDataException("primaryEntityId is required with its type");
+    }
+
+    if (
+      data.primaryEntityType !== undefined &&
+      !Object.values(ServiceType).includes(data.primaryEntityType)
+    ) {
+      throw new BadDataException("primaryEntityType is not valid");
+    }
+
     if (
       data.accessibleRumApplicationIds &&
       data.accessibleRumApplicationIds.length === 0
@@ -2308,10 +2886,27 @@ export default class SessionReplayReadService {
       await SessionReplayReadService.getSessionIdsForExceptionInstances({
         projectId: data.projectId,
         exceptionFingerprint: data.exceptionFingerprint,
+        primaryEntityId: data.primaryEntityId,
+        primaryEntityType: data.primaryEntityType,
         startTime: startTime,
         endTime: endTime,
         sessionId: data.sessionId,
       });
+
+    const isScopedRumException: boolean =
+      data.primaryEntityType === ServiceType.RealUserMonitor;
+    const isScopedNonRumOrUnknownException: boolean =
+      hasPrimaryEntityId && !isScopedRumException;
+
+    /*
+     * A finalized replay header has only a flat fingerprint list. For a
+     * non-RUM or legacy type-unknown entity that list cannot prove ownership,
+     * so only the scoped instance side index may admit a session. Failure or
+     * an empty lookup must therefore fail closed.
+     */
+    if (isScopedNonRumOrUnknownException && instanceSessionIds.length === 0) {
+      return [];
+    }
 
     const selectList: string = toSelectList([
       { alias: "aggStartTime", expression: argMaxDateTime("startTime") },
@@ -2362,6 +2957,13 @@ export default class SessionReplayReadService {
 
     statement.append(`    ${selectList}`);
 
+    if (isScopedNonRumOrUnknownException) {
+      /* One grouped row per application makes this a cross-app collision count. */
+      statement.append(
+        ", count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+    }
+
     statement.append(SQL`
       FROM ${AnalyticsTableName.RumSession}
       WHERE projectId = ${{
@@ -2370,7 +2972,12 @@ export default class SessionReplayReadService {
       }}
     `);
 
-    if (data.accessibleRumApplicationIds) {
+    /*
+     * For non-RUM and legacy type-unknown exceptions, authorization belongs
+     * in QUALIFY after the window has counted inaccessible applications too.
+     * Applying it here would make an ambiguous id appear unique.
+     */
+    if (!isScopedNonRumOrUnknownException && data.accessibleRumApplicationIds) {
       statement.append(
         SQL` AND rumApplicationId IN (${{
           type: TableColumnType.ObjectID,
@@ -2379,15 +2986,17 @@ export default class SessionReplayReadService {
       );
     }
 
-    statement.append(
-      SQL` AND startTime >= ${{
-        type: TableColumnType.DateTime64,
-        value: startTime,
-      }} AND startTime <= ${{
-        type: TableColumnType.DateTime64,
-        value: endTime,
-      }}`,
-    );
+    if (!isScopedNonRumOrUnknownException) {
+      statement.append(
+        SQL` AND startTime >= ${{
+          type: TableColumnType.DateTime64,
+          value: startTime,
+        }} AND startTime <= ${{
+          type: TableColumnType.DateTime64,
+          value: endTime,
+        }}`,
+      );
+    }
 
     statement.append(RETENTION_FILTER);
 
@@ -2400,14 +3009,35 @@ export default class SessionReplayReadService {
       );
     }
 
-    statement.append(
-      SQL` AND (hasAny(exceptionFingerprints, [${{
-        type: TableColumnType.Text,
-        value: data.exceptionFingerprint,
-      }}])`,
-    );
+    if (isScopedRumException && data.primaryEntityId) {
+      /* Both finalized fingerprints and instance-proven ids stay in this RUM app. */
+      statement.append(
+        SQL` AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
 
-    if (instanceSessionIds.length > 0) {
+    statement.append(" AND (");
+
+    if (isScopedNonRumOrUnknownException) {
+      statement.append(
+        SQL`sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(instanceSessionIds),
+        }})`,
+      );
+    } else {
+      statement.append(
+        SQL`hasAny(exceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+    }
+
+    if (!isScopedNonRumOrUnknownException && instanceSessionIds.length > 0) {
       statement.append(
         SQL` OR sessionId IN (${{
           type: TableColumnType.Text,
@@ -2418,24 +3048,52 @@ export default class SessionReplayReadService {
 
     statement.append(")");
 
-    statement.append(
-      SQL` GROUP BY projectId, rumApplicationId, sessionId
-           HAVING (hasAny(aggExceptionFingerprints, [${{
-             type: TableColumnType.Text,
-             value: data.exceptionFingerprint,
-           }}])`,
-    );
+    statement.append(" GROUP BY projectId, rumApplicationId, sessionId");
 
-    if (instanceSessionIds.length > 0) {
+    if (isScopedNonRumOrUnknownException) {
+      /*
+       * Windowing happens over every application before either the time
+       * window or accessible-app filter is applied. QUALIFY also precedes
+       * ORDER/LIMIT, so a second application can never be sorted away.
+       */
+      statement.append(" QUALIFY matchedApplicationCount = 1");
       statement.append(
-        SQL` OR sessionId IN (${{
-          type: TableColumnType.Text,
-          value: new Includes(instanceSessionIds),
-        }})`,
+        SQL` AND aggStartTime >= ${{
+          type: TableColumnType.BigNumber,
+          value: startTime.getTime(),
+        }} AND aggStartTime <= ${{
+          type: TableColumnType.BigNumber,
+          value: endTime.getTime(),
+        }}`,
       );
-    }
 
-    statement.append(")");
+      if (data.accessibleRumApplicationIds) {
+        statement.append(
+          SQL` AND rumApplicationId IN (${{
+            type: TableColumnType.ObjectID,
+            value: new Includes(data.accessibleRumApplicationIds),
+          }})`,
+        );
+      }
+    } else {
+      statement.append(" HAVING (");
+      statement.append(
+        SQL`hasAny(aggExceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+      if (instanceSessionIds.length > 0) {
+        statement.append(
+          SQL` OR sessionId IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(instanceSessionIds),
+          }})`,
+        );
+      }
+
+      statement.append(")");
+    }
 
     statement.append(
       SQL` ORDER BY aggStartTime DESC
@@ -2452,7 +3110,21 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
-    return (response.data || []).map(
+    const responseRows: Array<JSONObject> = (response.data || []).filter(
+      (row: JSONObject): boolean => {
+        /*
+         * QUALIFY is authoritative. Its count was computed over every app
+         * before ORDER/LIMIT, so retaining only count=1 is also a fail-closed
+         * guard if a changed driver ever returns a row that should not survive.
+         */
+        return (
+          !isScopedNonRumOrUnknownException ||
+          readNumber(row, "matchedApplicationCount") === 1
+        );
+      },
+    );
+
+    return responseRows.map(
       (row: JSONObject): SessionReplayExceptionSession => {
         return {
           sessionId: readString(row, "sessionId"),
@@ -2484,9 +3156,10 @@ export default class SessionReplayReadService {
    * session, so a session that started inside the window threw inside
    * [startTime, endTime + max session length].
    *
-   * Best-effort: the side index only ADDS live sessions to the answer, so
-   * a failure here degrades to the finalized-only lookup with a warning
-   * rather than failing the exception page's replay card.
+   * Best-effort for fully unscoped legacy and typed RUM lookups: there it only
+   * ADDS live sessions, so a failure degrades to finalized headers. Scoped
+   * non-RUM and ID-only lookups rely on it as their sole entity-ownership
+   * proof and therefore fail closed.
    *
    * A caller-pinned sessionId narrows the lookup rather than bypassing it,
    * so the pin can never assert that a session threw something the
@@ -2495,6 +3168,8 @@ export default class SessionReplayReadService {
   private static async getSessionIdsForExceptionInstances(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    primaryEntityId?: ObjectID | undefined;
+    primaryEntityType?: ServiceType | undefined;
     startTime: Date;
     endTime: Date;
     sessionId?: string | undefined;
@@ -2522,6 +3197,32 @@ export default class SessionReplayReadService {
           ),
         }}
     `;
+
+    if (data.primaryEntityId) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
+
+    if (data.primaryEntityType === ServiceType.OpenTelemetry) {
+      /* NULL/empty is the historical discriminator for an OTel service. */
+      statement.append(
+        SQL` AND (ifNull(primaryEntityType, '') = '' OR primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (data.primaryEntityType) {
+      statement.append(
+        SQL` AND primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: data.primaryEntityType as string,
+        }}`,
+      );
+    }
 
     /*
      * A pinned sessionId narrows this lookup; it does NOT replace it.
@@ -2572,7 +3273,7 @@ export default class SessionReplayReadService {
         });
     } catch (err: unknown) {
       logger.warn(
-        "SessionReplayReadService: could not look up exception instances by session; answering from finalized headers only",
+        "SessionReplayReadService: could not look up exception instances by session; scoped non-RUM lookups fail closed and other lookups answer from finalized headers only",
       );
       logger.warn(err);
 

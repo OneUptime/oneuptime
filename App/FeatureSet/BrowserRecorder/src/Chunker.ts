@@ -172,6 +172,33 @@ export interface PendingChunk {
 
 export type ChunkSink = (chunk: PendingChunk) => void;
 
+/*
+ * What a closeSplit had to give up on its newest piece, for the recorder's
+ * diagnostics. Older pieces dropped for the total budget are reported the
+ * way they always were (getDroppedEventCount); this is the separate, rarer
+ * loss of the footage right at the end.
+ */
+export interface SplitCloseResult {
+  /*
+   * Events of a FINAL newest piece that was over the total budget on its
+   * own and went out as an empty sealing piece instead; 0 when the sealing
+   * piece carried its footage.
+   */
+  emptiedSealEvents: number;
+
+  /* That piece's payload bytes, as the budget counted them; 0 likewise. */
+  emptiedSealBytes: number;
+}
+
+/*
+ * What an empty sealing piece costs the total budget: its "[]" payload.
+ * Its envelope is not charged here, for the same reason the envelope of the
+ * sealing piece never is: the total budget is a PAYLOAD budget, cut below
+ * the transport's frame quota by room for exactly one envelope, and that
+ * envelope is the sealing piece's own.
+ */
+const EMPTY_SEAL_PAYLOAD_BYTES: number = 2;
+
 interface OpenChunk {
   /*
    * The buffered events themselves rather than their JSON alone: closeSplit
@@ -230,6 +257,19 @@ export default class Chunker {
   /* Running UTF-8 size of `routes`, for the envelope byte budget. */
   private routeBytes: number = 0;
 
+  /*
+   * The furthest chunkEndOffsetMs handed to the sink so far. An EMPTY chunk
+   * (the seal with nothing open, the truncation disclosure) has no event to
+   * date it and is placed at "now" - but never before this. Two clocks can
+   * disagree about "now": the chunker reads Date.now() while rrweb stamps
+   * events through a reference it captured at load, and the wall clock
+   * itself can step backwards under an NTP correction. The server decides a
+   * tab has ended by comparing the final chunk's END with the starts of the
+   * chunks around it, so a seal dated before the footage it follows is not
+   * a cosmetic error.
+   */
+  private lastEmittedEndOffsetMs: number = 0;
+
   public constructor(options: {
     sessionStartUnixMs: number;
     sink: ChunkSink;
@@ -237,7 +277,19 @@ export default class Chunker {
     onTruncated?: () => void;
   }) {
     this.sessionStartUnixMs = options.sessionStartUnixMs;
-    this.sink = options.sink;
+
+    /*
+     * Every emitted chunk passes through here, so the latest end offset is
+     * known to the chunks that have no events of their own to date them.
+     */
+    this.sink = (chunk: PendingChunk): void => {
+      this.lastEmittedEndOffsetMs = Math.max(
+        this.lastEmittedEndOffsetMs,
+        chunk.chunkEndOffsetMs,
+      );
+
+      options.sink(chunk);
+    };
     this.maxPayloadBytes =
       options.maxPayloadBytes === undefined
         ? SESSION_REPLAY_FLUSH_BYTES
@@ -412,12 +464,40 @@ export default class Chunker {
    * here rather than in the transport is what keeps the chunk sequence
    * contiguous: an index minted for a request that is never issued is a
    * hole the player reports as a missing chunk forever.
+   *
+   * frameOverheadBytes is what every piece BESIDE the newest one costs the
+   * total budget on top of its payload: its own envelope. The total budget
+   * already leaves room for one envelope under the transport's frame quota,
+   * and that one belongs to the newest piece; each extra frame brings
+   * another, and a budget that counted payloads alone minted indexes for
+   * pieces the transport then had to leave out of the request.
+   *
+   * A FINAL newest piece that is over the total budget on its own - one
+   * indivisible event bigger than a keepalive request, such as a large DOM
+   * insertion just before the tab closed - is sealed EMPTY: its events are
+   * dropped and counted, and an empty final piece (payload "[]") takes its
+   * place, dated at the end of the footage it replaces. It is charged only
+   * that "[]", so the older pieces still fill the rest of the budget
+   * newest-first. Keeping the oversized piece whole instead spent the ENTIRE
+   * budget on footage no request could carry: every older piece was
+   * dropped, and the transport then sent a ~1 KB empty frame in its place
+   * anyway. (Transport.sendTerminal still swaps in an empty frame for a
+   * final one over the quota; that is now only the backstop for a piece
+   * pushed over by its envelope.) A NON-final newest piece over the budget
+   * is still minted whole: it seals nothing, so an empty stand-in would
+   * spend quota to say nothing.
    */
   public closeSplit(
     isFinal: boolean,
     maxPayloadBytes: number,
     maxTotalBytes?: number,
-  ): void {
+    frameOverheadBytes: number = 0,
+  ): SplitCloseResult {
+    const result: SplitCloseResult = {
+      emptiedSealEvents: 0,
+      emptiedSealBytes: 0,
+    };
+
     const open: OpenChunk | null = this.open;
 
     this.open = null;
@@ -425,14 +505,14 @@ export default class Chunker {
     if (this.hasReachedSessionChunkCap()) {
       this.droppedEvents += open ? open.eventCount : 0;
       this.emitTruncationChunk();
-      return;
+      return result;
     }
 
     if (!open || open.eventCount === 0) {
       if (isFinal) {
         this.emitEmptyFinalChunk();
       }
-      return;
+      return result;
     }
 
     const pieces: Array<Array<BufferedEvent>> = [];
@@ -460,19 +540,37 @@ export default class Chunker {
     /* Pieces dropped off the FRONT for the total budget; see below. */
     let droppedPieces: number = 0;
 
+    /*
+     * The newest piece goes out as an empty seal rather than with its
+     * footage. Only ever set for a final split with a total budget.
+     */
+    let sealEmpty: boolean = false;
+
     if (maxTotalBytes !== undefined) {
       let budget: number = maxTotalBytes;
       let keepFrom: number = pieces.length;
+      const newestIndex: number = pieces.length - 1;
 
-      for (let index: number = pieces.length - 1; index >= 0; index--) {
+      for (let index: number = newestIndex; index >= 0; index--) {
         const piece: Array<BufferedEvent> = pieces[
           index
         ] as Array<BufferedEvent>;
 
-        let bytes: number = piece.length + 1;
+        /* Exactly the payload's UTF-8 length: brackets, commas, events. */
+        let bytes: number = Chunker.getPiecePayloadBytes(piece);
 
-        for (const event of piece) {
-          bytes += event.bytes;
+        if (index === newestIndex && isFinal && bytes > maxTotalBytes) {
+          /*
+           * Too big for any request on its own. Its events are dropped
+           * below and an empty seal is charged in its place. See the method
+           * comment.
+           */
+          sealEmpty = true;
+          result.emptiedSealEvents = piece.length;
+          result.emptiedSealBytes = bytes;
+          bytes = EMPTY_SEAL_PAYLOAD_BYTES;
+        } else if (index < newestIndex) {
+          bytes += frameOverheadBytes;
         }
 
         if (bytes > budget) {
@@ -484,9 +582,13 @@ export default class Chunker {
       }
 
       /*
-       * The newest piece is kept even when it alone is over budget: it is
-       * the one carrying isFinal and the per-chunk counters, and the
-       * transport still refuses anything genuinely too large to post.
+       * The newest piece is minted whatever it weighs: it is the one
+       * carrying isFinal and the per-chunk counters. A final one over the
+       * budget was emptied above, so only a NON-final one reaches this
+       * clamp with footage still in it, and it is kept whole: the
+       * budget counts payload bytes only, so a piece a little over it may
+       * still fit one request once the transport measures the real frame,
+       * and what does not is dropped and counted there.
        */
       if (keepFrom >= pieces.length) {
         keepFrom = pieces.length - 1;
@@ -494,6 +596,10 @@ export default class Chunker {
 
       for (let index: number = 0; index < keepFrom; index++) {
         this.droppedEvents += (pieces[index] as Array<BufferedEvent>).length;
+      }
+
+      if (sealEmpty) {
+        this.droppedEvents += result.emptiedSealEvents;
       }
 
       droppedPieces = keepFrom;
@@ -505,13 +611,18 @@ export default class Chunker {
       const isLast: boolean = index === pieces.length - 1;
 
       if (this.hasReachedSessionChunkCap()) {
-        this.droppedEvents += piece.length;
+        this.droppedEvents += isLast && sealEmpty ? 0 : piece.length;
         this.emitTruncationChunk();
         continue;
       }
 
       const first: BufferedEvent = piece[0] as BufferedEvent;
       const last: BufferedEvent = piece[piece.length - 1] as BufferedEvent;
+
+      if (isLast && sealEmpty) {
+        this.emitEmptySealInPlaceOf(last);
+        continue;
+      }
 
       let bytes: number = 0;
 
@@ -545,6 +656,59 @@ export default class Chunker {
     }
 
     this.resetPerChunkCounters();
+
+    return result;
+  }
+
+  /*
+   * The UTF-8 length of a piece's payload as joinPayload builds it: every
+   * event, a comma between each two, and the two brackets.
+   */
+  private static getPiecePayloadBytes(piece: Array<BufferedEvent>): number {
+    let bytes: number = piece.length + 1;
+
+    for (const event of piece) {
+      bytes += event.bytes;
+    }
+
+    return bytes;
+  }
+
+  /*
+   * The sealing piece of a split whose newest footage was too large for any
+   * request (see closeSplit). Everything that makes it the SEALING piece
+   * stays - isFinal, the per-chunk signals, trace ids and routes the
+   * finalizer sums and unions, the fidelity notices - and only what
+   * describes footage goes: payload "[]", no events, no seek anchor.
+   *
+   * Both offsets sit at the END of the dropped footage, which is when the
+   * recording really stopped (it keeps the session's duration, and it is
+   * what the server's "has this tab ended" rule compares later chunks
+   * against), and never before the end of a piece this split already
+   * emitted, so the sequence stays monotonic. The caller has already
+   * counted the dropped events.
+   */
+  private emitEmptySealInPlaceOf(lastDropped: BufferedEvent): void {
+    const offsetMs: number = Math.max(
+      this.getOffset(lastDropped.timestampMs),
+      this.lastEmittedEndOffsetMs,
+    );
+
+    this.closedChunkCount++;
+
+    this.sink({
+      payload: "[]",
+      rawBytes: 0,
+      eventCount: 0,
+      chunkStartOffsetMs: offsetMs,
+      chunkEndOffsetMs: offsetMs,
+      hasFullSnapshot: false,
+      isFinal: true,
+      signals: this.signals,
+      fidelityNotices: Array.from(this.fidelityNotices),
+      traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
+    });
   }
 
   private static joinPayload(events: Array<BufferedEvent>): string {
@@ -572,7 +736,7 @@ export default class Chunker {
   }
 
   private emitEmptyFinalChunk(): void {
-    const nowOffsetMs: number = this.getOffset(Date.now());
+    const nowOffsetMs: number = this.getEmptyChunkOffset();
 
     this.closedChunkCount++;
 
@@ -682,7 +846,7 @@ export default class Chunker {
 
     this.fidelityNotices.add(SESSION_REPLAY_TRUNCATED_NOTICE);
 
-    const nowOffsetMs: number = this.getOffset(Date.now());
+    const nowOffsetMs: number = this.getEmptyChunkOffset();
 
     this.sink({
       payload: "[]",
@@ -744,6 +908,37 @@ export default class Chunker {
 
   public getClosedChunkCount(): number {
     return this.closedChunkCount;
+  }
+
+  /*
+   * Start the chunk sequence of a NEW TAB of the same session: the recorder
+   * calls this when a page restored from the back/forward cache starts
+   * recording under a fresh tab id, whose chunk indexes start again at 0.
+   *
+   * The per-session chunk cap is really a cap per (session, tab) - it bounds
+   * the rows under one sort-key prefix, and the ingest gate counts it by
+   * chunk index, which is per tab - so the count behind it starts over with
+   * the index. Leaving it would stop a restored tab short; resetting the
+   * index without it would let a tab's indexes run past the cap while the
+   * chunker still thought it had room, posting chunks the server refuses
+   * after it has already judged the tab ended at the last permitted index.
+   *
+   * Anything still open belonged to the old tab and is dropped and counted
+   * (the recorder seals the old tab first, so there is normally nothing).
+   * The per-chunk counters go with it. What is kept is what describes the
+   * page or the session rather than the tab: the session start the offsets
+   * are measured from, the fidelity notices, the dropped-event count and
+   * the latest emitted end, below which no empty chunk is ever dated.
+   */
+  public beginNewTab(): void {
+    if (this.open) {
+      this.droppedEvents += this.open.eventCount;
+      this.open = null;
+    }
+
+    this.closedChunkCount = 0;
+    this.truncationEmitted = false;
+    this.resetPerChunkCounters();
   }
 
   /*
@@ -831,5 +1026,14 @@ export default class Chunker {
 
   private getOffset(timestampMs: number): number {
     return Math.max(0, timestampMs - this.sessionStartUnixMs);
+  }
+
+  /*
+   * Where a chunk with no events sits: now, but never before the end of the
+   * chunk ahead of it. See lastEmittedEndOffsetMs. Its start and end are the
+   * same instant, so start <= end holds by construction.
+   */
+  private getEmptyChunkOffset(): number {
+    return Math.max(this.getOffset(Date.now()), this.lastEmittedEndOffsetMs);
   }
 }

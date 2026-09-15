@@ -196,8 +196,10 @@ beforeAll(async () => {
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
     PageMap.RUM_SETTINGS_SESSION_REPLAY,
   ];
 });
@@ -310,8 +312,10 @@ describe("Session replay page wiring", () => {
       "RUM_APPLICATION_VIEW_SESSION_REPLAY",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION",
     ]) {
       const occurrences: number = (
         routeSource.match(
@@ -494,6 +498,74 @@ describe("Session replay page wiring", () => {
     ]);
   });
 
+  test("the health route ends with /session-replay-health and carries the model id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), like
+     * the users, audit and settings pages.
+     */
+    const path: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-health")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the health route cannot be shadowed by a session id", () => {
+    /*
+     * ":id/session-replay/health" would be a session id to the player route:
+     * a recording whose id was literally "health" would open this page.
+     */
+    const healthPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    expect(
+      healthPath.startsWith(
+        playerPath.slice(0, playerPath.lastIndexOf("/") + 1),
+      ),
+    ).toBe(false);
+    expect(healthPath).not.toContain("/session-replay/");
+  });
+
+  test("the health page is registered with one segment and no count", () => {
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+      ),
+    ).toBe("session-replay-health");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH\s*,?\s*\)/,
+    );
+    expect(routeSource).toContain(
+      'from "../Pages/Rum/View/SessionReplayHealth"',
+    );
+    expect(routeSource).toContain("<RumApplicationSessionReplayHealth");
+  });
+
+  test("the health breadcrumb names the page", () => {
+    setNavigationLocation("/dashboard/proj-1/rum/app-1/session-replay-health");
+
+    const trail: Array<Link> | undefined = getRumBreadcrumbs(
+      RouteUtil.getRouteString(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
+      ),
+    );
+
+    expect(trail).toBeDefined();
+    expect(
+      trail!.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Replay Health",
+    ]);
+  });
+
   test("the per-application settings route is scoped to one application", () => {
     /*
      * Replay policy is per-application and lives on the application, so
@@ -532,6 +604,41 @@ describe("Session replay page wiring", () => {
     );
 
     expect(settingsPath.startsWith(playerPrefix)).toBe(false);
+  });
+
+  test("the documentation route is a one-segment sibling that cannot be shadowed by a session id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), and
+     * at ":id/session-replay/documentation" a recording whose id was
+     * literally "documentation" would collide with it.
+     */
+    const path: string =
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+      ]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-documentation")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+    expect(path).not.toContain("/session-replay/");
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+      ),
+    ).toBe("session-replay-documentation");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION\s*,?\s*\)/,
+    );
+  });
+
+  test("the documentation page does not collide with the application's own documentation page", () => {
+    expect(
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+      ]!.toString(),
+    ).not.toBe(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]!.toString(),
+    );
   });
 
   test("the project-level settings page lives under RUM settings, unscoped to an application", () => {

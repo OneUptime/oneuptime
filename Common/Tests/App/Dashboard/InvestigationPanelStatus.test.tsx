@@ -276,6 +276,41 @@ describe("InvestigationPanel status reporting", () => {
     expect(postMock).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * The header summary rides along with the status: a completed run with no
+   * report (this older payload shape) has nothing to summarise, and neither
+   * does a running one.
+   */
+  test("reports no header summary for runs without a report", async () => {
+    jest.useFakeTimers();
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(investigationResponse(AIRunStatus.Running))
+      .mockResolvedValueOnce(investigationResponse(AIRunStatus.Completed));
+
+    render(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={SUBJECT_ID}
+        onReportSummaryChange={onReportSummaryChange}
+      />,
+    );
+    expect(await screen.findByText("Investigating…")).toBeInTheDocument();
+
+    advance();
+    expect(
+      await screen.findByText("Investigation complete"),
+    ).toBeInTheDocument();
+
+    expect(onReportSummaryChange).toHaveBeenCalled();
+    for (const call of onReportSummaryChange.mock.calls) {
+      expect(call[0]).toBeNull();
+    }
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   test("clears its active timer when the panel unmounts", async () => {
     jest.useFakeTimers();
     postMock.mockResolvedValue(investigationResponse(AIRunStatus.Running));

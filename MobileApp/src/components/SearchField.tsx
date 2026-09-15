@@ -2,6 +2,7 @@ import React, { useRef, useState, type RefObject } from "react";
 import { View, TextInput, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
 
 interface SearchFieldProps {
   value: string;
@@ -26,20 +27,20 @@ export default function SearchField({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        minHeight: 52,
-        borderRadius: 12,
-        backgroundColor: theme.colors.backgroundSecondary,
-        borderWidth: 1,
+        minHeight: 48,
+        borderRadius: radius.md,
+        backgroundColor: theme.colors.backgroundElevated,
+        borderWidth: focused ? 2 : 1,
         borderColor: focused
           ? theme.colors.actionPrimary
-          : theme.colors.borderSubtle,
+          : theme.colors.borderDefault,
+        paddingLeft: focused ? spacing.md - 1 : spacing.md,
       }}
     >
       <Ionicons
-        name="search-outline"
-        size={20}
-        color={theme.colors.textSecondary}
-        style={{ marginLeft: 16 }}
+        name="search"
+        size={18}
+        color={focused ? theme.colors.actionPrimary : theme.colors.textTertiary}
       />
       <TextInput
         ref={inputRef}
@@ -49,6 +50,8 @@ export default function SearchField({
         accessibilityLabel={accessibilityLabel ?? placeholder}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textTertiary}
+        keyboardAppearance={theme.dark ? "dark" : "light"}
+        selectionColor={theme.colors.actionPrimary}
         onFocus={() => {
           setFocused(true);
         }}
@@ -59,12 +62,12 @@ export default function SearchField({
         autoCorrect={false}
         returnKeyType="search"
         style={{
+          ...typography.callout,
           flex: 1,
           minWidth: 0,
-          fontSize: 15,
           color: theme.colors.textPrimary,
-          paddingHorizontal: 12,
-          paddingVertical: 14,
+          paddingHorizontal: spacing.sm + 2,
+          paddingVertical: spacing.md,
         }}
       />
       {value.length > 0 ? (
@@ -77,16 +80,16 @@ export default function SearchField({
           }}
           hitSlop={4}
           style={{
-            minWidth: 48,
-            minHeight: 48,
+            minWidth: 44,
+            minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           <Ionicons
             name="close-circle"
-            size={20}
-            color={theme.colors.textSecondary}
+            size={18}
+            color={theme.colors.textTertiary}
           />
         </Pressable>
       ) : null}

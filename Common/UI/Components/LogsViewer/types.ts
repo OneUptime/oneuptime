@@ -1,6 +1,7 @@
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
+import { LockedFilterDetail } from "../../../Types/Telemetry/LockedFilterDetail";
 
 export interface LiveLogsOptions {
   isLive: boolean;
@@ -35,6 +36,11 @@ export interface ActiveFilter {
    * resolvable destination render as plain chips.
    */
   openRoute?: Route | URL | undefined;
+  /*
+   * For a read-only chip: what it matches and why it is locked, rendered as
+   * the chip's tooltip and folded into "Copy filter". Display only.
+   */
+  lockedDetail?: LockedFilterDetail | undefined;
 }
 
 /*

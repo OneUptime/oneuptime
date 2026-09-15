@@ -1,0 +1,217 @@
+name: Mobile Recorder Native Consumer Build
+
+# Native builds are deliberately isolated from the general compile workflow:
+# macOS runners are expensive, and only SDK/native-consumer changes can affect
+# whether the published tarball autolinks and compiles in a real Expo app.
+on:
+  pull_request:
+    paths:
+      - "App/FeatureSet/MobileRecorder/**"
+      - "MobileApp/app.config.js"
+      - "MobileApp/app.json"
+      - "MobileApp/google-services.json"
+      - "MobileApp/package.json"
+      - "MobileApp/package-lock.json"
+      - ".github/workflows/test.mobile-recorder-native.yaml"
+  push:
+    branches:
+      - master
+    paths:
+      - "App/FeatureSet/MobileRecorder/**"
+      - "MobileApp/app.config.js"
+      - "MobileApp/app.json"
+      - "MobileApp/google-services.json"
+      - "MobileApp/package.json"
+      - "MobileApp/package-lock.json"
+      - ".github/workflows/test.mobile-recorder-native.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build customer package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: App/FeatureSet/MobileRecorder/package-lock.json
+
+      - name: Build and pack Mobile Recorder
+        run: |
+          mkdir -p "$RUNNER_TEMP/mobile-recorder-package"
+          cd App/FeatureSet/MobileRecorder
+          npm install
+          npm run compile
+          npm pack --pack-destination "$RUNNER_TEMP/mobile-recorder-package"
+
+      - name: Upload customer package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-recorder-package
+          path: ${{ runner.temp }}/mobile-recorder-package/*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  android:
+    name: Android consumer
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: MobileApp/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Download customer package
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-recorder-package
+          path: ${{ runner.temp }}/mobile-recorder-package
+
+      - name: Install app and packed SDK
+        run: |
+          cd MobileApp
+          npm install
+          package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
+          test -f "$package_file"
+          npm install --no-save --package-lock=false "$package_file"
+
+          # The checkout remains unchanged. This temporary manifest entry makes
+          # Expo treat the no-save install as a direct consumer dependency so
+          # React Native autolinking exercises the package in the native build.
+          npm pkg set "dependencies.@oneuptime/react-native-replay=file:$package_file"
+
+      - name: Generate native Android project
+        run: cd MobileApp && npx expo prebuild --platform android --no-install
+
+      - name: Compile unsigned Android debug app
+        run: cd MobileApp/android && ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify Mobile Recorder Android package is linked
+        run: |
+          grep -F '"@oneuptime/react-native-replay"' MobileApp/android/build/generated/autolinking/autolinking.json
+          grep -F "OneUptimeReplayPackage" MobileApp/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java
+
+  android-react-native-073:
+    name: Android RN 0.73 compatibility
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.3"
+
+      - name: Download customer package
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-recorder-package
+          path: ${{ runner.temp }}/mobile-recorder-package
+
+      - name: Install packed SDK in compatibility consumer
+        run: |
+          consumer_dir="$RUNNER_TEMP/react-native-073-consumer"
+          package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
+          test -f "$package_file"
+          mkdir -p "$consumer_dir"
+          cd "$consumer_dir"
+          npm init --yes
+          npm install --no-save --package-lock=false --legacy-peer-deps "$package_file"
+
+      - name: Compile native library against React Native 0.73
+        run: |
+          ONEUPTIME_REPLAY_ANDROID_DIR="$RUNNER_TEMP/react-native-073-consumer/node_modules/@oneuptime/react-native-replay/android" gradle \
+            -p App/FeatureSet/MobileRecorder/Tests/Fixtures/ReactNative073Android \
+            :react-native-replay:assembleDebug \
+            --no-daemon \
+            --stacktrace
+
+  ios:
+    name: iOS consumer
+    needs: package
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: MobileApp/package-lock.json
+
+      - name: Download customer package
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-recorder-package
+          path: ${{ runner.temp }}/mobile-recorder-package
+
+      - name: Install app and packed SDK
+        run: |
+          cd MobileApp
+          npm install
+          package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
+          test -f "$package_file"
+          npm install --no-save --package-lock=false "$package_file"
+
+          # See the Android job: this entry exists only in the runner checkout
+          # and lets Expo autolink the package installed from the real tarball.
+          npm pkg set "dependencies.@oneuptime/react-native-replay=file:$package_file"
+
+      - name: Generate native iOS project
+        run: cd MobileApp && npx expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods dependencies
+        run: cd MobileApp/ios && pod install
+
+      - name: Verify Mobile Recorder pod is linked
+        run: grep -F "OneUptimeReactNativeReplay" MobileApp/ios/Podfile.lock
+
+      - name: Compile unsigned iOS simulator app
+        run: |
+          cd MobileApp
+          xcodebuild \
+            -workspace ios/OneUptimeOnCall.xcworkspace \
+            -scheme OneUptimeOnCall \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/OneUptimeOnCallDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build

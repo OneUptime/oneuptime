@@ -191,6 +191,17 @@ export interface SessionReplayListItemDto {
    * and what the player's "other sessions from this visitor" reads.
    */
   visitorId?: string;
+  /*
+   * Additive. True when the session is not finalized yet but every tab of
+   * it has ended - sent its final chunk, or stored its last permitted chunk
+   * index - and the newest of its chunks was stored at least
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS ago (see
+   * Common/Utils/Rum/SessionReplayRecordingEnded.ts): the recording is
+   * over and only the finalizer's counting is pending. Always false for a
+   * finalized session, and absent from an older server, where the
+   * Dashboard falls back to reading "not finalized" as "recording".
+   */
+  hasRecordingEnded?: boolean;
 }
 
 export interface SessionReplayListResponseDto {
@@ -435,6 +446,12 @@ export interface SessionReplayManifestHeaderDto {
    */
   identifiedUserKey?: string;
   visitorId?: string;
+  /*
+   * Additive; same meaning as SessionReplayListItemDto.hasRecordingEnded.
+   * The player uses it to stop calling a session "Live" once every tab has
+   * closed, while it keeps polling until the finalized header arrives.
+   */
+  hasRecordingEnded?: boolean;
 }
 
 export interface SessionReplayManifestTabDto {
@@ -532,6 +549,20 @@ export interface SessionReplayViewsResponseDto {
 
 export interface SessionReplayForExceptionRequestDto {
   fingerprint: string;
+  /*
+   * Optional exception-group scope. Fingerprints are unique only within a
+   * primary entity, so callers that know the group must send this to avoid
+   * matching an identically fingerprinted exception from another service.
+   */
+  primaryEntityId?: string;
+  /*
+   * New callers send this wire value with primaryEntityId. The server validates
+   * it against ServiceType before using it; keeping the transport contract a
+   * string also keeps this dependency-free Rum module safe to inline in the
+   * browser recorder. The server accepts an ID-only rolling-compatibility
+   * request through a conservative scoped-unknown path.
+   */
+  primaryEntityType?: string;
   /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;

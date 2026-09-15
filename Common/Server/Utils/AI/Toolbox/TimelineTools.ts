@@ -117,6 +117,13 @@ const keepNewestChronological: (
   return newestFirst.slice(0, limit).reverse();
 };
 
+// "1 entry" / "12 entries", for the citation label a responder reads.
+export const formatTimelineEntryCount: (count: number) => string = (
+  count: number,
+): string => {
+  return `${count} ${count === 1 ? "entry" : "entries"}`;
+};
+
 const timelineWidgetColumns: Array<AIChatWidgetColumn> = [
   { key: "at", title: "When", type: "date" },
   { key: "type", title: "Type" },
@@ -368,7 +375,7 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `Incident ${incidentLabel} timeline (${serialized.rowCount} entries)`,
+      citationLabel: `Incident ${incidentLabel} timeline (${formatTimelineEntryCount(serialized.rowCount)})`,
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentId.toString() },
@@ -590,7 +597,7 @@ export const GetAlertTimelineTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `Alert ${alertLabel} timeline (${serialized.rowCount} entries)`,
+      citationLabel: `Alert ${alertLabel} timeline (${formatTimelineEntryCount(serialized.rowCount)})`,
       citationTarget: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertId.toString() },

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
-import { useTheme } from "../theme";
-import AuthLayout from "../components/AuthLayout";
+import { spacing } from "../theme";
+import AuthLayout, { AuthNotice } from "../components/AuthLayout";
+import AppText from "../components/AppText";
 import GradientButton from "../components/GradientButton";
 
 interface BiometricLockScreenProps {
@@ -11,11 +11,25 @@ interface BiometricLockScreenProps {
   biometricType: string;
 }
 
+const FACE_BIOMETRIC_PATTERN: RegExp = /face/i;
+
+/*
+ * "Face ID", "Touch ID" and "Optic ID" are product names and keep their
+ * capitals; a generic "Fingerprint" or "Biometrics" reads as an ordinary word
+ * mid-sentence.
+ */
+const PRODUCT_NAME_PATTERN: RegExp = /\bID$/;
+
+function describeBiometric(biometricType: string): string {
+  return PRODUCT_NAME_PATTERN.test(biometricType.trim())
+    ? biometricType.trim()
+    : biometricType.trim().toLowerCase();
+}
+
 export default function BiometricLockScreen({
   onSuccess,
   biometricType,
 }: BiometricLockScreenProps): React.JSX.Element {
-  const { theme } = useTheme();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const pending: React.MutableRefObject<boolean> = useRef(false);
@@ -53,69 +67,45 @@ export default function BiometricLockScreen({
     void authenticate();
   }, []);
 
+  const usesFace: boolean = FACE_BIOMETRIC_PATTERN.test(biometricType);
+
   return (
     <AuthLayout
       showBrand
+      centered
+      icon="lock-closed"
       title="Unlock your workspace"
       eyebrow="WELCOME BACK"
       compact
-      description={`Use ${biometricType.toLowerCase()} to unlock`}
+      description={`Use ${describeBiometric(biometricType)} to unlock`}
     >
-      <View
-        style={{
-          paddingVertical: 24,
-          borderTopWidth: 1,
-          borderBottomWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-          marginBottom: 24,
-        }}
-      >
-        <Ionicons
-          name="lock-closed-outline"
-          size={32}
-          color={theme.colors.actionPrimary}
-          style={{ marginBottom: 16 }}
-        />
-        <Text
-          style={{
-            fontSize: 17,
-            fontWeight: "600",
-            color: theme.colors.textPrimary,
-          }}
-        >
+      <View style={{ alignItems: "center", gap: spacing.sm }}>
+        <AppText variant="headline" align="center">
           Your workspace is protected
-        </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            lineHeight: 23,
-            marginTop: 8,
-            color: theme.colors.textSecondary,
-          }}
-        >
+        </AppText>
+        <AppText variant="callout" tone="secondary" align="center">
           Confirm it is you to return to your incidents and on-call work. Your
           device passcode is also available in the unlock prompt.
-        </Text>
+        </AppText>
       </View>
+
       {notice ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{
-            fontSize: 15,
-            lineHeight: 23,
-            marginBottom: 20,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {notice}
-        </Text>
+        <AuthNotice
+          testID="biometric-notice"
+          tone="warning"
+          live
+          message={notice}
+          style={{ marginTop: spacing.xl }}
+        />
       ) : null}
+
       <GradientButton
         label="Unlock"
         onPress={authenticate}
         loading={isAuthenticating}
         disabled={isAuthenticating}
-        icon="finger-print-outline"
+        icon={usesFace ? "scan-outline" : "finger-print-outline"}
+        style={{ minHeight: 56, marginTop: spacing.xxl }}
       />
     </AuthLayout>
   );

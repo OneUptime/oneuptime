@@ -1,7 +1,22 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import { FacetData, FacetValue, ActiveFilter, FacetConfig } from "../types";
 import TelemetryFacetSection from "./TelemetryFacetSection";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import HiddenFacetsFooter from "./HiddenFacetsFooter";
+import {
+  FacetVisibility,
+  computeFacetVisibility,
+  getSidebarFacetEmptyStateText,
+} from "../FacetVisibility";
+import useFacetSearchExemptions, {
+  FacetSearchExemptions,
+} from "../useFacetSearchExemptions";
 
 export interface TelemetryFacetSidebarProps {
   facetData: FacetData;
@@ -68,6 +83,59 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     return map;
   }, [props.activeFilters]);
 
+  const configsByKey: Map<string, FacetConfig> = useMemo(() => {
+    return new Map<string, FacetConfig>(
+      orderedConfigs.map((config: FacetConfig): [string, FacetConfig] => {
+        return [config.key, config];
+      }),
+    );
+  }, [orderedConfigs]);
+
+  const [showHidden, setShowHidden] = useState<boolean>(false);
+  const facetListId: string = useId();
+
+  const facetSearch: FacetSearchExemptions = useFacetSearchExemptions({
+    facetData: props.facetData,
+    onFacetSearchChange: props.onFacetSearchChange,
+  });
+
+  /*
+   * Only configs that opt in with hideWhenEmpty (the resource facets) fold
+   * away while empty; every other config renders exactly as before.
+   */
+  const visibility: FacetVisibility = useMemo(() => {
+    return computeFacetVisibility({
+      keys: orderedConfigs.map((config: FacetConfig): string => {
+        return config.key;
+      }),
+      facetData: props.facetData,
+      isHideable: (key: string): boolean => {
+        return configsByKey.get(key)?.hideWhenEmpty === true;
+      },
+      activeValuesByKey: activeValuesByKey,
+      searchExemptKeys: facetSearch.searchExemptKeys,
+      showHidden: showHidden,
+      getTitle: (key: string): string => {
+        return configsByKey.get(key)?.title ?? key;
+      },
+    });
+  }, [
+    orderedConfigs,
+    configsByKey,
+    props.facetData,
+    activeValuesByKey,
+    facetSearch.searchExemptKeys,
+    showHidden,
+  ]);
+
+  const visibleConfigs: Array<FacetConfig> = visibility.visibleKeys
+    .map((key: string): FacetConfig | undefined => {
+      return configsByKey.get(key);
+    })
+    .filter((config: FacetConfig | undefined): config is FacetConfig => {
+      return config !== undefined;
+    });
+
   return (
     <div className="flex h-full w-56 flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white">
       <div className="border-b border-gray-100 px-3 py-2.5">
@@ -82,15 +150,13 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
-        {orderedConfigs.map((config: FacetConfig) => {
+      <div id={facetListId} className="flex-1 overflow-y-auto">
+        {visibleConfigs.map((config: FacetConfig) => {
           const values: Array<FacetValue> = props.facetData[config.key] || [];
 
           const onSearchChange: ((text: string) => void) | undefined =
-            config.serverSearchable && props.onFacetSearchChange
-              ? (text: string) => {
-                  props.onFacetSearchChange!(config.key, text);
-                }
+            config.serverSearchable
+              ? facetSearch.getSearchChangeHandler(config.key)
               : undefined;
 
           return (
@@ -105,9 +171,30 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
               valueColorMap={config.valueColorMap}
               activeValues={activeValuesByKey[config.key]}
               onSearchChange={onSearchChange}
+              icon={config.icon}
+              searchText={facetSearch.searchTextByKey[config.key] ?? ""}
+              onSearchTextChange={(text: string) => {
+                facetSearch.setSearchText(config.key, text);
+              }}
+              emptyStateText={getSidebarFacetEmptyStateText({
+                isHideable: config.hideWhenEmpty === true,
+                emptyStateNoun: config.emptyStateNoun,
+                searchedAtArrivalText:
+                  facetSearch.searchedAtArrivalByKey[config.key],
+              })}
             />
           );
         })}
+
+        <HiddenFacetsFooter
+          hiddenCount={visibility.hiddenCount}
+          hiddenTitles={visibility.hiddenTitles}
+          isShowingHidden={showHidden}
+          controlsId={facetListId}
+          onToggle={() => {
+            setShowHidden(!showHidden);
+          }}
+        />
       </div>
     </div>
   );

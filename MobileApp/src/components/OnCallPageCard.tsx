@@ -1,9 +1,14 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { formatRelativeTime } from "../utils/date";
 import type { OnCallPageItem } from "../api/types";
+import AppText from "./AppText";
+import Card from "./Card";
+import IconBadge from "./IconBadge";
+import StatusPill, { getToneColors, type StatusTone } from "./StatusPill";
 
 interface OnCallPageCardProps {
   page: OnCallPageItem;
@@ -15,6 +20,17 @@ export interface PageSubject {
   kind: "incident" | "alert" | "incident-episode" | "alert-episode" | "unknown";
   id: string | null;
 }
+
+const subjectIcons: Record<
+  PageSubject["kind"],
+  keyof typeof Ionicons.glyphMap
+> = {
+  incident: "warning-outline",
+  alert: "notifications-outline",
+  "incident-episode": "layers-outline",
+  "alert-episode": "layers-outline",
+  unknown: "call-outline",
+};
 
 /**
  * What a page was about. A log row points at exactly one of four kinds of
@@ -66,114 +82,103 @@ export default function OnCallPageCard({
   const subject: PageSubject = getPageSubject(page);
   const isAcknowledged: boolean = Boolean(page.acknowledgedAt);
   const isError: boolean = page.status === "Error";
-  const accent: string = isAcknowledged
-    ? theme.colors.oncallActive
+  const tone: StatusTone = isAcknowledged
+    ? "success"
     : isError
-      ? theme.colors.severityCritical
-      : theme.colors.severityWarning;
+      ? "danger"
+      : "warning";
+  const toneColor: string = getToneColors(theme, tone).text;
   const statusLabel: string = isAcknowledged
     ? "Acknowledged"
     : isError
       ? "Failed to notify"
       : "Not acknowledged";
-  const body: React.JSX.Element = (
-    <View
+  const isPressable: boolean = Boolean(onPress && subject.id);
+
+  return (
+    <Card
       testID={`page-card-${page._id}`}
-      style={{
-        borderRadius: 18,
-        padding: 18,
-        backgroundColor: theme.colors.backgroundElevated,
-      }}
+      onPress={
+        isPressable && onPress
+          ? (): void => {
+              onPress(page);
+            }
+          : undefined
+      }
+      accessibilityLabel={
+        isPressable ? `${subject.title}. ${statusLabel}.` : undefined
+      }
+      accessibilityHint={
+        isPressable
+          ? `Open ${subject.kind.replace("-", " ")} details`
+          : undefined
+      }
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-        <View
-          style={{
-            width: 4,
-            minHeight: 42,
-            borderRadius: 2,
-            backgroundColor: accent,
-            marginTop: 3,
-          }}
-        />
-        <View style={{ flex: 1, gap: 8 }}>
-          <Text
-            style={{
-              fontSize: 17,
-              lineHeight: 24,
-              fontWeight: "600",
-              letterSpacing: -0.2,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {subject.title}
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              lineHeight: 20,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {page.policyName || "On-call policy unavailable"}
-          </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.md,
+        }}
+      >
+        <IconBadge name={subjectIcons[subject.kind]} color={toneColor} />
+        <View style={{ flex: 1, gap: spacing.xs + 2 }}>
           <View
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
-              gap: 8,
-              justifyContent: "space-between",
               alignItems: "center",
-              marginTop: 2,
+              justifyContent: "space-between",
+              gap: spacing.sm,
             }}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                lineHeight: 20,
-                fontWeight: "600",
-                color: accent,
-              }}
-            >
-              {statusLabel}
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                lineHeight: 20,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              {page.createdAt ? formatRelativeTime(page.createdAt) : ""}
-            </Text>
+            <StatusPill
+              testID={`page-status-${page._id}`}
+              label={statusLabel}
+              tone={tone}
+              size="sm"
+              dotColor={toneColor}
+            />
+            {page.createdAt ? (
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {formatRelativeTime(page.createdAt)}
+              </AppText>
+            ) : null}
+          </View>
+          <AppText variant="headline" style={{ fontSize: 17, lineHeight: 23 }}>
+            {subject.title}
+          </AppText>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.xs + 2,
+            }}
+          >
+            <Ionicons
+              name="git-branch-outline"
+              size={14}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 2 }}
+            />
+            <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
+              {page.policyName || "On-call policy unavailable"}
+            </AppText>
           </View>
         </View>
-        {onPress && subject.id ? (
+        {isPressable ? (
           <Ionicons
             name="chevron-forward"
-            size={17}
+            size={18}
             color={theme.colors.textTertiary}
-            style={{ marginTop: 4 }}
+            style={{ alignSelf: "center" }}
           />
         ) : null}
       </View>
-    </View>
-  );
-  if (!onPress || !subject.id) {
-    return body;
-  }
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${subject.title}. ${statusLabel}.`}
-      accessibilityHint={`Open ${subject.kind.replace("-", " ")} details`}
-      onPress={(): void => {
-        onPress(page);
-      }}
-      style={({ pressed }: { pressed: boolean }) => {
-        return { opacity: pressed ? 0.75 : 1 };
-      }}
-    >
-      {body}
-    </Pressable>
+    </Card>
   );
 }

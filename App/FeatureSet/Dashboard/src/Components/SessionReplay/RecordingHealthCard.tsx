@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -12,24 +7,17 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
-import ProgressBar, {
-  ProgressBarSize,
-} from "Common/UI/Components/ProgressBar/ProgressBar";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Navigation from "Common/UI/Utils/Navigation";
 import { DOCS_URL } from "Common/UI/Config";
 import {
   RecordingHealthAction,
   RecordingHealthActionTarget,
   RecordingHealthDiagnosis,
   RecordingHealthSeverity,
-  RecordingHealthStatus,
 } from "Common/Types/Rum/SessionReplayHealth";
-import {
-  formatCountForCopy,
-  formatRelativeAge,
-  parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+import { formatRelativeAge } from "Common/Utils/Rum/SessionReplayHealth";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -49,22 +37,19 @@ import {
 } from "./RecorderDiagnosticsExplainer";
 
 /*
- * RecordingHealthCard: the settings page's answer to "why are there no
- * recordings?", and the body the list page's health strip expands into.
+ * The shared vocabulary of every recording-health surface, and the compact
+ * summary the Replay Policy page shows.
  *
- * Top to bottom: the diagnosis (one cause, quantified, one action), then a
- * fact grid of everything the server knows (last policy fetch, last chunk,
- * sessions and playable sessions today, refusals and drops by reason, bytes
- * against both budgets, the published recorder and the newest session's
- * capabilities), then the paste box for the browser's own diagnostics -
- * the half the server cannot see.
- *
- * Every counter that could not be read says "unknown". "0 refusals" and
- * "the refusal counter is unreachable" are different facts.
+ * The full picture - the pipeline, refusals and drops, budgets, the policy
+ * as the recorder sees it, the recorder's capabilities and the paste box -
+ * lives on its own Replay Health page (RecordingHealthDashboard.tsx). The
+ * policy page keeps only the one-line diagnosis, because that is what a
+ * person editing the policy needs to see change, and links to the rest.
  */
 
 const HEALTH_DOCS_PATH: string = "/telemetry/session-replay";
-const TROUBLESHOOTING_DOCS_PATH: string = "/rum/session-replay-troubleshooting";
+export const TROUBLESHOOTING_DOCS_PATH: string =
+  "/rum/session-replay-troubleshooting";
 
 export interface RecordingHealthActionLink {
   to: Route | URL;
@@ -93,7 +78,9 @@ export function getRecordingHealthActionLink(
     case "setup-guide":
       return {
         to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
+          RouteMap[
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+          ] as Route,
           { modelId: modelId },
         ),
         openInNewTab: false,
@@ -124,6 +111,26 @@ export function getRecordingHealthActionLink(
         openInNewTab: false,
       };
   }
+}
+
+/* The Replay Health page for one application. */
+export function getRecordingHealthPageRoute(
+  rumApplicationId: ObjectID | string,
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH] as Route,
+    { modelId: new ObjectID(rumApplicationId.toString()) },
+  );
+}
+
+/* The Replay Policy page for one application. */
+export function getReplayPolicyPageRoute(
+  rumApplicationId: ObjectID | string,
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS] as Route,
+    { modelId: new ObjectID(rumApplicationId.toString()) },
+  );
 }
 
 export interface SeverityStyle {
@@ -186,11 +193,14 @@ export function RecordingHealthActionButton(props: {
       id={`health-action-${props.action.target}`}
     >
       <span data-testid="health-action">{props.action.label}</span>
+      {link.openInNewTab && (
+        <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+      )}
     </Link>
   );
 }
 
-/* The diagnosis as a banner: dot, title, detail, one action. */
+/* The diagnosis as a banner: icon, title, detail, one action. */
 export function RecordingHealthDiagnosisBanner(props: {
   diagnosis: RecordingHealthDiagnosis;
   rumApplicationId: ObjectID | string;
@@ -227,29 +237,6 @@ export function RecordingHealthDiagnosisBanner(props: {
   );
 }
 
-interface HealthFact {
-  key: string;
-  label: string;
-  value: string;
-  /* A second, quieter line. */
-  hint?: string | undefined;
-}
-
-/* "12s ago" or "never"; a timestamp the server did not send is "unknown". */
-function describeStamp(
-  iso: string | null,
-  nowUnixMs: number,
-  neverCopy: string,
-): string {
-  if (iso === null) {
-    return neverCopy;
-  }
-
-  const unixMs: number | null = parseHealthTimestamp(iso);
-
-  return unixMs === null ? "unknown" : formatRelativeAge(unixMs, nowUnixMs);
-}
-
 export const CAPTURE_TRIGGER_LABELS: Record<string, string> = {
   [SessionReplayCaptureTrigger.Always]: "Always",
   [SessionReplayCaptureTrigger.OnErrorOrFrustration]: "On error or frustration",
@@ -280,177 +267,25 @@ export function labelEnum(
   return labels[value] ?? `unrecognised value (${value})`;
 }
 
-function buildFacts(
-  status: RecordingHealthStatus,
-  nowUnixMs: number,
-  recorderCapabilities: Array<string> | null,
-): Array<HealthFact> {
-  const facts: Array<HealthFact> = [];
-
-  facts.push({
-    key: "config-fetch",
-    label: "Recorder last loaded on your site",
-    value: describeStamp(status.lastConfigFetchAt, nowUnixMs, "never"),
-    hint: "Stamped each time a page fetches this application's replay policy.",
-  });
-
-  facts.push({
-    key: "last-chunk",
-    label: "Last chunk received",
-    value: describeStamp(status.lastChunkReceivedAt, nowUnixMs, "never"),
-    hint: "The end-to-end proof: a recorder on your site reached this server.",
-  });
-
-  const sessions: string =
-    status.sessionsLast24h === null
-      ? "unknown"
-      : `${formatCountForCopy(status.sessionsLast24h)}${
-          status.playableSessionsLast24h === null
-            ? ""
-            : ` (${formatCountForCopy(status.playableSessionsLast24h)} playable)`
-        }`;
-
-  facts.push({
-    key: "sessions",
-    label: "Sessions in the last 24h",
-    value: sessions,
-    hint:
-      status.sessionsLast24h === null
-        ? "The session count could not be read."
-        : `Last session started ${describeStamp(status.lastSessionStartedAt, nowUnixMs, "never")}.`,
-  });
-
-  facts.push({
-    key: "policy",
-    label: "Policy",
-    value: `${labelEnum(CAPTURE_TRIGGER_LABELS, status.policy.captureTrigger)}, sampling ${status.policy.samplePercentage}%`,
-    hint: `${labelEnum(CONSENT_MODE_LABELS, status.policy.consentMode)}; ${labelEnum(MASKING_MODE_LABELS, status.policy.maskingMode)}; retention ${
-      status.policy.retentionInDays === null
-        ? "not reported"
-        : `${status.policy.retentionInDays} days`
-    }.`,
-  });
-
-  facts.push({
-    key: "recorder-version",
-    label: "Published recorder",
-    value: status.publishedRecorderVersion ?? "not reported",
-    hint:
-      status.publishedRecorderVersion === null
-        ? "Either this deployment builds no recorder artifact, or the server did not say."
-        : "The build the /config route hands out to new page loads.",
-  });
-
+export interface RecorderDiagnosticsPasteBoxProps {
   /*
-   * docs-and-design-fidelity-3: this row is what the docs send an operator
-   * to when a visitor is stuck on a stale cached artifact, so its null copy
-   * has to name WHICH silence it is looking at. "unknown" for both causes
-   * read as a bug on every application that had simply never recorded.
+   * false when the surrounding panel already says what the box is for (the
+   * Replay Health page's "Ask the browser" panel): only the instruction and
+   * the box itself are drawn.
    */
-  const hasEverRecorded: boolean = status.lastChunkReceivedAt !== null;
-
-  facts.push({
-    key: "capabilities",
-    label: "Recorder capabilities (newest session)",
-    value:
-      recorderCapabilities === null
-        ? hasEverRecorded
-          ? "not reported"
-          : "not reported yet"
-        : recorderCapabilities.length === 0
-          ? "none announced"
-          : recorderCapabilities.join(", "),
-    hint:
-      recorderCapabilities === null
-        ? hasEverRecorded
-          ? `Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording was taken by an artifact older than the one that reports them${
-              status.publishedRecorderVersion === null
-                ? ""
-                : ` (this deployment publishes ${status.publishedRecorderVersion})`
-            }. A browser holding a cached artifact refreshes within its cache window.`
-          : "Announced on a session's first chunk. No chunk has arrived for this application yet, so there is no recorder to read them from."
-        : "Read from the newest session's first chunk. A browser holding an older cached artifact refreshes within its cache window; until then its sessions lack the features missing here.",
-  });
-
-  return facts;
-}
-
-function describeCounterList(
-  entries: Array<{ reason: string; count: number }> | null,
-  noneCopy: string,
-): Array<string> | string {
-  if (entries === null) {
-    return "unknown (the counter store was unreachable)";
-  }
-
-  if (entries.length === 0) {
-    return noneCopy;
-  }
-
-  const sorted: Array<{ reason: string; count: number }> = [...entries].sort(
-    (a: { count: number }, b: { count: number }): number => {
-      return b.count - a.count;
-    },
-  );
-
-  return sorted.map((entry: { reason: string; count: number }): string => {
-    return `${formatCountForCopy(entry.count)} ${entry.reason}`;
-  });
-}
-
-function BytesRow(props: {
-  label: string;
-  usedBytes: number | null;
-  limitBytes: number | null;
-  noLimitCopy: string;
-}): ReactElement {
-  const MB: number = 1024 * 1024;
-
-  if (props.usedBytes === null) {
-    return (
-      <div>
-        <div className="text-xs font-medium text-gray-700">{props.label}</div>
-        <div className="text-sm text-gray-900">
-          unknown (the usage counter was unreachable)
-        </div>
-      </div>
-    );
-  }
-
-  if (props.limitBytes === null || props.limitBytes <= 0) {
-    return (
-      <div>
-        <div className="text-xs font-medium text-gray-700">{props.label}</div>
-        <div className="text-sm text-gray-900">
-          {Math.round(props.usedBytes / MB)} MB used; {props.noLimitCopy}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-1 text-xs font-medium text-gray-700">
-        {props.label}
-      </div>
-      <ProgressBar
-        count={Math.round(props.usedBytes / MB)}
-        totalCount={Math.round(props.limitBytes / MB)}
-        suffix="MB"
-        size={ProgressBarSize.Small}
-      />
-    </div>
-  );
+  showHeading?: boolean | undefined;
 }
 
 /*
  * The paste box. getDiagnostics() output is the browser's half of the
  * story - a blocked script, a privacy signal, an unsampled draw, consent
  * never granted - and none of it is visible from the server. This is the
- * fallback, no longer the primary path: the live facts above answer most
- * cases without it.
+ * fallback, no longer the primary path: the live facts on the health page
+ * answer most cases without it.
  */
-export function RecorderDiagnosticsPasteBox(): ReactElement {
+export function RecorderDiagnosticsPasteBox(
+  props: RecorderDiagnosticsPasteBoxProps,
+): ReactElement {
   const [text, setText] = useState<string>("");
   const [result, setResult] = useState<RecorderDiagnosticsResult | null>(null);
 
@@ -458,17 +293,30 @@ export function RecorderDiagnosticsPasteBox(): ReactElement {
     setResult(explainRecorderDiagnostics(text));
   };
 
+  const showHeading: boolean = props.showHeading !== false;
+
   return (
     <div data-testid="diagnostics-paste-box">
-      <div className="text-xs font-semibold text-gray-700">
-        Ask the browser instead
-      </div>
-      <p className="mt-1 text-xs text-gray-500">
-        Anything that stops the recorder before it uploads - a blocked script, a
-        Do Not Track signal, an unsampled session, consent that was never
-        granted - is only visible in the browser. On the page that is not
-        recording, run this in the console, then paste the result below:
-      </p>
+      {showHeading && (
+        <>
+          <div className="text-xs font-semibold text-gray-700">
+            Ask the browser instead
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Anything that stops the recorder before it uploads - a blocked
+            script, a Do Not Track signal, an unsampled session, consent that
+            was never granted - is only visible in the browser. On the page that
+            is not recording, run this in the console, then paste the result
+            below:
+          </p>
+        </>
+      )}
+      {!showHeading && (
+        <p className="text-sm text-gray-600">
+          On the page that is not recording, run this in the browser console,
+          then paste the result below.
+        </p>
+      )}
       <div className="mt-2">
         <CodeBlock
           language="javascript"
@@ -476,7 +324,7 @@ export function RecorderDiagnosticsPasteBox(): ReactElement {
 // To also see every decision live: localStorage.setItem("oneuptime.sessionReplay.debug", "true"); then reload.`}
         />
       </div>
-      <div className="mt-2">
+      <div className="mt-3">
         <TextArea
           value={text}
           placeholder='{"version": "...", "records": [...]}'
@@ -487,21 +335,24 @@ export function RecorderDiagnosticsPasteBox(): ReactElement {
           }}
         />
       </div>
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button
           title="Explain it"
-          buttonStyle={ButtonStyleType.OUTLINE}
+          icon={IconProp.Beaker}
+          buttonStyle={ButtonStyleType.PRIMARY}
           dataTestId="diagnostics-explain"
+          disabled={text.trim().length === 0}
           onClick={explain}
         />
         <Link
-          className="text-xs text-indigo-600 hover:text-indigo-800"
+          className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
           openInNewTab={true}
           to={URL.fromString(
             `${DOCS_URL.toString()}${TROUBLESHOOTING_DOCS_PATH}`,
           )}
         >
-          Every code, explained in the docs
+          <span>Every code, explained in the docs</span>
+          <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
         </Link>
       </div>
 
@@ -623,204 +474,94 @@ function RecorderDiagnosticsExplanationView(props: {
   );
 }
 
-export interface RecordingHealthCardViewProps {
+export interface RecordingHealthSummaryViewProps {
   rumApplicationId: ObjectID | string;
   health: SessionReplayHealthSnapshot;
-  onRefresh?: (() => void) | undefined;
-  /* The strip embeds the body without a second card frame. */
-  embedded?: boolean | undefined;
-  /* The installation test has its own paste box. */
-  showDiagnosticsPasteBox?: boolean | undefined;
 }
 
-/* Pure: renders one snapshot. */
-export const RecordingHealthCardView: FunctionComponent<
-  RecordingHealthCardViewProps
-> = (props: RecordingHealthCardViewProps): ReactElement => {
+/*
+ * Pure: the policy page's one-line reading of one snapshot, with a way to
+ * the full health page. A failed refresh keeps the last diagnosis on screen
+ * and says how old it is, like every other health surface.
+ */
+export const RecordingHealthSummaryView: FunctionComponent<
+  RecordingHealthSummaryViewProps
+> = (props: RecordingHealthSummaryViewProps): ReactElement => {
   const { health } = props;
 
-  const facts: Array<HealthFact> = useMemo((): Array<HealthFact> => {
-    return health.status
-      ? buildFacts(
-          health.status,
-          health.nowUnixMs,
-          health.extras.recorderCapabilities,
-        )
-      : [];
-  }, [health.status, health.nowUnixMs, health.extras.recorderCapabilities]);
+  let body: ReactElement;
 
-  const refusals: Array<string> | string = describeCounterList(
-    health.status?.refusalsLast24h ?? null,
-    "none in the last 24h",
-  );
-  const drops: Array<string> | string = describeCounterList(
-    health.extras.dropsLast24h,
-    "none in the last 24h",
-  );
-
-  const body: ReactElement = (
-    <div data-testid="health-card" data-state={health.diagnosis.state}>
-      {health.isLoading && (
-        <div
-          className="text-sm text-gray-500"
-          data-testid="health-card-loading"
-        >
-          Checking recording health…
+  if (health.isLoading) {
+    body = (
+      <div className="text-sm text-gray-500" data-testid="health-card-loading">
+        Checking recording health…
+      </div>
+    );
+  } else if (health.status === null && health.error) {
+    body = (
+      <div
+        className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+        data-testid="health-card-error"
+      >
+        <div className="text-sm font-semibold text-gray-900">
+          {describeHealthError(health.error).title}
         </div>
-      )}
-
-      {!health.isLoading && health.error && health.status === null && (
-        <div
-          className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-          data-testid="health-card-error"
-        >
-          <div className="text-sm font-semibold text-gray-900">
-            {describeHealthError(health.error).title}
-          </div>
-          <div className="mt-0.5 text-sm text-gray-700">
-            {describeHealthError(health.error).detail}
-          </div>
-          <div className="mt-1 text-xs text-gray-500">
-            Server said: {health.error.message}
-          </div>
+        <div className="mt-0.5 text-sm text-gray-700">
+          {describeHealthError(health.error).detail}
         </div>
-      )}
-
-      {!health.isLoading && health.status !== null && (
-        <>
-          <RecordingHealthDiagnosisBanner
-            diagnosis={health.diagnosis}
-            rumApplicationId={props.rumApplicationId}
-          />
-
-          {health.error && (
-            <div
-              className="mt-2 text-xs text-amber-700"
-              data-testid="health-card-stale"
-            >
-              The last refresh failed (
-              {describeHealthError(health.error).title.toLowerCase()}); showing
-              the status read{" "}
-              {health.fetchedAtUnixMs === null
-                ? "earlier"
-                : formatRelativeAge(health.fetchedAtUnixMs, health.nowUnixMs)}
-              .
-            </div>
-          )}
-
-          <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
-            {facts.map((fact: HealthFact): ReactElement => {
-              return (
-                <div key={fact.key} data-testid={`health-fact-${fact.key}`}>
-                  <dt className="text-xs font-medium text-gray-700">
-                    {fact.label}
-                  </dt>
-                  <dd className="text-sm text-gray-900">{fact.value}</dd>
-                  {fact.hint && (
-                    <dd className="text-xs text-gray-500">{fact.hint}</dd>
-                  )}
-                </div>
-              );
-            })}
-
-            <div data-testid="health-fact-refusals">
-              <dt className="text-xs font-medium text-gray-700">
-                Uploads refused in the last 24h
-              </dt>
-              {typeof refusals === "string" ? (
-                <dd className="text-sm text-gray-900">{refusals}</dd>
-              ) : (
-                <dd className="text-sm text-gray-900">
-                  <ul>
-                    {refusals.map((line: string): ReactElement => {
-                      return <li key={line}>{line}</li>;
-                    })}
-                  </ul>
-                </dd>
-              )}
-              <dd className="text-xs text-gray-500">
-                Answered to the recorder at the gate, with the same reason words
-                the recorder&apos;s diagnostics quote.
-              </dd>
-            </div>
-
-            <div data-testid="health-fact-drops">
-              <dt className="text-xs font-medium text-gray-700">
-                Chunks dropped after acceptance in the last 24h
-              </dt>
-              {typeof drops === "string" ? (
-                <dd className="text-sm text-gray-900">{drops}</dd>
-              ) : (
-                <dd className="text-sm text-gray-900">
-                  <ul>
-                    {drops.map((line: string): ReactElement => {
-                      return <li key={line}>{line}</li>;
-                    })}
-                  </ul>
-                </dd>
-              )}
-              <dd className="text-xs text-gray-500">
-                Accepted with a 202, then not stored by the worker: a different
-                fact from a refusal, and the recorder was never told.
-              </dd>
-            </div>
-          </dl>
-
+        <div className="mt-1 text-xs text-gray-500">
+          Server said: {health.error.message}
+        </div>
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        <RecordingHealthDiagnosisBanner
+          diagnosis={health.diagnosis}
+          rumApplicationId={props.rumApplicationId}
+        />
+        {health.error && (
           <div
-            className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2"
-            data-testid="health-bytes"
+            className="mt-2 text-xs text-amber-700"
+            data-testid="health-card-stale"
           >
-            <BytesRow
-              label="Project bytes today"
-              usedBytes={health.status.projectBytesUsedToday}
-              limitBytes={health.status.dailyByteLimit}
-              noLimitCopy="no daily limit is set on this deployment"
-            />
-            <BytesRow
-              label="This application this month"
-              usedBytes={health.status.applicationBytesUsedThisMonth}
-              limitBytes={
-                health.status.monthlyBudgetInGB === null
-                  ? null
-                  : health.status.monthlyBudgetInGB * 1024 * 1024 * 1024
-              }
-              noLimitCopy="no monthly budget is set (0 or blank means no ceiling)"
-            />
+            The last refresh failed (
+            {describeHealthError(health.error).title.toLowerCase()}); showing
+            the status read{" "}
+            {health.fetchedAtUnixMs === null
+              ? "earlier"
+              : formatRelativeAge(health.fetchedAtUnixMs, health.nowUnixMs)}
+            .
           </div>
-
-          {props.showDiagnosticsPasteBox !== false && (
-            <div className="mt-5 border-t border-gray-100 pt-4">
-              <RecorderDiagnosticsPasteBox />
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-
-  if (props.embedded) {
-    return body;
+        )}
+      </>
+    );
   }
 
   return (
     <Card
       title="Recording health"
-      description="Everything the server knows about whether recordings are arriving for this application, refreshed automatically."
-      buttons={
-        props.onRefresh
-          ? [
-              {
-                title: health.isRefreshing ? "Refreshing…" : "Refresh",
-                icon: IconProp.Refresh,
-                buttonStyle: ButtonStyleType.OUTLINE,
-                disabled: health.isRefreshing,
-                onClick: props.onRefresh,
-              },
-            ]
-          : undefined
-      }
+      description="Whether recordings are arriving for this application under this policy. The Health page has the full picture: every stage, refusals, budgets and the recorder."
+      buttons={[
+        {
+          title: "View health details",
+          icon: IconProp.Heartbeat,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          onClick: (): void => {
+            Navigation.navigate(
+              getRecordingHealthPageRoute(props.rumApplicationId),
+            );
+          },
+        },
+      ]}
     >
-      {body}
+      <div
+        data-testid="health-card"
+        data-state={health.isLoading ? "loading" : health.diagnosis.state}
+      >
+        {body}
+      </div>
     </Card>
   );
 };
@@ -828,27 +569,24 @@ export const RecordingHealthCardView: FunctionComponent<
 export interface ComponentProps {
   rumApplicationId: ObjectID | string;
   pollIntervalMs?: number | undefined;
-  showDiagnosticsPasteBox?: boolean | undefined;
 }
 
 /* Connected: owns its subscription to the shared poller. */
 const RecordingHealthCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const health: SessionReplayHealthSnapshot & { refresh: () => Promise<void> } =
-    useSessionReplayHealth(props.rumApplicationId, {
+  const health: SessionReplayHealthSnapshot = useSessionReplayHealth(
+    props.rumApplicationId,
+    {
       pollIntervalMs:
         props.pollIntervalMs ?? SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
-    });
+    },
+  );
 
   return (
-    <RecordingHealthCardView
+    <RecordingHealthSummaryView
       rumApplicationId={props.rumApplicationId}
       health={health}
-      showDiagnosticsPasteBox={props.showDiagnosticsPasteBox}
-      onRefresh={(): void => {
-        void health.refresh();
-      }}
     />
   );
 };

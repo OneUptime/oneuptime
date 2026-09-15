@@ -2,6 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
 import { DashboardVariableType } from "Common/Types/Dashboard/DashboardVariable";
 import {
+  RESOURCE_FACET_CATALOG,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
+import {
   TraceTableArguments,
   buildTraceTableRequest,
   dimensionLabel,
@@ -168,6 +172,47 @@ describe("TraceTableData.dimensionLabel", () => {
 
   test("arbitrary attribute keys are shown verbatim", () => {
     expect(dimensionLabel("url.host")).toBe("url.host");
+  });
+
+  test("resource dimensions get their resource type's name", () => {
+    expect(dimensionLabel("hostId")).toBe("Host");
+    expect(dimensionLabel("dockerHostId")).toBe("Docker Host");
+    expect(dimensionLabel("podmanHostId")).toBe("Podman Host");
+    expect(dimensionLabel("kubernetesClusterId")).toBe("Kubernetes Cluster");
+    expect(dimensionLabel("proxmoxClusterId")).toBe("Proxmox Cluster");
+    expect(dimensionLabel("cephClusterId")).toBe("Ceph Cluster");
+    expect(dimensionLabel("serverlessFunctionId")).toBe("Serverless Function");
+    expect(dimensionLabel("cloudResourceId")).toBe("Cloud Resource");
+    // Kept as the shorter header dashboards already show.
+    expect(dimensionLabel("rumApplicationId")).toBe("Application");
+  });
+
+  test("REGRESSION: vCenter, Docker Swarm and IoT fleet dimensions are no longer raw keys", () => {
+    expect(dimensionLabel("vmwareVCenterId")).toBe("vCenter");
+    expect(dimensionLabel("dockerSwarmClusterId")).toBe("Docker Swarm Cluster");
+    expect(dimensionLabel("iotFleetId")).toBe("IoT Fleet");
+  });
+
+  test("every catalog resource type has a header that is not its raw key", () => {
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      const label: string = dimensionLabel(definition.facetKey);
+
+      expect(label).not.toBe(definition.facetKey);
+      if (definition.facetKey !== "rumApplicationId") {
+        expect(label).toBe(definition.label);
+      }
+    }
+  });
+
+  test("the resource labels do not shadow the built-in dimensions", () => {
+    const resourceKeys: Array<string> = RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): string => {
+        return definition.facetKey;
+      },
+    );
+    for (const builtIn of ["name", "statusCode", "kind", "primaryEntityId"]) {
+      expect(resourceKeys).not.toContain(builtIn);
+    }
   });
 });
 

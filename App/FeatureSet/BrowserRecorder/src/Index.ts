@@ -17,14 +17,14 @@ import Recorder, {
 } from "./Recorder";
 
 /*
- * Entry point for the PINNED artifact, bundled as an IIFE under the global
+ * Entry point for the mutable `latest` artifact, bundled as an IIFE under the global
  * OneUptimeReplay.
  *
  * The loader stub (src/Loader.ts) is what a customer's page actually
  * references. It fetches the policy, honours enabled / consent / DNT / GPC,
  * and only then loads this file - which is why a bad masking release can be
- * rolled back by changing one config field instead of waiting out a
- * year-long immutable cache.
+ * rolled back by replacing the current bytes and SRI instead of waiting out
+ * a browser cache.
  *
  * This file can also be loaded directly by a customer self-hosting the
  * bundle, in which case start() does the config fetch itself.

@@ -364,3 +364,39 @@ describe("deriveRelationships", () => {
     expect(memberEdges.length).toBe(1);
   });
 });
+
+describe("kubernetes workload membership", () => {
+  test("a pod that reports its deployment is part of it, and nothing points back", () => {
+    const edges: Array<EntityRelationshipEdge> = deriveRelationships([
+      { entityType: EntityType.KubernetesPod, entityKey: "pod" },
+      { entityType: EntityType.KubernetesDeployment, entityKey: "deploy" },
+      { entityType: EntityType.KubernetesNamespace, entityKey: "ns" },
+    ]);
+    expect(
+      edges.filter((edge: EntityRelationshipEdge) => {
+        return edge.fromEntityKey === "pod" && edge.toEntityKey === "deploy";
+      }),
+    ).toEqual([
+      {
+        fromEntityKey: "pod",
+        toEntityKey: "deploy",
+        relationshipType: EntityRelationshipType.PartOf,
+      },
+    ]);
+    expect(
+      edges.some((edge: EntityRelationshipEdge) => {
+        return edge.fromEntityKey === "deploy" && edge.toEntityKey === "pod";
+      }),
+    ).toBe(false);
+  });
+
+  test("dependency types are never inferred from co-occurrence", () => {
+    expect(
+      deriveRelationships([
+        { entityType: EntityType.Service, entityKey: "svc" },
+        { entityType: EntityType.Database, entityKey: "db" },
+        { entityType: EntityType.RemoteService, entityKey: "remote" },
+      ]),
+    ).toEqual([]);
+  });
+});

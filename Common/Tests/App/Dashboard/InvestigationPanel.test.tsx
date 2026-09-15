@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -30,6 +31,7 @@ const getFriendlyMessageMock: MockFunction = getJestMockFunction();
 const getCommonHeadersMock: MockFunction = getJestMockFunction();
 const markdownViewerMock: MockFunction = getJestMockFunction();
 const activityFeedMock: MockFunction = getJestMockFunction();
+const widgetRendererMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -59,6 +61,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 /*
  * Record MarkdownViewer's props so safeMode remains an asserted part of the
  * contract even when the Common Jest config replaces its markdown renderer.
+ * The recorded `inlineReferences` are the panel's own chip/link renderers, so
+ * tests can call them and render what they return.
  */
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
@@ -82,6 +86,20 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
  * case that used to render an empty framed box.
  */
 const hasRenderableActivityMock: MockFunction = getJestMockFunction();
+
+// Evidence rows render through the chat widgets; their output is not under test.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/WidgetRenderer",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: { widgets: Array<JSONObject> }): React.ReactElement => {
+        widgetRendererMock(props);
+        return React.createElement("div", { "data-testid": "evidence-widget" });
+      },
+    };
+  },
+);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed",
@@ -111,10 +129,12 @@ import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import type { MarkdownInlineReferenceRenderers } from "../../../UI/Components/Markdown.tsx/InlineReferences";
 
 interface MarkdownViewerProps {
   text: string;
   safeMode?: boolean | undefined;
+  inlineReferences?: MarkdownInlineReferenceRenderers | undefined;
 }
 
 interface ActivityFeedProps {
@@ -138,6 +158,8 @@ interface InvestigationPayloadOptions {
   humanVerdict?: string | null | undefined;
   codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   completedAt?: string | undefined;
+  evidence?: JSONArray | undefined;
+  references?: JSONArray | undefined;
 }
 
 interface ApiResponse {
@@ -203,13 +225,27 @@ function investigationPayload(
     run["completedAt"] = options.completedAt;
   }
 
-  return {
+  const payload: JSONObject = {
     run,
     events: options.events || [],
     analysisMarkdown: options.analysisMarkdown ?? null,
     analysisTldr: options.analysisTldr ?? null,
     isAnalysisPending: options.isAnalysisPending === true,
   };
+
+  /*
+   * Older API replicas omit these keys entirely, so they are only present
+   * when a test asks for them.
+   */
+  if (options.evidence !== undefined) {
+    payload["evidence"] = options.evidence;
+  }
+
+  if (options.references !== undefined) {
+    payload["references"] = options.references;
+  }
+
+  return payload;
 }
 
 function successfulResponse(payload: JSONObject): ApiResponse {
@@ -264,6 +300,7 @@ function renderPanel(data?: {
   subjectId?: ObjectID | undefined;
   onAnalysisAvailable?: (() => void) | undefined;
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
+  onReportSummaryChange?: ((summary: string | null) => void) | undefined;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationPanel
@@ -271,6 +308,7 @@ function renderPanel(data?: {
       subjectId={data?.subjectId || INCIDENT_ID}
       onAnalysisAvailable={data?.onAnalysisAvailable}
       onStatusChange={data?.onStatusChange}
+      onReportSummaryChange={data?.onReportSummaryChange}
     />,
   );
 }
@@ -371,6 +409,7 @@ afterEach(() => {
   markdownViewerMock.mockReset();
   activityFeedMock.mockReset();
   hasRenderableActivityMock.mockReset();
+  widgetRendererMock.mockReset();
 });
 
 describe("InvestigationPanel report lifecycle", () => {
@@ -432,10 +471,22 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "The database connection pool was exhausted.",
     );
+    /*
+     * The report renders section by section: the "## Root cause" heading
+     * becomes the section's own title and its body goes through the safe
+     * viewer together with the panel's inline reference renderers.
+     */
     expect(markdownViewerMock).toHaveBeenCalledWith({
-      text: ANALYSIS,
+      text: "The database connection pool was exhausted.",
       safeMode: true,
+      inlineReferences: expect.objectContaining({
+        renderCitation: expect.any(Function),
+        renderEventReference: expect.any(Function),
+      }),
     });
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Root cause" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Investigation activity")).toBeInTheDocument();
     expect(lastActivityProps()).toEqual(
       expect.objectContaining({
@@ -845,10 +896,10 @@ describe("InvestigationPanel TL;DR", () => {
     // The summary is never routed through the markdown renderer.
     expect(markdownTexts().length).toBeGreaterThan(0);
     expect(
-      markdownTexts().every((text: string): boolean => {
-        return text === ANALYSIS;
+      markdownTexts().some((text: string): boolean => {
+        return text.includes(TLDR);
       }),
-    ).toBe(true);
+    ).toBe(false);
 
     // It sits above the report it summarizes.
     const report: HTMLElement = screen.getByLabelText("Investigation report");
@@ -1021,10 +1072,10 @@ describe("InvestigationPanel TL;DR", () => {
     ).toBeUndefined();
     // The summary never reaches the markdown renderer.
     expect(
-      markdownTexts().every((text: string): boolean => {
-        return text === ANALYSIS;
+      markdownTexts().some((text: string): boolean => {
+        return text.includes("__pwned");
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   test("drops the previous subject's summary the moment the subject changes", async () => {
@@ -1691,5 +1742,822 @@ describe("InvestigationPanel completed actions", () => {
     expect(screen.queryByText(/You confirmed this analysis/)).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
+  });
+});
+
+/*
+ * The completed report is laid out for a responder: its Summary in a section
+ * of its own, the report section by section, and every query the AI ran with
+ * the rows behind it one click away. The payload's `evidence` and
+ * `references` drive the interactive parts; older API replicas omit them and
+ * the panel must fall back to the markdown alone.
+ */
+const PRIOR_INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
+const PRIOR_ALERT_ID: string = "77777777-7777-4777-8777-777777777777";
+const REPORT_SUMMARY: string =
+  "the connection pool ran dry after the 18:00 deploy.";
+
+const STRUCTURED_REPORT: string = [
+  "## \u{1F9E0} AI — Automated Root Cause Analysis",
+  "",
+  "**Summary** — the connection pool ran dry after the 18:00 deploy [C1].",
+  "",
+  "**Most likely root cause** — the deploy halved the pool size; this matches prior #6954 [C2].",
+  "",
+  "**Suggested next steps**",
+  "- Roll back the deploy",
+  "",
+  "**Evidence checked**",
+  "- **[C1]** Active incidents (7 total) — 7 row(s)",
+  "- **[C2]** Logs 17:20 – 18:20 (1 shown) — 1 row(s)",
+  "",
+  "---",
+  "*Investigated automatically by OneUptime AI — read-only, 2 queries run across your own telemetry using gpt-5. This is an AI-generated first pass; verify before acting.*",
+].join("\n");
+
+const EVIDENCE_ITEMS: JSONArray = [
+  {
+    citationId: "C1",
+    toolName: "query_incidents",
+    label: "Active incidents (7 total)",
+    rowCount: 7,
+    durationInMs: 812,
+    queryArguments: { state: "active" },
+    target: { type: "Incidents" },
+    executedAt: "2026-08-07T11:58:00.000Z",
+    canLoadRows: true,
+  },
+  {
+    citationId: "C2",
+    toolName: "search_logs",
+    label: "Logs 17:20 – 18:20 (1 shown)",
+    rowCount: 1,
+    queryArguments: { bodySearchText: "pool timeout" },
+    target: { type: "Logs" },
+    executedAt: "2026-08-07T11:59:00.000Z",
+    canLoadRows: true,
+  },
+];
+
+const REFERENCES: JSONArray = [
+  {
+    kind: "incident",
+    number: 6954,
+    id: PRIOR_INCIDENT_ID,
+    displayNumber: "INC-6954",
+    title: "Checkout pool exhausted",
+    stateName: "Resolved",
+  },
+  {
+    kind: "alert",
+    number: 6954,
+    id: PRIOR_ALERT_ID,
+    displayNumber: "#6954",
+    title: "Webhook failures",
+  },
+];
+
+interface EvidencePostRequest extends PostRequest {
+  headers?: JSONObject | undefined;
+}
+
+function structuredResponse(
+  overrides: Partial<InvestigationPayloadOptions> = {},
+): ApiResponse {
+  return completedResponse({
+    analysisMarkdown: STRUCTURED_REPORT,
+    evidence: EVIDENCE_ITEMS,
+    references: REFERENCES,
+    ...overrides,
+  });
+}
+
+function evidenceRowsResponse(citationId: string, text: string): ApiResponse {
+  return successfulResponse({
+    citationId,
+    toolName: "query_incidents",
+    label: "Active incidents (7 total)",
+    rowCount: 7,
+    isTruncated: false,
+    executedAt: COMPLETED_AT,
+    isPinnedToInvestigationTime: false,
+    text,
+  });
+}
+
+/*
+ * Investigation polls and evidence re-runs share API.post, so route by URL:
+ * the investigation handler answers the panel's own endpoint and the evidence
+ * handler (default: never resolves) answers /ai-investigation/evidence.
+ */
+function routePosts(handlers: {
+  investigation: (request: EvidencePostRequest) => unknown;
+  evidence?: ((request: EvidencePostRequest) => unknown) | undefined;
+}): void {
+  postMock.mockImplementation((request: unknown): unknown => {
+    const typedRequest: EvidencePostRequest = request as EvidencePostRequest;
+
+    if (typedRequest.url.toString().includes("/ai-investigation/evidence")) {
+      return handlers.evidence
+        ? handlers.evidence(typedRequest)
+        : new Promise<never>(() => {});
+    }
+
+    return handlers.investigation(typedRequest);
+  });
+}
+
+function evidencePosts(): Array<EvidencePostRequest> {
+  return (postMock.mock.calls as Array<Array<EvidencePostRequest>>)
+    .map((call: Array<EvidencePostRequest>): EvidencePostRequest => {
+      return call[0]!;
+    })
+    .filter((request: EvidencePostRequest): boolean => {
+      return request.url.toString().includes("/ai-investigation/evidence");
+    });
+}
+
+function investigationPostCount(): number {
+  return postMock.mock.calls.length - evidencePosts().length;
+}
+
+function lastInlineReferences(): MarkdownInlineReferenceRenderers {
+  const calls: Array<Array<MarkdownViewerProps>> = markdownViewerMock.mock
+    .calls as Array<Array<MarkdownViewerProps>>;
+  return calls[calls.length - 1]![0]!.inlineReferences!;
+}
+
+function allMarkdownProps(): Array<MarkdownViewerProps> {
+  return (
+    markdownViewerMock.mock.calls as Array<Array<MarkdownViewerProps>>
+  ).map((call: Array<MarkdownViewerProps>): MarkdownViewerProps => {
+    return call[0]!;
+  });
+}
+
+describe("InvestigationPanel structured report", () => {
+  const scrollIntoViewMock: MockFunction = getJestMockFunction();
+
+  beforeEach(() => {
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoViewMock,
+    });
+  });
+
+  afterEach(() => {
+    scrollIntoViewMock.mockReset();
+    delete (Element.prototype as unknown as { scrollIntoView?: unknown })
+      .scrollIntoView;
+  });
+
+  test("lifts the report's Summary into its own section above the report", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const summary: HTMLElement = screen.getByRole("region", {
+      name: "Investigation summary",
+    });
+    expect(summary).toHaveTextContent(
+      "the connection pool ran dry after the 18:00 deploy [C1].",
+    );
+    expect(within(summary).queryByText("TL;DR")).toBeNull();
+
+    const report: HTMLElement = screen.getByRole("region", {
+      name: "Investigation report",
+    });
+    expect(
+      within(report)
+        .getAllByRole("heading", { level: 4 })
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual(["Most likely root cause", "Suggested next steps"]);
+    expect(report).not.toHaveTextContent("the connection pool ran dry");
+    expect(
+      summary.compareDocumentPosition(report) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    for (const props of allMarkdownProps()) {
+      expect(props.safeMode).toBe(true);
+      expect(props.text).not.toContain("Automated Root Cause Analysis");
+      expect(props.text).not.toContain("Evidence checked");
+      expect(props.text).not.toContain("Investigated automatically");
+    }
+  });
+
+  test("renders the evidence the API returns, below the report", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const evidence: HTMLElement = screen.getByRole("region", {
+      name: "Evidence checked",
+    });
+    expect(within(evidence).getByText("2 queries")).toBeVisible();
+    expect(
+      within(evidence).getByRole("button", { name: /Active incidents/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen
+        .getByLabelText("Investigation report")
+        .compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Rendering evidence never re-runs anything by itself.
+    expect(evidencePosts()).toHaveLength(0);
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  test("expanding a query POSTs its citation once and shows the rows", async () => {
+    routePosts({
+      investigation: (): unknown => {
+        return Promise.resolve(structuredResponse());
+      },
+      evidence: (): unknown => {
+        return Promise.resolve(
+          evidenceRowsResponse("C1", "id | title\n1 | Checkout down"),
+        );
+      },
+    });
+
+    renderPanel();
+    await flush();
+
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: /Active incidents \(7 total\)/,
+    });
+    fireEvent.click(toggle);
+    await flush();
+
+    expect(evidencePosts()).toHaveLength(1);
+    expect(evidencePosts()[0]!.data).toEqual({
+      subjectType: "incident",
+      subjectId: INCIDENT_ID.toString(),
+      investigationRunId: RUN_ID,
+      citationId: "C1",
+    });
+    expect(screen.getByText(/Checkout down/)).toBeVisible();
+
+    // Collapse and re-open: served from the cache.
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    await flush();
+
+    expect(evidencePosts()).toHaveLength(1);
+    expect(investigationPostCount()).toBe(1);
+  });
+
+  test("falls back to the report's own Evidence checked list for an older API", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisMarkdown: STRUCTURED_REPORT }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const evidence: HTMLElement = screen.getByRole("region", {
+      name: "Evidence checked",
+    });
+    expect(evidence).toHaveTextContent("Active incidents (7 total)");
+    expect(evidence).toHaveTextContent("Logs 17:20 – 18:20 (1 shown)");
+    expect(within(evidence).queryAllByRole("button")).toHaveLength(0);
+    // No references from an older API, so numbers stay plain text.
+    expect(
+      lastInlineReferences().renderEventReference!({
+        kind: null,
+        number: 6954,
+        text: "#6954",
+      }),
+    ).toBeNull();
+  });
+
+  test("picks up evidence that arrives on a later poll", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({ analysisMarkdown: STRUCTURED_REPORT }) as never,
+      )
+      .mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+    expect(
+      within(screen.getByLabelText("Evidence checked")).queryAllByRole(
+        "button",
+      ),
+    ).toHaveLength(0);
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(
+      within(screen.getByLabelText("Evidence checked")).getAllByRole("button"),
+    ).toHaveLength(2);
+  });
+
+  test("never shows evidence without the report it belongs to", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: null,
+        isAnalysisPending: true,
+        evidence: EVIDENCE_ITEMS,
+        references: REFERENCES,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText("Preparing the final report")).toBeVisible();
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+  });
+
+  test("drops evidence when the report disappears on a later poll", async () => {
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValue(
+        structuredResponse({ analysisMarkdown: null }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    expect(screen.getByLabelText("Evidence checked")).toBeInTheDocument();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(
+      screen.getByText("No investigation report was published."),
+    ).toBeVisible();
+  });
+
+  test("ignores malformed evidence and references from the API", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: STRUCTURED_REPORT,
+        evidence: [
+          { citationId: "not-a-citation", toolName: "search_logs" },
+          { citationId: "C1" },
+        ] as unknown as JSONArray,
+        references: [
+          { kind: "incident", number: 6954, id: "javascript:alert(1)" },
+        ] as unknown as JSONArray,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    // Nothing valid survived, so the legacy list and plain numbers are used.
+    expect(
+      within(screen.getByLabelText("Evidence checked")).queryAllByRole(
+        "button",
+      ),
+    ).toHaveLength(0);
+    expect(
+      lastInlineReferences().renderEventReference!({
+        kind: "incident",
+        number: 6954,
+        text: "#6954",
+      }),
+    ).toBeNull();
+  });
+
+  test("a citation chip expands, scrolls to and highlights its evidence row", async () => {
+    routePosts({
+      investigation: (): unknown => {
+        return Promise.resolve(structuredResponse());
+      },
+    });
+
+    renderPanel();
+    await flush();
+    expect(jest.getTimerCount()).toBe(1);
+
+    const chip: React.ReactElement | null =
+      lastInlineReferences().renderCitation!("C2");
+    expect(chip).not.toBeNull();
+    render(chip!);
+
+    const chipButton: HTMLElement = screen.getByRole("button", {
+      name: "Citation C2: Logs 17:20 – 18:20 (1 shown)",
+    });
+    expect(chipButton).toHaveAttribute("title", "Logs 17:20 – 18:20 (1 shown)");
+
+    fireEvent.click(chipButton);
+    await flush();
+
+    const toggle: HTMLElement = within(
+      screen.getByLabelText("Evidence checked"),
+    ).getByRole("button", { name: /Logs 17:20/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      block: "nearest",
+      behavior: "smooth",
+    });
+    expect(evidencePosts()).toHaveLength(1);
+    expect(evidencePosts()[0]!.data["citationId"]).toBe("C2");
+    // The settled poll plus the single highlight timer.
+    expect(jest.getTimerCount()).toBe(2);
+
+    await tick(2000);
+
+    expect(toggle.closest("li")).not.toHaveAttribute("data-highlighted");
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  test("leaves a citation that is not in the evidence as plain text", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(lastInlineReferences().renderCitation!("C9")).toBeNull();
+    expect(lastInlineReferences().renderCitation!("C1")).not.toBeNull();
+  });
+
+  test("links a referenced incident number to that incident", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const link: React.ReactElement | null = lastInlineReferences()
+      .renderEventReference!({
+      kind: null,
+      number: 6954,
+      text: "#6954",
+    });
+    expect(link).not.toBeNull();
+    render(link!);
+
+    const anchor: HTMLElement = screen.getByRole("link", {
+      name: "INC-6954 · Checkout pool exhausted · Resolved",
+    });
+    expect(anchor).toHaveTextContent("#6954");
+    expect(anchor.getAttribute("href")).toMatch(
+      new RegExp(`/incidents/${PRIOR_INCIDENT_ID}$`),
+    );
+    expect(
+      lastInlineReferences().renderEventReference!({
+        kind: "incident",
+        number: 1,
+        text: "#1",
+      }),
+    ).toBeNull();
+  });
+
+  test("resolves an unqualified number as an alert on an alert investigation", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel({ subjectType: "alert", subjectId: ALERT_ID });
+    await flush();
+
+    const link: React.ReactElement | null = lastInlineReferences()
+      .renderEventReference!({
+      kind: null,
+      number: 6954,
+      text: "#6954",
+    });
+    render(link!);
+
+    expect(
+      screen
+        .getByRole("link", { name: "#6954 · Webhook failures" })
+        .getAttribute("href"),
+    ).toMatch(new RegExp(`/alerts/${PRIOR_ALERT_ID}$`));
+  });
+
+  test("ignores evidence rows that resolve after navigating to another subject", async () => {
+    const staleRows: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    let evidenceCalls: number = 0;
+    routePosts({
+      investigation: (request: EvidencePostRequest): unknown => {
+        return Promise.resolve(
+          request.data["alertId"]
+            ? structuredResponse({ runId: NEXT_RUN_ID })
+            : structuredResponse(),
+        );
+      },
+      evidence: (): unknown => {
+        evidenceCalls += 1;
+        return evidenceCalls === 1
+          ? staleRows.promise
+          : Promise.resolve(
+              evidenceRowsResponse("C1", "id | title\n9 | Alert subject rows"),
+            );
+      },
+    });
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Active incidents \(7 total\)/ }),
+    );
+    await flush();
+    expect(evidencePosts()).toHaveLength(1);
+
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+    await resolveDeferred(
+      staleRows,
+      evidenceRowsResponse("C1", "id | title\n1 | Previous subject rows"),
+    );
+
+    expect(screen.queryByText(/Previous subject rows/)).toBeNull();
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: /Active incidents \(7 total\)/,
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+    await flush();
+
+    expect(screen.getByText(/Alert subject rows/)).toBeVisible();
+    expect(screen.queryByText(/Previous subject rows/)).toBeNull();
+    expect(evidencePosts()[1]!.data).toEqual({
+      subjectType: "alert",
+      subjectId: ALERT_ID.toString(),
+      investigationRunId: NEXT_RUN_ID,
+      citationId: "C1",
+    });
+  });
+
+  test("renders a hostile report only through the safe viewer", async () => {
+    const hostile: string = [
+      '**Summary** — <img src=x onerror="window.__panelPwned = true"> [click](https://evil.example)',
+      "",
+      "**Most likely root cause** — ![pixel](https://evil.example/p.png) [C1]",
+      "",
+      "[C1]: https://evil.example/exfil",
+    ].join("\n");
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisMarkdown: hostile }) as never,
+    );
+
+    const { container } = renderPanel();
+    await flush();
+
+    expect(allMarkdownProps().length).toBeGreaterThan(0);
+    for (const props of allMarkdownProps()) {
+      expect(props.safeMode).toBe(true);
+    }
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("a")).toBeNull();
+    expect(
+      (window as unknown as { __panelPwned?: boolean }).__panelPwned,
+    ).toBeUndefined();
+  });
+
+  test("names the model and asks for verification in the usage strip", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).toHaveTextContent("Model gpt-5");
+    expect(usage).toHaveTextContent(
+      "AI-generated first pass — verify before acting.",
+    );
+    expect(usage).toHaveTextContent("2 telemetry queries");
+  });
+
+  test("does not ask to verify a report that does not exist", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The provider timed out.",
+          toolCallCount: 3,
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).not.toHaveTextContent("verify before acting");
+    expect(usage).not.toHaveTextContent("Model");
+  });
+
+  test("titles the act and rate blocks with headings instead of icon-in-paragraph", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    const { container } = renderPanel();
+    await flush();
+
+    expect(
+      screen.getByRole("heading", { name: "Act on this investigation" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Rate this investigation" }),
+    ).toBeVisible();
+    expect(container.querySelectorAll("p div")).toHaveLength(0);
+  });
+});
+
+describe("InvestigationPanel report summary callback", () => {
+  function nonNullCalls(callback: MockFunction): Array<unknown> {
+    return callback.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((value: unknown): boolean => {
+        return value !== null;
+      });
+  }
+
+  test("reports the TL;DR of a completed report", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(TLDR);
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([TLDR]);
+  });
+
+  test("falls back to the report's Summary as plain text without a TL;DR", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(REPORT_SUMMARY);
+  });
+
+  test("bounds a long Summary", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: `**Summary** — ${"pool exhausted ".repeat(60)}\n\n**Root cause** — a deploy.`,
+      }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    const summary: string = nonNullCalls(onReportSummaryChange)[0] as string;
+    expect(summary.length).toBeLessThanOrEqual(280);
+    expect(summary.endsWith("…")).toBe(true);
+  });
+
+  test("reports null when a report has neither a TL;DR nor a Summary", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(onReportSummaryChange).toHaveBeenCalledWith(null);
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([]);
+  });
+
+  test("reports null while the run is active or the report is pending", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(
+        successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Running,
+            analysisTldr: TLDR,
+          }),
+        ) as never,
+      )
+      .mockResolvedValueOnce(
+        completedResponse({
+          analysisMarkdown: null,
+          analysisTldr: TLDR,
+          isAnalysisPending: true,
+        }) as never,
+      )
+      .mockResolvedValue(structuredResponse({ analysisTldr: TLDR }) as never);
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+    await advanceFastPolls();
+
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([]);
+
+    await advanceFastPolls();
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(TLDR);
+  });
+
+  test("does not repeat an unchanged summary across polls", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+    const callsAfterLoad: number = onReportSummaryChange.mock.calls.length;
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(investigationPostCount()).toBe(3);
+    expect(onReportSummaryChange).toHaveBeenCalledTimes(callsAfterLoad);
+  });
+
+  test("reports null the moment the subject changes, then the new summary", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    const nextTldr: string = "The webhook signer rotated its key.";
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({ analysisTldr: TLDR }) as never,
+      )
+      .mockReturnValueOnce(nextSubject.promise as never);
+
+    const view: ReturnType<typeof render> = renderPanel({
+      onReportSummaryChange,
+    });
+    await flush();
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(TLDR);
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="alert"
+        subjectId={ALERT_ID}
+        onReportSummaryChange={onReportSummaryChange}
+      />,
+    );
+    await flush();
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(null);
+
+    await resolveDeferred(
+      nextSubject,
+      structuredResponse({ runId: NEXT_RUN_ID, analysisTldr: nextTldr }),
+    );
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(nextTldr);
+  });
+
+  test("reports null when the report disappears", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({ analysisTldr: TLDR }) as never,
+      )
+      .mockResolvedValue(
+        structuredResponse({
+          analysisMarkdown: null,
+          analysisTldr: TLDR,
+        }) as never,
+      );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(TLDR);
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(onReportSummaryChange).toHaveBeenLastCalledWith(null);
+  });
+
+  test("uses the latest callback without re-reporting", async () => {
+    const first: MockFunction = getJestMockFunction();
+    const second: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    const view: ReturnType<typeof render> = renderPanel({
+      onReportSummaryChange: first,
+    });
+    await flush();
+    expect(first).toHaveBeenLastCalledWith(TLDR);
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        onReportSummaryChange={second}
+      />,
+    );
+    await flush();
+    expect(second).not.toHaveBeenCalled();
+
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: "A newer summary." }) as never,
+    );
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(second).toHaveBeenLastCalledWith("A newer summary.");
   });
 });

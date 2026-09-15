@@ -13,7 +13,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import Card from "Common/UI/Components/Card/Card";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   formatReplayDuration,
   formatReplayOffset,
@@ -83,6 +82,12 @@ export interface ReplayHeaderProps {
   startTimeUnixMs: number | null;
   currentTimeMs: number;
   durationMs: number;
+  /*
+   * Footage may still be recorded: not finalized and not every tab has
+   * closed (isManifestRecordingLive). Drives the Live pill, so it goes out
+   * once the server calls the session ended - about a minute after its
+   * last tab closed - rather than when the finalizer counts it.
+   */
   isLive: boolean;
   tabs: Array<ReplayHeaderTab>;
   onSwitchTab: (tabId: string) => void;
@@ -667,49 +672,61 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         }
         bodyClassName="mt-3"
         buttons={[
-          ...(props.pinControl ? [props.pinControl] : []),
-          <Button
-            key="copy-link"
-            dataTestId="replay-copy-link"
-            title="Copy link"
-            icon={IconProp.Link}
-            tooltip="Copy a link to this moment (c)"
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={handleCopyLink}
-          />,
-          <Button
-            key="details"
-            dataTestId="replay-open-details"
-            title="Session details"
-            icon={IconProp.Info}
-            tooltip="Session details (i)"
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={props.onOpenDetails}
-          />,
-          <ReplayButtonGroup key="layout" ariaLabel="Player layout">
-            <ReplayToolButton
-              dataTestId="replay-toggle-wide"
-              label="Wide"
-              icon={IconProp.Expand}
-              variant="segment"
-              isPressed={props.isWide}
-              title={
-                props.isWide
-                  ? "Show the application menu again (w)"
-                  : "Hide the application menu (w)"
-              }
-              onClick={props.onToggleWide}
-            />
-            <ReplayToolButton
-              dataTestId="replay-toggle-theater"
-              label={props.isTheater ? "Exit theater" : "Theater"}
-              icon={IconProp.Window}
-              variant="segment"
-              isPressed={props.isTheater}
-              title={props.isTheater ? "Exit theater (Esc)" : "Theater (f)"}
-              onClick={props.onToggleTheater}
-            />
-          </ReplayButtonGroup>,
+          <div
+            key="recording-toolbar"
+            role="group"
+            aria-label="Session recording controls"
+            data-testid="replay-header-toolbar"
+            className="flex w-full flex-wrap items-center justify-start gap-2 md:w-auto md:justify-end"
+          >
+            <ReplayButtonGroup
+              ariaLabel="Recording actions"
+              dataTestId="replay-recording-actions"
+              canWrap={true}
+            >
+              {props.pinControl}
+              <ReplayToolButton
+                dataTestId="replay-copy-link"
+                label="Copy link"
+                icon={IconProp.Link}
+                variant="segment"
+                title="Copy a link to this moment (c)"
+                onClick={handleCopyLink}
+              />
+              <ReplayToolButton
+                dataTestId="replay-open-details"
+                label="Session details"
+                icon={IconProp.Info}
+                variant="segment"
+                title="Session details (i)"
+                onClick={props.onOpenDetails}
+              />
+            </ReplayButtonGroup>
+            <ReplayButtonGroup ariaLabel="Player layout">
+              <ReplayToolButton
+                dataTestId="replay-toggle-wide"
+                label="Wide"
+                icon={IconProp.Expand}
+                variant="segment"
+                isPressed={props.isWide}
+                title={
+                  props.isWide
+                    ? "Show the application menu again (w)"
+                    : "Hide the application menu (w)"
+                }
+                onClick={props.onToggleWide}
+              />
+              <ReplayToolButton
+                dataTestId="replay-toggle-theater"
+                label={props.isTheater ? "Exit theater" : "Theater"}
+                icon={IconProp.Window}
+                variant="segment"
+                isPressed={props.isTheater}
+                title={props.isTheater ? "Exit theater (Esc)" : "Theater (f)"}
+                onClick={props.onToggleTheater}
+              />
+            </ReplayButtonGroup>
+          </div>,
         ]}
       >
         <div>
