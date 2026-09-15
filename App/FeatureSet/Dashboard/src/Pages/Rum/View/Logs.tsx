@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -13,7 +14,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 
@@ -73,10 +73,7 @@ const RumApplicationLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="RUM Application Logs"
-      description="Live OpenTelemetry logs (browser / mobile events) from this application. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * Telemetry for a RUM application carries the RumApplication id in
        * primaryEntityId, not a Service id. Tell the viewer so the locked
@@ -91,7 +88,7 @@ const RumApplicationLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found for this application."
       />
-    </Card>
+    </Fragment>
   );
 };
 

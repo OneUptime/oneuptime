@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const CephClusterLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Cluster Logs"
-      description="Live OpenTelemetry logs scoped to this Ceph cluster. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * entityScope matches new rows via the bloom-indexed `entityKeys`
        * membership column, with the resource-attribute equality as the
@@ -120,7 +117,7 @@ const CephClusterLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No logs found for this cluster. The Ceph agent ships metrics only — logs appear here when you forward them with the ceph.cluster.name resource attribute."
       />
-    </Card>
+    </Fragment>
   );
 };
 

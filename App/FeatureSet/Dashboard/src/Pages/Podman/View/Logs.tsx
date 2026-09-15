@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,7 +15,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,10 +88,7 @@ const PodmanHostLogs: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Container Logs"
-      description="Live OpenTelemetry logs from all containers on this Podman host. Use the filter bar to scope by severity, trace id, or any resource attribute."
-    >
+    <Fragment>
       {/*
        * The pinned attributes are machine values (hostIdentifier, runtime
        * slug) that the filter must keep matching. The display overrides make
@@ -112,7 +109,7 @@ const PodmanHostLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage="No container logs found. Make sure the Podman agent's filelog receiver is configured and the collector is running."
       />
-    </Card>
+    </Fragment>
   );
 };
 

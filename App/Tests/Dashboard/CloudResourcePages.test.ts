@@ -488,8 +488,12 @@ describe("Cloud Environment copy", () => {
     expect(readCode("Pages/Cloud/View/Layout.tsx")).toContain(
       'title="Cloud Environment"',
     );
+    /*
+     * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,
+     * so its empty state is the copy left to say "environment".
+     */
     expect(readCode("Pages/Cloud/View/Logs.tsx")).toContain(
-      'title="Cloud Environment Logs"',
+      'noLogsMessage="No logs found for this cloud environment."',
     );
     expect(readCode("Pages/Cloud/SideMenu.tsx")).toContain(
       'title: "All Environments"',
