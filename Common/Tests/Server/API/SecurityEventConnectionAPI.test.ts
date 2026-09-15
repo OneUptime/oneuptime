@@ -7,12 +7,14 @@ import SecurityEventConnectionService, {
 import SecurityEventConnectionRunExecutor from "../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionRunExecutor";
 import SecurityEventConnectionTester from "../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionTester";
 import SecurityEventConnectorRegistry from "../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
-import GoogleSecOpsClient from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
-import {
-  SecurityConnectorSettings,
-  SecurityEventConnector,
-  readSettingString,
-} from "../../../Server/Utils/SecurityEvent/Connectors/Types";
+import GoogleSecOpsClient, {
+  FetchLike,
+} from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
+import GoogleSecOpsConnector, {
+  GoogleSecOpsClientFactory,
+} from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsConnector";
+import { SecurityConnectorSettings } from "../../../Server/Utils/SecurityEvent/Connectors/Types";
+import { PRIVATE_KEY } from "../Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsConnectorFixtures";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";
 import {
@@ -894,16 +896,22 @@ describe("POST /security-event-connection/test - unsaved settings", () => {
  * guaranteed: the edit form's unsaved settings are tested with the stored
  * key, which can never be read back into the form; a test of anything other
  * than the saved settings writes no run-history row; unsaved settings are
- * validated with the save-time rules and never persisted; and the
- * permission gate and tenant scoping hold.
+ * validated with the save-time rules of the real Google SecOps connector
+ * and never persisted; and the permission gate and tenant scoping hold.
  */
 describe("Google SecOps connections", () => {
+  /*
+   * Real service-account keys: the connector parses private_key as a PEM
+   * at save time, so a placeholder body would be a request the route
+   * refuses with a 400 before the tester is reached. Stored and pasted
+   * share the generated key and differ by client_email, which is all the
+   * run-history rules compare.
+   */
   const GOOGLE_STORED_KEY: string = JSON.stringify(
     {
       type: "service_account",
       client_email: "stored@acme-secops.iam.gserviceaccount.com",
-      private_key:
-        "-----BEGIN PRIVATE KEY-----\nstored\n-----END PRIVATE KEY-----\n",
+      private_key: PRIVATE_KEY,
     },
     null,
     2,
@@ -911,9 +919,28 @@ describe("Google SecOps connections", () => {
   const GOOGLE_PASTED_KEY: string = JSON.stringify({
     type: "service_account",
     client_email: "pasted@acme-secops.iam.gserviceaccount.com",
-    private_key:
-      "-----BEGIN PRIVATE KEY-----\npasted\n-----END PRIVATE KEY-----\n",
+    private_key: PRIVATE_KEY,
   });
+  // Well-formed JSON around a key body no PEM decoder reads.
+  const GOOGLE_UNREADABLE_KEY: string = JSON.stringify({
+    type: "service_account",
+    client_email: "stored@acme-secops.iam.gserviceaccount.com",
+    private_key:
+      "-----BEGIN PRIVATE KEY-----\nstored\n-----END PRIVATE KEY-----\n",
+  });
+  const UNREADABLE_KEY_MESSAGE: string =
+    "Service account JSON private_key is not a readable PEM private key. Check that newlines are real newlines and the key is not encrypted.";
+  /*
+   * An AWS connection for the provider-agnostic secret rules. The access key
+   * id is a well-formed long-lived (AKIA) id, so the save-time rules would
+   * accept these settings and a blank session token needs no pairing.
+   */
+  const AWS_STORED: SecurityConnectorSettings = {
+    provider: SecurityEventConnectorProvider.AwsSecurityHub,
+    config: { region: "us-east-1", accessKeyId: "AKIAIOSFODNN7EXAMPLE" },
+    secrets: { secretAccessKey: STORED_SECRET },
+    alertingOnly: true,
+  };
   const GOOGLE_CONFIG: JSONObject = {
     region: "us",
     instanceResourceName: "projects/acme-secops/locations/us/instances/old",
@@ -945,29 +972,6 @@ describe("Google SecOps connections", () => {
     })
     .join(", ");
 
-  /*
-   * Stands in for the Google SecOps connector's validateSettings with the
-   * client's own save-time rules, so the messages below are the ones a save
-   * returns. The API never runs a connector's network calls itself.
-   */
-  const googleConnector: SecurityEventConnector = {
-    provider: SecurityEventConnectorProvider.GoogleSecOps,
-    validateSettings: (settings: SecurityConnectorSettings): void => {
-      GoogleSecOpsClient.validateRegion(
-        readSettingString(settings.config, "region"),
-      );
-      GoogleSecOpsClient.validateInstanceResourceName(
-        readSettingString(settings.config, "instanceResourceName"),
-      );
-    },
-    testConnection: (): Promise<never> => {
-      return Promise.reject(new Error("the tester is mocked in this suite"));
-    },
-    fetchEvents: (): Promise<never> => {
-      return Promise.reject(new Error("the API never fetches"));
-    },
-  };
-
   type TesterCall = {
     settings: SecurityConnectorSettings;
     connection: SecurityEventConnection | undefined;
@@ -980,10 +984,38 @@ describe("Google SecOps connections", () => {
       .calls[0]![0] as TesterCall;
   }
 
+  /*
+   * Every attempt to reach Google while the API validates. Validation builds
+   * no client, so this stays empty; a route that started contacting the
+   * provider before the tester would record here and fail instead of
+   * silently making network calls from the API process.
+   */
+  let networkAttempts: Array<string> = [];
+
+  /*
+   * The save-time rules end to end: the service's validation, dispatching
+   * through the (mocked) registry to the real GoogleSecOpsConnector, so the
+   * region/location match and the key's PEM parsing apply exactly as they do
+   * on a save. Its fetch and client factory refuse to run.
+   */
   function useRealValidation(): void {
     (
       SecurityEventConnectionServiceType.validateSettings as jest.Mock
     ).mockRestore();
+    networkAttempts = [];
+    const refuseFetch: FetchLike = (url: string): Promise<never> => {
+      networkAttempts.push(`fetch ${url}`);
+      throw new Error("The connection test API must not call Google.");
+    };
+    const refuseClient: GoogleSecOpsClientFactory = (data: {
+      instanceResourceName: string;
+    }): GoogleSecOpsClient => {
+      networkAttempts.push(`client ${data.instanceResourceName}`);
+      throw new Error("The connection test API must not build a client.");
+    };
+    (SecurityEventConnectorRegistry.getConnector as jest.Mock).mockReturnValue(
+      new GoogleSecOpsConnector(refuseFetch, refuseClient),
+    );
   }
 
   beforeEach(() => {
@@ -1014,9 +1046,6 @@ describe("Google SecOps connections", () => {
           alertingOnly: data.alertingOnly,
         };
       },
-    );
-    (SecurityEventConnectorRegistry.getConnector as jest.Mock).mockReturnValue(
-      googleConnector,
     );
     (SecurityEventConnectionTester.test as jest.Mock).mockResolvedValue(
       GOOGLE_REPORT,
@@ -1217,14 +1246,27 @@ describe("Google SecOps connections", () => {
       expect(SecurityEventConnectionService.updateOneBy).not.toHaveBeenCalled();
     });
 
+    /*
+     * Validation is a pass-through here so each row isolates the run-history
+     * rule, but every row is still a request the real save-time rules
+     * accept: a row the route would refuse with a 400 never reaches that
+     * rule, so asserting its recordRun would describe a response production
+     * cannot give. Refused requests (a required key of whitespace or null, a
+     * region that does not match the instance) are pinned in the describe
+     * that runs the real rules.
+     */
     test.each<[string, JSONObject, boolean]>([
       ["nothing but the connection id", {}, true],
       ["the stored config sent back as it is", { config: GOOGLE_CONFIG }, true],
       [
+        /*
+         * Only the text field is padded: a dropdown value is matched against
+         * its options exactly, so " us " is refused at save time.
+         */
         "the stored config with padding the connector trims",
         {
           config: {
-            region: " us ",
+            region: "us",
             instanceResourceName:
               " projects/acme-secops/locations/us/instances/old\n",
           },
@@ -1268,8 +1310,14 @@ describe("Google SecOps connections", () => {
         true,
       ],
       [
-        "a changed region",
-        { config: { ...GOOGLE_CONFIG, region: "europe" } },
+        "a changed region, with the instance in that region",
+        {
+          config: {
+            region: "europe",
+            instanceResourceName:
+              "projects/acme-secops/locations/eu/instances/old",
+          },
+        },
         false,
       ],
       [
@@ -1291,16 +1339,6 @@ describe("Google SecOps connections", () => {
       [
         "a pasted key identical to the stored one (no oracle for the stored key)",
         { secrets: { serviceAccountJson: GOOGLE_STORED_KEY } },
-        false,
-      ],
-      [
-        "a key of whitespace, which replaces the stored one as a save would",
-        { secrets: { serviceAccountJson: "   " } },
-        false,
-      ],
-      [
-        "the key removed with null",
-        { secrets: { serviceAccountJson: null } },
         false,
       ],
       [
@@ -1367,12 +1405,7 @@ describe("Google SecOps connections", () => {
       loaded.provider = SecurityEventConnectorProvider.AwsSecurityHub;
       (
         SecurityEventConnectionService.getConnectorSettings as jest.Mock
-      ).mockResolvedValue({
-        provider: SecurityEventConnectorProvider.AwsSecurityHub,
-        config: { region: "us-east-1", accessKeyId: "AKIA1" },
-        secrets: { secretAccessKey: STORED_SECRET },
-        alertingOnly: true,
-      });
+      ).mockResolvedValue(AWS_STORED);
       req.body = {
         connectionId: CONNECTION.toString(),
         secrets: { sessionToken: null },
@@ -1383,6 +1416,34 @@ describe("Google SecOps connections", () => {
       expect(next).not.toHaveBeenCalled();
       expect(testedCall().settings.secrets).toEqual({
         secretAccessKey: STORED_SECRET,
+      });
+      expect(testedCall().recordRun).toBe(false);
+    });
+
+    /*
+     * A whitespace-only value is not "", so mergeSecrets puts it over the
+     * stored value as a save would, and any provided secret counts as an
+     * edit. Only an optional credential can show this: the save-time rules
+     * read whitespace as empty, which an optional field allows and a
+     * required one refuses (the Google SecOps key of whitespace is a 400 in
+     * the describe that runs the real rules).
+     */
+    test("a whitespace-only optional credential is provided, so it overlays the stored settings and records no run row", async () => {
+      loaded.provider = SecurityEventConnectorProvider.AwsSecurityHub;
+      (
+        SecurityEventConnectionService.getConnectorSettings as jest.Mock
+      ).mockResolvedValue(AWS_STORED);
+      req.body = {
+        connectionId: CONNECTION.toString(),
+        secrets: { sessionToken: "   " },
+      };
+
+      await testHandler(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(testedCall().settings.secrets).toEqual({
+        secretAccessKey: STORED_SECRET,
+        sessionToken: "   ",
       });
       expect(testedCall().recordRun).toBe(false);
     });
@@ -1449,6 +1510,7 @@ describe("Google SecOps connections", () => {
         alertingOnly: true,
       });
       expect(testedCall().recordRun).toBe(false);
+      expect(networkAttempts).toEqual([]);
     });
 
     test.each<[JSONObject, string]>([
@@ -1463,6 +1525,20 @@ describe("Google SecOps connections", () => {
       [
         { config: { ...GOOGLE_CONFIG, instanceResourceName: "nope" } },
         "Instance resource name must look like projects/{project}/locations/{location}/instances/{instance}.",
+      ],
+      /*
+       * Both values pass the catalog on their own; only the connector knows
+       * the regional endpoint must serve the instance's location.
+       */
+      [
+        {
+          config: {
+            region: "europe",
+            instanceResourceName:
+              "projects/acme-secops/locations/us/instances/old",
+          },
+        },
+        "Region must match the locations segment of the instance resource name.",
       ],
       /*
        * The old route read a null region as "keep the stored one". Here the
@@ -1481,6 +1557,14 @@ describe("Google SecOps connections", () => {
         { secrets: { serviceAccountJson: null } },
         "Service account JSON is required for Google SecOps.",
       ],
+      /*
+       * Not "", so it replaces the stored key rather than keeping it, and a
+       * required field of whitespace is empty.
+       */
+      [
+        { secrets: { serviceAccountJson: "   " } },
+        "Service account JSON is required for Google SecOps.",
+      ],
       [
         { secrets: { privateKey: "x" } },
         'Credentials contains an unknown setting "privateKey" for Google SecOps.',
@@ -1495,8 +1579,33 @@ describe("Google SecOps connections", () => {
         expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
         expect(next).toHaveBeenCalledWith(expect.objectContaining({ message }));
         expect(SecurityEventConnectionTester.test).not.toHaveBeenCalled();
+        expect(networkAttempts).toEqual([]);
       },
     );
+
+    /*
+     * The stored key is validated too, not only what the form sends: a key
+     * that can no longer sign a token is refused here with the field named,
+     * instead of reaching the tester and failing as an authentication check.
+     */
+    test("a stored key whose private_key is not a readable PEM is refused even with nothing edited", async () => {
+      (
+        SecurityEventConnectionService.getConnectorSettings as jest.Mock
+      ).mockResolvedValue({
+        ...GOOGLE_STORED,
+        secrets: { serviceAccountJson: GOOGLE_UNREADABLE_KEY },
+      });
+      req.body = { connectionId: CONNECTION.toString() };
+
+      await testHandler(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: UNREADABLE_KEY_MESSAGE }),
+      );
+      expect(SecurityEventConnectionTester.test).not.toHaveBeenCalled();
+      expect(networkAttempts).toEqual([]);
+    });
 
     test.each(["yes", 1, "true", {}])(
       "a Data to import of %j is refused before the connection is read",
@@ -1569,6 +1678,7 @@ describe("Google SecOps connections", () => {
         res,
         GOOGLE_REPORT,
       );
+      expect(networkAttempts).toEqual([]);
     });
 
     test("Data to import defaults to Alerts only when the form leaves it out", async () => {
@@ -1603,6 +1713,14 @@ describe("Google SecOps connections", () => {
       ],
       [{ secrets: {} }, "Service account JSON is required for Google SecOps."],
       [
+        { secrets: { serviceAccountJson: "  \n " } },
+        "Service account JSON is required for Google SecOps.",
+      ],
+      [
+        { secrets: { serviceAccountJson: GOOGLE_UNREADABLE_KEY } },
+        UNREADABLE_KEY_MESSAGE,
+      ],
+      [
         { secrets: { serviceAccountJson: "not json" } },
         "Service account JSON must be a JSON object.",
       ],
@@ -1625,6 +1743,7 @@ describe("Google SecOps connections", () => {
         expect(next).toHaveBeenCalledWith(expect.objectContaining({ message }));
         expect(SecurityEventConnectionTester.test).not.toHaveBeenCalled();
         expect(SecurityEventConnectionService.create).not.toHaveBeenCalled();
+        expect(networkAttempts).toEqual([]);
       },
     );
   });

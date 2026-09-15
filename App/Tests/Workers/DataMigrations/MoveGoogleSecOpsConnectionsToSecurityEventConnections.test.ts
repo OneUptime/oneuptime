@@ -21,6 +21,7 @@ import MoveGoogleSecOpsConnectionsToSecurityEventConnections, {
   UNTITLED_DETECTION_TITLE,
   buildRunHistoryInsert,
   isSecurityConnectorTestReport,
+  isTransientDatabaseError,
   mapLegacyCheckStatus,
   toCheckKey,
   transformLegacyLastPollResult,
@@ -443,6 +444,14 @@ function uniqueViolation(): Error {
     ),
     { code: "23505", driverError: { code: "23505" } },
   );
+}
+
+// A QueryFailedError-shaped failure carrying the given SQLSTATE.
+function postgresError(code: string, message: string = "query failed"): Error {
+  return Object.assign(new Error(message), {
+    code,
+    driverError: { code, message },
+  });
 }
 
 beforeEach(() => {
@@ -947,11 +956,22 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
       serviceClass.validateSettings.mockRejectedValue(
         new BadDataException("Service account JSON is not valid JSON."),
       );
-      service.create.mockRejectedValueOnce(new Error("deadlock detected"));
+      service.create.mockRejectedValueOnce(
+        postgresError("40P01", "deadlock detected"),
+      );
 
-      await runMigration();
+      let thrown: string = "";
 
-      const logged: string = everythingLogged();
+      try {
+        await runMigration();
+      } catch (err) {
+        thrown = err instanceof Error ? err.message : String(err);
+      }
+
+      // The runner records this message, and the health page shows it.
+      expect(thrown).toContain(CONNECTION_ID);
+
+      const logged: string = `${everythingLogged()}\n${thrown}`;
 
       expect(logged).not.toContain("PRIVATE KEY");
       expect(logged).not.toContain("MIIEvQIBADANBgkqhkiG9w0BAQEFAASC");
@@ -1048,8 +1068,16 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
     });
   });
 
-  describe("isolation: one connection never stops the others, and migrate never throws", () => {
-    test("any other create failure is logged, leaves that legacy row enabled, and the next connection is moved", async () => {
+  /*
+   * migrate() throwing is how this migration gets retried: the runner does
+   * not record a migration that threw as executed. Recording one that left a
+   * connection behind is permanent, and that connection silently stops
+   * importing. Throwing on a failure that repeats on every retry halts every
+   * later data migration for good. So: transient -> throw after trying every
+   * connection; deterministic -> log and carry on.
+   */
+  describe("failures: every connection is attempted, and only a failure a retry can fix is thrown", () => {
+    test("a transient create failure (deadlock) still moves the next connection, then rejects naming the one left behind", async () => {
       database.connections = [
         legacyConnection(),
         legacyConnection({
@@ -1057,15 +1085,26 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
           serviceAccountJson: SECOND_CIPHERTEXT,
         }),
       ];
-      service.create.mockRejectedValueOnce(new Error("deadlock detected"));
+      service.create.mockRejectedValueOnce(postgresError("40P01"));
 
-      await expect(runMigration()).resolves.toBeUndefined();
+      const outcome: Promise<void> = runMigration();
+
+      await expect(outcome).rejects.toThrow(CONNECTION_ID);
+      await expect(outcome).rejects.toThrow("transient database error");
+      await expect(outcome).rejects.not.toThrow(SECOND_CONNECTION_ID);
 
       expect(service.create).toHaveBeenCalledTimes(2);
+      expect(
+        createdConnections().map((connection: SecurityEventConnection) => {
+          return connection.id?.toString();
+        }),
+      ).toEqual([CONNECTION_ID, SECOND_CONNECTION_ID]);
+
+      // The one that failed keeps polling from the legacy row until the retry.
       expect(disabledConnectionIds()).toEqual([SECOND_CONNECTION_ID]);
       expect(mockedLogger.error).toHaveBeenCalledWith(
         expect.stringContaining(
-          `could not move Google SecOps connection ${CONNECTION_ID}`,
+          `could not move Google SecOps connection ${CONNECTION_ID} because of a transient database error`,
         ),
       );
       expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
@@ -1073,7 +1112,23 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
       );
     });
 
-    test("a failing existence check is isolated to its connection", async () => {
+    test("the retry after a transient failure finishes the move without copying anything twice", async () => {
+      database.runsByConnection[CONNECTION_ID] = [legacyRun()];
+      service.create.mockRejectedValueOnce(postgresError("57P01"));
+
+      await expect(runMigration()).rejects.toThrow(CONNECTION_ID);
+      expect(disabledConnectionIds()).toEqual([]);
+      expect(insertedRuns()).toEqual([]);
+
+      // The next migrate Job or boot runs it again, this time without a failure.
+      await expect(runMigration()).resolves.toBeUndefined();
+
+      expect(service.create).toHaveBeenCalledTimes(2);
+      expect(disabledConnectionIds()).toEqual([CONNECTION_ID]);
+      expect(insertedRuns()).toHaveLength(1);
+    });
+
+    test("a deterministic create failure (BadDataException) is logged, leaves that legacy row enabled, moves the next connection, and resolves", async () => {
       database.connections = [
         legacyConnection(),
         legacyConnection({
@@ -1081,18 +1136,61 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
           serviceAccountJson: SECOND_CIPHERTEXT,
         }),
       ];
-      service.findOneById.mockRejectedValueOnce(new Error("connection reset"));
+      service.create.mockRejectedValueOnce(
+        new BadDataException("projectId is required"),
+      );
 
       await expect(runMigration()).resolves.toBeUndefined();
+
+      expect(service.create).toHaveBeenCalledTimes(2);
+      expect(disabledConnectionIds()).toEqual([SECOND_CONNECTION_ID]);
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        `MoveGoogleSecOpsConnectionsToSecurityEventConnections: could not move Google SecOps connection ${CONNECTION_ID}; it stays in the GoogleSecOpsConnection table:`,
+      );
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.any(BadDataException),
+      );
+      expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
+        "1 Google SecOps connection(s) copied to Security Event Connections, 0 already copied, 0 skipped because no usable service account key could be read, 1 failed.",
+      );
+    });
+
+    test("a transient existence check failure is isolated to its connection, then rejects naming it", async () => {
+      database.connections = [
+        legacyConnection(),
+        legacyConnection({
+          _id: SECOND_CONNECTION_ID,
+          serviceAccountJson: SECOND_CIPHERTEXT,
+        }),
+      ];
+      service.findOneById.mockRejectedValueOnce(
+        new Error("Connection terminated unexpectedly"),
+      );
+
+      await expect(runMigration()).rejects.toThrow(CONNECTION_ID);
 
       expect(
         createdConnections().map((connection: SecurityEventConnection) => {
           return connection.id?.toString();
         }),
       ).toEqual([SECOND_CONNECTION_ID]);
+      expect(disabledConnectionIds()).toEqual([SECOND_CONNECTION_ID]);
     });
 
-    test("a run history failure is logged, but the connection stays copied and disabled, and the next one is moved", async () => {
+    test("a transient failure disabling the legacy row rejects, though the copy was created", async () => {
+      database.failWhen = (statement: ExecutedStatement): Error | null => {
+        return statement.sql.startsWith('UPDATE "GoogleSecOpsConnection"')
+          ? postgresError("08006")
+          : null;
+      };
+
+      await expect(runMigration()).rejects.toThrow(CONNECTION_ID);
+
+      // The retry finds the copy, so it only disables and copies runs.
+      expect(service.create).toHaveBeenCalledTimes(1);
+    });
+
+    test("a deterministic run history failure is logged, but the connection stays copied and disabled, the next one is moved, and it resolves", async () => {
       database.connections = [
         legacyConnection(),
         legacyConnection({
@@ -1109,7 +1207,7 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
           'INSERT INTO "SecurityEventConnectionRun"',
         ) &&
           rowsOf(statement)[0]!["securityEventConnectionId"] === CONNECTION_ID
-          ? new Error("canceling statement due to statement timeout")
+          ? postgresError("22P02", "invalid input syntax for type json")
           : null;
       };
 
@@ -1121,21 +1219,118 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
         SECOND_CONNECTION_ID,
       ]);
       expect(mockedLogger.error).toHaveBeenCalledWith(
+        `MoveGoogleSecOpsConnectionsToSecurityEventConnections: copied Google SecOps connection ${CONNECTION_ID}, but not its run history:`,
+      );
+      expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
+        "2 Google SecOps connection(s) copied to Security Event Connections, 0 already copied, 0 skipped because no usable service account key could be read, 0 failed. 1 run(s) of history carried over",
+      );
+    });
+
+    test("a transient run history failure counts the connection as copied, still moves the next one, then rejects naming it so its runs are copied on the retry", async () => {
+      database.connections = [
+        legacyConnection(),
+        legacyConnection({
+          _id: SECOND_CONNECTION_ID,
+          serviceAccountJson: SECOND_CIPHERTEXT,
+        }),
+      ];
+      database.runsByConnection[CONNECTION_ID] = [legacyRun()];
+      database.runsByConnection[SECOND_CONNECTION_ID] = [
+        legacyRun({ _id: runIdFor(1) }),
+      ];
+      database.failWhen = (statement: ExecutedStatement): Error | null => {
+        return statement.sql.startsWith(
+          'INSERT INTO "SecurityEventConnectionRun"',
+        ) &&
+          rowsOf(statement)[0]!["securityEventConnectionId"] === CONNECTION_ID
+          ? postgresError(
+              "57014",
+              "canceling statement due to statement timeout",
+            )
+          : null;
+      };
+
+      const outcome: Promise<void> = runMigration();
+
+      await expect(outcome).rejects.toThrow(
+        `the run history of Google SecOps connection(s) ${CONNECTION_ID} was not fully copied`,
+      );
+      await expect(outcome).rejects.not.toThrow(SECOND_CONNECTION_ID);
+
+      expect(service.create).toHaveBeenCalledTimes(2);
+      expect(disabledConnectionIds()).toEqual([
+        CONNECTION_ID,
+        SECOND_CONNECTION_ID,
+      ]);
+      // Attempted for both; the fake records a statement before failing it.
+      expect(
+        insertedRuns().map((row: Record<string, unknown>) => {
+          return row["_id"];
+        }),
+      ).toEqual([RUN_ID, runIdFor(1)]);
+      expect(mockedLogger.error).toHaveBeenCalledWith(
         expect.stringContaining(
           `copied Google SecOps connection ${CONNECTION_ID}, but not its run history`,
         ),
       );
+      expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
+        "2 Google SecOps connection(s) copied to Security Event Connections, 0 already copied, 0 skipped because no usable service account key could be read, 0 failed.",
+      );
+
+      /*
+       * The retry: both copies exist, so nothing is created again, and each
+       * connection's runs are offered again with ON CONFLICT DO NOTHING,
+       * which skips the ones the first attempt already inserted.
+       */
+      database.failWhen = null;
+      database.statements = [];
+      service.findOneById.mockResolvedValue(new SecurityEventConnection());
+
+      await expect(runMigration()).resolves.toBeUndefined();
+
+      expect(service.create).toHaveBeenCalledTimes(2);
+      expect(disabledConnectionIds()).toEqual([
+        CONNECTION_ID,
+        SECOND_CONNECTION_ID,
+      ]);
+
+      const retried: Array<ExecutedStatement> = statementsContaining(
+        'INSERT INTO "SecurityEventConnectionRun"',
+      );
+
+      expect(
+        retried.map((statement: ExecutedStatement): unknown => {
+          return rowsOf(statement)[0]!["_id"];
+        }),
+      ).toEqual([RUN_ID, runIdFor(1)]);
+
+      for (const statement of retried) {
+        expect(statement.sql.endsWith('ON CONFLICT ("_id") DO NOTHING')).toBe(
+          true,
+        );
+      }
     });
 
-    test("a failing table probe is logged and never thrown", async () => {
+    test("a skipped connection (no usable key) never makes it reject", async () => {
+      encryption.decrypt.mockResolvedValue("");
+
+      await expect(runMigration()).resolves.toBeUndefined();
+
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    test("a failing table probe is logged and rethrown, and nothing is created", async () => {
       database.failWhen = (statement: ExecutedStatement): Error | null => {
         return statement.sql.includes("to_regclass")
           ? new Error("Connection terminated unexpectedly")
           : null;
       };
 
-      await expect(runMigration()).resolves.toBeUndefined();
+      await expect(runMigration()).rejects.toThrow(
+        "Connection terminated unexpectedly",
+      );
 
+      expect(service.findOneById).not.toHaveBeenCalled();
       expect(service.create).not.toHaveBeenCalled();
       expect(mockedLogger.error).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -1144,26 +1339,33 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
       );
     });
 
-    test("a failing connection read is logged and never thrown", async () => {
+    test("a failing connection read is logged and rethrown even when it is not transient, and nothing is created", async () => {
       database.failWhen = (statement: ExecutedStatement): Error | null => {
         return statement.sql.includes('FROM "GoogleSecOpsConnection" ')
           ? new Error("permission denied for table GoogleSecOpsConnection")
           : null;
       };
 
-      await expect(runMigration()).resolves.toBeUndefined();
+      await expect(runMigration()).rejects.toThrow(
+        "permission denied for table GoogleSecOpsConnection",
+      );
 
       expect(service.create).not.toHaveBeenCalled();
+      expect(disabledConnectionIds()).toEqual([]);
       expect(mockedLogger.error).toHaveBeenCalledTimes(2);
+      expect(mockedLogger.info).not.toHaveBeenCalled();
     });
 
-    test("even a missing repository is logged rather than thrown", async () => {
+    test("a missing repository is logged and rethrown", async () => {
       service.getRepository.mockImplementation(() => {
         throw new Error("DataSource is not initialized");
       });
 
-      await expect(runMigration()).resolves.toBeUndefined();
+      await expect(runMigration()).rejects.toThrow(
+        "DataSource is not initialized",
+      );
 
+      expect(service.create).not.toHaveBeenCalled();
       expect(mockedLogger.error).toHaveBeenCalled();
     });
   });
@@ -1301,7 +1503,7 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
     });
 
     test.each(["queued", "running"])(
-      "a %s run lost its worker job, so it is copied as failed with an explanation",
+      "a %s run may still be finished by an old worker, so it is copied as failed with a message that claims no outcome",
       async (status: string) => {
         database.runsByConnection[CONNECTION_ID] = [
           legacyRun({
@@ -1320,8 +1522,16 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
         expect(row["status"]).toBe("failed");
         expect(row["error"]).toBe(INTERRUPTED_RUN_ERROR);
         expect(INTERRUPTED_RUN_ERROR).toBe(
-          "Interrupted when Google SecOps moved to Security Event Connections. Run it again.",
+          "This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.",
         );
+
+        /*
+         * An old worker can still finish this run and import its events, so
+         * the history must not say it was interrupted, nor ask for a re-run
+         * that could import the same window a second time.
+         */
+        expect(String(row["error"])).not.toContain("Interrupted");
+        expect(String(row["error"])).not.toContain("Run it again");
         expect(row["completedAt"]).toBeInstanceOf(Date);
         expect((row["completedAt"] as Date).getTime()).toBeGreaterThanOrEqual(
           before,
@@ -1408,7 +1618,16 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
   describe("buildRunHistoryInsert", () => {
     test("binds each run's values in column order and attaches them to the given connection and project", () => {
       const insert: RunHistoryInsert = buildRunHistoryInsert({
-        runs: [legacyRun(), legacyRun({ _id: runIdFor(2), status: "queued" })],
+        runs: [
+          legacyRun(),
+          legacyRun({ _id: runIdFor(2), status: "queued" }),
+          legacyRun({
+            _id: runIdFor(3),
+            status: "running",
+            completedAt: null,
+            error: null,
+          }),
+        ],
         connectionId: CONNECTION_ID,
         projectId: PROJECT_ID,
         migratedAt: new Date("2026-09-15T08:00:00.000Z"),
@@ -1423,17 +1642,155 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
         parameters: insert.parameters,
       });
 
-      expect(rows).toHaveLength(2);
+      expect(rows).toHaveLength(3);
+      expect(rows[0]!["status"]).toBe("success");
+      expect(rows[0]!["error"]).toBe("");
+
+      for (const inProgress of [rows[1]!, rows[2]!]) {
+        expect(inProgress["status"]).toBe("failed");
+        expect(inProgress["completedAt"]).toEqual(
+          new Date("2026-09-15T08:00:00.000Z"),
+        );
+        expect(inProgress["error"]).toBe(INTERRUPTED_RUN_ERROR);
+      }
+
       expect(rows[1]!["_id"]).toBe(runIdFor(2));
-      expect(rows[1]!["status"]).toBe("failed");
-      expect(rows[1]!["completedAt"]).toEqual(
-        new Date("2026-09-15T08:00:00.000Z"),
-      );
+      expect(rows[2]!["_id"]).toBe(runIdFor(3));
+
+      for (const value of insert.parameters) {
+        expect(String(value)).not.toContain("Interrupted");
+        expect(String(value)).not.toContain("Run it again");
+      }
 
       for (const row of rows) {
         expect(row["securityEventConnectionId"]).toBe(CONNECTION_ID);
         expect(row["projectId"]).toBe(PROJECT_ID);
       }
+    });
+  });
+
+  describe("isTransientDatabaseError", () => {
+    test.each<[string]>([
+      ["08000"],
+      ["08001"],
+      ["08003"],
+      ["08004"],
+      ["08006"],
+      ["08P01"],
+      ["40001"],
+      ["40P01"],
+      ["57014"],
+      ["57P01"],
+      ["57P02"],
+      ["57P03"],
+      ["53300"],
+      ["53400"],
+    ])(
+      "SQLSTATE %s is transient, on the error, on its driverError, or both",
+      (code: string) => {
+        expect(isTransientDatabaseError(postgresError(code))).toBe(true);
+        expect(
+          isTransientDatabaseError(
+            Object.assign(new Error("failed"), { code }),
+          ),
+        ).toBe(true);
+        expect(
+          isTransientDatabaseError(
+            Object.assign(new Error("failed"), { driverError: { code } }),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test.each<[string]>([["ECONNRESET"], ["ETIMEDOUT"], ["ECONNREFUSED"]])(
+      "socket code %s is transient",
+      (code: string) => {
+        expect(
+          isTransientDatabaseError(
+            Object.assign(new Error("socket error"), { code }),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test.each<[string]>([
+      ["Connection terminated unexpectedly"],
+      ["Connection terminated due to connection timeout"],
+      ["timeout exceeded when trying to connect"],
+      ["read ECONNRESET"],
+      ["connect ETIMEDOUT 10.0.0.5:5432"],
+      ["connect ECONNREFUSED 127.0.0.1:5432"],
+    ])(
+      "the driver message %j is transient without any code",
+      (message: string) => {
+        expect(isTransientDatabaseError(new Error(message))).toBe(true);
+        expect(
+          isTransientDatabaseError(
+            Object.assign(new Error("failed"), { driverError: { message } }),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test.each<[string, unknown]>([
+      ["a unique violation", postgresError("23505")],
+      ["a foreign key violation", postgresError("23503")],
+      ["invalid JSON input", postgresError("22P02")],
+      ["an undefined table", postgresError("42P01")],
+      [
+        "a permission error",
+        postgresError(
+          "42501",
+          "permission denied for table GoogleSecOpsConnection",
+        ),
+      ],
+      [
+        "a BadDataException, whose code is numeric",
+        new BadDataException("projectId is required"),
+      ],
+      ["a numeric code", Object.assign(new Error("failed"), { code: 40001 })],
+      [
+        "a code that is only the class 08 prefix",
+        Object.assign(new Error("failed"), { code: "08" }),
+      ],
+      [
+        "a lower-case look-alike SQLSTATE",
+        Object.assign(new Error("failed"), { code: "40p01" }),
+      ],
+      [
+        "a message that is no driver or socket failure, with no SQLSTATE",
+        new Error("deadlock detected"),
+      ],
+      ["an object with neither a code nor a message", {}],
+      [
+        "a driverError that is not an object",
+        Object.assign(new Error("failed"), { driverError: "08006" }),
+      ],
+    ])("%s is not transient", (_label: string, error: unknown) => {
+      expect(isTransientDatabaseError(error)).toBe(false);
+    });
+
+    test.each<[string, unknown]>([
+      ["null", null],
+      ["undefined", undefined],
+      ["string", "Connection terminated unexpectedly"],
+      ["number", 40001],
+      ["boolean", true],
+    ])("a thrown %s is not transient", (_label: string, error: unknown) => {
+      expect(isTransientDatabaseError(error)).toBe(false);
+    });
+
+    test("never throws, even for a value whose fields throw when read", () => {
+      const hostile: object = new Proxy(
+        {},
+        {
+          get: (): never => {
+            throw new Error("unreadable");
+          },
+        },
+      );
+
+      expect(isTransientDatabaseError(hostile)).toBe(false);
     });
   });
 

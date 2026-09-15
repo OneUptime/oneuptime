@@ -41,13 +41,68 @@ export const RUN_HISTORY_COPY_LIMIT: number = 500;
 export const RUN_INSERT_BATCH_SIZE: number = 50;
 
 /*
- * A queued or running legacy run has lost its worker job: the handler for
- * "SecurityEvents:RunGoogleSecOpsConnection" is gone. Copied as active, it
- * would block admission for its connection until the twenty-minute stale
- * sweep failed it with an error blaming worker health.
+ * A queued or running legacy run has an outcome nobody here can know. During
+ * a rolling deploy an old worker still has the handler for
+ * "SecurityEvents:RunGoogleSecOpsConnection": it may be executing the run
+ * right now, or pick its queued job up and finish it, importing events and
+ * writing success to "GoogleSecOpsConnectionRun" only (a manual run ignores
+ * the disable below, and a scheduled one already past its check does too).
+ * Once no pod knows the name, the job fails with "No job found" instead. So
+ * the message states only what is certain, and warns that a re-run may
+ * import the same window twice while an old run is still going (the two
+ * pollers hold different source locks).
+ *
+ * Still copied as failed: copied as active, it would block admission for its
+ * connection until the twenty-minute stale sweep failed it with an error
+ * blaming worker health.
  */
 export const INTERRUPTED_RUN_ERROR: string =
-  "Interrupted when Google SecOps moved to Security Event Connections. Run it again.";
+  "This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.";
+
+/*
+ * Postgres SQLSTATEs a repeat of the same statement can succeed after:
+ * serialization_failure, deadlock_detected, query_canceled (statement_timeout
+ * or a cancel), admin_shutdown, crash_shutdown, cannot_connect_now (a server
+ * starting or failing over), too_many_connections and
+ * configuration_limit_exceeded. The whole of class 08 (connection exception)
+ * is matched by prefix below.
+ * https://www.postgresql.org/docs/current/errcodes-appendix.html
+ */
+const TRANSIENT_SQLSTATES: Array<string> = [
+  "40001",
+  "40P01",
+  "57014",
+  "57P01",
+  "57P02",
+  "57P03",
+  "53300",
+  "53400",
+];
+
+const CONNECTION_EXCEPTION_SQLSTATE_CLASS: string = "08";
+
+const SQLSTATE_PATTERN: RegExp = /^[0-9A-Z]{5}$/;
+
+// Node socket errors, which pg passes through with the code on the error.
+const TRANSIENT_SOCKET_CODES: Array<string> = [
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+];
+
+/*
+ * Lower-cased message fragments of failures that carry no SQLSTATE: pg's
+ * "Connection terminated unexpectedly" / "... due to connection timeout",
+ * pg-pool's "timeout exceeded when trying to connect", and socket errors
+ * whose code was lost on the way ("read ECONNRESET").
+ */
+const TRANSIENT_MESSAGE_FRAGMENTS: Array<string> = [
+  "connection terminated",
+  "timeout exceeded when trying to connect",
+  "econnreset",
+  "etimedout",
+  "econnrefused",
+];
 
 export const UNTITLED_DETECTION_TITLE: string = "Untitled detection";
 
@@ -146,11 +201,19 @@ interface LegacyTables {
   hasRunTable: boolean;
 }
 
+interface LegacyConnections {
+  query: LegacyQuery;
+  hasRunTable: boolean;
+  rows: Array<LegacyGoogleSecOpsConnectionRow>;
+}
+
 type ConnectionOutcome = "copied" | "already-copied" | "skipped";
 
 interface MovedConnection {
   outcome: ConnectionOutcome;
   runCount: number;
+  // The connection moved, but a transient error stopped its run history copy.
+  runHistoryFailedTransiently: boolean;
 }
 
 interface MoveTally {
@@ -159,6 +222,9 @@ interface MoveTally {
   skipped: number;
   failed: number;
   runs: number;
+  // Legacy ids a retry of the migration can still finish, named in its error.
+  notMovedTransiently: Array<string>;
+  runHistoryNotCopiedTransiently: Array<string>;
 }
 
 function isJSONObject(value: unknown): value is JSONObject {
@@ -177,6 +243,77 @@ function toDate(value: LegacyTimestamp | undefined): Date | undefined {
 
   const date: Date = value instanceof Date ? value : new Date(value);
   return Number.isFinite(date.getTime()) ? date : undefined;
+}
+
+function isTransientCode(code: unknown): boolean {
+  if (typeof code !== "string") {
+    return false;
+  }
+
+  if (TRANSIENT_SOCKET_CODES.includes(code)) {
+    return true;
+  }
+
+  return (
+    SQLSTATE_PATTERN.test(code) &&
+    (code.startsWith(CONNECTION_EXCEPTION_SQLSTATE_CLASS) ||
+      TRANSIENT_SQLSTATES.includes(code))
+  );
+}
+
+function hasTransientMessage(message: unknown): boolean {
+  if (typeof message !== "string") {
+    return false;
+  }
+
+  const lowered: string = message.toLowerCase();
+
+  return TRANSIENT_MESSAGE_FRAGMENTS.some((fragment: string): boolean => {
+    return lowered.includes(fragment);
+  });
+}
+
+/*
+ * True when the same statement could succeed if run again: a failover, a
+ * dropped or refused connection, a deadlock, a serialization failure, a
+ * statement timeout, a server at its connection limit. Such a failure must
+ * not be recorded as a finished migration; anything else would fail the same
+ * way on every retry.
+ *
+ * TypeORM's QueryFailedError hoists pg's fields onto itself and keeps the
+ * original under driverError, so both are read, as PostgresErrorTranslator
+ * does. DatabaseService.create rethrows these untouched (it only translates
+ * 23503 and 23505). OneUptime's own exceptions carry a NUMERIC code and are
+ * never transient. A thrown value that is not an object has no code to read,
+ * so it is treated as deterministic. Pure, and never throws.
+ */
+export function isTransientDatabaseError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  try {
+    const candidate: { code?: unknown; message?: unknown } = error as {
+      code?: unknown;
+      message?: unknown;
+    };
+    const driverError: unknown = (error as { driverError?: unknown })
+      .driverError;
+    const driver: { code?: unknown; message?: unknown } =
+      driverError && typeof driverError === "object"
+        ? (driverError as { code?: unknown; message?: unknown })
+        : {};
+
+    return (
+      isTransientCode(candidate.code) ||
+      isTransientCode(driver.code) ||
+      hasTransientMessage(candidate.message) ||
+      hasTransientMessage(driver.message)
+    );
+  } catch {
+    // A Proxy or a throwing getter: nothing trustworthy to classify.
+    return false;
+  }
 }
 
 /*
@@ -606,9 +743,31 @@ export function buildSecurityEventConnection(data: {
  * Safe to run twice, concurrently: a connection whose _id already exists is
  * not created again (a unique violation from a racing runner means the same),
  * runs insert with ON CONFLICT DO NOTHING, and the disable is idempotent.
- * One connection that cannot be moved never stops the others, and migrate()
- * never throws, so no later migration is held back. A connection that could
- * not be moved stays untouched in the legacy table and is named in the log.
+ *
+ * WHEN migrate() THROWS. Every connection is attempted, whatever happens to
+ * the others. What a failure then does depends on whether repeating it can
+ * succeed, because a throw is how this gets retried: the runner does not
+ * record a migration that threw as executed, halts the chain, and runs it
+ * again on the next migrate Job or worker boot. Recording it instead is
+ * permanent and silent: the Google SecOps poller is gone, so a connection
+ * left in the legacy table stops importing and is listed nowhere.
+ *
+ *   - The table probe or the connection read failing, for any reason:
+ *     rethrown at once. Nothing was moved, so recording the migration would
+ *     lose every connection, and halting puts the error on the admin health
+ *     page. (A disconnected DataSource never gets here; the runner skips.)
+ *   - A transient database error (isTransientDatabaseError) on one
+ *     connection's existence check, create, disable or run history copy:
+ *     logged, the remaining connections are still moved, and then migrate()
+ *     throws naming those connections. The retry finds a created connection
+ *     already copied, disables its legacy row if that had not happened, and
+ *     re-copies its runs, skipping the ones already there. Polling resumes
+ *     from the copied cursor, so the delay costs a gap, not events.
+ *   - Anything else on one connection (a key that is missing or cannot be
+ *     decrypted is skipped; a create rejected by validation fails): logged
+ *     with its id, and never thrown. It would fail the same way on every
+ *     retry, and halting on it would hold back every later data migration
+ *     for good. The connection stays untouched in the legacy table.
  */
 export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections extends DataMigrationBase {
   public constructor() {
@@ -616,44 +775,57 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
   }
 
   public override async migrate(): Promise<void> {
+    const legacy: LegacyConnections | null = await this.readLegacyConnections();
+
+    if (!legacy || legacy.rows.length === 0) {
+      return;
+    }
+
+    await this.moveConnections(legacy);
+  }
+
+  private async readLegacyConnections(): Promise<LegacyConnections | null> {
     try {
-      await this.moveConnections();
+      const repository: ConnectionRepository =
+        SecurityEventConnectionService.getRepository();
+
+      const query: LegacyQuery = (
+        sql: string,
+        parameters?: Array<unknown>,
+      ): Promise<unknown> => {
+        return repository.manager.query(sql, parameters);
+      };
+
+      const tables: LegacyTables = await this.findLegacyTables(query);
+
+      if (!tables.hasConnectionTable) {
+        return null;
+      }
+
+      const rows: unknown = await query(LEGACY_CONNECTIONS_SQL);
+
+      return {
+        query,
+        hasRunTable: tables.hasRunTable,
+        rows: Array.isArray(rows)
+          ? (rows as Array<LegacyGoogleSecOpsConnectionRow>)
+          : [],
+      };
     } catch (err) {
       /*
-       * Only the table probe and the connection read reach here; every
-       * connection has its own catch. The legacy rows are untouched, and
-       * the migration is idempotent, so it can be run again.
+       * Rethrown, whether transient or not (see the class comment): nothing
+       * has been moved yet, and only a throw keeps the runner from recording
+       * this migration as done.
        */
       logger.error(
-        `${this.name}: could not read the Google SecOps connections to move. They are untouched in the GoogleSecOpsConnection table:`,
+        `${this.name}: could not read the Google SecOps connections to move. They are untouched in the GoogleSecOpsConnection table, and the migration will run again:`,
       );
       logger.error(err);
+      throw err;
     }
   }
 
-  private async moveConnections(): Promise<void> {
-    const repository: ConnectionRepository =
-      SecurityEventConnectionService.getRepository();
-
-    const query: LegacyQuery = (
-      sql: string,
-      parameters?: Array<unknown>,
-    ): Promise<unknown> => {
-      return repository.manager.query(sql, parameters);
-    };
-
-    const tables: LegacyTables = await this.findLegacyTables(query);
-
-    if (!tables.hasConnectionTable) {
-      return;
-    }
-
-    const rows: unknown = await query(LEGACY_CONNECTIONS_SQL);
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return;
-    }
-
+  private async moveConnections(legacy: LegacyConnections): Promise<void> {
     const migratedAt: Date = OneUptimeDate.getCurrentDate();
     const tally: MoveTally = {
       copied: 0,
@@ -661,14 +833,18 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
       skipped: 0,
       failed: 0,
       runs: 0,
+      notMovedTransiently: [],
+      runHistoryNotCopiedTransiently: [],
     };
 
-    for (const row of rows as Array<LegacyGoogleSecOpsConnectionRow>) {
+    for (const row of legacy.rows) {
+      const legacyId: string = String(row._id);
+
       try {
         const moved: MovedConnection = await this.moveConnection({
-          query,
+          query: legacy.query,
           row,
-          hasRunTable: tables.hasRunTable,
+          hasRunTable: legacy.hasRunTable,
           migratedAt,
         });
 
@@ -681,11 +857,24 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
         }
 
         tally.runs += moved.runCount;
+
+        if (moved.runHistoryFailedTransiently) {
+          tally.runHistoryNotCopiedTransiently.push(legacyId);
+        }
       } catch (err) {
         tally.failed++;
-        logger.error(
-          `${this.name}: could not move Google SecOps connection ${String(row._id)}; it stays in the GoogleSecOpsConnection table:`,
-        );
+
+        if (isTransientDatabaseError(err)) {
+          tally.notMovedTransiently.push(legacyId);
+          logger.error(
+            `${this.name}: could not move Google SecOps connection ${legacyId} because of a transient database error; it stays in the GoogleSecOpsConnection table until the migration runs again:`,
+          );
+        } else {
+          logger.error(
+            `${this.name}: could not move Google SecOps connection ${legacyId}; it stays in the GoogleSecOpsConnection table:`,
+          );
+        }
+
         logger.error(err);
       }
     }
@@ -693,6 +882,27 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
     logger.info(
       `${this.name}: ${tally.copied} Google SecOps connection(s) copied to Security Event Connections, ${tally.alreadyCopied} already copied, ${tally.skipped} skipped because no usable service account key could be read, ${tally.failed} failed. ${tally.runs} run(s) of history carried over (at most the ${RUN_HISTORY_COPY_LIMIT} most recent per connection).`,
     );
+
+    const unfinished: Array<string> = [];
+
+    if (tally.notMovedTransiently.length > 0) {
+      unfinished.push(
+        `Google SecOps connection(s) ${tally.notMovedTransiently.join(", ")} were not moved`,
+      );
+    }
+
+    if (tally.runHistoryNotCopiedTransiently.length > 0) {
+      unfinished.push(
+        `the run history of Google SecOps connection(s) ${tally.runHistoryNotCopiedTransiently.join(", ")} was not fully copied`,
+      );
+    }
+
+    if (unfinished.length > 0) {
+      // Ids only: the underlying errors, logged above, stay out of the record.
+      throw new Error(
+        `${unfinished.join("; ")}, because of a transient database error. Every other connection was attempted. The migration is left unrecorded so it runs again, and every step is safe to repeat.`,
+      );
+    }
   }
 
   private async findLegacyTables(query: LegacyQuery): Promise<LegacyTables> {
@@ -730,7 +940,11 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
 
       if (!serviceAccountJson) {
         // Never create a connection with no key; the legacy row stays as is.
-        return { outcome: "skipped", runCount: 0 };
+        return {
+          outcome: "skipped",
+          runCount: 0,
+          runHistoryFailedTransiently: false,
+        };
       }
 
       const connection: SecurityEventConnection = buildSecurityEventConnection({
@@ -767,6 +981,7 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
     await data.query(DISABLE_LEGACY_CONNECTION_SQL, [legacyId]);
 
     let runCount: number = 0;
+    let runHistoryFailedTransiently: boolean = false;
 
     if (data.hasRunTable) {
       try {
@@ -776,14 +991,26 @@ export default class MoveGoogleSecOpsConnectionsToSecurityEventConnections exten
           migratedAt: data.migratedAt,
         });
       } catch (err) {
+        /*
+         * The connection is copied and its legacy row disabled either way,
+         * so it counts as moved. A transient failure is handed back so that
+         * migrate() throws once every connection has been tried: the retry
+         * finds the copy, skips the create, and offers every run again with
+         * ON CONFLICT DO NOTHING, so the history it missed goes in and
+         * nothing is duplicated. Any other failure would repeat on every
+         * retry and hold the whole migration chain for history alone, so it
+         * is only logged, and those runs stay in "GoogleSecOpsConnectionRun".
+         */
+        runHistoryFailedTransiently = isTransientDatabaseError(err);
+
         logger.error(
-          `${this.name}: copied Google SecOps connection ${legacyId}, but not its run history:`,
+          `${this.name}: copied Google SecOps connection ${legacyId}, but not its run history${runHistoryFailedTransiently ? " because of a transient database error; the migration will run again and copy it then" : ""}:`,
         );
         logger.error(err);
       }
     }
 
-    return { outcome, runCount };
+    return { outcome, runCount, runHistoryFailedTransiently };
   }
 
   private async readServiceAccountJson(

@@ -33,13 +33,16 @@ import logger from "Common/Server/Utils/Logger";
  * those are one-off jobs, not repeatables, and the Queue wrapper has no way to
  * remove queued jobs by name: removeJob() takes a job id, and
  * removeRepeatableByName() only touches repeatable definitions. Removing them
- * would not be safe anyway: during the rollout an old worker still consumes
- * them correctly, and a new pod's boot would cancel that work. Once no pod
- * knows the name, each leftover fails its three attempts with "No job found"
- * and stops — bounded, unlike a repeatable — and ages out of the failed set.
- * Their runs, if queued before the data migration
- * MoveGoogleSecOpsConnectionsToSecurityEventConnections ran, were copied into
- * run history as failed with an explanation.
+ * would not be safe anyway: during the rollout an old worker may still pick
+ * one up and run it to completion, and a new pod's boot would cancel that
+ * work. Once no pod knows the name, each leftover fails its three attempts
+ * with "No job found" and stops — bounded, unlike a repeatable — and ages out
+ * of the failed set. Either way the outcome is written only to the legacy
+ * "GoogleSecOpsConnectionRun" table. A run that was queued or running when the
+ * data migration MoveGoogleSecOpsConnectionsToSecurityEventConnections copied
+ * it shows in the new run history as failed, with a message that says its
+ * outcome was not recorded there, because the migration cannot tell which of
+ * the two happened (see INTERRUPTED_RUN_ERROR).
  *
  * SAFE TO DELETE once every environment has cycled onto a build that no longer
  * knows the old name (so no pod anywhere can re-add it). Until then it costs
