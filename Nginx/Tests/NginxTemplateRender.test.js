@@ -22,10 +22,21 @@ const {
   NGINX_DIRECTORY,
   readTemplate,
   readNginxConf,
+  getServerBlocks,
+  getLocationBlocks,
+  getDirectives,
+  findBlocks,
 } = require("./NginxConfigParser");
 
 const template = readTemplate();
 const nginxConf = readNginxConf();
+const envsubstScriptPath = path.join(
+  NGINX_DIRECTORY,
+  "envsubst-on-templates.sh",
+);
+
+const HSTS_DIRECTIVE =
+  'add_header Strict-Transport-Security "max-age=31536000" always;';
 
 function isOnPath(binary) {
   const probe = spawnSync(binary, ["--version"], { encoding: "utf8" });
@@ -169,6 +180,7 @@ function baseEnvironment(overrides = {}) {
     PROVISION_SSL_LISTEN_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
+    HSTS_HEADER_DIRECTIVE: "",
     SERVER_APP_HOSTNAME: "app",
     SERVER_HOME_HOSTNAME: "home",
   });
@@ -180,6 +192,196 @@ function baseEnvironment(overrides = {}) {
 
   return { ...environment, ...overrides };
 }
+
+/**
+ * Execute the same renderer the container runs, but direct all generated files
+ * into a temporary directory. Existing dummy certificate files let the local
+ * TLS branch run without invoking openssl or touching /etc.
+ */
+function renderThroughContainerScript({ httpProtocol, provisionSsl }) {
+  const tempDirectory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "oneuptime-nginx-render-"),
+  );
+  const templateDirectory = path.join(tempDirectory, "templates");
+  const outputDirectory = path.join(tempDirectory, "conf.d");
+  const certificateDirectory = path.join(tempDirectory, "certificates");
+  const primaryDomain = "oneuptime.example.com";
+
+  fs.mkdirSync(templateDirectory, { recursive: true });
+  fs.mkdirSync(outputDirectory, { recursive: true });
+  fs.mkdirSync(certificateDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.join(templateDirectory, "default.conf.template"),
+    template,
+  );
+
+  if (provisionSsl) {
+    fs.writeFileSync(
+      path.join(certificateDirectory, `${primaryDomain}.crt`),
+      "test certificate",
+    );
+    fs.writeFileSync(
+      path.join(certificateDirectory, `${primaryDomain}.key`),
+      "test key",
+    );
+  }
+
+  try {
+    const result = spawnSync("sh", [envsubstScriptPath], {
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        ...baseEnvironment(),
+        HTTP_PROTOCOL: httpProtocol,
+        PROVISION_SSL: provisionSsl ? "true" : "false",
+        PRIMARY_DOMAIN: primaryDomain,
+        SERVER_CERT_DIRECTORY: certificateDirectory,
+        NGINX_ENVSUBST_TEMPLATE_DIR: templateDirectory,
+        NGINX_ENVSUBST_OUTPUT_DIR: outputDirectory,
+        NGINX_ENVSUBST_TEMPLATE_SUFFIX: ".template",
+      },
+    });
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    return fs.readFileSync(path.join(outputDirectory, "default.conf"), "utf8");
+  } finally {
+    fs.rmSync(tempDirectory, { recursive: true, force: true });
+  }
+}
+
+function serverHasDirectHsts(server) {
+  const firstLocation = getLocationBlocks(server.body)[0];
+  const serverDirectives = server.body.slice(
+    0,
+    firstLocation?.startIndex ?? server.body.length,
+  );
+
+  return getDirectives(serverDirectives, "add_header").includes(HSTS_DIRECTIVE);
+}
+
+test(
+  "the container renderer derives HSTS from each supported TLS topology",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    const cases = [
+      {
+        name: "plain development HTTP",
+        httpProtocol: "http",
+        provisionSsl: false,
+        expectedHstsServers: 1,
+      },
+      {
+        name: "TLS terminated by an upstream proxy",
+        httpProtocol: "https",
+        provisionSsl: false,
+        expectedHstsServers: 3,
+      },
+      {
+        name: "TLS provisioned by the OneUptime ingress",
+        httpProtocol: "http",
+        provisionSsl: true,
+        expectedHstsServers: 3,
+      },
+    ];
+
+    for (const scenario of cases) {
+      const rendered = renderThroughContainerScript(scenario);
+      const hstsServers = getServerBlocks(rendered).filter(
+        serverHasDirectHsts,
+      );
+
+      assert.equal(
+        hstsServers.length,
+        scenario.expectedHstsServers,
+        scenario.name,
+      );
+      assert.doesNotMatch(rendered, /includeSubDomains|preload/i);
+
+      if (scenario.provisionSsl) {
+        assert.match(rendered, /listen\s+7850\s+ssl\s*;/);
+        assert.match(rendered, /ssl_certificate\s+[^;]+\.crt;/);
+        assert.match(rendered, /ssl_certificate_key\s+[^;]+\.key;/);
+      }
+    }
+  },
+);
+
+test(
+  "an HTTPS render sends HSTS from every public server and header override",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    const rendered = renderThroughContainerScript({
+      httpProtocol: "https",
+      provisionSsl: false,
+    });
+    const servers = getServerBlocks(rendered);
+
+    assert.equal(servers.length, 3);
+
+    for (const server of servers) {
+      assert.ok(
+        serverHasDirectHsts(server),
+        `public HTTPS server lost ${HSTS_DIRECTIVE}`,
+      );
+
+      for (const location of getLocationBlocks(server.body)) {
+        const headers = getDirectives(location.body, "add_header");
+        const overridesInheritedHeaders = headers.some((header) => {
+          return header !== HSTS_DIRECTIVE;
+        });
+
+        if (overridesInheritedHeaders) {
+          assert.ok(
+            headers.includes(HSTS_DIRECTIVE),
+            `${location.spec} overrides add_header inheritance without restating HSTS`,
+          );
+        }
+
+        const conditionalBlocks = findBlocks(
+          location.body,
+          /^[^\S\n]*if[^\S\n]+(.*)\{[^\S\n]*$/,
+        );
+
+        for (const conditional of conditionalBlocks) {
+          const conditionalHeaders = getDirectives(
+            conditional.body,
+            "add_header",
+          );
+
+          if (
+            conditionalHeaders.some((header) => header !== HSTS_DIRECTIVE)
+          ) {
+            assert.ok(
+              conditionalHeaders.includes(HSTS_DIRECTIVE),
+              `${location.spec} has an if block that overrides add_header inheritance without HSTS`,
+            );
+          }
+        }
+      }
+    }
+  },
+);
+
+test(
+  "a plain-HTTP render does not opt the HTTP listeners into HSTS",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    const rendered = renderThroughContainerScript({
+      httpProtocol: "http",
+      provisionSsl: false,
+    });
+    const servers = getServerBlocks(rendered);
+    const serversWithHsts = servers.filter(serverHasDirectHsts);
+
+    assert.equal(serversWithHsts.length, 1);
+    assert.match(
+      serversWithHsts[0].body,
+      /listen\s+\$?\{?[^;]*7850\s+ssl\s+default_server/,
+      "only the dedicated TLS listener should retain the unconditional HSTS header",
+    );
+    assert.equal((rendered.match(/Strict-Transport-Security/g) || []).length, 1);
+  },
+);
 
 test("the only template variable the container environment does not supply is the ingest switch", () => {
   // Everything else is either exported by envsubst-on-templates.sh or set on

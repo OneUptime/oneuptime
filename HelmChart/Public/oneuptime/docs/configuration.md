@@ -12,7 +12,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 |--------------------|-------------------------------------------------------------------------------------------------|-----------------|:------:|
 | `global.storageClass` | Storage class used for all persistent volumes.                                               | `nil`           | 🚨 |
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
-| `httpProtocol`     | Set to `https` when the server has an SSL/TLS certificate, otherwise `http`.                     | `http`          | 🚨 |
+| `httpProtocol`     | Set to `https` whenever the public URL uses TLS (including upstream termination) so Secure cookies and HSTS are enabled. Plain HTTP remains supported but is not recommended for internet-facing production. | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
 | `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`. Set to a long random string in production.                    | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |

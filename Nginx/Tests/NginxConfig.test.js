@@ -1134,7 +1134,12 @@ test("the status-page server blocks are not given immutable caching", () => {
 
   for (const block of otherBlocks) {
     assert.ok(!block.body.includes(IMMUTABLE_CACHE_CONTROL));
-    assert.ok(!block.body.includes("max-age=31536000"));
+    assert.ok(
+      !getDirectives(block.body, "add_header").some((header) => {
+        return /Cache-Control.*max-age=31536000/.test(header);
+      }),
+      "the HSTS lifetime must not be mistaken for immutable asset caching",
+    );
   }
 });
 

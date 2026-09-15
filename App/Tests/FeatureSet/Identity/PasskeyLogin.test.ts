@@ -28,7 +28,6 @@ import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import logger from "Common/Server/Utils/Logger";
-import { HttpProtocol } from "Common/Server/EnvironmentConfig";
 import "../../../FeatureSet/Identity/API/Authentication";
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
@@ -149,7 +148,11 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
 jest.mock("Common/Server/Utils/Cookie", () => {
   return {
     __esModule: true,
-    default: { setUserCookie: jest.fn() },
+    default: {
+      setCookie: jest.fn(),
+      removeCookie: jest.fn(),
+      setUserCookie: jest.fn(),
+    },
   };
 });
 jest.mock("Common/Server/Utils/JsonWebToken", () => {
@@ -273,13 +276,17 @@ describe("passkey login options", () => {
       body: {},
     });
     expect(next).not.toHaveBeenCalled();
-    expect(res.cookie).toHaveBeenCalledWith(cookieName, challengeId, {
-      httpOnly: true,
-      secure: HttpProtocol.toString() === "https://",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 300000,
-    });
+    expect(CookieUtil.setCookie).toHaveBeenCalledWith(
+      res,
+      cookieName,
+      challengeId,
+      {
+        httpOnly: true,
+        sameSite: "strict",
+        path: "/",
+        maxAge: 300000,
+      },
+    );
     expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(req, res, {
       options: {
         challenge: "server-challenge",
@@ -295,9 +302,9 @@ describe("passkey login options", () => {
     jest
       .mocked(UserWebAuthnService.generatePasskeyAuthenticationOptions)
       .mockRejectedValueOnce(new Error("Redis unavailable"));
-    const { res, next } = await invoke("/passkey-login-options");
+    const { next } = await invoke("/passkey-login-options");
     expect(next).toHaveBeenCalledWith(expect.any(Error));
-    expect(res.cookie).not.toHaveBeenCalled();
+    expect(CookieUtil.setCookie).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });
@@ -369,14 +376,11 @@ describe("passkey login", () => {
         },
       },
     );
-    expect(res.clearCookie).toHaveBeenCalledWith(
-      cookieName,
-      expect.objectContaining({
-        httpOnly: true,
-        path: "/",
-        sameSite: "strict",
-      }),
-    );
+    expect(CookieUtil.removeCookie).toHaveBeenCalledWith(res, cookieName, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "strict",
+    });
   });
 
   it("uses the verified credential's owner and fetches only public account fields", async () => {
@@ -434,14 +438,14 @@ describe("passkey login", () => {
       jest
         .mocked(UserWebAuthnService.verifyPasskeyAuthentication)
         .mockRejectedValueOnce(new Error(reason));
-      const { next, res } = await invoke("/passkey-login");
+      const { next } = await invoke("/passkey-login");
       expect(next).toHaveBeenCalledWith(
         expect.objectContaining({
           message:
             "Unable to sign in with this passkey. Please try again or use your password.",
         }),
       );
-      expect(res.clearCookie).toHaveBeenCalled();
+      expect(CookieUtil.removeCookie).toHaveBeenCalled();
       expect(UserService.findOneById).not.toHaveBeenCalled();
       expect(UserSessionService.createSession).not.toHaveBeenCalled();
       expect(CookieUtil.setUserCookie).not.toHaveBeenCalled();
@@ -524,14 +528,16 @@ describe("mobile passkey browser handoff", () => {
     expect(
       MobilePasskeyLoginService.storeChallengeContext,
     ).toHaveBeenCalledWith(challengeId, mobileContext);
-    expect(res.cookie).toHaveBeenCalledWith(
+    expect(CookieUtil.setCookie).toHaveBeenCalledWith(
+      res,
       cookieName,
       `mobile.${challengeId}`,
-      expect.objectContaining({
+      {
         httpOnly: true,
         sameSite: "strict",
-        secure: true,
-      }),
+        path: "/",
+        maxAge: 300000,
+      },
     );
     expect(UserSessionService.createSession).not.toHaveBeenCalled();
   });
@@ -542,25 +548,25 @@ describe("mobile passkey browser handoff", () => {
       .mockImplementationOnce(() => {
         throw new BadDataException("Invalid mobile request");
       });
-    const { next, res } = await invoke("/passkey-login-options", {
+    const { next } = await invoke("/passkey-login-options", {
       body: { mobileAuth: {} },
     });
     expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
     expect(
       UserWebAuthnService.generatePasskeyAuthenticationOptions,
     ).not.toHaveBeenCalled();
-    expect(res.cookie).not.toHaveBeenCalled();
+    expect(CookieUtil.setCookie).not.toHaveBeenCalled();
   });
 
   it("does not issue a cookie when binding storage fails", async () => {
     jest
       .mocked(MobilePasskeyLoginService.storeChallengeContext)
       .mockRejectedValueOnce(new Error("Redis unavailable"));
-    const { next, res } = await invoke("/passkey-login-options", {
+    const { next } = await invoke("/passkey-login-options", {
       body: { mobileAuth: mobileContext },
     });
     expect(next).toHaveBeenCalledWith(expect.any(Error));
-    expect(res.cookie).not.toHaveBeenCalled();
+    expect(CookieUtil.setCookie).not.toHaveBeenCalled();
   });
 
   it("returns only the fixed callback after a fresh verified assertion, without a web session", async () => {

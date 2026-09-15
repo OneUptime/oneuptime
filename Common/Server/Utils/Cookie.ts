@@ -1,4 +1,6 @@
 import { ExpressRequest, ExpressResponse } from "./Express";
+import { HttpProtocol, ProvisionSsl } from "../EnvironmentConfig";
+import Protocol from "../../Types/API/Protocol";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 import { CookieOptions } from "express";
@@ -23,6 +25,36 @@ export default class CookieUtil {
   // set cookie with express response
 
   private static readonly DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+  /**
+   * Public HTTPS, locally provisioned TLS, and Express's request-aware secure
+   * signal cover the supported TLS termination paths. The Secure override is
+   * deliberately applied after the caller's options so `secure: false` cannot
+   * downgrade a protected cookie. Explicitly configured HTTP deployments stay
+   * usable because browsers reject Secure cookies received over plaintext.
+   */
+  public static getCookieOptions(
+    options: CookieOptions,
+    context: {
+      protocol?: Protocol | undefined;
+      provisionSsl?: boolean | undefined;
+      requestIsSecure?: boolean | undefined;
+    } = {},
+  ): CookieOptions {
+    const protocol: Protocol = context.protocol ?? HttpProtocol;
+    const provisionSsl: boolean = context.provisionSsl ?? ProvisionSsl;
+    const shouldUseSecure: boolean =
+      protocol === Protocol.HTTPS ||
+      provisionSsl ||
+      context.requestIsSecure === true;
+
+    return {
+      path: "/",
+      sameSite: "lax",
+      ...options,
+      ...(shouldUseSecure ? { secure: true } : {}),
+    };
+  }
 
   @CaptureSpan()
   public static getCookiesFromCookieString(
@@ -361,11 +393,9 @@ export default class CookieUtil {
     value: string,
     options: CookieOptions,
   ): void {
-    const cookieOptions: CookieOptions = {
-      path: "/",
-      sameSite: "lax",
-      ...options,
-    };
+    const cookieOptions: CookieOptions = CookieUtil.getCookieOptions(options, {
+      requestIsSecure: res.req?.secure === true,
+    });
 
     res.cookie(name, value, cookieOptions);
   }
@@ -398,11 +428,17 @@ export default class CookieUtil {
   // delete cookie with express response
 
   @CaptureSpan()
-  public static removeCookie(res: ExpressResponse, name: string): void {
-    res.clearCookie(name, {
-      path: "/",
-      sameSite: "lax",
-    });
+  public static removeCookie(
+    res: ExpressResponse,
+    name: string,
+    options: CookieOptions = {},
+  ): void {
+    res.clearCookie(
+      name,
+      CookieUtil.getCookieOptions(options, {
+        requestIsSecure: res.req?.secure === true,
+      }),
+    );
   }
 
   @CaptureSpan()

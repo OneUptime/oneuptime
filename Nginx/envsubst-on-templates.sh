@@ -9,7 +9,7 @@ if [ -n "${PRIMARY_DOMAIN}" ]; then
   PRIMARY_DOMAIN_LOWER=$(printf '%s' "${PRIMARY_DOMAIN}" | tr '[:upper:]' '[:lower:]')
 fi
 
-SERVER_CERT_DIRECTORY="/etc/nginx/certs/ServerCerts"
+SERVER_CERT_DIRECTORY="${SERVER_CERT_DIRECTORY:-/etc/nginx/certs/ServerCerts}"
 SERVER_CERT_PATH=""
 SERVER_CERT_KEY_PATH=""
 
@@ -65,7 +65,7 @@ ensure_placeholder_certificate() {
 }
 
 # Prepare conditional SSL directives for templates that need them.
-if [ -n "${PROVISION_SSL}" ]; then
+if [ "${PROVISION_SSL}" = "true" ]; then
   if [ -n "${SERVER_CERT_PATH}" ] && [ -n "${SERVER_CERT_KEY_PATH}" ]; then
     if ensure_placeholder_certificate "${SERVER_CERT_PATH}" "${SERVER_CERT_KEY_PATH}" "${PRIMARY_DOMAIN_LOWER}"; then
       export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
@@ -87,6 +87,17 @@ else
   export PROVISION_SSL_LISTEN_DIRECTIVE=""
   export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
   export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
+fi
+
+# HSTS is meaningful only on a response the browser receives over HTTPS. The
+# public scheme covers TLS terminated by an upstream ingress/load balancer;
+# the generated listen directive covers TLS terminated by this container.
+# Keeping the whole directive conditional also leaves explicitly configured
+# plaintext development and self-hosted deployments unchanged.
+if [ "${HTTP_PROTOCOL}" = "https" ] || [ -n "${PROVISION_SSL_LISTEN_DIRECTIVE}" ]; then
+  export HSTS_HEADER_DIRECTIVE='add_header Strict-Transport-Security "max-age=31536000" always;'
+else
+  export HSTS_HEADER_DIRECTIVE=""
 fi
 
 auto_envsubst() {
@@ -117,16 +128,19 @@ auto_envsubst() {
 
     # If hash tuning envs are not set, remove their lines from the template
     if [ -z "${SERVER_NAMES_HASH_BUCKET_SIZE}" ]; then
-      sed -i '/^[[:space:]]*server_names_hash_bucket_size[[:space:]]/d' "$tmpfile"
+      sed '/^[[:space:]]*server_names_hash_bucket_size[[:space:]]/d' "$tmpfile" > "${tmpfile}.filtered"
+      mv "${tmpfile}.filtered" "$tmpfile"
     fi
     if [ -z "${SERVER_NAMES_HASH_MAX_SIZE}" ]; then
-      sed -i '/^[[:space:]]*server_names_hash_max_size[[:space:]]/d' "$tmpfile"
+      sed '/^[[:space:]]*server_names_hash_max_size[[:space:]]/d' "$tmpfile" > "${tmpfile}.filtered"
+      mv "${tmpfile}.filtered" "$tmpfile"
     fi
 
     # Upstream keepalive is off (docker-compose default): strip the upstream{}
     # pool blocks so nginx uses the resolver + per-request $backend_app path.
     if [ "${NGINX_UPSTREAM_KEEPALIVE}" != "true" ]; then
-      sed -i '/# BEGIN upstream-keepalive/,/# END upstream-keepalive/d' "$tmpfile"
+      sed '/# BEGIN upstream-keepalive/,/# END upstream-keepalive/d' "$tmpfile" > "${tmpfile}.filtered"
+      mv "${tmpfile}.filtered" "$tmpfile"
     fi
 
     echo "$ME: Running envsubst on $template to $output_path"
