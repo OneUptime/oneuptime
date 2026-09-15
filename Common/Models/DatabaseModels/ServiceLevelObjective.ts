@@ -113,6 +113,12 @@ const decimalTransformer: ValueTransformer = {
 @Entity({
   name: "ServiceLevelObjective",
 })
+/*
+ * Every SLO list query pins `isArchived: false` inside a project, and the
+ * evaluation worker skips archived SLOs, so the pair is indexed together -
+ * the same composite index every other archivable resource carries.
+ */
+@Index(["projectId", "isArchived"])
 @EnableWorkflow({
   create: true,
   delete: true,
@@ -374,6 +380,134 @@ export default class ServiceLevelObjective extends BaseModel {
   })
   public isEnabled?: boolean = undefined;
 
+  /*
+   * Archiving retires an SLO without deleting its history: it disappears from
+   * the SLO lists, the worker stops evaluating it, and its open burn-rate
+   * alerts and incidents are resolved. Deliberately a separate flag from
+   * `isEnabled` - unarchiving must not silently re-enable an SLO somebody had
+   * paused, and re-enabling must not pull it back out of the archive.
+   *
+   * No dedicated permission: archiving is an update, so it is gated by Edit.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjective,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjective,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description: "Archived SLOs are hidden from lists and are not evaluated.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.sanitizeCreateOrUpdate), which is why these are read-only
+   * to the client: "who archived this and when" cannot be spoofed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description: "When this Service Level Objective was archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
+
   // SLI Configuration
 
   @ColumnAccessControl({
@@ -512,13 +646,24 @@ export default class ServiceLevelObjective extends BaseModel {
       Permission.EditServiceLevelObjective,
     ],
   })
+  /*
+   * DEPRECATED - superseded by ServiceLevelObjectiveMonitorRule. The
+   * SloProductOverhaul migrations copied every SLO's labels into a monitor
+   * rule named "Auto-add monitors with labels" (through that rule's own label
+   * join table, not criteria JSON), and the engine reads only the rules.
+   *
+   * The column and its join table stay for one release anyway: during a
+   * rolling deploy, API pods from the previous release still read and write
+   * it, and dropping the table under them would fail their SLO queries. Do
+   * not read it, write it or show it; remove it in a later migration.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
     modelType: Label,
-    title: "Auto-Add Monitors With Labels",
+    title: "Auto-Add Monitors With Labels (Deprecated)",
     description:
-      "Monitor labels that automatically attach monitors to this SLO. Any monitor in the project carrying at least one of these labels is added to the Monitors list, and is removed again when it stops carrying any of them.",
+      "Deprecated: superseded by SLO Monitor Rules and no longer read by the SLO engine. Existing labels were migrated into a monitor rule named \"Auto-add monitors with labels\". Kept only for compatibility during upgrades; use SLO Monitor Rules instead.",
   })
   @ManyToMany(
     () => {
@@ -541,10 +686,11 @@ export default class ServiceLevelObjective extends BaseModel {
 
   /*
    * Bookkeeping shadow of `monitors`: the subset of attached monitors that the
-   * label rule put there. Without it the rule could not tell a monitor it
-   * added from one a human attached by hand, so "this monitor no longer
-   * matches, detach it" would silently delete deliberate, manual attachments.
-   * Root-only: it is derived state, never something a client sets.
+   * SLO's monitor rules put there (the union over all its enabled rules).
+   * Without it the rules could not tell a monitor they added from one a human
+   * attached by hand, so "this monitor no longer matches, detach it" would
+   * silently delete deliberate, manual attachments. Root-only: it is derived
+   * state, never something a client sets.
    */
   @ColumnAccessControl({
     create: [],
@@ -563,7 +709,7 @@ export default class ServiceLevelObjective extends BaseModel {
     modelType: Monitor,
     title: "Auto Added Monitors",
     description:
-      "Monitors that were attached to this SLO by its label rule rather than by hand. Maintained by the server.",
+      "Monitors that were attached to this SLO by its monitor rules rather than by hand. Maintained by the server.",
   })
   @ManyToMany(
     () => {

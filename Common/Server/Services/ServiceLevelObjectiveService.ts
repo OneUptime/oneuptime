@@ -12,6 +12,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -585,6 +586,51 @@ export class Service extends DatabaseService<Model> {
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/slos/${serviceLevelObjectiveId.toString()}`,
     );
+  }
+
+  /*
+   * `[SLO <name>](<dashboard link>)` for feed items and notifications.
+   *
+   * The name is user-controlled and feeds render without safe mode, so it is
+   * escaped here, once, at the point it becomes markdown - a name like
+   * `x](https://evil)` must not be able to re-point the link.
+   *
+   * Pass `sloName` whenever the caller already has it (the worker always
+   * does); the lookup is only a fallback for callers holding just an id. An
+   * SLO that cannot be found still gets a working link, labelled "SLO".
+   */
+  @CaptureSpan()
+  public async getSloMarkdownLink(data: {
+    projectId: ObjectID;
+    sloId: ObjectID;
+    sloName?: string | undefined;
+  }): Promise<string> {
+    let sloName: string | undefined = data.sloName;
+
+    if (sloName === undefined) {
+      const slo: Model | null = await this.findOneById({
+        id: data.sloId,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      sloName = slo?.name || undefined;
+    }
+
+    const link: URL = await this.getSloLinkInDashboard(
+      data.projectId,
+      data.sloId,
+    );
+
+    const escapedName: string = escapeMarkdownInline(sloName).trim();
+
+    const linkText: string = escapedName ? `SLO ${escapedName}` : "SLO";
+
+    return `[${linkText}](${link.toString()})`;
   }
 
   /*

@@ -10,8 +10,10 @@ import RouteMap, {
   MonitorsRoutePath,
   ScheduledMaintenanceEventsRoutePath,
   SettingsRoutePath,
+  SloRoutePath,
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
@@ -67,6 +69,16 @@ const products: Array<Product> = [
     landing: PageMap.SETTINGS,
     routes: SettingsRoutePath,
     getBreadcrumbs: getSettingsBreadcrumbs,
+  },
+  {
+    /*
+     * SloRoutePath mixes list-layout pages (archived) with the `:id` view
+     * pages, so this also proves `archived` is not matched as an SLO id.
+     */
+    name: "SLOs",
+    landing: PageMap.SLOS,
+    routes: SloRoutePath,
+    getBreadcrumbs: getSloBreadcrumbs,
   },
 ];
 

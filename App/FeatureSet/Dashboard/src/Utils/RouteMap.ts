@@ -156,13 +156,24 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
 };
 
 export const SloRoutePath: Dictionary<string> = {
+  /*
+   * A page of the SLO list layout, not of an SLO: React Router ranks this
+   * static segment above the view's dynamic `:id`, so it is never read as an
+   * SLO id.
+   */
+  [PageMap.SLOS_ARCHIVED]: `archived`,
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
+  [PageMap.SLO_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
   [PageMap.SLO_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SLO_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SLO_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.SLO_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SLO_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SLO_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SLO_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -2945,9 +2956,45 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SLOS]: new Route(`/dashboard/${RouteParams.ProjectID}/slos`),
 
+  [PageMap.SLOS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_ARCHIVED]
+    }`,
+  ),
+
   [PageMap.SLO_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_MONITORS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_MONITOR_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_MONITOR_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_SETTINGS]
     }`,
   ),
 

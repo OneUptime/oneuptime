@@ -495,6 +495,12 @@ import ServiceLevelObjectiveOwnerUserService, {
 import ServiceLevelObjectiveOwnerTeamService, {
   Service as ServiceLevelObjectiveOwnerTeamServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveMonitorRuleService, {
+  Service as ServiceLevelObjectiveMonitorRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveFeedService, {
+  Service as ServiceLevelObjectiveFeedServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import SloHistoryService, {
   SloHistoryService as SloHistoryServiceType,
 } from "Common/Server/Services/SloHistoryService";
@@ -1229,6 +1235,8 @@ import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -3042,6 +3050,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ServiceLevelObjectiveOwnerTeam,
         ServiceLevelObjectiveOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveMonitorRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveMonitorRule,
+        ServiceLevelObjectiveMonitorRuleServiceType
+      >(
+        ServiceLevelObjectiveMonitorRule,
+        ServiceLevelObjectiveMonitorRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveFeed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveFeed,
+        ServiceLevelObjectiveFeedServiceType
+      >(
+        ServiceLevelObjectiveFeed,
+        ServiceLevelObjectiveFeedService,
       ).getRouter(),
     );
 

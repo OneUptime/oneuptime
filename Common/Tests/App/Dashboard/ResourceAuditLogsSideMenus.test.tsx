@@ -115,6 +115,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     sections: ["SLO", "Advanced"],
     advancedLinks: [
       { title: "Owners", page: PageMap.SLO_VIEW_OWNERS },
+      { title: "Settings", page: PageMap.SLO_VIEW_SETTINGS },
       { title: "Audit Logs", page: PageMap.SLO_VIEW_AUDIT_LOGS },
       { title: "Delete SLO", page: PageMap.SLO_VIEW_DELETE },
     ],
@@ -261,3 +262,46 @@ describe.each(RESOURCE_CASES)(
     });
   },
 );
+
+/*
+ * The SLO section follows what an SLO is made of: the monitors it measures
+ * and the rules that attach them, its burn-rate rules and metrics, what it
+ * raised, then its feed. Charts is deliberately absent - its history lives in
+ * Metrics, and its route only survives for bookmarks.
+ */
+const SLO_SECTION_LINKS: Array<ExpectedLink> = [
+  { title: "Overview", page: PageMap.SLO_VIEW },
+  { title: "Monitors", page: PageMap.SLO_VIEW_MONITORS },
+  { title: "Monitor Rules", page: PageMap.SLO_VIEW_MONITOR_RULES },
+  { title: "Burn Rate Rules", page: PageMap.SLO_VIEW_BURN_RATE_RULES },
+  { title: "Metrics", page: PageMap.SLO_VIEW_METRICS },
+  { title: "Alerts", page: PageMap.SLO_VIEW_ALERTS },
+  { title: "Incidents", page: PageMap.SLO_VIEW_INCIDENTS },
+  { title: "Feed", page: PageMap.SLO_VIEW_FEED },
+];
+
+describe("SLO resource menu", () => {
+  test("keeps every SLO destination in the expected order", async () => {
+    const slo: ResourceAuditMenuCase | undefined = RESOURCE_CASES.find(
+      (resource: ResourceAuditMenuCase): boolean => {
+        return resource.name === "SLO";
+      },
+    );
+
+    expect(slo).toBeDefined();
+
+    await renderAuditPage(slo!);
+
+    expect(linksIn("SLO")).toEqual(
+      SLO_SECTION_LINKS.map((link: ExpectedLink): MenuLink => {
+        return {
+          title: link.title,
+          href: resourceRoute(link.page),
+        };
+      }),
+    );
+    expect(hrefsInMenu()).not.toContain(
+      resourceRoute(PageMap.SLO_VIEW_CHARTS),
+    );
+  });
+});

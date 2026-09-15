@@ -420,3 +420,52 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
 
   return fields;
 };
+
+/*
+ * The Overview's details card edits only what describes the SLO: its name,
+ * description and labels. What it measures and how - objective, period,
+ * downtime and evaluation - lives on the Settings page.
+ */
+const SLO_DETAILS_FORM_COLUMNS: Array<string> = [
+  "name",
+  "description",
+  "labels",
+];
+
+export type GetSloDetailsFormFieldsFunction = () => Array<
+  ModelField<ServiceLevelObjective>
+>;
+
+export const getSloDetailsFormFields: GetSloDetailsFormFieldsFunction =
+  (): Array<ModelField<ServiceLevelObjective>> => {
+    /*
+     * Taken from the create form rather than declared a second time, so a
+     * name placeholder or label description changed there changes here too.
+     * The step id is dropped: the details card is one flat form, and the
+     * create wizard's steps mean nothing on it.
+     */
+    const createFields: Array<ModelField<ServiceLevelObjective>> =
+      getSloFormFields();
+    const detailsFields: Array<ModelField<ServiceLevelObjective>> = [];
+
+    for (const column of SLO_DETAILS_FORM_COLUMNS) {
+      const createField: ModelField<ServiceLevelObjective> | undefined =
+        createFields.find(
+          (field: ModelField<ServiceLevelObjective>): boolean => {
+            return Object.keys(field.field || {})[0] === column;
+          },
+        );
+
+      if (!createField) {
+        continue;
+      }
+
+      const detailsField: ModelField<ServiceLevelObjective> = {
+        ...createField,
+      };
+      delete detailsField.stepId;
+      detailsFields.push(detailsField);
+    }
+
+    return detailsFields;
+  };

@@ -28,15 +28,30 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * Monitors and Monitor Rules sit together: the rules decide which
+         * monitors are attached, so whoever is looking at one usually needs
+         * the other next.
+         */}
         <SideMenuItem
           link={{
-            title: "Charts",
+            title: "Monitors",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLO_VIEW_CHARTS] as Route,
+              RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Graph}
+          icon={IconProp.AltGlobe}
+        />
+        <SideMenuItem
+          link={{
+            title: "Monitor Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_MONITOR_RULES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Filter}
         />
         <SideMenuItem
           link={{
@@ -52,6 +67,20 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
            * alerts anyway.
            */
           icon={IconProp.Fire}
+        />
+        {/*
+         * Metrics replaces the old Charts entry: the SLO's history is one of
+         * its views. The Charts route itself still resolves for bookmarks.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Graph}
         />
         <SideMenuItem
           link={{
@@ -73,6 +102,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Alert}
         />
+        <SideMenuItem
+          link={{
+            title: "Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
@@ -85,6 +124,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
         />
         <SideMenuItem
           link={{

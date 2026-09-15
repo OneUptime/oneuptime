@@ -384,6 +384,8 @@ import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
@@ -818,6 +820,8 @@ const services: Array<BaseService> = [
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
+  ServiceLevelObjectiveMonitorRuleService,
+  ServiceLevelObjectiveFeedService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,

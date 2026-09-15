@@ -1,8 +1,10 @@
 import AlertSeverity from "./AlertSeverity";
 import IncidentSeverity from "./IncidentSeverity";
+import Label from "./Label";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import ServiceLevelObjective from "./ServiceLevelObjective";
+import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -681,6 +683,330 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
   })
   public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
 
+  /*
+   * What the raised alert SAYS and who it belongs to - the options a monitor
+   * criteria's alert template offers. Every column is nullable or defaulted to
+   * today's behaviour, so the two rules seeded on SLO create, and every rule
+   * that existed before these options, keep raising exactly the alert they
+   * always did. A blank template means "use the built-in text".
+   *
+   * Typed columns rather than one CriteriaAlert JSON blob on purpose: the
+   * label, team and user lists are join tables with ON DELETE CASCADE, so a
+   * deleted label or team simply drops out. A stale id inside JSON would make
+   * the worker's create throw on every one-minute tick instead.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Alert Title Template",
+    description:
+      "Title of the alert raised when this burn rate rule fires. Supports template variables such as {{sloName}}. Leave empty to use the default title.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public alertTitleTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "Alert Description Template",
+    description:
+      "Description (in Markdown) of the alert raised when this burn rate rule fires. Supports template variables. Leave empty to use the default description.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public alertDescriptionTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "Alert Remediation Notes",
+    description:
+      "Remediation notes (in Markdown) attached to the alert raised when this burn rate rule fires. Supports template variables.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public alertRemediationNotes?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Private Alert",
+    description:
+      "Make the alert raised by this burn rate rule private, so only its owners, project admins and project owners can see it. Disabled by default.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAlertPrivate?: boolean = undefined;
+
+  /*
+   * Defaults to TRUE because resolving on recovery is what every burn rate
+   * rule has always done. Monitor criteria default the other way; matching
+   * them here would leave every existing rule's alerts open forever after the
+   * upgrade.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Auto Resolve Alert",
+    description:
+      "Resolve the alert automatically when the burn rate over the long window drops back below the threshold. Enabled by default. When disabled, the alert stays open until someone resolves it.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public autoResolveAlert?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Alert Labels",
+    description:
+      "Labels added to alerts raised by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleAlertLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public alertLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Alert Owner Teams",
+    description:
+      "Teams added as owners of alerts raised by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleAlertOwnerTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public alertOwnerTeams?: Array<Team> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: User,
+    title: "Alert Owner Users",
+    description:
+      "Users added as owners of alerts raised by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return User;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleAlertOwnerUser",
+    inverseJoinColumn: {
+      name: "userId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public alertOwnerUsers?: Array<User> = undefined;
+
   // Incident Configuration
 
   @ColumnAccessControl({
@@ -816,6 +1142,365 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     },
   })
   public incidentOnCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
+
+  /*
+   * The incident's own copy of the alert options above, kept separate for the
+   * same reason as the on-call lists: "a terse alert for the team, a detailed
+   * incident for the major-incident process" is otherwise unexpressible. Same
+   * defaults, for the same reason - no existing rule changes behaviour.
+   *
+   * Deliberately absent: "show on status page" (status pages select incidents
+   * by monitor, and a burn rate incident never carries monitors, so the flag
+   * would be a control that does nothing), incident member roles (deferred),
+   * and changing monitor status (never: it would rewrite the monitor history
+   * the SLI is computed from).
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Incident Title Template",
+    description:
+      "Title of the incident declared when this burn rate rule fires. Supports template variables such as {{sloName}}. Leave empty to use the default title.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public incidentTitleTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "Incident Description Template",
+    description:
+      "Description (in Markdown) of the incident declared when this burn rate rule fires. Supports template variables. Leave empty to use the default description.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public incidentDescriptionTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "Incident Remediation Notes",
+    description:
+      "Remediation notes (in Markdown) attached to the incident declared when this burn rate rule fires. Supports template variables.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public incidentRemediationNotes?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Private Incident",
+    description:
+      "Make the incident declared by this burn rate rule private, so only its owners, project admins and project owners can see it. Disabled by default.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isIncidentPrivate?: boolean = undefined;
+
+  // TRUE by default for the same reason as autoResolveAlert.
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Auto Resolve Incident",
+    description:
+      "Resolve the incident automatically when the burn rate over the long window drops back below the threshold. Enabled by default. When disabled, the incident stays open until someone resolves it.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public autoResolveIncident?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Incident Labels",
+    description: "Labels added to incidents declared by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleIncidentLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Incident Owner Teams",
+    description:
+      "Teams added as owners of incidents declared by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleIncidentOwnerTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentOwnerTeams?: Array<Team> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: User,
+    title: "Incident Owner Users",
+    description:
+      "Users added as owners of incidents declared by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return User;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleIncidentOwnerUser",
+    inverseJoinColumn: {
+      name: "userId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentOwnerUsers?: Array<User> = undefined;
+
+  /*
+   * Applies to both outputs. Off by default because SLO owners already get
+   * the SLO's own status-change notification; making them owners of every
+   * burn rate alert and incident as well notifies them a second time, which a
+   * team should opt into rather than discover after upgrading.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Add SLO Owners As Owners",
+    description:
+      "Also add the owner users and owner teams of the Service Level Objective as owners of the alerts and incidents this burn rate rule creates. Disabled by default.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public addSloOwnersAsOwners?: boolean = undefined;
 
   /*
    * Worker-owned state. These columns are set by the SLO evaluation worker
