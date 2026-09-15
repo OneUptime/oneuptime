@@ -242,21 +242,19 @@ describe("AddSessionReplayEngagementColumns migration", () => {
   });
 
   /*
-   * Pinned from the END of the chain, not by absolute index: the intent is
-   * that nothing was slipped in behind it, and only the visitor id
-   * migration - added later and registered after it - may follow.
+   * The runner decides what to run by position, so what is pinned is the
+   * index it was appended at, directly before the visitor id migration.
+   * Migrations appended later leave both alone; one slipped in above them
+   * does not.
    */
-  it("is registered second-to-last in the data-migration chain, directly before the visitor id migration", () => {
+  it("keeps its registered position in the data-migration chain, directly before the visitor id migration", () => {
     const instantiations: Array<string> =
       indexSource.match(/new [A-Za-z0-9_]+\(\)/g) || [];
 
-    expect(instantiations.length).toBeGreaterThan(1);
-    expect(instantiations[instantiations.length - 2]).toBe(
-      "new AddSessionReplayEngagementColumns()",
-    );
-    expect(instantiations[instantiations.length - 1]).toBe(
-      "new AddSessionReplayVisitorIdColumn()",
-    );
+    expect(
+      instantiations.indexOf("new AddSessionReplayEngagementColumns()"),
+    ).toBe(108);
+    expect(instantiations[109]).toBe("new AddSessionReplayVisitorIdColumn()");
   });
 
   it("does not run in cluster mode, because boot schema-sync performs the same ADD COLUMN there", () => {
@@ -361,14 +359,14 @@ describe("AddSessionReplayVisitorIdColumn migration", () => {
     ).toHaveLength(2);
   });
 
-  it("is registered LAST in the data-migration chain", () => {
+  // Pinned by the index it was appended at; later appends leave it alone.
+  it("keeps its registered position in the data-migration chain", () => {
     const instantiations: Array<string> =
       indexSource.match(/new [A-Za-z0-9_]+\(\)/g) || [];
 
-    expect(instantiations.length).toBeGreaterThan(0);
-    expect(instantiations[instantiations.length - 1]).toBe(
-      "new AddSessionReplayVisitorIdColumn()",
-    );
+    expect(
+      instantiations.indexOf("new AddSessionReplayVisitorIdColumn()"),
+    ).toBe(109);
   });
 
   it("does not run in cluster mode, because boot schema-sync performs the same ADD COLUMN there", () => {

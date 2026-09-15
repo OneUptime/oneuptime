@@ -63,7 +63,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
 import HashedString from "../../Types/HashedString";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
@@ -316,6 +316,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this.onBeforeCreate(createBy);
   }
 
+  /*
+   * BasicForm wraps every FormFieldSchemaType.Password value in a HashedString
+   * before submit, so a model form can post one straight at a hashed column.
+   * The same field also collects secrets that are stored rather than hashed —
+   * a TAXII feed token, data source credentials, a webhook signing secret —
+   * and those columns want the string the user typed. Left wrapped, encrypt()
+   * walked the HashedString's own fields as if it were a JSON column, and the
+   * Postgres driver serialized the object through toJSON(), so the column
+   * held '{"_type":"HashedString","value":"<ciphertext>"}' instead of the
+   * ciphertext. https://github.com/OneUptime/oneuptime/issues/3807
+   *
+   * Runs before the hooks, so they validate the same string that is saved.
+   */
+  private unwrapHashedStringsForUnhashedColumns(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    for (const columnName of Object.keys(data)) {
+      const value: unknown = (data as Record<string, unknown>)[columnName];
+
+      if (
+        value instanceof HashedString &&
+        this.model.isTableColumn(columnName) &&
+        !this.model.isHashedStringColumn(columnName)
+      ) {
+        (data as Record<string, unknown>)[columnName] = value.toString();
+      }
+    }
+  }
+
+  /*
+   * Rows written before the fix above hold their ciphertext inside that
+   * HashedString envelope. Decrypting the envelope itself is not just wrong
+   * but random — it carries no OpenSSL salt, so crypto-js derives the key
+   * from a fresh random one on every call and returns "" or throws
+   * "Malformed UTF-8 data". A ciphertext is base64 and never starts with
+   * "{", so the envelope is unambiguous: unwrap it and those rows decrypt
+   * without anyone re-entering the secret.
+   */
+  private static unwrapHashedStringEnvelope(storedValue: string): string {
+    if (typeof storedValue !== "string" || !storedValue.startsWith("{")) {
+      return storedValue;
+    }
+
+    try {
+      const parsed: JSONValue = JSON.parse(storedValue);
+
+      if (
+        parsed &&
+        typeof parsed === Typeof.Object &&
+        (parsed as JSONObject)["_type"] === ObjectType.HashedString &&
+        typeof (parsed as JSONObject)["value"] === Typeof.String
+      ) {
+        return (parsed as JSONObject)["value"] as string;
+      }
+    } catch {
+      // Not JSON, so not the envelope.
+    }
+
+    return storedValue;
+  }
+
   protected async encrypt(
     data: TBaseModel | PartialEntity<TBaseModel>,
   ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
@@ -527,7 +588,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         data.setValue(key, dataObj);
       } else {
         //If its string or other type.
-        data.setValue(key, await Encryption.decrypt((data as any)[key]));
+        data.setValue(
+          key,
+          await Encryption.decrypt(
+            DatabaseService.unwrapHashedStringEnvelope((data as any)[key]),
+          ),
+        );
       }
     }
 
@@ -1300,6 +1366,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    this.unwrapHashedStringsForUnhashedColumns(createBy.data);
+
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
@@ -2798,6 +2866,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.setTelemetryContextFromProps(updateBy.props);
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
+      this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
