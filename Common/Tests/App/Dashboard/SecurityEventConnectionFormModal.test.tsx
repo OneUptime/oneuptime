@@ -913,7 +913,7 @@ describe("form value mapping", () => {
       readSecurityEventConnectionForm({ name: "No provider" });
     }).toThrow("Choose a provider before saving.");
     expect((): void => {
-      readSecurityEventConnectionForm({ provider: "google-secops" });
+      readSecurityEventConnectionForm({ provider: "not-a-provider" });
     }).toThrow("Choose a provider before saving.");
   });
 

@@ -302,7 +302,7 @@ const connectionsPageSource: string = readRepoFile(
   "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/GoogleSecOpsConnections.tsx",
 );
 const clientSource: string = readRepoFile(
-  "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient.ts",
+  "Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
 );
 const pollerSource: string = readRepoFile(
   "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller.ts",

@@ -8,7 +8,7 @@ import SecurityEventService from "../../../../Server/Services/SecurityEventServi
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   SearchDetectionsResult,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller, {
   GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";

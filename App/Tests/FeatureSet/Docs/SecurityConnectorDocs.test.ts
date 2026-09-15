@@ -57,6 +57,7 @@ const OCSF_CLASSES_BY_PROVIDER: Record<
     "Account Change",
     "Detection Finding",
   ],
+  [SecurityEventConnectorProvider.GoogleSecOps]: ["Detection Finding"],
 };
 
 const DEFINITION_CASES: Array<[string, SecurityEventConnectorDefinition]> =

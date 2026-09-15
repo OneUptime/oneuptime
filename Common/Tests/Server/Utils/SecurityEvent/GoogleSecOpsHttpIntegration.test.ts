@@ -15,7 +15,7 @@ import GoogleSecOpsClient, {
   FetchInitLike,
   FetchLike,
   FetchResponseLike,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import ThreatIntelEnricher from "../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import logger from "../../../../Server/Utils/Logger";

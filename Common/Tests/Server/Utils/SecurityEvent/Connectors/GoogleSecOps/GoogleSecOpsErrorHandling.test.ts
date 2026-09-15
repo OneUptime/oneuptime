@@ -1,13 +1,13 @@
 import { generateKeyPairSync } from "crypto";
-import logger from "../../../../Server/Utils/Logger";
+import logger from "../../../../../../Server/Utils/Logger";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   FetchLike,
   FetchResponseLike,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
-import APIException from "../../../../Types/Exception/ApiException";
-import { JSONObject } from "../../../../Types/JSON";
-import { getJestSpyOn } from "../../../Spy";
+} from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
+import APIException from "../../../../../../Types/Exception/ApiException";
+import { JSONObject } from "../../../../../../Types/JSON";
+import { getJestSpyOn } from "../../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*

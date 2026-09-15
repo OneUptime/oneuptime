@@ -1,11 +1,11 @@
 import { createPrivateKey } from "crypto";
 import jwt from "jsonwebtoken";
-import BadDataException from "../../../../Types/Exception/BadDataException";
-import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../../../../Types/SecurityEvent/GoogleSecOpsRegion";
-import APIException from "../../../../Types/Exception/ApiException";
-import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
-import logger from "../../Logger";
-import { redactLogString, redactLogValue } from "../../LogRedaction";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../../../../../Types/SecurityEvent/GoogleSecOpsRegion";
+import APIException from "../../../../../Types/Exception/ApiException";
+import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
+import logger from "../../../Logger";
+import { redactLogString, redactLogValue } from "../../../LogRedaction";
 
 /*
  * Minimal Google SecOps (Chronicle) API client for the detections poller.

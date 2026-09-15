@@ -6,7 +6,7 @@ import ConnectorPlatformHealth from "../../../../../Server/Utils/SecurityEvent/C
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   SearchDetectionsResult,
-} from "../../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsConnectionTester, {
   GOOGLE_SECOPS_CONNECTION_TEST_TIMEOUT_IN_MS,
 } from "../../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsConnectionTester";

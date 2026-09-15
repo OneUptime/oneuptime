@@ -10,7 +10,7 @@ import logger from "../../../../Server/Utils/Logger";
 import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";

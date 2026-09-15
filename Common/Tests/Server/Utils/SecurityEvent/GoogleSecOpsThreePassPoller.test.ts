@@ -10,7 +10,7 @@ import GoogleSecOpsClient, {
   FetchAlertsResult,
   GoogleSecOpsListBasis,
   SearchDetectionsResult,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import SecurityEventDedupe from "../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
 import ThreatIntelEnricher from "../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";

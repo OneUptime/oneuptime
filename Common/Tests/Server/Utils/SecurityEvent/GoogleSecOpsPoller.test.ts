@@ -8,7 +8,7 @@ import SecurityEventService from "../../../../Server/Services/SecurityEventServi
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   SearchDetectionsResult,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import logger from "../../../../Server/Utils/Logger";

@@ -4,7 +4,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
-import GoogleSecOpsClient from "../Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+import GoogleSecOpsClient from "../Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

@@ -842,7 +842,7 @@ describe("SecurityEventConnectionPoller.executeConnection - validation", () => {
     await expect(
       SecurityEventConnectionPoller.executeConnection(
         makeConnection({
-          provider: "google-secops" as SecurityEventConnectorProvider,
+          provider: "not-a-provider" as SecurityEventConnectorProvider,
         }),
         { type: "poll" },
         overridesFor(fake),
@@ -2050,7 +2050,14 @@ describe("SecurityEventConnectionPoller.executeConnection - test, preview and ba
     expect(fake.testCalls).toEqual([
       {
         settings: SETTINGS,
-        options: { requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS },
+        /*
+         * A queued test only needs to know whether access works; the slow
+         * availability probes belong to the synchronous Test connection.
+         */
+        options: {
+          requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+          skipAvailability: true,
+        },
       },
     ]);
     expect(fake.fetchCalls).toHaveLength(0);

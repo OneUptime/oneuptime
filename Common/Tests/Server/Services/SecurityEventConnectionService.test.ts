@@ -545,7 +545,7 @@ describe("SecurityEventConnectionService.mergeSecrets", () => {
 });
 
 describe("SecurityEventConnectionService.getDefinitionOrThrow", () => {
-  test.each([undefined, null, "", "google-secops", "OKTA", 42])(
+  test.each([undefined, null, "", "not-a-provider", "OKTA", 42])(
     "rejects %j",
     (provider: unknown) => {
       expect(() => {
@@ -613,7 +613,7 @@ describe("SecurityEventConnectionService.validateSettings", () => {
   test("an unknown provider fails before the registry or the guard are touched", async () => {
     await expect(
       SecurityEventConnectionServiceType.validateSettings({
-        provider: "google-secops",
+        provider: "not-a-provider",
         config: {},
         secrets: {},
         alertingOnly: true,
@@ -782,7 +782,7 @@ describe("SecurityEventConnectionService.onBeforeCreate", () => {
       service.onBeforeCreate(
         createBy(
           buildConnection({
-            provider: "google-secops" as SecurityEventConnectorProvider,
+            provider: "not-a-provider" as SecurityEventConnectorProvider,
           }),
         ),
       ),
@@ -1188,7 +1188,7 @@ describe("SecurityEventConnectionService.getConnectorSettings", () => {
     await expect(
       SecurityEventConnectionService.getConnectorSettings(
         storedConnection({
-          provider: "google-secops" as SecurityEventConnectorProvider,
+          provider: "not-a-provider" as SecurityEventConnectorProvider,
         }),
       ),
     ).rejects.toThrow("Provider must be one of the supported");

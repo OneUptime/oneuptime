@@ -22,9 +22,11 @@ import SecurityEventDedupe from "../SecurityEventDedupe";
 import ConnectorPlatformHealth from "./ConnectorPlatformHealth";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
+  ConnectorTestResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
   makeCheck,
+  toConnectorTestResult,
 } from "./Types";
 
 export const CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS: number = 20 * 1000;
@@ -89,12 +91,13 @@ export default class SecurityEventConnectionTester {
 
     if (connector && checks[0]?.status === "pass") {
       try {
-        const providerChecks: Array<SecurityConnectorCheck> =
+        const providerResult: ConnectorTestResult = toConnectorTestResult(
           await connector.testConnection(data.settings, {
             requestTimeoutInMs:
               data.requestTimeoutInMs || CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
-          });
-        checks.push(...providerChecks);
+          }),
+        );
+        checks.push(...providerResult.checks);
       } catch (error) {
         /*
          * Connectors are asked never to throw here, but a bug in one must

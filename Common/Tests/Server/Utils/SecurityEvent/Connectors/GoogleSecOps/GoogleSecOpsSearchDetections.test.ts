@@ -5,9 +5,9 @@ import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
   SearchDetectionsResult,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
-import logger from "../../../../Server/Utils/Logger";
-import { getJestSpyOn } from "../../../Spy";
+} from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
+import logger from "../../../../../../Server/Utils/Logger";
+import { getJestSpyOn } from "../../../../../Spy";
 import {
   afterEach,
   beforeEach,

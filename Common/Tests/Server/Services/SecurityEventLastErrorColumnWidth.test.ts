@@ -16,7 +16,7 @@ import ConnectorErrorMessage, {
 import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
-} from "../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import ColumnLength, {
   getMaxLengthFromTableColumnType,
 } from "../../../Types/Database/ColumnLength";

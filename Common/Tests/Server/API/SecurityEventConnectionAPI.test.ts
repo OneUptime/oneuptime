@@ -832,7 +832,7 @@ describe("POST /security-event-connection/test - unsaved settings", () => {
   );
 
   test("an unsupported provider is a 400", async () => {
-    req.body = { provider: "google-secops", config: {}, secrets: {} };
+    req.body = { provider: "not-a-provider", config: {}, secrets: {} };
     await testHandler(req, res, next);
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({

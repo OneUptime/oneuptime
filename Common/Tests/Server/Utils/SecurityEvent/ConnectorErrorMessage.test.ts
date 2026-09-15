@@ -8,7 +8,7 @@ import ConnectorErrorMessage, {
 import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+} from "../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import { getMaxLengthFromTableColumnType } from "../../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";

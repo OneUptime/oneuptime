@@ -5,10 +5,10 @@ import GoogleSecOpsClient, {
   FetchInitLike,
   FetchLike,
   FetchResponseLike,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
-import APIException from "../../../../Types/Exception/ApiException";
-import BadDataException from "../../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../../Types/JSON";
+} from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
+import APIException from "../../../../../../Types/Exception/ApiException";
+import BadDataException from "../../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../../Types/JSON";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*

@@ -1,7 +1,7 @@
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import GoogleSecOpsConnectionRun from "../../../Models/DatabaseModels/GoogleSecOpsConnectionRun";
 import GoogleSecOpsConnectionService from "../../../Server/Services/GoogleSecOpsConnectionService";
-import GoogleSecOpsClient from "../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+import GoogleSecOpsClient from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import Permission from "../../../Types/Permission";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 

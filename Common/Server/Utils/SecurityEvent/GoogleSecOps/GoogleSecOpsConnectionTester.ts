@@ -28,7 +28,7 @@ import SecurityEventDedupe from "../SecurityEventDedupe";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   SearchDetectionsResult,
-} from "./GoogleSecOpsClient";
+} from "../Connectors/GoogleSecOps/GoogleSecOpsClient";
 
 export const GOOGLE_SECOPS_PROVIDER: string = "google-secops";
 /*

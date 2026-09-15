@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../GoogleSecOpsRegion";
 import SecurityEventConnectorProvider from "./SecurityEventConnectorProvider";
 
 /*
@@ -24,13 +25,20 @@ export type SecurityEventConnectorCategory =
 export const SecurityEventConnectorCategories: Array<SecurityEventConnectorCategory> =
   ["SIEM", "EDR / XDR", "Cloud security", "Identity"];
 
+/*
+ * "json" is a multi-line JSON document edited in a code editor, such as a
+ * Google Cloud service-account key. It is stored as the pasted text, never
+ * parsed into an object: the connector parses it, and the secrets blob only
+ * holds scalar values.
+ */
 export type ConnectorFieldType =
   | "text"
   | "url"
   | "password"
   | "number"
   | "toggle"
-  | "dropdown";
+  | "dropdown"
+  | "json";
 
 export interface ConnectorFieldOption {
   label: string;
@@ -46,6 +54,26 @@ export interface ConnectorField {
   placeholder?: string | undefined;
   options?: Array<ConnectorFieldOption> | undefined;
   defaultValue?: string | boolean | number | undefined;
+}
+
+/*
+ * A two-option presentation of alertingOnly: the alerting records are
+ * always imported (a fixed, checked option) and a second option adds the
+ * non-alerting ones. Checking the second option stores alertingOnly=false.
+ */
+export interface ConnectorAlertingOnlyControl {
+  // Label of the control, e.g. "Data to import".
+  title: string;
+  description: string;
+  // The always-imported option, e.g. "Alerts".
+  alertingLabel: string;
+  // Why the always-imported option cannot be cleared.
+  alertingHint: string;
+  // The optional option, e.g. "Detections".
+  nonAlertingLabel: string;
+  // How the two settings read in a table or a summary.
+  alertingOnlySummary: string;
+  withNonAlertingSummary: string;
 }
 
 export interface SecurityEventConnectorDefinition {
@@ -67,6 +95,13 @@ export interface SecurityEventConnectorDefinition {
    * so the "alerts only" toggle on the connection means something.
    */
   supportsAlertingOnlyToggle: boolean;
+  /*
+   * How the connection form and diagnostics present alertingOnly, for a
+   * provider whose own vocabulary is not "alerts only". Absent means the
+   * generic "Alerts only" toggle. Only meaningful with
+   * supportsAlertingOnlyToggle.
+   */
+  alertingOnlyControl?: ConnectorAlertingOnlyControl | undefined;
   // What one imported record is, in the customer's own vocabulary.
   importedRecordName: string;
   /*
@@ -470,6 +505,78 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
             "An Okta API token (SSWS) for a read-only administrator. Encrypted at rest and never returned by the API.",
           type: "password",
           required: true,
+        },
+      ],
+    },
+    {
+      provider: SecurityEventConnectorProvider.GoogleSecOps,
+      title: "Google SecOps",
+      /*
+       * Byte for byte what the retired Google SecOps poller stamped: these
+       * two names are the duplicate lookup's scope and the telemetry service
+       * the events attach to, so connections carried over from it recognize
+       * the detections they already imported.
+       */
+      vendorName: "Google",
+      productName: "Google SecOps",
+      description:
+        "Import Google SecOps (Chronicle) alerts and rule detections as Detection Finding events.",
+      category: "SIEM",
+      icon: IconProp.ShieldCheck,
+      docsPath: "/docs/integrations/google-secops",
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: true,
+      alertingOnlyControl: {
+        title: "Data to import",
+        description:
+          "Alerts are always imported because Google's API always returns them. Select Detections to also import rule matches that did not generate an alert.",
+        alertingLabel: "Alerts",
+        alertingHint: "Google's alerts API always includes alerts.",
+        nonAlertingLabel: "Detections",
+        alertingOnlySummary: "Alerts only",
+        withNonAlertingSummary: "Alerts and detections",
+      },
+      importedRecordName: "detection",
+      cursorOverlapInMinutes: 1,
+      configFields: [
+        {
+          key: "region",
+          title: "Region",
+          description:
+            "The Google SecOps regional endpoint that matches the location in your instance resource name.",
+          type: "dropdown",
+          required: true,
+          placeholder: "Select a region",
+          /*
+           * No default on purpose: a preselected "us" would let a tenant in
+           * Europe or Asia save the wrong regional endpoint without noticing.
+           */
+          options: GOOGLE_SECOPS_SUPPORTED_REGIONS.map(
+            (region: string): ConnectorFieldOption => {
+              return { label: region, value: region };
+            },
+          ),
+        },
+        {
+          key: "instanceResourceName",
+          title: "Instance resource name",
+          description:
+            "The Chronicle instance resource name, from your SecOps SIEM Settings > Profile.",
+          type: "text",
+          required: true,
+          placeholder:
+            "projects/{project}/locations/{location}/instances/{instance}",
+        },
+      ],
+      secretFields: [
+        {
+          key: "serviceAccountJson",
+          title: "Service account JSON",
+          description:
+            "A Google Cloud service-account key (JSON) with the Chronicle API Viewer role. Encrypted at rest and never returned by the API.",
+          type: "json",
+          required: true,
+          placeholder: '{ "client_email": "...", "private_key": "..." }',
         },
       ],
     },

@@ -36,6 +36,7 @@ import {
   ConnectorFetchResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
+  toConnectorTestResult,
 } from "./Types";
 
 /*
@@ -559,10 +560,12 @@ export default class SecurityEventConnectionPoller {
       if (options.type === "test") {
         phase = `Check access to ${definition.title}`;
         phaseStartedMs = Date.now();
-        const checks: Array<SecurityConnectorCheck> =
+        const checks: Array<SecurityConnectorCheck> = toConnectorTestResult(
           await connector.testConnection(settings, {
             requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
-          });
+            skipAvailability: true,
+          }),
+        ).checks;
         result.checks.push(...checks);
 
         const failed: SecurityConnectorCheck | undefined = checks.find(

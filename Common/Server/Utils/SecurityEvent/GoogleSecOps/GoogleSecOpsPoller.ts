@@ -40,7 +40,7 @@ import GoogleSecOpsClient, {
   FetchAlertsResult,
   GoogleSecOpsListBasis,
   SearchDetectionsResult,
-} from "./GoogleSecOpsClient";
+} from "../Connectors/GoogleSecOps/GoogleSecOpsClient";
 
 const SECOPS_SERVICE_NAME: string = "Google SecOps";
 const SECOPS_VENDOR_NAME: string = "Google";

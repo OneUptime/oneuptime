@@ -4,7 +4,7 @@ import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsC
 import GoogleSecOpsConnectionService from "../../../Server/Services/GoogleSecOpsConnectionService";
 import GoogleSecOpsRunExecutor from "../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsRunExecutor";
 import GoogleSecOpsConnectionTester from "../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsConnectionTester";
-import GoogleSecOpsClient from "../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+import GoogleSecOpsClient from "../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";

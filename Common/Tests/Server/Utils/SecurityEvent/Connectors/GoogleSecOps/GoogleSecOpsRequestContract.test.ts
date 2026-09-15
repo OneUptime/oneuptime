@@ -5,8 +5,8 @@ import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
   GoogleServiceAccountCredentials,
-} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
-import BadDataException from "../../../../Types/Exception/BadDataException";
+} from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
+import BadDataException from "../../../../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
 
 /*
