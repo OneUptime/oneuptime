@@ -159,6 +159,19 @@ export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
  * default sentence names the API server's webhook settings, which are neither
  * read by this process nor usually editable by whoever runs this probe.
  */
+/*
+ * Whether this process is a GLOBAL probe — one registered with the
+ * server-issued REGISTER_PROBE_KEY rather than deployed by a customer inside
+ * their own network.
+ *
+ * Re-exported so other probe code can apply the same "global probes never
+ * touch private space" rule PROBE_ALLOW_PRIVATE_NETWORK_MONITORS applies,
+ * without reaching past this file into Common's environment config. Discovery
+ * uses it to refuse NetBIOS name lookups outright on a global probe (OneUptime
+ * issue #3677), whatever the scan row asks for.
+ */
+export { HasRegisterProbeKey };
+
 export const PROBE_PRIVATE_NETWORK_HINT: string = HasRegisterProbeKey
   ? " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."
   : " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";

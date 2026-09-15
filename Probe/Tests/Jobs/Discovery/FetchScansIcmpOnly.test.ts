@@ -211,6 +211,8 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
       /*

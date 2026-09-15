@@ -253,6 +253,7 @@ describe("Discovery review refreshes registration from current inventory", () =>
         discoveredDevices: true,
         probeId: true,
         isSnmpEnabled: true,
+        useShortDeviceNames: true,
         snmpConfigs: true,
         snmpVersion: true,
         snmpCommunityString: true,
@@ -331,6 +332,284 @@ describe("Discovery review refreshes registration from current inventory", () =>
     await importSelected();
     expect(createSpy).toHaveBeenCalledTimes(4);
     expect(createSpy.mock.calls[3]![0].model.hostname).toBe("10.0.0.2");
+  });
+});
+
+/*
+ * OneUptime issue #3678, end to end through the page's real review and import
+ * handlers: a scan set to short device names shows the short name, creates the
+ * device under it, keeps the FQDN as the device's DNS name, and — on a name
+ * collision — retries as "short (address)" rather than falling back to the
+ * FQDN the scan was told not to use.
+ */
+describe("Discovery review names devices by the scan's short-name choice", () => {
+  const FQDN: string = "core-gw.corp.example.com";
+
+  // A ping-only host named only by its PTR record, like the reporter's.
+  function namedHost(
+    ipAddress: string,
+    dnsHostname: string = FQDN,
+  ): DiscoveredNetworkDevice {
+    return { ...host(ipAddress, false), dnsHostname };
+  }
+
+  function scanNaming(
+    hosts: Array<DiscoveredNetworkDevice>,
+    useShortDeviceNames: boolean | undefined,
+  ): NetworkDeviceDiscoveryScan {
+    const value: NetworkDeviceDiscoveryScan = scan(hosts);
+    if (useShortDeviceNames !== undefined) {
+      value.useShortDeviceNames = useShortDeviceNames;
+    }
+    return value;
+  }
+
+  test("a scan set to short names shows the short name, with the FQDN beside the address", async () => {
+    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
+    await renderPage();
+    await openReview(scanNaming([namedHost("10.0.0.1")], true));
+
+    expect(screen.getByText("core-gw")).toBeInTheDocument();
+    expect(screen.getByText("core-gw")).toHaveAttribute("title", "core-gw");
+    expect(screen.getByText(FQDN, { exact: false })).toBeInTheDocument();
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import core-gw (10.0.0.1)",
+    );
+  });
+
+  test("a scan set to short names imports the short name and keeps the FQDN as the DNS name", async () => {
+    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
+    await renderPage();
+    await openReview(scanNaming([namedHost("10.0.0.1")], true));
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("core-gw");
+    expect(device.dnsName).toBe(FQDN);
+    expect(device.hostname).toBe("10.0.0.1");
+  });
+
+  test("a scan that did not ask imports the full name, and still keeps the DNS name", async () => {
+    for (const flag of [false, undefined]) {
+      createSpy.mockClear();
+      cleanup();
+      capturedTable = null;
+      getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], flag));
+      await renderPage();
+      await openReview(scanNaming([namedHost("10.0.0.1")], flag));
+
+      expect(checkbox("10.0.0.1")).toHaveAttribute(
+        "aria-label",
+        `Import ${FQDN} (10.0.0.1)`,
+      );
+
+      await importSelected();
+
+      const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+      expect(device.name).toBe(FQDN);
+      expect(device.dnsName).toBe(FQDN);
+    }
+  });
+
+  /*
+   * The choice is read off the FRESH scan, not the table row the dialog was
+   * opened from. The operator may have switched short names on in the Edit
+   * dialog (or another tab) since the list loaded; the review is what they
+   * are about to import, so it has to name hosts the way the scan says now.
+   */
+  test("the fresh read decides the naming, not the stale table row", async () => {
+    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
+    await renderPage();
+    await openReview(scanNaming([namedHost("10.0.0.1")], false));
+    await importSelected();
+
+    expect(createSpy.mock.calls[0]![0].model.name).toBe("core-gw");
+  });
+
+  test("a short name that is already taken is retried as the short name plus the address", async () => {
+    /*
+     * Short names collide more than FQDNs do — "core-gw" in two domains is one
+     * name. The first create fails on the duplicate; the retry must build from
+     * the same naming choice.
+     */
+    createSpy
+      .mockRejectedValueOnce(
+        new Error("Network Device with the same name already exists"),
+      )
+      .mockResolvedValueOnce(undefined);
+    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
+    await renderPage();
+    await openReview(scanNaming([namedHost("10.0.0.1")], true));
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(2);
+
+    /*
+     * The page retries with the SAME device object, renamed — so both calls
+     * hold it and both now read the final name. What distinguishes the retry
+     * is that it happened, and what it was renamed to.
+     */
+    const device: NetworkDevice = createSpy.mock.calls[1]![0].model;
+
+    expect(device.name).toBe("core-gw (10.0.0.1)");
+    expect(device.dnsName).toBe(FQDN);
+  });
+
+  test("two hosts whose short names collide both import", async () => {
+    const taken: Set<string> = new Set<string>();
+
+    createSpy.mockImplementation(
+      async (args: { model: NetworkDevice }): Promise<undefined> => {
+        const name: string = String(args.model.name);
+
+        if (taken.has(name)) {
+          throw new Error("Network Device with the same name already exists");
+        }
+
+        taken.add(name);
+        return undefined;
+      },
+    );
+
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      namedHost("10.0.0.1", "web.corp.example.com"),
+      namedHost("10.0.0.2", "web.lab.example.com"),
+    ];
+
+    getItemSpy.mockResolvedValue(scanNaming(hosts, true));
+    await renderPage();
+    await openReview(scanNaming(hosts, true));
+    await importSelected();
+
+    expect(Array.from(taken)).toEqual(["web", "web (10.0.0.2)"]);
+  });
+});
+
+/*
+ * OneUptime issue #3677, end to end through the page's real review and import
+ * handlers: a host with no SNMP and no PTR record, which the probe named by
+ * asking it over NetBIOS, is shown under that name with a plain "NetBIOS name"
+ * hint beside its address, and imports under that name.
+ *
+ * The name is self-reported by the host, so it is never stored as the
+ * device's DNS name — `dnsName` means "a record in DNS says so", and that is
+ * the one thing a NetBIOS answer is not.
+ */
+describe("Discovery review names a host by its NetBIOS answer when nothing else names it", () => {
+  function netbiosHost(
+    ipAddress: string,
+    netbiosName: string,
+  ): DiscoveredNetworkDevice {
+    return { ...host(ipAddress, false), netbiosName };
+  }
+
+  test("the row shows the NetBIOS name, and says beside the address where it came from", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "accounts-pc01")]),
+    );
+    await renderPage();
+    await openReview(scan([netbiosHost("10.0.0.1", "accounts-pc01")]));
+
+    expect(screen.getByText("accounts-pc01")).toHaveAttribute(
+      "title",
+      "accounts-pc01",
+    );
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import accounts-pc01 (10.0.0.1)",
+    );
+
+    const hint: HTMLElement = screen.getByText(/NetBIOS name/);
+
+    expect(hint.tagName).toBe("SPAN");
+    // Beside the address, on the address line — not a badge elsewhere.
+    expect(hint.parentElement).toHaveTextContent("10.0.0.1 · NetBIOS name");
+    expect(hint.getAttribute("title") || "").toContain(
+      "reported this name itself",
+    );
+  });
+
+  test("a host with only a NetBIOS name imports under it, with no DNS name", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "accounts-pc01")]),
+    );
+    await renderPage();
+    await openReview(scan([netbiosHost("10.0.0.1", "accounts-pc01")]));
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("accounts-pc01");
+    expect(device.hostname).toBe("10.0.0.1");
+    expect(device.dnsName).toBeUndefined();
+  });
+
+  test("the short-name option imports a NetBIOS name unchanged", async () => {
+    const value: NetworkDeviceDiscoveryScan = scan([
+      netbiosHost("10.0.0.1", "accounts-pc01"),
+    ]);
+    value.useShortDeviceNames = true;
+    getItemSpy.mockResolvedValue(value);
+    await renderPage();
+    await openReview(value);
+
+    expect(screen.getByText(/NetBIOS name/)).toBeInTheDocument();
+
+    await importSelected();
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("accounts-pc01");
+    expect(device.dnsName).toBeUndefined();
+  });
+
+  test("a host DNS names carries no NetBIOS hint, and imports under its DNS name", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([
+        {
+          ...netbiosHost("10.0.0.1", "accounts-pc01"),
+          dnsHostname: "core-gw.corp.example.com",
+        },
+      ]),
+    );
+    await renderPage();
+    await openReview(scan([]));
+
+    expect(screen.getByText("core-gw.corp.example.com")).toBeInTheDocument();
+    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+
+    await importSelected();
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("core-gw.corp.example.com");
+    expect(device.dnsName).toBe("core-gw.corp.example.com");
+  });
+
+  test("a NetBIOS answer the rules reject leaves the host on its address, with no hint", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "<img src=x onerror=alert(1)>")]),
+    );
+    await renderPage();
+    await openReview(scan([]));
+
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import 10.0.0.1 (10.0.0.1)",
+    );
+    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/onerror/)).not.toBeInTheDocument();
+
+    await importSelected();
+
+    expect(createSpy.mock.calls[0]![0].model.name).toBe("10.0.0.1");
   });
 });
 

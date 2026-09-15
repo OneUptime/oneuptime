@@ -38,6 +38,16 @@ import path from "path";
  * App/Tests/Dashboard/DiscoveryReviewHostname.test.ts and
  * InventoryTableInvariants.test.ts, because the property is about the shape of
  * the test files themselves and cannot be observed from inside a run.
+ *
+ * NetBIOS (OneUptime issue #3677). A completed sweep can now end in a second
+ * network pass: a NetBIOS node status query to UDP 137 of each host still
+ * unnamed. It sits at the same point as reverse DNS, is reached through the
+ * same entry points, and a real datagram from a unit test is worse than a real
+ * DNS query — it goes straight to whatever machine owns a fixture's 10.x
+ * address on the developer's network. So every rule here now covers both
+ * seams: a suite that can reach the sweep must stub BOTH, a mid-test restore
+ * must put BOTH back (installReverseDnsStub installs the NetBIOS stub too),
+ * and no test may build a NetbiosNameResolver without injecting its socket.
  */
 
 const DISCOVERY_TEST_DIRECTORIES: Array<string> = [
@@ -47,6 +57,8 @@ const DISCOVERY_TEST_DIRECTORIES: Array<string> = [
 
 const STUB_INSTALLER: string = "stubReverseDnsAsResolvingNothing";
 const STUB_REINSTALLER: string = "installReverseDnsStub";
+const NETBIOS_STUB_INSTALLER: string = "stubNetbiosAsResolvingNothing";
+const NETBIOS_STUB_REINSTALLER: string = "installNetbiosStub";
 const RESTORE_CALL: string = "jest.restoreAllMocks()";
 
 /*
@@ -129,13 +141,28 @@ function stubbedFiles(): Array<TestFile> {
 }
 
 /*
- * Every entry point that ends in a reverse-DNS pass.
+ * Suites that install ONLY the NetBIOS per-file hook — typically a suite about
+ * reverse-DNS naming, which spies on that seam itself. They carry the same
+ * mid-test restore obligation for the NetBIOS stub.
+ */
+function netbiosOnlyStubbedFiles(): Array<TestFile> {
+  return readDiscoveryTestFiles().filter((file: TestFile) => {
+    return (
+      file.code.includes(`${NETBIOS_STUB_INSTALLER}(`) &&
+      !file.code.includes(`${STUB_INSTALLER}(`)
+    );
+  });
+}
+
+/*
+ * Every entry point that ends in a reverse-DNS or NetBIOS pass.
  *
  * `attachReverseDnsHostnames` is called from scanWithDeadline, so it runs on
  * whatever hosts the sweep returned — INCLUDING the hosts a mocked
  * SubnetScanner.scan hands back. Mocking the sweep is therefore not enough to
  * keep a suite off the resolver, which is the trap that caught eight job
- * suites the day the pass moved out of scan().
+ * suites the day the pass moved out of scan(). `attachNetbiosNames` runs at
+ * the same point, on the same hosts, and is the NetBIOS lookup's direct entry.
  */
 const SWEEP_ENTRY_POINTS: Array<string> = [
   "scanWithDeadline(",
@@ -143,6 +170,7 @@ const SWEEP_ENTRY_POINTS: Array<string> = [
   "fetchAndRunScans(",
   "SubnetScanner.scan(",
   "attachReverseDnsHostnames(",
+  "attachNetbiosNames(",
 ];
 
 /** Files that can reach a reverse-DNS pass, however indirectly. */
@@ -155,11 +183,11 @@ function filesThatReachTheResolver(): Array<TestFile> {
 }
 
 /*
- * A file is covered either by the per-file hook, or by spying on the seam
- * itself — which is what a suite ABOUT naming does, since it needs the pass to
- * return names rather than nothing.
+ * A file is covered for a seam either by a per-file hook, or by spying on the
+ * seam itself — which is what a suite ABOUT naming does, since it needs the
+ * pass to return names rather than nothing.
  */
-function hasResolverCover(file: TestFile): boolean {
+function hasReverseDnsCover(file: TestFile): boolean {
   return (
     file.code.includes(`${STUB_INSTALLER}(`) ||
     file.code.includes('"resolveReverseDnsHostnames"')
@@ -167,11 +195,73 @@ function hasResolverCover(file: TestFile): boolean {
 }
 
 /*
+ * The reverse-DNS hook counts for NetBIOS too, because installReverseDnsStub
+ * installs both — pinned by "the reverse-DNS re-installer also installs the
+ * NetBIOS stub" below, so this shortcut cannot silently stop being true.
+ */
+function hasNetbiosCover(file: TestFile): boolean {
+  return (
+    file.code.includes(`${STUB_INSTALLER}(`) ||
+    file.code.includes(`${NETBIOS_STUB_INSTALLER}(`) ||
+    file.code.includes('"resolveNetbiosNames"')
+  );
+}
+
+// Covered means BOTH post-sweep network seams are kept off the wire.
+function hasResolverCover(file: TestFile): boolean {
+  return hasReverseDnsCover(file) && hasNetbiosCover(file);
+}
+
+/*
+ * The argument text of every `<callee>(...)` in a file, found by matching
+ * parentheses rather than by `[^)]*`. An options object full of arrow
+ * functions — `{ now: () => clock, createSocket: ... }` — closes a paren long
+ * before the call does, and a regex that stops there would miss an injected
+ * key written after the first arrow and report a false offender.
+ */
+function callArguments(code: string, callee: string): Array<string> {
+  const results: Array<string> = [];
+  let searchFrom: number = 0;
+
+  for (;;) {
+    const start: number = code.indexOf(callee, searchFrom);
+
+    if (start === -1) {
+      return results;
+    }
+
+    const argumentsStart: number = start + callee.length;
+    let depth: number = 1;
+    let cursor: number = argumentsStart;
+
+    while (cursor < code.length && depth > 0) {
+      const character: string = code.charAt(cursor);
+
+      if (character === "(") {
+        depth++;
+      } else if (character === ")") {
+        depth--;
+      }
+
+      cursor++;
+    }
+
+    results.push(
+      code.substring(argumentsStart, Math.max(argumentsStart, cursor - 1)),
+    );
+    searchFrom = argumentsStart;
+  }
+}
+
+/*
  * A restore is "safe" when it is the suite's own teardown — the line before it
  * opens an afterEach — or when the very next non-blank, non-comment line puts
- * the stub back.
+ * the stub back with one of the accepted re-installers.
  */
-function unsafeRestoreLines(file: TestFile): Array<number> {
+function unsafeRestoreLines(
+  file: TestFile,
+  acceptedReinstallers: Array<string> = [STUB_REINSTALLER],
+): Array<number> {
   const lines: Array<string> = file.code.split("\n");
   const unsafe: Array<number> = [];
 
@@ -198,7 +288,13 @@ function unsafeRestoreLines(file: TestFile): Array<number> {
         continue;
       }
 
-      if (!next.includes(`${STUB_REINSTALLER}(`)) {
+      const isReinstalled: boolean = acceptedReinstallers.some(
+        (reinstaller: string) => {
+          return next.includes(`${reinstaller}(`);
+        },
+      );
+
+      if (!isReinstalled) {
         // 1-indexed, so the number matches what an editor shows.
         unsafe.push(index + 1);
       }
@@ -277,6 +373,59 @@ describe("no discovery unit test can send a real reverse-DNS query", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("every mid-test jest.restoreAllMocks() in a NetBIOS-only stubbed suite puts the NetBIOS stub back", () => {
+    const offenders: Array<string> = [];
+
+    for (const file of netbiosOnlyStubbedFiles()) {
+      for (const line of unsafeRestoreLines(file, [
+        NETBIOS_STUB_REINSTALLER,
+        STUB_REINSTALLER,
+      ])) {
+        offenders.push(`${file.name}:${line}`);
+      }
+    }
+
+    /*
+     * If this fails, add `installNetbiosStub();` (or `installReverseDnsStub();`,
+     * which installs both) immediately after the named restore.
+     */
+    expect(offenders).toEqual([]);
+  });
+
+  it("the two naming suites are among those that reach the sweep, and both are covered", () => {
+    /*
+     * The suites ABOUT naming are the ones that spy on one seam themselves and
+     * so are the likeliest to forget the other. Named explicitly so a rename
+     * cannot quietly drop them out of the checks above.
+     */
+    const reaching: Array<TestFile> = filesThatReachTheResolver();
+    const names: Array<string> = reaching.map((file: TestFile) => {
+      return file.name;
+    });
+
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "DiscoveryReverseDns.test.ts",
+        "DiscoveryNetbios.test.ts",
+      ]),
+    );
+
+    for (const name of [
+      "DiscoveryReverseDns.test.ts",
+      "DiscoveryNetbios.test.ts",
+    ]) {
+      const file: TestFile = reaching.find((candidate: TestFile) => {
+        return candidate.name === name;
+      })!;
+
+      expect({
+        name: name,
+        reverseDns: hasReverseDnsCover(file),
+        netbios: hasNetbiosCover(file),
+      }).toEqual({ name: name, reverseDns: true, netbios: true });
+    }
+  });
+
   it("the helper exposes a re-installer, not only a per-file hook", () => {
     /*
      * The fix above depends on `installReverseDnsStub` existing and being
@@ -291,6 +440,86 @@ describe("no discovery unit test can send a real reverse-DNS query", () => {
 
     expect(helper).toContain(`export function ${STUB_REINSTALLER}(`);
     expect(helper).toContain(`export function ${STUB_INSTALLER}(`);
+
+    const netbiosHelper: string = fs.readFileSync(
+      path.join(__dirname, "..", "..", "TestingUtils", "StubNetbios.ts"),
+      "utf8",
+    );
+
+    expect(netbiosHelper).toContain(
+      `export function ${NETBIOS_STUB_REINSTALLER}(`,
+    );
+    expect(netbiosHelper).toContain(
+      `export function ${NETBIOS_STUB_INSTALLER}(`,
+    );
+  });
+
+  it("the reverse-DNS re-installer also installs the NetBIOS stub", () => {
+    /*
+     * hasNetbiosCover counts a file that only calls the reverse-DNS hook, and
+     * the restore rule accepts installReverseDnsStub() alone. Both shortcuts
+     * rest on this one call inside its body; checked in the CODE of that
+     * function, so a comment mentioning the name cannot satisfy it.
+     */
+    const helperCode: string = stripComments(
+      fs.readFileSync(
+        path.join(__dirname, "..", "..", "TestingUtils", "StubReverseDns.ts"),
+        "utf8",
+      ),
+    );
+
+    const bodyStart: number = helperCode.indexOf(
+      `export function ${STUB_REINSTALLER}(`,
+    );
+    const bodyEnd: number = helperCode.indexOf(
+      "export function",
+      bodyStart + 1,
+    );
+
+    expect(bodyStart).toBeGreaterThanOrEqual(0);
+    expect(
+      helperCode.substring(bodyStart, bodyEnd === -1 ? undefined : bodyEnd),
+    ).toContain(`${NETBIOS_STUB_REINSTALLER}()`);
+  });
+
+  it("no discovery test constructs a NetbiosNameResolver without injecting a socket", () => {
+    /*
+     * `new NetbiosNameResolver()` with no `createSocket` opens a real udp4
+     * socket and sends to UDP 137. Every test that builds one must inject a
+     * fake — or, like the one deliberate end-to-end test, inject a real socket
+     * explicitly so the choice is visible at the call site.
+     */
+    const offenders: Array<string> = [];
+    let constructions: number = 0;
+
+    for (const file of readDiscoveryTestFiles()) {
+      for (const args of callArguments(file.code, "new NetbiosNameResolver(")) {
+        constructions++;
+
+        if (!args.includes("createSocket")) {
+          offenders.push(
+            `${file.name}: new NetbiosNameResolver(${args.trim()})`,
+          );
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+    // A guard on the guard: the resolver suite does construct resolvers.
+    expect(constructions).toBeGreaterThan(0);
+  });
+
+  it("callArguments sees an injected key written after an arrow function", () => {
+    // The case a `[^)]*` regex gets wrong, pinned so the helper stays honest.
+    expect(
+      callArguments(
+        "new NetbiosNameResolver({ now: (): number => 1, createSocket: f })",
+        "new NetbiosNameResolver(",
+      ),
+    ).toEqual(["{ now: (): number => 1, createSocket: f }"]);
+    expect(
+      callArguments("new NetbiosNameResolver()", "new NetbiosNameResolver("),
+    ).toEqual([""]);
   });
 
   it("no discovery test constructs a ReverseDnsResolver without injecting a lookup", () => {

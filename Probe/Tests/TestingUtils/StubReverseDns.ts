@@ -1,5 +1,6 @@
 import SubnetScanner from "../../Utils/Discovery/SubnetScanner";
 import { ReverseDnsResolution } from "../../Utils/Discovery/ReverseDnsResolver";
+import { installNetbiosStub } from "./StubNetbios";
 import { beforeEach, jest } from "@jest/globals";
 
 /*
@@ -25,7 +26,15 @@ import { beforeEach, jest } from "@jest/globals";
  * not about naming: hosts come back with no `dnsHostname`, exactly as they
  * did before the feature existed, so every pre-existing assertion in these
  * files still describes what it always described. Suites that ARE about
- * naming (SubnetScannerReverseDns.test.ts) install their own spy instead.
+ * naming (Jobs/Discovery/DiscoveryReverseDns.test.ts) install their own spy
+ * instead.
+ *
+ * The same sweep can end in a NetBIOS lookup too (OneUptime issue #3677), so
+ * installing this stub installs the NetBIOS one as well (StubNetbios.ts). Both
+ * seams sit at the same point after the sweep and every reason above applies
+ * to a UDP 137 datagram at least as strongly as to a PTR query; keeping them
+ * behind one call means no suite, and no mid-test re-install, can cover one
+ * and forget the other.
  */
 
 /**
@@ -57,6 +66,9 @@ export function installReverseDnsStub(): void {
         isTimeBudgetExhausted: false,
       };
     });
+
+  // And the other post-sweep network seam — see the note at the top.
+  installNetbiosStub();
 }
 
 /**

@@ -27,12 +27,22 @@ export interface AssignmentRuleCandidate {
  * stores the responding IP in `hostname` and the SNMP sysName in `name`, so a
  * pattern like `*0664*` would never see the string the user is looking at in
  * the device list if we only tried `hostname`.
+ *
+ * `dnsName` is the device's fully qualified DNS name, kept apart from `name`
+ * once a discovery scan (or the bulk "shorten names" action) names the device
+ * by its short hostname (OneUptime/oneuptime#3678). It is a candidate for the
+ * same reason `name` is: a rule like `*.corp.example.com` was written against
+ * the FQDN the device used to be called, and renaming the device to
+ * `core-sw-01` must not silently drop it out of the site that rule placed it
+ * in. The FQDN either lands here or already lives in `sysName`, so matching
+ * all four keeps every match a device had before the rename.
  */
 export interface RuleMatchTarget {
   ip?: string | null | undefined;
   hostname?: string | null | undefined;
   sysName?: string | null | undefined;
   name?: string | null | undefined;
+  dnsName?: string | null | undefined;
 }
 
 export class CidrMatchUtil {
@@ -192,8 +202,8 @@ export class CidrMatchUtil {
   /*
    * True when the rule's populated criteria all match the target. A CIDR
    * criterion matches the target's ip; a hostname pattern matches the
-   * hostname, the SNMP sysName, or the device's display name — see
-   * RuleMatchTarget. A rule with no criteria never matches.
+   * hostname, the SNMP sysName, the device's display name, or its DNS name —
+   * see RuleMatchTarget. A rule with no criteria never matches.
    */
   public static ruleMatches(
     rule: AssignmentRuleCandidate,
@@ -234,11 +244,8 @@ export class CidrMatchUtil {
     }
 
     if (hasPattern) {
-      const candidates: Array<string | null | undefined> = [
-        target.hostname,
-        target.sysName,
-        target.name,
-      ];
+      const candidates: Array<string | null | undefined> =
+        CidrMatchUtil.getNameCandidates(target);
 
       const matchesAnyName: boolean = candidates.some(
         (candidate: string | null | undefined) => {
@@ -258,6 +265,19 @@ export class CidrMatchUtil {
     }
 
     return true;
+  }
+
+  /*
+   * The name-ish attributes a hostname pattern is tried against, in one place
+   * so the legacy column path and the criteria path can never disagree about
+   * which names count: a device that matched a rule stored as a plain
+   * `hostnamePattern` column must match the same pattern once the rule is
+   * re-saved as criteria. See RuleMatchTarget for why each attribute is here.
+   */
+  private static getNameCandidates(
+    target: RuleMatchTarget,
+  ): Array<string | null | undefined> {
+    return [target.hostname, target.sysName, target.name, target.dnsName];
   }
 
   private static matchesConfiguredFilter(
@@ -286,11 +306,16 @@ export class CidrMatchUtil {
       return false;
     }
 
-    const candidates: Array<string> = [
-      target.hostname,
-      target.sysName,
-      target.name,
-    ].filter((candidate: string | null | undefined): candidate is string => {
+    /*
+     * Every operator below is phrased over the same candidate list, and the
+     * negated ones mean "NO candidate matches" rather than "some candidate
+     * does not match". That is what keeps adding `dnsName` safe: a device
+     * whose FQDN contains "printer" is still excluded by a DoesNotContain
+     * "printer" rule after it is renamed to its short hostname.
+     */
+    const candidates: Array<string> = CidrMatchUtil.getNameCandidates(
+      target,
+    ).filter((candidate: string | null | undefined): candidate is string => {
       return typeof candidate === "string";
     });
     const expectedLower: string = expected.toLocaleLowerCase();

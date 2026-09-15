@@ -1,6 +1,9 @@
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
-import { getDiscoveredHostDisplayName } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import {
+  DiscoveredHostNaming,
+  getDiscoveredHostDisplayName,
+} from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -18,6 +21,13 @@ import { describe, expect, test } from "@jest/globals";
  * forbids on purpose: the whole point of the function is that the runtime
  * value does not honour the type, so the tests have to be able to say so.
  */
+
+/*
+ * Full names, as every scan named its devices before issue #3678's short-name
+ * setting. Normalisation is independent of the naming choice; this only says
+ * which name the display assertions below expect.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
 
 function host(
   overrides: Partial<DiscoveredNetworkDevice>,
@@ -401,7 +411,7 @@ describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () =
       }),
     ]);
 
-    expect(getDiscoveredHostDisplayName(normalized!)).toBe(
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe(
       "core-gw.corp.example.com",
     );
   });
@@ -420,7 +430,7 @@ describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () =
 
     for (const row of rows) {
       expect(() => {
-        return getDiscoveredHostDisplayName(row);
+        return getDiscoveredHostDisplayName(row, FULL_NAMES);
       }).not.toThrow();
     }
   });
@@ -455,5 +465,180 @@ describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () =
     ]);
 
     expect(normalizeDiscoveredHosts(once)).toEqual(once);
+  });
+});
+
+/*
+ * OneUptime issue #3677 — the host's NetBIOS name.
+ *
+ * `netbiosName` is untrusted in the same way `dnsHostname` is, and more so:
+ * a PTR record is at least published by whoever runs DNS for the subnet, but
+ * a NetBIOS name is whatever the machine at the address chose to put in its
+ * reply to a UDP datagram. It is stored verbatim in jsonb and read by the
+ * Review dialog's render, the manual import and the auto-import engine, so the
+ * rules are applied here, on the way out, for every one of them.
+ *
+ * NORMALISED, not just checked, which is where it differs from the PTR name:
+ * NetBIOS upper-cases names on the wire and pads them to fifteen bytes, so a
+ * row an older or modified probe stored raw must read as the lower-cased,
+ * trimmed name the current probe would have stored. The rules themselves live
+ * in NetbiosNameUtil and are pinned by its own suite; these tests pin that
+ * this function applies them, and how it handles what they refuse.
+ */
+describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
+  test("a usable, already-normalised NetBIOS name is carried through unchanged", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: "reg01" }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("reg01");
+  });
+
+  test("the raw wire form (upper case, space-padded) is stored back lower-cased and trimmed", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: "WORKSTATION01  " }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("workstation01");
+  });
+
+  test("NUL padding left by an embedded stack is stripped too", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: `PRINTER7${String.fromCharCode(0).repeat(3)}` }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("printer7");
+  });
+
+  /*
+   * The key is removed rather than set to "" or undefined, for the reason the
+   * PTR block above gives: a reader checking `if (host.netbiosName)` and one
+   * checking `"netbiosName" in host` must not disagree about the same row.
+   */
+  test.each([
+    ["a dotted name", "host.corp"],
+    ["an inner space", "REG 01"],
+    ["sixteen characters", "ABCDEFGHIJKLMNOP"],
+    ["only digits", "123456"],
+    ["markup", "<script>"],
+    ["the browser-election pseudo-name", "__MSBROWSE__"],
+    ["only padding", "               "],
+    ["the empty string", ""],
+  ])("%s is DELETED, not blanked", (_label: string, value: string) => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: value }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("a non-string value in the column does not throw, and leaves no key", () => {
+    /*
+     * This runs inside the Review dialog's render: a throw takes out the modal
+     * body, not one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ netbiosName: 51 as unknown as string }),
+      host({ netbiosName: {} as unknown as string }),
+      host({ netbiosName: ["REG01"] as unknown as string }),
+      host({ netbiosName: null as unknown as string }),
+      host({ netbiosName: true as unknown as string }),
+    ];
+
+    const normalized: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(rows);
+
+    expect(normalized).toHaveLength(5);
+    for (const row of normalized) {
+      expect(row).not.toHaveProperty("netbiosName");
+    }
+  });
+
+  test("a host with no NetBIOS name gains no key", () => {
+    /*
+     * Absence stays absence. Every result stored before this field existed,
+     * and every host on a scan with the lookup off, has no key.
+     */
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("an explicitly undefined NetBIOS name is removed rather than kept as a key", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: undefined }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("normalising is stable when applied twice", () => {
+    /*
+     * The dashboard normalises on open and on every re-render; the rule engine
+     * normalises the same rows server-side. A second pass that changed a name
+     * again would let the name an operator ticks differ from the name created.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ netbiosName: "  WORKSTATION01  " }),
+      host({ ipAddress: "10.0.0.2", netbiosName: "not valid" }),
+      host({ ipAddress: "10.0.0.3", netbiosName: "reg01" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+    expect(once[0]?.netbiosName).toBe("workstation01");
+    expect(once[1]).not.toHaveProperty("netbiosName");
+    expect(once[2]?.netbiosName).toBe("reg01");
+  });
+
+  test("the NetBIOS name and the PTR name are cleaned independently", () => {
+    /*
+     * One failing must not take the other with it: they are separate fields
+     * with separate rules, and a row with a junk PTR name and a good NetBIOS
+     * name still has a name.
+     */
+    const [badPtrGoodNetbios, goodPtrBadNetbios] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "not a hostname", netbiosName: "REG01" }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostname: "gw.corp.example.com",
+        netbiosName: "not valid",
+      }),
+    ]);
+
+    expect(badPtrGoodNetbios).not.toHaveProperty("dnsHostname");
+    expect(badPtrGoodNetbios?.netbiosName).toBe("reg01");
+
+    expect(goodPtrBadNetbios?.dnsHostname).toBe("gw.corp.example.com");
+    expect(goodPtrBadNetbios).not.toHaveProperty("netbiosName");
+  });
+
+  test("cleaning the name leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        ipAddress: " 10.18.167.31 ",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+        netbiosName: "REG01 ",
+      }),
+    ]);
+
+    expect(normalized).toEqual({
+      ipAddress: "10.18.167.31",
+      snmpReachable: false,
+      isAlreadyRegistered: false,
+      netbiosName: "reg01",
+    });
+  });
+
+  test("a normalised NetBIOS name names a host that has no other name", () => {
+    /*
+     * End to end through the shared naming function: the row is not merely
+     * safe, it produces the RIGHT name, which is the whole point of #3677.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ ipAddress: "10.18.167.31", netbiosName: "REG01   " }),
+    ]);
+
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe("reg01");
   });
 });

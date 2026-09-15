@@ -960,6 +960,8 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       /*
        * The METHOD travels beside the credentials (issue #3445). An
@@ -1078,6 +1080,8 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [
@@ -1117,6 +1121,8 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
+      // Off: the row does not opt into NetBIOS lookups (issue #3677).
+      isNetbiosLookupEnabled: false,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [

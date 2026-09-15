@@ -90,6 +90,8 @@ type CapturedTableProps = {
   bulkActions?: CapturedBulkActions | undefined;
   isDeleteable?: boolean | undefined;
   cardProps?: { description?: string | undefined } | undefined;
+  searchableFields?: Array<string> | undefined;
+  selectMoreFields?: Record<string, unknown> | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -208,6 +210,7 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
 import NetworkDevicesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Devices";
 import NetworkDeviceArchivedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Archived";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { SHORTEN_DEVICE_NAMES_ACTION_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkShortenDeviceNames";
 import Route from "../../../Types/API/Route";
 
 const PAGE_PROPS: PageComponentProps = {
@@ -274,10 +277,33 @@ describe("Network Devices bulk delete wiring", () => {
           "Add Labels",
           "Remove Labels",
           "Set OID Collection Template",
+          SHORTEN_DEVICE_NAMES_ACTION_TITLE,
           "Archive",
         ]),
       );
       expect(props.bulkActions?.buttons?.length).toBeGreaterThan(0);
+    });
+
+    /*
+     * Issue #3678: the fleet imported under full DNS names before the scan
+     * setting existed is fixed from this list. It is a rename, not a removal,
+     * so it sits with the other non-destructive actions ahead of Archive.
+     */
+    test("offers Shorten Names to Hostname ahead of Archive", async () => {
+      const props: CapturedTableProps = await renderPage(
+        NetworkDevicesPage as unknown as (
+          props: PageComponentProps,
+        ) => ReactElement,
+      );
+
+      const titles: Array<string> = buttonTitles(props);
+
+      expect(titles.indexOf(SHORTEN_DEVICE_NAMES_ACTION_TITLE)).toBeGreaterThan(
+        -1,
+      );
+      expect(titles.indexOf(SHORTEN_DEVICE_NAMES_ACTION_TITLE)).toBeLessThan(
+        titles.indexOf("Archive"),
+      );
     });
 
     /*
@@ -293,6 +319,45 @@ describe("Network Devices bulk delete wiring", () => {
       );
 
       expect(props.isDeleteable).toBe(false);
+    });
+
+    /*
+     * A device renamed to its short hostname - by the scan setting or by the
+     * bulk action - still has to be findable by the full name people know it
+     * by, which is now its DNS name.
+     */
+    test("searches the DNS name as well as the name", async () => {
+      const props: CapturedTableProps = await renderPage(
+        NetworkDevicesPage as unknown as (
+          props: PageComponentProps,
+        ) => ReactElement,
+      );
+
+      expect(props.searchableFields).toEqual(
+        expect.arrayContaining(["name", "description", "dnsName"]),
+      );
+    });
+
+    /*
+     * The bulk rename plans its confirmation from the rows and compares each
+     * row's name against a fresh read. A column the viewer has hidden is not
+     * selected, so these cannot be left to the Name and Hostname columns.
+     */
+    test("selects every field the Shorten Names action reads off a row", async () => {
+      const props: CapturedTableProps = await renderPage(
+        NetworkDevicesPage as unknown as (
+          props: PageComponentProps,
+        ) => ReactElement,
+      );
+
+      expect(props.selectMoreFields).toEqual(
+        expect.objectContaining({
+          name: true,
+          hostname: true,
+          sysName: true,
+          dnsName: true,
+        }),
+      );
     });
 
     test("warns what leaves with the devices, and points at Archive", async () => {

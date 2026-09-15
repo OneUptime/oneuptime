@@ -3,6 +3,8 @@ import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoog
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
 import { AddSecurityEventConnections1792700000000 } from "./1792700000000-AddSecurityEventConnections";
 import { AddNetworkDeviceDiagnostic1792800000000 } from "./1792800000000-AddNetworkDeviceDiagnostic";
+import { AddNetworkDeviceDnsNameAndShortDeviceNames1792900000000 } from "./1792900000000-AddNetworkDeviceDnsNameAndShortDeviceNames";
+import { AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000 } from "./1793000000000-AddNetbiosLookupToNetworkDeviceDiscoveryScan";
 import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
 import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
@@ -1182,4 +1184,6 @@ export default [
   AddIncomingCallPolicyPhoneNumbers1792600000000,
   AddSecurityEventConnections1792700000000,
   AddNetworkDeviceDiagnostic1792800000000,
+  AddNetworkDeviceDnsNameAndShortDeviceNames1792900000000,
+  AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000,
 ];

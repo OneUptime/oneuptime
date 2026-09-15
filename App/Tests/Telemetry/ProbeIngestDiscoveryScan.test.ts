@@ -760,6 +760,84 @@ describe("POST /probe/discovery-scan/list", () => {
   });
 
   /*
+   * Issue #3677: the scan's opt-in to NetBIOS name lookup.
+   *
+   * The failure is the mirror image of the one above, and just as silent. The
+   * probe runs the lookup only when the flag reads exactly `true` — so that an
+   * older server, which never sends it, means "off" rather than a UDP 137
+   * sweep nobody agreed to. Leave the column out of this select and the probe
+   * reads `undefined` for every scan: an operator turns the lookup on, the
+   * wizard shows it on, and the Review dialog goes on listing the same bare
+   * addresses it did before, with nothing anywhere to say why.
+   */
+  test("selects isNetbiosLookupEnabled, without which the probe never sees that a scan opted in", async () => {
+    scanService.findBy.mockResolvedValue([] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const findArgs: JSONObject = scanService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findArgs["select"] as JSONObject;
+
+    expect(select["isNetbiosLookupEnabled"]).toBe(true);
+  });
+
+  /*
+   * ...and it survives the render the probe actually reads, per scan. The
+   * serializer drops anything that is not a declared @TableColumn, so a
+   * misdeclared decorator would leave the select above green and still strip
+   * the flag off the wire.
+   *
+   * The unset row is the other half: it must leave with NO key rather than a
+   * `false` or, worse, a `true` from a default applied on the way out. The
+   * probe's `=== true` reads an absent key as off, which is the only safe
+   * reading of a value the server did not state.
+   */
+  test("the NetBIOS lookup flag reaches the probe through serialization, per scan, and an unset one stays absent", async () => {
+    const lookupOnScan: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan(ObjectID.generate());
+    lookupOnScan.isNetbiosLookupEnabled = true;
+
+    const lookupOffScan: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan(ObjectID.generate());
+    lookupOffScan.isNetbiosLookupEnabled = false;
+
+    const unsetScan: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan(ObjectID.generate());
+
+    scanService.findBy.mockResolvedValue([
+      lookupOnScan,
+      lookupOffScan,
+      unsetScan,
+    ] as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const responseArgs: Array<unknown> = responseUtil.sendEntityArrayResponse
+      .mock.calls[0]! as Array<unknown>;
+    const handedBack: Array<NetworkDeviceDiscoveryScan> =
+      responseArgs[2] as Array<NetworkDeviceDiscoveryScan>;
+    const modelType: DatabaseBaseModelType =
+      responseArgs[4] as DatabaseBaseModelType;
+
+    expect(handedBack).toHaveLength(3);
+
+    const onTheWire: JSONArray = DatabaseBaseModel.toJSONArray(
+      handedBack,
+      modelType,
+    );
+
+    expect((onTheWire[0] as JSONObject)["isNetbiosLookupEnabled"]).toBe(true);
+    expect((onTheWire[1] as JSONObject)["isNetbiosLookupEnabled"]).toBe(false);
+    expect(Object.keys(onTheWire[2] as JSONObject)).not.toContain(
+      "isNetbiosLookupEnabled",
+    );
+  });
+
+  /*
    * The select, pinned whole. The tests above prove that particular columns
    * are PRESENT; this is the one that notices a column quietly leaving —
    * which for `isSnmpEnabled` is the silent SNMP sweep described above, for
@@ -785,6 +863,7 @@ describe("POST /probe/discovery-scan/list", () => {
     expect(Object.keys(select).sort()).toEqual([
       "_id",
       "cidr",
+      "isNetbiosLookupEnabled",
       "isSnmpEnabled",
       "name",
       "projectId",
@@ -2848,6 +2927,82 @@ describe("POST /probe/discovery-scan/result — flagging already-registered host
      * write.
      */
     expect(Object.keys(storedDevices()[2]!)).not.toContain("snmpConfigId");
+  });
+
+  /*
+   * The names the probe learned about a host after the sweep — its reverse-DNS
+   * name (issue #3529) and its NetBIOS name (issue #3677) — ride onto the
+   * stored hosts exactly as the probe reported them.
+   *
+   * UNTOUCHED, including a NetBIOS name in the raw wire form an older or a
+   * modified probe might send ("REG02   "). That is deliberate, not an
+   * oversight: both values are untrusted, and they are normalised on the way
+   * OUT of the column — by normalizeDiscoveredHosts and again by the builder
+   * at the point of use — so that every row ever stored, whichever probe or
+   * API call wrote it, is read by the same rules. A second, write-side copy of
+   * those rules here would only be one more place for them to drift.
+   *
+   * And the endpoint must not LOSE them: dropping `netbiosName` here would put
+   * the reporter's hosts back to bare addresses in the Review dialog however
+   * well the probe did its job.
+   */
+  test("a final result's dnsHostname and netbiosName are stored untouched on the hosts", async () => {
+    await callResultEndpoint(
+      resultRequest([
+        {
+          ipAddress: "10.18.166.51",
+          snmpReachable: false,
+          dnsHostname: "hq-fileserver.corp.example.net",
+        },
+        {
+          ipAddress: "10.18.167.31",
+          snmpReachable: false,
+          netbiosName: "reg01",
+        },
+        {
+          ipAddress: "10.18.167.32",
+          snmpReachable: false,
+          netbiosName: "REG02   ",
+        },
+        // Did not answer NBSTAT: the endpoint must not invent a name.
+        { ipAddress: "10.18.167.33", snmpReachable: false },
+      ]),
+    );
+
+    expect(storedDevices()).toEqual([
+      {
+        ipAddress: "10.18.166.51",
+        snmpReachable: false,
+        dnsHostname: "hq-fileserver.corp.example.net",
+        isAlreadyRegistered: false,
+      },
+      {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        netbiosName: "reg01",
+        isAlreadyRegistered: false,
+      },
+      {
+        ipAddress: "10.18.167.32",
+        snmpReachable: false,
+        netbiosName: "REG02   ",
+        isAlreadyRegistered: false,
+      },
+      {
+        ipAddress: "10.18.167.33",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+      },
+    ]);
+
+    /*
+     * toEqual treats an absent key and an explicit `undefined` as the same,
+     * so absence is checked directly: a host with no NetBIOS answer must not
+     * gain the key, and a NetBIOS-named host must not gain a DNS name.
+     */
+    expect(Object.keys(storedDevices()[1]!)).not.toContain("dnsHostname");
+    expect(Object.keys(storedDevices()[3]!)).not.toContain("netbiosName");
+    expect(Object.keys(storedDevices()[3]!)).not.toContain("dnsHostname");
   });
 
   /*

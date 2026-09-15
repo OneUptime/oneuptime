@@ -243,6 +243,16 @@ http://[username:password@]proxy.server.com:port
 
 **Note:** Both standard environment variables (`HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY`) and lowercase variants (`http_proxy`, `https_proxy`, `no_proxy`) are supported for compatibility.
 
+### NetBIOS Name Lookups in Discovery Scans
+
+A [network discovery scan](/docs/monitor/network-device-monitor) with **Look up NetBIOS names for hosts DNS doesn't name** turned on sends NetBIOS name queries (NBSTAT) from the probe. For scans that use it, allow this traffic:
+
+- **Which hosts are queried:** discovered hosts that have neither an SNMP system name nor a reverse-DNS (PTR) name, and only at private addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) or carrier-grade NAT addresses (`100.64.0.0/10`). Public addresses are never queried, and a host whose reverse-DNS lookup from the probe returned a name is never sent a query. A host whose lookup failed, timed out, or was skipped when the lookup time budget ran out can still be queried, even if it has a PTR record.
+- **Outbound:** UDP from one ephemeral (random, high-numbered) source port on the probe to UDP port 137 on those hosts. The proxy settings above do not apply to it.
+- **Inbound:** the replies, from UDP port 137 on each host back to that ephemeral port. A stateful firewall allows them automatically. Without them, the hosts keep being named by their IP address.
+
+The lookup needs no extra container capability and works from Kubernetes pod networking. It queries at most 2,000 hosts per scan, sends each unanswered host one more query, paces queries at about 100 per second, and stops after about 30 seconds. Global probes never send NetBIOS queries, whatever the scan says, so run scans that need NetBIOS names from a custom probe. The option is on for new scans. NBSTAT queries to many hosts can trip intrusion detection rules, so turn it off on scans of networks where that matters, or tell your security team first.
+
 ### Verify
 
 If the probe is running successfully. It should show as `Connected` on your OneUptime dashboard. If it does not show as connected. You need to check logs of the container. If you're still having trouble. Please create an issue on [GitHub](https://github.com/oneuptime/oneuptime) or [contact support](https://oneuptime.com/support)

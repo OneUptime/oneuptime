@@ -287,6 +287,21 @@ describe("Editing a discovery scan after it was created", () => {
    * this dialog was built to end, one field further along. Asserted as an
    * exact list rather than a set of `toContain` calls, so a tenth flat field
    * creeping back onto the wizard fails here too.
+   *
+   * `useShortDeviceNames` (OneUptime issue #3678) belongs here as much as the
+   * method does. The scans that most need it are the ones that already exist
+   * and already import "wb-0660-kds01.wbhq.com", and a choice that could only
+   * be made at creation would send the operator straight back to deleting and
+   * recreating them.
+   *
+   * `isNetbiosLookupEnabled` (OneUptime issue #3677) belongs here for the
+   * opposite reason as well. Every scan that predates it stores OFF, so this
+   * dialog is the only way an existing scan can opt in — and an operator whose
+   * IDS starts flagging NBSTAT queries on a scan created with it on needs a way
+   * to turn it off that is not deleting the scan. Being a declared field is
+   * also what makes the dialog LOAD the stored value: ModelForm selects exactly
+   * the declared fields, and the create wizard's default of on applies only to
+   * a value that is undefined, never to a stored false.
    */
   test("offers every setting the create wizard collects", async () => {
     await openEditDialog();
@@ -302,6 +317,8 @@ describe("Editing a discovery scan after it was created", () => {
       "cidr",
       "probe",
       "isSnmpEnabled",
+      "isNetbiosLookupEnabled",
+      "useShortDeviceNames",
       "snmpConfigs",
       "isRecurring",
       "rescanIntervalInMinutes",
@@ -667,6 +684,76 @@ describe("Editing a discovery scan after it was created", () => {
      * questions the step asks would read as one.
      */
     expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBe("What to check");
+
+    /*
+     * The same holds for the naming toggle (issue #3678): it opens its own
+     * "Device names" group inside the Scan Target step, so it must keep that
+     * heading rather than being folded under "What to check" or promoted to a
+     * second "Scan Target".
+     */
+    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(
+      "Device names",
+    );
+    expect(headings).toContain("Device names");
+
+    /*
+     * The NetBIOS lookup (issue #3677) is the opposite case: it carries NO
+     * heading, so it reads as the second question under "What to check" — it
+     * is something the probe sends — rather than opening a group, or being
+     * swallowed by "Device names", which sends nothing.
+     */
+    expect(editFieldNamed("isNetbiosLookupEnabled").sectionTitle).toBe(
+      undefined,
+    );
+    expect(editFieldKeys().indexOf("isNetbiosLookupEnabled")).toBe(
+      editFieldKeys().indexOf("isSnmpEnabled") + 1,
+    );
+  });
+
+  /*
+   * The naming choice is not a sweep setting: flipping it keeps the last run's
+   * hosts, and the Review dialog simply names them differently the next time it
+   * opens. The warning about what re-runs the scan has to say so, or an
+   * operator who only wants short names reads "re-runs the scan" and hesitates
+   * to save a change that costs nothing.
+   */
+  test("says that switching short device names leaves the results alone", async () => {
+    await openEditDialog();
+
+    const { container } = render(
+      <MemoryRouter>{capturedModalProps?.footer}</MemoryRouter>,
+    );
+
+    expect(container.textContent || "").toContain(
+      "whether devices get short names, leaves the results alone",
+    );
+  });
+
+  /*
+   * The NetBIOS lookup (issue #3677) is not a sweep column either, so saving it
+   * keeps the results — but, unlike short names, it changes what the PROBE
+   * asks, so the stored hosts gain no NetBIOS names until the scan runs again.
+   * Both halves are said: without the first the operator hesitates to save a
+   * change that costs nothing, and without the second they turn it on, reopen
+   * Review Results to the same bare addresses, and conclude it does not work.
+   */
+  test("says that switching NetBIOS lookup keeps the results and applies from the next run", async () => {
+    await openEditDialog();
+
+    const { container } = render(
+      <MemoryRouter>{capturedModalProps?.footer}</MemoryRouter>,
+    );
+    const warning: string = container.textContent || "";
+
+    expect(warning).toContain(
+      "Turning NetBIOS name lookup on or off leaves them alone too",
+    );
+    expect(warning).toContain("applies from the next time the scan runs");
+    // ...and it is not listed among the changes that re-run the scan.
+    expect(warning).toContain(
+      "Changing the target, probe or credentials re-runs the scan",
+    );
+    expect(warning).not.toMatch(/NetBIOS[^.]*re-runs the scan/);
   });
 
   /*

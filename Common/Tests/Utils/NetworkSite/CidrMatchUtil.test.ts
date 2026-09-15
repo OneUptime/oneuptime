@@ -645,3 +645,320 @@ describe("CidrMatchUtil.pickRule", () => {
     expect(winner?.name).toBe("by-hostname");
   });
 });
+
+/*
+ * OneUptime/oneuptime#3678: a discovery scan can now name a device by its
+ * short hostname ("core-sw-01") and keep the FQDN in `dnsName`, and the bulk
+ * "shorten names" action moves an existing device's FQDN name into
+ * `dnsName`. Site rules written against the FQDN (`*.corp.example.com`) must
+ * keep matching after that rename, so `dnsName` is a hostname-pattern
+ * candidate on BOTH the legacy column path and the criteria path.
+ *
+ * Every target below carries a short `name` and an IP `hostname` that match
+ * nothing on their own, so a passing positive assertion can only have come
+ * from `dnsName`.
+ */
+describe("CidrMatchUtil.ruleMatches - dnsName candidate", () => {
+  const FQDN: string = "core-sw-01.corp.example.com";
+
+  function renamedTarget(
+    overrides: Record<string, string | null | undefined> = {},
+  ): {
+    ip: string;
+    hostname: string;
+    name: string;
+    sysName: string | null | undefined;
+    dnsName: string | null | undefined;
+  } {
+    return {
+      ip: "10.20.30.40",
+      hostname: "10.20.30.40",
+      name: "core-sw-01",
+      sysName: undefined,
+      dnsName: FQDN,
+      ...overrides,
+    };
+  }
+
+  function criteriaRule(
+    operator: RuleCriteriaOperator,
+    value: string,
+  ): AssignmentRuleCandidate {
+    return {
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "hostnamePattern",
+            operator: operator,
+            value: value,
+          },
+        ],
+      },
+    };
+  }
+
+  describe("legacy hostnamePattern column", () => {
+    it("matches a hostname pattern against dnsName when no other name matches", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "*.corp.example.com" },
+          renamedTarget(),
+        ),
+      ).toBe(true);
+    });
+
+    it("does not match the same pattern once dnsName is gone", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "*.corp.example.com" },
+          renamedTarget({ dnsName: undefined }),
+        ),
+      ).toBe(false);
+    });
+
+    it("matches dnsName case-insensitively and ignores surrounding whitespace", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "*.CORP.EXAMPLE.COM" },
+          renamedTarget({ dnsName: "  Core-SW-01.Corp.Example.Com " }),
+        ),
+      ).toBe(true);
+    });
+
+    it("still requires the CIDR when the pattern only matches dnsName", () => {
+      const rule: AssignmentRuleCandidate = {
+        subnetCidr: "10.20.0.0/16",
+        hostnamePattern: "*.corp.example.com",
+      };
+
+      expect(CidrMatchUtil.ruleMatches(rule, renamedTarget())).toBe(true);
+      expect(
+        CidrMatchUtil.ruleMatches(
+          rule,
+          renamedTarget({ ip: "192.168.1.1", hostname: "192.168.1.1" }),
+        ),
+      ).toBe(false);
+    });
+
+    it("keeps matching the short name too, so a short-name pattern is unaffected", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "core-sw-*" },
+          renamedTarget({ dnsName: "unrelated.other.example" }),
+        ),
+      ).toBe(true);
+    });
+
+    /*
+     * dnsName is never an address, and a CIDR is only ever tested against
+     * `ip` - an FQDN-shaped dnsName must not leak into subnet matching.
+     */
+    it("never uses dnsName for a CIDR match", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { subnetCidr: "10.0.0.0/8" },
+          { dnsName: "10.1.2.3" },
+        ),
+      ).toBe(false);
+    });
+
+    it("a null or undefined dnsName is harmless", () => {
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "core-sw-*" },
+          renamedTarget({ dnsName: null }),
+        ),
+      ).toBe(true);
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "core-sw-*" },
+          renamedTarget({ dnsName: undefined }),
+        ),
+      ).toBe(true);
+      expect(
+        CidrMatchUtil.ruleMatches(
+          { hostnamePattern: "*.corp.example.com" },
+          renamedTarget({ dnsName: null }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * An empty string is falsy on the legacy path; a bare "*" matches "" in
+     * hostnameMatchesWildcard, but an empty dnsName must not be what makes a
+     * rule match a device whose other names do not.
+     */
+    it("an empty dnsName is skipped rather than matched", () => {
+      expect(
+        CidrMatchUtil.ruleMatches({ hostnamePattern: "*" }, { dnsName: "" }),
+      ).toBe(false);
+    });
+  });
+
+  describe("criteria hostnamePattern field", () => {
+    const positiveCases: Array<{
+      operator: RuleCriteriaOperator;
+      value: string;
+    }> = [
+      { operator: RuleCriteriaOperator.Equals, value: FQDN.toUpperCase() },
+      { operator: RuleCriteriaOperator.Contains, value: ".corp." },
+      { operator: RuleCriteriaOperator.StartsWith, value: "core-sw-01.corp" },
+      { operator: RuleCriteriaOperator.EndsWith, value: ".CORP.EXAMPLE.COM" },
+      {
+        operator: RuleCriteriaOperator.MatchesPattern,
+        value: "*.corp.example.com",
+      },
+    ];
+
+    test.each(positiveCases)(
+      "$operator matches when only dnsName satisfies it",
+      (testCase: { operator: RuleCriteriaOperator; value: string }) => {
+        const rule: AssignmentRuleCandidate = criteriaRule(
+          testCase.operator,
+          testCase.value,
+        );
+
+        expect(CidrMatchUtil.ruleMatches(rule, renamedTarget())).toBe(true);
+        // ...and it was dnsName that did it.
+        expect(
+          CidrMatchUtil.ruleMatches(rule, renamedTarget({ dnsName: null })),
+        ).toBe(false);
+      },
+    );
+
+    /*
+     * The negated operators mean "NO candidate matches". Adding dnsName to
+     * the candidates must therefore make them STRICTER, never looser: a
+     * device excluded by its FQDN before the rename is still excluded after
+     * it, even though its new short name alone would pass.
+     */
+    const negatedCases: Array<{
+      operator: RuleCriteriaOperator;
+      value: string;
+    }> = [
+      { operator: RuleCriteriaOperator.NotEquals, value: FQDN },
+      { operator: RuleCriteriaOperator.DoesNotContain, value: "corp.example" },
+      {
+        operator: RuleCriteriaOperator.DoesNotMatchPattern,
+        value: "*.corp.example.com",
+      },
+    ];
+
+    test.each(negatedCases)(
+      "$operator is false when only dnsName matches the value",
+      (testCase: { operator: RuleCriteriaOperator; value: string }) => {
+        const rule: AssignmentRuleCandidate = criteriaRule(
+          testCase.operator,
+          testCase.value,
+        );
+
+        expect(CidrMatchUtil.ruleMatches(rule, renamedTarget())).toBe(false);
+        // Without dnsName nothing matches the value, so the negation holds.
+        expect(
+          CidrMatchUtil.ruleMatches(rule, renamedTarget({ dnsName: null })),
+        ).toBe(true);
+      },
+    );
+
+    test.each(negatedCases)(
+      "$operator stays true when dnsName does not match the value either",
+      (testCase: { operator: RuleCriteriaOperator; value: string }) => {
+        expect(
+          CidrMatchUtil.ruleMatches(
+            criteriaRule(testCase.operator, testCase.value),
+            renamedTarget({ dnsName: "core-sw-01.branch.example.net" }),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    it("a null or undefined dnsName changes no criteria result", () => {
+      const operators: Array<RuleCriteriaOperator> = [
+        RuleCriteriaOperator.Equals,
+        RuleCriteriaOperator.NotEquals,
+        RuleCriteriaOperator.Contains,
+        RuleCriteriaOperator.DoesNotContain,
+        RuleCriteriaOperator.StartsWith,
+        RuleCriteriaOperator.EndsWith,
+        RuleCriteriaOperator.MatchesPattern,
+        RuleCriteriaOperator.DoesNotMatchPattern,
+      ];
+
+      for (const operator of operators) {
+        const rule: AssignmentRuleCandidate = criteriaRule(
+          operator,
+          "core-sw-01",
+        );
+        const withoutKey: boolean = CidrMatchUtil.ruleMatches(rule, {
+          ip: "10.20.30.40",
+          hostname: "10.20.30.40",
+          name: "core-sw-01",
+        });
+
+        expect(
+          CidrMatchUtil.ruleMatches(rule, renamedTarget({ dnsName: null })),
+        ).toBe(withoutKey);
+        expect(
+          CidrMatchUtil.ruleMatches(
+            rule,
+            renamedTarget({ dnsName: undefined }),
+          ),
+        ).toBe(withoutKey);
+      }
+    });
+
+    it("combines a CIDR criterion with a dnsName-only name match under Match All", () => {
+      const rule: AssignmentRuleCandidate = {
+        criteria: {
+          schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+          filterCondition: FilterCondition.All,
+          filters: [
+            {
+              field: "subnetCidr",
+              operator: RuleCriteriaOperator.MatchesPattern,
+              value: "10.20.0.0/16",
+            },
+            {
+              field: "hostnamePattern",
+              operator: RuleCriteriaOperator.EndsWith,
+              value: ".corp.example.com",
+            },
+          ],
+        },
+      };
+
+      expect(CidrMatchUtil.ruleMatches(rule, renamedTarget())).toBe(true);
+      expect(
+        CidrMatchUtil.ruleMatches(
+          rule,
+          renamedTarget({ dnsName: "core-sw-01.branch.example.net" }),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("pickRule", () => {
+    interface NamedRule extends AssignmentRuleCandidate {
+      name: string;
+    }
+
+    /*
+     * The scenario the column exists for: the device sat in the site a
+     * high-priority FQDN rule placed it in, then was renamed to its short
+     * hostname. The broad low-priority subnet rule must not take it.
+     */
+    it("keeps a renamed device on the higher-priority FQDN rule over a broad CIDR rule", () => {
+      const rules: Array<NamedRule> = [
+        { name: "subnet", subnetCidr: "10.0.0.0/8", priority: 1 },
+        { name: "fqdn", hostnamePattern: "*.corp.example.com", priority: 10 },
+      ];
+
+      expect(CidrMatchUtil.pickRule(rules, renamedTarget())?.name).toBe("fqdn");
+      expect(
+        CidrMatchUtil.pickRule(rules, renamedTarget({ dnsName: null }))?.name,
+      ).toBe("subnet");
+    });
+  });
+});
