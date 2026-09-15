@@ -36,6 +36,8 @@ import VMwareVCenterAuditLogs from "../Pages/VMware/View/AuditLogs";
 import VMwareVCenterSettings from "../Pages/VMware/View/Settings";
 import VMwareVCenterDelete from "../Pages/VMware/View/Delete";
 import VMwareVCenterDocumentation from "../Pages/VMware/View/Documentation";
+import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
+import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
 
 const VMwareRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -71,11 +73,35 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={VMwareRoutePath[PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <VMwareSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={VMwareVCenterOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={VMwareRoutePath[PageMap.VMWARE_SETTINGS_LABEL_RULES] || ""}
           element={
             <VMwareSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.VMWARE_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={VMwareRoutePath[PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <VMwareSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={VMwareVCenterLabelRule}
             />
           }
         />

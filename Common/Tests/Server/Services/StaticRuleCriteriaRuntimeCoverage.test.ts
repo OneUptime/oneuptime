@@ -186,7 +186,13 @@ describe("static rule criteria runtime coverage", () => {
         modelTypeOffset,
       );
 
-      expect(openingTag).toMatch(/<(?:ModelTable|LabelRuleTable)<[^>]+>\s*$/);
+      /*
+       * RuleTable (and LabelRuleTable, which wraps it) renders a ModelTable
+       * with the same props, so its forms go through ModelForm just the same.
+       */
+      expect(openingTag).toMatch(
+        /<(?:ModelTable|LabelRuleTable|RuleTable)<[^>]+>\s*$/,
+      );
     }
 
     const modelFormSource: string = fs.readFileSync(

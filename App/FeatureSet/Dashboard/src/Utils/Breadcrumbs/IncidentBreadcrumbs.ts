@@ -368,6 +368,14 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Owner Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES, [
       "Project",
       "Incidents",
@@ -380,12 +388,28 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Privacy Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_PRIVACY_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Privacy Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Privacy Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_LABEL_RULES, [
       "Project",
       "Incidents",
       "Rules",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Label Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW,
+      ["Project", "Incidents", "Rules", "Label Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_SLA_RULES, [
       "Project",
       "Incidents",

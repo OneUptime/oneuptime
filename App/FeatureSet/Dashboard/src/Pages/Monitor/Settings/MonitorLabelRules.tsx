@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a monitor only when **all** specified criteria pass. Empty criter
 When a rule matches, every label listed in \`Labels to Add\` is attached to the monitor. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const MonitorLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const MonitorLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<MonitorLabelRule>
       modelType={MonitorLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, MonitorLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.MONITORS_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: MonitorLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="monitor-label-rules-table"
       name="Settings > Monitor Label Rules"
       userPreferencesKey="monitor-label-rules-table"
@@ -84,7 +96,6 @@ const MonitorLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

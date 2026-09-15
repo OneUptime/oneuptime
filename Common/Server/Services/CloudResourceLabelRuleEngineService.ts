@@ -12,8 +12,33 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import Select from "../Types/Database/Select";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class CloudResourceLabelRuleEngineServiceClass {
+class CloudResourceLabelRuleEngineServiceClass
+  implements RuleRunEngine<CloudResource, CloudResourceLabelRule>
+{
+  public readonly ruleSelect: Select<CloudResourceLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    matchLabels: { _id: true },
+    nameRegexPattern: true,
+    descriptionRegexPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  // Evaluation re-reads the cloud resource, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<CloudResource> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates CloudResourceLabelRule rows for the given resource and attaches
    * matched labels. The union is deduped against labels already on the
@@ -35,15 +60,7 @@ class CloudResourceLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            matchLabels: { _id: true },
-            nameRegexPattern: true,
-            descriptionRegexPattern: true,
-            labelsToAdd: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -58,105 +75,151 @@ class CloudResourceLabelRuleEngineServiceClass {
         return;
       }
 
-      const resourceWithDetails: CloudResource | null =
-        await CloudResourceService.findOneById({
-          id: cloudResource.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!resourceWithDetails) {
-        return;
-      }
-
-      const labelIdsToAdd: Set<string> = new Set();
-      const matchedRuleNames: Array<string> = [];
-
-      for (const rule of rules) {
-        if (!this.doesMatchRule(resourceWithDetails, rule)) {
-          continue;
-        }
-        if ((rule.labelsToAdd || []).length > 0) {
-          matchedRuleNames.push(
-            rule.name || rule.id?.toString() || "Unnamed rule",
-          );
-        }
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const existingLabelIds: Set<string> = new Set(
-        (resourceWithDetails.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await CloudResourceService.getRepository()
-        .createQueryBuilder()
-        .relation(CloudResource, "labels")
-        .of(cloudResource.id.toString())
-        .add(newLabelIds);
-
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      cloudResource.labels = Array.from(mergedLabelIds).map((id: string) => {
-        const label: Label = new Label();
-        label.id = new ObjectID(id);
-        return label;
-      });
-      /*
-       * Labels arriving from a rule rather than from a person is exactly the
-       * kind of thing the overview page cannot explain, so record which rules
-       * did it.
-       */
-      await CloudResourceFeedService.createCloudResourceFeedItem({
-        cloudResourceId: cloudResource.id,
-        projectId: cloudResource.projectId,
-        cloudResourceFeedEventType:
-          CloudResourceFeedEventType.LabelRuleExecuted,
-        displayColor: Purple500,
-        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CloudResourceService.getCloudResourceMarkdownLink(
-          cloudResource.projectId,
-          cloudResource.id,
-        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-          .map((name: string) => {
-            return `\`${name}\``;
-          })
-          .join(", ")}`,
-      });
+      await this.applyRules({ cloudResource: cloudResource, rules: rules });
     } catch (error) {
       logger.error(`Error applying cloud resource label rules: ${error}`, {
         projectId: cloudResource.projectId?.toString(),
         cloudResourceId: cloudResource.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a cloud resource that already exists
+   * and only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      CloudResource,
+      CloudResourceLabelRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        cloudResource: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running cloud resource label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        cloudResourceId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    cloudResource: CloudResource;
+    rules: Array<CloudResourceLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { cloudResource, rules } = data;
+
+    if (!cloudResource.id || !cloudResource.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const resourceWithDetails: CloudResource | null =
+      await CloudResourceService.findOneById({
+        id: cloudResource.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!resourceWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let matchedAnyRule: boolean = false;
+    const matchedRuleNames: Array<string> = [];
+
+    for (const rule of rules) {
+      if (!this.doesMatchRule(resourceWithDetails, rule)) {
+        continue;
+      }
+      matchedAnyRule = true;
+      if ((rule.labelsToAdd || []).length > 0) {
+        matchedRuleNames.push(
+          rule.name || rule.id?.toString() || "Unnamed rule",
+        );
+      }
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (!matchedAnyRule) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (resourceWithDetails.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await CloudResourceService.getRepository()
+      .createQueryBuilder()
+      .relation(CloudResource, "labels")
+      .of(cloudResource.id.toString())
+      .add(newLabelIds);
+
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    cloudResource.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+    /*
+     * Labels arriving from a rule rather than from a person is exactly the
+     * kind of thing the overview page cannot explain, so record which rules
+     * did it.
+     */
+    await CloudResourceFeedService.createCloudResourceFeedItem({
+      cloudResourceId: cloudResource.id,
+      projectId: cloudResource.projectId,
+      cloudResourceFeedEventType: CloudResourceFeedEventType.LabelRuleExecuted,
+      displayColor: Purple500,
+      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CloudResourceService.getCloudResourceMarkdownLink(
+        cloudResource.projectId,
+        cloudResource.id,
+      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+        .map((name: string) => {
+          return `\`${name}\``;
+        })
+        .join(", ")}`,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   private doesMatchRule(

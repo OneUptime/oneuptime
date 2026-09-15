@@ -201,12 +201,20 @@ export function getScheduleMaintenanceBreadcrumbs(
       ["Project", "Scheduled Maintenance", "Rules", "Owner Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Scheduled Maintenance", "Rules", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
       ["Project", "Scheduled Maintenance", "Rules", "Runbook Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
       ["Project", "Scheduled Maintenance", "Rules", "Label Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Scheduled Maintenance", "Rules", "Label Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,

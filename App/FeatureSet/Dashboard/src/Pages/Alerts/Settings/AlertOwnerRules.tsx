@@ -1,12 +1,15 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -51,10 +54,27 @@ const alertEpisodeOwnerDocumentation: string = `
 Match an alert episode on creation and add owner users / teams automatically.
 `;
 
-const AlertRulesTable: FunctionComponent = (): ReactElement => {
+interface RulesTableProps {
+  // Set when the page is routed as this rule's view page.
+  viewRuleId?: ObjectID | undefined;
+}
+
+const AlertRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<AlertOwnerRule>
+    <RuleTable<AlertOwnerRule>
       modelType={AlertOwnerRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ALERTS_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: AlertOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="alert-owner-rules-table"
       name="Settings > Alert Owner Rules"
       userPreferencesKey="alert-owner-rules-table"
@@ -106,7 +126,6 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -327,10 +346,22 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<AlertEpisodeOwnerRule>
+    <RuleTable<AlertEpisodeOwnerRule>
       modelType={AlertEpisodeOwnerRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ALERTS_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: AlertEpisodeOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="alert-episode-owner-rules-table"
       name="Settings > Alert Episode Owner Rules"
       userPreferencesKey="alert-episode-owner-rules-table"
@@ -382,7 +413,6 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -502,9 +532,30 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const AlertOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  /*
+   * Routed as a rule's view page, the page shows only that rule, through
+   * the table that lists it, instead of the tabs.
+   */
+  const alertRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    AlertOwnerRule,
+  );
+  const episodeRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    AlertEpisodeOwnerRule,
+  );
+
+  if (alertRuleId) {
+    return <AlertRulesTable viewRuleId={alertRuleId} />;
+  }
+
+  if (episodeRuleId) {
+    return <EpisodeRulesTable viewRuleId={episodeRuleId} />;
+  }
+
   return (
     <Fragment>
       <Tabs

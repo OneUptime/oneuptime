@@ -15,7 +15,7 @@ import ProjectUtil from "../../Utils/Project";
 import Alert, { AlertType } from "../Alerts/Alert";
 import { ButtonStyleType } from "../Button/Button";
 import { CardButtonSchema } from "../Card/Card";
-import ModelTable, { ComponentProps } from "../ModelTable/ModelTable";
+import RuleTable, { ComponentProps } from "../RuleRun/RuleTable";
 import ImportLabelRulesModal from "./ImportLabelRulesModal";
 import React, { ReactElement, useRef, useState } from "react";
 
@@ -30,6 +30,12 @@ const LabelRuleTable: <TBaseModel extends BaseModel>(
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const exportInProgress: React.MutableRefObject<boolean> = useRef(false);
   const [error, setError] = useState<string>("");
+
+  // A rule's own page has no table to import into or export from.
+  if (props.viewRuleId) {
+    return <RuleTable<TBaseModel> {...props} />;
+  }
+
   const buttons: Array<CardButtonSchema | ReactElement> = [
     ...(props.cardProps?.buttons || []),
   ];
@@ -111,7 +117,7 @@ const LabelRuleTable: <TBaseModel extends BaseModel>(
   return (
     <>
       {error && <Alert type={AlertType.DANGER} title={error} />}
-      <ModelTable<TBaseModel>
+      <RuleTable<TBaseModel>
         {...props}
         enableJsonImportExport={false}
         cardProps={{ ...props.cardProps, buttons }}

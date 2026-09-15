@@ -33,6 +33,8 @@ import CephClusterAuditLogs from "../Pages/Ceph/View/AuditLogs";
 import CephClusterSettings from "../Pages/Ceph/View/Settings";
 import CephClusterDelete from "../Pages/Ceph/View/Delete";
 import CephClusterDocumentation from "../Pages/Ceph/View/Documentation";
+import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
+import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 
 const CephRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -68,11 +70,35 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={CephRoutePath[PageMap.CEPH_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <CephSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CEPH_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={CephClusterOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULES] || ""}
           element={
             <CephSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.CEPH_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <CephSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={CephClusterLabelRule}
             />
           }
         />

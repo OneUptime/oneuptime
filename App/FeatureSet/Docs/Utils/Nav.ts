@@ -106,6 +106,10 @@ const DocsNav: NavGroup[] = [
         title: "Import and Export Label Rules",
         url: "/docs/configuration/label-rule-import-export",
       },
+      {
+        title: "Run Rules on Existing Resources",
+        url: "/docs/configuration/run-rules-now",
+      },
     ],
   },
   {

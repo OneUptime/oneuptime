@@ -38,6 +38,8 @@ import DockerSwarmClusterAuditLogs from "../Pages/DockerSwarm/View/AuditLogs";
 import DockerSwarmClusterSettings from "../Pages/DockerSwarm/View/Settings";
 import DockerSwarmClusterDelete from "../Pages/DockerSwarm/View/Delete";
 import DockerSwarmClusterDocumentation from "../Pages/DockerSwarm/View/Documentation";
+import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
+import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 
 const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -79,6 +81,22 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={
+            DockerSwarmRoutePath[
+              PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DockerSwarmSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DockerSwarmClusterOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
             DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES] ||
             ""
           }
@@ -88,6 +106,22 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DockerSwarmRoutePath[
+              PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DockerSwarmSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DockerSwarmClusterLabelRule}
             />
           }
         />

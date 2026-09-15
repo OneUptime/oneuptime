@@ -1,22 +1,37 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplicationLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const RumApplicationLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<RumApplicationLabelRule>
       modelType={RumApplicationLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        RumApplicationLabelRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.RUM_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: RumApplicationLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.RUM_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="rum-application-label-rules-table"
       name="Settings > RUM Application Label Rules"
       userPreferencesKey="rum-application-label-rules-table"
@@ -60,7 +75,6 @@ const RumApplicationLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

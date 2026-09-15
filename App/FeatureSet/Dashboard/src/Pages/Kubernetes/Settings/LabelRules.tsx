@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -29,11 +31,24 @@ When a rule matches, every label listed in \`Labels to Add\` is attached to the 
 `;
 
 const KubernetesClusterLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
     <LabelRuleTable<KubernetesClusterLabelRule>
       modelType={KubernetesClusterLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        KubernetesClusterLabelRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.KUBERNETES_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: KubernetesClusterLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="kubernetesCluster-label-rules-table"
       name="Settings > Kubernetes Cluster Label Rules"
       userPreferencesKey="kubernetesCluster-label-rules-table"
@@ -86,7 +101,6 @@ const KubernetesClusterLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

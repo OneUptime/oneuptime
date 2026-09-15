@@ -51,12 +51,20 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DASHBOARDS_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Dashboards", "Settings", "Owner Rules", "View Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_SETTINGS_LABEL_RULES, [
       "Project",
       "Dashboards",
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DASHBOARDS_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Dashboards", "Settings", "Label Rules", "View Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES, [
       "Project",
       "Dashboards",

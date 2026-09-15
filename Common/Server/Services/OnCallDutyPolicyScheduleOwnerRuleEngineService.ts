@@ -8,13 +8,44 @@ import OnCallDutyPolicyScheduleOwnerUserService from "./OnCallDutyPolicySchedule
 import OnCallDutyPolicyScheduleOwnerTeamService from "./OnCallDutyPolicyScheduleOwnerTeamService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import ObjectID from "../../Types/ObjectID";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import OwnerRuleAssignment, {
+  OwnersToAssign,
+} from "../Utils/Rules/OwnerRuleAssignment";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass {
+class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
+  implements
+    RuleRunEngine<OnCallDutyPolicySchedule, OnCallDutyPolicyScheduleOwnerRule>
+{
+  public readonly ruleSelect: Select<OnCallDutyPolicyScheduleOwnerRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    notifyOwners: true,
+    onCallDutyPolicyScheduleLabels: { _id: true },
+    onCallDutyPolicyScheduleNamePattern: true,
+    onCallDutyPolicyScheduleDescriptionPattern: true,
+    ownerUsers: { _id: true },
+    ownerTeams: { _id: true },
+  };
+
+  // Evaluation re-reads the on-call duty schedule, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<OnCallDutyPolicySchedule> = {
+    _id: true,
+    projectId: true,
+  };
+
   @CaptureSpan()
   public async applyRulesToSchedule(
     schedule: OnCallDutyPolicySchedule,
@@ -31,17 +62,7 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            notifyOwners: true,
-            onCallDutyPolicyScheduleLabels: { _id: true },
-            onCallDutyPolicyScheduleNamePattern: true,
-            onCallDutyPolicyScheduleDescriptionPattern: true,
-            ownerUsers: { _id: true },
-            ownerTeams: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -56,98 +77,11 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass {
         return;
       }
 
-      const scheduleWithDetails: OnCallDutyPolicySchedule | null =
-        await OnCallDutyPolicyScheduleService.findOneById({
-          id: schedule.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!scheduleWithDetails) {
-        return;
-      }
-
-      const usersByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-      const teamsByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-
-      const matchedRules: Array<OnCallDutyPolicyScheduleOwnerRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesScheduleMatchRule(
-          scheduleWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        let ruleAddedAny: boolean = false;
-        const notify: boolean = rule.notifyOwners !== false;
-        for (const user of rule.ownerUsers || []) {
-          if (user.id) {
-            usersByNotify.get(notify)!.add(user.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        for (const team of rule.ownerTeams || []) {
-          if (team.id) {
-            teamsByNotify.get(notify)!.add(team.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        if (ruleAddedAny) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return;
-      }
-
-      for (const notify of [true, false]) {
-        const userIds: Set<string> = usersByNotify.get(notify)!;
-        const teamIds: Set<string> = teamsByNotify.get(notify)!;
-
-        for (const userId of userIds) {
-          const owner: OnCallDutyPolicyScheduleOwnerUser =
-            new OnCallDutyPolicyScheduleOwnerUser();
-          owner.onCallDutyPolicyScheduleId = schedule.id;
-          owner.projectId = schedule.projectId;
-          owner.userId = new ObjectID(userId);
-          owner.isOwnerNotified = !notify;
-          await OnCallDutyPolicyScheduleOwnerUserService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-
-        for (const teamId of teamIds) {
-          const owner: OnCallDutyPolicyScheduleOwnerTeam =
-            new OnCallDutyPolicyScheduleOwnerTeam();
-          owner.onCallDutyPolicyScheduleId = schedule.id;
-          owner.projectId = schedule.projectId;
-          owner.teamId = new ObjectID(teamId);
-          owner.isOwnerNotified = !notify;
-          await OnCallDutyPolicyScheduleOwnerTeamService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-      }
-
-      logger.debug(
-        `OnCallDutyPolicyScheduleOwnerRuleEngine added owners to schedule ${schedule.id}`,
-        { projectId: schedule.projectId.toString() } as LogAttributes,
-      );
+      await this.applyRules({
+        schedule: schedule,
+        rules: rules,
+        allowOwnerNotification: true,
+      });
     } catch (error) {
       logger.error(
         `Error applying on-call duty schedule owner rules: ${error}`,
@@ -157,6 +91,197 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass {
         } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an on-call duty schedule that already exists
+   * and only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      OnCallDutyPolicySchedule,
+      OnCallDutyPolicyScheduleOwnerRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        schedule: data.resource,
+        rules: data.rules,
+        allowOwnerNotification: data.allowOwnerNotification,
+      });
+    } catch (error) {
+      logger.error(
+        `Error running on-call duty schedule owner rules: ${error}`,
+        {
+          projectId: data.resource.projectId?.toString(),
+          onCallDutyPolicyScheduleId: data.resource.id?.toString(),
+        } as LogAttributes,
+      );
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    schedule: OnCallDutyPolicySchedule;
+    rules: Array<OnCallDutyPolicyScheduleOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): Promise<RuleApplicationResult> {
+    const { schedule, rules } = data;
+
+    if (!schedule.id || !schedule.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const scheduleWithDetails: OnCallDutyPolicySchedule | null =
+      await OnCallDutyPolicyScheduleService.findOneById({
+        id: schedule.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!scheduleWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const usersByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+    const teamsByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+
+    const matchedRules: Array<OnCallDutyPolicyScheduleOwnerRule> = [];
+    const allUserIds: Set<string> = new Set();
+    const allTeamIds: Set<string> = new Set();
+    let anyRuleMatched: boolean = false;
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesScheduleMatchRule(
+        scheduleWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      anyRuleMatched = true;
+      let ruleAddedAny: boolean = false;
+      const notify: boolean =
+        rule.notifyOwners !== false && data.allowOwnerNotification;
+      for (const user of rule.ownerUsers || []) {
+        if (user.id) {
+          usersByNotify.get(notify)!.add(user.id.toString());
+          allUserIds.add(user.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      for (const team of rule.ownerTeams || []) {
+        if (team.id) {
+          teamsByNotify.get(notify)!.add(team.id.toString());
+          allTeamIds.add(team.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      if (ruleAddedAny) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (!anyRuleMatched) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    // The rules that matched name no owners, so there is nothing to add.
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    // Owners already on the on-call duty schedule are skipped rather than duplicated.
+    const notYetAssigned: OwnersToAssign =
+      await OwnerRuleAssignment.getOwnersNotYetAssigned({
+        ownerUserService: OnCallDutyPolicyScheduleOwnerUserService,
+        ownerTeamService: OnCallDutyPolicyScheduleOwnerTeamService,
+        resourceIdColumn: "onCallDutyPolicyScheduleId",
+        resourceId: schedule.id,
+        userIds: Array.from(allUserIds),
+        teamIds: Array.from(allTeamIds),
+      });
+
+    const userIdsToAdd: Set<string> = new Set(
+      notYetAssigned.userIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+    const teamIdsToAdd: Set<string> = new Set(
+      notYetAssigned.teamIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    let ownersAdded: number = 0;
+
+    /*
+     * The notifying set goes first, so an owner two matching rules disagree
+     * about is added once, and notified.
+     */
+    for (const notify of [true, false]) {
+      const userIds: Array<string> = Array.from(
+        usersByNotify.get(notify)!,
+      ).filter((id: string): boolean => {
+        return userIdsToAdd.delete(id);
+      });
+      const teamIds: Array<string> = Array.from(
+        teamsByNotify.get(notify)!,
+      ).filter((id: string): boolean => {
+        return teamIdsToAdd.delete(id);
+      });
+
+      for (const userId of userIds) {
+        const owner: OnCallDutyPolicyScheduleOwnerUser =
+          new OnCallDutyPolicyScheduleOwnerUser();
+        owner.onCallDutyPolicyScheduleId = schedule.id;
+        owner.projectId = schedule.projectId;
+        owner.userId = new ObjectID(userId);
+        owner.isOwnerNotified = !notify;
+        await OnCallDutyPolicyScheduleOwnerUserService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+
+      for (const teamId of teamIds) {
+        const owner: OnCallDutyPolicyScheduleOwnerTeam =
+          new OnCallDutyPolicyScheduleOwnerTeam();
+        owner.onCallDutyPolicyScheduleId = schedule.id;
+        owner.projectId = schedule.projectId;
+        owner.teamId = new ObjectID(teamId);
+        owner.isOwnerNotified = !notify;
+        await OnCallDutyPolicyScheduleOwnerTeamService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+    }
+
+    if (ownersAdded === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    logger.debug(
+      `OnCallDutyPolicyScheduleOwnerRuleEngine added owners to schedule ${schedule.id}`,
+      { projectId: schedule.projectId.toString() } as LogAttributes,
+    );
+
+    return RuleApplicationResultUtil.updated(ownersAdded);
   }
 
   private doesScheduleMatchRule(

@@ -25,10 +25,22 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Cloud",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Cloud",
+      "Label Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_OWNER_RULES, [
       "Project",
       "Cloud",
       "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Cloud",
+      "Owner Rules",
+      "View Rule",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW, [
       "Project",

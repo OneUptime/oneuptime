@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -39,12 +41,25 @@ Labels already on the event are not duplicated. Multiple matching rules contribu
 `;
 
 const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
     <Fragment>
       <LabelRuleTable<ScheduledMaintenanceLabelRule>
         modelType={ScheduledMaintenanceLabelRule}
+        viewRuleId={RuleViewPageUtil.getViewRuleId(
+          props,
+          ScheduledMaintenanceLabelRule,
+        )}
+        listRoute={RuleViewPageUtil.getListRoute(
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
+        )}
+        getRuleViewRoute={(rule: ScheduledMaintenanceLabelRule): Route => {
+          return RuleViewPageUtil.getRuleViewRoute(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULE_VIEW,
+            rule,
+          );
+        }}
         id="scheduled-maintenance-label-rules-table"
         name="Settings > Scheduled Maintenance Label Rules"
         userPreferencesKey="scheduled-maintenance-label-rules-table"
@@ -97,7 +112,6 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
             },
           },
         ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
