@@ -91,6 +91,11 @@ export interface ConnectorFetchOptions {
  * that reads one window in several independently budgeted passes needs a
  * larger total than the single-list default; the connector still enforces
  * its own per-pass split inside the total it is given.
+ *
+ * The poller does not cap these against the worker's job timeout
+ * (SECURITY_EVENT_CONNECTION_RUN_TIMEOUT_MS, 10 minutes). Keep maxDurationMs
+ * well inside it, with room for the import that follows the fetch: a run the
+ * queue kills mid-import is recorded as failed and re-reads its window.
  */
 export interface ConnectorFetchBudget {
   maxRequests?: number | undefined;

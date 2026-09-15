@@ -461,6 +461,15 @@ test("reads run status after locking and scopes the credential read to the recor
         alertingOnly: true,
         cursor: true,
         isEnabled: true,
+        /*
+         * The previous poll's result carries the next catch-up chunk
+         * (nextChunkMinutes) and the forced-advance overlapFloor; without it
+         * every poll restarts at a full day and an overflowing window never
+         * narrows. The interval reaches an unlocked preview, where the
+         * poller does not reload the row, for creation-lag statistics.
+         */
+        lastPollResult: true,
+        pollIntervalInMinutes: true,
       }),
       props: { isRoot: true },
     }),
