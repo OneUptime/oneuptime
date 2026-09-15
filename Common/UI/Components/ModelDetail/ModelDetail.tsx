@@ -2,7 +2,7 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
-import Detail from "../Detail/Detail";
+import Detail, { DetailStyle } from "../Detail/Detail";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "../Loader/Loader";
@@ -32,6 +32,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   showDetailsInNumberOfColumns?: number | undefined;
   onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
   selectMoreFields?: Select<TBaseModel>;
+  // Forwarded to Detail. Leave unset for the default layout.
+  style?: DetailStyle | undefined;
 }
 
 const ModelDetail: <TBaseModel extends BaseModel>(
@@ -354,6 +356,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       item={item}
       fields={getDetailFields()}
       showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
+      style={props.style}
     />
   );
 };

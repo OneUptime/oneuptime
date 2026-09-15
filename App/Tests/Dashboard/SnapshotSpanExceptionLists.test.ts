@@ -358,8 +358,13 @@ describe("TracesViewer hosts a stored span query", () => {
      * from an incident card they would open the logs explorer project-wide
      * under a button promising "scoped like this view".
      */
-    expect(TRACES_VIEWER).toContain(
-      'props.spanQuery ? "hidden" : "inline-flex"',
+    /*
+     * An exception-scoped host (the exception detail page) hides them for the
+     * same reason, so the condition may name that scope too - but a stored
+     * span query must always be enough on its own.
+     */
+    expect(TRACES_VIEWER).toMatch(
+      /props\.spanQuery(?: \|\| props\.exceptionScope)? \? "hidden" : "inline-flex"/,
     );
   });
 

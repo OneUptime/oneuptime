@@ -22,10 +22,13 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { AIChatCitationTargetType } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../Types/AI/AIRunType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -36,6 +39,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -60,10 +64,36 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
 );
 
+// A second project the same viewer belongs to.
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "12121212-1212-4121-8121-121212121212",
+);
+
 const props: DatabaseCommonInteractionProps = {
   userId: USER_ID,
   tenantId: PROJECT_ID,
 } as DatabaseCommonInteractionProps;
+
+/*
+ * What the subject lookup and the reference lookups must receive: the
+ * viewer's own props pinned to the request tenant, never multi-tenant.
+ */
+const pinnedProps: DatabaseCommonInteractionProps = {
+  ...props,
+  isMultiTenantRequest: false,
+};
+
+function incidentInProject(projectId: ObjectID): Incident {
+  const incident: Incident = new Incident(INCIDENT_ID);
+  incident.projectId = projectId;
+  return incident;
+}
+
+function alertInProject(projectId: ObjectID): Alert {
+  const alert: Alert = new Alert(ALERT_ID);
+  alert.projectId = projectId;
+  return alert;
+}
 
 function investigationRun(data: {
   status: AIRunStatus;
@@ -140,10 +170,10 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       .mockResolvedValue(props);
     jest
       .spyOn(IncidentService, "findOneById")
-      .mockResolvedValue(new Incident(INCIDENT_ID));
+      .mockResolvedValue(incidentInProject(PROJECT_ID));
     jest
       .spyOn(AlertService, "findOneById")
-      .mockResolvedValue(new Alert(ALERT_ID));
+      .mockResolvedValue(alertInProject(PROJECT_ID));
     jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
   });
 
@@ -160,6 +190,8 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       analysisMarkdown: null,
       analysisTldr: null,
       isAnalysisPending: false,
+      evidence: [],
+      references: [],
     });
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
@@ -538,6 +570,583 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
     expect(AIRunService.findBy).not.toHaveBeenCalled();
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+describe("AIInvestigationAPI latest-investigation evidence and references", () => {
+  const completedRun: () => AIRun = (): AIRun => {
+    return investigationRun({
+      status: AIRunStatus.Completed,
+      createdAt: new Date("2026-09-14T18:00:00.000Z"),
+      completedAt: new Date("2026-09-14T18:04:00.000Z"),
+    });
+  };
+
+  const REPORT: string = [
+    "## 🧠 AI — Automated Root Cause Analysis",
+    "",
+    "**Summary** — a recurrence of #6954 [C1].",
+    "",
+    "**Evidence checked**",
+    "- **[C1]** Active incidents (7 total) — 7 row(s)",
+  ].join("\n");
+
+  function trailEvents(): Array<AIRunEvent> {
+    const runStarted: AIRunEvent = investigationEvent(
+      AIRunEventType.RunStarted,
+    );
+
+    const toolStarted: AIRunEvent = investigationEvent(
+      AIRunEventType.ToolCallStarted,
+    );
+    toolStarted.toolName = "query_incidents";
+    toolStarted.toolArguments = { state: "active", secretish: "raw-llm-arg" };
+    toolStarted.createdAt = new Date("2026-09-14T18:01:00.000Z");
+
+    const toolCompleted: AIRunEvent = investigationEvent(
+      AIRunEventType.ToolCallCompleted,
+    );
+    toolCompleted.toolName = "query_incidents";
+    toolCompleted.citationId = "C1";
+    toolCompleted.toolArguments = {
+      state: "active",
+      secretish: "raw-llm-arg",
+    };
+    toolCompleted.resultSummary = {
+      rowCount: 7,
+      durationInMs: 300,
+      citationLabel: "Active incidents (7 total)",
+      citationTarget: { type: AIChatCitationTargetType.Incidents },
+    };
+    toolCompleted.createdAt = new Date("2026-09-14T18:01:01.000Z");
+
+    return [
+      runStarted,
+      toolStarted,
+      toolCompleted,
+      investigationEvent(AIRunEventType.RunCompleted),
+    ];
+  }
+
+  let incidentFindBy: SpyInstance<typeof IncidentService.findBy>;
+  let alertFindBy: SpyInstance<typeof AlertService.findBy>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incidentInProject(PROJECT_ID));
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(alertInProject(PROJECT_ID));
+    incidentFindBy = jest
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([]);
+    alertFindBy = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("adds structured evidence next to a published report", async () => {
+    await callIncidentRoute({
+      run: completedRun(),
+      events: trailEvents(),
+      analysisMarkdown: REPORT,
+    });
+
+    expect(sentPayload()["evidence"]).toEqual([
+      {
+        citationId: "C1",
+        toolName: "query_incidents",
+        label: "Active incidents (7 total)",
+        rowCount: 7,
+        durationInMs: 300,
+        queryArguments: { state: "active", secretish: "raw-llm-arg" },
+        target: { type: AIChatCitationTargetType.Incidents },
+        executedAt: "2026-09-14T18:01:00.000Z",
+        canLoadRows: true,
+      },
+    ]);
+  });
+
+  it.each([AIRunStatus.Running, AIRunStatus.Error, AIRunStatus.Queued])(
+    "sends no evidence or references for a %s run",
+    async (status: AIRunStatus) => {
+      await callIncidentRoute({
+        run: investigationRun({
+          status,
+          createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        }),
+        events: trailEvents(),
+      });
+
+      const payload: JSONObject = sentPayload();
+      expect(payload["evidence"]).toEqual([]);
+      expect(payload["references"]).toEqual([]);
+      expect(incidentFindBy).not.toHaveBeenCalled();
+      expect(alertFindBy).not.toHaveBeenCalled();
+    },
+  );
+
+  it("sends no evidence while a completed run's report is still being published", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        completedAt: new Date(Date.now() - 1000),
+      }),
+      events: trailEvents().slice(0, 3),
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["isAnalysisPending"]).toBe(true);
+    expect(payload["evidence"]).toEqual([]);
+    expect(payload["references"]).toEqual([]);
+  });
+
+  it("never ships tool arguments, citation ids or citation metadata in the events JSON", async () => {
+    const events: Array<AIRunEvent> = trailEvents();
+
+    await callIncidentRoute({
+      run: completedRun(),
+      events,
+      analysisMarkdown: REPORT,
+    });
+
+    const eventsJson: Array<JSONObject> = sentPayload()[
+      "events"
+    ] as Array<JSONObject>;
+
+    expect(eventsJson).toHaveLength(4);
+
+    for (const eventJson of eventsJson) {
+      expect(eventJson).not.toHaveProperty("toolArguments");
+      expect(eventJson).not.toHaveProperty("citationId");
+    }
+
+    const completedJson: JSONObject = eventsJson[2]!;
+    expect(completedJson["toolName"]).toBe("query_incidents");
+    expect(completedJson["resultSummary"]).toEqual({
+      rowCount: 7,
+      durationInMs: 300,
+    });
+    expect(JSON.stringify(eventsJson)).not.toContain("raw-llm-arg");
+    expect(JSON.stringify(eventsJson)).not.toContain("citationLabel");
+
+    // The models themselves are untouched — only the client copy is stripped.
+    expect(events[2]!.toolArguments).toEqual({
+      state: "active",
+      secretish: "raw-llm-arg",
+    });
+    expect(events[2]!.resultSummary?.citationLabel).toBe(
+      "Active incidents (7 total)",
+    );
+  });
+
+  it("selects citation ids and tool arguments to build evidence", async () => {
+    await callIncidentRoute({
+      run: completedRun(),
+      events: trailEvents(),
+      analysisMarkdown: REPORT,
+    });
+
+    expect(AIRunEventService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          _id: true,
+          sequence: true,
+          eventType: true,
+          toolName: true,
+          resultSummary: true,
+          createdAt: true,
+          citationId: true,
+          toolArguments: true,
+        },
+        props: { isRoot: true },
+      }),
+    );
+  });
+
+  /*
+   * The panel polls every few seconds while a run is active, and evidence is
+   * only ever built for a Completed run's report — so an active run's poll
+   * must not pay to read (potentially large) raw tool arguments.
+   */
+  it.each([
+    AIRunStatus.Queued,
+    AIRunStatus.Running,
+    AIRunStatus.WaitingForApproval,
+    AIRunStatus.Error,
+    AIRunStatus.Cancelled,
+    AIRunStatus.Stale,
+  ])(
+    "does not select citation ids or tool arguments for a %s run",
+    async (status: AIRunStatus) => {
+      await callIncidentRoute({
+        run: investigationRun({
+          status,
+          createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        }),
+        events: trailEvents(),
+      });
+
+      expect(AIRunEventService.findBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: {
+            _id: true,
+            sequence: true,
+            eventType: true,
+            toolName: true,
+            resultSummary: true,
+            createdAt: true,
+          },
+          props: { isRoot: true },
+        }),
+      );
+    },
+  );
+
+  it("still selects them for a completed run whose report is not yet published", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        completedAt: new Date(Date.now() - 1000),
+      }),
+      events: trailEvents(),
+    });
+
+    expect(AIRunEventService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          citationId: true,
+          toolArguments: true,
+        }),
+      }),
+    );
+  });
+
+  it("resolves the report's references under the viewer's tenant-pinned props inside the tenant", async () => {
+    const prior: Incident = new Incident(
+      new ObjectID("34343434-3434-4343-8343-343434343434"),
+    );
+    prior.incidentNumber = 6954;
+    prior.incidentNumberWithPrefix = "INC-6954";
+    prior.title = "Checkout pool exhausted";
+    incidentFindBy.mockResolvedValue([prior]);
+
+    await callIncidentRoute({
+      run: completedRun(),
+      events: trailEvents(),
+      analysisMarkdown: REPORT,
+    });
+
+    expect(IncidentService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { _id: true, projectId: true },
+        props: pinnedProps,
+      }),
+    );
+    expect(sentPayload()["references"]).toEqual([
+      {
+        kind: "incident",
+        number: 6954,
+        id: "34343434-3434-4343-8343-343434343434",
+        displayNumber: "INC-6954",
+        title: "Checkout pool exhausted",
+      },
+    ]);
+    expect(incidentFindBy).toHaveBeenCalledTimes(1);
+
+    const lookup: JSONObject = incidentFindBy.mock
+      .calls[0]![0] as unknown as JSONObject;
+    expect(lookup["props"]).toEqual(pinnedProps);
+    expect((lookup["query"] as JSONObject)["projectId"]).toBe(PROJECT_ID);
+  });
+
+  it("treats a subject row without a project as not found and reads nothing else", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(new Incident(INCIDENT_ID));
+    const runFindBy: SpyInstance<typeof AIRunService.findBy> = jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue([completedRun()]);
+
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/incident")
+      .handlerFunction(
+        requestFor({ incidentId: INCIDENT_ID.toString() }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    expect(next).toHaveBeenCalledWith(
+      new BadDataException(
+        "Incident not found (or you do not have access to it).",
+      ),
+    );
+    expect(runFindBy).not.toHaveBeenCalled();
+    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  it("resolves unqualified numbers as alerts on the alert route", async () => {
+    const run: AIRun = completedRun();
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([run]);
+    jest
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue("**Summary** — same as #12 last week.");
+    jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
+
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/alert")
+      .handlerFunction(
+        requestFor({ alertId: ALERT_ID.toString() }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(alertFindBy).toHaveBeenCalledTimes(1);
+    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(
+      (alertFindBy.mock.calls[0]![0] as unknown as JSONObject)["props"],
+    ).toEqual(pinnedProps);
+    expect(sentPayload()["evidence"]).toEqual([]);
+  });
+
+  it("still sends the report when reference resolution fails", async () => {
+    incidentFindBy.mockRejectedValue(new Error("database unavailable"));
+
+    await callIncidentRoute({
+      run: completedRun(),
+      events: trailEvents(),
+      analysisMarkdown: REPORT,
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["analysisMarkdown"]).toBe(REPORT);
+    expect(payload["references"]).toEqual([]);
+    expect(payload["evidence"]).toHaveLength(1);
+  });
+
+  it("a report without a structured trail still gets an (empty) evidence list", async () => {
+    await callIncidentRoute({
+      run: completedRun(),
+      events: [investigationEvent(AIRunEventType.RunCompleted)],
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["evidence"]).toEqual([]);
+    expect(payload["references"]).toEqual([]);
+    expect(incidentFindBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
+  const REPORT: string = "**Summary** — a recurrence of #6954.";
+
+  let incidentFindOne: SpyInstance<typeof IncidentService.findOneById>;
+  let alertFindOne: SpyInstance<typeof AlertService.findOneById>;
+  let runFindBy: SpyInstance<typeof AIRunService.findBy>;
+  let eventFindBy: SpyInstance<typeof AIRunEventService.findBy>;
+  let incidentFindBy: SpyInstance<typeof IncidentService.findBy>;
+  let alertFindBy: SpyInstance<typeof AlertService.findBy>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props);
+    incidentFindOne = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incidentInProject(PROJECT_ID));
+    alertFindOne = jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(alertInProject(PROJECT_ID));
+    runFindBy = jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        completedAt: new Date("2026-09-14T18:04:00.000Z"),
+      }),
+    ]);
+    eventFindBy = jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue(REPORT);
+    incidentFindBy = jest
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([]);
+    alertFindBy = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function callRoute(
+    subjectType: "incident" | "alert",
+  ): Promise<ReturnType<typeof jest.fn>> {
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", `/ai-investigation/${subjectType}`)
+      .handlerFunction(
+        requestFor(
+          subjectType === "incident"
+            ? { incidentId: INCIDENT_ID.toString() }
+            : { alertId: ALERT_ID.toString() },
+        ),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    return next;
+  }
+
+  function expectNothingRead(): void {
+    expect(runFindBy).not.toHaveBeenCalled();
+    expect(eventFindBy).not.toHaveBeenCalled();
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(alertFindBy).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  }
+
+  /*
+   * With the multi-tenant header the model layer can return a subject from
+   * any project the viewer belongs to, and the reference lookups then lose
+   * their project filter. The panel always sends its own tenant, so a
+   * subject outside it is refused before the run is read.
+   */
+  it.each(["incident", "alert"] as const)(
+    "refuses a multi-tenant request for an %s in another project",
+    async (subjectType: "incident" | "alert") => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({ ...props, isMultiTenantRequest: true });
+      incidentFindOne.mockResolvedValue(incidentInProject(OTHER_PROJECT_ID));
+      alertFindOne.mockResolvedValue(alertInProject(OTHER_PROJECT_ID));
+
+      const next: ReturnType<typeof jest.fn> = await callRoute(subjectType);
+
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+      expectNothingRead();
+    },
+  );
+
+  it.each(["incident", "alert"] as const)(
+    "looks up the %s and its references with the multi-tenant flag cleared",
+    async (subjectType: "incident" | "alert") => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({ ...props, isMultiTenantRequest: true });
+
+      const next: ReturnType<typeof jest.fn> = await callRoute(subjectType);
+
+      expect(next).not.toHaveBeenCalled();
+
+      const subjectCalls: Array<Array<unknown>> =
+        subjectType === "incident"
+          ? incidentFindOne.mock.calls
+          : alertFindOne.mock.calls;
+      const referenceCalls: Array<Array<unknown>> =
+        subjectType === "incident"
+          ? incidentFindBy.mock.calls
+          : alertFindBy.mock.calls;
+
+      expect(subjectCalls).toHaveLength(1);
+      const lookupProps: DatabaseCommonInteractionProps = (
+        subjectCalls[0]![0] as {
+          props: DatabaseCommonInteractionProps;
+        }
+      ).props;
+      expect(lookupProps.isMultiTenantRequest).toBe(false);
+      expect(lookupProps.tenantId).toBe(PROJECT_ID);
+
+      expect(referenceCalls).toHaveLength(1);
+      const referenceCall: JSONObject = referenceCalls[0]![0] as JSONObject;
+      expect(
+        (referenceCall["props"] as DatabaseCommonInteractionProps)
+          .isMultiTenantRequest,
+      ).toBe(false);
+      expect((referenceCall["query"] as JSONObject)["projectId"]).toBe(
+        PROJECT_ID,
+      );
+    },
+  );
+
+  it.each(["incident", "alert"] as const)(
+    "reads the %s's run and events inside the tenant",
+    async (subjectType: "incident" | "alert") => {
+      await callRoute(subjectType);
+
+      expect(
+        (runFindBy.mock.calls[0]![0] as unknown as { query: JSONObject }).query,
+      ).toEqual(
+        subjectType === "incident"
+          ? {
+              projectId: PROJECT_ID,
+              triggeredByIncidentId: INCIDENT_ID,
+              runType: AIRunType.Investigation,
+            }
+          : {
+              projectId: PROJECT_ID,
+              triggeredByAlertId: ALERT_ID,
+              runType: AIRunType.Investigation,
+            },
+      );
+      expect(
+        (eventFindBy.mock.calls[0]![0] as unknown as { query: JSONObject })
+          .query["projectId"],
+      ).toBe(PROJECT_ID);
+    },
+  );
+
+  it.each(["incident", "alert"] as const)(
+    "rejects a %s request without a tenant before any read",
+    async (subjectType: "incident" | "alert") => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({
+          userId: USER_ID,
+        } as DatabaseCommonInteractionProps);
+
+      const next: ReturnType<typeof jest.fn> = await callRoute(subjectType);
+
+      expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+      expect(incidentFindOne).not.toHaveBeenCalled();
+      expect(alertFindOne).not.toHaveBeenCalled();
+      expectNothingRead();
+    },
+  );
+
+  it("keeps the legacy payload keys for a request inside the tenant", async () => {
+    const next: ReturnType<typeof jest.fn> = await callRoute("incident");
+
+    expect(next).not.toHaveBeenCalled();
+    expect(Object.keys(sentPayload()).sort()).toEqual(
+      [
+        "analysisMarkdown",
+        "analysisTldr",
+        "events",
+        "evidence",
+        "isAnalysisPending",
+        "references",
+        "run",
+      ].sort(),
+    );
   });
 });
 

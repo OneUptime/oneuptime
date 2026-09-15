@@ -63,6 +63,16 @@ describe("event detail action configuration", () => {
       acknowledgeId: "alert-acknowledge-btn",
       resolveId: "alert-resolve-btn",
     },
+    {
+      component: "IncidentEpisode",
+      acknowledgeId: "episode-acknowledge-btn",
+      resolveId: "episode-resolve-btn",
+    },
+    {
+      component: "AlertEpisode",
+      acknowledgeId: "episode-acknowledge-btn",
+      resolveId: "episode-resolve-btn",
+    },
   ])(
     "$component keeps acknowledge primary and promotes resolve only after acknowledgement",
     ({
@@ -99,6 +109,28 @@ describe("event detail action configuration", () => {
         icon: "CheckCircle",
         style: "PRIMARY",
       });
+    },
+  );
+
+  test.each(["IncidentEpisode", "AlertEpisode"])(
+    "%s header is the shared status panel, not the legacy stepper",
+    (component: string) => {
+      const source: string = readChangeStateSource(component);
+
+      expect(source).toContain("<EventStatusPanel");
+      expect(source).toContain("onActionClick={openModalForState}");
+      expect(source).toContain("onStateSelect={openModalForState}");
+      expect(source).not.toContain("ProgressButtons");
+      expect(source).not.toContain("PageLoader");
+      expect(source).not.toContain("-ml-3");
+
+      // Acknowledge and resolve get their own modal wording and submit label.
+      expect(source).toContain('modalTitle = "Acknowledge Episode"');
+      expect(source).toContain('modalSubmitButtonText = "Acknowledge"');
+      expect(source).toContain('modalTitle = "Resolve Episode"');
+      expect(source).toContain('modalSubmitButtonText = "Resolve"');
+      expect(source).toContain("submitButtonText={modalSubmitButtonText}");
+      expect(source).not.toContain('submitButtonText="Save"');
     },
   );
 

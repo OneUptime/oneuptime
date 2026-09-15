@@ -5,9 +5,7 @@ import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IncidentEpisodeFeed, {
-  IncidentEpisodeFeedEventType,
-} from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
+import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
@@ -25,15 +23,29 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
+import OneUptimeDate from "Common/Types/Date";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import Icon from "Common/UI/Components/Icon/Icon";
+import { getIncidentEpisodeFeedIcon } from "../EpisodeView/EpisodeFeedIcons";
 
 export interface ComponentProps {
   incidentEpisodeId: ObjectID;
+  /*
+   * Bump to reload the feed in place, e.g. after the episode's state changed
+   * on the overview. The loaded items stay on screen while it reloads.
+   */
+  refreshToken?: number | undefined;
 }
 
 const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
+    React.useState<boolean>(false);
+
+  const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
 
   const [showPrivateNoteModal, setShowPrivateNoteModal] =
@@ -58,140 +70,9 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromEpisodeFeed: GetFeedItemFromEpisodeFeed = (
     episodeFeed: IncidentEpisodeFeed,
   ): FeedItemProps => {
-    let icon: IconProp = IconProp.Circle;
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.EpisodeCreated
-    ) {
-      icon = IconProp.Layers;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.EpisodeStateChanged
-    ) {
-      icon = IconProp.ArrowCircleRight;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.EpisodeUpdated
-    ) {
-      icon = IconProp.Edit;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.IncidentAdded
-    ) {
-      icon = IconProp.Alert;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.IncidentRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerNotificationSent
-    ) {
-      icon = IconProp.Bell;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.PrivateNote
-    ) {
-      icon = IconProp.Lock;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerUserAdded
-    ) {
-      icon = IconProp.User;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerTeamAdded
-    ) {
-      icon = IconProp.Team;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.RootCause
-    ) {
-      icon = IconProp.Cube;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerUserRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerTeamRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OnCallNotification
-    ) {
-      icon = IconProp.Alert;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OnCallPolicy
-    ) {
-      icon = IconProp.Call;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.SeverityChanged
-    ) {
-      icon = IconProp.ExclaimationCircle;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.PostmortemNote
-    ) {
-      icon = IconProp.TextFile;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.LabelRuleExecuted
-    ) {
-      icon = IconProp.Tag;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OwnerRuleExecuted
-    ) {
-      icon = IconProp.User;
-    }
-
-    if (
-      episodeFeed.incidentEpisodeFeedEventType ===
-      IncidentEpisodeFeedEventType.OnCallRuleExecuted
-    ) {
-      icon = IconProp.Call;
-    }
+    const icon: IconProp = getIncidentEpisodeFeedIcon(
+      episodeFeed.incidentEpisodeFeedEventType,
+    );
 
     return {
       key: episodeFeed.id!.toString(),
@@ -217,6 +98,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<IncidentEpisodeFeed>({
     resourceKey: props.incidentEpisodeId.toString(),
+    refreshToken: props.refreshToken,
     getItems: async (
       limit: number,
     ): Promise<ListResult<IncidentEpisodeFeed>> => {
@@ -259,22 +141,44 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this episode. You can see all the updates and information about this episode here."
       }
       buttons={[
-        {
-          title: "Execute On-Call Policy",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Call,
-          onClick: () => {
-            setShowOnCallPolicyModal(true);
-          },
-        },
-        {
-          title: "Add Private Note",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Lock,
-          onClick: () => {
-            setShowPrivateNoteModal(true);
-          },
-        },
+        <MoreMenu
+          key="incident-episode-feed-actions-menu"
+          elementToBeShownInsteadOfButton={
+            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
+              <span>Actions</span>
+              <Icon
+                icon={IconProp.ChevronDown}
+                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
+              />
+            </div>
+          }
+        >
+          <MoreMenuItem
+            key="incident-episode-action-execute-policy"
+            text="Execute On-Call Policy"
+            icon={IconProp.Call}
+            onClick={() => {
+              setShowOnCallPolicyModal(true);
+            }}
+          />
+          <MoreMenuItem
+            key="incident-episode-action-public-note"
+            text="Add Public Note"
+            icon={IconProp.Announcement}
+            onClick={() => {
+              setShowPublicNoteModal(true);
+            }}
+          />
+          <MoreMenuItem
+            key="incident-episode-action-private-note"
+            text="Add Private Note"
+            icon={IconProp.Lock}
+            onClick={() => {
+              setShowPrivateNoteModal(true);
+            }}
+          />
+        </MoreMenu>,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
@@ -344,6 +248,88 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",
+                },
+              ],
+              formType: FormType.Create,
+            }}
+          />
+        )}
+
+        {showPublicNoteModal && (
+          <ModelFormModal
+            modalWidth={ModalWidth.Large}
+            modelType={IncidentEpisodePublicNote}
+            name={"create-episode-public-note"}
+            title={"Add Public Note to this Episode"}
+            description={
+              "Add a public note to this episode. It shows up on the status pages this episode is visible on, and subscribers can be notified."
+            }
+            onClose={() => {
+              setShowPublicNoteModal(false);
+            }}
+            submitButtonText="Save"
+            onBeforeCreate={async (model: IncidentEpisodePublicNote) => {
+              model.incidentEpisodeId = props.incidentEpisodeId!;
+              return model;
+            }}
+            onSuccess={() => {
+              setShowPublicNoteModal(false);
+              refresh().catch((err: unknown) => {
+                setError(API.getFriendlyMessage(err as Exception));
+              });
+            }}
+            formProps={{
+              summary: {
+                enabled: true,
+                defaultStepName: "Public Note",
+              },
+              name: "create-episode-public-note",
+              modelType: IncidentEpisodePublicNote,
+              id: "create-episode-public-note",
+              fields: [
+                {
+                  field: {
+                    note: true,
+                  },
+                  fieldType: FormFieldSchemaType.Markdown,
+                  description:
+                    "Post a public note about this episode to the status page.",
+                  title: "Public Note",
+                  required: true,
+                },
+                {
+                  field: {
+                    attachments: true,
+                  },
+                  fieldType: FormFieldSchemaType.MultipleFiles,
+                  description:
+                    "Attach files that should be shared with subscribers on the status page.",
+                  title: "Attachments",
+                  required: false,
+                },
+                {
+                  field: {
+                    postedAt: true,
+                  },
+                  fieldType: FormFieldSchemaType.DateTime,
+                  description:
+                    "The date and time this note was posted. By default, it will be the current date and time.",
+                  title: "Posted At",
+                  required: true,
+                  getDefaultValue: () => {
+                    return OneUptimeDate.getCurrentDate();
+                  },
+                },
+                {
+                  field: {
+                    shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+                  },
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  description:
+                    "Should status page subscribers be notified when this note is posted?",
+                  title: "Notify Status Page Subscribers",
+                  required: false,
+                  defaultValue: true,
                 },
               ],
               formType: FormType.Create,

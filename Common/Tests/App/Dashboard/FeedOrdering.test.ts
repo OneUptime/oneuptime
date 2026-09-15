@@ -142,6 +142,38 @@ describe("dashboard feed ordering parity", () => {
     },
   );
 
+  /*
+   * The incident and alert feeds are the two that post AI investigations.
+   * Their AI items go through the shared compact helper (summary + root
+   * cause, full report behind More Information) and stay in safe mode.
+   */
+  test.each(
+    FEED_IMPLEMENTATIONS.filter((implementation: FeedImplementation) => {
+      return (
+        implementation.name === "Incident" || implementation.name === "Alert"
+      );
+    }),
+  )(
+    "$name feed shows AI root-cause reports through the compact helper",
+    (implementation: FeedImplementation) => {
+      const source: string = readSource(implementation);
+
+      expect(source).toContain('from "../../Utils/AIRootCauseFeedItem"');
+      expect(source).toContain("getFeedItemMarkdown({");
+      expect(source).toContain("isAIInvestigation,");
+      expect(source).toContain(
+        "textInMarkdown: feedItemMarkdown.textInMarkdown,",
+      );
+      expect(source).toContain(
+        "moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,",
+      );
+      expect(source).toContain("safeMode: isAIInvestigation,");
+      expect(source).toContain(
+        "isAIInvestigation ? IconProp.Sparkles : IconProp.Cube",
+      );
+    },
+  );
+
   test("the monitor feed no longer stops at a one-off 50-item window", () => {
     const monitorSource: string = readSource(FEED_IMPLEMENTATIONS[0]!);
 
