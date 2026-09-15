@@ -12,8 +12,8 @@ import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDevic
  * reads once the probe has answered.
  *
  * Imports ONLY Common/Types. RouteMap, PageMap, Navigation and ModelAPI all
- * read `window` at module load (see LockedTelemetryScopeLink.test.ts for the
- * chain), and the App test suite runs in plain Node with static imports, so
+ * read `window` at module load (through Common/UI/Config), and the App test
+ * suite runs in plain Node with static imports, so
  * anything that needs a route or an API call lives in the .tsx components
  * next door and this module stays testable without a browser stub.
  */
