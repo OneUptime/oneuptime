@@ -540,6 +540,14 @@ describe("ServiceLevelObjective archive columns", () => {
     expect(model.getTableColumnMetadata("monitorLabels").description).toContain(
       "no longer read by the SLO engine",
     );
+    /*
+     * A write of the column is still acted on (ServiceLevelObjectiveService
+     * converts it into a rule, or ignores it once rules exist), so the API
+     * reference must say so rather than read as a dead field.
+     */
+    expect(model.getTableColumnMetadata("monitorLabels").description).toContain(
+      "labels written here to an SLO with no monitor rules are turned into that rule, and are ignored once the SLO has monitor rules",
+    );
   });
 });
 

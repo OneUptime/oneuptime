@@ -2419,9 +2419,9 @@ describe("ServiceLevelObjectiveService.getSloLinkInDashboard", () => {
 /*
  * An SLO created over the API reconciles its monitor list with its monitor
  * rules straight away, best-effort - a rule sync that fails is logged, never
- * allowed to fail the create. Edits to the SLO itself no longer re-sync:
- * membership follows ServiceLevelObjectiveMonitorRule rows, and the deprecated
- * monitorLabels column is not read by the engine any more.
+ * allowed to fail the create. Ordinary edits to the SLO itself do not re-sync:
+ * membership follows ServiceLevelObjectiveMonitorRule rows. Only a write of the
+ * deprecated monitorLabels column is acted on, through its own path.
  */
 describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
   let syncMonitorsForSloSpy: jest.SpyInstance;
@@ -2504,12 +2504,21 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
   });
 
   /*
-   * monitorLabels is deprecated: SLO Monitor Rules replaced it and the engine
-   * no longer reads it, so an old client still writing it must not trigger a
-   * sync that could only re-derive the rules' answer. Rule edits re-sync
-   * through ServiceLevelObjectiveMonitorRuleService instead.
+   * monitorLabels is deprecated, but a dashboard tab opened before the
+   * upgrade, an API client or a workflow can still write it. Ignoring that
+   * write left the SLO measuring something other than what the caller just
+   * saved, so it is handed to the legacy-write path (covered in depth by
+   * ServiceLevelObjectiveServiceLegacyMonitorLabelWrite.test.ts), with every
+   * id the write touched and exactly the list it wrote.
    */
-  it("does not re-run the monitor rules when the deprecated monitorLabels column is written", async () => {
+  it("hands a write of the deprecated monitorLabels column to the legacy-write path, including a cleared list", async () => {
+    const legacyWriteSpy: jest.SpyInstance = jest
+      .spyOn(
+        ServiceLevelObjectiveService as never,
+        "applyDeprecatedMonitorLabelWrite" as never,
+      )
+      .mockResolvedValue(undefined as never);
+
     await callHook(
       "onUpdateSuccess",
       makeOnUpdate({ monitorLabels: [{ _id: RULE_ID.toString() }] }),
@@ -2520,6 +2529,18 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
       SLO_ID,
     ]);
 
+    expect(legacyWriteSpy).toHaveBeenCalledTimes(2);
+    expect(legacyWriteSpy.mock.calls[0]![0]).toEqual({
+      serviceLevelObjectiveIds: [SLO_ID, OTHER_RULE_ID],
+      writtenMonitorLabels: [{ _id: RULE_ID.toString() }],
+      labelIdsBeforeUpdateBySloId: {},
+    });
+    expect(
+      (legacyWriteSpy.mock.calls[1]![0] as { writtenMonitorLabels: unknown })
+        .writtenMonitorLabels,
+    ).toEqual([]);
+
+    // The legacy-write path decides about syncing; this hook never does.
     expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
   });
 

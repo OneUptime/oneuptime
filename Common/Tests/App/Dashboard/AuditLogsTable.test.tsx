@@ -105,10 +105,15 @@ jest.mock(
 import AuditLogsTable, {
   ComponentProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsTable";
+import {
+  RESOURCE_META,
+  ResourceMeta,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsTableUtils";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import RouteParams from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteParams";
 import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
@@ -150,15 +155,20 @@ const projectWith: ProjectWithFunction = (
   return project;
 };
 
-type RouteHrefFunction = (page: PageMap, modelId?: ObjectID) => string;
+type RouteHrefFunction = (
+  page: PageMap,
+  modelId?: ObjectID,
+  subModelId?: ObjectID,
+) => string;
 
 const routeHref: RouteHrefFunction = (
   page: PageMap,
   modelId?: ObjectID,
+  subModelId?: ObjectID,
 ): string => {
   return RouteUtil.populateRouteParams(
     RouteMap[page] as Route,
-    modelId ? { modelId } : undefined,
+    modelId ? { modelId, subModelId } : undefined,
   ).toString();
 };
 
@@ -451,6 +461,112 @@ describe("where an entry links to", () => {
       "href",
       routeHref(PageMap.SLO_VIEW_OWNERS, SLO_ID),
     );
+  });
+
+  test.each(["Create", "Update"])(
+    "a monitor rule's %s entry opens the rule's own page under its SLO",
+    (action: string) => {
+      renderResourceCell(
+        makeEntry({
+          resourceType: "SLO Monitor Rule",
+          resourceId: RULE_ID,
+          rootResourceId: SLO_ID,
+          action,
+          resourceName: "Production APIs",
+        }),
+      );
+
+      const ruleHref: string = routeHref(
+        PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
+        SLO_ID,
+        RULE_ID,
+      );
+
+      // Both ids really land in the path: the SLO's, then the rule's.
+      expect(ruleHref).toContain(
+        `/slos/${SLO_ID.toString()}/monitor-rules/${RULE_ID.toString()}`,
+      );
+      expect(screen.getByRole("link")).toHaveAttribute("href", ruleHref);
+    },
+  );
+
+  test("a deleted monitor rule's entry opens its SLO's Monitor Rules tab, not the rule's page that is gone", () => {
+    renderResourceCell(
+      makeEntry({
+        resourceType: "SLO Monitor Rule",
+        resourceId: RULE_ID,
+        rootResourceId: SLO_ID,
+        action: "Delete",
+        resourceName: "Production APIs",
+      }),
+    );
+
+    const link: HTMLElement = screen.getByRole("link");
+
+    expect(link).toHaveAttribute(
+      "href",
+      routeHref(PageMap.SLO_VIEW_MONITOR_RULES, SLO_ID),
+    );
+    expect(link.getAttribute("href")).not.toContain(RULE_ID.toString());
+  });
+
+  test.each(["SLO Monitor Rule", "SLO Burn Rate Rule"])(
+    "an %s entry rooted at itself (the root backfill's fallback) opens nothing, rather than a page keyed by the rule's own id",
+    (resourceType: string) => {
+      renderResourceCell(
+        makeEntry({
+          resourceType,
+          resourceId: RULE_ID,
+          rootResourceId: new ObjectID(RULE_ID.toString()),
+          action: "Update",
+          resourceName: "Production APIs",
+        }),
+      );
+
+      expect(screen.getByTestId("resource-cell")).toHaveTextContent(
+        "Production APIs",
+      );
+      expect(screen.queryByRole("link")).toBeNull();
+    },
+  );
+
+  test("a burn-rate rule has no page of its own, so even a live rule's entry opens its SLO's tab", () => {
+    renderResourceCell(
+      makeEntry({
+        resourceType: "SLO Burn Rate Rule",
+        resourceId: RULE_ID,
+        rootResourceId: SLO_ID,
+        action: "Update",
+        resourceName: "Fast burn",
+      }),
+    );
+
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      routeHref(PageMap.SLO_VIEW_BURN_RATE_RULES, SLO_ID),
+    );
+  });
+
+  test("every page of a child's own that an entry can open is a real route keyed by the root and the child", () => {
+    const childPages: Array<PageMap> = [];
+
+    for (const meta of Object.values(RESOURCE_META)) {
+      const typedMeta: ResourceMeta = meta;
+
+      if (typedMeta.childViewRoute) {
+        childPages.push(typedMeta.childViewRoute);
+      }
+    }
+
+    expect(childPages).toContain(PageMap.SLO_VIEW_MONITOR_RULE_VIEW);
+
+    for (const page of childPages) {
+      const route: Route | undefined = RouteMap[page];
+
+      expect(route).toBeDefined();
+      expect(route!.toString()).toContain(`/${RouteParams.ModelID}/`);
+      expect(route!.toString()).toContain(`/${RouteParams.SubModelID}`);
+    }
   });
 
   test("a child entry with no root pointer (written before the backfill) opens nothing", () => {

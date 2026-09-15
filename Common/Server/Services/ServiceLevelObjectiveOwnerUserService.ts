@@ -4,21 +4,27 @@ import User from "../../Models/DatabaseModels/User";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger, { LogAttributes } from "../Utils/Logger";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+import SloOwnerReferenceValidator from "../Utils/Slo/SloOwnerReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import UserService from "./UserService";
 
+const SLO_OWNER_USER_SUBJECT: string = "SLO owner user";
+
 /*
  * Owners are who gets paged when an SLO goes at risk, so who was added and who
  * was removed - and by whom - is part of the SLO's history. Same hooks as
- * ServiceOwnerUserService, with two differences that matter here:
+ * ServiceOwnerUserService, with three differences that matter here:
  *
+ *   - the SLO and the user are checked against the row's project on create;
  *   - every user-controlled name is escaped, because the feed renders without
  *     safe mode and a name is the user's to set;
  *   - a feed failure is logged, never thrown: these hooks run after the owner
@@ -28,6 +34,56 @@ import UserService from "./UserService";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * DatabaseService stamps the row's projectId from the caller and checks
+   * nothing else, so without this an owner row could point at another
+   * project's SLO or name a user from outside the project:
+   *
+   * - a foreign SLO: ServiceLevelObjectiveService.findOwners reads owners by
+   *   SLO id alone, so the user would join that SLO's burn rate alerts and
+   *   incidents, and SendOwnerAddedNotification would email them its name,
+   *   its project's name and its link;
+   * - a user outside the project: they would be emailed this project's SLO,
+   *   and the feed would print their name - and email, on removal.
+   *
+   * serviceLevelObjectiveId and userId (and their relations) are create-only -
+   * update is [] in their column ACL - so create is the one write to check.
+   * Both spellings of each are checked, because the id column and the relation
+   * write the same join column. Neither lookup reads anything but ids from
+   * outside the project, and neither error names or confirms a foreign SLO or
+   * user (see SloRecordReferenceValidator and SloOwnerReferenceValidator).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    // A root write with no tenant is checked against the row's own project.
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        serviceLevelObjectives: [
+          createBy.data.serviceLevelObjectiveId,
+          createBy.data.serviceLevelObjective,
+        ],
+        subject: SLO_OWNER_USER_SUBJECT,
+      },
+    );
+
+    await SloOwnerReferenceValidator.validateUsersAreProjectMembers({
+      projectId: projectId,
+      users: [createBy.data.userId, createBy.data.user],
+      subject: SLO_OWNER_USER_SUBJECT,
+    });
+
+    return {
+      createBy: createBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()

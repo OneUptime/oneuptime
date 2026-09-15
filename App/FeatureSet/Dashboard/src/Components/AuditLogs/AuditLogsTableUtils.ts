@@ -23,6 +23,14 @@ export interface ResourceMeta {
    * tab on its SLO.
    */
   viewRouteModelId?: "resource" | "root" | undefined;
+  /*
+   * A page of the resource's own that sits under its root: :modelId is the
+   * root, :subModelId the resource (an SLO monitor rule's page is
+   * <sloId>/monitor-rules/<ruleId>). Preferred over viewRoute while the
+   * resource exists; a delete entry, or one that cannot name its root, falls
+   * back to viewRoute.
+   */
+  childViewRoute?: PageMap | undefined;
 }
 
 export const RESOURCE_META: { [key: string]: ResourceMeta } = {
@@ -115,12 +123,18 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.SLO_VIEW_BURN_RATE_RULES,
     viewRouteModelId: "root",
   },
+  /*
+   * A monitor rule has a page of its own under its SLO. Its SLO's Monitor
+   * Rules tab stays the fallback: a deleted rule's page is gone, the tab is
+   * not.
+   */
   "SLO Monitor Rule": {
     icon: IconProp.Filter,
     color: "text-emerald-700",
     bgColor: "bg-emerald-50 border-emerald-100",
     viewRoute: PageMap.SLO_VIEW_MONITOR_RULES,
     viewRouteModelId: "root",
+    childViewRoute: PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
   },
   "Service Level Objective User Owner": {
     icon: IconProp.User,
@@ -262,22 +276,50 @@ export const getAuditLogsQuery: (
   return query;
 };
 
-type GetResourceLinkModelIdFunction = (data: {
+export interface ResourceLinkInput {
   meta: ResourceMeta;
   action: string | undefined;
   resourceId: ObjectID | undefined;
   rootResourceId: ObjectID | undefined;
-}) => ObjectID | null;
+}
+
+type GetParentResourceIdFunction = (data: ResourceLinkInput) => ObjectID | null;
 
 /*
- * The id an entry's resource link opens, or null when it has nowhere to go.
+ * The parent a child entry rolls up to, or null when the entry cannot name
+ * one. A root pointer equal to the entry's own id is not a parent: the
+ * AuditLog root backfill files every row that had no pointer under itself,
+ * so a child row written while its parent could not be read comes back
+ * rooted at the child - and <ruleId>/monitor-rules is a page that does not
+ * exist.
  */
-export const getResourceLinkModelId: GetResourceLinkModelIdFunction = (data: {
-  meta: ResourceMeta;
-  action: string | undefined;
-  resourceId: ObjectID | undefined;
-  rootResourceId: ObjectID | undefined;
-}): ObjectID | null => {
+const getParentResourceId: GetParentResourceIdFunction = (
+  data: ResourceLinkInput,
+): ObjectID | null => {
+  if (!data.rootResourceId) {
+    return null;
+  }
+
+  if (
+    data.resourceId &&
+    data.rootResourceId.toString() === data.resourceId.toString()
+  ) {
+    return null;
+  }
+
+  return data.rootResourceId;
+};
+
+type GetResourceLinkModelIdFunction = (
+  data: ResourceLinkInput,
+) => ObjectID | null;
+
+/*
+ * The id an entry's viewRoute link opens, or null when it has nowhere to go.
+ */
+export const getResourceLinkModelId: GetResourceLinkModelIdFunction = (
+  data: ResourceLinkInput,
+): ObjectID | null => {
   if (!data.meta.viewRoute) {
     return null;
   }
@@ -287,7 +329,7 @@ export const getResourceLinkModelId: GetResourceLinkModelIdFunction = (data: {
      * The page is a tab on the parent, which outlives the child: a deleted
      * rule's entry still opens the SLO it belonged to.
      */
-    return data.rootResourceId || null;
+    return getParentResourceId(data);
   }
 
   // A deleted resource has no page left to open.
@@ -296,4 +338,46 @@ export const getResourceLinkModelId: GetResourceLinkModelIdFunction = (data: {
   }
 
   return data.resourceId || null;
+};
+
+export interface ResourceLink {
+  page: PageMap;
+  modelId: ObjectID;
+  // Set only for a childViewRoute link: the resource under its root.
+  subModelId?: ObjectID | undefined;
+}
+
+type GetResourceLinkFunction = (data: ResourceLinkInput) => ResourceLink | null;
+
+/*
+ * The page an entry's resource name links to, or null when it has nowhere to
+ * go. A child with a page of its own opens that page, which needs both ids;
+ * once the child is deleted its page is gone, so the entry opens the tab on
+ * its parent that listed it instead.
+ */
+export const getResourceLink: GetResourceLinkFunction = (
+  data: ResourceLinkInput,
+): ResourceLink | null => {
+  const parentResourceId: ObjectID | null = getParentResourceId(data);
+
+  if (
+    data.meta.childViewRoute &&
+    data.action !== "Delete" &&
+    data.resourceId &&
+    parentResourceId
+  ) {
+    return {
+      page: data.meta.childViewRoute,
+      modelId: parentResourceId,
+      subModelId: data.resourceId,
+    };
+  }
+
+  const modelId: ObjectID | null = getResourceLinkModelId(data);
+
+  if (!data.meta.viewRoute || !modelId) {
+    return null;
+  }
+
+  return { page: data.meta.viewRoute, modelId };
 };

@@ -679,7 +679,14 @@ export default class ServiceLevelObjective extends BaseModel {
    * The column and its join table stay for one release anyway: during a
    * rolling deploy, API pods from the previous release still read and write
    * it, and dropping the table under them would fail their SLO queries. Do
-   * not read it, write it or show it; remove it in a later migration.
+   * not show it or write it for new features; remove it in a later migration.
+   *
+   * It is still ACTED ON when a write carries it (a dashboard tab opened before
+   * the upgrade, an old API client or workflow): ServiceLevelObjectiveService
+   * turns the list into that monitor rule for an SLO with no monitor rules and
+   * ignores it once the SLO has some (applyDeprecatedMonitorLabelWrite), and
+   * SloLegacyMonitorLabelAdoption reads its join table. Removing the column
+   * means removing those paths too.
    */
   @TableColumn({
     required: false,
@@ -687,7 +694,7 @@ export default class ServiceLevelObjective extends BaseModel {
     modelType: Label,
     title: "Auto-Add Monitors With Labels (Deprecated)",
     description:
-      'Deprecated: superseded by SLO Monitor Rules and no longer read by the SLO engine. Existing labels were migrated into a monitor rule named "Auto-add monitors with labels". Kept only for compatibility during upgrades; use SLO Monitor Rules instead.',
+      'Deprecated: superseded by SLO Monitor Rules and no longer read by the SLO engine. Existing labels were migrated into a monitor rule named "Auto-add monitors with labels". Kept only for compatibility during upgrades: labels written here to an SLO with no monitor rules are turned into that rule, and are ignored once the SLO has monitor rules. Use SLO Monitor Rules instead.',
   })
   @ManyToMany(
     () => {

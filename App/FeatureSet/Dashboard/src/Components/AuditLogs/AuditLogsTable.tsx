@@ -22,10 +22,11 @@ import AuditLogsEnterpriseUpgrade, {
   isAuditLogsEnterpriseEligible,
 } from "./AuditLogsEnterpriseUpgrade";
 import {
+  ResourceLink,
   ResourceMeta,
   getActorInitials,
   getAuditLogsQuery,
-  getResourceLinkModelId,
+  getResourceLink,
   getResourceMeta,
 } from "./AuditLogsTableUtils";
 import React, {
@@ -375,7 +376,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 </span>
               );
 
-              const linkModelId: ObjectID | null = getResourceLinkModelId({
+              const link: ResourceLink | null = getResourceLink({
                 meta,
                 action: item.action,
                 resourceId: item.resourceId,
@@ -383,10 +384,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               });
 
               let linkedNameEl: ReactElement = nameEl;
-              if (meta.viewRoute && linkModelId && RouteMap[meta.viewRoute]) {
+              if (link && RouteMap[link.page]) {
                 const route: Route = RouteUtil.populateRouteParams(
-                  RouteMap[meta.viewRoute] as Route,
-                  { modelId: linkModelId },
+                  RouteMap[link.page] as Route,
+                  { modelId: link.modelId, subModelId: link.subModelId },
                 );
                 linkedNameEl = (
                   <AppLink

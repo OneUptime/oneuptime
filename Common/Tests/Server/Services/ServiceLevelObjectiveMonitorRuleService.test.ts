@@ -14,8 +14,9 @@ import {
   OnUpdate,
 } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
+import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMonitorLabelAdoption";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -189,6 +190,14 @@ function installSpies(): HookSpies {
     return undefined as never;
   });
 
+  /*
+   * The create hook adopts a legacy label list, which needs a live Postgres.
+   * ServiceLevelObjectiveMonitorRuleLegacyLabelAdoption.test.ts covers when.
+   */
+  jest
+    .spyOn(SloLegacyMonitorLabelAdoption, "adoptLegacyMonitorLabels")
+    .mockResolvedValue([]);
+
   return {
     sync: jest
       .spyOn(
@@ -214,8 +223,8 @@ function installSpies(): HookSpies {
     ]),
     referenceValidator: jest
       .spyOn(
-        ProjectScopedReferenceValidator,
-        "validateReferencesBelongToProject",
+        SloRecordReferenceValidator,
+        "validateServiceLevelObjectivesBelongToProject",
       )
       .mockResolvedValue(undefined),
     ruleFindBy: jest
@@ -382,20 +391,19 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate", () => {
     const call: {
       projectId: ObjectID;
       subject: string;
-      references: Array<{ modelName: string; id: unknown; service: unknown }>;
+      serviceLevelObjectives: unknown;
     } = spies.referenceValidator.mock.calls[0]![0] as {
       projectId: ObjectID;
       subject: string;
-      references: Array<{ modelName: string; id: unknown; service: unknown }>;
+      serviceLevelObjectives: unknown;
     };
 
     // The caller's tenant wins over whatever project the payload claims.
     expect(call.projectId).toBe(PROJECT_ID);
     expect(call.subject).toBe("SLO monitor rule");
-    expect(call.references).toHaveLength(1);
-    expect(call.references[0]!.modelName).toBe("Service Level Objective");
-    expect(call.references[0]!.id).toBe(SLO_ID);
-    expect(call.references[0]!.service).toBe(ServiceLevelObjectiveService);
+    expect(
+      SloRecordReferenceValidator.getReferencedIds(call.serviceLevelObjectives),
+    ).toEqual([SLO_ID.toString()]);
   });
 
   it("scopes a root write with no tenant to the payload's project", async () => {
@@ -431,12 +439,14 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate", () => {
     );
 
     expect(
-      (
-        spies.referenceValidator.mock.calls[0]![0] as {
-          references: Array<{ id: unknown }>;
-        }
-      ).references[0]!.id,
-    ).toBe(SLO_ID.toString());
+      SloRecordReferenceValidator.getReferencedIds(
+        (
+          spies.referenceValidator.mock.calls[0]![0] as {
+            serviceLevelObjectives: unknown;
+          }
+        ).serviceLevelObjectives,
+      ),
+    ).toEqual([SLO_ID.toString()]);
   });
 
   it("refuses an SLO from another project", async () => {

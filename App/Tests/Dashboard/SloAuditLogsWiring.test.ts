@@ -6,6 +6,7 @@ import {
   RESOURCE_META,
   ResourceMeta,
   getAuditLogsQuery,
+  getResourceLink,
   getResourceLinkModelId,
   getResourceMeta,
 } from "../../FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsTableUtils";
@@ -88,26 +89,39 @@ describe("SLO-family resource metadata", () => {
     expect(RESOURCE_META[sloType]!.viewRouteModelId).toBeUndefined();
   });
 
+  /*
+   * childViewRoute: only a monitor rule has a page of its own under the SLO.
+   * A burn-rate rule is edited in place on its tab and an owner row is just a
+   * row on the Owners tab, so neither may claim one.
+   */
   test.each([
     {
       model: new ServiceLevelObjectiveBurnRateRule() as BaseModel,
       page: PageMap.SLO_VIEW_BURN_RATE_RULES,
+      childPage: undefined,
     },
     {
       model: new ServiceLevelObjectiveMonitorRule() as BaseModel,
       page: PageMap.SLO_VIEW_MONITOR_RULES,
+      childPage: PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
     },
     {
       model: new ServiceLevelObjectiveOwnerUser() as BaseModel,
       page: PageMap.SLO_VIEW_OWNERS,
+      childPage: undefined,
     },
     {
       model: new ServiceLevelObjectiveOwnerTeam() as BaseModel,
       page: PageMap.SLO_VIEW_OWNERS,
+      childPage: undefined,
     },
   ])(
     "$model.singularName entries open the matching tab of the SLO they roll up to",
-    (data: { model: BaseModel; page: PageMap }) => {
+    (data: {
+      model: BaseModel;
+      page: PageMap;
+      childPage: PageMap | undefined;
+    }) => {
       // The server really does roll this model's entries up to the SLO.
       expect(data.model.enableAuditLogOn?.rootResource?.resourceType).toBe(
         sloType,
@@ -119,6 +133,7 @@ describe("SLO-family resource metadata", () => {
       expect(meta).toBeDefined();
       expect(meta!.viewRoute).toBe(data.page);
       expect(meta!.viewRouteModelId).toBe("root");
+      expect(meta!.childViewRoute).toBe(data.childPage);
     },
   );
 
@@ -235,5 +250,174 @@ describe("getResourceLinkModelId", () => {
   test("an unknown type falls back to the generic look", () => {
     expect(getResourceMeta("Something New")).toBe(DEFAULT_RESOURCE_META);
     expect(getResourceMeta(undefined)).toBe(DEFAULT_RESOURCE_META);
+  });
+
+  test("a child rooted at itself (the root backfill's fallback) links nowhere, rather than to a parent page keyed by its own id", () => {
+    expect(
+      getResourceLinkModelId({
+        meta: ruleMeta,
+        action: "Update",
+        resourceId: RULE_ID,
+        // A distinct instance: the ids are compared by value.
+        rootResourceId: new ObjectID(RULE_ID.toString()),
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("getResourceLink", () => {
+  const monitorRuleMeta: ResourceMeta = getResourceMeta(
+    new ServiceLevelObjectiveMonitorRule().singularName!,
+  );
+  const burnRateRuleMeta: ResourceMeta = getResourceMeta(
+    new ServiceLevelObjectiveBurnRateRule().singularName!,
+  );
+  const ownerTeamMeta: ResourceMeta = getResourceMeta(
+    new ServiceLevelObjectiveOwnerTeam().singularName!,
+  );
+  const sloMeta: ResourceMeta = getResourceMeta(
+    new ServiceLevelObjective().singularName!,
+  );
+
+  test.each(["Create", "Update"])(
+    "a monitor rule's %s entry opens the rule's own page: the SLO as model id, the rule as sub-model id",
+    (action: string) => {
+      expect(
+        getResourceLink({
+          meta: monitorRuleMeta,
+          action,
+          resourceId: RULE_ID,
+          rootResourceId: SLO_ID,
+        }),
+      ).toEqual({
+        page: PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
+        modelId: SLO_ID,
+        subModelId: RULE_ID,
+      });
+    },
+  );
+
+  test("a deleted monitor rule's entry opens its SLO's Monitor Rules tab, never the rule's page that is gone", () => {
+    expect(
+      getResourceLink({
+        meta: monitorRuleMeta,
+        action: "Delete",
+        resourceId: RULE_ID,
+        rootResourceId: SLO_ID,
+      }),
+    ).toEqual({ page: PageMap.SLO_VIEW_MONITOR_RULES, modelId: SLO_ID });
+  });
+
+  test("a monitor rule entry that cannot name its SLO links nowhere: both of its pages need the SLO id", () => {
+    expect(
+      getResourceLink({
+        meta: monitorRuleMeta,
+        action: "Update",
+        resourceId: RULE_ID,
+        rootResourceId: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test.each(["Update", "Delete"])(
+    "a monitor rule %s entry rooted at itself links nowhere",
+    (action: string) => {
+      expect(
+        getResourceLink({
+          meta: monitorRuleMeta,
+          action,
+          resourceId: RULE_ID,
+          rootResourceId: new ObjectID(RULE_ID.toString()),
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("a monitor rule entry without its own id falls back to the SLO's Monitor Rules tab", () => {
+    expect(
+      getResourceLink({
+        meta: monitorRuleMeta,
+        action: "Update",
+        resourceId: undefined,
+        rootResourceId: SLO_ID,
+      }),
+    ).toEqual({ page: PageMap.SLO_VIEW_MONITOR_RULES, modelId: SLO_ID });
+  });
+
+  test.each(["Create", "Update", "Delete"])(
+    "a burn-rate rule's %s entry opens its SLO's Burn Rate Rules tab: it has no page of its own",
+    (action: string) => {
+      expect(
+        getResourceLink({
+          meta: burnRateRuleMeta,
+          action,
+          resourceId: RULE_ID,
+          rootResourceId: SLO_ID,
+        }),
+      ).toEqual({ page: PageMap.SLO_VIEW_BURN_RATE_RULES, modelId: SLO_ID });
+    },
+  );
+
+  test("an owner entry opens its SLO's Owners tab", () => {
+    expect(
+      getResourceLink({
+        meta: ownerTeamMeta,
+        action: "Delete",
+        resourceId: RULE_ID,
+        rootResourceId: SLO_ID,
+      }),
+    ).toEqual({ page: PageMap.SLO_VIEW_OWNERS, modelId: SLO_ID });
+  });
+
+  test("an SLO's own entry opens the SLO while it exists, and nothing once it is deleted", () => {
+    expect(
+      getResourceLink({
+        meta: sloMeta,
+        action: "Update",
+        resourceId: SLO_ID,
+        rootResourceId: SLO_ID,
+      }),
+    ).toEqual({ page: PageMap.SLO_VIEW, modelId: SLO_ID });
+
+    expect(
+      getResourceLink({
+        meta: sloMeta,
+        action: "Delete",
+        resourceId: SLO_ID,
+        rootResourceId: SLO_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("a type with no page, or an unknown type, links nowhere", () => {
+    expect(
+      getResourceLink({
+        meta: getResourceMeta("Label"),
+        action: "Update",
+        resourceId: RULE_ID,
+        rootResourceId: RULE_ID,
+      }),
+    ).toBeNull();
+
+    expect(
+      getResourceLink({
+        meta: getResourceMeta("Something New"),
+        action: "Update",
+        resourceId: RULE_ID,
+        rootResourceId: SLO_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("only child types opened through their root declare a page of their own", () => {
+    for (const type of Object.keys(RESOURCE_META)) {
+      const meta: ResourceMeta = RESOURCE_META[type]!;
+
+      if (meta.childViewRoute) {
+        // Without a root id there is no parent to put the child's page under.
+        expect(meta.viewRouteModelId).toBe("root");
+        expect(meta.viewRoute).toBeDefined();
+      }
+    }
   });
 });

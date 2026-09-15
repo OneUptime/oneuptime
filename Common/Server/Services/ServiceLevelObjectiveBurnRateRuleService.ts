@@ -56,6 +56,7 @@ import {
   getSloFeedSelect,
 } from "../../Utils/Slo/SloFeedMarkdown";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 
 /*
  * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess for a
@@ -333,8 +334,38 @@ export class Service extends DatabaseService<Model> {
 
     this.normalizeTemplates(createBy.data as unknown as Dictionary<unknown>);
 
+    /*
+     * Tenant first, for every reference check below, like the other SLO child
+     * rows: DatabaseService stamps the tenant onto the payload before this
+     * hook, but the tenancy checks must not depend on that ordering - a
+     * payload projectId must never pick the project a severity, routing
+     * target or owner is checked against.
+     */
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId;
+      createBy.props.tenantId || createBy.data.projectId;
+
+    /*
+     * The SLO first. Nothing else checks that it belongs to the rule's
+     * project, and a rule hung off another tenant's SLO is wrong in every
+     * direction: it can never fire (the worker reads rules pinned to the SLO's
+     * project), its feed items are written against that SLO's id, and that
+     * project deleting its SLO cascades into this project's rule.
+     * serviceLevelObjectiveId is create-only (update is [] in its column ACL),
+     * so create is the one write to check. The lookup is pinned to this
+     * project and a foreign id gets the same answer as a missing one, so the
+     * error never confirms or names another tenant's SLO. Both spellings are
+     * checked: the id column and the relation write the same join column.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        serviceLevelObjectives: [
+          createBy.data.serviceLevelObjectiveId,
+          createBy.data.serviceLevelObjective,
+        ],
+        subject: "SLO burn rate rule",
+      },
+    );
 
     await this.validateSeverityReferences({
       projectId: projectId,

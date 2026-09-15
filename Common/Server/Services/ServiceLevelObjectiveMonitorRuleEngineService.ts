@@ -287,8 +287,8 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
      * list - written by a previous-release pod after the one-shot backfill ran
      * - is given its rule, and synced with it instead. Without this the first
      * edit to such a monitor silently took it off the SLO. See
-     * SloLegacyMonitorLabelAdoption for why this is the one place that can do
-     * it without bringing back a rule a user deleted.
+     * SloLegacyMonitorLabelAdoption for why this can do it without bringing
+     * back a rule a user deleted, and for the other places that adopt.
      */
     const sloIdsWithoutEnabledRule: Array<string> = Array.from(
       candidateSloIds,

@@ -111,6 +111,16 @@ This holds for the API too, not only the dashboard. Disable every rule to go bac
 
 Earlier versions had an **Auto-Add Monitors With Labels** setting on the SLO form. When you upgrade, every SLO that used it gets an enabled monitor rule named **Auto-add monitors with labels** that matches the same labels, so the SLO keeps measuring exactly the monitors it did.
 
+The old setting can still be saved while the upgrade rolls out: from a dashboard tab opened before the upgrade, or by an API client or workflow written for the earlier version. So that an SLO does not quietly lose monitors that way:
+
+- **An SLO with no monitor rules** turns the saved labels into an **Auto-add monitors with labels** rule, and its monitors are re-evaluated straight away. Saving an empty list detaches the monitors the setting attached, as it used to.
+- **An SLO that already has monitor rules**, enabled or disabled, ignores labels saved through the old setting, because its rules decide what it measures. Change its monitor rules instead.
+- **Creating the first monitor rule** of an SLO whose monitors the old setting attached converts the setting into a rule first, so the new rule is added alongside it rather than replacing it.
+
+A converted rule you delete normally stays deleted. Creating another rule does not bring it back, and neither does saving an out-of-date form with the labels it loaded. Only changing the labels on that form, for an SLO with no monitor rules, does. The exception is a rule whose monitors are still attached after the delete, for example because a server still running the earlier version attached them again during the upgrade: the next monitor change, or the next new rule, converts the labels again. Delete that rule again once the upgrade has finished.
+
+The `monitorLabels` field of the SLO API is deprecated. Use SLO Monitor Rules instead.
+
 ## History
 
 Every attach and detach, and every rule that is created, changed or deleted, is posted to the SLO's **Feed**. Rule changes are also recorded in the SLO's **Audit Logs**. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs).

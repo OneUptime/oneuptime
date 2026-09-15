@@ -13,21 +13,27 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Contract under test: the runtime adoption of an SLO's deprecated label list
- * into a monitor rule, for label lists written by previous-release pods after
- * the one-shot backfill (see SloLegacyMonitorLabelAdoption).
+ * into a monitor rule, for label lists written by previous-release pods (or
+ * sent to new pods through the deprecated column) after the one-shot backfill
+ * (see SloLegacyMonitorLabelAdoption).
  *
  * What would silently regress if this drifted:
- *   - a rule the user deleted coming back (the "no rule row at all" guard);
- *   - a duplicate rule when two monitor edits race (lock first, one
- *     transaction);
+ *   - a rule the user deleted coming back (the "no rule row at all" guard, and
+ *     the rule-attached monitors required as evidence unless the list was
+ *     just written);
+ *   - a duplicate rule when two monitor edits or rule creates race (lock
+ *     first, one transaction);
  *   - another tenant's SLO being adopted (project pin);
  *   - previous-release pods losing the list they still read (never DELETE).
  *
  * Fake DataSource only here. The two statements were also executed against
- * Postgres 15 when written: only an SLO with label rows and no rule rows was
- * adopted (upper-case ids included), a second run inserted nothing, and a
- * disabled rule, a soft-deleted SLO, an SLO outside the id list and another
- * project's SLO were all left alone, with the label rows untouched.
+ * Postgres 15 (inside a rolled-back transaction) when written: with evidence
+ * required only an SLO with label rows, rule-attached monitors and no rule
+ * rows was adopted (upper-case ids included); with it waived an SLO with label
+ * rows and nothing attached was adopted too; a second run in either mode
+ * inserted nothing; a disabled rule, a soft-deleted SLO, an SLO with no label
+ * rows and another project's SLO were all left alone, and the label rows were
+ * untouched.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -105,7 +111,7 @@ describe("SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels", () => {
     expect(getDataSourceSpy).not.toHaveBeenCalled();
   });
 
-  test("locks the SLOs, then adopts, in one transaction - with de-duplicated lower-cased ids, the project and the backfill's name and description bound as parameters", async () => {
+  test("locks the SLOs, then adopts, in one transaction - with de-duplicated lower-cased ids, the project, the backfill's name and description, and rule-attached monitors required by default", async () => {
     const fake: FakeDataSource = installFakeDataSource([
       { serviceLevelObjectiveId: SLO_ID.toUpperCase() },
     ]);
@@ -136,10 +142,47 @@ describe("SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels", () => {
       PROJECT_ID.toString(),
       MIGRATED_MONITOR_RULE_NAME,
       MIGRATED_MONITOR_RULE_DESCRIPTION,
+      true,
     ]);
   });
 
-  test("throws when Postgres is not connected, so the engine can hold off releasing monitors", async () => {
+  test("requires rule-attached monitors whenever the caller does not explicitly waive it", async () => {
+    const fake: FakeDataSource = installFakeDataSource([]);
+
+    await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+      projectId: PROJECT_ID,
+      serviceLevelObjectiveIds: [SLO_ID],
+      requireRuleAttachedMonitors: true,
+    });
+
+    await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+      projectId: PROJECT_ID,
+      serviceLevelObjectiveIds: [SLO_ID],
+      requireRuleAttachedMonitors: undefined,
+    });
+
+    expect(fake.queries[1]!.parameters[4]).toBe(true);
+    expect(fake.queries[3]!.parameters[4]).toBe(true);
+  });
+
+  test("waives the rule-attached evidence only for a caller that just saw the list written", async () => {
+    const fake: FakeDataSource = installFakeDataSource([
+      { serviceLevelObjectiveId: SLO_ID },
+    ]);
+
+    await expect(
+      SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+        projectId: PROJECT_ID,
+        serviceLevelObjectiveIds: [SLO_ID],
+        requireRuleAttachedMonitors: false,
+      }),
+    ).resolves.toEqual([SLO_ID]);
+
+    expect(fake.queries[0]!.sql).toBe(SLO_LEGACY_MONITOR_LABEL_LOCK_STATEMENT);
+    expect(fake.queries[1]!.parameters[4]).toBe(false);
+  });
+
+  test("throws when Postgres is not connected, so the callers can hold off releasing monitors", async () => {
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(null);
 
     await expect(
@@ -177,6 +220,18 @@ describe("SloLegacyMonitorLabelAdoption SQL", () => {
     );
     expect(SLO_LEGACY_MONITOR_LABEL_ADOPT_STATEMENT).not.toMatch(
       /existing\."(name|isEnabled)"/,
+    );
+  });
+
+  test("unless waived, also requires monitors the SLO still records as rule-attached - what a deliberate delete of every rule never leaves behind", () => {
+    /*
+     * Deleting the converted rule leaves label rows and no rule rows, exactly
+     * like a list a previous-release pod wrote. Only the latter leaves
+     * monitors attached by the list, so without this a user's first new rule
+     * would bring the rule they deleted back.
+     */
+    expect(SLO_LEGACY_MONITOR_LABEL_ADOPT_STATEMENT).toContain(
+      `AND (NOT $5::boolean OR EXISTS (SELECT 1 FROM "ServiceLevelObjectiveAutoAddedMonitor" attached WHERE attached."serviceLevelObjectiveId" = slo."_id"))`,
     );
   });
 

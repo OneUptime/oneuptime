@@ -24,12 +24,13 @@ import {
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
-} from "../Utils/Database/ProjectScopedReferenceValidator";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
+import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import logger, { LogAttributes } from "../Utils/Logger";
 import MonitorRulePatternValidator from "../Utils/Rules/MonitorRulePatternValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -102,6 +103,17 @@ export class Service extends DatabaseService<Model> {
     });
 
     await this.assertServiceLevelObjectiveIsInScope({
+      projectId: createBy.props.tenantId || createBy.data.projectId,
+      // Both spellings: the id column and the relation write one join column.
+      serviceLevelObjective: [
+        createBy.data.serviceLevelObjectiveId,
+        createBy.data.serviceLevelObjective,
+      ],
+    });
+
+    // Last: only a create every check above accepted may change the SLO.
+    await this.adoptLegacyMonitorLabelsBeforeCreate({
+      createBy: createBy,
       projectId: createBy.props.tenantId || createBy.data.projectId,
       serviceLevelObjectiveId: serviceLevelObjectiveId,
     });
@@ -471,6 +483,37 @@ export class Service extends DatabaseService<Model> {
   public async findServiceLevelObjectiveIdsWithEnabledRules(
     serviceLevelObjectiveIds: Array<ObjectID>,
   ): Promise<Set<string>> {
+    return await this.findServiceLevelObjectiveIdsHavingRules({
+      serviceLevelObjectiveIds: serviceLevelObjectiveIds,
+      isEnabledOnly: true,
+    });
+  }
+
+  /**
+   * Which of these SLOs have at least one monitor rule row, enabled OR
+   * disabled, as lower-case id strings. The SLO service asks this before it
+   * acts on a write of the deprecated monitor label list: once an SLO has
+   * rules of any kind, they - not that list - decide what it measures. A
+   * disabled rule counts, for the same reason it stops legacy adoption: it is
+   * a decision somebody made on the Monitor Rules page. Read as root: the
+   * caller hands in ids a permission-checked write already touched.
+   */
+  @CaptureSpan()
+  public async findServiceLevelObjectiveIdsWithAnyRule(
+    serviceLevelObjectiveIds: Array<ObjectID>,
+  ): Promise<Set<string>> {
+    return await this.findServiceLevelObjectiveIdsHavingRules({
+      serviceLevelObjectiveIds: serviceLevelObjectiveIds,
+      isEnabledOnly: false,
+    });
+  }
+
+  private async findServiceLevelObjectiveIdsHavingRules(data: {
+    serviceLevelObjectiveIds: Array<ObjectID>;
+    isEnabledOnly: boolean;
+  }): Promise<Set<string>> {
+    const { serviceLevelObjectiveIds } = data;
+
     const result: Set<string> = new Set<string>();
 
     if (serviceLevelObjectiveIds.length === 0) {
@@ -478,10 +521,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     const rules: Array<Model> = await this.findBy({
-      query: {
-        serviceLevelObjectiveId: QueryHelper.any(serviceLevelObjectiveIds),
-        isEnabled: true,
-      },
+      query: data.isEnabledOnly
+        ? {
+            serviceLevelObjectiveId: QueryHelper.any(serviceLevelObjectiveIds),
+            isEnabled: true,
+          }
+        : {
+            serviceLevelObjectiveId: QueryHelper.any(serviceLevelObjectiveIds),
+          },
       select: {
         _id: true,
         serviceLevelObjectiveId: true,
@@ -510,21 +557,94 @@ export class Service extends DatabaseService<Model> {
    * belongs to the rule's project. A rule created against another tenant's
    * SLO would attach this project's monitors to it - and reveal, through the
    * feed and the Monitors page, which monitors this project has.
+   *
+   * SloRecordReferenceValidator rather than ProjectScopedReferenceValidator.
+   * That one reads the referenced row as root and names a foreign one in its
+   * error ("belong to a different project: Service Level Objective <name>"),
+   * which confirms another tenant's SLO exists and hands its name to anyone
+   * holding its id. This lookup is pinned to the rule's project, selects only
+   * ids, and gives a foreign id the same answer as an id that matches nothing.
    */
   private async assertServiceLevelObjectiveIsInScope(data: {
     projectId: ObjectID | undefined;
-    serviceLevelObjectiveId: ObjectID | string | undefined;
+    // The id column and/or the relation, in any shape the payload used.
+    serviceLevelObjective: unknown;
   }): Promise<void> {
-    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: data.projectId,
+        serviceLevelObjectives: data.serviceLevelObjective,
+        subject: "SLO monitor rule",
+      },
+    );
+  }
+
+  /**
+   * Converts the SLO's deprecated "Auto-Add Monitors With Labels" list into a
+   * rule before this create writes a rule of its own.
+   *
+   * onCreateSuccess re-syncs the SLO with every enabled rule it has. For an
+   * SLO whose list a previous-release pod wrote after the backfill - and whose
+   * monitors that pod's engine attached - that would be the new rule alone,
+   * and every monitor the list attached that the new rule does not match
+   * would be detached. Adopting first puts the list's rule next to the new
+   * one, so the sync keeps those monitors (the SLO measures the union of its
+   * rules) and adds the new rule's matches.
+   *
+   * Why before the create and not in onCreateSuccess: adoption only acts on an
+   * SLO with no rule row at all (see SloLegacyMonitorLabelAdoption), which is
+   * never true once the new row is written. Excluding the new row's id instead
+   * breaks exactly when it matters - two first rules created at once (an API
+   * client creating several in parallel) each see the other, and neither
+   * adopts. Before any of them is written, the SLO row lock serialises the
+   * adoptions and exactly one rule is adopted.
+   *
+   * Only with rule-attached monitors as evidence: an SLO whose user deleted
+   * the converted rule keeps its label rows too, and a new rule must not bring
+   * that one back (the delete's sync released its monitors). Rule edits and
+   * deletes never adopt: an edited rule is itself a rule row, and after a
+   * delete "no rule, monitors still attached" is what a deliberate delete
+   * looks like.
+   *
+   * DatabaseService applies the create permission check only after this hook,
+   * and adoption is a write - so it runs only for a caller that same check
+   * lets through: a caller without permission to create the rule must not
+   * change the SLO. DatabaseService still applies the check again afterwards.
+   * The gate is the permission check only. A create refused later (required
+   * fields, uniqueness, the insert itself) may already have adopted, which is
+   * harmless: with rule-attached monitors as evidence, adoption only makes
+   * visible a list whose monitors are already attached, and the next monitor
+   * edit would adopt it anyway.
+   *
+   * A failed adoption fails the create. Creating the rule anyway would let its
+   * sync detach the monitors the list attached, silently - the loss this
+   * exists to prevent. Nothing has been written yet, so a retry is clean.
+   */
+  private async adoptLegacyMonitorLabelsBeforeCreate(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID | undefined;
+    serviceLevelObjectiveId: ObjectID | string;
+  }): Promise<void> {
+    if (!data.projectId) {
+      // Nothing to pin the adoption to - and a rule needs a project anyway.
+      return;
+    }
+
+    try {
+      ModelPermission.checkCreatePermissions(
+        Model,
+        data.createBy.data,
+        data.createBy.props,
+      );
+    } catch {
+      // DatabaseService refuses this create right after the hook, and says why.
+      return;
+    }
+
+    await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
       projectId: data.projectId,
-      subject: "SLO monitor rule",
-      references: [
-        {
-          modelName: "Service Level Objective",
-          id: data.serviceLevelObjectiveId,
-          service: ServiceLevelObjectiveService,
-        },
-      ],
+      serviceLevelObjectiveIds: [data.serviceLevelObjectiveId],
+      requireRuleAttachedMonitors: true,
     });
   }
 

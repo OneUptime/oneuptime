@@ -4,25 +4,74 @@ import Team from "../../Models/DatabaseModels/Team";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger, { LogAttributes } from "../Utils/Logger";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+import SloOwnerReferenceValidator from "../Utils/Slo/SloOwnerReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import TeamService from "./TeamService";
 
+const SLO_OWNER_TEAM_SUBJECT: string = "SLO owner team";
+
 /*
  * The team twin of ServiceLevelObjectiveOwnerUserService: who put which team
- * on the hook for this SLO, and who took it off. Team names are escaped - the
+ * on the hook for this SLO, and who took it off. The SLO and the team are
+ * checked against the row's project on create, team names are escaped - the
  * feed renders without safe mode - and a feed failure is logged rather than
  * thrown, because the owner row has already been written or deleted.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The same gap as on owner users: DatabaseService stamps projectId and
+   * checks nothing else. A row pointing at another project's SLO would make
+   * this team's members owners of it (findOwners reads by SLO id alone) and
+   * get them emailed its name; a row naming another project's team would
+   * email that team's members this project's SLO, and print that team's name
+   * - read as root - in this project's feed.
+   *
+   * Both columns are create-only (update is [] in their column ACL), both
+   * spellings of each are checked, and neither error names or confirms a
+   * foreign SLO or team.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    // A root write with no tenant is checked against the row's own project.
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        serviceLevelObjectives: [
+          createBy.data.serviceLevelObjectiveId,
+          createBy.data.serviceLevelObjective,
+        ],
+        subject: SLO_OWNER_TEAM_SUBJECT,
+      },
+    );
+
+    await SloOwnerReferenceValidator.validateTeamsBelongToProject({
+      projectId: projectId,
+      teams: [createBy.data.teamId, createBy.data.team],
+      subject: SLO_OWNER_TEAM_SUBJECT,
+    });
+
+    return {
+      createBy: createBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()

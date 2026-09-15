@@ -68,6 +68,7 @@ import {
 } from "../../Utils/Slo/SloFeedMarkdown";
 import Select from "../Types/Database/Select";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 
 /*
  * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess: the watched
@@ -260,6 +261,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * A create that still carries the deprecated "Auto-Add Monitors With
+     * Labels" list gets it as a monitor rule first, so the sync below attaches
+     * what the list matches - as the previous release did. See
+     * applyDeprecatedMonitorLabelWrite for who still sends it and why.
+     */
+    await this.adoptDeprecatedMonitorLabelsWrittenOnCreate(createdItem);
+
+    /*
      * Reconcile the new SLO's monitor list with its monitor rules. A brand-new
      * SLO normally has none yet (rules are added afterwards, on the Monitor
      * Rules page), so this is usually a read and no write - but it keeps an
@@ -340,10 +349,15 @@ export class Service extends DatabaseService<Model> {
     const feedSnapshot: SloFeedUpdateSnapshot | null =
       await this.readFeedSnapshotBeforeUpdate(updateBy);
 
+    // Null unless the payload writes the deprecated monitor label list.
+    const monitorLabelIdsBeforeUpdate: Dictionary<Array<string>> | null =
+      await this.readDeprecatedMonitorLabelsBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: {
         feedSnapshot: feedSnapshot,
+        monitorLabelIdsBeforeUpdate: monitorLabelIdsBeforeUpdate,
       },
     };
   }
@@ -438,11 +452,26 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * No monitor sync here: the deprecated monitorLabels column is no longer
-     * read by the engine. Monitor membership now follows the SLO's monitor
-     * rules, and ServiceLevelObjectiveMonitorRuleService re-syncs whenever one
-     * of those changes.
+     * Monitor membership follows the SLO's monitor rules, and
+     * ServiceLevelObjectiveMonitorRuleService re-syncs whenever one of those
+     * changes, so an ordinary SLO edit needs no sync. The exception is a write
+     * of the deprecated "Auto-Add Monitors With Labels" list, which nothing
+     * else on this release would act on - see applyDeprecatedMonitorLabelWrite.
      */
+    if (
+      onUpdate.updateBy.data.monitorLabels !== undefined &&
+      updatedItemIds.length > 0
+    ) {
+      await this.applyDeprecatedMonitorLabelWrite({
+        serviceLevelObjectiveIds: updatedItemIds,
+        writtenMonitorLabels: onUpdate.updateBy.data.monitorLabels as unknown,
+        labelIdsBeforeUpdateBySloId:
+          (onUpdate.carryForward?.monitorLabelIdsBeforeUpdate as
+            | Dictionary<Array<string>>
+            | null
+            | undefined) || {},
+      });
+    }
 
     /*
      * If the objective's math inputs changed, force a re-evaluation on the
@@ -1536,6 +1565,282 @@ export class Service extends DatabaseService<Model> {
     }
 
     return items;
+  }
+
+  /*
+   * What a write of the deprecated "Auto-Add Monitors With Labels" list
+   * (ServiceLevelObjective.monitorLabels) does on this release.
+   *
+   * The column stays in the API so upgrades do not break, and it is still
+   * written: a dashboard tab opened before the upgrade sends it with every
+   * save of the SLO form, and so can an API client or a workflow written
+   * against the previous release. Workflows write as root, which is why every
+   * caller is handled here, not only users - nothing on this release writes
+   * the column for its own reasons. Nothing else on this release reads it
+   * either, so storing it and moving on left the SLO measuring something other
+   * than what the caller had just saved. It is applied instead, the way this
+   * release applies labels - as a monitor rule:
+   *
+   *   - An SLO with no monitor rule row gets the list as a rule
+   *     (SloLegacyMonitorLabelAdoption) and is re-synced straight away, so its
+   *     monitors reflect the list at once. A list cleared to empty has nothing
+   *     to adopt, and the sync releases the monitors it attached - both what
+   *     the previous release did.
+   *   - An SLO that already has monitor rules, enabled or disabled, IGNORES
+   *     the list, with a warning in the log when the list changed. Its rules
+   *     are what it measures and what its Monitor Rules page shows. Folding the
+   *     list into one of them was rejected: the form that sends it cannot show
+   *     rules and re-submits the list it loaded, so it would undo edits made on
+   *     the Monitor Rules page, and once the converted rule has been renamed,
+   *     edited or deleted there is no rule the list reliably "is".
+   *
+   * Only a CHANGED list is adopted without evidence. The same list re-submitted
+   * by an out-of-date form is adopted only while monitors are still attached
+   * by it (the previous release's engine attached them), so re-saving that
+   * form cannot bring back a converted rule the user deleted. See
+   * readDeprecatedMonitorLabelsBeforeUpdate.
+   *
+   * Never throws: the write has landed, and a failure here must not fail the
+   * request. An SLO whose adoption failed is not synced this time, because a
+   * sync without its rule would release the monitors the list attached.
+   */
+  private async applyDeprecatedMonitorLabelWrite(data: {
+    serviceLevelObjectiveIds: Array<ObjectID>;
+    writtenMonitorLabels: unknown;
+    labelIdsBeforeUpdateBySloId: Dictionary<Array<string>>;
+  }): Promise<void> {
+    // One adoption call per project, and per answer to "is evidence needed".
+    interface AdoptionGroup {
+      projectId: ObjectID;
+      requireRuleAttachedMonitors: boolean;
+      serviceLevelObjectiveIds: Array<string>;
+    }
+
+    try {
+      // Sorted, de-duplicated and lower-case, so two lists compare joined.
+      const writtenLabelIds: Array<string> = getSloFeedEntityIds(
+        data.writtenMonitorLabels,
+      );
+
+      // Root, by id: these are the rows the permission-checked write changed.
+      const slos: Array<Model> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(data.serviceLevelObjectiveIds),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        limit: data.serviceLevelObjectiveIds.length,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const sloIdsWithRules: Set<string> =
+        await ServiceLevelObjectiveMonitorRuleService.findServiceLevelObjectiveIdsWithAnyRule(
+          slos
+            .map((slo: Model): ObjectID | null => {
+              return slo.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+        );
+
+      const adoptionGroups: Map<string, AdoptionGroup> = new Map<
+        string,
+        AdoptionGroup
+      >();
+      const sloIdsToSync: Array<string> = [];
+
+      for (const slo of slos) {
+        if (!slo.id || !slo.projectId) {
+          continue;
+        }
+
+        const sloId: string = slo.id.toString().toLowerCase();
+
+        const labelIdsBeforeUpdate: Array<string> | undefined =
+          data.labelIdsBeforeUpdateBySloId[sloId];
+
+        // Unknown (the read before the write failed) counts as re-submitted.
+        const isListChanged: boolean =
+          labelIdsBeforeUpdate !== undefined &&
+          labelIdsBeforeUpdate.join(",") !== writtenLabelIds.join(",");
+
+        if (sloIdsWithRules.has(sloId)) {
+          if (isListChanged) {
+            logger.warn(
+              `Ignored a change to the deprecated "Auto-Add Monitors With Labels" list of SLO ${sloId}: the SLO has monitor rules, and they decide which monitors it measures. Change its monitor rules instead.`,
+              {
+                projectId: slo.projectId.toString(),
+                serviceLevelObjectiveId: sloId,
+              } as LogAttributes,
+            );
+          }
+
+          continue;
+        }
+
+        sloIdsToSync.push(sloId);
+
+        // An empty list has nothing to adopt; the sync alone releases it.
+        if (writtenLabelIds.length === 0) {
+          continue;
+        }
+
+        const groupKey: string = `${slo.projectId.toString()}|${isListChanged}`;
+
+        const group: AdoptionGroup = adoptionGroups.get(groupKey) || {
+          projectId: slo.projectId,
+          requireRuleAttachedMonitors: !isListChanged,
+          serviceLevelObjectiveIds: [],
+        };
+
+        group.serviceLevelObjectiveIds.push(sloId);
+        adoptionGroups.set(groupKey, group);
+      }
+
+      const sloIdsNotToSync: Set<string> = new Set<string>();
+
+      for (const group of adoptionGroups.values()) {
+        try {
+          await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+            projectId: group.projectId,
+            serviceLevelObjectiveIds: group.serviceLevelObjectiveIds,
+            requireRuleAttachedMonitors: group.requireRuleAttachedMonitors,
+          });
+        } catch (err) {
+          logger.error(
+            `Error converting the deprecated monitor label list of SLOs ${group.serviceLevelObjectiveIds.join(", ")} into monitor rules; not re-syncing their monitors this time: ${err}`,
+            { projectId: group.projectId.toString() } as LogAttributes,
+          );
+
+          for (const sloId of group.serviceLevelObjectiveIds) {
+            sloIdsNotToSync.add(sloId);
+          }
+        }
+      }
+
+      for (const sloId of sloIdsToSync) {
+        if (sloIdsNotToSync.has(sloId)) {
+          continue;
+        }
+
+        try {
+          await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo(
+            {
+              serviceLevelObjectiveId: new ObjectID(sloId),
+            },
+          );
+        } catch (err) {
+          // One SLO failing must not cost the others their sync.
+          logger.error(
+            `Error applying the monitor rules of SLO ${sloId} after its deprecated monitor label list was written: ${err}`,
+          );
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `Error applying a write of the deprecated SLO monitor label list: ${err}`,
+      );
+    }
+  }
+
+  /*
+   * The create half of applyDeprecatedMonitorLabelWrite: a create carrying a
+   * non-empty deprecated label list gets it as a monitor rule before
+   * onCreateSuccess syncs the SLO's monitors. No evidence is asked for - a
+   * brand-new SLO has attached nothing and has no deleted rule to bring back -
+   * and it cannot have rules yet, so there is nothing to ignore it for.
+   *
+   * Never throws. A failed adoption is logged and leaves the SLO without the
+   * rule; the sync after it releases nothing, because nothing is attached yet.
+   */
+  private async adoptDeprecatedMonitorLabelsWrittenOnCreate(
+    createdItem: Model,
+  ): Promise<void> {
+    if (
+      !createdItem.id ||
+      !createdItem.projectId ||
+      getSloFeedEntityIds(createdItem.monitorLabels).length === 0
+    ) {
+      return;
+    }
+
+    try {
+      await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+        projectId: createdItem.projectId,
+        serviceLevelObjectiveIds: [createdItem.id],
+        requireRuleAttachedMonitors: false,
+      });
+    } catch (err) {
+      logger.error(
+        `Error converting the deprecated monitor label list of new SLO ${createdItem.id.toString()} into a monitor rule: ${err}`,
+        { projectId: createdItem.projectId.toString() } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * The deprecated label list of every SLO this update may write, as it is
+   * BEFORE the write, keyed by lower-case SLO id - or null when the payload
+   * does not write that list, which is every update this release's own
+   * clients make, so they pay nothing.
+   *
+   * applyDeprecatedMonitorLabelWrite compares it with the written list,
+   * because only a CHANGED list is somebody asking for something: an
+   * out-of-date SLO form re-sends every field it loaded, labels included, on
+   * every save.
+   *
+   * Pinned to the caller's tenant like the feed snapshot, since this runs
+   * before DatabaseService applies the update's permissions. A failed read
+   * never blocks the update; its SLOs then count as re-submitting their list,
+   * the reading that can never bring a deleted rule back.
+   */
+  private async readDeprecatedMonitorLabelsBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<Array<string>> | null> {
+    if ((updateBy.data.monitorLabels as unknown) === undefined) {
+      return null;
+    }
+
+    const labelIdsBySloId: Dictionary<Array<string>> = {};
+
+    try {
+      const rows: Array<Model> = await this.findBy({
+        query: SloFeedUtil.getTenantPinnedQuery({
+          query: updateBy.query,
+          tenantId: updateBy.props.tenantId,
+        }),
+        select: {
+          _id: true,
+          monitorLabels: {
+            _id: true,
+          },
+        },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const row of rows) {
+        if (row.id) {
+          labelIdsBySloId[row.id.toString().toLowerCase()] =
+            getSloFeedEntityIds(row.monitorLabels);
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `Error reading SLO monitor label lists before an update: ${err}`,
+      );
+    }
+
+    return labelIdsBySloId;
   }
 
   /*

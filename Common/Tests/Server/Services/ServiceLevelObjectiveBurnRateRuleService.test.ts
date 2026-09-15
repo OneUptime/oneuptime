@@ -17,6 +17,7 @@ import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -263,6 +264,20 @@ async function expectBadData(
   await expect(promise).rejects.toThrow(BadDataException);
   await expect(promise).rejects.toThrow(message);
 }
+
+/*
+ * Every create in this file names SLO_ID, and the check that the SLO belongs
+ * to the rule's project reads the database, so it is stubbed file-wide.
+ * ServiceLevelObjectiveChildRowTenancy.test.ts drives the real check.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(
+      SloRecordReferenceValidator,
+      "validateServiceLevelObjectivesBelongToProject",
+    )
+    .mockResolvedValue(undefined);
+});
 
 describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate", () => {
   afterEach(() => {

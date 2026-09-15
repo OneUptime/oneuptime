@@ -24,6 +24,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -303,6 +304,20 @@ function boundIdsOf(operator: unknown): Array<string> {
 
   return values[0] as Array<string>;
 }
+
+/*
+ * Every create in this file names SLO_ID, and the check that the SLO belongs
+ * to the rule's project reads the database, so it is stubbed file-wide.
+ * ServiceLevelObjectiveChildRowTenancy.test.ts drives the real check.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(
+      SloRecordReferenceValidator,
+      "validateServiceLevelObjectivesBelongToProject",
+    )
+    .mockResolvedValue(undefined);
+});
 
 describe("ServiceLevelObjectiveBurnRateRuleService - option flags", () => {
   beforeEach(() => {
