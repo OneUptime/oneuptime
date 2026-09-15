@@ -7,7 +7,7 @@ import {
 } from "Common/Utils/Telemetry/EntityKey";
 
 /*
- * TelemetryEntity:ComputeServiceDependencies turns the recent telemetry window
+ * "TelemetryEntity:ComputeServiceDependencies" turns the recent telemetry window
  * into the Service Map's edges. These tests drive a whole run against mocked
  * ClickHouse and Postgres and pin what ends up in the registry: which edges,
  * which dependency rows, which source wins when two saw the same call, and

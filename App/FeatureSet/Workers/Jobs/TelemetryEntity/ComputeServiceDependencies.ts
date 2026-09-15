@@ -38,7 +38,7 @@ import {
 } from "Common/Server/Utils/Telemetry/ServiceDependencyDiscovery";
 
 /*
- * TelemetryEntity:ComputeServiceDependencies
+ * "TelemetryEntity:ComputeServiceDependencies"
  *
  * Every ~10 minutes, derive the `depends-on` edges of the Service Map from
  * the recent telemetry window and upsert them — plus a registry row for every
