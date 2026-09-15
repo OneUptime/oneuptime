@@ -277,7 +277,14 @@
       "title": "Projekt",
       "cardTitle": "Projekt",
       "cardDescription": "Projektoplysninger",
-      "editButton": "Rediger projekt"
+      "editButton": "Rediger projekt",
+      "dataResidencyCardTitle": "Dataopbevaring",
+      "dataResidencyCardDescription": "Hvor dette projekts data hostes. Når det er angivet, vises det for projektets brugere under Projektindstillinger.",
+      "dataResidencyEditButton": "Rediger dataopbevaring",
+      "dataResidencyFieldTitle": "Dataopbevaring",
+      "dataResidencyFieldDescription": "En betegnelse for, hvor dette projekts data hostes, f.eks. \"EU (Frankfurt)\". Lad feltet være tomt for at skjule det for projektets brugere.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "Ikke angivet"
     },
     "projectSubscription": {
       "title": "Projektabonnement",

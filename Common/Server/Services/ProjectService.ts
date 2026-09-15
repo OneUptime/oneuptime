@@ -76,6 +76,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import DataResidencyUtil from "../../Utils/Project/DataResidency";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -184,6 +185,32 @@ export class ProjectService extends DatabaseService<Model> {
     return SubscriptionPlan.getPlanType(planId);
   }
 
+  /*
+   * Runs on every create and update that carries dataResidency, before the
+   * write. Who may write it is the column's access control (master admins
+   * only); this is what they may write: trimmed text, a blank stored as null,
+   * and nothing at all on a server without billing, where the label would
+   * describe nothing. Clearing is always allowed, so a project that picked up
+   * a value before billing was turned off can still be tidied.
+   */
+  public applyDataResidencyRules(data: { dataResidency?: unknown }): void {
+    if (data.dataResidency === undefined) {
+      return;
+    }
+
+    const dataResidency: string | null = DataResidencyUtil.normalize(
+      data.dataResidency,
+    );
+
+    if (dataResidency !== null && !IsBillingEnabled) {
+      throw new BadDataException(
+        "Data residency can only be set when billing is enabled.",
+      );
+    }
+
+    data.dataResidency = dataResidency;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -191,6 +218,8 @@ export class ProjectService extends DatabaseService<Model> {
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
+
+    this.applyDataResidencyRules(data.data);
 
     if (data.props.userId) {
       data.data.createdByUserId = data.props.userId;
@@ -526,6 +555,8 @@ export class ProjectService extends DatabaseService<Model> {
     if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
       this.requireSsoWithSsoProviderIdCache.clear();
     }
+
+    this.applyDataResidencyRules(updateBy.data);
 
     if (IsBillingEnabled) {
       if (

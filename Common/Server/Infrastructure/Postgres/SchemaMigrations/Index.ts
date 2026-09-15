@@ -7,6 +7,7 @@ import { AddNetworkDeviceDnsNameAndShortDeviceNames1792900000000 } from "./17929
 import { AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000 } from "./1793000000000-AddNetbiosLookupToNetworkDeviceDiscoveryScan";
 import { SloProductOverhaul1793100000000 } from "./1793100000000-SloProductOverhaul";
 import { BackfillSloMonitorRulesAndAffectedResources1793200000000 } from "./1793200000000-BackfillSloMonitorRulesAndAffectedResources";
+import { AddDataResidencyToProject1793300000000 } from "./1793300000000-AddDataResidencyToProject";
 import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
 import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
@@ -1190,4 +1191,5 @@ export default [
   AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000,
   SloProductOverhaul1793100000000,
   BackfillSloMonitorRulesAndAffectedResources1793200000000,
+  AddDataResidencyToProject1793300000000,
 ];

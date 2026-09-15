@@ -277,7 +277,14 @@
       "title": "پروژه",
       "cardTitle": "پروژه",
       "cardDescription": "جزئیات پروژه",
-      "editButton": "ویرایش پروژه"
+      "editButton": "ویرایش پروژه",
+      "dataResidencyCardTitle": "محل نگهداری داده‌ها",
+      "dataResidencyCardDescription": "محلی که داده‌های این پروژه در آن میزبانی می‌شوند. پس از تنظیم، در تنظیمات پروژه به کاربران پروژه نمایش داده می‌شود.",
+      "dataResidencyEditButton": "ویرایش محل نگهداری داده‌ها",
+      "dataResidencyFieldTitle": "محل نگهداری داده‌ها",
+      "dataResidencyFieldDescription": "برچسبی برای محل میزبانی داده‌های این پروژه، برای مثال \"EU (Frankfurt)\". برای پنهان کردن آن از کاربران پروژه، خالی بگذارید.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "تنظیم نشده"
     },
     "projectSubscription": {
       "title": "اشتراک پروژه",

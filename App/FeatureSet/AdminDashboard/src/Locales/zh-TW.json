@@ -277,7 +277,14 @@
       "title": "專案",
       "cardTitle": "專案",
       "cardDescription": "專案詳細資料",
-      "editButton": "編輯專案"
+      "editButton": "編輯專案",
+      "dataResidencyCardTitle": "資料駐留",
+      "dataResidencyCardDescription": "此專案資料的託管位置。設定後，專案使用者可在專案設定中看到。",
+      "dataResidencyEditButton": "編輯資料駐留",
+      "dataResidencyFieldTitle": "資料駐留",
+      "dataResidencyFieldDescription": "表示此專案資料託管位置的標籤，例如 \"EU (Frankfurt)\"。留空則不向專案使用者顯示。",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "未設定"
     },
     "projectSubscription": {
       "title": "專案訂閱",
