@@ -35,12 +35,14 @@ import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
   ConnectorFetchBudget,
+  ConnectorFetchFailureSummary,
   ConnectorFetchOptions,
   ConnectorFetchPurpose,
   ConnectorFetchResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
   readConnectorChecks,
+  readConnectorFetchSummary,
   toConnectorTestResult,
 } from "./Types";
 
@@ -91,7 +93,8 @@ import {
  * serves and the connection's poll interval from the fetch options,
  * reports one check per pass (kept ahead of the summary read check) and
  * its own diagnostics (kept as providerDetails), and names the pass that
- * failed by attaching the passes' checks to the error it throws.
+ * failed by attaching the passes' checks to the error it throws, with a
+ * summary of what those passes gathered kept on the failed run.
  */
 
 export const DEFAULT_INITIAL_LOOKBACK_IN_MINUTES: number = 24 * 60;
@@ -801,6 +804,34 @@ export default class SecurityEventConnectionPoller {
         }
 
         result.checks.push(check);
+      }
+
+      /*
+       * A connector that reads in passes may also attach what those passes
+       * gathered (attachConnectorFetchSummary): their warnings, request and
+       * record counts, and provider details so far. Keeping them restores
+       * what the retired Google SecOps poller kept on a failed run, such as
+       * the curated HTTP 403 downgrade warning and the per-pass counts. It
+       * is diagnostics only: the status, error, lastError and the cursor
+       * decision below are the same with or without it, and a connector
+       * that attaches none leaves the failed run as it was.
+       */
+      const summary: ConnectorFetchFailureSummary | undefined =
+        readConnectorFetchSummary(error);
+
+      if (summary) {
+        for (const warning of summary.warnings) {
+          if (!result.warnings.includes(warning)) {
+            result.warnings.push(warning);
+          }
+        }
+
+        result.requestCount = summary.requestCount;
+        result.fetchedCount = summary.fetchedCount;
+
+        if (summary.details) {
+          result.providerDetails = summary.details;
+        }
       }
 
       result.checks.push({

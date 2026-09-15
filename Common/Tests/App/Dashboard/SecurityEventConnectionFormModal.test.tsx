@@ -1023,6 +1023,91 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
  * pasted text, and "Data to import" (Alerts always, Detections optional)
  * mapped onto alertingOnly with the right polarity.
  */
+describe("SecurityEventConnectionFormModal (poll interval bounds)", () => {
+  /*
+   * Every provider shares one Poll Interval field, bounded to whole minutes
+   * from 1 to 1440. The retired Google SecOps form suite pinned those bounds
+   * and nothing else did once it was deleted, so a dropped or widened
+   * validation would let a connection be saved that polls never or
+   * constantly. The edit form is used because it reaches the Polling step
+   * without choosing a provider; the field is the same on create.
+   */
+  beforeEach((): void => {
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  function pollIntervalInput(): HTMLElement {
+    return screen.getByRole("spinbutton", { name: /^Poll Interval/ });
+  }
+
+  async function openPollingStep(): Promise<CallbackMock> {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
+      connection: oktaConnection(),
+    });
+    await next();
+    await next();
+    expect(activeStep()).toBe("Polling");
+    expect(pollIntervalInput()).toHaveValue(10);
+    return onSaved;
+  }
+
+  async function saveWithInterval(value: string): Promise<void> {
+    fireEvent.change(pollIntervalInput(), { target: { value } });
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+  }
+
+  test.each([
+    {
+      value: "0",
+      error: "Poll Interval (Minutes) should not be less than 1.",
+    },
+    {
+      value: "1441",
+      error: "Poll Interval (Minutes) should not be more than 1440.",
+    },
+  ])(
+    "$value minutes blocks saving with the form's bound message",
+    async ({ value, error }: { value: string; error: string }) => {
+      const onSaved: CallbackMock = await openPollingStep();
+
+      await saveWithInterval(value);
+
+      expect(await screen.findByText(error)).toBeVisible();
+      expect(activeStep()).toBe("Polling");
+      expect(ModelAPI.updateById).not.toHaveBeenCalled();
+      expect(onSaved).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([1, 1440])(
+    "%s minutes is inside the bounds and is saved",
+    async (minutes: number) => {
+      const onSaved: CallbackMock = await openPollingStep();
+
+      await saveWithInterval(String(minutes));
+
+      await waitFor((): void => {
+        expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+      });
+      const update: { id: ObjectID; data: JSONObject } = jest.mocked(
+        ModelAPI.updateById,
+      ).mock.calls[0]?.[0] as { id: ObjectID; data: JSONObject };
+      expect(update.data["pollIntervalInMinutes"]).toBe(minutes);
+      expect(
+        screen.queryByText(/^Poll Interval \(Minutes\) should not be/),
+      ).not.toBeInTheDocument();
+      expect(onSaved).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
 describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
   beforeEach((): void => {
     mockTransport();

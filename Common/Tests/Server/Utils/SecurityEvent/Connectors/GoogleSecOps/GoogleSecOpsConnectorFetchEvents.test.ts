@@ -5,11 +5,13 @@ import GoogleSecOpsClient, {
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsConnector from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsConnector";
 import {
+  ConnectorFetchFailureSummary,
   ConnectorFetchOptions,
   ConnectorFetchPurpose,
   ConnectorFetchResult,
   ConnectorFetchWindow,
   readConnectorChecks,
+  readConnectorFetchSummary,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import APIException from "../../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../../Types/Exception/BadDataException";
@@ -739,6 +741,189 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
     expect(readConnectorChecks(error)).toHaveLength(1);
   });
 
+  test("a curated downgrade's warn check keeps a 403 body over the default message limit whole, and still redacted", async () => {
+    /*
+     * Every failure check is written whole; the curated warn check used the
+     * default 1000 character clamp, which cut Google's explanation of the
+     * missing entitlement off mid-body.
+     */
+    const body: string = "curated entitlement missing ".repeat(45);
+    const message: string = `Google SecOps detections search failed (HTTP 403): {"error":{"private_key":"-----BEGIN PRIVATE KEY-----leaked"}} ${body}tail`;
+    expect(message.length).toBeGreaterThan(1000);
+    const fake: FakeClient = makeFakeClient({
+      rule: [page([detection("r")])],
+      curated: [new APIException(message)],
+      alerts: [fetched([detection("v")])],
+    });
+
+    const result: ConnectorFetchResult = await fetchWith(fake);
+
+    const warned: SecurityConnectorCheck = checkByKey(
+      result.checks,
+      "read-curated-detections",
+    );
+    expect(warned.status).toBe("warn");
+    expect(warned.message.length).toBeGreaterThan(1000);
+    expect(warned.message).toContain(`${body}tail`);
+    expect(warned.message.endsWith("tail")).toBe(true);
+    expect(warned.message).not.toContain("(truncated)");
+    expect(warned.message).not.toContain("leaked");
+    expect(
+      warned.message.startsWith(
+        "Google SecOps detections search failed (HTTP 403): ",
+      ),
+    ).toBe(true);
+  });
+
+  test("a failure after a curated downgrade carries the passes' warnings, request and record counts and details on the original error", async () => {
+    /*
+     * The retired GoogleSecOpsPoller mutated one result through every pass
+     * and kept the curated warning, the counts, sourceCounts, basis and
+     * includeNonAlertingDetections on its failed run. The connector hands the
+     * same to the shared poller on the error it rethrows.
+     */
+    const original: APIException = new APIException(
+      'Google SecOps alerts fetch failed (HTTP 500): {"error":{"code":500}}',
+    );
+    const fake: FakeClient = makeFakeClient({
+      rule: [page([detection("r1"), detection("r2")])],
+      curated: [
+        new APIException(
+          'Google SecOps detections search failed (HTTP 403): {"error":{"code":403}}',
+        ),
+      ],
+      alerts: [original],
+    });
+
+    const error: unknown = await rejectionOf(fetchWith(fake));
+
+    expect(error).toBe(original);
+    expect(error).toBeInstanceOf(APIException);
+    expect((error as Error).message).toBe(
+      'Google SecOps alerts fetch failed (HTTP 500): {"error":{"code":500}}',
+    );
+    expect(statusesOf(readConnectorChecks(error))).toEqual([
+      "read-rule-detections:pass",
+      "read-curated-detections:warn",
+      "read-alerts-view:fail",
+    ]);
+    const summary: ConnectorFetchFailureSummary | undefined =
+      readConnectorFetchSummary(error);
+    expect(summary).toBeDefined();
+    expect(summary!.warnings).toHaveLength(1);
+    expect(
+      summary!.warnings[0]!.startsWith(
+        "Curated rule detections could not be read (HTTP 403)",
+      ),
+    ).toBe(true);
+    // Two searches and the alerts-view request that failed.
+    expect(fake.searchCalls.length + fake.alertsCalls.length).toBe(3);
+    expect(summary!.requestCount).toBe(3);
+    expect(summary!.fetchedCount).toBe(2);
+    expect(summary!.details).toEqual({
+      basis: "created-time",
+      sourceCounts: { ruleDetections: 2, curatedDetections: 0, alertsView: 0 },
+      includeNonAlertingDetections: false,
+    });
+    expect(Object.keys(error as object)).not.toContain(
+      "oneuptimeConnectorFetchSummary",
+    );
+  });
+
+  test("a rule pass failure carries a summary with the request it made and nothing fetched", async () => {
+    const original: APIException = new APIException(
+      "Google SecOps detections search failed (HTTP 403): denied",
+    );
+    const fake: FakeClient = makeFakeClient({ rule: [original] });
+
+    const error: unknown = await rejectionOf(fetchWith(fake));
+
+    expect(error).toBe(original);
+    const summary: ConnectorFetchFailureSummary | undefined =
+      readConnectorFetchSummary(error);
+    expect(summary).toEqual({
+      warnings: [],
+      requestCount: 1,
+      fetchedCount: 0,
+      details: {
+        basis: "created-time",
+        sourceCounts: {
+          ruleDetections: 0,
+          curatedDetections: 0,
+          alertsView: 0,
+        },
+        includeNonAlertingDetections: false,
+      },
+    });
+    expect(summary!.requestCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test("a pass failing on a later page counts the records its earlier pages collected, while its source count stays unset", async () => {
+    /*
+     * sourceCounts are filled when a pass finishes, as the retired poller
+     * filled them; the union (fetchedCount) grows with every page read.
+     */
+    const fake: FakeClient = makeFakeClient({
+      rule: [
+        page([detection("a"), detection("b")], { nextPageToken: "page-2" }),
+        new APIException(
+          "Google SecOps detections search failed (HTTP 503): unavailable",
+        ),
+      ],
+    });
+
+    const error: unknown = await rejectionOf(fetchWith(fake));
+
+    const summary: ConnectorFetchFailureSummary | undefined =
+      readConnectorFetchSummary(error);
+    expect(summary).toMatchObject({
+      warnings: [],
+      requestCount: 2,
+      fetchedCount: 2,
+      details: {
+        sourceCounts: {
+          ruleDetections: 0,
+          curatedDetections: 0,
+          alertsView: 0,
+        },
+      },
+    });
+  });
+
+  test("a failed preview with Detections selected reports its detection-time basis and scope in the summary", async () => {
+    const fake: FakeClient = makeFakeClient({
+      // The same detection by both bases is one record in the union.
+      rule: [page([detection("same")])],
+      curated: [
+        new APIException(
+          'Google SecOps detections search failed (HTTP 500): {"error":{"code":500}}',
+        ),
+      ],
+    });
+
+    const error: unknown = await rejectionOf(
+      fetchWith(fake, {
+        options: { purpose: "preview" },
+        alertingOnly: false,
+      }),
+    );
+
+    expect(readConnectorFetchSummary(error)).toEqual({
+      warnings: [],
+      requestCount: 3,
+      fetchedCount: 1,
+      details: {
+        basis: "detection-time",
+        sourceCounts: {
+          ruleDetections: 2,
+          curatedDetections: 0,
+          alertsView: 0,
+        },
+        includeNonAlertingDetections: true,
+      },
+    });
+  });
+
   test("a rejection that is not an Error object is rethrown as it was", async () => {
     const client: GoogleSecOpsClient = {
       searchDetections: (): Promise<SearchDetectionsResult> => {
@@ -756,6 +941,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
 
     expect(error).toBe("socket hang up");
     expect(readConnectorChecks(error)).toBeUndefined();
+    expect(readConnectorFetchSummary(error)).toBeUndefined();
   });
 });
 

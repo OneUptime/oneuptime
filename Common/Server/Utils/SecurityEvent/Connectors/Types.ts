@@ -207,6 +207,11 @@ export interface SecurityEventConnector {
    * failed run and holds the cursor). A connector that reads in passes may
    * attach the checks of the passes that ran to the thrown error with
    * attachConnectorChecks, so the failed run names the pass that failed.
+   * It may also attach what those passes gathered (their warnings, request
+   * and record counts, and provider details so far) with
+   * attachConnectorFetchSummary, so the failed run still shows what was
+   * read before the failure. Both ride on the original error; neither
+   * changes its type or message.
    */
   fetchEvents(
     settings: SecurityConnectorSettings,
@@ -233,12 +238,20 @@ export function attachConnectorChecks<T>(
   checks: Array<SecurityConnectorCheck>,
 ): T {
   if (error && typeof error === "object") {
-    Object.defineProperty(error, CONNECTOR_CHECKS_PROPERTY, {
-      value: checks,
-      enumerable: false,
-      configurable: true,
-      writable: true,
-    });
+    try {
+      Object.defineProperty(error, CONNECTOR_CHECKS_PROPERTY, {
+        value: checks,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+    } catch {
+      /*
+       * A frozen or non-extensible error cannot take the property. The
+       * checks only name the failing pass, so the connector still rethrows
+       * the original error rather than a TypeError about the property.
+       */
+    }
   }
 
   return error;
@@ -258,6 +271,108 @@ export function readConnectorChecks(
   return Array.isArray(checks)
     ? (checks as Array<SecurityConnectorCheck>)
     : undefined;
+}
+
+/*
+ * What a fetch that read in passes had gathered when a pass threw. The
+ * poller copies it onto the failed run, so the run keeps the warnings the
+ * passes that ran raised (a curated HTTP 403 downgrade, a budget stop),
+ * how many requests they made, how many records they collected, and the
+ * provider details so far. The retired Google SecOps poller mutated one
+ * result through every pass and kept all of that on a failed run; this is
+ * how a connector hands the same over through the shared poller. Never
+ * credentials.
+ */
+export interface ConnectorFetchFailureSummary {
+  warnings: Array<string>;
+  requestCount: number;
+  // Records collected before the failure, before normalization.
+  fetchedCount: number;
+  details?: JSONObject | undefined;
+}
+
+/*
+ * Stored beside the checks and for the same reason: on the original error,
+ * never a wrapper, so the error's type and message reach the run unchanged.
+ */
+const CONNECTOR_FETCH_SUMMARY_PROPERTY: string =
+  "oneuptimeConnectorFetchSummary";
+
+export function attachConnectorFetchSummary<T>(
+  error: T,
+  summary: ConnectorFetchFailureSummary,
+): T {
+  if (error && typeof error === "object") {
+    try {
+      Object.defineProperty(error, CONNECTOR_FETCH_SUMMARY_PROPERTY, {
+        value: summary,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+    } catch {
+      /*
+       * A frozen or non-extensible error cannot take the property. The
+       * summary is diagnostics only, so the connector still rethrows the
+       * original error rather than a TypeError about the property.
+       */
+    }
+  }
+
+  return error;
+}
+
+function isNonNegativeCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+/*
+ * The summary attached to an error, or undefined. The property can be set
+ * by anything holding the error, so the shape is checked rather than
+ * trusted: a summary without an array of warnings or without both counts
+ * is ignored, non-string warnings are dropped, and details that are not an
+ * object are left out. The result is a copy, so a caller appending to its
+ * warnings never changes what the error carries.
+ */
+export function readConnectorFetchSummary(
+  error: unknown,
+): ConnectorFetchFailureSummary | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+
+  const stored: unknown = (error as Record<string, unknown>)[
+    CONNECTOR_FETCH_SUMMARY_PROPERTY
+  ];
+
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+    return undefined;
+  }
+
+  const candidate: Record<string, unknown> = stored as Record<string, unknown>;
+
+  if (
+    !Array.isArray(candidate["warnings"]) ||
+    !isNonNegativeCount(candidate["requestCount"]) ||
+    !isNonNegativeCount(candidate["fetchedCount"])
+  ) {
+    return undefined;
+  }
+
+  const details: unknown = candidate["details"];
+
+  return {
+    warnings: (candidate["warnings"] as Array<unknown>).filter(
+      (warning: unknown): warning is string => {
+        return typeof warning === "string";
+      },
+    ),
+    requestCount: candidate["requestCount"],
+    fetchedCount: candidate["fetchedCount"],
+    ...(details && typeof details === "object" && !Array.isArray(details)
+      ? { details: details as JSONObject }
+      : {}),
+  };
 }
 
 /*

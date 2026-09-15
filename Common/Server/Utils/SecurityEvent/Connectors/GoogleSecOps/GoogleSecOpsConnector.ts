@@ -31,6 +31,7 @@ import {
   SecurityConnectorSettings,
   SecurityEventConnector,
   attachConnectorChecks,
+  attachConnectorFetchSummary,
   makeCheck,
   readSettingString,
 } from "../Types";
@@ -912,7 +913,9 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
    * A pass that throws (authentication, HTTP, an unreadable body, a
    * timeout) rethrows the ORIGINAL error, whose message prefix the docs
    * quote, with the checks of the passes that ran and a failed check named
-   * after the failing pass attached to it.
+   * after the failing pass attached to it, and a summary of what those
+   * passes gathered (warnings, request and record counts, basis and
+   * per-pass counts) attached beside them.
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -931,6 +934,8 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
     const basisLabel: string = isHistorical
       ? "created and detection time"
       : "created time";
+    // Reported in details on success and on the summary a failure carries.
+    const basis: string = isHistorical ? "detection-time" : "created-time";
     const alertingOnly: boolean = settings.alertingOnly !== false;
     const run: FetchRun = {
       startedMs: Date.now(),
@@ -1020,8 +1025,15 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
             name: phaseName,
             status: "warn",
             startedAtMs: phaseStartedMs,
+            /*
+             * Whole, like every failure check: a clamped 403 body would hide
+             * the part of Google's answer that says which entitlement is
+             * missing.
+             */
             message: redactLogString(
-              ConnectorErrorMessage.toMessage(curatedError),
+              ConnectorErrorMessage.toMessage(curatedError, {
+                truncate: false,
+              }),
             ),
             remediation: CURATED_OPTIONAL_REMEDIATION,
             details: { httpStatus: status },
@@ -1059,7 +1071,26 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           ),
         }),
       );
-      throw attachConnectorChecks(error, [...run.checks]);
+      /*
+       * What the passes that ran gathered goes with their checks, so the
+       * failed run keeps their warnings, request and record counts, basis
+       * and per-pass counts, as the retired poller's failed result did.
+       * Creation lag is measured only over a finished read, so it is left
+       * out here.
+       */
+      throw attachConnectorFetchSummary(
+        attachConnectorChecks(error, [...run.checks]),
+        {
+          warnings: [...run.warnings],
+          requestCount: run.requestCount,
+          fetchedCount: run.seen.size,
+          details: {
+            basis,
+            sourceCounts: { ...sourceCounts },
+            includeNonAlertingDetections: !alertingOnly,
+          },
+        },
+      );
     }
 
     const alerts: Array<JSONObject> = Array.from(run.seen.values());
@@ -1110,7 +1141,7 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       samples,
       checks: run.checks,
       details: {
-        basis: isHistorical ? "detection-time" : "created-time",
+        basis,
         sourceCounts,
         creationLag: { ...creationLag },
         includeNonAlertingDetections: !alertingOnly,

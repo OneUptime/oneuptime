@@ -27,6 +27,7 @@ import SecurityEventConnectionPoller, {
 import SecurityEventConnectorRegistry from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import {
   ConnectorFetchBudget,
+  ConnectorFetchFailureSummary,
   ConnectorFetchOptions,
   ConnectorFetchResult,
   ConnectorFetchWindow,
@@ -35,6 +36,7 @@ import {
   SecurityConnectorSettings,
   SecurityEventConnector,
   attachConnectorChecks,
+  attachConnectorFetchSummary,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
@@ -3895,6 +3897,231 @@ describe("SecurityEventConnectionPoller.executeConnection - a failed pass names 
     expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES / 2);
     expect("cursor" in updateCall().data).toBe(false);
   });
+});
+
+describe("SecurityEventConnectionPoller.executeConnection - a failed fetch keeps what its passes gathered", () => {
+  /*
+   * The retired Google SecOps poller mutated one result through every pass,
+   * so its failed run still carried the passes' warnings (the curated HTTP
+   * 403 downgrade among them), the request and record counts, and its
+   * details. A connector hands the same over with
+   * attachConnectorFetchSummary. The failure itself, lastError and the
+   * cursor must not change because of it, and a connector that attaches no
+   * summary must leave the failed run exactly as it was.
+   */
+  const CURATED_WARNING: string =
+    "Curated rule detections could not be read (HTTP 403); this tenant may not have curated rule access. Rule detections and the alerts view were still read.";
+  const BUDGET_WARNING: string =
+    "Read rule detections by created time was stopped by the request budget after 20 requests.";
+  const CATCH_UP_WARNING: string =
+    "Catching up from the saved cursor in 24 hour windows. Later records will be fetched by subsequent polls.";
+  const SUMMARY_DETAILS: JSONObject = {
+    basis: "created-time",
+    sourceCounts: { ruleDetections: 2, curatedDetections: 0, alertsView: 0 },
+    includeNonAlertingDetections: false,
+  };
+
+  function alertsViewFailure(
+    summary?: ConnectorFetchFailureSummary | undefined,
+  ): Error {
+    const error: Error = attachConnectorChecks(
+      new Error(
+        `Google SecOps alerts fetch failed (HTTP 500): client_secret=${SECRET_VALUE}`,
+      ),
+      [
+        PASS_CHECKS[0]!,
+        PASS_CHECKS[1]!,
+        {
+          key: "alerts-view-read",
+          name: "Read alerts view by detection time",
+          status: "fail",
+          durationMs: 2,
+          message: "HTTP 500 from the alerts view.",
+        },
+      ],
+    );
+
+    return summary ? attachConnectorFetchSummary(error, summary) : error;
+  }
+
+  function lastConnectionUpdate(): ConnectionUpdateCall {
+    const spy: jest.Mock =
+      SecurityEventConnectionService.updateOneById as unknown as jest.Mock;
+    expect(spy.mock.calls.length).toBeGreaterThan(0);
+    return spy.mock.calls[
+      spy.mock.calls.length - 1
+    ]![0] as ConnectionUpdateCall;
+  }
+
+  function pollWith(
+    fetch: Error,
+    cursor: Date,
+  ): Promise<SecurityEventConnectionRunResult> {
+    return SecurityEventConnectionPoller.executeConnection(
+      makeConnection({ cursor: cursor.toISOString() }),
+      { type: "poll" },
+      overridesFor(makeFakeConnector({ fetch })),
+    );
+  }
+
+  test("the summary's warnings, counts and provider details are kept while the failure, lastError and cursor stay as they were", async () => {
+    // Three days behind, so the window raises its own catch-up warning.
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const baseline: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure(),
+      cursor,
+    );
+    const baselineUpdate: ConnectionUpdateCall = lastConnectionUpdate();
+
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        // A warning the window already raised, and a repeat, are written once.
+        warnings: [
+          CURATED_WARNING,
+          CATCH_UP_WARNING,
+          BUDGET_WARNING,
+          CURATED_WARNING,
+        ],
+        requestCount: 3,
+        fetchedCount: 2,
+        details: SUMMARY_DETAILS,
+      }),
+      cursor,
+    );
+    const written: ConnectionUpdateCall = lastConnectionUpdate();
+
+    expect(baseline.warnings).toEqual([CATCH_UP_WARNING]);
+    expect(result.status).toBe("failed");
+    expect(result.complete).toBe(false);
+    expect(result.warnings).toEqual([
+      CATCH_UP_WARNING,
+      CURATED_WARNING,
+      BUDGET_WARNING,
+    ]);
+    expect(result.requestCount).toBe(3);
+    expect(result.fetchedCount).toBe(2);
+    expect(result.ingestedCount).toBe(0);
+    expect(result.providerDetails).toEqual(SUMMARY_DETAILS);
+
+    // The failure is booked exactly as it is without a summary.
+    expect(result.error).toBe(baseline.error);
+    expect(result.error).toContain(
+      "Google SecOps alerts fetch failed (HTTP 500)",
+    );
+    expect(checkKeysAndStatuses(result)).toEqual([
+      "configuration:pass",
+      "rule-detections-read:pass",
+      "curated-detections-read:warn",
+      "failure:fail",
+    ]);
+    expect(checkKeysAndStatuses(result)).toEqual(
+      checkKeysAndStatuses(baseline),
+    );
+    expect(result.checks[result.checks.length - 1]!.key).toBe("failure");
+    expect(findCheck(result, "failure")).toMatchObject({
+      name: "Read alerts view by detection time",
+      message: result.error,
+    });
+    expect(result.chunkMinutes).toBe(baseline.chunkMinutes);
+    expect(result.nextChunkMinutes).toBe(baseline.nextChunkMinutes);
+    expect(written.data["lastError"]).toBe(result.error);
+    expect(written.data["lastError"]).toBe(baselineUpdate.data["lastError"]);
+    expect("cursor" in written.data).toBe(false);
+    expect("lastSuccessfulPollAt" in written.data).toBe(false);
+    expect(written.data["lastPollResult"]).toMatchObject({
+      status: "failed",
+      requestCount: 3,
+      fetchedCount: 2,
+      providerDetails: SUMMARY_DETAILS,
+    });
+    expect(JSON.stringify(result)).not.toContain(SECRET_VALUE);
+  });
+
+  test("a connector that attaches no summary leaves the failed run's counts, warnings and details as they were", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure(),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.requestCount).toBe(0);
+    expect(result.fetchedCount).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(result).not.toHaveProperty("providerDetails");
+    expect(findCheck(result, "failure").name).toBe(
+      "Read alerts view by detection time",
+    );
+    expect(lastConnectionUpdate().data["lastError"]).toBe(result.error);
+  });
+
+  test("a malformed summary is ignored like none", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        warnings: "not a list",
+        requestCount: 3,
+        fetchedCount: 2,
+        details: SUMMARY_DETAILS,
+      } as unknown as ConnectorFetchFailureSummary),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.requestCount).toBe(0);
+    expect(result.fetchedCount).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+
+  test("a summary without details keeps its warnings and counts and adds no provider details", async () => {
+    const result: SecurityEventConnectionRunResult = await pollWith(
+      alertsViewFailure({
+        warnings: [CURATED_WARNING],
+        requestCount: 1,
+        fetchedCount: 0,
+      }),
+      new Date(Date.now() - 10 * MINUTE_MS),
+    );
+
+    expect(result).toMatchObject({
+      status: "failed",
+      warnings: [CURATED_WARNING],
+      requestCount: 1,
+      fetchedCount: 0,
+    });
+    expect(result).not.toHaveProperty("providerDetails");
+  });
+
+  test.each<["preview" | "backfill"]>([["preview"], ["backfill"]])(
+    "a failed %s keeps the summary too",
+    async (type: "preview" | "backfill") => {
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection(),
+          runOptionsFor(type),
+          overridesFor(
+            makeFakeConnector({
+              fetch: alertsViewFailure({
+                warnings: [CURATED_WARNING],
+                requestCount: 2,
+                fetchedCount: 1,
+                details: SUMMARY_DETAILS,
+              }),
+            }),
+          ),
+        );
+
+      expect(result).toMatchObject({
+        status: "failed",
+        warnings: [CURATED_WARNING],
+        requestCount: 2,
+        fetchedCount: 1,
+        providerDetails: SUMMARY_DETAILS,
+      });
+      expect(findCheck(result, "failure").name).toBe(
+        "Read alerts view by detection time",
+      );
+    },
+  );
 });
 
 describe("SecurityEventConnectionPoller.executeConnection - queued test with a ConnectorTestResult", () => {
