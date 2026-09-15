@@ -170,11 +170,25 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULES, [
       "Project",
       "Monitors",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS, [
       "Project",

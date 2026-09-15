@@ -60,6 +60,8 @@ import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
 import KubernetesSettingsOwnerRules from "../Pages/Kubernetes/Settings/OwnerRules";
 import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRules";
 import KubernetesArchived from "../Pages/Kubernetes/Archived";
+import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
+import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -109,6 +111,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <KubernetesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={KubernetesClusterOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
             KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] || ""
           }
           element={
@@ -117,6 +134,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <KubernetesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={KubernetesClusterLabelRule}
             />
           }
         />

@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -14,12 +16,25 @@ import Team from "Common/Models/DatabaseModels/Team";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const RumApplicationOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const RumApplicationOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<RumApplicationOwnerRule>
+    <RuleTable<RumApplicationOwnerRule>
       modelType={RumApplicationOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        RumApplicationOwnerRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.RUM_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: RumApplicationOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.RUM_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="rum-application-owner-rules-table"
       name="Settings > RUM Application Owner Rules"
       userPreferencesKey="rum-application-owner-rules-table"
@@ -63,7 +78,6 @@ const RumApplicationOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

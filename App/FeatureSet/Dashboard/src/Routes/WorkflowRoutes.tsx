@@ -21,6 +21,8 @@ import WorkflowVariables from "../Pages/Workflow/View/Variable";
 import WorkflowSettings from "../Pages/Workflow/View/Settings";
 import WorkflowSettingsOwnerRules from "../Pages/Workflow/Settings/OwnerRules";
 import WorkflowSettingsLabelRules from "../Pages/Workflow/Settings/LabelRules";
+import WorkflowLabelRule from "Common/Models/DatabaseModels/WorkflowLabelRule";
+import WorkflowOwnerRule from "Common/Models/DatabaseModels/WorkflowOwnerRule";
 
 const WorkflowRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -69,6 +71,20 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_OWNER_RULE_VIEW] || ""
+          }
+          element={
+            <WorkflowSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.WORKFLOWS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={WorkflowOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES] || ""}
@@ -78,6 +94,20 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW] || ""
+          }
+          element={
+            <WorkflowSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={WorkflowLabelRule}
             />
           }
         />

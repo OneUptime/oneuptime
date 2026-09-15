@@ -21,6 +21,8 @@ import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
+import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
+import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -47,11 +49,35 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <CloudLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={CloudResourceLabelRule}
+            />
+          }
+        />
+        <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES] || ""}
           element={
             <CloudOwnerRules
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <CloudOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={CloudResourceOwnerRule}
             />
           }
         />

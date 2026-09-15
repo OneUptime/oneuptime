@@ -5,6 +5,7 @@ import Select from "../../Types/Database/Select";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
@@ -146,6 +147,21 @@ export default class ProjectScopedReferenceValidator {
 
       if (!id) {
         continue;
+      }
+
+      /*
+       * The type says a service is always there, but a caller that picks it
+       * from a table built at module load can hand over `undefined` when an
+       * import cycle leaves that service half initialized (see
+       * MonitorStepsProjectValidator). Without this check the lookup below
+       * fails with a TypeError, which the API reports as a bare "Server Error"
+       * that names nothing. It is still a bug, so it stays a 500, but the
+       * message says which reference could not be checked.
+       */
+      if (!reference.service) {
+        throw new ServerException(
+          `Unable to check the ${reference.modelName} this ${data.subject || "request"} references because its lookup service is not loaded. Please contact support.`,
+        );
       }
 
       if (!idsByService.has(reference.service)) {

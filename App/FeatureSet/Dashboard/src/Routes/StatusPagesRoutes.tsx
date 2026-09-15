@@ -76,6 +76,9 @@ import StatusPagesSettingsCustomFields from "../Pages/StatusPages/Settings/Statu
 import StatusPagesSettingsOwnerRules from "../Pages/StatusPages/Settings/StatusPageOwnerRules";
 
 import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusPageLabelRules";
+import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
+import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
+import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -216,6 +219,22 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <StatusPagesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={StatusPageOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -228,6 +247,22 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <StatusPagesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={StatusPageLabelRule}
             />
           }
         />
@@ -681,6 +716,21 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_MONITOR_RULE_VIEW,
+            2,
+          )}
+          element={
+            <StatusPagesViewMonitorRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULE_VIEW] as Route
+              }
+              ruleViewModelType={StatusPageMonitorRule}
             />
           }
         />

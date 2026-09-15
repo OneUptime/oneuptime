@@ -1,4 +1,3 @@
-import { LockedFilterDetail } from "../../Types/Telemetry/LockedFilterDetail";
 import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
 import { escapeWildcards } from "../../Types/BaseDatabase/WildcardPattern";
 import {
@@ -8,8 +7,8 @@ import {
 
 /*
  * Turn a locked filter chip back into the search-bar syntax of the explorer
- * it belongs to, so a reader can copy the filters a resource page pinned and
- * paste them into the main Logs / Traces / Metrics page.
+ * it belongs to, so a reader can copy the filter a resource page pinned and
+ * paste it into the main Logs / Traces / Metrics page.
  *
  * The grammar is the shared one in Types/Telemetry/TelemetrySearchQuery; what
  * differs per signal is which top-level columns have a field token at all:
@@ -29,7 +28,7 @@ import {
 
 export type TelemetrySignal = "logs" | "traces" | "metrics";
 
-/** Human name of each explorer, for button labels and tooltips. */
+/** Human name of each explorer, for tooltips. */
 export const TELEMETRY_EXPLORER_LABELS: Readonly<
   Record<TelemetrySignal, string>
 > = {
@@ -365,48 +364,3 @@ export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueF
         return null;
     }
   };
-
-/** The subset of a chip this module reads. */
-export interface SearchableLockedFilter {
-  facetKey: string;
-  value: string;
-  lockedDetail?: LockedFilterDetail | undefined;
-}
-
-type BuildSearchTextForFiltersFunction = (
-  signal: TelemetrySignal,
-  filters: Array<SearchableLockedFilter>,
-) => string;
-
-/**
- * The search-bar text that reproduces every given locked chip at once —
- * tokens joined by single spaces, duplicates dropped, order kept.
- *
- * A chip that carries a {@link LockedFilterDetail} is trusted on its own
- * `searchToken` (present or deliberately absent — a filter the grammar
- * cannot spell has none, and re-deriving one from the chip's display text
- * would produce a token that filters on the wrong thing). A chip without one
- * falls back to the column rules above.
- */
-export const buildSearchTextForFilters: BuildSearchTextForFiltersFunction = (
-  signal: TelemetrySignal,
-  filters: Array<SearchableLockedFilter>,
-): string => {
-  const tokens: Array<string> = [];
-  const seen: Set<string> = new Set<string>();
-
-  for (const filter of filters) {
-    const token: string | null = filter.lockedDetail
-      ? filter.lockedDetail.searchToken || null
-      : buildSearchTokenForFilter(signal, filter.facetKey, filter.value);
-
-    if (!token || seen.has(token)) {
-      continue;
-    }
-
-    seen.add(token);
-    tokens.push(token);
-  }
-
-  return tokens.join(" ");
-};

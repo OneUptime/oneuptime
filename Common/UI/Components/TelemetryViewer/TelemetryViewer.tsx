@@ -15,7 +15,6 @@ import TelemetrySearchBar, {
 } from "./components/TelemetrySearchBar";
 import TelemetryFacetSidebar from "./components/TelemetryFacetSidebar";
 import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips";
-import { LockedFilterActionOptions } from "./components/LockedFilterActions";
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
 import TelemetryPagination from "./components/TelemetryPagination";
@@ -93,12 +92,10 @@ export interface TelemetryViewerProps<T> {
   onRemoveFilter?: ((facetKey: string, value: string) => void) | undefined;
   onClearAllFilters?: (() => void) | undefined;
   /*
-   * Which explorer this is (names the explorer in the locked chips' tooltips
-   * and actions) and how the host reproduces its locked scope on that
-   * explorer — see LockedFilterActions. Both forwarded to the chip list.
+   * Which explorer this is — names the explorer in the locked chips'
+   * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
-  lockedFilterActions?: LockedFilterActionOptions | undefined;
 
   // -- Histogram --
   showHistogram?: boolean;
@@ -240,7 +237,6 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             props.onClearAllFilters?.();
           }}
           signal={props.lockedFilterSignal}
-          lockedFilterActions={props.lockedFilterActions}
         />
       )}
 

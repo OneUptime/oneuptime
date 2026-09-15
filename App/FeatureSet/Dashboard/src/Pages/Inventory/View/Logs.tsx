@@ -23,7 +23,6 @@ const InventoryItemLogs: FunctionComponent<
               } as Query<Log>
             }
             entityKeyDisplays={signal.entityKeyDisplays}
-            entityKeysPinnedByPage={true}
             showFilters={true}
             enableRealtime={true}
             noLogsMessage="No logs found for this inventory item."

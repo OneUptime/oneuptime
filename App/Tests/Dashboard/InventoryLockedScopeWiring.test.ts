@@ -11,8 +11,9 @@ import path from "path";
  * LockedTelemetryScope.test.ts; what this suite owns is that the pages
  * actually CONNECT them:
  *
- *  - the shell builds ONE display map per item, memoised on the fields it
- *    reads, ahead of every early return, and hands it to every page;
+ *  - the shell builds ONE display map per item — its name and the identifying
+ *    attributes its search syntax is spelled with — memoised on the fields
+ *    it reads, ahead of every early return, and hands it to every page;
  *  - every page gives its viewer the map on the SAME element that carries
  *    the entity-key scope, so a name never travels without its scope and a
  *    scope never travels without its name;
@@ -20,9 +21,10 @@ import path from "path";
  *    wiring suite pins that its chip builder reads it);
  *  - the modules the pill is built from stay free of the browser at load.
  *
- * What the shared chip bar does with a locked chip (no remove button, no
- * empty "Copy filter" button) belongs to Common, and is pinned there in
- * Common/Tests/UI/Components/LockedFilterActions.test.tsx and
+ * What the shared chip bar does with a locked chip (no remove button, a
+ * tooltip holding its search syntax or the reason there is none) belongs to
+ * Common, and is pinned there in
+ * Common/Tests/UI/Components/LockedFilterChip.test.tsx and
  * TelemetryActiveFilterChipsLockedFilters.test.tsx.
  *
  * The App suite runs in plain Node with no renderer, so these read source.
@@ -235,10 +237,34 @@ describe("the signal-page shell names the scope once, for every page", () => {
     }
   });
 
-  test("re-memoises when any of those fields changes — a renamed or retyped item re-renders its pill", () => {
+  test("hands the builder the item's identifying and descriptive attributes, which spell the pill's search syntax", () => {
+    /*
+     * Without the identifying attributes every pill says the resource has
+     * nothing to search by; without the descriptive ones a pod's name is
+     * spelled in the lowercased form ingest hashed, which the explorers'
+     * exact match would miss.
+     */
+    const memo: string = blockAfter(SHELL, DISPLAYS_MEMO_MARKER, "(", ")");
+    const builderCall: string = blockAfter(
+      memo,
+      "buildInventoryEntityKeyDisplays(",
+      "{",
+      "}",
+    );
+
+    for (const field of [
+      "identifyingAttributes: item?.identifyingAttributes",
+      "descriptiveAttributes: item?.descriptiveAttributes",
+    ]) {
+      expect(builderCall).toContain(field);
+    }
+  });
+
+  test("re-memoises when any of those fields changes — a renamed, retyped or re-identified item re-renders its pill", () => {
     /*
      * The viewers list the map in their chip memos, so the map must be stable
-     * across renders (memoised) and must change when the name does (listed).
+     * across renders (memoised) and must change when the name or the
+     * attributes its search syntax is spelled with do (listed).
      */
     const dependencies: string = dependenciesOf(SHELL, DISPLAYS_MEMO_MARKER);
 
@@ -246,6 +272,8 @@ describe("the signal-page shell names the scope once, for every page", () => {
       "item?.entityKey",
       "item?.entityType",
       "item?.displayName",
+      "item?.identifyingAttributes",
+      "item?.descriptiveAttributes",
     ]) {
       expect(dependencies).toContain(dependency);
     }
@@ -344,21 +372,6 @@ describe("every signal page gives its viewer the name on the element that carrie
     },
   );
 
-  test("the Logs page says the entity keys in its logQuery are its own, so its pill reads 'Pinned by this page'", () => {
-    /*
-     * The logs viewer cannot tell a page's own `logQuery.entityKeys` from a
-     * log monitor's stored query, and describes keys nobody vouches for as
-     * the stored query's. The Inventory item's Logs tab is the page that
-     * pins them.
-     */
-    expect(
-      elementAttributes(
-        readSource("Pages", "Inventory", "View", "Logs.tsx"),
-        "<LogsViewer",
-      ),
-    ).toContain("entityKeysPinnedByPage={true}");
-  });
-
   test.each(SIGNAL_PAGES)(
     "%s: %s carries the entity-key scope and the shell's display map together",
     (file: string, element: string, scope: string) => {
@@ -389,11 +402,11 @@ describe("every signal page gives its viewer the name on the element that carrie
   );
 
   test.each(SIGNAL_PAGES)(
-    "%s: %s is scoped by entity key alone, so the entity-key pill is the whole explanation",
+    "%s: %s is scoped by entity key alone, so no other scope rides beside the entity-key pill",
     (file: string, element: string) => {
       /*
        * A Kubernetes cluster's page pins an attribute AND its entity keys
-       * through `entityScope`, and its attribute chip explains both halves.
+       * through `entityScope`, and its one attribute chip stands for both.
        * An Inventory item has no attribute counterpart — reading its
        * telemetry through an attribute or the primary owner returns nothing
        * for a pod (InventoryDetailPageInvariants) — so none may ride along
@@ -462,12 +475,12 @@ describe("every viewer a page hands the map to declares it", () => {
 
 /*
  * A module whose import chain reads `window` the moment it loads (the route
- * map, the page map, navigation, the UI config, and the explorer link builder
- * that imports them) cannot be loaded by the renderer-free chip builders or
- * their plain-Node suites. This suite is the one place that scans them.
+ * map, the page map, navigation, the UI config) cannot be loaded by the
+ * renderer-free chip builders or their plain-Node suites. This suite is the
+ * one place that scans them.
  */
 const WINDOW_AT_LOAD_IMPORT: RegExp =
-  /from "[^"]*\/(RouteMap|PageMap|Navigation|Config|LockedTelemetryScopeLink)"/;
+  /from "[^"]*\/(RouteMap|PageMap|Navigation|Config)"/;
 
 const PURE_MODULES: ReadonlyArray<Array<string>> = [
   ["Utils", "LockedTelemetryScope.ts"],

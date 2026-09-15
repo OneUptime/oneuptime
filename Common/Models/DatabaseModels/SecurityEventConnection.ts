@@ -22,10 +22,10 @@ import SecurityEventConnectorProvider from "../../Types/SecurityEvent/Connectors
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * Same access split as GoogleSecOpsConnection: connecting a source means
- * holding a credential that reads someone's security product, so it stays
- * on the Admin tiers plus SecurityAdmin; every Security tier can read the
- * connection's health. The credential column itself is write-only.
+ * Connecting a source means holding a credential that reads someone's
+ * security product, so it stays on the Admin tiers plus SecurityAdmin;
+ * every Security tier can read the connection's health. The credential
+ * column itself is write-only.
  */
 const adminPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -42,13 +42,13 @@ const readPermissions: Array<Permission> = [
 ];
 
 /*
- * One managed pull connection to a security product (Microsoft Sentinel,
- * Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS
- * Security Hub, Okta ...). The provider decides which keys `config` and
- * `secrets` carry — see SecurityEventConnectorCatalog — and which server
- * connector polls it. A Workers cron polls each enabled connection on its
- * interval, by the source's record CREATION time, and ingests the records
- * as normalized security events.
+ * One managed pull connection to a security product (Google SecOps,
+ * Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic
+ * Security, AWS Security Hub, Okta ...). The provider decides which keys
+ * `config` and `secrets` carry — see SecurityEventConnectorCatalog — and
+ * which server connector polls it. A Workers cron polls each enabled
+ * connection on its interval, by the source's record CREATION time, and
+ * ingests the records as normalized security events.
  */
 @EnableDocumentation()
 @TableBillingAccessControl({

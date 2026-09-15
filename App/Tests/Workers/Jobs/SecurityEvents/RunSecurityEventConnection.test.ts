@@ -13,8 +13,9 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
- * The Worker handler for SecurityEvents:RunSecurityEventConnection. Mirrors
- * RunGoogleSecOpsConnection.test.ts, plus what this handler adds: on the
+ * The Worker handler for SecurityEvents:RunSecurityEventConnection, which
+ * runs every provider's operations, Google SecOps included. Beyond
+ * delivering the run ID it adds one thing: on the
  * job's LAST BullMQ attempt an exception that escaped executeRun (a lock
  * timeout, a database error while reading the run) is written onto the run
  * row through markRunFailed, so the row does not sit in "queued" until the
@@ -238,4 +239,16 @@ test("the production worker timeout wrapper delivers queue data to the registere
   expect(SecurityEventConnectionRunExecutor.executeRun).toHaveBeenCalledWith(
     new ObjectID(RUN_ID),
   );
+});
+
+test("the production worker wrapper still invokes existing zero-argument cron jobs", async () => {
+  const legacy: jest.Mock = jest.fn(async (): Promise<void> => {});
+  JobDictionary.setJobFunction("legacy-wrapped-cron", legacy);
+  await runWorkerJob({ name: "legacy-wrapped-cron", data: {} } as QueueJob);
+  expect(QueueWorker.runJobWithTimeout).toHaveBeenCalledWith(
+    300_000,
+    expect.any(Function),
+  );
+  expect(legacy).toHaveBeenCalledTimes(1);
+  expect(SecurityEventConnectionRunExecutor.executeRun).not.toHaveBeenCalled();
 });

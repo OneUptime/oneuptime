@@ -27,10 +27,7 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import {
-  LockedFilterDetail,
-  LockedFilterPredicate,
-} from "Common/Types/Telemetry/LockedFilterDetail";
+import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
@@ -61,7 +58,8 @@ import {
   resolveMetricsChipDisplay,
 } from "../../FeatureSet/Dashboard/src/Utils/MetricsEntityChipDisplay";
 import {
-  buildLockedScopeCopyText,
+  ENTITY_KEY_NO_ATTRIBUTES_REASON,
+  METRICS_SERVICE_NO_SYNTAX_REASON,
   describeLockedEntityKeyFilter,
 } from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
 import {
@@ -778,6 +776,7 @@ describe("buildMetricsLockedAttributeChips", () => {
         displayKey: "Host",
         displayValue: "web-1",
         readOnly: true,
+        lockedDetail: { searchToken: "@resource.host.name:ip-10-0-0-12" },
       },
     ]);
   });
@@ -787,13 +786,14 @@ describe("buildMetricsLockedAttributeChips", () => {
       buildMetricsLockedAttributeChips({
         attributeFilters: { "resource.service.name": "api" },
       }),
-    ).toMatchObject([
+    ).toEqual([
       {
         facetKey: "attributes.resource.service.name",
         value: "api",
         displayKey: "resource.service.name",
         displayValue: "api",
         readOnly: true,
+        lockedDetail: { searchToken: "@resource.service.name:api" },
       },
     ]);
   });
@@ -806,6 +806,9 @@ describe("buildMetricsLockedAttributeChips", () => {
     });
     expect(chips[0]!.displayKey).toBe("k8s.cluster.name");
     expect(chips[0]!.displayValue).toBe("prod");
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchToken: "@k8s.cluster.name:prod",
+    });
   });
 
   test("an override for a different key is ignored", () => {
@@ -814,16 +817,17 @@ describe("buildMetricsLockedAttributeChips", () => {
       attributeFilterDisplayValues: { b: "Named" },
     });
     expect(chips[0]!.displayValue).toBe("1");
+    expect(chips[0]!.lockedDetail).toEqual({ searchToken: "@a:1" });
   });
 
   test("skips empty filter values and handles no filters", () => {
     expect(
       buildMetricsLockedAttributeChips({
         attributeFilters: { a: "", b: "2" },
-      }).map((chip: ActiveFilter): string => {
-        return chip.facetKey;
+      }).map((chip: ActiveFilter): [string, LockedFilterDetail | undefined] => {
+        return [chip.facetKey, chip.lockedDetail];
       }),
-    ).toEqual(["attributes.b"]);
+    ).toEqual([["attributes.b", { searchToken: "@b:2" }]]);
     expect(
       buildMetricsLockedAttributeChips({ attributeFilters: undefined }),
     ).toEqual([]);
@@ -838,13 +842,16 @@ describe("buildMetricsLockedScopeChips", () => {
       facetConfigs: [],
       nameMap: {},
     });
-    expect(before).toMatchObject([
+    expect(before).toEqual([
       {
         facetKey: "primaryEntityId",
         value: RUM_APP_ID,
         displayKey: "RUM Application",
         displayValue: RUM_APP_ID,
         readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+        },
       },
     ]);
 
@@ -882,6 +889,9 @@ describe("buildMetricsLockedScopeChips", () => {
       });
       expect(resolved[0]!.displayKey).toBe("Service");
       expect(resolved[0]!.displayValue).toBe("checkout-api");
+      expect(resolved[0]!.lockedDetail).toEqual({
+        searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+      });
     }
   });
 
@@ -910,6 +920,9 @@ describe("buildMetricsLockedScopeChips", () => {
     ).toEqual([SERVICE_ID, OTHER_SERVICE_ID]);
     for (const chip of chips) {
       expect(chip.readOnly).toBe(true);
+      expect(chip.lockedDetail).toEqual({
+        searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+      });
     }
   });
 });
@@ -955,6 +968,18 @@ describe("buildMetricsActiveFilterChips", () => {
       ["hostId", HOST_ID],
       ["attributes.container.name", "postgres"],
     ]);
+
+    // Only the locked chips carry a search syntax, or the reason for none.
+    expect(
+      chips.map((chip: ActiveFilter): LockedFilterDetail | undefined => {
+        return chip.lockedDetail;
+      }),
+    ).toEqual([
+      { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+      { searchToken: "@resource.host.name:ip-10-0-0-12" },
+      undefined,
+      undefined,
+    ]);
   });
 
   test("no chip ever displays a raw entity id key or a UUID once names resolve", () => {
@@ -985,6 +1010,10 @@ describe("buildMetricsActiveFilterChips", () => {
       expect(isMetricsEntityFacetKey(chip.displayKey)).toBe(false);
       expect(chip.displayValue).not.toMatch(uuidPattern);
     }
+    // The locked scope chip's reason is unchanged by its resolved name.
+    expect(chips[0]!.lockedDetail).toEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
   });
 
   test("does not mutate the chips held in state", () => {
@@ -1015,24 +1044,13 @@ describe("buildMetricsActiveFilterChips", () => {
 });
 
 /*
- * The locked chips explain themselves. The chip bar used to say nothing
- * beyond "(applied filter)", so a reader could not tell that "Cluster:
- * production" is an attribute equality with an entity-key fallback, nor how
- * to reproduce it on the main Metrics page. The wording itself is owned by
- * LockedTelemetryScope.test.ts; these pin that the metrics builders attach
- * the right explanation to the right chip.
+ * Each locked chip carries the search syntax that reproduces it on the main
+ * Metrics page, or the reason it has none. The tokens and reasons themselves
+ * are owned by LockedTelemetryScope.test.ts; these pin that the metrics
+ * builders attach the right one to the right chip, and that a chip's display
+ * text never leaks into its syntax.
  */
-describe("locked metrics chips carry their explanation", () => {
-  const CLUSTER_SCOPE: {
-    entityKeys: Array<string>;
-    attributeKey: string;
-    attributeValue: string;
-  } = {
-    entityKeys: ["3f9a1b2c4d5e6f70"],
-    attributeKey: "resource.k8s.cluster.name",
-    attributeValue: "prod-eks-01",
-  };
-
+describe("locked metrics chips carry their search syntax", () => {
   type DetailOfFunction = (
     chip: ActiveFilter | undefined,
   ) => LockedFilterDetail;
@@ -1046,7 +1064,7 @@ describe("locked metrics chips carry their explanation", () => {
     return chip!.lockedDetail as LockedFilterDetail;
   };
 
-  test("an attribute chip is explained as an attribute equality with the metrics search token", () => {
+  test("an attribute chip carries the metrics search token for its attribute", () => {
     const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
       attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
       attributeFilterDisplayKeys: { "resource.host.name": "Host" },
@@ -1055,63 +1073,36 @@ describe("locked metrics chips carry their explanation", () => {
 
     const detail: LockedFilterDetail = detailOf(chips[0]);
 
-    expect(detail.source).toBe("Pinned by this page");
-    expect(detail.summary).toBe("Only metrics from this host are shown.");
-    expect(detail.combinator).toBe("all");
-    expect(detail.predicates).toEqual([
-      {
-        label: "Attribute",
-        expression: 'resource.host.name = "ip-10-0-0-12"',
-      },
-    ]);
+    expect(detail).toEqual({ searchToken: "@resource.host.name:ip-10-0-0-12" });
     expect(detail.searchToken).toBe("@resource.host.name:ip-10-0-0-12");
     expect(detail.searchTokenUnavailableReason).toBeUndefined();
   });
 
-  test("the entity scope is attached to the chip for its own key, alongside the attribute (all of)", () => {
+  test("each attribute chip carries the token for its own key and value only", () => {
     const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
       attributeFilters: {
         "resource.k8s.cluster.name": "prod-eks-01",
         "resource.container.runtime": "docker",
       },
-      entityScope: CLUSTER_SCOPE,
     });
 
-    /*
-     * The page pins the attribute equality AND the entity scope (whose own
-     * OR includes the same attribute), so the tooltip must say "all of" —
-     * an "any of" would promise rows the query never returns.
-     */
-    const cluster: LockedFilterDetail = detailOf(chips[0]);
-    expect(cluster.combinator).toBe("all");
     expect(
-      cluster.predicates.map((predicate: LockedFilterPredicate): string => {
-        return predicate.label;
+      chips.map((chip: ActiveFilter): [string, LockedFilterDetail] => {
+        return [chip.facetKey, detailOf(chip)];
       }),
-    ).toEqual(["Attribute", "Entity scope"]);
-    expect(cluster.predicates[1]!.expression).toBe(
-      'entityKeys has 3f9a1b2c4d5e6f70 OR resource.k8s.cluster.name = "prod-eks-01"',
-    );
-    expect(cluster.searchToken).toBe("@resource.k8s.cluster.name:prod-eks-01");
-
-    // The runtime chip is a plain attribute filter; the scope is not its.
-    const runtime: LockedFilterDetail = detailOf(chips[1]);
-    expect(runtime.combinator).toBe("all");
-    expect(runtime.predicates).toHaveLength(1);
+    ).toEqual([
+      [
+        "attributes.resource.k8s.cluster.name",
+        { searchToken: "@resource.k8s.cluster.name:prod-eks-01" },
+      ],
+      [
+        "attributes.resource.container.runtime",
+        { searchToken: "@resource.container.runtime:docker" },
+      ],
+    ]);
   });
 
-  test("an entity scope for a key the page does not filter by is not attached anywhere", () => {
-    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
-      attributeFilters: { "resource.host.name": "web-1" },
-      entityScope: CLUSTER_SCOPE,
-    });
-
-    const detail: LockedFilterDetail = detailOf(chips[0]);
-    expect(detail.combinator).toBe("all");
-    expect(detail.predicates).toHaveLength(1);
-  });
-
-  test("the display overrides never leak into the predicate — it names the filter, not the label", () => {
+  test("the display overrides never leak into the search token — it spells the filter, not the label", () => {
     const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
       attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
       attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
@@ -1121,31 +1112,32 @@ describe("locked metrics chips carry their explanation", () => {
     });
 
     const detail: LockedFilterDetail = detailOf(chips[0]);
-    expect(detail.predicates[0]!.expression).toBe(
-      'resource.k8s.cluster.name = "prod-eks-01"',
-    );
+    expect(detail).toEqual({
+      searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+    });
     expect(detail.searchToken).toBe("@resource.k8s.cluster.name:prod-eks-01");
+    expect(chips[0]!.displayKey).toBe("Cluster");
     expect(chips[0]!.displayValue).toBe("production");
   });
 
-  test("buildMetricsActiveFilterChips passes the entity scope through to the attribute chips", () => {
+  test("buildMetricsActiveFilterChips gives the locked attribute chip its token and the user's chip none", () => {
     const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
       scopeIds: undefined,
       scopeEntityType: undefined,
       attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
-      entityScope: CLUSTER_SCOPE,
       activeFilters: [restoredChip("attributes.container.name", "postgres")],
       facetConfigs: [],
       nameMap: {},
     });
 
-    expect(detailOf(chips[0]).combinator).toBe("all");
-    expect(detailOf(chips[0]).predicates[1]!.label).toBe("Entity scope");
-    // The user's own chip is not a locked one and carries no explanation.
+    expect(detailOf(chips[0])).toEqual({
+      searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+    });
+    // The user's own chip is not a locked one and carries no detail.
     expect(chips[1]!.lockedDetail).toBeUndefined();
   });
 
-  test("a scope chip is explained by entity id, with the metrics-specific copy note, and names the resolved entity", () => {
+  test("a scope chip offers no metrics search token, with the metrics-specific reason, before and after its name resolves", () => {
     const before: Array<ActiveFilter> = buildMetricsLockedScopeChips({
       scopeIds: [new ObjectID(RUM_APP_ID)],
       scopeEntityType: ServiceType.RealUserMonitor,
@@ -1154,20 +1146,13 @@ describe("locked metrics chips carry their explanation", () => {
     });
 
     const unresolved: LockedFilterDetail = detailOf(before[0]);
-    expect(unresolved.summary).toBe(
-      "Only metrics emitted by this RUM Application are shown.",
-    );
-    expect(unresolved.predicates).toEqual([
-      {
-        label: "Entity id",
-        expression: `primaryEntityId = "${RUM_APP_ID}"`,
-        note: "The RUM Application's OneUptime id, stored on every row it emits.",
-      },
-    ]);
+    expect(unresolved).toEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
     // The Metrics search bar matches services by NAME, so no token is offered.
     expect(unresolved.searchToken).toBeUndefined();
-    expect(unresolved.searchTokenUnavailableReason).toContain(
-      "use Open in Metrics",
+    expect(unresolved.searchTokenUnavailableReason).toBe(
+      METRICS_SERVICE_NO_SYNTAX_REASON,
     );
 
     const after: Array<ActiveFilter> = buildMetricsLockedScopeChips({
@@ -1177,14 +1162,14 @@ describe("locked metrics chips carry their explanation", () => {
       nameMap: RUM_NAME_MAP,
     });
 
-    const resolved: LockedFilterDetail = detailOf(after[0]);
-    expect(resolved.summary).toBe(
-      "Only metrics emitted by this RUM Application are shown.",
-    );
+    // A resolved name is display only: it is not spelled as a token either.
+    expect(detailOf(after[0])).toEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
     expect(after[0]!.displayValue).toBe("checkout-web");
   });
 
-  test("a scope chip without a scope type is explained with the resolved entity's type", () => {
+  test("a scope chip without a scope type gets the same reason, whatever type it resolves to", () => {
     const chips: Array<ActiveFilter> = buildMetricsLockedScopeChips({
       scopeIds: [RUM_APP_ID],
       scopeEntityType: undefined,
@@ -1192,9 +1177,10 @@ describe("locked metrics chips carry their explanation", () => {
       nameMap: RUM_NAME_MAP,
     });
 
-    expect(detailOf(chips[0]).summary).toBe(
-      "Only metrics emitted by this RUM Application are shown.",
-    );
+    expect(chips[0]!.displayKey).toBe("RUM Application");
+    expect(detailOf(chips[0])).toEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
 
     const serviceChips: Array<ActiveFilter> = buildMetricsLockedScopeChips({
       scopeIds: [SERVICE_ID],
@@ -1203,12 +1189,103 @@ describe("locked metrics chips carry their explanation", () => {
       nameMap: {},
     });
 
-    expect(detailOf(serviceChips[0]).summary).toBe(
-      "Only metrics emitted by this Service are shown.",
-    );
+    expect(serviceChips[0]!.displayKey).toBe("Service");
+    expect(detailOf(serviceChips[0])).toEqual({
+      searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+    });
   });
 
-  test("every locked chip carries an explanation and no user chip does", () => {
+  test("an attribute key the Metrics search bar cannot type gets the unsafe-key reason, beside a key it can", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: { "a:b": "x", "@k": "y", "host name": "web-01" },
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): [string, LockedFilterDetail] => {
+        return [chip.facetKey, detailOf(chip)];
+      }),
+    ).toEqual([
+      [
+        "attributes.a:b",
+        {
+          searchTokenUnavailableReason:
+            "This attribute key cannot be typed into the search bar.",
+        },
+      ],
+      [
+        "attributes.@k",
+        {
+          searchTokenUnavailableReason:
+            "This attribute key cannot be typed into the search bar.",
+        },
+      ],
+      [
+        "attributes.host name",
+        {
+          searchTokenUnavailableReason:
+            "This attribute key cannot be typed into the search bar.",
+        },
+      ],
+    ]);
+
+    for (const chip of chips) {
+      expect(chip.lockedDetail).not.toHaveProperty("searchToken");
+    }
+
+    // A safe key on the same page keeps its token.
+    expect(
+      detailOf(
+        buildMetricsLockedAttributeChips({
+          attributeFilters: { "a:b": "x", "resource.host.name": "web-01" },
+        })[1],
+      ),
+    ).toStrictEqual({ searchToken: "@resource.host.name:web-01" });
+  });
+
+  test("an attribute value the grammar reads specially is quoted or escaped in the metrics token", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedAttributeChips({
+      attributeFilters: {
+        "resource.host.name": "web 01",
+        "http.route": "/api/*",
+        "service.version": "-1.5",
+      },
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): LockedFilterDetail => {
+        return detailOf(chip);
+      }),
+    ).toEqual([
+      { searchToken: '@resource.host.name:"web 01"' },
+      { searchToken: "@http.route:/api/\\*" },
+      { searchToken: "@service.version:\\-1.5" },
+    ]);
+  });
+
+  test("a scope chip gets the metrics service reason for any id — a UUID, a legacy id or a name-like value", () => {
+    const chips: Array<ActiveFilter> = buildMetricsLockedScopeChips({
+      scopeIds: [SERVICE_ID, "651a000000000000000000aa", "checkout-api"],
+      scopeEntityType: undefined,
+      facetConfigs: [SERVICE_FACET_CONFIG],
+      nameMap: {},
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): LockedFilterDetail => {
+        return detailOf(chip);
+      }),
+    ).toEqual([
+      { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+      { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+      { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+    ]);
+
+    for (const chip of chips) {
+      expect(chip.lockedDetail).not.toHaveProperty("searchToken");
+    }
+  });
+
+  test("every locked chip carries its search syntax or reason and no user chip does", () => {
     const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
       scopeIds: [new ObjectID(RUM_APP_ID)],
       scopeEntityType: ServiceType.RealUserMonitor,
@@ -1222,14 +1299,19 @@ describe("locked metrics chips carry their explanation", () => {
     });
 
     expect(
-      chips.map((chip: ActiveFilter): [boolean, boolean] => {
-        return [Boolean(chip.readOnly), Boolean(chip.lockedDetail)];
-      }),
+      chips.map(
+        (chip: ActiveFilter): [boolean, LockedFilterDetail | undefined] => {
+          return [Boolean(chip.readOnly), chip.lockedDetail];
+        },
+      ),
     ).toEqual([
-      [true, true],
-      [true, true],
-      [false, false],
-      [false, false],
+      [
+        true,
+        { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+      ],
+      [true, { searchToken: "@resource.host.name:ip-10-0-0-12" }],
+      [false, undefined],
+      [false, undefined],
     ]);
   });
 });
@@ -1335,13 +1417,16 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
       facetConfigs: [],
       nameMap,
     });
-    expect(chips).toMatchObject([
+    expect(chips).toEqual([
       {
         facetKey: "primaryEntityId",
         value: RUM_APP_ID,
         displayKey: "RUM Application",
         displayValue: "checkout-web",
         readOnly: true,
+        lockedDetail: {
+          searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON,
+        },
       },
     ]);
   });
@@ -1681,24 +1766,43 @@ describe("getMetricsUnnamedScopeIds (Insights scope pill lookups)", () => {
  * used to show nothing at all: a filtered list that looked like the whole
  * project. These pin the locked chip the builder now adds for
  * `entityKeysFilter` — how it reads with and without the page's names, where
- * it sits among the other chips, what it explains — and that the
- * `entityScope` of a Kubernetes / host page, already explained on its
- * attribute chip, never grows a second one. The describer's wording for
- * every rows noun is owned by LockedTelemetryScope.test.ts, so a chip's
- * detail is compared to the describer here, with the metrics sentence and
- * reason — what this chip bar shows — spelled out.
+ * it sits among the other chips, and the search syntax it carries (spelled
+ * with the item's identifying resource attributes, or the reason there is
+ * none) — and that a Kubernetes / host page, whose attribute chip already
+ * stands for its entity scope, never grows a second chip. Which token or
+ * reason each kind of rows gets is owned by LockedTelemetryScope.test.ts; the
+ * exact metrics token or reason each chip here carries is spelled out.
  */
 describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item pages)", () => {
   const POD_KEY: string = "3f9a1b2c4d5e6f70";
   const OTHER_KEY: string = "aaaaaaaaaaaaaaaa";
   const THIRD_KEY: string = "bbbbbbbbbbbbbbbb";
 
-  const PAGE_SOURCE: string = "Pinned by this page";
-  const CANNOT_TRAVEL: string =
-    "This filter cannot be copied or carried to the explorer.";
-
   const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
     [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: "checkout-7d9f" },
+  };
+
+  // The resource attributes that identify the pod, as an Inventory page knows them.
+  const POD_SEARCH_ATTRIBUTES: Record<string, string> = {
+    "k8s.cluster.name": "prod",
+    "k8s.namespace.name": "shop",
+    "k8s.pod.name": "checkout-7d9f",
+  };
+
+  const POD_SEARCH_TOKEN: string =
+    "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f";
+
+  const POD_DISPLAYS_WITH_ATTRIBUTES: LockedEntityKeyDisplayMap = {
+    [POD_KEY]: {
+      displayKey: "Kubernetes Pod",
+      displayValue: "checkout-7d9f",
+      searchAttributes: POD_SEARCH_ATTRIBUTES,
+    },
+  };
+
+  // What an entity-key chip carries when its page named no attributes for it.
+  const NO_ATTRIBUTES_DETAIL: LockedFilterDetail = {
+    searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
   };
 
   type ChipRow = [string, string, string, string, boolean];
@@ -1731,6 +1835,19 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(chip!.lockedDetail).toBeDefined();
 
     return chip!.lockedDetail as LockedFilterDetail;
+  };
+
+  type DetailsOfFunction = (
+    chips: Array<ActiveFilter>,
+  ) => Array<LockedFilterDetail | undefined>;
+
+  // Each chip's detail as it is, undefined for a chip that carries none.
+  const detailsOf: DetailsOfFunction = (
+    chips: Array<ActiveFilter>,
+  ): Array<LockedFilterDetail | undefined> => {
+    return chips.map((chip: ActiveFilter): LockedFilterDetail | undefined => {
+      return chip.lockedDetail;
+    });
   };
 
   type ChipInput = Parameters<typeof buildMetricsActiveFilterChips>[0];
@@ -1766,7 +1883,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     });
   };
 
-  test("reads as the page names the item, keeps the raw key as the filter value, and explains the membership", () => {
+  test("reads as the page names the item, keeps the raw key as the filter value, and has no search syntax without the item's attributes", () => {
     const chips: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY],
       entityKeyDisplays: POD_DISPLAYS,
@@ -1779,20 +1896,43 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
         displayKey: "Kubernetes Pod",
         displayValue: "checkout-7d9f",
         readOnly: true,
-        lockedDetail: describeLockedEntityKeyFilter({
-          rows: "metrics",
-          entityKey: POD_KEY,
-          entityKeys: [POD_KEY],
-          entityTypeLabel: "Kubernetes Pod",
-        }),
+        lockedDetail: {
+          searchTokenUnavailableReason: ENTITY_KEY_NO_ATTRIBUTES_REASON,
+        },
       },
     ]);
-    expect(detailOf(chips[0]).summary).toBe(
-      "Only metrics linked to this Kubernetes Pod are shown.",
+    // The builder's detail is the describer's for metrics rows.
+    expect(detailOf(chips[0])).toEqual(
+      describeLockedEntityKeyFilter({ rows: "metrics" }),
     );
-    expect(detailOf(chips[0]).searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
-    // No search grammar has an entity-key token, so none is offered.
+    expect(detailOf(chips[0]).searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
+    );
+    /*
+     * No search grammar has an entity-key token, and this display map names
+     * no identifying attributes to spell one with, so none is offered.
+     */
     expect(detailOf(chips[0]).searchToken).toBeUndefined();
+  });
+
+  test("with the item's identifying attributes, the chip reads the same and its search syntax is spelled with them", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES,
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+    ]);
+    expect(detailOf(chips[0])).toEqual({ searchToken: POD_SEARCH_TOKEN });
+    expect(detailOf(chips[0])).toEqual(
+      describeLockedEntityKeyFilter({
+        rows: "metrics",
+        searchAttributes: POD_SEARCH_ATTRIBUTES,
+      }),
+    );
+    // Never with the key, which no search bar understands.
+    expect(detailOf(chips[0]).searchToken).not.toContain(POD_KEY);
   });
 
   test("REGRESSION: without a display map the chip still renders, as Resource: <key>", () => {
@@ -1814,12 +1954,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       expect(rowsOf(chips)).toEqual([
         ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
       ]);
-      expect(detailOf(chips[0])).toEqual(
-        describeLockedEntityKeyFilter({ rows: "metrics", entityKey: POD_KEY }),
-      );
-      expect(detailOf(chips[0]).summary).toBe(
-        "Only metrics linked to this resource are shown.",
-      );
+      expect(detailOf(chips[0])).toEqual(NO_ATTRIBUTES_DETAIL);
     }
   });
 
@@ -1827,33 +1962,33 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     const cases: Array<{
       display: LockedEntityKeyDisplay;
       row: ChipRow;
-      summary: string;
+      detail: LockedFilterDetail;
     }> = [
       {
         display: { displayKey: "", displayValue: "" },
         row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
-        summary: "Only metrics linked to this resource are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
       },
       {
         display: { displayKey: "   ", displayValue: "\t \n" },
         row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
-        summary: "Only metrics linked to this resource are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
       },
       {
         display: { displayKey: "  Kubernetes Pod  ", displayValue: "   " },
         row: ["entityKeys", POD_KEY, "Kubernetes Pod", POD_KEY, true],
-        summary: "Only metrics linked to this Kubernetes Pod are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
       },
       {
         display: { displayKey: " ", displayValue: "  checkout-7d9f  " },
         row: ["entityKeys", POD_KEY, "Resource", "checkout-7d9f", true],
-        summary: "Only metrics linked to this resource are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
       },
       {
         // The default word spelled out by the page reads the same as none.
         display: { displayKey: "Resource", displayValue: "checkout-7d9f" },
         row: ["entityKeys", POD_KEY, "Resource", "checkout-7d9f", true],
-        summary: "Only metrics linked to this resource are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
       },
       {
         // Whatever arrives at runtime, a non-string is not a name.
@@ -1862,7 +1997,17 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
           displayValue: 42 as unknown as string,
         },
         row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
-        summary: "Only metrics linked to this resource are shown.",
+        detail: NO_ATTRIBUTES_DETAIL,
+      },
+      {
+        // Blank names do not discard the attributes the syntax is spelled with.
+        display: {
+          displayKey: " ",
+          displayValue: "",
+          searchAttributes: POD_SEARCH_ATTRIBUTES,
+        },
+        row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+        detail: { searchToken: POD_SEARCH_TOKEN },
       },
     ];
 
@@ -1873,25 +2018,26 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       });
 
       expect(rowsOf(chips)).toEqual([testCase.row]);
-      expect(detailOf(chips[0]).summary).toBe(testCase.summary);
+      expect(detailOf(chips[0])).toEqual(testCase.detail);
     }
   });
 
-  test("a display map that does not name this key falls back to the key", () => {
-    expect(
-      rowsOf(
-        inventoryChips({
-          entityKeysFilter: [OTHER_KEY],
-          entityKeyDisplays: POD_DISPLAYS,
-        }),
-      ),
-    ).toEqual([["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true]]);
+  test("a display map that does not name this key falls back to the key, and lends it no other key's attributes", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [OTHER_KEY],
+      entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES,
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
+    ]);
+    expect(detailOf(chips[0])).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 
-  test("one chip per key in the page's order, each saying the keys widen the scope rather than narrow it", () => {
+  test("one chip per key in the page's order, each carrying the search syntax of its own entity only", () => {
     const chips: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY, OTHER_KEY],
-      entityKeyDisplays: POD_DISPLAYS,
+      entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES,
     });
 
     expect(rowsOf(chips)).toEqual([
@@ -1900,65 +2046,41 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     ]);
 
     /*
-     * `hasAny` admits a row carrying ANY of the keys, so two chips side by
-     * side must not read like two filters AND-ed together.
+     * Each chip's syntax reproduces its own entity: the pod's attributes are
+     * never spelled on the chip of the other key, which the page did not
+     * name.
      */
-    expect(detailOf(chips[0])).toEqual(
-      describeLockedEntityKeyFilter({
-        rows: "metrics",
-        entityKey: POD_KEY,
-        entityKeys: [POD_KEY, OTHER_KEY],
-        entityTypeLabel: "Kubernetes Pod",
-      }),
-    );
-    expect(detailOf(chips[0]).summary).toBe(
-      "Metrics linked to this Kubernetes Pod are shown, along with metrics linked to the 1 other resource this page pins.",
-    );
-    expect(detailOf(chips[1]).summary).toBe(
-      "Metrics linked to this resource are shown, along with metrics linked to the 1 other resource this page pins.",
-    );
-    // Each chip is described from its own key, with the other widening it.
-    expect(detailOf(chips[1])).toEqual(
-      describeLockedEntityKeyFilter({
-        rows: "metrics",
-        entityKey: OTHER_KEY,
-        entityKeys: [POD_KEY, OTHER_KEY],
-      }),
-    );
+    expect(detailsOf(chips)).toEqual([
+      { searchToken: POD_SEARCH_TOKEN },
+      NO_ATTRIBUTES_DETAIL,
+    ]);
 
     const three: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY, OTHER_KEY, THIRD_KEY],
     });
 
-    expect(
-      three.map((chip: ActiveFilter): string => {
-        return detailOf(chip).summary;
-      }),
-    ).toEqual([
-      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
-      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
-      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
+    expect(rowsOf(three)).toEqual([
+      ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+      ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
+      ["entityKeys", THIRD_KEY, "Resource", THIRD_KEY, true],
     ]);
-    expect(detailOf(three[2]).predicates[0]!.expression).toBe(
-      `entityKeys has any of ${THIRD_KEY}, ${POD_KEY}, ${OTHER_KEY}`,
-    );
+    expect(detailsOf(three)).toEqual([
+      NO_ATTRIBUTES_DETAIL,
+      NO_ATTRIBUTES_DETAIL,
+      NO_ATTRIBUTES_DETAIL,
+    ]);
   });
 
-  test("blank and repeated keys are dropped before anything is counted, so a lone key keeps the single-key wording", () => {
+  test("blank and repeated keys are dropped before chips are built, and a padded key still finds its attributes", () => {
     const chips: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: ["", "   ", `  ${POD_KEY}  `, POD_KEY, "\t"],
-      entityKeyDisplays: POD_DISPLAYS,
+      entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES,
     });
 
     expect(rowsOf(chips)).toEqual([
       ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
     ]);
-    expect(detailOf(chips[0]).summary).toBe(
-      "Only metrics linked to this Kubernetes Pod are shown.",
-    );
-    expect(detailOf(chips[0]).predicates[0]!.expression).toBe(
-      `entityKeys has ${POD_KEY}`,
-    );
+    expect(detailsOf(chips)).toEqual([{ searchToken: POD_SEARCH_TOKEN }]);
 
     const repeated: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY, OTHER_KEY, POD_KEY, ` ${OTHER_KEY}`],
@@ -1968,9 +2090,10 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
       ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
     ]);
-    expect(detailOf(repeated[0]).summary).toBe(
-      "Metrics linked to this resource are shown, along with metrics linked to the 1 other resource this page pins.",
-    );
+    expect(detailsOf(repeated)).toEqual([
+      NO_ATTRIBUTES_DETAIL,
+      NO_ATTRIBUTES_DETAIL,
+    ]);
   });
 
   test("no entity key, no entity-key chip — even when the page hands over a display map", () => {
@@ -2021,6 +2144,14 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
         false,
       ],
     ]);
+    expect(detailsOf(chips)).toEqual([
+      { searchTokenUnavailableReason: METRICS_SERVICE_NO_SYNTAX_REASON },
+      NO_ATTRIBUTES_DETAIL,
+      NO_ATTRIBUTES_DETAIL,
+      { searchToken: "@resource.host.name:ip-10-0-0-12" },
+      undefined,
+      undefined,
+    ]);
   });
 
   test("a user chip on the same column is neither merged into the locked chip nor hidden by it", () => {
@@ -2039,10 +2170,15 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
       ["entityKeys", POD_KEY, "entityKeys", POD_KEY, false],
     ]);
+    expect(detailOf(chips[0])).toEqual(NO_ATTRIBUTES_DETAIL);
     expect(chips[1]!.lockedDetail).toBeUndefined();
   });
 
-  test("REGRESSION: a Kubernetes cluster page's entityScope grows no entity-key chip — its attribute chip already explains it", () => {
+  test("REGRESSION: a Kubernetes cluster page grows no entity-key chip — its attribute chip already stands for the scope", () => {
+    /*
+     * The page's entityScope still narrows the metric list, but it never
+     * reaches the chip builder: the cluster's attribute chip is its pill.
+     */
     const clusterPage: ChipInput = {
       scopeIds: undefined,
       scopeEntityType: undefined,
@@ -2050,11 +2186,6 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
       attributeFilterDisplayValues: {
         "resource.k8s.cluster.name": "production",
-      },
-      entityScope: {
-        entityKeys: [POD_KEY],
-        attributeKey: "resource.k8s.cluster.name",
-        attributeValue: "prod-eks-01",
       },
       activeFilters: [],
       facetConfigs: [],
@@ -2073,13 +2204,9 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
         true,
       ],
     ]);
-    expect(
-      detailOf(chips[0]).predicates.map(
-        (predicate: LockedFilterPredicate): string => {
-          return predicate.label;
-        },
-      ),
-    ).toEqual(["Attribute", "Entity scope"]);
+    expect(detailOf(chips[0])).toEqual({
+      searchToken: "@resource.k8s.cluster.name:prod-eks-01",
+    });
 
     // Every existing page passes neither new input: nothing changes for them.
     expect(
@@ -2090,7 +2217,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       }),
     ).toEqual(chips);
 
-    // A name for the scope's own key creates nothing: only entityKeysFilter does.
+    // Naming the cluster's entity key creates nothing: only entityKeysFilter does.
     expect(
       buildMetricsActiveFilterChips({
         ...clusterPage,
@@ -2104,7 +2231,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     ).toEqual(chips);
   });
 
-  test("every entity-key chip is locked and explained, none offers a search token, and an entity-key-only scope copies nothing", () => {
+  test("every entity-key chip is locked, and none offers a search token without the entity's identifying attributes", () => {
     const chips: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY, OTHER_KEY],
       entityKeyDisplays: POD_DISPLAYS,
@@ -2118,19 +2245,18 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
 
       const detail: LockedFilterDetail = detailOf(chip);
 
-      expect(detail.source).toBe(PAGE_SOURCE);
-      expect(detail.combinator).toBe("all");
+      expect(detail).toEqual(NO_ATTRIBUTES_DETAIL);
       expect(detail.searchToken).toBeUndefined();
-      expect(detail.searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
+      expect(detail.searchTokenUnavailableReason).toBe(
+        ENTITY_KEY_NO_ATTRIBUTES_REASON,
+      );
     }
 
     /*
-     * "Copy filter" trusts each locked chip's own token. With none, the text
-     * is empty, and LockedFilterActions renders no Copy button for a blank
-     * text rather than one that copies nothing.
+     * Each locked chip carries its own search syntax. Beside a locked
+     * attribute, the attribute chip keeps its token while the entity-key
+     * chip, named without attributes, still has none.
      */
-    expect(buildLockedScopeCopyText("metrics", chips)).toBe("");
-
     const withAttribute: Array<ActiveFilter> = buildMetricsActiveFilterChips({
       scopeIds: undefined,
       scopeEntityType: undefined,
@@ -2142,9 +2268,57 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
       nameMap: {},
     });
 
-    expect(buildLockedScopeCopyText("metrics", withAttribute)).toBe(
-      "@resource.host.name:ip-10-0-0-12",
-    );
+    type TokenRow = [string, string | undefined, string | undefined];
+
+    type TokenRowsOfFunction = (
+      rowChips: Array<ActiveFilter>,
+    ) => Array<TokenRow>;
+
+    const tokenRowsOf: TokenRowsOfFunction = (
+      rowChips: Array<ActiveFilter>,
+    ): Array<TokenRow> => {
+      return rowChips.map((chip: ActiveFilter): TokenRow => {
+        return [
+          chip.facetKey,
+          detailOf(chip).searchToken,
+          detailOf(chip).searchTokenUnavailableReason,
+        ];
+      });
+    };
+
+    expect(tokenRowsOf(withAttribute)).toEqual([
+      ["entityKeys", undefined, ENTITY_KEY_NO_ATTRIBUTES_REASON],
+      [
+        "attributes.resource.host.name",
+        "@resource.host.name:ip-10-0-0-12",
+        undefined,
+      ],
+    ]);
+
+    /*
+     * Named with its attributes, the entity-key chip beside the attribute
+     * chip carries its own token, and neither borrows the other's.
+     */
+    const withEntityAttributes: Array<ActiveFilter> =
+      buildMetricsActiveFilterChips({
+        scopeIds: undefined,
+        scopeEntityType: undefined,
+        attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
+        entityKeysFilter: [POD_KEY],
+        entityKeyDisplays: POD_DISPLAYS_WITH_ATTRIBUTES,
+        activeFilters: [],
+        facetConfigs: [],
+        nameMap: {},
+      });
+
+    expect(tokenRowsOf(withEntityAttributes)).toEqual([
+      ["entityKeys", POD_SEARCH_TOKEN, undefined],
+      [
+        "attributes.resource.host.name",
+        "@resource.host.name:ip-10-0-0-12",
+        undefined,
+      ],
+    ]);
   });
 
   test("does not mutate the page's entity keys or display map", () => {
@@ -2168,6 +2342,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(rowsOf(chips)).toEqual([
       ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
     ]);
+    expect(detailOf(chips[0])).toEqual(NO_ATTRIBUTES_DETAIL);
     expect(entityKeysFilter).toEqual([` ${POD_KEY} `, POD_KEY, ""]);
     expect(entityKeyDisplays).toEqual({
       [POD_KEY]: {
@@ -2190,9 +2365,42 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(rowsOf(named)).toEqual([
       ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
     ]);
-    expect(detailOf(named[0]).summary).toBe(
-      "Only metrics linked to this Kubernetes Pod are shown.",
+    // An item whose identifying attributes were not loaded has no syntax.
+    expect(detailOf(named[0])).toEqual(NO_ATTRIBUTES_DETAIL);
+    expect(detailOf(named[0]).searchToken).toBeUndefined();
+    expect(detailOf(named[0]).searchTokenUnavailableReason).toBe(
+      ENTITY_KEY_NO_ATTRIBUTES_REASON,
     );
+
+    /*
+     * With them, the metrics chip reads the same and its search syntax is
+     * spelled with those attributes, never with the key.
+     */
+    const withAttributes: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: "checkout-7d9f",
+        identifyingAttributes: {
+          "k8s.cluster.name": "prod",
+          "k8s.namespace.name": "shop",
+          "k8s.pod.name": "checkout-7d9f",
+        },
+      }),
+    });
+
+    expect(rowsOf(withAttributes)).toEqual(rowsOf(named));
+    expect(detailOf(withAttributes[0])).toEqual({
+      searchToken: POD_SEARCH_TOKEN,
+    });
+    expect(detailOf(withAttributes[0]).searchToken).toBe(
+      "@resource.k8s.cluster.name:prod @resource.k8s.namespace.name:shop @resource.k8s.pod.name:checkout-7d9f",
+    );
+    expect(
+      detailOf(withAttributes[0]).searchTokenUnavailableReason,
+    ).toBeUndefined();
+    expect(detailOf(withAttributes[0]).searchToken).not.toContain(POD_KEY);
 
     // An unnamed item reads as its key, still under its type.
     const unnamed: Array<ActiveFilter> = inventoryChips({
@@ -2207,8 +2415,9 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(rowsOf(unnamed)).toEqual([
       ["entityKeys", POD_KEY, "Kubernetes Pod", POD_KEY, true],
     ]);
+    expect(detailOf(unnamed[0])).toEqual(NO_ATTRIBUTES_DETAIL);
 
-    // An untyped item is an Inventory Item, in the chip and its explanation.
+    // An untyped item is an Inventory Item in the chip; its syntax is unchanged.
     const untyped: Array<ActiveFilter> = inventoryChips({
       entityKeysFilter: [POD_KEY],
       entityKeyDisplays: buildInventoryEntityKeyDisplays({
@@ -2220,9 +2429,7 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(rowsOf(untyped)).toEqual([
       ["entityKeys", POD_KEY, "Inventory Item", "checkout-7d9f", true],
     ]);
-    expect(detailOf(untyped[0]).summary).toBe(
-      "Only metrics linked to this Inventory Item are shown.",
-    );
+    expect(detailOf(untyped[0])).toEqual(NO_ATTRIBUTES_DETAIL);
 
     /*
      * The page filters by the item's key as stored and keys the map by the
@@ -2240,5 +2447,6 @@ describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item
     expect(rowsOf(padded)).toEqual([
       ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
     ]);
+    expect(detailOf(padded[0])).toEqual(NO_ATTRIBUTES_DETAIL);
   });
 });

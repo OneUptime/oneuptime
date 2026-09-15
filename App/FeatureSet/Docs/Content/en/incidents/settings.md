@@ -203,6 +203,8 @@ Leave either empty to keep the default `#` prefix; the unset field displays `# (
 
 The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **SLA Rules** and **Reminder Rules** are single tables.
 
+Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
+
 ## Incident on-call rules
 
 **Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, describes rules that automatically execute on-call duty policies when matching incidents are created. The page has two tabs: **Incident Rules** and **Episode Rules**.

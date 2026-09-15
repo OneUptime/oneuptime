@@ -1,13 +1,16 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import ProjectUser from "../../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
 import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerRule";
 import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
 import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
@@ -68,10 +71,27 @@ A rule matches a policy only when **all** specified criteria pass. Empty criteri
 When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
 `;
 
-const OnCallPolicyOwnerRulesTable: FunctionComponent = (): ReactElement => {
+interface RulesTableProps {
+  // Set when the page is routed as this rule's view page.
+  viewRuleId?: ObjectID | undefined;
+}
+
+const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<OnCallDutyPolicyOwnerRule>
+    <RuleTable<OnCallDutyPolicyOwnerRule>
       modelType={OnCallDutyPolicyOwnerRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: OnCallDutyPolicyOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="on-call-policy-owner-rules-table"
       name="Settings > On-Call Policy Owner Rules"
       userPreferencesKey="on-call-policy-owner-rules-table"
@@ -124,7 +144,6 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -234,10 +253,22 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const OnCallScheduleOwnerRulesTable: FunctionComponent = (): ReactElement => {
+const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<OnCallDutyPolicyScheduleOwnerRule>
+    <RuleTable<OnCallDutyPolicyScheduleOwnerRule>
       modelType={OnCallDutyPolicyScheduleOwnerRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: OnCallDutyPolicyScheduleOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="on-call-schedule-owner-rules-table"
       name="Settings > On-Call Schedule Owner Rules"
       userPreferencesKey="on-call-schedule-owner-rules-table"
@@ -292,7 +323,6 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -402,176 +432,215 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const IncomingCallPolicyOwnerRulesTable: FunctionComponent =
-  (): ReactElement => {
-    return (
-      <ModelTable<IncomingCallPolicyOwnerRule>
-        modelType={IncomingCallPolicyOwnerRule}
-        id="incoming-call-policy-owner-rules-table"
-        name="Settings > Incoming Call Policy Owner Rules"
-        userPreferencesKey="incoming-call-policy-owner-rules-table"
-        saveFilterProps={{
-          tableId: "incoming-call-policy-owner-rules-table",
-        }}
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
-        createEditModalWidth={ModalWidth.Large}
-        cardProps={{
-          title: "Incoming Call Policy Owner Rules",
+const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
+  return (
+    <RuleTable<IncomingCallPolicyOwnerRule>
+      modelType={IncomingCallPolicyOwnerRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: IncomingCallPolicyOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
+      id="incoming-call-policy-owner-rules-table"
+      name="Settings > Incoming Call Policy Owner Rules"
+      userPreferencesKey="incoming-call-policy-owner-rules-table"
+      saveFilterProps={{
+        tableId: "incoming-call-policy-owner-rules-table",
+      }}
+      isDeleteable={true}
+      isEditable={true}
+      isCreateable={true}
+      createEditModalWidth={ModalWidth.Large}
+      cardProps={{
+        title: "Incoming Call Policy Owner Rules",
+        description:
+          "Auto-assign owner users and teams when matching incoming call policies are created.",
+      }}
+      helpContent={{
+        title: "How Incoming Call Policy Owner Rules Work",
+        description:
+          "Match incoming call policies and add owner users/teams automatically.",
+        markdown: incomingCallDocumentation,
+      }}
+      sortBy="name"
+      sortOrder={SortOrder.Ascending}
+      selectMoreFields={{ isEnabled: true }}
+      filters={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          type: FieldType.Boolean,
+        },
+      ]}
+      columns={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { description: true },
+          title: "Description",
+          type: FieldType.Text,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Status",
+          type: FieldType.Boolean,
+          getElement: (item: IncomingCallPolicyOwnerRule): ReactElement => {
+            return item.isEnabled ? (
+              <Pill color={Green} text="Enabled" />
+            ) : (
+              <Pill color={Red} text="Disabled" />
+            );
+          },
+        },
+      ]}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Match Criteria", id: "match-criteria", columns: 2 },
+        { title: "Owners", id: "owners", columns: 2 },
+      ]}
+      formFields={[
+        {
+          field: { name: true },
+          title: "Name",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "Assign team to matching incoming call policies",
+          validation: { minLength: 2 },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description: "Enable or disable this rule.",
+        },
+        {
+          field: { notifyOwners: true },
+          title: "Notify Owners",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
           description:
-            "Auto-assign owner users and teams when matching incoming call policies are created.",
-        }}
-        helpContent={{
-          title: "How Incoming Call Policy Owner Rules Work",
-          description:
-            "Match incoming call policies and add owner users/teams automatically.",
-          markdown: incomingCallDocumentation,
-        }}
-        sortBy="name"
-        sortOrder={SortOrder.Ascending}
-        selectMoreFields={{ isEnabled: true }}
-        filters={[
-          { field: { name: true }, title: "Name", type: FieldType.Text },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            type: FieldType.Boolean,
+            "Notify owners when they are added by this rule. Disable to add silently.",
+        },
+        {
+          field: { incomingCallPolicyLabels: true },
+          title: "Incoming Call Policy Labels",
+          stepId: "match-criteria",
+          sectionTitle: "Match by Attributes",
+          sectionDescription:
+            "Filter incoming call policies by labels. Leave empty to skip the filter.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
           },
-        ]}
-        columns={[
-          { field: { name: true }, title: "Name", type: FieldType.Text },
-          {
-            field: { description: true },
-            title: "Description",
-            type: FieldType.Text,
+          required: false,
+          placeholder: "Select Incoming Call Policy Labels (optional)",
+        },
+        {
+          field: { incomingCallPolicyNamePattern: true },
+          title: "Incoming Call Policy Name Pattern",
+          stepId: "match-criteria",
+          sectionTitle: "Match by Pattern",
+          sectionDescription:
+            "Case-insensitive regex matched against the incoming call policy name and description.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "support-.*",
+        },
+        {
+          field: { incomingCallPolicyDescriptionPattern: true },
+          title: "Incoming Call Policy Description Pattern",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "billing|support",
+        },
+        {
+          field: { ownerTeams: true },
+          title: "Owner Teams",
+          stepId: "owners",
+          sectionTitle: "Owners to Assign",
+          sectionDescription:
+            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Team,
+            labelField: "name",
+            valueField: "_id",
           },
-          {
-            field: { isEnabled: true },
-            title: "Status",
-            type: FieldType.Boolean,
-            getElement: (item: IncomingCallPolicyOwnerRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
-            },
+          required: false,
+          placeholder: "Select Teams",
+        },
+        {
+          field: { ownerUsers: true },
+          title: "Owner Users",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          fetchDropdownOptions: async () => {
+            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+              ProjectUtil.getCurrentProjectId()!,
+            );
           },
-        ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria", columns: 2 },
-          { title: "Owners", id: "owners", columns: 2 },
-        ]}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Assign team to matching incoming call policies",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this rule.",
-          },
-          {
-            field: { notifyOwners: true },
-            title: "Notify Owners",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Notify owners when they are added by this rule. Disable to add silently.",
-          },
-          {
-            field: { incomingCallPolicyLabels: true },
-            title: "Incoming Call Policy Labels",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Attributes",
-            sectionDescription:
-              "Filter incoming call policies by labels. Leave empty to skip the filter.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Incoming Call Policy Labels (optional)",
-          },
-          {
-            field: { incomingCallPolicyNamePattern: true },
-            title: "Incoming Call Policy Name Pattern",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Pattern",
-            sectionDescription:
-              "Case-insensitive regex matched against the incoming call policy name and description.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "support-.*",
-          },
-          {
-            field: { incomingCallPolicyDescriptionPattern: true },
-            title: "Incoming Call Policy Description Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "billing|support",
-          },
-          {
-            field: { ownerTeams: true },
-            title: "Owner Teams",
-            stepId: "owners",
-            sectionTitle: "Owners to Assign",
-            sectionDescription:
-              "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-          },
-          {
-            field: { ownerUsers: true },
-            title: "Owner Users",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-          },
-        ]}
-        showRefreshButton={true}
-      />
-    );
-  };
+          required: false,
+          placeholder: "Select Users",
+        },
+      ]}
+      showRefreshButton={true}
+    />
+  );
+};
 
-const OnCallDutyOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const OnCallDutyOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  /*
+   * Routed as a rule's view page, the page shows only that rule, through
+   * the table that lists it, instead of the tabs.
+   */
+  const policyRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    OnCallDutyPolicyOwnerRule,
+  );
+  const scheduleRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    OnCallDutyPolicyScheduleOwnerRule,
+  );
+  const incomingCallRuleId: ObjectID | undefined =
+    RuleViewPageUtil.getViewRuleId(props, IncomingCallPolicyOwnerRule);
+
+  if (policyRuleId) {
+    return <OnCallPolicyOwnerRulesTable viewRuleId={policyRuleId} />;
+  }
+
+  if (scheduleRuleId) {
+    return <OnCallScheduleOwnerRulesTable viewRuleId={scheduleRuleId} />;
+  }
+
+  if (incomingCallRuleId) {
+    return (
+      <IncomingCallPolicyOwnerRulesTable viewRuleId={incomingCallRuleId} />
+    );
+  }
+
   return (
     <Fragment>
       <Tabs

@@ -28,6 +28,8 @@ import IoTFleetAuditLogs from "../Pages/IoT/View/AuditLogs";
 import IoTFleetSettings from "../Pages/IoT/View/Settings";
 import IoTFleetDelete from "../Pages/IoT/View/Delete";
 import IoTFleetDocumentation from "../Pages/IoT/View/Documentation";
+import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
+import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
 
 const IoTRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -63,11 +65,35 @@ const IoTRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={IoTRoutePath[PageMap.IOT_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <IoTSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.IOT_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={IoTFleetOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={IoTRoutePath[PageMap.IOT_SETTINGS_LABEL_RULES] || ""}
           element={
             <IoTSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.IOT_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={IoTRoutePath[PageMap.IOT_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <IoTSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.IOT_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={IoTFleetLabelRule}
             />
           }
         />

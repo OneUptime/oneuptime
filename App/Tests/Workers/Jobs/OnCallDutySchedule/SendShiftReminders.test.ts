@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * SendShiftReminders — the five-minute cron behind "your on-call shift on
  * <Schedule> starts in 1 hour" — is SCHEDULED AT ALL, and scheduled the way
- * the reminder runner needs. Modelled on PollGoogleSecOpsConnectionsJob.test.ts:
+ * the reminder runner needs. Modelled on PollSecurityEventConnectionsJob.test.ts:
  * the real RunCron and the real JobDictionary run here, only the queue and
  * the runner underneath them are replaced.
  *

@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/ServerlessFunctionOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -15,11 +17,24 @@ import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 const ServerlessFunctionOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
-    <ModelTable<ServerlessFunctionOwnerRule>
+    <RuleTable<ServerlessFunctionOwnerRule>
       modelType={ServerlessFunctionOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        ServerlessFunctionOwnerRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.SERVERLESS_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: ServerlessFunctionOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.SERVERLESS_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="serverless-function-owner-rules-table"
       name="Settings > Serverless Function Owner Rules"
       userPreferencesKey="serverless-function-owner-rules-table"
@@ -63,7 +78,6 @@ const ServerlessFunctionOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

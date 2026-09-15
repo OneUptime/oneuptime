@@ -12,8 +12,33 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import Select from "../Types/Database/Select";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class CephClusterLabelRuleEngineServiceClass {
+class CephClusterLabelRuleEngineServiceClass
+  implements RuleRunEngine<CephCluster, CephClusterLabelRule>
+{
+  public readonly ruleSelect: Select<CephClusterLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    cephClusterLabels: { _id: true },
+    cephClusterNamePattern: true,
+    cephClusterDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  // Evaluation re-reads the Ceph cluster, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<CephCluster> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates CephClusterLabelRule rows for the given Ceph cluster and attaches matched
    * labels to it. The union is deduped against labels already on the Ceph cluster
@@ -35,15 +60,7 @@ class CephClusterLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            cephClusterLabels: { _id: true },
-            cephClusterNamePattern: true,
-            cephClusterDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -58,117 +75,161 @@ class CephClusterLabelRuleEngineServiceClass {
         return;
       }
 
-      const cephClusterWithDetails: CephCluster | null =
-        await CephClusterService.findOneById({
-          id: cephCluster.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!cephClusterWithDetails) {
-        return;
-      }
-
-      const labelIdsToAdd: Set<string> = new Set();
-      const matchedRuleNames: Array<string> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesCephClusterMatchRule(
-          cephClusterWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        if ((rule.labelsToAdd || []).length > 0) {
-          matchedRuleNames.push(
-            rule.name || rule.id?.toString() || "Unnamed rule",
-          );
-        }
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const existingLabelIds: Set<string> = new Set(
-        (cephClusterWithDetails.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await CephClusterService.getRepository()
-        .createQueryBuilder()
-        .relation(CephCluster, "labels")
-        .of(cephCluster.id.toString())
-        .add(newLabelIds);
-
-      /*
-       * Sync in-memory cephCluster.labels so a downstream owner-rule engine in
-       * the same onCreateSuccess chain can match on rule-added labels.
-       */
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      cephCluster.labels = Array.from(mergedLabelIds).map((id: string) => {
-        const label: Label = new Label();
-        label.id = new ObjectID(id);
-        return label;
-      });
-
-      logger.debug(
-        `CephClusterLabelRuleEngine attached ${newLabelIds.length} labels to Ceph cluster ${cephCluster.id}`,
-        { projectId: cephCluster.projectId.toString() } as LogAttributes,
-      );
-      /*
-       * Labels arriving from a rule rather than from a person is exactly the
-       * kind of thing the overview page cannot explain, so record which rules
-       * did it.
-       */
-      await CephClusterFeedService.createCephClusterFeedItem({
-        cephClusterId: cephCluster.id,
-        projectId: cephCluster.projectId,
-        cephClusterFeedEventType: CephClusterFeedEventType.LabelRuleExecuted,
-        displayColor: Purple500,
-        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CephClusterService.getCephClusterMarkdownLink(
-          cephCluster.projectId,
-          cephCluster.id,
-        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-          .map((name: string) => {
-            return `\`${name}\``;
-          })
-          .join(", ")}`,
-      });
+      await this.applyRules({ cephCluster: cephCluster, rules: rules });
     } catch (error) {
       logger.error(`Error applying Ceph cluster label rules: ${error}`, {
         projectId: cephCluster.projectId?.toString(),
         cephClusterId: cephCluster.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a Ceph cluster that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<CephCluster, CephClusterLabelRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        cephCluster: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running Ceph cluster label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        cephClusterId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    cephCluster: CephCluster;
+    rules: Array<CephClusterLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { cephCluster, rules } = data;
+
+    if (!cephCluster.id || !cephCluster.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const cephClusterWithDetails: CephCluster | null =
+      await CephClusterService.findOneById({
+        id: cephCluster.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!cephClusterWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let matchedAnyRule: boolean = false;
+    const matchedRuleNames: Array<string> = [];
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesCephClusterMatchRule(
+        cephClusterWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      matchedAnyRule = true;
+      if ((rule.labelsToAdd || []).length > 0) {
+        matchedRuleNames.push(
+          rule.name || rule.id?.toString() || "Unnamed rule",
+        );
+      }
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (!matchedAnyRule) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (cephClusterWithDetails.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await CephClusterService.getRepository()
+      .createQueryBuilder()
+      .relation(CephCluster, "labels")
+      .of(cephCluster.id.toString())
+      .add(newLabelIds);
+
+    /*
+     * Sync in-memory cephCluster.labels so a downstream owner-rule engine in
+     * the same onCreateSuccess chain can match on rule-added labels.
+     */
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    cephCluster.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+
+    logger.debug(
+      `CephClusterLabelRuleEngine attached ${newLabelIds.length} labels to Ceph cluster ${cephCluster.id}`,
+      { projectId: cephCluster.projectId.toString() } as LogAttributes,
+    );
+    /*
+     * Labels arriving from a rule rather than from a person is exactly the
+     * kind of thing the overview page cannot explain, so record which rules
+     * did it.
+     */
+    await CephClusterFeedService.createCephClusterFeedItem({
+      cephClusterId: cephCluster.id,
+      projectId: cephCluster.projectId,
+      cephClusterFeedEventType: CephClusterFeedEventType.LabelRuleExecuted,
+      displayColor: Purple500,
+      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await CephClusterService.getCephClusterMarkdownLink(
+        cephCluster.projectId,
+        cephCluster.id,
+      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+        .map((name: string) => {
+          return `\`${name}\``;
+        })
+        .join(", ")}`,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   private doesCephClusterMatchRule(

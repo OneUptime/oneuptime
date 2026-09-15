@@ -3,10 +3,12 @@ import SecurityEventConnectionRun from "../../../../Models/DatabaseModels/Securi
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   ConnectorPlatformStatus,
   SecurityConnectorCheck,
+  SecurityConnectorSample,
   SecurityConnectorTestReport,
   summarizeCheckStatuses,
 } from "../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
@@ -22,9 +24,11 @@ import SecurityEventDedupe from "../SecurityEventDedupe";
 import ConnectorPlatformHealth from "./ConnectorPlatformHealth";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
+  ConnectorTestResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
   makeCheck,
+  toConnectorTestResult,
 } from "./Types";
 
 export const CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS: number = 20 * 1000;
@@ -38,9 +42,11 @@ export const CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS: number = 20 * 1000;
  * hangs in exactly that situation. Running here lets the report SAY "no
  * worker is consuming the queue" instead of spinning.
  *
- * Provider checks come from the connector; platform and schedule checks
- * are shared. A saved connection also gets a run-history row so the test
- * shows up next to polls and imports.
+ * Provider checks, and the availability counts and sample records a
+ * connector can report with them, come from the connector; platform and
+ * schedule checks are shared. A saved connection also gets a run-history
+ * row so the test shows up next to polls and imports, unless the caller
+ * tested settings other than the saved ones (recordRun: false).
  */
 export default class SecurityEventConnectionTester {
   public static async test(data: {
@@ -49,6 +55,13 @@ export default class SecurityEventConnectionTester {
     connectorOverride?: SecurityEventConnector | undefined;
     platformOverride?: ConnectorPlatformStatus | undefined;
     requestTimeoutInMs?: number | undefined;
+    /*
+     * Whether a saved connection gets a run-history row. Defaults to true.
+     * The API passes false when the settings tested are not the ones the
+     * connection stores (the edit form's unsaved values): a row describing
+     * settings that were never saved would misstate its history.
+     */
+    recordRun?: boolean | undefined;
   }): Promise<SecurityConnectorTestReport> {
     const startedMs: number = Date.now();
     const definition: SecurityEventConnectorDefinition | undefined =
@@ -87,14 +100,26 @@ export default class SecurityEventConnectionTester {
       );
     }
 
+    let counts: JSONObject | undefined = undefined;
+    let samples: Array<SecurityConnectorSample> | undefined = undefined;
+
     if (connector && checks[0]?.status === "pass") {
       try {
-        const providerChecks: Array<SecurityConnectorCheck> =
+        const providerResult: ConnectorTestResult = toConnectorTestResult(
           await connector.testConnection(data.settings, {
             requestTimeoutInMs:
               data.requestTimeoutInMs || CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
-          });
-        checks.push(...providerChecks);
+            /*
+             * Said explicitly: this synchronous test is where the slow
+             * availability probes belong. Only a test queued to a worker
+             * skips them (see SecurityEventConnectionPoller).
+             */
+            skipAvailability: false,
+          }),
+        );
+        checks.push(...providerResult.checks);
+        counts = providerResult.counts;
+        samples = providerResult.samples;
       } catch (error) {
         /*
          * Connectors are asked never to throw here, but a bug in one must
@@ -165,9 +190,15 @@ export default class SecurityEventConnectionTester {
       checks,
       summary: this.summarize(title, status, checks),
       platform,
+      ...(counts ? { counts } : {}),
+      ...(samples ? { samples } : {}),
     };
 
-    if (data.connection?.id && data.connection.projectId) {
+    if (
+      data.recordRun !== false &&
+      data.connection?.id &&
+      data.connection.projectId
+    ) {
       await this.recordRun(data.connection, report);
     }
 

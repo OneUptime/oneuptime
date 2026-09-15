@@ -21,7 +21,7 @@ export class Service extends DatabaseService<Model> {
    * Validate at save time so a feed that stores is a feed the poller can
    * use — a malformed URL or collection id surfaces to the person
    * configuring it, not as a cron-side lastError later. (The
-   * GoogleSecOpsConnectionService discipline.)
+   * SecurityEventConnectionService discipline.)
    */
   private validateFeed(data: {
     apiRootUrl?: string | undefined;

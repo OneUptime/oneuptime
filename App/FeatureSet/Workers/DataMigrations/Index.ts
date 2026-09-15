@@ -111,6 +111,7 @@ import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMoni
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
+import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -438,6 +439,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * move untouched. Idempotent.
    */
   new RepairHashedStringEnvelopeSecrets(),
+  /*
+   * Google SecOps moved into Security Event Connections: copies each
+   * GoogleSecOpsConnection (same _id and poller state, key re-encrypted as the
+   * connection's secrets) and its most recent 500 runs, then disables the
+   * legacy row so an old pod stops polling it. The legacy tables stay.
+   * Idempotent.
+   */
+  new MoveGoogleSecOpsConnectionsToSecurityEventConnections(),
   /*
    * AuditLog rows gained a root-resource pointer (rootResourceType /
    * rootResourceId) so a resource's audit page can list its children's

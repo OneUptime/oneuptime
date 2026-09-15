@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -31,12 +33,22 @@ A rule matches a runbook only when **all** specified criteria pass. Empty criter
 When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
 
-const RunbookOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const RunbookOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<RunbookOwnerRule>
+    <RuleTable<RunbookOwnerRule>
       modelType={RunbookOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, RunbookOwnerRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.RUNBOOKS_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: RunbookOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="runbook-owner-rules-table"
       name="Settings > Runbook Owner Rules"
       userPreferencesKey="runbook-owner-rules-table"
@@ -88,7 +100,6 @@ const RunbookOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

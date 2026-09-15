@@ -61,6 +61,12 @@ export interface SecurityConnectorSample {
   createdTime?: string | undefined;
   // The record's own event/detection time, which may be much earlier.
   eventTime?: string | undefined;
+  /*
+   * For sources that distinguish alerting from non-alerting records (see
+   * the catalog's supportsAlertingOnlyToggle): whether this record is an
+   * alert. Undefined when the source does not say.
+   */
+  isAlert?: boolean | undefined;
 }
 
 export type SecurityConnectorTestStatus = "pass" | "fail" | "warn";

@@ -5,8 +5,10 @@
  * the server-side connector in SecurityEventConnectorRegistry and the
  * form/help metadata in SecurityEventConnectorCatalog.
  *
- * Google SecOps predates this framework and keeps its own model
- * (GoogleSecOpsConnection) and poller; it is deliberately not listed here.
+ * Google SecOps used to have its own model (GoogleSecOpsConnection) and
+ * poller. It is now a provider like any other; its value "google-secops"
+ * is the identifier its connection tests already stored, so run history
+ * carried over from the old model still resolves to this entry.
  */
 enum SecurityEventConnectorProvider {
   MicrosoftSentinel = "microsoft-sentinel",
@@ -16,6 +18,7 @@ enum SecurityEventConnectorProvider {
   ElasticSecurity = "elastic-security",
   AwsSecurityHub = "aws-security-hub",
   OktaSystemLog = "okta",
+  GoogleSecOps = "google-secops",
 }
 
 export default SecurityEventConnectorProvider;
@@ -29,6 +32,7 @@ export const AllSecurityEventConnectorProviders: Array<SecurityEventConnectorPro
     SecurityEventConnectorProvider.ElasticSecurity,
     SecurityEventConnectorProvider.AwsSecurityHub,
     SecurityEventConnectorProvider.OktaSystemLog,
+    SecurityEventConnectorProvider.GoogleSecOps,
   ];
 
 export function isSecurityEventConnectorProvider(

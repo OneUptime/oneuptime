@@ -9,13 +9,52 @@ import AlertService from "./AlertService";
 import MonitorService from "./MonitorService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class AlertPrivacyRuleEngineServiceClass {
+class AlertPrivacyRuleEngineServiceClass
+  implements RuleRunEngine<Alert, AlertPrivacyRule>
+{
+  public readonly ruleSelect: Select<AlertPrivacyRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    alertSeverities: { _id: true },
+    alertLabels: { _id: true },
+    monitorLabels: { _id: true },
+    alertTitlePattern: true,
+    alertDescriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+  };
+
+  /*
+   * Evaluation reads these straight off the alert it is handed (the
+   * monitor's name, description and labels are then re-read by monitorId),
+   * and a run must see isPrivate to report an alert that is already private.
+   */
+  public readonly resourceSelectForRuleRun: Select<Alert> = {
+    _id: true,
+    projectId: true,
+    isPrivate: true,
+    title: true,
+    description: true,
+    alertSeverityId: true,
+    monitorId: true,
+    labels: { _id: true },
+  };
+
   /**
    * Evaluates AlertPrivacyRule rows for the given alert. If any enabled rule
    * matches, the alert is marked private (isPrivate=true) and the passed-in
@@ -42,19 +81,7 @@ class AlertPrivacyRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitors: { _id: true },
-            alertSeverities: { _id: true },
-            alertLabels: { _id: true },
-            monitorLabels: { _id: true },
-            alertTitlePattern: true,
-            alertDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -69,34 +96,12 @@ class AlertPrivacyRuleEngineServiceClass {
         return false;
       }
 
-      const matchedRules: Array<AlertPrivacyRule> = [];
-      for (const rule of rules) {
-        const matches: boolean = await this.doesAlertMatchRule(alert, rule);
-        if (matches) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return false;
-      }
-
-      await AlertService.updateOneById({
-        id: alert.id,
-        data: { isPrivate: true },
-        props: { isRoot: true },
+      const result: RuleApplicationResult = await this.applyRules({
+        alert: alert,
+        rules: rules,
       });
 
-      // Mirror in memory so downstream onCreateSuccess steps see the change.
-      alert.isPrivate = true;
-
-      logger.debug(`AlertPrivacyRuleEngine marked alert ${alert.id} private`, {
-        projectId: alert.projectId.toString(),
-      } as LogAttributes);
-
-      await this.createRuleExecutedFeedItem({ alert, matchedRules });
-
-      return true;
+      return result.updated;
     } catch (error) {
       logger.error(`Error applying alert privacy rules: ${error}`, {
         projectId: alert.projectId?.toString(),
@@ -104,6 +109,77 @@ class AlertPrivacyRuleEngineServiceClass {
       } as LogAttributes);
       return false;
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an alert that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<Alert, AlertPrivacyRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        alert: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running alert privacy rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        alertId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    alert: Alert;
+    rules: Array<AlertPrivacyRule>;
+  }): Promise<RuleApplicationResult> {
+    const { alert, rules } = data;
+
+    if (!alert.id || !alert.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const matchedRules: Array<AlertPrivacyRule> = [];
+    for (const rule of rules) {
+      const matches: boolean = await this.doesAlertMatchRule(alert, rule);
+      if (matches) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    /*
+     * The create hook returns before evaluating an already-private alert; a
+     * run evaluates it anyway so it can report the rule as already applied.
+     */
+    if (alert.isPrivate === true) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await AlertService.updateOneById({
+      id: alert.id,
+      data: { isPrivate: true },
+      props: { isRoot: true },
+    });
+
+    // Mirror in memory so downstream onCreateSuccess steps see the change.
+    alert.isPrivate = true;
+
+    logger.debug(`AlertPrivacyRuleEngine marked alert ${alert.id} private`, {
+      projectId: alert.projectId.toString(),
+    } as LogAttributes);
+
+    await this.createRuleExecutedFeedItem({ alert, matchedRules });
+
+    return RuleApplicationResultUtil.updated(1);
   }
 
   @CaptureSpan()

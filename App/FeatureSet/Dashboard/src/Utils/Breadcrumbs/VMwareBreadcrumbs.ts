@@ -153,11 +153,25 @@ export function getVMwareBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "VMware",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_SETTINGS_LABEL_RULES, [
       "Project",
       "VMware",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "VMware",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
   };
   return breadcrumpLinksMap[path];

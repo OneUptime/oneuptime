@@ -116,6 +116,7 @@ import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
+import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
@@ -550,10 +551,6 @@ import LogDropFilterService, {
 import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
-import GoogleSecOpsConnectionAPI from "Common/Server/API/GoogleSecOpsConnectionAPI";
-import GoogleSecOpsConnectionRunService, {
-  Service as GoogleSecOpsConnectionRunServiceType,
-} from "Common/Server/Services/GoogleSecOpsConnectionRunService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
@@ -1444,7 +1441,6 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
@@ -3588,22 +3584,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new GoogleSecOpsConnectionAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        GoogleSecOpsConnectionRun,
-        GoogleSecOpsConnectionRunServiceType
-      >(
-        GoogleSecOpsConnectionRun,
-        GoogleSecOpsConnectionRunService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityEventConnectionAPI().getRouter(),
     );
 
@@ -5628,6 +5608,8 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkRuleRunAPI().getRouter(),
     );
+    // "Run now" for label, owner, privacy and status page monitor rules.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new RuleRunAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),

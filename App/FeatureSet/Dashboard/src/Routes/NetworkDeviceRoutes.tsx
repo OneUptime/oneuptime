@@ -32,6 +32,8 @@ import NetworkDeviceSettingsSnmpCredentialProfiles from "../Pages/NetworkDevice/
 import NetworkDeviceSettingsAlertPolicies from "../Pages/NetworkDevice/Settings/AlertPolicies";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
+import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
+import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
 
 const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -75,6 +77,24 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={NetworkDeviceOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
               PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES
             ] || ""
           }
@@ -84,6 +104,24 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={NetworkDeviceLabelRule}
             />
           }
         />

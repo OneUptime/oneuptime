@@ -1,14 +1,28 @@
+import { JSONObject } from "../../JSON";
 import {
   SecurityConnectorCheck,
   SecurityConnectorSample,
 } from "./ConnectorDiagnostics";
 
 /*
- * Run bookkeeping for the Security Event Connections framework. Mirrors
- * GoogleSecOpsDiagnostics.ts on purpose: the diagnostics UI and the run
- * executor treat the two families the same way, and a customer who has
- * both should not have to learn two vocabularies.
+ * Run bookkeeping for the Security Event Connections framework, shared by
+ * every provider including Google SecOps (which had its own copy of these
+ * types until it moved into the framework).
  */
+
+/*
+ * The event attribute a poll stamps with the connection id, so "View
+ * events" can open exactly the rows one connection imported.
+ */
+export const SECURITY_CONNECTION_ID_ATTRIBUTE: string =
+  "oneuptime.security_connection.id";
+/*
+ * The attribute the retired Google SecOps connector stamped instead. Runs
+ * carried over from it name this key in eventAttributeKey, because the
+ * events they imported were written before the move.
+ */
+export const LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE: string =
+  "oneuptime.google_secops.connection_id";
 
 export type SecurityEventConnectionRunType =
   | "test"
@@ -84,4 +98,16 @@ export interface SecurityEventConnectionRunResult {
    * one more minute per poll for the whole overlap.
    */
   overlapFloor?: string | undefined;
+  /*
+   * Provider-specific diagnostics the connector reported for this fetch
+   * (ConnectorFetchResult.details), e.g. Google SecOps's per-pass counts,
+   * the time basis read and creation-lag statistics. Never credentials.
+   */
+  providerDetails?: JSONObject | undefined;
+  /*
+   * The event attribute the imported rows carry the connection id under.
+   * Absent means SECURITY_CONNECTION_ID_ATTRIBUTE; runs carried over from
+   * the retired Google SecOps connector name its legacy attribute.
+   */
+  eventAttributeKey?: string | undefined;
 }

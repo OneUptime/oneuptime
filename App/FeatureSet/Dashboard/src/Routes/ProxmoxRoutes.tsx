@@ -33,6 +33,8 @@ import ProxmoxClusterAuditLogs from "../Pages/Proxmox/View/AuditLogs";
 import ProxmoxClusterSettings from "../Pages/Proxmox/View/Settings";
 import ProxmoxClusterDelete from "../Pages/Proxmox/View/Delete";
 import ProxmoxClusterDocumentation from "../Pages/Proxmox/View/Documentation";
+import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
 
 const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -70,6 +72,20 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={
+            ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_OWNER_RULE_VIEW] || ""
+          }
+          element={
+            <ProxmoxSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ProxmoxClusterOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES] || ""}
           element={
             <ProxmoxSettingsLabelRules
@@ -77,6 +93,20 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.PROXMOX_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW] || ""
+          }
+          element={
+            <ProxmoxSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ProxmoxClusterLabelRule}
             />
           }
         />

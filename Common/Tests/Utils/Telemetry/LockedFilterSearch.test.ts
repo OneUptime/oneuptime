@@ -7,7 +7,6 @@ import {
 import {
   TELEMETRY_EXPLORER_LABELS,
   TelemetrySignal,
-  buildSearchTextForFilters,
   buildSearchTokenForFilter,
   buildSearchTokenForOperatorValue,
   isSearchTokenSafeKey,
@@ -33,7 +32,7 @@ import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
- * A locked chip's "Copy filter" text must reproduce the chip on the explorer
+ * A locked chip's search syntax must reproduce the chip on the explorer
  * for the same signal when pasted into its search bar — nothing more (a token
  * the explorer reads as something else) and nothing less (a filter silently
  * left out of the copy). These pin which columns have a token per signal and
@@ -258,84 +257,6 @@ describe("buildSearchTokenForFilter — column chips", () => {
     expect(buildSearchTokenForFilter("logs", "traceId", "a b")).toBe(
       'trace:"a b"',
     );
-  });
-});
-
-describe("buildSearchTextForFilters", () => {
-  test("joins the tokens of every chip with single spaces, in order", () => {
-    expect(
-      buildSearchTextForFilters("logs", [
-        { facetKey: "attributes.resource.host.name", value: "web-01" },
-        { facetKey: "attributes.resource.container.runtime", value: "docker" },
-      ]),
-    ).toBe("@resource.host.name:web-01 @resource.container.runtime:docker");
-  });
-
-  test("skips chips without a token instead of inventing one", () => {
-    expect(
-      buildSearchTextForFilters("metrics", [
-        { facetKey: "primaryEntityId", value: "651a000000000000000000aa" },
-        { facetKey: "attributes.resource.faas.name", value: "fn" },
-      ]),
-    ).toBe("@resource.faas.name:fn");
-  });
-
-  test("drops duplicate tokens", () => {
-    expect(
-      buildSearchTextForFilters("logs", [
-        { facetKey: "attributes.k", value: "v" },
-        { facetKey: "attributes.k", value: "v" },
-      ]),
-    ).toBe("@k:v");
-  });
-
-  test("returns an empty string when nothing can be expressed", () => {
-    expect(
-      buildSearchTextForFilters("logs", [
-        { facetKey: "sessionId", value: "s" },
-      ]),
-    ).toBe("");
-    expect(buildSearchTextForFilters("logs", [])).toBe("");
-  });
-
-  test("a chip carrying a lockedDetail is trusted on its own searchToken", () => {
-    expect(
-      buildSearchTextForFilters("logs", [
-        {
-          facetKey: "attributes.k",
-          value: "contains web",
-          lockedDetail: {
-            source: "Pinned by this page",
-            summary: "s",
-            predicates: [],
-            searchToken: "@k:~web",
-          },
-        },
-      ]),
-    ).toBe("@k:~web");
-  });
-
-  test("a lockedDetail WITHOUT a searchToken is skipped — never re-derived from display text", () => {
-    /*
-     * An operator filter ("is any of web, api") has no search syntax; the
-     * chip's value is its display text, and a token built from it would
-     * filter on the literal string "is any of web, api".
-     */
-    expect(
-      buildSearchTextForFilters("logs", [
-        {
-          facetKey: "attributes.k",
-          value: "is any of web, api",
-          lockedDetail: {
-            source: "Pinned by this page",
-            summary: "s",
-            predicates: [],
-            searchTokenUnavailableReason: "Operator filters have no syntax.",
-          },
-        },
-        { facetKey: "attributes.other", value: "x" },
-      ]),
-    ).toBe("@other:x");
   });
 });
 

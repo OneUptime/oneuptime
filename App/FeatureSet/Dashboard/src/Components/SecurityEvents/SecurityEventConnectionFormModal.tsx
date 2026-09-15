@@ -9,6 +9,7 @@ import HashedString from "Common/Types/HashedString";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { SecurityConnectorTestReport } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
+  ConnectorAlertingOnlyControl,
   ConnectorField,
   SecurityEventConnectorCatalog,
   SecurityEventConnectorCategories,
@@ -21,8 +22,11 @@ import SecurityEventConnectorProvider, {
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { CardSelectOptionGroup } from "Common/UI/Components/CardSelect/CardSelect";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  CustomElementProps,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -107,6 +111,41 @@ function readString(value: JSONValue | undefined): string {
   return String(value).trim();
 }
 
+/*
+ * A "json" field (a Google Cloud service-account key) is stored as the text
+ * that was pasted: never parsed, never HashedString-wrapped (BasicForm wraps
+ * only Password fields) and never trimmed, so the key reaches the secrets
+ * blob byte for byte, newlines included. Whitespace alone still counts as
+ * blank, which on edit means "keep the stored value".
+ */
+function readJsonText(value: JSONValue | undefined): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (value instanceof HashedString) {
+    return readJsonText(value.toString());
+  }
+
+  if (typeof value === "string") {
+    return value.trim() === "" ? "" : value;
+  }
+
+  /*
+   * The code editor only ever hands back text; a parsed document from any
+   * other caller is sent as its JSON text rather than as an object the
+   * scalar-only secrets blob would reject.
+   */
+  return JSON.stringify(value);
+}
+
+function readFieldText(
+  field: ConnectorField,
+  value: JSONValue | undefined,
+): string {
+  return field.type === "json" ? readJsonText(value) : readString(value);
+}
+
 function readConfigValue(
   field: ConnectorField,
   raw: JSONValue | undefined,
@@ -115,7 +154,7 @@ function readConfigValue(
     return raw === true;
   }
 
-  const text: string = readString(raw);
+  const text: string = readFieldText(field, raw);
 
   if (text === "") {
     return undefined;
@@ -176,7 +215,8 @@ export function readSecurityEventConnectionForm(
       continue;
     }
 
-    const value: string = readString(
+    const value: string = readFieldText(
+      field,
       values[secretFieldName(provider, field.key)] as JSONValue | undefined,
     );
 
@@ -224,7 +264,11 @@ function withoutRemovedSecrets(secrets: JSONObject): JSONObject {
  * The body for POST /security-event-connection/test. Unsaved settings on
  * create; on edit the connection id plus the edits, so blank secrets keep
  * the stored values and a secret sent as null is tested as removed (the API
- * overlays secrets with the same rule the save uses).
+ * overlays secrets with the same rule the save uses). The edit body carries
+ * alertingOnly too: it is part of what is tested (Google SecOps counts the
+ * other Data to import choice against it), and the API compares it with the
+ * stored value to decide whether the test describes the saved settings and
+ * belongs in run history.
  */
 export function securityEventConnectionTestBody(data: {
   values: JSONObject;
@@ -243,6 +287,7 @@ export function securityEventConnectionTestBody(data: {
 
     if (!data.credentialsOnly) {
       body["config"] = submission.config;
+      body["alertingOnly"] = submission.alertingOnly;
     }
 
     return body;
@@ -281,7 +326,7 @@ export function securityEventConnectionUpdatePayload(
   };
 }
 
-function fieldTypeFor(field: ConnectorField): FormFieldSchemaType {
+export function fieldTypeFor(field: ConnectorField): FormFieldSchemaType {
   switch (field.type) {
     case "url":
       return FormFieldSchemaType.URL;
@@ -293,10 +338,141 @@ function fieldTypeFor(field: ConnectorField): FormFieldSchemaType {
       return FormFieldSchemaType.Toggle;
     case "dropdown":
       return FormFieldSchemaType.Dropdown;
+    case "json":
+      return FormFieldSchemaType.JSON;
     default:
       return FormFieldSchemaType.Text;
   }
 }
+
+/*
+ * A secret is a masked input unless the catalog says it is a JSON document.
+ * A service-account key pasted into a single-line password input would lose
+ * its JSON syntax check and be an unreadable 2 KB masked blob; the code
+ * editor checks the syntax before the step can be left.
+ */
+export function secretFieldTypeFor(field: ConnectorField): FormFieldSchemaType {
+  return field.type === "json"
+    ? FormFieldSchemaType.JSON
+    : FormFieldSchemaType.Password;
+}
+
+export const CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE: string =
+  "Choose a provider before testing.";
+
+/*
+ * "Paste the Service account JSON to test these settings before saving..."
+ * A create form has no stored credential to fall back on, so a test without
+ * a required secret could only fail on a message about a missing value.
+ */
+export function connectionTestNeedsSecretsMessage(
+  fields: Array<ConnectorField>,
+): string {
+  const verb: string = fields.every((field: ConnectorField): boolean => {
+    return field.type === "json";
+  })
+    ? "Paste"
+    : "Enter";
+  const titles: Array<string> = fields.map((field: ConnectorField): string => {
+    return field.title;
+  });
+  const names: string =
+    titles.length > 1
+      ? `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}`
+      : titles.join("");
+
+  return `${verb} the ${names} to test these settings before saving. A saved connection can be tested from its row's Test connection action.`;
+}
+
+/*
+ * Why "Test these settings" cannot run yet, or undefined when it can. A saved
+ * connection is tested with its stored secrets, so a blank input there is
+ * never missing.
+ */
+export function connectionTestDisabledReason(data: {
+  values: JSONObject;
+  connection?: SecurityEventConnection | undefined;
+}): string | undefined {
+  const provider: string =
+    data.connection?.provider || readString(data.values["provider"]);
+  const definition: SecurityEventConnectorDefinition | undefined =
+    getSecurityEventConnectorDefinition(provider);
+
+  if (!definition) {
+    return CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE;
+  }
+
+  if (data.connection?.id) {
+    return undefined;
+  }
+
+  const missing: Array<ConnectorField> = definition.secretFields.filter(
+    (field: ConnectorField): boolean => {
+      return (
+        field.required &&
+        readFieldText(
+          field,
+          data.values[secretFieldName(definition.provider, field.key)] as
+            | JSONValue
+            | undefined,
+        ) === ""
+      );
+    },
+  );
+
+  return missing.length > 0
+    ? connectionTestNeedsSecretsMessage(missing)
+    : undefined;
+}
+
+export interface AlertingOnlyControlInputProps {
+  provider: string;
+  control: ConnectorAlertingOnlyControl;
+  alertingOnly: boolean;
+  fieldProps: CustomElementProps;
+}
+
+/*
+ * The catalog's two-option presentation of alertingOnly, e.g. Google SecOps'
+ * Data to import: the alerting records are a fixed, checked option (the
+ * provider always returns them) and the second option adds the rest.
+ * Checking it stores alertingOnly=false, so the value the form holds is the
+ * same boolean the generic toggle stores, only presented in the provider's
+ * own words.
+ */
+export const AlertingOnlyControlInput: FunctionComponent<
+  AlertingOnlyControlInputProps
+> = (props: AlertingOnlyControlInputProps): ReactElement => {
+  const includeNonAlerting: boolean = !props.alertingOnly;
+
+  return (
+    <div aria-label={props.control.title} className="space-y-3" role="group">
+      <CheckboxElement
+        ariaLabel={props.control.alertingLabel}
+        dataTestId={`${props.provider}-alerting-checkbox`}
+        disabled={true}
+        hoverText={props.control.alertingHint}
+        initialValue={true}
+        readOnly={true}
+        title={props.control.alertingLabel}
+        value={true}
+      />
+      <CheckboxElement
+        ariaLabel={props.control.nonAlertingLabel}
+        dataTestId={`${props.provider}-non-alerting-checkbox`}
+        error={props.fieldProps.error}
+        initialValue={includeNonAlerting}
+        onBlur={props.fieldProps.onBlur}
+        onChange={(checked: boolean): void => {
+          props.fieldProps.onChange?.(!checked);
+        }}
+        tabIndex={props.fieldProps.tabIndex}
+        title={props.control.nonAlertingLabel}
+        value={includeNonAlerting}
+      />
+    </div>
+  );
+};
 
 export function providerCardOptions(): Array<CardSelectOptionGroup> {
   return SecurityEventConnectorCategories.map(
@@ -361,9 +537,10 @@ const InlineSettingsTest: FunctionComponent<InlineSettingsTestProps> = (
   return (
     <InlineConnectionTest
       providerTitle={definition?.title || "the provider"}
-      disabledReason={
-        definition ? undefined : "Choose a provider before testing."
-      }
+      disabledReason={connectionTestDisabledReason({
+        values: props.values,
+        connection: props.connection,
+      })}
       settingsKey={settingsKey}
       runTest={(): Promise<SecurityConnectorTestReport> => {
         return runConnectionTestRequest({
@@ -504,7 +681,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             ? `${field.description} Leave blank to keep the stored value.`
             : field.description,
           stepId: CREDENTIALS_STEP_ID,
-          fieldType: FormFieldSchemaType.Password,
+          fieldType: secretFieldTypeFor(field),
           // Stored secrets can never be read back, so editing never requires them.
           required: isEditing ? false : field.required,
           ...(isEditing
@@ -529,9 +706,9 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
 
         /*
          * Only an optional secret can be removed: deleting a required one
-         * would leave a connection the server refuses to save. The password
-         * input above stays visible (hiding it would also hide the section
-         * heading it carries) and is ignored while the toggle is on.
+         * would leave a connection the server refuses to save. The input
+         * above stays visible (hiding it would also hide the section heading
+         * it carries) and is ignored while the toggle is on.
          */
         if (isEditing && !field.required) {
           fields.push({
@@ -625,10 +802,53 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             getSecurityEventConnectorDefinition(
               lockedProvider || readString(values["provider"] as JSONValue),
             );
-          return Boolean(selected?.supportsAlertingOnlyToggle);
+          return Boolean(
+            selected?.supportsAlertingOnlyToggle &&
+              !selected.alertingOnlyControl,
+          );
         },
       },
     );
+
+    /*
+     * A provider with its own presentation of alertingOnly gets that instead
+     * of the toggle. Same field name, so the value, the initial values and
+     * the submit mapping are shared; only one of the two is ever visible.
+     */
+    for (const definition of definitions) {
+      const control: ConnectorAlertingOnlyControl | undefined =
+        definition.supportsAlertingOnlyToggle
+          ? definition.alertingOnlyControl
+          : undefined;
+
+      if (!control) {
+        continue;
+      }
+
+      fields.push({
+        field: { alertingOnly: true },
+        title: control.title,
+        description: control.description,
+        stepId: POLLING_STEP_ID,
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        hideOptionalLabel: true,
+        showIf: isSelected(definition),
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          fieldProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <AlertingOnlyControlInput
+              provider={definition.provider}
+              control={control}
+              alertingOnly={(values as JSONObject)["alertingOnly"] !== false}
+              fieldProps={fieldProps}
+            />
+          );
+        },
+      });
+    }
   }
 
   const initialValues: JSONObject = {};

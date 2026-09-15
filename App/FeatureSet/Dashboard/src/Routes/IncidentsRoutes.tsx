@@ -130,6 +130,12 @@ import IncidentEpisodeViewMembers from "../Pages/Incidents/EpisodeView/Members";
 import IncidentEpisodeCreate from "../Pages/Incidents/EpisodeCreate";
 
 import IncidentEpisodeDocs from "../Pages/Incidents/EpisodeDocs";
+import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
+import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
+import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
+import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
+import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
+import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -385,6 +391,38 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_OWNER_RULE_VIEW] || ""
+          }
+          element={
+            <IncidentSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={IncidentOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <IncidentSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={IncidentEpisodeOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -431,6 +469,39 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <IncidentSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULE_VIEW] as Route
+              }
+              ruleViewModelType={IncidentPrivacyRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <IncidentSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={IncidentEpisodePrivacyRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -442,6 +513,38 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW] || ""
+          }
+          element={
+            <IncidentSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={IncidentLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <IncidentSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={IncidentEpisodeLabelRule}
             />
           }
         />

@@ -697,9 +697,22 @@ describe("label rule table import and export", () => {
       isEditable: true,
       isViewable: true,
       enableJsonImportExport: false,
-      actionButtons: tableOptions.actionButtons,
-      bulkActions: tableOptions.bulkActions,
     });
+    /*
+     * Label rules can be run, so the table's own (empty) row and bulk actions
+     * come through with "Run Now" appended, and nothing else added.
+     */
+    const titles: (buttons: Array<unknown> | undefined) => Array<string> = (
+      buttons: Array<unknown> | undefined,
+    ): Array<string> => {
+      return ((buttons || []) as Array<{ title: string }>).map(
+        (button: { title: string }): string => {
+          return button.title;
+        },
+      );
+    };
+    expect(titles(lastTableProps().actionButtons)).toEqual(["Run Now"]);
+    expect(titles(lastTableProps().bulkActions?.buttons)).toEqual(["Run Now"]);
     expect(lastTableProps().refreshToggle).toContain("parent-refresh");
     expect(tableOptions.cardProps?.buttons).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Export JSON" })).toHaveLength(

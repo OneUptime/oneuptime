@@ -52,7 +52,7 @@ export const MAX_PAGES_PER_POLL: number = 10;
 
 /*
  * Overlap when falling back to a time-based cursor, so objects added
- * while the poll ran are never skipped (GoogleSecOpsPoller precedent).
+ * while the poll ran are never skipped (as the connection poller does).
  */
 const CURSOR_OVERLAP_IN_MINUTES: number = 1;
 
@@ -171,7 +171,7 @@ export default class ThreatIntelFeedPoller {
         /*
          * Best-effort bookkeeping that must never take the loop down
          * with it — the ConnectorErrorMessage discipline shared with the
-         * SecOps poller and the detection engine. The saved page token is
+         * connection poller and the detection engine. The saved page token is
          * cleared too: a failing fetch is how an expired token surfaces,
          * and the added_after cursor restarts the window cleanly.
          */

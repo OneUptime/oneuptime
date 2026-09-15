@@ -111,11 +111,25 @@ export function getIoTBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.IOT_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "IoT",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.IOT_SETTINGS_LABEL_RULES, [
       "Project",
       "IoT",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.IOT_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "IoT",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
   };
   return breadcrumpLinksMap[path];

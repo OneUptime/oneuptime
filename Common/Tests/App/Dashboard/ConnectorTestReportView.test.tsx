@@ -68,7 +68,7 @@ function check(
 }
 
 /*
- * The counts GoogleSecOpsConnectionTester.availabilityCheck emits: the
+ * The counts the Google SecOps connector's availability check emits: the
  * saved Data to import choice at the top level, the other choice nested
  * under otherScope. Rule detection counts are strings because a full page
  * is reported as "1000+".
@@ -284,7 +284,12 @@ describe("ConnectorTestReportView", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("Google SecOps reports read as Google SecOps even though it is not in the catalog", (): void => {
+  /*
+   * Google SecOps is a catalog provider now, so its reports (including
+   * those stored before the move, which carry the same "google-secops"
+   * identifier) read by the catalog title with no special case.
+   */
+  test("Google SecOps reports read by their catalog title", (): void => {
     render(
       <ConnectorTestReportView
         report={report({ provider: "google-secops", status: "pass" })}
@@ -295,6 +300,18 @@ describe("ConnectorTestReportView", () => {
       screen.getByRole("region", { name: "Access to Google SecOps" }),
     ).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Google SecOps");
+  });
+
+  test("a provider the catalog does not list reads as its identifier", (): void => {
+    render(
+      <ConnectorTestReportView
+        report={report({ provider: "future-provider", status: "pass" })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "Access to future-provider" }),
+    ).toBeVisible();
   });
 
   test("an explicit provider title wins over the report's provider", (): void => {
@@ -604,7 +621,7 @@ describe("diagnostics util vocabulary", () => {
   /*
    * report-counts-nested-object: the known labels were keyed on
    * ruleDetectionsLast24h and baselineAlertsLast24h, which no tester emits.
-   * They now match GoogleSecOpsConnectionTester's keys and the generic
+   * They now match the Google SecOps connector's keys and the generic
    * connectors' detections-available details, and the fallback spells out
    * the Last24h / Last7d suffixes instead of printing "last7d".
    */

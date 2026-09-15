@@ -48,30 +48,60 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
  * is known to point at a specific model.
  */
 
+/*
+ * Every entry is a getter, not a direct reference.
+ *
+ * The services import each other in a cycle, and this module is part of it:
+ * UserService -> ... -> MonitorService -> ... -> NetworkDeviceService ->
+ * NetworkAlertPolicyEngineService -> MonitorTemplateService -> this module.
+ * Loaded from the API server's entry point, this module runs while UserService
+ * and NetworkDeviceService are still loading. A plain object literal captured
+ * both as `undefined`, and kept them that way for the life of the process. Any
+ * monitorSteps that named an owner user, an incident member or a monitored
+ * network device then failed inside ProjectScopedReferenceValidator with
+ *   TypeError: Cannot read properties of undefined (reading 'getModel')
+ * which the API reports as a bare 500 "Server Error". Monitor creates and
+ * updates, and monitor template saves, all failed this way.
+ *
+ * Which entries a cycle leaves half initialized depends on the whole app's
+ * import graph, so every entry is lazy, not only the two that broke. A getter
+ * defers the lookup to the first property access, by which time every module
+ * has finished initializing. See SerializableObjectDictionary for the same fix.
+ */
 const SERVICE_BY_MODEL: Record<
   MonitorStepsReferenceModel,
   DatabaseService<DatabaseBaseModel>
 > = {
-  [MonitorStepsReferenceModel.MonitorStatus]:
-    MonitorStatusService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.IncidentSeverity]:
-    IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.AlertSeverity]:
-    AlertSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.OnCallDutyPolicy]:
-    OnCallDutyPolicyService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.Label]:
-    LabelService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.Team]:
-    TeamService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.User]:
-    UserService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.IncidentRole]:
-    IncidentRoleService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.TelemetryService]:
-    ServiceService as unknown as DatabaseService<DatabaseBaseModel>,
-  [MonitorStepsReferenceModel.NetworkDevice]:
-    NetworkDeviceService as unknown as DatabaseService<DatabaseBaseModel>,
+  get [MonitorStepsReferenceModel.MonitorStatus](): DatabaseService<DatabaseBaseModel> {
+    return MonitorStatusService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.IncidentSeverity](): DatabaseService<DatabaseBaseModel> {
+    return IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.AlertSeverity](): DatabaseService<DatabaseBaseModel> {
+    return AlertSeverityService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.OnCallDutyPolicy](): DatabaseService<DatabaseBaseModel> {
+    return OnCallDutyPolicyService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.Label](): DatabaseService<DatabaseBaseModel> {
+    return LabelService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.Team](): DatabaseService<DatabaseBaseModel> {
+    return TeamService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.User](): DatabaseService<DatabaseBaseModel> {
+    return UserService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.IncidentRole](): DatabaseService<DatabaseBaseModel> {
+    return IncidentRoleService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.TelemetryService](): DatabaseService<DatabaseBaseModel> {
+    return ServiceService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
+  get [MonitorStepsReferenceModel.NetworkDevice](): DatabaseService<DatabaseBaseModel> {
+    return NetworkDeviceService as unknown as DatabaseService<DatabaseBaseModel>;
+  },
 };
 
 export default class MonitorStepsProjectValidator {

@@ -7,6 +7,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import { SecurityConnectorCheck } from "../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
+  SECURITY_CONNECTION_ID_ATTRIBUTE,
   SecurityEventConnectionRunOptions,
   SecurityEventConnectionRunResult,
 } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
@@ -33,9 +34,16 @@ import { buildSecurityEventDbRow } from "../SecurityEventRow";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
+  ConnectorFetchBudget,
+  ConnectorFetchFailureSummary,
+  ConnectorFetchOptions,
+  ConnectorFetchPurpose,
   ConnectorFetchResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
+  readConnectorChecks,
+  readConnectorFetchSummary,
+  toConnectorTestResult,
 } from "./Types";
 
 /*
@@ -76,6 +84,17 @@ import {
  *
  * The window is on the SOURCE'S CREATION TIME, never the underlying event
  * time (see Connectors/Types.ts).
+ *
+ * Every provider runs through this loop, Google SecOps included (it had a
+ * poller of its own until it moved into the framework). A connector that
+ * reads one window in several independently budgeted passes, as Google
+ * SecOps reads rule detections, curated detections and the alerts view,
+ * raises the default bounds with fetchBudget, learns which operation it
+ * serves and the connection's poll interval from the fetch options,
+ * reports one check per pass (kept ahead of the summary read check) and
+ * its own diagnostics (kept as providerDetails), and names the pass that
+ * failed by attaching the passes' checks to the error it throws, with a
+ * summary of what those passes gathered kept on the failed run.
  */
 
 export const DEFAULT_INITIAL_LOOKBACK_IN_MINUTES: number = 24 * 60;
@@ -109,6 +128,22 @@ export const SECURITY_EVENT_SOURCE_LOCK_NAMESPACE: string =
   "SecurityEventConnectionSource";
 
 const MINUTE_IN_MS: number = 60 * 1000;
+/*
+ * The interval the scheduler (SecurityEventConnectionRunExecutor) applies
+ * to a connection whose own interval is missing or zero.
+ */
+const DEFAULT_POLL_INTERVAL_IN_MINUTES: number = 5;
+
+/*
+ * The bounds one fetch runs under once the connector's fetchBudget has been
+ * applied over the poller's defaults. maxDurationMs is absent unless the
+ * connector asked for a wall-clock budget.
+ */
+export interface ResolvedFetchBudget {
+  maxRequests: number;
+  maxEvents: number;
+  maxDurationMs?: number | undefined;
+}
 
 export interface PollWindow {
   startTime: Date;
@@ -295,6 +330,12 @@ export default class SecurityEventConnectionPoller {
                * needs narrowing would never narrow.
                */
               lastPollResult: true,
+              /*
+               * Handed to the connector with the fetch (Google SecOps judges
+               * how late detections are created against it). Without it the
+               * connector would silently measure against the default.
+               */
+              pollIntervalInMinutes: true,
             },
             props: { isRoot: true },
           });
@@ -492,6 +533,38 @@ export default class SecurityEventConnectionPoller {
     return DEFAULT_CURSOR_OVERLAP_IN_MINUTES;
   }
 
+  /*
+   * The bounds one fetch is given: the poller's defaults, overridden field
+   * by field by the connector's fetchBudget. A source that reads one window
+   * in several independently budgeted passes (Google SecOps) needs a larger
+   * total than a single list, plus a wall clock the defaults do not have.
+   * An override that is not a positive finite number is ignored rather than
+   * trusted, so a mistake in a connector (0, a negative, NaN) can neither
+   * lift a bound nor stop every fetch before its first request.
+   */
+  public static resolveFetchBudget(
+    connector: SecurityEventConnector,
+  ): ResolvedFetchBudget {
+    const budget: ConnectorFetchBudget | undefined = connector.fetchBudget;
+    const maxDurationMs: number | undefined = this.readBudgetOverride(
+      budget?.maxDurationMs,
+    );
+
+    return {
+      maxRequests:
+        this.readBudgetOverride(budget?.maxRequests) ?? MAX_FETCH_REQUESTS,
+      maxEvents:
+        this.readBudgetOverride(budget?.maxEvents) ?? MAX_EVENTS_PER_RUN,
+      ...(maxDurationMs !== undefined ? { maxDurationMs } : {}),
+    };
+  }
+
+  private static readBudgetOverride(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? value
+      : undefined;
+  }
+
   private static async executeUnlocked(
     connection: SecurityEventConnection,
     options: SecurityEventConnectionRunOptions,
@@ -559,10 +632,12 @@ export default class SecurityEventConnectionPoller {
       if (options.type === "test") {
         phase = `Check access to ${definition.title}`;
         phaseStartedMs = Date.now();
-        const checks: Array<SecurityConnectorCheck> =
+        const checks: Array<SecurityConnectorCheck> = toConnectorTestResult(
           await connector.testConnection(settings, {
             requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
-          });
+            skipAvailability: true,
+          }),
+        ).checks;
         result.checks.push(...checks);
 
         const failed: SecurityConnectorCheck | undefined = checks.find(
@@ -575,17 +650,39 @@ export default class SecurityEventConnectionPoller {
           throw new BadDataException(`${failed.name}: ${failed.message}`);
         }
       } else {
+        const purpose: ConnectorFetchPurpose = options.type;
         phase = `Read ${definition.importedRecordName}s from ${definition.title}`;
         phaseStartedMs = Date.now();
+        const budget: ResolvedFetchBudget = this.resolveFetchBudget(connector);
+        const fetchOptions: ConnectorFetchOptions = {
+          maxRequests: budget.maxRequests,
+          maxEvents: budget.maxEvents,
+          requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
+          sampleLimit: MAX_DIAGNOSTIC_SAMPLES,
+          ...(budget.maxDurationMs !== undefined
+            ? { maxDurationMs: budget.maxDurationMs }
+            : {}),
+          /*
+           * A preview or backfill reads a range a person picked, which a
+           * source may also read by event time so the records they see match
+           * its own console (see ConnectorFetchPurpose).
+           */
+          purpose,
+          /*
+           * The interval the scheduler really applies, read from the in-lock
+           * reload (or the snapshot a test passes), so a connector reporting
+           * late-created records measures against the saved schedule.
+           */
+          pollIntervalInMinutes: Math.max(
+            1,
+            connection.pollIntervalInMinutes ||
+              DEFAULT_POLL_INTERVAL_IN_MINUTES,
+          ),
+        };
         const fetched: ConnectorFetchResult = await connector.fetchEvents(
           settings,
           { startTime: window.startTime, endTime: window.endTime },
-          {
-            maxRequests: MAX_FETCH_REQUESTS,
-            maxEvents: MAX_EVENTS_PER_RUN,
-            requestTimeoutInMs: POLL_REQUEST_TIMEOUT_IN_MS,
-            sampleLimit: MAX_DIAGNOSTIC_SAMPLES,
-          },
+          fetchOptions,
         );
 
         result.fetchedCount = fetched.fetchedCount;
@@ -594,6 +691,11 @@ export default class SecurityEventConnectionPoller {
         result.requestCount = fetched.requestCount;
         result.samples = fetched.samples.slice(0, MAX_DIAGNOSTIC_SAMPLES);
         result.warnings.push(...fetched.warnings);
+
+        if (fetched.details) {
+          result.providerDetails = fetched.details;
+        }
+
         /*
          * Rejected objects are not a reason to hold the cursor: a record the
          * normalizer does not recognize will not become recognizable by
@@ -626,16 +728,30 @@ export default class SecurityEventConnectionPoller {
           );
         }
 
+        /*
+         * One check per read pass first, so a pass a budget stopped shows as
+         * a warning under its own name ahead of the summary of the read.
+         */
+        if (Array.isArray(fetched.checks)) {
+          result.checks.push(...fetched.checks);
+        }
+
+        /*
+         * The summary is never green for a window that was not read to its
+         * end: a budget-stopped read shown as a pass tells the reader nothing
+         * is missing while records are (the defect Google SecOps's own poller
+         * called out). Normalization failures still outrank it.
+         */
         result.checks.push({
           key: "read",
           name: phase,
           status: fetched.failedCount
             ? "fail"
-            : fetched.rejectedCount
+            : fetched.rejectedCount || !fetched.complete
               ? "warn"
               : "pass",
           durationMs: Date.now() - phaseStartedMs,
-          message: `${fetched.events.length} ${definition.importedRecordName}s recognized; ${fetched.rejectedCount} rejected; ${fetched.failedCount} failed; ${fetched.requestCount} request${fetched.requestCount === 1 ? "" : "s"}.`,
+          message: `${fetched.events.length} ${definition.importedRecordName}s recognized; ${fetched.rejectedCount} rejected; ${fetched.failedCount} failed; ${fetched.requestCount} request${fetched.requestCount === 1 ? "" : "s"}.${fetched.complete ? "" : " The window was not read completely; the warnings say what stopped the read."}`,
         });
 
         if (options.type === "poll" || options.type === "backfill") {
@@ -663,12 +779,70 @@ export default class SecurityEventConnectionPoller {
       result.error = redactLogString(
         ConnectorErrorMessage.toMessage(error, { truncate: false }),
       );
+
+      /*
+       * A connector that reads in passes attaches the checks of the passes
+       * that ran to the error it throws (attachConnectorChecks). The passes
+       * that finished are kept, and the failure is named after the pass that
+       * failed rather than the whole phase ("Read curated rule detections",
+       * not "Read detections from Google SecOps"). The failed pass's own
+       * check is not kept beside it: the failure check stands in for it,
+       * with the redacted error as its message and that pass's remediation.
+       * Passes run in order and the one that threw ran last, so when more
+       * than one is marked failed the last one names the failure.
+       */
+      let failedPass: SecurityConnectorCheck | undefined = undefined;
+
+      for (const check of readConnectorChecks(error) || []) {
+        if (!check || typeof check !== "object") {
+          continue;
+        }
+
+        if (check.status === "fail") {
+          failedPass = check;
+          continue;
+        }
+
+        result.checks.push(check);
+      }
+
+      /*
+       * A connector that reads in passes may also attach what those passes
+       * gathered (attachConnectorFetchSummary): their warnings, request and
+       * record counts, and provider details so far. Keeping them restores
+       * what the retired Google SecOps poller kept on a failed run, such as
+       * the curated HTTP 403 downgrade warning and the per-pass counts. It
+       * is diagnostics only: the status, error, lastError and the cursor
+       * decision below are the same with or without it, and a connector
+       * that attaches none leaves the failed run as it was.
+       */
+      const summary: ConnectorFetchFailureSummary | undefined =
+        readConnectorFetchSummary(error);
+
+      if (summary) {
+        for (const warning of summary.warnings) {
+          if (!result.warnings.includes(warning)) {
+            result.warnings.push(warning);
+          }
+        }
+
+        result.requestCount = summary.requestCount;
+        result.fetchedCount = summary.fetchedCount;
+
+        if (summary.details) {
+          result.providerDetails = summary.details;
+        }
+      }
+
       result.checks.push({
         key: "failure",
-        name: phase,
+        name: failedPass?.name || phase,
         status: "fail",
         durationMs: Date.now() - phaseStartedMs,
         message: result.error,
+        ...(failedPass?.remediation
+          ? { remediation: failedPass.remediation }
+          : {}),
       });
     }
 
@@ -953,7 +1127,12 @@ export default class SecurityEventConnectionPoller {
       (event: NormalizedSecurityEvent): JSONObject => {
         event.vendorName = definition.vendorName;
         event.productName = definition.productName;
-        event.attributes["oneuptime.security_connection.id"] =
+        /*
+         * The default attribute. Runs written here leave eventAttributeKey
+         * unset, which readers take to mean this key; only runs carried over
+         * from the retired Google SecOps connector name its legacy one.
+         */
+        event.attributes[SECURITY_CONNECTION_ID_ATTRIBUTE] =
           connection.id!.toString();
         event.attributes["oneuptime.security_connection.provider"] =
           definition.provider;
@@ -993,8 +1172,9 @@ export default class SecurityEventConnectionPoller {
 
 /*
  * Test seam: an injected connector and settings skip the registry, the
- * decrypting service read and the in-lock reload, exactly like the
- * injected client in GoogleSecOpsPoller.
+ * decrypting service read and the in-lock reload, so a suite can drive one
+ * connector through the real loop with the connection snapshot it passes
+ * (cursor, lastPollResult and pollIntervalInMinutes included).
  */
 export interface PollerOverrides {
   connector?: SecurityEventConnector | undefined;

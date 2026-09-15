@@ -9,8 +9,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * The Security Event Connections poll job is SCHEDULED AT ALL, and it is
  * scheduled the way the framework needs.
  *
- * Mirrors PollGoogleSecOpsConnectionsJob.test.ts: RunCron registers a job
- * purely as a module side effect, so the single line
+ * RunCron registers a job purely as a module side effect, so the single line
  * `import "./Jobs/SecurityEvents/PollSecurityEventConnections"` in
  * App/FeatureSet/Workers/Index.ts is what makes every managed connector in
  * this framework poll. Delete it and every connection sits at

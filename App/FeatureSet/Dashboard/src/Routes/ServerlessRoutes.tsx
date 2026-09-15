@@ -19,6 +19,8 @@ import ServerlessFunctionDelete from "../Pages/Serverless/View/Delete";
 import ServerlessLabelRules from "../Pages/Serverless/Settings/LabelRules";
 import ServerlessOwnerRules from "../Pages/Serverless/Settings/OwnerRules";
 import ServerlessArchived from "../Pages/Serverless/Archived";
+import ServerlessFunctionLabelRule from "Common/Models/DatabaseModels/ServerlessFunctionLabelRule";
+import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/ServerlessFunctionOwnerRule";
 
 const ServerlessRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -50,6 +52,21 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={
+            ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <ServerlessLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServerlessFunctionLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
             ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] || ""
           }
           element={
@@ -58,6 +75,21 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <ServerlessOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServerlessFunctionOwnerRule}
             />
           }
         />

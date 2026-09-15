@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a runbook only when **all** specified criteria pass. Empty criter
 When a rule matches, every label listed in \`Labels to Add\` is attached to the runbook. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const RunbookLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const RunbookLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<RunbookLabelRule>
       modelType={RunbookLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, RunbookLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.RUNBOOKS_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: RunbookLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="runbook-label-rules-table"
       name="Settings > Runbook Label Rules"
       userPreferencesKey="runbook-label-rules-table"
@@ -84,7 +96,6 @@ const RunbookLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
