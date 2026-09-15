@@ -66,7 +66,6 @@ const TOP_ERRORS_PANEL: string = readCompact(
   "Logs",
   "TopErrorsPanel.tsx",
 );
-const SPAN_VIEWER: string = readCompact("Components", "Span", "SpanViewer.tsx");
 
 type ObjectLiteralAfterFunction = (source: string, marker: string) => string;
 
@@ -338,18 +337,6 @@ describe("log list selects carry the row's entity type", () => {
     expect(select).toContain("primaryEntityId:true");
     expect(select).toContain("primaryEntityType:true");
     expect(LOGS_VIEWER).toContain("select:select,");
-  });
-
-  test("SpanViewer's selectLog", () => {
-    const select: string = objectLiteralAfter(
-      SPAN_VIEWER,
-      "constselectLog:Select<Log>=",
-    );
-
-    expect(select).not.toBe("");
-    expect(select).toContain("primaryEntityId:true");
-    expect(select).toContain("primaryEntityType:true");
-    expect(SPAN_VIEWER).toContain("select:selectLog,");
   });
 });
 

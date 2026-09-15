@@ -175,4 +175,29 @@ describe("CriticalPathUtil.computeServiceBreakdown", () => {
     expect(breakdown[0]!.spanCount).toBe(2);
     expect(breakdown[0]!.totalDurationUnixNano).toBe(150);
   });
+
+  test("computes percentages for real epoch-nanosecond timestamps", () => {
+    /*
+     * Regression: the trace start was seeded with Number.MAX_SAFE_INTEGER
+     * (~9e15). Real span times are ~1.7e18 ns, so the start never moved, the
+     * trace looked 1.7e18 ns long and every service rendered as 0.0%.
+     */
+    const epoch: number = 1_757_890_000_000 * 1_000_000;
+    const ms: number = 1_000_000;
+    const breakdown: Array<ServiceBreakdown> =
+      CriticalPathUtil.computeServiceBreakdown([
+        span("root", undefined, epoch, epoch + 1000 * ms, "A"),
+        span("child", "root", epoch + 100 * ms, epoch + 350 * ms, "B"),
+      ]);
+
+    expect(epoch).toBeGreaterThan(Number.MAX_SAFE_INTEGER);
+    expect(breakdown[0]!.primaryEntityId).toBe("A");
+    expect(breakdown[0]!.percentOfTrace).toBeCloseTo(75, 3);
+    expect(breakdown[1]!.primaryEntityId).toBe("B");
+    expect(breakdown[1]!.percentOfTrace).toBeCloseTo(25, 3);
+  });
+
+  test("an empty span list has no breakdown", () => {
+    expect(CriticalPathUtil.computeServiceBreakdown([])).toEqual([]);
+  });
 });

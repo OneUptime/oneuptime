@@ -615,8 +615,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
-   * Parse all filter state from the URL once on first mount. SpanViewer's
-   * "filter by" action lands here with `?search=...` so users arrive with
+   * Parse all filter state from the URL once on first mount. The trace span
+   * panel's "find traces" action lands here with `?search=...` so users arrive with
    * the filter applied; refresh and back-from-trace-detail also rely on
    * this so the view restores rather than resetting to defaults.
    *
@@ -1250,8 +1250,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * restore the view. Uses `replaceState` so individual filter tweaks don't
    * push history entries (you'd otherwise have to back-button through every
    * keystroke). Page/pageSize/range defaults are omitted to keep the URL
-   * minimal — and `?search=` already handles the SpanViewer "filter by" deep
-   * link from before this change.
+   * minimal — and `?search=` already handles the trace span panel's "find
+   * traces" deep link.
    */
   useEffect(() => {
     /*
