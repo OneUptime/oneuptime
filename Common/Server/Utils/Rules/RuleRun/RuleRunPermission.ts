@@ -1,14 +1,19 @@
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import Permission, { UserPermission } from "../../../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../../../Types/Permission";
 import {
   RuleRunType,
   RuleRunTypeMetadata,
@@ -16,7 +21,10 @@ import {
 } from "../../../../Types/Rules/RuleRun";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../../../Types/Database/Permissions/TablePermission";
-import RuleRunRegistry, { RuleRunDefinition } from "./RuleRunRegistry";
+import RuleRunRegistry, {
+  RuleRunDefinition,
+  SyncRuleRunType,
+} from "./RuleRunRegistry";
 
 /*
  * Who may press "Run now".
@@ -33,9 +41,22 @@ import RuleRunRegistry, { RuleRunDefinition } from "./RuleRunRegistry";
  * ACL edit cannot drift from what a run enforces, and every check also honours
  * a team's block list the way a normal API write does.
  *
- * A grant limited to specific labels is not enough: a run reaches every
- * resource in the project, not just the labelled ones.
+ * A grant limited to specific labels, or to owned resources, is not enough: a
+ * run reaches every resource in the project (or, for an SLO monitor rule, any
+ * SLO's rules), not just the labelled or owned ones.
  */
+
+/*
+ * Monitor rules that keep one status page or SLO in step with the monitors
+ * they match. Saving such a rule already runs the same sync as root, so
+ * running it needs exactly what saving it needs: edit on the rule. A Record,
+ * so a new self-syncing rule type without a model here is a compile error.
+ */
+const SYNC_RULE_MODEL_TYPES: Record<SyncRuleRunType, DatabaseBaseModelType> = {
+  [RuleRunType.StatusPageMonitorRule]: StatusPageMonitorRule,
+  [RuleRunType.ServiceLevelObjectiveMonitorRule]:
+    ServiceLevelObjectiveMonitorRule,
+};
 
 function unscopedGrants(
   props: DatabaseCommonInteractionProps,
@@ -50,6 +71,21 @@ function unscopedGrants(
     PermissionType.Allow,
   )
     .filter((userPermission: UserPermission): boolean => {
+      /*
+       * An Owned-scoped grant reaches only what the user or their team owns -
+       * for an SLO monitor rule, the rules of SLOs they own (@OwnedThrough).
+       * A run looks the rule up as root, so counting that grant would let it
+       * run any SLO's rule. Scope-exempt roles (ProjectOwner, ProjectAdmin,
+       * ...) keep counting whatever scope is stored on them, exactly as
+       * OwnedScopePermission treats them.
+       */
+      if (
+        userPermission.scope === PermissionScope.Owned &&
+        PermissionHelper.isScopeApplicable(userPermission.permission)
+      ) {
+        return false;
+      }
+
       return !userPermission.labelIds || userPermission.labelIds.length === 0;
     })
     .map((userPermission: UserPermission): Permission => {
@@ -94,11 +130,17 @@ export default class RuleRunPermission {
       data.ruleType,
     );
 
-    // A status page monitor rule re-syncs its page and has no resource walk.
-    const isStatusPageSync: boolean =
-      data.ruleType === RuleRunType.StatusPageMonitorRule;
+    /*
+     * A status page or SLO monitor rule re-syncs its page or SLO and has no
+     * resource walk, so it has no definition - only a rule model to check.
+     */
+    const ruleModelType: DatabaseBaseModelType | null = definition
+      ? definition.ruleModelType
+      : RuleRunRegistry.isSyncRuleRunType(data.ruleType)
+        ? SYNC_RULE_MODEL_TYPES[data.ruleType]
+        : null;
 
-    if (!definition && !isStatusPageSync) {
+    if (!ruleModelType) {
       throw new BadDataException("This rule cannot be run.");
     }
 
@@ -115,7 +157,7 @@ export default class RuleRunPermission {
     requirePermission({
       props: data.props,
       grants: grants,
-      modelType: definition ? definition.ruleModelType : StatusPageMonitorRule,
+      modelType: ruleModelType,
       requestType: DatabaseRequestType.Update,
       message:
         "You do not have permission to edit this rule, which running it requires.",

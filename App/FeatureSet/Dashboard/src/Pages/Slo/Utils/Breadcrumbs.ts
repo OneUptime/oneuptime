@@ -28,6 +28,13 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "View SLO",
       "Monitor Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_MONITOR_RULE_VIEW, [
+      "Project",
+      "SLOs",
+      "View SLO",
+      "Monitor Rules",
+      "View Monitor Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_BURN_RATE_RULES, [
       "Project",
       "SLOs",

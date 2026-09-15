@@ -16,6 +16,7 @@ import PublicDashboardSloWidget, {
 } from "./PublicDashboardSloWidget";
 import { SLO_WIDGET_NAME_MATCH_LIMIT } from "../../../Utils/Dashboard/SloWidgetSource";
 import {
+  getSloListStatusFilterQuery,
   SLO_LIST_ATTRIBUTE_TO_COLUMN,
   SLO_LIST_DEFAULT_MAX_ROWS,
   SLO_LIST_SORT,
@@ -545,14 +546,31 @@ export default class PublicDashboardResourceListPolicy {
           body: true,
         };
       /*
-       * Exactly the seven display fields the SLO widget renders — and the SLO
-       * List widget renders the same seven per row. Everything else the model
-       * carries — description, slug, the bound monitors and labels, the metric
-       * query config, the evaluation schedule, the archive stamps, createdBy —
-       * stays private: an SLO's headline numbers are publishable, its
-       * definition is not.
+       * Exactly the seven display fields the SLO widget renders. Everything
+       * else the model carries — description, slug, the bound monitors and
+       * labels, the metric query config, the evaluation schedule, the archive
+       * stamps, createdBy — stays private: an SLO's headline numbers are
+       * publishable, its definition is not.
        */
       case DashboardComponentType.Slo:
+        return {
+          _id: true,
+          name: true,
+          targetPercentage: true,
+          currentSliPercentage: true,
+          errorBudgetRemainingPercentage: true,
+          errorBudgetRemainingSeconds: true,
+          currentBurnRate: true,
+          sloStatus: true,
+        };
+      /*
+       * The same seven per row, plus `isEnabled`. A disabled SLO is not
+       * evaluated and keeps the status and budget it had when it was switched
+       * off, so without the flag the list would publish that frozen status as
+       * live and count it in its status strip — the browser list reads the
+       * same column for the same reason. The flag says whether an objective
+       * is being measured, nothing about how it is defined.
+       */
       case DashboardComponentType.SloList:
         return {
           _id: true,
@@ -563,6 +581,7 @@ export default class PublicDashboardResourceListPolicy {
           errorBudgetRemainingSeconds: true,
           currentBurnRate: true,
           sloStatus: true,
+          isEnabled: true,
         };
       default:
         throw new BadDataException(
@@ -1644,11 +1663,16 @@ export default class PublicDashboardResourceListPolicy {
    * The SLO List widget publishes the headline numbers of every ACTIVE SLO in
    * the project: archived objectives are hidden from every SLO list and are
    * no longer evaluated, so their frozen numbers never reach a public page.
+   * Disabled objectives are listed, but the select carries `isEnabled` so the
+   * page marks them Disabled instead of presenting their frozen status as
+   * live, and the shared sort puts them after every enabled one.
    *
-   * The stored status and label filters narrow it, and a Telemetry Attribute
-   * variable on `sloName` narrows it to the picked objective through the same
-   * column map the browser applies (SLO_LIST_ATTRIBUTE_TO_COLUMN). The order
-   * and the row cap come from the widget, never from the request.
+   * The stored status and label filters narrow it (a status filter matches
+   * enabled SLOs only, through the same getSloListStatusFilterQuery the
+   * browser uses), and a Telemetry Attribute variable on `sloName` narrows it
+   * to the picked objective through the same column map the browser applies
+   * (SLO_LIST_ATTRIBUTE_TO_COLUMN). The order and the row cap come from the
+   * widget, never from the request.
    */
   private static buildSloListPolicy(
     argumentsObject: Record<string, unknown>,
@@ -1673,7 +1697,7 @@ export default class PublicDashboardResourceListPolicy {
         }
       }
 
-      query["sloStatus"] = new Includes(sloStatuses);
+      Object.assign(query, getSloListStatusFilterQuery(sloStatuses));
     }
 
     const labels: ReturnType<typeof DashboardLabelVariable.getFilter> =

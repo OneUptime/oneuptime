@@ -324,11 +324,17 @@ describe("SLO List widget — what it asks for", () => {
     const args: JSONObject = getListArgs();
 
     expect(args["query"]).toEqual({ projectId: PROJECT_ID, isArchived: false });
+    /*
+     * Enabled first: a disabled SLO's frozen budget must never hold the top
+     * row, and a capped list drops disabled rows before live ones.
+     */
     expect(args["sort"]).toEqual({
+      isEnabled: SortOrder.Descending,
       errorBudgetRemainingPercentage: SortOrder.Ascending,
       name: SortOrder.Ascending,
     });
     expect(Object.keys(args["sort"] as JSONObject)).toEqual([
+      "isEnabled",
       "errorBudgetRemainingPercentage",
       "name",
     ]);
@@ -351,7 +357,29 @@ describe("SLO List widget — what it asks for", () => {
       errorBudgetRemainingSeconds: true,
       currentBurnRate: true,
       sloStatus: true,
+      // Without it a disabled SLO's frozen status reads as live.
+      isEnabled: true,
     });
+  });
+
+  /*
+   * A status filter matches enabled SLOs only: a disabled SLO keeps the
+   * status it was frozen at, and the list would show it as Disabled under a
+   * "Budget Exhausted" filter.
+   */
+  test("pins a stored status filter to enabled SLOs", async () => {
+    renderList({
+      args: { sloStatuses: [SloStatus.BudgetExhausted] },
+    });
+
+    await screen.findByText("Payments API");
+
+    const query: JSONObject = getListArgs()["query"] as JSONObject;
+
+    expect(query["isEnabled"]).toBe(true);
+    expect((query["sloStatus"] as Includes).values).toEqual([
+      SloStatus.BudgetExhausted,
+    ]);
   });
 
   test("applies its stored status and label filters", async () => {
@@ -493,14 +521,89 @@ describe("SLO List widget — what a reader sees", () => {
     );
   });
 
-  test("says when the cap cut the list off, and that the healthiest were dropped", async () => {
+  /*
+   * Regression: a disabled SLO is not evaluated, so its status, budget and
+   * burn rate are frozen at the moment it was switched off. The widget used to
+   * render that frozen "Budget Exhausted" in red, with a critical burn rate,
+   * and count it in the strip for as long as the SLO stayed off — while the
+   * SLOs page showed the same row as Disabled.
+   */
+  test("marks a disabled SLO Disabled instead of its frozen status, and counts it on its own", async () => {
+    const disabledSlo: ServiceLevelObjective = buildSlo({
+      name: "Retired checkout",
+      isEnabled: false,
+      currentSliPercentage: 99.1,
+      errorBudgetRemainingPercentage: -12.46,
+      errorBudgetRemainingSeconds: -600,
+      currentBurnRate: 20,
+      sloStatus: SloStatus.BudgetExhausted,
+    });
+
+    getListMock.mockResolvedValue({
+      data: [FLEET[1] as ServiceLevelObjective, disabledSlo],
+      count: 2,
+      skip: 0,
+      limit: SLO_LIST_DEFAULT_MAX_ROWS,
+    });
+
+    renderList();
+
+    const rows: Array<HTMLElement> =
+      await screen.findAllByTestId("slo-list-row");
+    const disabledRow: HTMLElement = rows[1] as HTMLElement;
+
+    expect(
+      within(disabledRow).getByText("Retired checkout"),
+    ).toBeInTheDocument();
+    expect(within(disabledRow).getByText("Disabled")).toBeInTheDocument();
+    expect(
+      within(disabledRow).queryByText(SloStatus.BudgetExhausted),
+    ).not.toBeInTheDocument();
+
+    // Its last numbers stay readable, but a frozen 20x is not painted critical.
+    expect(within(disabledRow).getByText("-12.5%")).toBeInTheDocument();
+    expect(within(disabledRow).getByText("20×").className).not.toContain(
+      "text-red-600",
+    );
+
+    expect(screen.getByTestId("slo-list-summary").textContent).toBe(
+      "1At Risk1Disabled",
+    );
+  });
+
+  test("shows a disabled SLO as Disabled in honeycomb view too", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        buildSlo({
+          name: "Retired checkout",
+          isEnabled: false,
+          sloStatus: SloStatus.BudgetExhausted,
+        }),
+      ],
+      count: 1,
+      skip: 0,
+      limit: SLO_LIST_DEFAULT_MAX_ROWS,
+    });
+
+    renderList({ args: { viewMode: "honeycomb" } });
+
+    expect(await screen.findByTestId("honeycomb")).toHaveTextContent(
+      "Disabled",
+    );
+  });
+
+  /*
+   * "Most urgent", not "least budget": the sort puts disabled SLOs last, so a
+   * capped list can cut a disabled SLO whose frozen budget is lower than a
+   * live one it shows.
+   */
+  test("says when the cap cut the list off, and that the most urgent were kept", async () => {
     renderList({ args: { maxRows: FLEET.length } });
 
     expect(
-      await screen.findByText(
-        `Showing the ${FLEET.length} with the least budget`,
-      ),
+      await screen.findByText(`Showing the ${FLEET.length} most urgent`),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/with the least budget/)).not.toBeInTheDocument();
   });
 
   test("does not claim a cap when every SLO fits", async () => {
@@ -508,7 +611,7 @@ describe("SLO List widget — what a reader sees", () => {
 
     await screen.findByTestId("slo-list-summary");
 
-    expect(screen.queryByText(/with the least budget/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/most urgent/)).not.toBeInTheDocument();
   });
 
   test("links each objective to its SLO page in the app", async () => {

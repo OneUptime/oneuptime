@@ -14,7 +14,12 @@ enum SloMetricType {
   // Current SLI over the compliance window. Unit "%", aggregated with Avg.
   SliPercent = "oneuptime.slo.sli.percent",
 
-  // The objective the SLI is measured against. Unit "%", aggregated with Avg.
+  /*
+   * The objective the SLI is measured against. Unit "%", aggregated with Avg.
+   * The only series the Paused / Misconfigured guard paths also post
+   * (SloMetricUtil.saveSloGuardMetrics): it is configuration, not a reading,
+   * and it keeps the SLO in the dashboard template's sloName picker.
+   */
   TargetPercent = "oneuptime.slo.target.percent",
 
   /*

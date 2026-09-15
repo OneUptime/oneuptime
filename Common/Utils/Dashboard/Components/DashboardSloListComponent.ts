@@ -72,7 +72,7 @@ export default class DashboardSloListComponentUtil extends DashboardBaseComponen
     componentArguments.push({
       name: "Max Rows",
       description:
-        "Maximum number of SLOs to show. The list is ordered by least error budget remaining, so the SLOs cut off are always the healthiest.",
+        "Maximum number of SLOs to show. Enabled SLOs come first, ordered by least error budget remaining, so the SLOs cut off are disabled ones first, then the healthiest.",
       required: false,
       type: ComponentInputType.Number,
       id: "maxRows",
@@ -87,7 +87,7 @@ export default class DashboardSloListComponentUtil extends DashboardBaseComponen
     componentArguments.push({
       name: "Status",
       description:
-        "Show only SLOs in the selected statuses. Leave empty to show every SLO, including ones not evaluated yet.",
+        "Show only enabled SLOs in the selected statuses. Leave empty to show every SLO, including disabled ones and ones not evaluated yet.",
       required: false,
       type: ComponentInputType.MultiSelectDropdown,
       id: "sloStatuses",

@@ -109,24 +109,24 @@ and the description names the rule, states the burn rate over both windows again
 
 To write your own, use template variables in the title, the description and the remediation notes. They are filled in at the moment the rule fires:
 
-| Variable                             | What it holds                                                                                   | Example                                                  |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `{{sloName}}`                        | Name of the SLO.                                                                                | Checkout availability                                    |
-| `{{sloId}}`                          | ID of the SLO.                                                                                  | b7f4c2d8-1f3e-4a5b-9c6d-7e8f9a0b1c2d                     |
-| `{{sloLink}}`                        | Link to the SLO in the OneUptime Dashboard.                                                     | https://oneuptime.com/dashboard/project-id/slos/slo-id   |
-| `{{sloStatus}}`                      | Status of the SLO after this evaluation.                                                        | At Risk                                                  |
-| `{{ruleName}}`                       | Name of the burn rate rule that fired.                                                          | Fast burn                                                |
-| `{{burnRateThreshold}}`              | The rule's burn rate threshold (a multiple of the sustainable pace).                            | 14.4                                                     |
-| `{{longWindowBurnRate}}`             | Burn rate measured over the rule's long window.                                                 | 21.5                                                     |
-| `{{shortWindowBurnRate}}`            | Burn rate measured over the rule's short window.                                                | 36                                                       |
-| `{{longWindowInMinutes}}`            | Length of the rule's long window, in minutes.                                                   | 60                                                       |
-| `{{shortWindowInMinutes}}`           | Length of the rule's short window, in minutes.                                                  | 5                                                        |
-| `{{targetPercentage}}`               | The SLO's target, as a percentage.                                                              | 99.9                                                     |
-| `{{currentSliPercentage}}`           | The SLI measured over the SLO's compliance window, as a percentage.                             | 99.87                                                    |
-| `{{errorBudgetRemainingPercentage}}` | Share of the error budget still left, as a percentage. Negative once the budget is overspent.   | 42.5                                                     |
-| `{{errorBudgetRemaining}}`           | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent.  | 18m 22s                                                  |
-| `{{errorBudgetRemainingMinutes}}`    | Error budget still left, in minutes.                                                            | 18.37                                                    |
-| `{{windowDescription}}`              | The SLO's compliance window, in words.                                                          | rolling 30-day window                                    |
+| Variable                             | What it holds                                                                                  | Example                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `{{sloName}}`                        | Name of the SLO.                                                                               | Checkout availability                                  |
+| `{{sloId}}`                          | ID of the SLO.                                                                                 | b7f4c2d8-1f3e-4a5b-9c6d-7e8f9a0b1c2d                   |
+| `{{sloLink}}`                        | Link to the SLO in the OneUptime Dashboard.                                                    | https://oneuptime.com/dashboard/project-id/slos/slo-id |
+| `{{sloStatus}}`                      | Status of the SLO after this evaluation.                                                       | At Risk                                                |
+| `{{ruleName}}`                       | Name of the burn rate rule that fired.                                                         | Fast burn                                              |
+| `{{burnRateThreshold}}`              | The rule's burn rate threshold (a multiple of the sustainable pace).                           | 14.4                                                   |
+| `{{longWindowBurnRate}}`             | Burn rate measured over the rule's long window.                                                | 21.5                                                   |
+| `{{shortWindowBurnRate}}`            | Burn rate measured over the rule's short window.                                               | 36                                                     |
+| `{{longWindowInMinutes}}`            | Length of the rule's long window, in minutes.                                                  | 60                                                     |
+| `{{shortWindowInMinutes}}`           | Length of the rule's short window, in minutes.                                                 | 5                                                      |
+| `{{targetPercentage}}`               | The SLO's target, as a percentage.                                                             | 99.9                                                   |
+| `{{currentSliPercentage}}`           | The SLI measured over the SLO's compliance window, as a percentage.                            | 99.87                                                  |
+| `{{errorBudgetRemainingPercentage}}` | Share of the error budget still left, as a percentage. Negative once the budget is overspent.  | 42.5                                                   |
+| `{{errorBudgetRemaining}}`           | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent. | 18m 22s                                                |
+| `{{errorBudgetRemainingMinutes}}`    | Error budget still left, in minutes.                                                           | 18.37                                                  |
+| `{{windowDescription}}`              | The SLO's compliance window, in words.                                                         | rolling 30-day window                                  |
 
 For example, an alert title of `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` becomes "Fast burn: Checkout availability is burning 21.5x".
 
@@ -142,6 +142,7 @@ A few details worth knowing:
 
 - **Owner teams** and **owner users** are added to the alert or incident as soon as it is created, and are notified. Owner users must be members of the project.
 - **Add SLO Owners as Owners** also adds the SLO's owners — its owner users and the members of its owner teams — to every alert and incident the rule creates. SLO owners already hear about the SLO's own status changes, so turning this on can notify them twice. It is off by default.
+- Each owner is added once. A user who is already an owner of the alert or incident (for example, added by the project's owner rules), or who is a member of an owner team being added, is not added again as an owner user; the team covers them.
 - **Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.
 - A **private** alert or incident is visible only to its owners, project admins and project owners.
 
@@ -177,15 +178,15 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 3. Click **Create SLO Burn Rate Rule** (or edit one of the seeded defaults)
 4. Work through the steps:
 
-| Step                 | What you set                                                                                                                                             |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                                      |
-| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.                     |
-| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.                  |
-| **Alert Details**    | The alert's **title**, **description** and **severity**. Shown only when the rule raises an alert.                                                       |
-| **Alert Routing**    | The alert's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.             |
-| **Incident Details** | The incident's **title**, **description** and **severity**. Shown only when the rule declares an incident.                                               |
-| **Incident Routing** | The incident's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.          |
+| Step                 | What you set                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                              |
+| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.             |
+| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.         |
+| **Alert Details**    | The alert's **title**, **description** and **severity**. Shown only when the rule raises an alert.                                               |
+| **Alert Routing**    | The alert's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.    |
+| **Incident Details** | The incident's **title**, **description** and **severity**. Shown only when the rule declares an incident.                                       |
+| **Incident Routing** | The incident's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**. |
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 

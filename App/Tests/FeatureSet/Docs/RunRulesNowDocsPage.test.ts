@@ -98,6 +98,40 @@ describe("Run Rules on Existing Resources docs page", () => {
     }
   });
 
+  /*
+   * Monitor rules that re-sync a status page or an SLO are runnable without
+   * walking resources, so the resource-name checks above never see them. Each
+   * sync action gets its own line, or a newly runnable monitor rule would
+   * ship with Run Now and no mention on this page.
+   */
+  it("lists every monitor rule that re-syncs instead of walking resources", () => {
+    const page: string = readPage();
+
+    const syncLines: Record<string, string> = {
+      [RuleRunAction.SyncStatusPageMonitors]:
+        "- **Monitor Rules** on a status page.",
+      [RuleRunAction.SyncSloMonitors]: "- **Monitor Rules** on an SLO.",
+    };
+
+    for (const ruleType of Object.values(RuleRunType)) {
+      const action: RuleRunAction = RuleRunTypeUtil.getAction(ruleType);
+
+      if (
+        action === RuleRunAction.AddLabels ||
+        action === RuleRunAction.AddOwners ||
+        action === RuleRunAction.MarkPrivate
+      ) {
+        continue;
+      }
+
+      expect({ ruleType: ruleType, line: syncLines[action] }).toEqual({
+        ruleType: ruleType,
+        line: expect.any(String),
+      });
+      expect(page).toContain(syncLines[action]!);
+    }
+  });
+
   it("lists as not runnable exactly the rules that cannot be run", () => {
     const page: string = readPage();
 

@@ -37,6 +37,7 @@ import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivac
 import ProjectScopedReferenceValidator, {
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -599,7 +600,22 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
       resolveReferenceId(updateBy.data.changeMonitorStatusTo);
 
-    if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+    /*
+     * The SLOs this incident affects: a relation list the API accepts on
+     * update. Checked for the same reason as on create; see
+     * SloRecordReferenceValidator.
+     */
+    const hasServiceLevelObjectiveIds: boolean =
+      SloRecordReferenceValidator.getReferencedIds(
+        updateBy.data.serviceLevelObjectives,
+      ).length > 0;
+
+    if (
+      !incidentStateId &&
+      !incidentSeverityId &&
+      !changeMonitorStatusToId &&
+      !hasServiceLevelObjectiveIds
+    ) {
       return;
     }
 
@@ -612,6 +628,20 @@ export class Service extends DatabaseService<Model> {
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
     for (const projectId of projectIds) {
+      if (hasServiceLevelObjectiveIds) {
+        await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "incident",
+            serviceLevelObjectives: updateBy.data.serviceLevelObjectives,
+          },
+        );
+      }
+
+      if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+        continue;
+      }
+
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
@@ -976,6 +1006,21 @@ export class Service extends DatabaseService<Model> {
       ],
     });
 
+    /*
+     * The SLOs this incident affects. The burn-rate worker links its own
+     * same-project SLO as root, but the column is writable by API callers too.
+     * Another project's SLO would put that SLO's name into this project's
+     * feed, lists and metrics. Before the counter increment, like the check
+     * above.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        subject: "incident",
+        serviceLevelObjectives: createBy.data.serviceLevelObjectives,
+      },
+    );
+
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
@@ -1107,10 +1152,15 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
-        // Named under "Resources Affected" in the created feed item.
+        /*
+         * Named under "Resources Affected" in the created feed item. This read
+         * runs as root, so projectId comes along and the feed names only this
+         * project's SLOs (getSloAffectedResourceMarkdownLines).
+         */
         serviceLevelObjectives: {
           name: true,
           _id: true,
+          projectId: true,
         },
       },
       props: {

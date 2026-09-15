@@ -27,6 +27,13 @@ export enum RuleRunAction {
    * saved. Running one re-syncs the page, which repairs drift.
    */
   SyncStatusPageMonitors = "SyncStatusPageMonitors",
+  /*
+   * SLO monitor rules also re-sync their SLO whenever they are saved. An SLO's
+   * monitors are the union of what ALL its enabled rules match, not one rule's
+   * own additions, so running one re-syncs the whole SLO - which is why this is
+   * not SyncStatusPageMonitors, whose rules each own what they added.
+   */
+  SyncSloMonitors = "SyncSloMonitors",
 }
 
 /*
@@ -85,6 +92,7 @@ export enum RuleRunType {
   ServerlessFunctionLabelRule = "ServerlessFunctionLabelRule",
   ServerlessFunctionOwnerRule = "ServerlessFunctionOwnerRule",
   ServiceLabelRule = "ServiceLabelRule",
+  ServiceLevelObjectiveMonitorRule = "ServiceLevelObjectiveMonitorRule",
   ServiceOwnerRule = "ServiceOwnerRule",
   StatusPageLabelRule = "StatusPageLabelRule",
   StatusPageOwnerRule = "StatusPageOwnerRule",
@@ -308,6 +316,11 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     "serverless functions",
   ),
   [RuleRunType.ServiceLabelRule]: metadata(Labels, "service", "services"),
+  [RuleRunType.ServiceLevelObjectiveMonitorRule]: metadata(
+    RuleRunAction.SyncSloMonitors,
+    "monitor",
+    "monitors",
+  ),
   [RuleRunType.ServiceOwnerRule]: metadata(Owners, "service", "services"),
   [RuleRunType.StatusPageLabelRule]: metadata(
     Labels,
@@ -367,7 +380,10 @@ export interface RuleRunCounts {
   resourcesUpdated: number;
   // Labels attached, owners added, resources made private, or monitors added.
   itemsAdded: number;
-  // Status page monitor rules only: monitors the rule no longer claims.
+  /*
+   * Status page and SLO monitor rules only: monitors the rules no longer
+   * claim.
+   */
   itemsRemoved: number;
   // Matched resources whose update threw. Logged server-side, never fatal.
   resourcesFailed: number;

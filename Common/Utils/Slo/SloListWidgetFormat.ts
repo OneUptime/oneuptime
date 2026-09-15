@@ -1,4 +1,5 @@
 import { Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
+import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Color from "../../Types/Color";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
@@ -22,16 +23,26 @@ import {
  */
 
 /*
- * Least error budget first. An SLO review starts with the objectives closest
- * to (or past) breaching, so the list is ordered server-side by the number
- * that says so — which also means a list capped by maxRows drops the
- * HEALTHIEST objectives, never the ones in trouble.
+ * Enabled objectives first, then least error budget first. An SLO review
+ * starts with the objectives closest to (or past) breaching, so the list is
+ * ordered server-side by the number that says so — which also means a list
+ * capped by maxRows drops the HEALTHIEST objectives, never the ones in
+ * trouble.
+ *
+ * A disabled SLO is not evaluated, so its budget is frozen at whatever it was
+ * when it was switched off. Left in the budget ordering, an SLO disabled while
+ * overspent would hold the top row indefinitely as the "most urgent"
+ * objective. Postgres sorts false before true, so `isEnabled` DESCENDING puts
+ * every live objective ahead of every disabled one (the column is NOT NULL, so
+ * no NULLs-first surprise), and a capped list drops the disabled rows first.
  *
  * Postgres sorts NULLs last on an ascending order, so SLOs the evaluation
- * worker has not reached yet fall to the bottom rather than masquerading as
- * the most urgent. Name breaks ties so equal budgets list stably.
+ * worker has not reached yet fall below the measured ones rather than
+ * masquerading as the most urgent. Name breaks ties so equal budgets list
+ * stably.
  */
 export const SLO_LIST_SORT: { [key: string]: SortOrder } = {
+  isEnabled: SortOrder.Descending,
   errorBudgetRemainingPercentage: SortOrder.Ascending,
   name: SortOrder.Ascending,
 };
@@ -51,6 +62,61 @@ export const SLO_LIST_ATTRIBUTE_TO_COLUMN: Record<string, string> = {
 export const SLO_LIST_DEFAULT_MAX_ROWS: number = 50;
 
 export const SLO_NOT_EVALUATED_STATUS_LABEL: string = "Not Evaluated";
+
+// The same word the SLOs page puts on a disabled SLO's status pill.
+export const SLO_DISABLED_STATUS_LABEL: string = "Disabled";
+
+/*
+ * One list row: the single-SLO widget's display fields plus whether the SLO
+ * is enabled, which only the list needs (a list of objectives can hold a
+ * disabled one; a widget pointed at one objective shows that objective).
+ */
+export interface SloListRowData extends SloWidgetStateData {
+  isEnabled?: boolean | undefined | null;
+}
+
+export type IsSloListRowDisabledFunction = (slo: SloListRowData) => boolean;
+
+/*
+ * Only an explicit false is disabled, exactly as on the SLOs page
+ * (getSloListStatusKind). The column is NOT NULL and defaults to true, so a
+ * row without it was read without the column, not switched off.
+ */
+export const isSloListRowDisabled: IsSloListRowDisabledFunction = (
+  slo: SloListRowData,
+): boolean => {
+  return slo.isEnabled === false;
+};
+
+/*
+ * The widget's stored status filter as query predicates. The browser list and
+ * the public-dashboard policy both build their query from this, so the two
+ * cannot narrow differently.
+ *
+ * A status filter matches ENABLED SLOs only. A disabled SLO keeps the status
+ * it had when it was switched off and the list shows it as Disabled, so a
+ * "Budget Exhausted" filter must not pull in a row that then reads "Disabled"
+ * (the SLOs page's status tiles count enabled SLOs only, for the same reason).
+ * No filter adds nothing, so disabled SLOs stay listed, marked Disabled.
+ *
+ * Validating the values is the caller's job: the server refuses anything not
+ * in SLO_LIST_STATUS_FILTER_VALUES, and the settings form offers nothing else.
+ */
+export type GetSloListStatusFilterQueryFunction = (
+  sloStatuses: Array<string> | undefined | null,
+) => Record<string, unknown>;
+
+export const getSloListStatusFilterQuery: GetSloListStatusFilterQueryFunction =
+  (sloStatuses: Array<string> | undefined | null): Record<string, unknown> => {
+    if (!sloStatuses || sloStatuses.length === 0) {
+      return {};
+    }
+
+    return {
+      sloStatus: new Includes(sloStatuses),
+      isEnabled: true,
+    };
+  };
 
 /*
  * Burn-rate emphasis. 1x spends the budget exactly over the compliance
@@ -139,13 +205,39 @@ export interface SloListRowDisplay {
  * budget percentage one, and the burn rate is a multiplier.
  */
 export type GetSloListRowDisplayFunction = (
-  slo: SloWidgetStateData,
+  slo: SloListRowData,
 ) => SloListRowDisplay;
 
 export const getSloListRowDisplay: GetSloListRowDisplayFunction = (
-  slo: SloWidgetStateData,
+  slo: SloListRowData,
 ): SloListRowDisplay => {
   const target: string | null = formatSloPercent(slo.targetPercentage, 3);
+
+  /*
+   * A disabled SLO is not evaluated, so its status, budget and burn rate are
+   * frozen at the moment it was switched off. The row keeps those last
+   * numbers — they are what it last measured, and the SLOs page shows them
+   * too — but says Disabled instead of the frozen status, and draws neither a
+   * status-coloured budget bar nor a red or amber burn rate for a number that
+   * is no longer moving.
+   */
+  if (isSloListRowDisabled(slo)) {
+    return {
+      sli: formatSloPercent(slo.currentSliPercentage, 3),
+      target: target === null ? null : `target ${target}`,
+      budget: formatSloPercent(slo.errorBudgetRemainingPercentage, 1),
+      budgetTime: formatErrorBudgetRemainingSeconds(
+        slo.errorBudgetRemainingSeconds,
+      ),
+      budgetFillPercent: getSloBudgetBarFillPercent(
+        slo.errorBudgetRemainingPercentage,
+      ),
+      burnRate: formatSloBurnRate(slo.currentBurnRate),
+      burnRateTone: SloBurnRateTone.Unknown,
+      statusText: SLO_DISABLED_STATUS_LABEL,
+      statusColor: Gray500,
+    };
+  }
 
   return {
     sli: formatSloPercent(slo.currentSliPercentage, 3),
@@ -180,7 +272,8 @@ export interface SloStatusSummaryEntry {
 /*
  * Severity order for the summary strip: what needs attention reads first.
  * Paused and Misconfigured are not reliability signals, so they come after
- * Healthy; an SLO the worker has not evaluated yet comes last.
+ * Healthy; Disabled follows them, and an SLO the worker has not evaluated yet
+ * comes last.
  */
 const SUMMARY_ORDER: Array<{ status: SloStatus; color: Color }> = [
   { status: SloStatus.BudgetExhausted, color: Red },
@@ -195,16 +288,22 @@ const SUMMARY_ORDER: Array<{ status: SloStatus; color: Color }> = [
  * statuses nobody is in. A status string the enum does not know (a row
  * written by a newer server) is counted as not evaluated rather than dropped,
  * so the counts always add up to the number of rows.
+ *
+ * A disabled SLO is counted as Disabled whatever status it was frozen at, so
+ * an objective switched off while out of budget does not keep the strip
+ * reading "1 Budget Exhausted" for as long as it stays off — the same
+ * partition the SLOs page's summary tiles use.
  */
 export type SummarizeSloStatusesFunction = (
-  slos: Array<SloWidgetStateData>,
+  slos: Array<SloListRowData>,
 ) => Array<SloStatusSummaryEntry>;
 
 export const summarizeSloStatuses: SummarizeSloStatusesFunction = (
-  slos: Array<SloWidgetStateData>,
+  slos: Array<SloListRowData>,
 ): Array<SloStatusSummaryEntry> => {
   const counts: Map<string, number> = new Map<string, number>();
   let notEvaluated: number = 0;
+  let disabled: number = 0;
 
   const knownStatuses: Array<string> = SUMMARY_ORDER.map(
     (entry: { status: SloStatus; color: Color }): string => {
@@ -213,6 +312,11 @@ export const summarizeSloStatuses: SummarizeSloStatusesFunction = (
   );
 
   for (const slo of slos) {
+    if (isSloListRowDisabled(slo)) {
+      disabled++;
+      continue;
+    }
+
     const status: string | undefined | null = slo.sloStatus;
 
     if (!status || !knownStatuses.includes(status)) {
@@ -231,6 +335,14 @@ export const summarizeSloStatuses: SummarizeSloStatusesFunction = (
     if (count > 0) {
       summary.push({ label: entry.status, count: count, color: entry.color });
     }
+  }
+
+  if (disabled > 0) {
+    summary.push({
+      label: SLO_DISABLED_STATUS_LABEL,
+      count: disabled,
+      color: Gray500,
+    });
   }
 
   if (notEvaluated > 0) {

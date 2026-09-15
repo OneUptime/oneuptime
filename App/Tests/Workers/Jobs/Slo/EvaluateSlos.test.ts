@@ -195,7 +195,10 @@ jest.mock("Common/Server/Services/SloHistoryService", () => {
  * never load; SloMetricUtil's own suite covers the rows it builds.
  */
 jest.mock("Common/Server/Utils/Slo/SloMetricUtil", () => {
-  return { __esModule: true, default: { saveSloMetrics: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { saveSloMetrics: jest.fn(), saveSloGuardMetrics: jest.fn() },
+  };
 });
 
 jest.mock("Common/Server/Services/AlertService", () => {
@@ -232,6 +235,31 @@ jest.mock("Common/Server/Services/IncidentService", () => {
 
 jest.mock("Common/Server/Services/IncidentSeverityService", () => {
   return { __esModule: true, default: { findOneBy: jest.fn() } };
+});
+
+/*
+ * Burn rate record owners are de-duplicated before they are added: against
+ * owner rows already on the record (OwnerRuleAssignment reads these four) and
+ * against the members of the owner teams being added.
+ */
+jest.mock("Common/Server/Services/AlertOwnerUserService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/AlertOwnerTeamService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/IncidentOwnerUserService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/IncidentOwnerTeamService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/TeamMemberService", () => {
+  return { __esModule: true, default: { getUsersInTeams: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/ProjectService", () => {
@@ -291,6 +319,13 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
+import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
@@ -344,8 +379,13 @@ const monitorService: { findBy: jest.Mock } = MonitorService as unknown as {
 };
 const historyService: { insertHistoryRows: jest.Mock } =
   SloHistoryService as unknown as { insertHistoryRows: jest.Mock };
-const sloMetricUtil: { saveSloMetrics: jest.Mock } =
-  SloMetricUtil as unknown as { saveSloMetrics: jest.Mock };
+const sloMetricUtil: {
+  saveSloMetrics: jest.Mock;
+  saveSloGuardMetrics: jest.Mock;
+} = SloMetricUtil as unknown as {
+  saveSloMetrics: jest.Mock;
+  saveSloGuardMetrics: jest.Mock;
+};
 const feedService: { createServiceLevelObjectiveFeedItem: jest.Mock } =
   ServiceLevelObjectiveFeedService as unknown as {
     createServiceLevelObjectiveFeedItem: jest.Mock;
@@ -853,6 +893,7 @@ describe("Slo:EvaluateSlos worker", () => {
     monitorService.findBy.mockResolvedValue([enabledMonitor(MONITOR_A_ID)]);
     historyService.insertHistoryRows.mockResolvedValue(undefined);
     sloMetricUtil.saveSloMetrics.mockResolvedValue(undefined);
+    sloMetricUtil.saveSloGuardMetrics.mockResolvedValue(undefined);
     sloService.getSloMarkdownLink.mockResolvedValue(
       "[SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1)",
     );
@@ -901,6 +942,23 @@ describe("Slo:EvaluateSlos worker", () => {
       "https://oneuptime.com/dashboard/project-1/incidents/incident-1",
     );
     incidentSeverityService.findOneBy.mockResolvedValue(null);
+    /*
+     * A record the worker just created has no owners yet, and no team has
+     * members, unless a test says otherwise.
+     */
+    for (const ownerService of [
+      AlertOwnerUserService,
+      AlertOwnerTeamService,
+      IncidentOwnerUserService,
+      IncidentOwnerTeamService,
+    ]) {
+      (
+        ownerService as unknown as { findBy: jest.Mock }
+      ).findBy.mockResolvedValue([]);
+    }
+    (
+      TeamMemberService as unknown as { getUsersInTeams: jest.Mock }
+    ).getUsersInTeams.mockResolvedValue([]);
     mockDisableAutomaticIncidentCreation = false;
     projectService.getOwners.mockResolvedValue([]);
     projectService.findOneById.mockResolvedValue(null);
@@ -1060,7 +1118,7 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(reads[0]!.props).toEqual({ isRoot: true });
     });
 
-    test("a rule that is not firing never pays for the re-read", async () => {
+    test("a rule that is not firing adds no read of its own: the one re-read, made before the state write, is shared", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([makeRule()]);
       stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
@@ -1068,6 +1126,113 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(alertService.create).not.toHaveBeenCalled();
+      expect(stillEvaluatedReads()).toHaveLength(1);
+    });
+
+    /*
+     * The re-read used to gate burn rate firing only, so everything ahead of
+     * the rule loop still went out for an SLO retired mid-sweep. The SLO below
+     * starts Healthy and three hours of downtime spends its whole budget, so
+     * a live evaluation writes a state transition, posts StatusChanged, writes
+     * history and metrics and notifies owners - the control test proves it.
+     */
+    test("control: a still-live SLO in this state writes its state, feed item, history, metrics and owner notification", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+      expect(
+        feedService.createServiceLevelObjectiveFeedItem,
+      ).toHaveBeenCalled();
+      expect(historyService.insertHistoryRows).toHaveBeenCalledTimes(1);
+      expect(sloMetricUtil.saveSloMetrics).toHaveBeenCalledTimes(1);
+      expect(sloService.findOwners).toHaveBeenCalledTimes(1);
+      expect(stillEvaluatedReads()).toHaveLength(1);
+    });
+
+    test.each([
+      ["archived", { isArchived: true }],
+      ["disabled", { isEnabled: false }],
+      ["deleted", null],
+    ])(
+      "an SLO %s after the sweep started writes no state, StatusChanged item, history, metrics or owner notification",
+      async (
+        _label: string,
+        fields: { isEnabled?: boolean; isArchived?: boolean } | null,
+      ) => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubFiringBurn();
+        sloService.findOneById.mockResolvedValue(
+          fields ? currentRow(fields) : null,
+        );
+
+        await runWorkerTick();
+
+        expect(
+          payloadsContaining(sloHookedUpdatePayloads(), "currentSliPercentage"),
+        ).toEqual([]);
+        expect(persistedSloStatus()).toBeUndefined();
+        expect(
+          feedService.createServiceLevelObjectiveFeedItem,
+        ).not.toHaveBeenCalled();
+        expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
+        expect(sloMetricUtil.saveSloMetrics).not.toHaveBeenCalled();
+        expect(sloService.findOwners).not.toHaveBeenCalled();
+        expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+
+        // The worker's own cadence bookkeeping still went out.
+        expect(
+          payloadsContaining(sloHooklessUpdatePayloads(), "lastEvaluatedAt"),
+        ).toHaveLength(1);
+        expect(stillEvaluatedReads()).toHaveLength(1);
+      },
+    );
+
+    test("a guard transition on an SLO archived mid-sweep commits nothing, resolves nothing and posts nothing", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo({ monitors: [] })]);
+      sloService.findOneById.mockResolvedValue(
+        currentRow({ isArchived: true }),
+      );
+
+      await runWorkerTick();
+
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).not.toHaveBeenCalled();
+      expect(persistedSloStatus()).toBeUndefined();
+      expect(
+        feedService.createServiceLevelObjectiveFeedItem,
+      ).not.toHaveBeenCalled();
+      expect(stillEvaluatedReads()).toHaveLength(1);
+    });
+
+    test("a Paused guard transition is gated the same way", async () => {
+      const disabledMonitor: Monitor = enabledMonitor(MONITOR_A_ID);
+      disabledMonitor.disableActiveMonitoring = true;
+
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      monitorService.findBy.mockResolvedValue([disabledMonitor]);
+      sloService.findOneById.mockResolvedValue(
+        currentRow({ isEnabled: false }),
+      );
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBeUndefined();
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("a guard whose status is already committed has nothing to write, so it does not read either", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ monitors: [], sloStatus: SloStatus.Misconfigured }),
+      ]);
+
+      await runWorkerTick();
+
       expect(stillEvaluatedReads()).toHaveLength(0);
     });
 
@@ -1101,7 +1266,7 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(alertService.create).toHaveBeenCalledTimes(1);
     });
 
-    test("a failed re-read skips firing for this tick, is logged, and leaves the rest of the evaluation alone", async () => {
+    test("a failed re-read writes nothing this tick - no state, history or page - and is logged", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([makeRule()]);
       stubFiringBurn();
@@ -1112,12 +1277,21 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(alertService.create).not.toHaveBeenCalled();
-      expect(mockedLogger.error).toHaveBeenCalled();
-      // state and history were already persisted before the rule loop.
-      expect(historyService.insertHistoryRows).toHaveBeenCalledTimes(1);
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error evaluating SLO"),
+        expect.anything(),
+      );
+      expect(
+        payloadsContaining(sloHookedUpdatePayloads(), "currentSliPercentage"),
+      ).toEqual([]);
+      expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
+      // The cadence stamp went out first, so the SLO is not retried every minute.
+      expect(
+        payloadsContaining(sloHooklessUpdatePayloads(), "lastEvaluatedAt"),
+      ).toHaveLength(1);
     });
 
-    test("resolution does not wait on the re-read: a recovered burn still closes what is open", async () => {
+    test("an SLO archived mid-sweep is left to its archive hook: the worker resolves, stamps and posts nothing for it", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([
         makeRule({ lastAlertCreatedAt: hoursAgo(4) }),
@@ -1129,8 +1303,25 @@ describe("Slo:EvaluateSlos worker", () => {
 
       await runWorkerTick();
 
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([]);
+      expect(
+        feedService.createServiceLevelObjectiveFeedItem,
+      ).not.toHaveBeenCalled();
+      expect(stillEvaluatedReads()).toHaveLength(1);
+    });
+
+    test("a live SLO still resolves a recovered burn, on the same single re-read", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ lastAlertCreatedAt: hoursAgo(4) }),
+      ]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
       expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
-      expect(stillEvaluatedReads()).toHaveLength(0);
+      expect(stillEvaluatedReads()).toHaveLength(1);
     });
   });
 
@@ -1634,7 +1825,7 @@ describe("Slo:EvaluateSlos worker", () => {
         },
       ],
     ])(
-      "%s posts no metrics at all",
+      "%s posts its target only, never a measurement",
       async (_name: string, arrange: () => void) => {
         arrange();
 
@@ -1642,9 +1833,11 @@ describe("Slo:EvaluateSlos worker", () => {
 
         /*
          * Not even a Status point: a guard measured nothing, and a number on
-         * the Status series would read as a real health state.
+         * the Status series would read as a real health state. The target is
+         * configuration, so it still goes out through the guard emitter.
          */
         expect(sloMetricUtil.saveSloMetrics).not.toHaveBeenCalled();
+        expect(sloMetricUtil.saveSloGuardMetrics).toHaveBeenCalledTimes(1);
         expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
       },
     );
@@ -1706,6 +1899,165 @@ describe("Slo:EvaluateSlos worker", () => {
       // ...and everything after it still ran.
       expect(notificationService.sendUserNotification).toHaveBeenCalled();
       expect(alertService.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * The SLO dashboard template's toolbar picker lists the sloName values posted
+   * in the last day. A guard path used to post nothing, so a never-measured SLO
+   * never appeared in the picker and a Paused or Misconfigured one dropped out
+   * a day after its last good evaluation, while the SLO List still showed it.
+   */
+  describe("guard paths post their target for the dashboard picker", () => {
+    interface SaveSloGuardMetricsArgs {
+      projectId: ObjectID;
+      sloId: ObjectID;
+      sloName?: string | undefined;
+      labels?: Array<Label> | undefined;
+      targetPercentage?: number | null | undefined;
+    }
+
+    function guardMetricCalls(): Array<SaveSloGuardMetricsArgs> {
+      return sloMetricUtil.saveSloGuardMetrics.mock.calls.map(
+        (args: Array<unknown>): SaveSloGuardMetricsArgs => {
+          return args[0] as SaveSloGuardMetricsArgs;
+        },
+      );
+    }
+
+    // Only the mid-sweep re-reads of isEnabled / isArchived.
+    function stillEvaluatedReadCount(): number {
+      return sloService.findOneById.mock.calls.filter(
+        (args: Array<unknown>): boolean => {
+          const select: Record<string, unknown> | undefined = (
+            args[0] as { select?: Record<string, unknown> }
+          ).select;
+          return Boolean(select && select["isArchived"]);
+        },
+      ).length;
+    }
+
+    function pausedMonitor(): Monitor {
+      const monitor: Monitor = enabledMonitor(MONITOR_A_ID);
+      monitor.disableActiveMonitoring = true;
+      return monitor;
+    }
+
+    test("a transition into Misconfigured posts the SLO's target with its id, project, name and labels", async () => {
+      const label: Label = new Label();
+      label.name = "tier:gold";
+
+      const slo: ServiceLevelObjective = makeSlo({ monitors: [] });
+      slo.labels = [label];
+      sloService.getDueSlos.mockResolvedValue([slo]);
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+
+      const calls: Array<SaveSloGuardMetricsArgs> = guardMetricCalls();
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(calls[0]!.sloId.toString()).toBe(SLO_ID.toString());
+      expect(calls[0]!.sloName).toBe("Checkout availability");
+      // Passed through untouched: SloMetricUtil turns them into oneuptime.label.*.
+      expect(calls[0]!.labels).toBe(slo.labels);
+      expect(calls[0]!.targetPercentage).toBe(99);
+      expect(sloMetricUtil.saveSloMetrics).not.toHaveBeenCalled();
+    });
+
+    test("an SLO already Misconfigured still posts on every tick, without paying for the re-read", async () => {
+      const slo: ServiceLevelObjective = makeSlo({
+        monitors: [],
+        sloStatus: SloStatus.Misconfigured,
+      });
+      sloService.getDueSlos.mockResolvedValue([slo]);
+
+      await runWorkerTick();
+      await runWorkerTick();
+
+      // The early return for an unchanged status used to skip the point.
+      expect(sloMetricUtil.saveSloGuardMetrics).toHaveBeenCalledTimes(2);
+      expect(stillEvaluatedReadCount()).toBe(0);
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("a Paused SLO posts on the transition and on every tick after it, while resolving only once", async () => {
+      const slo: ServiceLevelObjective = makeSlo();
+      sloService.getDueSlos.mockResolvedValue([slo]);
+      monitorService.findBy.mockResolvedValue([pausedMonitor()]);
+
+      await runWorkerTick();
+      await runWorkerTick();
+      await runWorkerTick();
+
+      expect(slo.sloStatus).toBe(SloStatus.Paused);
+      expect(sloMetricUtil.saveSloGuardMetrics).toHaveBeenCalledTimes(3);
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    test("the zero-data guard posts the target of an SLO that has never been measured", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      stubTimelines({});
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+      expect(guardMetricCalls()).toHaveLength(1);
+      expect(guardMetricCalls()[0]!.targetPercentage).toBe(99);
+    });
+
+    test("a guard transition on an SLO archived mid-sweep posts nothing", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo({ monitors: [] })]);
+      sloService.findOneById.mockImplementation(
+        (): Promise<ServiceLevelObjective> => {
+          const current: ServiceLevelObjective = new ServiceLevelObjective(
+            SLO_ID,
+          );
+          current.isEnabled = true;
+          current.isArchived = true;
+          return Promise.resolve(current);
+        },
+      );
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBeUndefined();
+      expect(sloMetricUtil.saveSloGuardMetrics).not.toHaveBeenCalled();
+    });
+
+    test("the target goes out before the resolve, so a resolve that keeps failing does not keep the SLO out of the picker", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo({ monitors: [] })]);
+      sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo.mockRejectedValue(
+        new Error("could not load burn rate rules"),
+      );
+
+      await runWorkerTick();
+
+      expect(sloMetricUtil.saveSloGuardMetrics).toHaveBeenCalledTimes(1);
+      expect(
+        sloMetricUtil.saveSloGuardMetrics.mock.invocationCallOrder[0]!,
+      ).toBeLessThan(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo.mock
+          .invocationCallOrder[0]!,
+      );
+      expect(payloadsContaining(sloUpdatePayloads(), "sloStatus")).toHaveLength(
+        0,
+      );
+    });
+
+    test("a real measurement posts through the evaluation emitter, never the guard one", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(sloMetricUtil.saveSloMetrics).toHaveBeenCalledTimes(1);
+      expect(sloMetricUtil.saveSloGuardMetrics).not.toHaveBeenCalled();
     });
   });
 
@@ -3393,6 +3745,167 @@ describe("Slo:EvaluateSlos worker", () => {
       ]);
     });
 
+    const teamMembers: { getUsersInTeams: jest.Mock } =
+      TeamMemberService as unknown as { getUsersInTeams: jest.Mock };
+    const alertOwnerUsers: { findBy: jest.Mock } =
+      AlertOwnerUserService as unknown as { findBy: jest.Mock };
+    const incidentOwnerTeams: { findBy: jest.Mock } =
+      IncidentOwnerTeamService as unknown as { findBy: jest.Mock };
+
+    /*
+     * With "add SLO owners" on, the SLO's owner teams arrive expanded into
+     * users. A team that owns both the SLO and the rule's output used to be
+     * added as a team AND each of its members as a user - and the owner-added
+     * job notified every member twice.
+     */
+    test("a user who is a member of an owner team being added is not added again as a user", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+      });
+      rule.addSloOwnersAsOwners = true;
+      rule.alertOwnerTeams = teamStubs(TEAM_A_ID);
+      rule.incidentOwnerTeams = teamStubs(TEAM_A_ID);
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      // OWNER_ID owns the SLO through team A; SECOND_OWNER_ID owns it directly.
+      sloService.findOwners.mockResolvedValue([
+        new User(OWNER_ID),
+        new User(SECOND_OWNER_ID),
+      ]);
+      teamMembers.getUsersInTeams.mockResolvedValue([new User(OWNER_ID)]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(idStrings(teamMembers.getUsersInTeams.mock.calls[0]![0])).toEqual([
+        TEAM_A_ID.toString(),
+      ]);
+
+      for (const records of [alertRecords, incidentRecords]) {
+        expect(records.addOwners).toHaveBeenCalledTimes(1);
+
+        const call: Array<unknown> = records.addOwners.mock.calls[0]!;
+
+        expect(idStrings(call[2])).toEqual([SECOND_OWNER_ID.toString()]);
+        expect(idStrings(call[3])).toEqual([TEAM_A_ID.toString()]);
+      }
+    });
+
+    test("a rule's own owner user who is in the rule's own owner team is covered by the team too", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+      rule.alertOwnerUsers = [new User(OWNER_ID)];
+      rule.alertOwnerTeams = teamStubs(TEAM_A_ID);
+
+      teamMembers.getUsersInTeams.mockResolvedValue([new User(OWNER_ID)]);
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(idStrings(alertRecords.addOwners.mock.calls[0]![2])).toEqual([]);
+      expect(idStrings(alertRecords.addOwners.mock.calls[0]![3])).toEqual([
+        TEAM_A_ID.toString(),
+      ]);
+    });
+
+    test("owners already on the record - the project's own owner rules can get there first - are not added twice", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+      });
+      rule.alertOwnerUsers = [new User(OWNER_ID), new User(SECOND_OWNER_ID)];
+      rule.incidentOwnerTeams = teamStubs(TEAM_A_ID, TEAM_B_ID);
+
+      const existingAlertOwner: AlertOwnerUser = new AlertOwnerUser();
+      existingAlertOwner.userId = OWNER_ID;
+      alertOwnerUsers.findBy.mockResolvedValue([existingAlertOwner]);
+
+      const existingIncidentTeam: IncidentOwnerTeam = new IncidentOwnerTeam();
+      existingIncidentTeam.teamId = TEAM_B_ID;
+      incidentOwnerTeams.findBy.mockResolvedValue([existingIncidentTeam]);
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      // Each read is about the record just created, and nothing else.
+      expect(
+        String(
+          (
+            alertOwnerUsers.findBy.mock.calls[0]![0] as {
+              query: Record<string, unknown>;
+            }
+          ).query["alertId"],
+        ),
+      ).toBe(CREATED_ALERT_ID.toString());
+      expect(
+        String(
+          (
+            incidentOwnerTeams.findBy.mock.calls[0]![0] as {
+              query: Record<string, unknown>;
+            }
+          ).query["incidentId"],
+        ),
+      ).toBe(CREATED_INCIDENT_ID.toString());
+
+      expect(idStrings(alertRecords.addOwners.mock.calls[0]![2])).toEqual([
+        SECOND_OWNER_ID.toString(),
+      ]);
+      expect(idStrings(incidentRecords.addOwners.mock.calls[0]![3])).toEqual([
+        TEAM_A_ID.toString(),
+      ]);
+    });
+
+    test("when every requested owner is already covered, addOwners is not called at all", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+      rule.alertOwnerUsers = [new User(OWNER_ID)];
+
+      const existingAlertOwner: AlertOwnerUser = new AlertOwnerUser();
+      existingAlertOwner.userId = OWNER_ID;
+      alertOwnerUsers.findBy.mockResolvedValue([existingAlertOwner]);
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertRecords.addOwners).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+
+    test("a failed de-duplication read still adds the owners as requested, and is logged", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+      rule.alertOwnerUsers = [new User(OWNER_ID)];
+      rule.alertOwnerTeams = teamStubs(TEAM_A_ID);
+
+      teamMembers.getUsersInTeams.mockRejectedValue(
+        new Error("team members unavailable"),
+      );
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(idStrings(alertRecords.addOwners.mock.calls[0]![2])).toEqual([
+        OWNER_ID.toString(),
+      ]);
+      expect(idStrings(alertRecords.addOwners.mock.calls[0]![3])).toEqual([
+        TEAM_A_ID.toString(),
+      ]);
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Could not de-duplicate the owners of the alert",
+        ),
+        expect.anything(),
+      );
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+
     test("an addOwners failure is logged and still lets both outputs be created and stamped", async () => {
       const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
         shouldCreateIncident: true,
@@ -3817,6 +4330,168 @@ describe("Slo:EvaluateSlos worker", () => {
 
       expect(info).toContain("**x\\]\\(https://evil.example\\) \\*loud\\***");
       expect(info).not.toContain("](https://evil.example)");
+    });
+
+    /*
+     * A private alert or incident is visible only to its owners and project
+     * admins, but every project member and viewer can read the SLO feed, which
+     * no alert or incident privacy filter covers. The raised item must not
+     * disclose the private record's title, number or link.
+     */
+    test("a private alert's raised item names no title, number or link - only that a private alert was raised", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+      rule.isAlertPrivate = true;
+      alertService.create.mockResolvedValue(createdAlertWithId());
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(createdAlert().isPrivate).toBe(true);
+
+      const items: Array<BurnRateFeedItemArgs> = burnRateFeedItems(
+        ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
+      );
+
+      expect(items).toHaveLength(1);
+      expect(items[0]!.feedInfoInMarkdown).toBe(
+        "Burn rate rule **Fast burn** raised a private alert.",
+      );
+
+      const details: string = items[0]!.moreInformationInMarkdown || "";
+      const everything: string = `${items[0]!.feedInfoInMarkdown}\n${details}`;
+
+      expect(everything).not.toContain("#12");
+      expect(everything).not.toContain("alerts/alert-1");
+      expect(everything).not.toContain("](");
+      expect(everything).not.toContain("Title");
+      expect(everything).not.toContain("SLO burn rate:");
+      expect(alertRecords.getAlertLinkInDashboard).not.toHaveBeenCalled();
+
+      // The burn numbers are SLO data every reader of the SLO already has.
+      expect(details).toContain(
+        "- **Visibility:** Private - only its owners and project admins can see this alert.",
+      );
+      expect(details).toContain("- **Threshold:** 14.4x");
+      expect(items[0]!.postedAt?.getTime()).toBe(NOW.getTime());
+    });
+
+    test("a private incident's declared item is redacted the same way", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateAlert: false,
+        shouldCreateIncident: true,
+      });
+      rule.isIncidentPrivate = true;
+      incidentService.create.mockResolvedValue(createdIncidentWithId());
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(createdIncident().isPrivate).toBe(true);
+
+      const items: Array<BurnRateFeedItemArgs> = burnRateFeedItems(
+        ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+      );
+
+      expect(items).toHaveLength(1);
+      expect(items[0]!.feedInfoInMarkdown).toBe(
+        "Burn rate rule **Fast burn** declared a private incident.",
+      );
+
+      const everything: string = `${items[0]!.feedInfoInMarkdown}\n${items[0]!.moreInformationInMarkdown || ""}`;
+
+      expect(everything).not.toContain("INC");
+      expect(everything).not.toContain("incidents/incident-1");
+      expect(everything).not.toContain("](");
+      expect(everything).not.toContain("Title");
+      expect(incidentRecords.getIncidentLinkInDashboard).not.toHaveBeenCalled();
+    });
+
+    test("an alert the create path hands back as private is redacted even when the rule itself is not private", async () => {
+      const privateAlert: Alert = createdAlertWithId();
+      privateAlert.isPrivate = true;
+      alertService.create.mockResolvedValue(privateAlert);
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(
+        burnRateFeedItems(
+          ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
+        )[0]!.feedInfoInMarkdown,
+      ).toBe("Burn rate rule **Fast burn** raised a private alert.");
+      expect(alertRecords.getAlertLinkInDashboard).not.toHaveBeenCalled();
+    });
+
+    test("privacy is per output: a public incident beside a private alert keeps its number and link", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+      });
+      rule.isAlertPrivate = true;
+      alertService.create.mockResolvedValue(createdAlertWithId());
+      incidentService.create.mockResolvedValue(createdIncidentWithId());
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(
+        burnRateFeedItems(
+          ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
+        )[0]!.feedInfoInMarkdown,
+      ).toBe("Burn rate rule **Fast burn** raised a private alert.");
+      expect(
+        burnRateFeedItems(
+          ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+        )[0]!.feedInfoInMarkdown,
+      ).toBe(
+        "Burn rate rule **Fast burn** declared [Incident INC\\-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
+      );
+    });
+
+    test("the resolved items of a private rule carry no record title, number or link either", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+        lastAlertCreatedAt: hoursAgo(4),
+        lastIncidentCreatedAt: hoursAgo(4),
+      });
+      rule.isAlertPrivate = true;
+      rule.isIncidentPrivate = true;
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      const resolvedItems: Array<BurnRateFeedItemArgs> = [
+        ...burnRateFeedItems(
+          ServiceLevelObjectiveFeedEventType.BurnRateAlertResolved,
+        ),
+        ...burnRateFeedItems(
+          ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
+        ),
+      ];
+
+      expect(resolvedItems).toHaveLength(2);
+
+      for (const item of resolvedItems) {
+        const everything: string = `${item.feedInfoInMarkdown}\n${item.moreInformationInMarkdown || ""}`;
+
+        expect(everything).not.toContain("](");
+        expect(everything).not.toContain("#");
+        expect(everything).not.toContain("Title");
+      }
     });
 
     test("a create that returns no id still posts, just without a link", async () => {

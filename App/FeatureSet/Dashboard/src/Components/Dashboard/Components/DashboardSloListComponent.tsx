@@ -16,7 +16,6 @@ import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
@@ -34,6 +33,7 @@ import DashboardModelQueryInterpolation from "Common/Utils/Dashboard/ModelQueryV
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import {
   getSloListRowDisplay,
+  getSloListStatusFilterQuery,
   SLO_LIST_ATTRIBUTE_TO_COLUMN,
   SLO_LIST_DEFAULT_MAX_ROWS,
   SLO_LIST_SORT,
@@ -54,6 +54,10 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  * Exactly the fields a row renders. The public endpoint pins its own copy
  * server-side (PublicDashboardResourceListPolicy) and ignores this one, so it
  * is the widget's contract, never its access control.
+ *
+ * `isEnabled` is read so a disabled SLO, which is not evaluated and keeps the
+ * status it had when it was switched off, reads "Disabled" instead of that
+ * frozen status (getSloListRowDisplay, summarizeSloStatuses).
  */
 export const SLO_LIST_WIDGET_SELECT: Select<ServiceLevelObjective> = {
   _id: true,
@@ -64,6 +68,7 @@ export const SLO_LIST_WIDGET_SELECT: Select<ServiceLevelObjective> = {
   errorBudgetRemainingSeconds: true,
   currentBurnRate: true,
   sloStatus: true,
+  isEnabled: true,
 };
 
 const COLUMNS: Array<ResourceListColumn> = [
@@ -173,13 +178,15 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
            * Archived SLOs are hidden from every SLO list and are no longer
            * evaluated, so their numbers are frozen at archive time. The public
            * policy pins the same predicate server-side.
+           *
+           * Disabled SLOs are not evaluated either, but they are still live
+           * objectives, so they stay listed — marked Disabled and ordered
+           * after the enabled ones (SLO_LIST_SORT) — unless a status filter
+           * is set, which matches enabled SLOs only.
            */
           isArchived: false,
+          ...getSloListStatusFilterQuery(sloStatuses),
         };
-
-        if (sloStatuses && sloStatuses.length > 0) {
-          query["sloStatus"] = new Includes(sloStatuses);
-        }
 
         const labelFilter: ReturnType<typeof DashboardLabelVariable.getFilter> =
           DashboardLabelVariable.getFilter({
@@ -255,9 +262,12 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const summary: Array<SloStatusSummaryEntry> = summarizeSloStatuses(slos);
 
   /*
-   * The list is ordered least-budget-first, so when it is capped the rows
-   * left out are the healthiest ones — worth saying, because the counts in
-   * the strip then describe the rows shown, not the whole project.
+   * The list is ordered enabled-first, then least-budget-first, so when it is
+   * capped the rows left out are disabled ones first and then the healthiest —
+   * worth saying, because the counts in the strip then describe the rows
+   * shown, not the whole project. "Most urgent", not "least budget": a
+   * disabled SLO cut off below the cap can hold less (frozen) budget than a
+   * live one shown above it.
    */
   const isCapped: boolean = slos.length > 0 && slos.length >= maxRows;
 
@@ -284,7 +294,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
         })}
         {isCapped ? (
           <span className="text-gray-400">
-            Showing the {maxRows} with the least budget
+            Showing the {maxRows} most urgent
           </span>
         ) : (
           <></>

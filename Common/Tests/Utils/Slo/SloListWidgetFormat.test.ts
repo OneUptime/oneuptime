@@ -1,10 +1,15 @@
 import { Gray500, Green, Red, Yellow } from "../../../Types/BrandColors";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import {
   getSloBudgetBarFillPercent,
   getSloBurnRateTone,
   getSloListRowDisplay,
+  getSloListStatusFilterQuery,
+  isSloListRowDisabled,
+  SLO_DISABLED_STATUS_LABEL,
+  SloListRowData,
   SLO_CRITICAL_BURN_RATE,
   SLO_LIST_ATTRIBUTE_TO_COLUMN,
   SLO_LIST_DEFAULT_MAX_ROWS,
@@ -49,18 +54,93 @@ const buildRow: BuildRowFunction = (
 describe("SloListWidgetFormat", () => {
   describe("the order the list is read in", () => {
     /*
-     * Least budget first, then by name. Object key order IS the ORDER BY
-     * order, so the keys are asserted as a sequence rather than as a set.
+     * Enabled first, then least budget first, then by name. Object key order
+     * IS the ORDER BY order, so the keys are asserted as a sequence rather
+     * than as a set.
      */
-    test("sorts by error budget remaining, then name, both ascending", () => {
+    test("sorts enabled SLOs first, then by error budget remaining, then name", () => {
       expect(Object.keys(SLO_LIST_SORT)).toEqual([
+        "isEnabled",
         "errorBudgetRemainingPercentage",
         "name",
       ]);
       expect(Object.values(SLO_LIST_SORT)).toEqual([
+        SortOrder.Descending,
         SortOrder.Ascending,
         SortOrder.Ascending,
       ]);
+    });
+
+    /*
+     * Regression: a disabled SLO's budget is frozen, so ordered by budget
+     * alone one switched off while overspent held the top ("most urgent") row
+     * for as long as it stayed off. Postgres orders false before true, so
+     * only a DESCENDING isEnabled, ahead of the budget, keeps it below every
+     * live objective — and makes a capped list drop it first.
+     */
+    test("orders a disabled, overspent SLO below every enabled one", () => {
+      const rows: Array<{
+        name: string;
+        isEnabled: boolean;
+        errorBudgetRemainingPercentage: number;
+      }> = [
+        {
+          name: "Healthy API",
+          isEnabled: true,
+          errorBudgetRemainingPercentage: 80,
+        },
+        {
+          name: "Switched off while exhausted",
+          isEnabled: false,
+          errorBudgetRemainingPercentage: -40,
+        },
+        {
+          name: "At risk API",
+          isEnabled: true,
+          errorBudgetRemainingPercentage: 5,
+        },
+      ];
+
+      type Row = (typeof rows)[number];
+
+      type ToComparableFunction = (row: Row, key: string) => number | string;
+
+      // Postgres semantics for the NOT NULL columns involved: false < true.
+      const toComparable: ToComparableFunction = (
+        row: Row,
+        key: string,
+      ): number | string => {
+        const value: unknown = (row as unknown as Record<string, unknown>)[key];
+
+        return typeof value === "boolean"
+          ? Number(value)
+          : (value as number | string);
+      };
+
+      type CompareRowsFunction = (a: Row, b: Row) => number;
+
+      const compare: CompareRowsFunction = (a: Row, b: Row): number => {
+        for (const [key, order] of Object.entries(SLO_LIST_SORT)) {
+          const leftValue: number | string = toComparable(a, key);
+          const rightValue: number | string = toComparable(b, key);
+
+          if (leftValue === rightValue) {
+            continue;
+          }
+
+          const ascending: number = leftValue < rightValue ? -1 : 1;
+
+          return order === SortOrder.Descending ? -ascending : ascending;
+        }
+
+        return 0;
+      };
+
+      expect(
+        [...rows].sort(compare).map((row: Row): string => {
+          return row.name;
+        }),
+      ).toEqual(["At risk API", "Healthy API", "Switched off while exhausted"]);
     });
 
     test("caps the list at a positive whole number by default", () => {
@@ -305,6 +385,125 @@ describe("SloListWidgetFormat", () => {
       expect(summary).toEqual([
         { label: SloStatus.AtRisk, count: 1, color: Yellow },
         { label: SLO_NOT_EVALUATED_STATUS_LABEL, count: 2, color: Gray500 },
+      ]);
+    });
+  });
+
+  /*
+   * Regression: a disabled SLO is not evaluated, so its sloStatus, budget and
+   * burn rate are frozen at the moment it was switched off. The list rendered
+   * that frozen status as live and counted it in the strip, while the SLOs
+   * page shows the row as Disabled and its status tiles leave it out.
+   */
+  describe("a disabled SLO", () => {
+    type BuildDisabledRowFunction = (
+      overrides?: Partial<SloListRowData>,
+    ) => SloListRowData;
+
+    const buildDisabledRow: BuildDisabledRowFunction = (
+      overrides: Partial<SloListRowData> = {},
+    ): SloListRowData => {
+      return {
+        ...buildRow({
+          errorBudgetRemainingPercentage: -40,
+          errorBudgetRemainingSeconds: -1200,
+          currentBurnRate: 20,
+          sloStatus: SloStatus.BudgetExhausted,
+        }),
+        isEnabled: false,
+        ...overrides,
+      };
+    };
+
+    // Same rule as the SLOs page's getSloListStatusKind.
+    test("is only a row whose isEnabled is explicitly false", () => {
+      expect(isSloListRowDisabled({ isEnabled: false })).toBe(true);
+      expect(isSloListRowDisabled({ isEnabled: true })).toBe(false);
+      expect(isSloListRowDisabled({ isEnabled: null })).toBe(false);
+      expect(isSloListRowDisabled({})).toBe(false);
+    });
+
+    test("reads Disabled, not the status it was frozen at", () => {
+      const display: SloListRowDisplay =
+        getSloListRowDisplay(buildDisabledRow());
+
+      expect(display.statusText).toBe(SLO_DISABLED_STATUS_LABEL);
+      expect(display.statusText).not.toBe(SloStatus.BudgetExhausted);
+      expect(display.statusColor).toBe(Gray500);
+    });
+
+    /*
+     * The last numbers stay (the SLOs page shows them too), but a frozen 20x
+     * is not painted critical as if it were burning right now.
+     */
+    test("keeps its last numbers but gives the burn rate no emphasis", () => {
+      const display: SloListRowDisplay =
+        getSloListRowDisplay(buildDisabledRow());
+
+      expect(display.budget).toBe("-40%");
+      expect(display.burnRate).toBe("20×");
+      expect(display.budgetFillPercent).toBe(0);
+      expect(display.target).toBe("target 99.9%");
+      expect(display.burnRateTone).toBe(SloBurnRateTone.Unknown);
+    });
+
+    test("reads Disabled even before it was ever evaluated", () => {
+      expect(
+        getSloListRowDisplay(buildDisabledRow({ sloStatus: null })).statusText,
+      ).toBe(SLO_DISABLED_STATUS_LABEL);
+    });
+
+    test("an enabled row is displayed exactly as before", () => {
+      expect(getSloListRowDisplay({ ...buildRow(), isEnabled: true })).toEqual(
+        getSloListRowDisplay(buildRow()),
+      );
+    });
+
+    test("is counted as Disabled, never under its frozen status, after the reliability states", () => {
+      const summary: Array<SloStatusSummaryEntry> = summarizeSloStatuses([
+        buildRow({ sloStatus: SloStatus.AtRisk }),
+        buildDisabledRow(),
+        buildDisabledRow({ sloStatus: SloStatus.Healthy }),
+        { ...buildRow({ sloStatus: SloStatus.Paused }), isEnabled: true },
+        buildRow({ sloStatus: null }),
+      ]);
+
+      expect(summary).toEqual([
+        { label: SloStatus.AtRisk, count: 1, color: Yellow },
+        { label: SloStatus.Paused, count: 1, color: Gray500 },
+        { label: SLO_DISABLED_STATUS_LABEL, count: 2, color: Gray500 },
+        { label: SLO_NOT_EVALUATED_STATUS_LABEL, count: 1, color: Gray500 },
+      ]);
+    });
+  });
+
+  /*
+   * Shared by the browser list and the public-dashboard policy, so both
+   * narrow identically.
+   */
+  describe("getSloListStatusFilterQuery", () => {
+    test("adds nothing without a status filter, so disabled SLOs stay listed", () => {
+      expect(getSloListStatusFilterQuery(undefined)).toEqual({});
+      expect(getSloListStatusFilterQuery(null)).toEqual({});
+      expect(getSloListStatusFilterQuery([])).toEqual({});
+    });
+
+    /*
+     * A disabled SLO's status is frozen, so a "Budget Exhausted" filter must
+     * not pull in a row that then reads "Disabled".
+     */
+    test("matches the picked statuses among ENABLED SLOs only", () => {
+      const query: Record<string, unknown> = getSloListStatusFilterQuery([
+        SloStatus.BudgetExhausted,
+        SloStatus.AtRisk,
+      ]);
+
+      expect(Object.keys(query).sort()).toEqual(["isEnabled", "sloStatus"]);
+      expect(query["isEnabled"]).toBe(true);
+      expect(query["sloStatus"]).toBeInstanceOf(Includes);
+      expect((query["sloStatus"] as Includes).values).toEqual([
+        SloStatus.BudgetExhausted,
+        SloStatus.AtRisk,
       ]);
     });
   });

@@ -65,14 +65,23 @@ const countUnescapedLinkBoundaries: CountLinkOpeningsFunction = (
 
 describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
   let findOneByIdSpy: jest.SpyInstance;
+  let findOneBySpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest
       .spyOn(DatabaseConfig, "getDashboardUrl")
       .mockResolvedValue(URL.fromString(DASHBOARD_URL));
 
+    /*
+     * The unpinned by-id read is kept spied so a regression back to it shows
+     * up as a call here instead of silently reaching the database.
+     */
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(null);
+
+    findOneBySpy = jest
+      .spyOn(ServiceLevelObjectiveService, "findOneBy")
       .mockResolvedValue(null);
   });
 
@@ -99,6 +108,7 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
     });
 
     expect(findOneByIdSpy).not.toHaveBeenCalled();
+    expect(findOneBySpy).not.toHaveBeenCalled();
   });
 
   test("links to the same URL as getSloLinkInDashboard", async () => {
@@ -168,8 +178,8 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
   });
 
   describe("when the caller has only the id", () => {
-    test("looks the name up as root, selecting only the name", async () => {
-      findOneByIdSpy.mockResolvedValue({
+    test("looks the name up as root, pinned to the caller's project, selecting only the name", async () => {
+      findOneBySpy.mockResolvedValue({
         name: "Looked Up",
       } as unknown as ServiceLevelObjective);
 
@@ -180,16 +190,61 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
         });
 
       expect(markdown).toBe(`[SLO Looked Up](${SLO_LINK})`);
-      expect(findOneByIdSpy).toHaveBeenCalledTimes(1);
-      expect(findOneByIdSpy).toHaveBeenCalledWith({
-        id: SLO_ID,
+      expect(findOneBySpy).toHaveBeenCalledTimes(1);
+      expect(findOneBySpy).toHaveBeenCalledWith({
+        query: {
+          _id: SLO_ID.toString(),
+          projectId: PROJECT_ID,
+        },
         select: { name: true },
         props: { isRoot: true },
       });
+      // Never the unpinned by-id read, which resolves any tenant's SLO.
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The tenancy regression: an owner row or burn rate rule written with
+     * another project's SLO id reaches this helper from its feed writer. The
+     * database scopes the read to the caller's project and finds nothing, and
+     * the link must not carry the other project's name.
+     */
+    test("an SLO id from another project resolves to the plain SLO label, never that project's name", async () => {
+      const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+        "33333333-3333-4333-8333-333333333333",
+      );
+
+      findOneBySpy.mockImplementation((...args: Array<unknown>) => {
+        const query: Record<string, unknown> = (
+          args[0] as { query: Record<string, unknown> }
+        ).query;
+
+        // The SLO exists, but only in OTHER_PROJECT_ID.
+        const isInOtherProject: boolean =
+          String(query["projectId"]) === OTHER_PROJECT_ID.toString();
+
+        return Promise.resolve(
+          isInOtherProject
+            ? ({ name: "Other Tenant Payroll" } as ServiceLevelObjective)
+            : null,
+        );
+      });
+      findOneByIdSpy.mockResolvedValue({
+        name: "Other Tenant Payroll",
+      } as unknown as ServiceLevelObjective);
+
+      const markdown: string =
+        await ServiceLevelObjectiveService.getSloMarkdownLink({
+          projectId: PROJECT_ID,
+          sloId: SLO_ID,
+        });
+
+      expect(markdown).toBe(`[SLO](${SLO_LINK})`);
+      expect(markdown).not.toContain("Other Tenant Payroll");
     });
 
     test("escapes a looked-up name exactly like a passed one", async () => {
-      findOneByIdSpy.mockResolvedValue({
+      findOneBySpy.mockResolvedValue({
         name: "a](b)",
       } as unknown as ServiceLevelObjective);
 
@@ -203,7 +258,7 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
     });
 
     test("still returns a working link when the SLO cannot be found", async () => {
-      findOneByIdSpy.mockResolvedValue(null);
+      findOneBySpy.mockResolvedValue(null);
 
       const markdown: string =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
@@ -228,6 +283,7 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       expect(markdown).toBe(`[SLO](${SLO_LINK})`);
       // An explicit value, even a blank one, means the caller has the name.
       expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(findOneBySpy).not.toHaveBeenCalled();
     },
   );
 });

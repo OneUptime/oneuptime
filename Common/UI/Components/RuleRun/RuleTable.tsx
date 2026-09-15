@@ -48,9 +48,9 @@ function getParentRoute(): Route {
 }
 
 /*
- * A table of rules. For rules that can be run - label, owner, privacy and
- * status page monitor rules - it adds "Run Now" to each row and to the bulk
- * actions, and makes each rule viewable on its own page.
+ * A table of rules. For rules that can be run - label, owner, privacy, and
+ * status page and SLO monitor rules - it adds "Run Now" to each row and to
+ * the bulk actions, and makes each rule viewable on its own page.
  */
 const RuleTable: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,

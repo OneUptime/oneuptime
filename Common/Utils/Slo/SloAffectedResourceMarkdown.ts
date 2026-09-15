@@ -24,11 +24,15 @@ import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
 /*
  * Structural rather than the ServiceLevelObjective model, so this stays a
  * dependency-free helper. A relation select on Incident / Alert yields
- * exactly these two columns.
+ * exactly these columns; all three are readable on relation queries.
+ *
+ * projectId is required for a bullet to print: see
+ * getSloAffectedResourceMarkdownLines.
  */
 export interface SloAffectedResourceLinkSubject {
   _id?: string | undefined;
   name?: string | undefined;
+  projectId?: ObjectID | string | undefined | null;
 }
 
 export type GetSloDashboardUrlFunction = (data: {
@@ -81,6 +85,24 @@ export const getSloAffectedResourceMarkdownLines: GetSloAffectedResourceMarkdown
        * dead link or a duplicate bullet.
        */
       if (!sloId || seenSloIds.has(sloId)) {
+        continue;
+      }
+
+      /*
+       * Only an SLO of the record's own project is named. The callers read
+       * the record as root, so a link to another project's SLO would put
+       * that SLO's name into this project's feed (and Slack / Teams). The
+       * write hooks reject such links now, but rows saved before that check
+       * existed may still hold one. An SLO whose project was not read cannot
+       * be shown to belong here, so it is left out too; that also makes a
+       * caller that drops projectId from its select fail loudly in its tests
+       * rather than quietly lose the pin.
+       */
+      if (
+        !slo.projectId ||
+        slo.projectId.toString().trim().toLowerCase() !==
+          data.projectId.toString().trim().toLowerCase()
+      ) {
         continue;
       }
 

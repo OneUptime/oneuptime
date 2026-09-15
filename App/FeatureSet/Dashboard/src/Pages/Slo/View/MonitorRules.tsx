@@ -1,7 +1,8 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -12,8 +13,8 @@ import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/Servi
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -62,17 +63,40 @@ While at least one rule is enabled, this SLO's monitors are managed by its rules
 Every attach and detach is recorded on the SLO's Feed.
 `;
 
-const SloMonitorRules: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
-  // The route is <sloId>/monitor-rules, so the id is one segment back.
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  const viewRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    ServiceLevelObjectiveMonitorRule,
+  );
+
+  /*
+   * The SLO is the route's model id: <sloId>/monitor-rules. On a rule's view
+   * page (<sloId>/monitor-rules/<ruleId>) the rule id is the last URL segment,
+   * so the SLO id is the one before it.
+   */
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(
+    props.ruleViewModelType ? 2 : 1,
+  );
 
   return (
     <Fragment>
       <SloNoticeBanner sloId={modelId} />
-      <ModelTable<ServiceLevelObjectiveMonitorRule>
+      <RuleTable<ServiceLevelObjectiveMonitorRule>
         modelType={ServiceLevelObjectiveMonitorRule}
+        viewRuleId={viewRuleId}
+        listRoute={RuleViewPageUtil.getListRoute(
+          PageMap.SLO_VIEW_MONITOR_RULES,
+          modelId,
+        )}
+        getRuleViewRoute={(rule: ServiceLevelObjectiveMonitorRule): Route => {
+          return RuleViewPageUtil.getRuleViewRoute(
+            PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
+            rule,
+            modelId,
+          );
+        }}
         id="slo-monitor-rules-table"
         name="SLO > Monitor Rules"
         userPreferencesKey="slo-monitor-rules-table"
@@ -82,7 +106,6 @@ const SloMonitorRules: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
-        isViewable={false}
         showRefreshButton={true}
         createEditModalWidth={ModalWidth.Large}
         query={{
@@ -235,7 +258,6 @@ const SloMonitorRules: FunctionComponent<
             placeholder: "customer facing|tier-1",
           },
         ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
       />
     </Fragment>
   );

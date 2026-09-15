@@ -3,12 +3,8 @@ import Route from "../../../Types/API/Route";
 import Select from "../../../Types/BaseDatabase/Select";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  RuleRunAction,
-  RuleRunType,
-  RuleRunTypeMetadata,
-  RuleRunTypeUtil,
-} from "../../../Types/Rules/RuleRun";
+import { RuleRunType, RuleRunTypeUtil } from "../../../Types/Rules/RuleRun";
+import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Navigation from "../../Utils/Navigation";
 import PermissionGate, {
@@ -37,16 +33,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   listRoute: Route;
   createEditModalWidth?: ModalWidth | undefined;
   modelAPI?: typeof ModelAPI | undefined;
-}
-
-function runNowDescription(ruleType: RuleRunType): string {
-  const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(ruleType);
-
-  if (meta.action === RuleRunAction.SyncStatusPageMonitors) {
-    return "Re-sync this status page with this rule now: add the monitors it matches and remove the ones it added that no longer match.";
-  }
-
-  return `This rule runs automatically only when a ${meta.resourceSingular} is created. Run it now to apply it to the ${meta.resourcePlural} that already exist in this project.`;
 }
 
 /*
@@ -134,7 +120,7 @@ const RuleView: <TBaseModel extends BaseModel>(
       {ruleType && (updateGate.isAllowed || updateGate.disabledReason) ? (
         <Card
           title="Run Now"
-          description={runNowDescription(ruleType)}
+          description={RuleRunSummary.describeRunNowCard(ruleType)}
           buttons={[
             {
               title: "Run Now",

@@ -173,6 +173,7 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
+  [PageMap.SLO_VIEW_MONITOR_RULE_VIEW]: `${RouteParams.ModelID}/monitor-rules/${RouteParams.SubModelID}`,
   [PageMap.SLO_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
@@ -3172,6 +3173,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLO_VIEW_MONITOR_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW_MONITOR_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_MONITOR_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_MONITOR_RULE_VIEW]
     }`,
   ),
 

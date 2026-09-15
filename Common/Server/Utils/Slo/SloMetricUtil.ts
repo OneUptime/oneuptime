@@ -220,6 +220,57 @@ export default class SloMetricUtil {
     });
   }
 
+  /*
+   * What the worker posts when a guard stops it measuring an SLO: Paused
+   * (every monitor disabled), Misconfigured (no monitors, monitors gone, an
+   * unusable target) and the zero-data guard (monitors with no status history
+   * yet). Only the TARGET is written.
+   *
+   * Why anything at all: the SLO dashboard template's toolbar picker lists the
+   * `sloName` values posted in the last day (TelemetryAttributeService's
+   * lookback). Posting nothing on these paths left a never-measured SLO out
+   * of the picker for good, and dropped a Paused or Misconfigured one a day
+   * after its last good evaluation, while the SLO List beside the picker
+   * still showed it.
+   *
+   * Why only the target: it is configuration, true whether or not anything
+   * was measured, so a Metrics page charting it shows the objective with no
+   * SLI under it. A budget, burn rate or status point would claim a
+   * measurement that did not happen, which is why the Status series keeps no
+   * value for Paused and Misconfigured (SloMetricTypeUtil). The rows are the
+   * same shape, attributes and retention as an evaluation's, so the picker,
+   * the sloId filters and the label pickers read them identically.
+   *
+   * Never throws: this runs on a path that must still resolve open burn-rate
+   * alerts and record the guard status, so a metric store failure is logged
+   * and swallowed here rather than left to every call site.
+   */
+  @CaptureSpan()
+  public static async saveSloGuardMetrics(data: {
+    projectId: ObjectID;
+    sloId: ObjectID;
+    sloName?: string | undefined;
+    labels?: Array<Label> | undefined;
+    targetPercentage?: number | null | undefined;
+  }): Promise<void> {
+    try {
+      await SloMetricUtil.saveSloMetrics({
+        projectId: data.projectId,
+        sloId: data.sloId,
+        sloName: data.sloName,
+        labels: data.labels,
+        values: {
+          [SloMetricType.TargetPercent]: data.targetPercentage,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `SloMetricUtil - Error writing guard-path SLO metrics for SLO ${data.sloId.toString()}:`,
+      );
+      logger.error(err);
+    }
+  }
+
   // Row shape must stay in lockstep with MonitorMetricUtil.buildMonitorMetricRow.
   private static buildSloMetricRow(data: {
     projectId: ObjectID;

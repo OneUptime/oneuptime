@@ -1,6 +1,7 @@
 import {
   getSloAffectedResourceMarkdownLines,
   getSloDashboardUrl,
+  SloAffectedResourceLinkSubject,
 } from "../../../Utils/Slo/SloAffectedResourceMarkdown";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
@@ -12,6 +13,10 @@ import { describe, expect, test } from "@jest/globals";
  * SLO name is the dangerous part: it must never be able to re-point the
  * link, render an image (a zero-click request to a third party every time
  * the feed is opened), restyle the sentence or break onto a new line.
+ *
+ * The callers read the record as root, so the helper also names only SLOs of
+ * the record's own project. Otherwise a link to another project's SLO would
+ * publish that SLO's name in this project's feed.
  */
 
 const DASHBOARD_URL: URL = URL.fromString(
@@ -20,11 +25,22 @@ const DASHBOARD_URL: URL = URL.fromString(
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-aaaa-4aaa-8bbb-000000000001",
 );
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-aaaa-4aaa-8bbb-000000000002",
+);
 const SLO_ID: string = "0193c0de-aaaa-4aaa-8bbb-0000000000f1";
 const OTHER_SLO_ID: string = "0193c0de-aaaa-4aaa-8bbb-0000000000f2";
 
 function sloLink(sloId: string): string {
   return `https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/slos/${sloId}`;
+}
+
+// An SLO of the record's own project, as the relation select returns it.
+function ownSlo(data: {
+  _id?: string | undefined;
+  name?: string | undefined;
+}): SloAffectedResourceLinkSubject {
+  return { ...data, projectId: PROJECT_ID };
 }
 
 describe("getSloDashboardUrl", () => {
@@ -75,8 +91,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         dashboardUrl: DASHBOARD_URL,
         projectId: PROJECT_ID,
         serviceLevelObjectives: [
-          { _id: SLO_ID, name: "Checkout availability" },
-          { _id: OTHER_SLO_ID, name: "Search latency p95" },
+          ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
+          ownSlo({ _id: OTHER_SLO_ID, name: "Search latency p95" }),
         ],
       }),
     ).toEqual([
@@ -90,8 +106,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       dashboardUrl: DASHBOARD_URL,
       projectId: PROJECT_ID,
       serviceLevelObjectives: [
-        { _id: SLO_ID, name: "A" },
-        { _id: OTHER_SLO_ID, name: "B" },
+        ownSlo({ _id: SLO_ID, name: "A" }),
+        ownSlo({ _id: OTHER_SLO_ID, name: "B" }),
       ],
     });
 
@@ -106,7 +122,7 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       dashboardUrl: DASHBOARD_URL,
       projectId: PROJECT_ID,
       serviceLevelObjectives: [
-        { _id: SLO_ID, name: "Checkout](https://evil.example) x" },
+        ownSlo({ _id: SLO_ID, name: "Checkout](https://evil.example) x" }),
       ],
     });
 
@@ -123,10 +139,10 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       dashboardUrl: DASHBOARD_URL,
       projectId: PROJECT_ID,
       serviceLevelObjectives: [
-        {
+        ownSlo({
           _id: SLO_ID,
           name: "![pixel](https://tracker.example/p.gif) <img src=x> *loud* _x_",
-        },
+        }),
       ],
     });
 
@@ -144,7 +160,7 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       dashboardUrl: DASHBOARD_URL,
       projectId: PROJECT_ID,
       serviceLevelObjectives: [
-        { _id: SLO_ID, name: "Checkout\n# Pwned\r\n- injected bullet" },
+        ownSlo({ _id: SLO_ID, name: "Checkout\n# Pwned\r\n- injected bullet" }),
       ],
     });
 
@@ -160,8 +176,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         dashboardUrl: DASHBOARD_URL,
         projectId: PROJECT_ID,
         serviceLevelObjectives: [
-          { _id: SLO_ID },
-          { _id: OTHER_SLO_ID, name: "   " },
+          ownSlo({ _id: SLO_ID }),
+          ownSlo({ _id: OTHER_SLO_ID, name: "   " }),
         ],
       }),
     ).toEqual([
@@ -176,8 +192,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         dashboardUrl: DASHBOARD_URL,
         projectId: PROJECT_ID,
         serviceLevelObjectives: [
-          { name: "Unsaved objective" },
-          { _id: SLO_ID, name: "Checkout availability" },
+          ownSlo({ name: "Unsaved objective" }),
+          ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
@@ -189,8 +205,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         dashboardUrl: DASHBOARD_URL,
         projectId: PROJECT_ID,
         serviceLevelObjectives: [
-          { _id: SLO_ID, name: "Checkout availability" },
-          { _id: SLO_ID, name: "Checkout availability" },
+          ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
+          ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
       }),
     ).toHaveLength(1);
@@ -200,7 +216,7 @@ describe("getSloAffectedResourceMarkdownLines", () => {
     "no SLOs (%p) is no bullets",
     (
       serviceLevelObjectives:
-        | Array<{ _id?: string; name?: string }>
+        | Array<SloAffectedResourceLinkSubject>
         | undefined
         | null,
     ) => {
@@ -213,4 +229,74 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       ).toEqual([]);
     },
   );
+});
+
+describe("getSloAffectedResourceMarkdownLines names only the record's own project's SLOs", () => {
+  test("another project's SLO is left out, name and link alike", () => {
+    const lines: Array<string> = getSloAffectedResourceMarkdownLines({
+      dashboardUrl: DASHBOARD_URL,
+      projectId: PROJECT_ID,
+      serviceLevelObjectives: [
+        {
+          _id: OTHER_SLO_ID,
+          name: "Payments SLO of another project",
+          projectId: OTHER_PROJECT_ID,
+        },
+        ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
+      ],
+    });
+
+    expect(lines).toEqual([
+      `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
+    ]);
+    expect(lines.join("\n")).not.toContain("Payments SLO of another project");
+    expect(lines.join("\n")).not.toContain(OTHER_SLO_ID);
+  });
+
+  test("an SLO whose project was not read is left out, since it cannot be shown to belong", () => {
+    expect(
+      getSloAffectedResourceMarkdownLines({
+        dashboardUrl: DASHBOARD_URL,
+        projectId: PROJECT_ID,
+        serviceLevelObjectives: [
+          { _id: SLO_ID, name: "Checkout availability" },
+          { _id: OTHER_SLO_ID, name: "Search latency", projectId: null },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  test("the project comparison accepts a string id in either case", () => {
+    expect(
+      getSloAffectedResourceMarkdownLines({
+        dashboardUrl: DASHBOARD_URL,
+        projectId: PROJECT_ID,
+        serviceLevelObjectives: [
+          {
+            _id: SLO_ID,
+            name: "Checkout availability",
+            projectId: PROJECT_ID.toString().toUpperCase(),
+          },
+        ],
+      }),
+    ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
+  });
+
+  test("a foreign copy of an id does not hide this project's SLO with the same id listed after it", () => {
+    /*
+     * A row cannot really hold one id twice. But if a foreign entry is
+     * skipped it must not count as seen, or the de-duplication would swallow
+     * the real bullet.
+     */
+    expect(
+      getSloAffectedResourceMarkdownLines({
+        dashboardUrl: DASHBOARD_URL,
+        projectId: PROJECT_ID,
+        serviceLevelObjectives: [
+          { _id: SLO_ID, name: "Foreign", projectId: OTHER_PROJECT_ID },
+          ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
+        ],
+      }),
+    ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
+  });
 });

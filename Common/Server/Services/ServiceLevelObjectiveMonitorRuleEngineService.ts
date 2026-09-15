@@ -15,6 +15,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import logger, { LogAttributes } from "../Utils/Logger";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MonitorService from "./MonitorService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
@@ -278,6 +279,92 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
       return [];
     }
 
+    const results: Array<SloMonitorSyncResult> = [];
+
+    /*
+     * A candidate with no enabled rule is about to have this monitor released.
+     * Before that, one whose monitors were attached by the deprecated label
+     * list - written by a previous-release pod after the one-shot backfill ran
+     * - is given its rule, and synced with it instead. Without this the first
+     * edit to such a monitor silently took it off the SLO. See
+     * SloLegacyMonitorLabelAdoption for why this is the one place that can do
+     * it without bringing back a rule a user deleted.
+     */
+    const sloIdsWithoutEnabledRule: Array<string> = Array.from(
+      candidateSloIds,
+    ).filter((sloId: string): boolean => {
+      return !rulesBySloId.has(sloId);
+    });
+
+    if (sloIdsWithoutEnabledRule.length > 0) {
+      let adoptedSloIds: Set<string> = new Set<string>();
+
+      try {
+        adoptedSloIds = new Set<string>(
+          await SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels({
+            projectId: projectId,
+            serviceLevelObjectiveIds: sloIdsWithoutEnabledRule,
+          }),
+        );
+      } catch (error) {
+        /*
+         * Whether these SLOs are label-configured is unknown, and releasing
+         * the monitor from one that is would lose it. They are left alone
+         * this time; releasing a genuinely stale attachment can wait for the
+         * next sync.
+         */
+        logger.error(
+          `Error adopting legacy SLO monitor labels for monitor ${monitorId}; not releasing it from SLOs without an enabled rule this time: ${error}`,
+          {
+            projectId: projectId.toString(),
+            monitorId: monitorId,
+          } as LogAttributes,
+        );
+
+        for (const sloId of sloIdsWithoutEnabledRule) {
+          candidateSloIds.delete(sloId);
+        }
+      }
+
+      for (const sloId of sloIdsWithoutEnabledRule) {
+        if (!adoptedSloIds.has(sloId.toLowerCase())) {
+          continue;
+        }
+
+        candidateSloIds.delete(sloId);
+
+        try {
+          /*
+           * A full sync, not just this monitor: the new rule also claims every
+           * other labelled monitor the previous-release engine would have
+           * attached since.
+           */
+          const result: SloMonitorSyncResult = await this.syncMonitorsForSlo({
+            serviceLevelObjectiveId: new ObjectID(sloId),
+          });
+
+          if (
+            result.monitorIdsAdded.length > 0 ||
+            result.monitorIdsRemoved.length > 0
+          ) {
+            results.push(result);
+          }
+        } catch (error) {
+          logger.error(
+            `Error syncing SLO ${sloId} after adopting its legacy monitor labels for monitor ${monitorId}: ${error}`,
+            {
+              projectId: projectId.toString(),
+              monitorId: monitorId,
+            } as LogAttributes,
+          );
+        }
+      }
+
+      if (candidateSloIds.size === 0) {
+        return results;
+      }
+    }
+
     const slos: Array<ServiceLevelObjective> =
       await ServiceLevelObjectiveService.findBy({
         query: {
@@ -305,8 +392,6 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
           isRoot: true,
         },
       });
-
-    const results: Array<SloMonitorSyncResult> = [];
 
     for (const slo of slos) {
       if (!slo.id) {

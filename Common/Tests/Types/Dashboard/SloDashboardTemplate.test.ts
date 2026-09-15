@@ -17,6 +17,7 @@ import {
   DashboardTemplateType,
   getDashboardTemplatesByCategory,
   getTemplateConfig,
+  SLO_TEMPLATE_CHART_GROUP_BY_KEYS,
 } from "../../../Types/Dashboard/DashboardTemplates";
 import IconProp from "../../../Types/Icon/IconProp";
 import AlertMetricType from "../../../Types/Alerts/AlertMetricType";
@@ -807,17 +808,25 @@ describe("SLO dashboard template", () => {
     });
 
     /*
-     * One line per objective, keyed by the same attribute the toolbar variable
-     * binds to — so a pick leaves exactly that objective's line. A whole-map
+     * One line per OBJECTIVE. By the attribute the toolbar variable binds to,
+     * leading so the legend reads by name — and by sloId, because SLO names
+     * are not unique: grouped by name alone, two same-named SLOs were drawn as
+     * one averaged line under one legend entry (regression). A whole-map
      * `groupBy: { attributes: true }` would split every line by every label.
      */
-    it("fans each chart out by the bare sloName key and nothing else", () => {
+    it("fans each chart out by sloName then sloId, and nothing else", () => {
+      expect([...SLO_TEMPLATE_CHART_GROUP_BY_KEYS]).toEqual([
+        SLO_NAME_ATTRIBUTE,
+        "sloId",
+      ]);
+
       for (const chart of componentsOfType(
         getConfig(),
         DashboardComponentType.Chart,
       )) {
         expect(queryDataOf(chart)["groupByAttributeKeys"]).toEqual([
           SLO_NAME_ATTRIBUTE,
+          "sloId",
         ]);
         expect(queryDataOf(chart)["groupBy"]).toBeUndefined();
         expect(argumentsOf(chart)["chartType"]).toBe(DashboardChartType.Line);
@@ -1129,7 +1138,10 @@ describe("SLO dashboard template", () => {
         config,
         DashboardComponentType.Chart,
       )) {
-        expect(queryDataOf(chart)["groupByAttributeKeys"]).toEqual([key]);
+        // The variable's key leads; sloId after it keeps same-named SLOs apart.
+        expect(
+          (queryDataOf(chart)["groupByAttributeKeys"] as Array<string>)[0],
+        ).toBe(key);
       }
     });
 

@@ -2,6 +2,7 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import MetricType from "../../../../Models/DatabaseModels/MetricType";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import MetricService from "../../../../Server/Services/MetricService";
+import logger from "../../../../Server/Utils/Logger";
 import SloMetricUtil from "../../../../Server/Utils/Slo/SloMetricUtil";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import AlertMetricType from "../../../../Types/Alerts/AlertMetricType";
@@ -527,6 +528,183 @@ describe("SLO template metric emitter contract", () => {
           ).toBe(false);
         }
       }
+    });
+  });
+
+  /*
+   * Regression: SLO names are not unique within a project, and the fleet
+   * charts grouped by `sloName` alone — so two objectives sharing a name, one
+   * healthy and one overspent, were ONE line (the average of their budgets)
+   * under one legend entry. The series name is built here exactly as
+   * MetricCharts' buildQuerySeries builds it from the grouped attributes:
+   * "key=value" segments joined by ", ".
+   */
+  describe("two SLOs that share a name", () => {
+    const OTHER_SLO_ID: ObjectID = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    );
+
+    type SeriesNameOfFunction = (
+      row: JSONObject,
+      groupByKeys: Array<string>,
+    ) => string;
+
+    const seriesNameOf: SeriesNameOfFunction = (
+      row: JSONObject,
+      groupByKeys: Array<string>,
+    ): string => {
+      return groupByKeys
+        .map((key: string): string => {
+          const value: unknown = attributesOfRow(row)[key];
+          const displayValue: string =
+            value === undefined || value === null || value === ""
+              ? "(unset)"
+              : String(value);
+
+          return `${key}=${displayValue}`;
+        })
+        .join(", ");
+    };
+
+    test("stay two lines on every fleet chart, each still led by the name", async () => {
+      for (const [sloId, budget] of [
+        [SLO_ID, 90],
+        [OTHER_SLO_ID, -20],
+      ] as Array<[ObjectID, number]>) {
+        await SloMetricUtil.saveSloMetrics({
+          projectId: PROJECT_ID,
+          sloId: sloId,
+          sloName: SLO_NAME,
+          values: {
+            [SloMetricType.ErrorBudgetRemainingPercent]: budget,
+            [SloMetricType.ErrorBudgetRemainingSeconds]: budget * 60,
+            [SloMetricType.BurnRate]: budget > 0 ? 0.5 : 8,
+          },
+        });
+      }
+
+      let charts: number = 0;
+
+      for (const component of metricWidgets()) {
+        if (component.componentType !== DashboardComponentType.Chart) {
+          continue;
+        }
+
+        charts++;
+
+        const metricName: string = metricNameOf(component) as string;
+        const groupByKeys: Array<string> =
+          (queryDataOf(component)["groupByAttributeKeys"] as
+            | Array<string>
+            | undefined) || [];
+        const seriesNames: Array<string> = Array.from(
+          new Set(
+            rowsNamed(insertedRows, metricName).map(
+              (row: JSONObject): string => {
+                return seriesNameOf(row, groupByKeys);
+              },
+            ),
+          ),
+        );
+
+        expect(`${metricName}: ${seriesNames.length} series`).toBe(
+          `${metricName}: 2 series`,
+        );
+
+        for (const seriesName of seriesNames) {
+          expect(
+            seriesName.startsWith(
+              `${SLO_METRIC_SLO_NAME_ATTRIBUTE}=${SLO_NAME}`,
+            ),
+          ).toBe(true);
+        }
+      }
+
+      expect(charts).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * Regression: the toolbar picker lists the `sloName` values posted in the
+   * last day. The worker posted nothing for an SLO it could only guard, so a
+   * Paused, Misconfigured or never-measured SLO sat in the SLO List but could
+   * never be picked. saveSloGuardMetrics is what the guard paths post.
+   */
+  describe("an SLO the worker can only guard (Paused, Misconfigured, not yet measured)", () => {
+    type SaveGuardFunction = (overrides?: {
+      targetPercentage?: number | null | undefined;
+    }) => Promise<void>;
+
+    const saveGuard: SaveGuardFunction = async (
+      overrides: { targetPercentage?: number | null | undefined } = {},
+    ): Promise<void> => {
+      await SloMetricUtil.saveSloGuardMetrics({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        sloName: SLO_NAME,
+        targetPercentage:
+          "targetPercentage" in overrides ? overrides.targetPercentage : 99.9,
+      });
+    };
+
+    test("still posts the key the picker lists, with the SLO's exact name", async () => {
+      await saveGuard();
+
+      const attributeKey: string = sloVariableAttributeKey();
+
+      expect(insertedRows.length).toBeGreaterThan(0);
+
+      for (const row of insertedRows) {
+        expect(attributesOfRow(row)[attributeKey]).toBe(SLO_NAME);
+        expect(attributeKeysOfRow(row)).toContain(attributeKey);
+        expect(attributesOfRow(row)["sloId"]).toBe(SLO_ID.toString());
+        expect(row["primaryEntityId"]).toBe(SLO_ID.toString());
+        expect(row["primaryEntityType"]).toBe(
+          ServiceType.ServiceLevelObjective,
+        );
+      }
+    });
+
+    /*
+     * The target is configuration, true with or without a measurement. A
+     * budget, burn rate or status point would chart a measurement that never
+     * happened, and would feed the template's tiles and charts.
+     */
+    test("posts only the target, and nothing the template's widgets aggregate", async () => {
+      await saveGuard();
+
+      expect(
+        insertedRows.map((row: JSONObject): unknown => {
+          return row["name"];
+        }),
+      ).toEqual([SloMetricType.TargetPercent]);
+      expect((insertedRows[0] as JSONObject)["value"]).toBe(99.9);
+
+      for (const metricName of metricNamesQueriedBySloTemplate()) {
+        expect(rowsNamed(insertedRows, metricName)).toHaveLength(0);
+      }
+    });
+
+    test("writes nothing when there is no target to post", async () => {
+      await saveGuard({ targetPercentage: null });
+
+      expect(insertedRows).toHaveLength(0);
+    });
+
+    /*
+     * The guard paths must still resolve open burn-rate alerts and record the
+     * guard status, so a metric store failure is logged, never thrown.
+     */
+    test("never throws when the metric store fails", async () => {
+      jest
+        .spyOn(MetricService, "insertJsonRows")
+        .mockRejectedValue(new Error("ClickHouse is down") as never);
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        // Silenced: the failure is the point of this test.
+      });
+
+      await expect(saveGuard()).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

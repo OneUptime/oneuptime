@@ -11,6 +11,7 @@ import ServiceLevelObjectiveMonitorRuleEngineService, {
 import ServiceLevelObjectiveMonitorRuleService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import logger from "../../../Server/Utils/Logger";
+import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMonitorLabelAdoption";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import RuleCriteria, {
@@ -217,10 +218,18 @@ interface SyncSpies {
   monitorFindOneById: jest.SpyInstance;
   feed: jest.SpyInstance;
   markdownLink: jest.SpyInstance;
+  legacyLabelAdoption: jest.SpyInstance;
 }
 
 function installSpies(): SyncSpies {
   return {
+    /*
+     * No SLO carries a legacy label list unless a test says so - and the real
+     * adoption would need a live Postgres.
+     */
+    legacyLabelAdoption: jest
+      .spyOn(SloLegacyMonitorLabelAdoption, "adoptLegacyMonitorLabels")
+      .mockResolvedValue([]),
     sloFindOneById: jest.spyOn(ServiceLevelObjectiveService, "findOneById"),
     sloFindBy: jest
       .spyOn(ServiceLevelObjectiveService, "findBy")
@@ -1345,6 +1354,220 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor", () 
 
     await expect(syncMonitor()).resolves.toEqual([]);
     expect(spies.ruleFindBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Rolling-deploy gap: previous-release API pods keep writing the deprecated
+ * SLO label list after the one-shot backfill ran, and their engine attaches
+ * the matching monitors as rule-attached. The new engine reads only rules, so
+ * without adoption the first edit to one of those monitors released it from an
+ * SLO with no rule - silently, with no rule in the UI to explain why.
+ */
+describe("ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor - legacy label lists", () => {
+  let spies: SyncSpies;
+
+  beforeEach(() => {
+    spies = installSpies();
+    spies.monitorFindOneById.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, {
+        name: "api-gateway",
+        labelIds: [LABEL_PRODUCTION_ID],
+      }),
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function syncMonitor(): Promise<Array<SloMonitorSyncResult>> {
+    return await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor(
+      {
+        monitorId: MONITOR_A_ID,
+      },
+    );
+  }
+
+  function updatedSloIds(): Array<string> {
+    return spies.sloUpdateOneById.mock.calls.map((call: Array<unknown>) => {
+      return String((call[0] as { id: ObjectID }).id);
+    });
+  }
+
+  it("adopts the label list of an SLO holding the monitor with no rule, and keeps the monitor instead of releasing it", async () => {
+    // The project has no enabled rule; after adoption the SLO has its new one.
+    spies.ruleFindBy.mockImplementation(((args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<ServiceLevelObjectiveMonitorRule>> => {
+      if (args.query["serviceLevelObjectiveId"] !== undefined) {
+        return Promise.resolve([
+          fakeRule({
+            serviceLevelObjectiveId: OTHER_SLO_ID,
+            labelIds: [LABEL_PRODUCTION_ID],
+          }),
+        ]);
+      }
+
+      return Promise.resolve([]);
+    }) as never);
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({
+        holdingAutoAddedMonitor: [fakeSlo({ id: OTHER_SLO_ID })],
+        byId: [
+          fakeSlo({
+            id: OTHER_SLO_ID,
+            monitors: [MONITOR_A_ID, MONITOR_B_ID],
+            autoAddedMonitors: [MONITOR_A_ID, MONITOR_B_ID],
+          }),
+        ],
+      }) as never,
+    );
+    spies.legacyLabelAdoption.mockResolvedValue([OTHER_SLO_ID.toString()]);
+    spies.sloFindOneById.mockResolvedValue(
+      fakeSlo({
+        id: OTHER_SLO_ID,
+        monitors: [MONITOR_A_ID, MONITOR_B_ID],
+        autoAddedMonitors: [MONITOR_A_ID, MONITOR_B_ID],
+      }),
+    );
+    // What the previous-release engine would have attached by now, plus one more.
+    spies.monitorFindBy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labelIds: [LABEL_PRODUCTION_ID] }),
+      fakeMonitor(MONITOR_B_ID, { labelIds: [LABEL_PRODUCTION_ID] }),
+      fakeMonitor(MONITOR_C_ID, { labelIds: [LABEL_PRODUCTION_ID] }),
+    ]);
+
+    const results: Array<SloMonitorSyncResult> = await syncMonitor();
+
+    expect(spies.legacyLabelAdoption).toHaveBeenCalledTimes(1);
+    expect(spies.legacyLabelAdoption).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      serviceLevelObjectiveIds: [OTHER_SLO_ID.toString()],
+    });
+
+    // Synced with its adopted rule: A and B stay, C (also labelled) joins.
+    expect(updatedSloIds()).toEqual([OTHER_SLO_ID.toString()]);
+    expect(writtenIds(spies.sloUpdateOneById, "monitors")).toEqual(
+      sortedIds([MONITOR_A_ID, MONITOR_B_ID, MONITOR_C_ID]),
+    );
+    expect(writtenIds(spies.sloUpdateOneById, "autoAddedMonitors")).toEqual(
+      sortedIds([MONITOR_A_ID, MONITOR_B_ID, MONITOR_C_ID]),
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0]!.monitorIdsRemoved).toEqual([]);
+  });
+
+  it("an SLO with no legacy label list is released exactly as before", async () => {
+    spies.ruleFindBy.mockResolvedValue([]);
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({
+        holdingAutoAddedMonitor: [fakeSlo({ id: OTHER_SLO_ID })],
+        byId: [
+          fakeSlo({
+            id: OTHER_SLO_ID,
+            monitors: [MONITOR_A_ID],
+            autoAddedMonitors: [MONITOR_A_ID],
+          }),
+        ],
+      }) as never,
+    );
+    spies.legacyLabelAdoption.mockResolvedValue([]);
+
+    await syncMonitor();
+
+    expect(spies.legacyLabelAdoption).toHaveBeenCalledTimes(1);
+    expect(writtenIds(spies.sloUpdateOneById, "monitors")).toEqual([]);
+    expect(spies.sloFindOneById).not.toHaveBeenCalled();
+  });
+
+  it("only SLOs without an enabled rule are offered for adoption, and none at all when every candidate has one", async () => {
+    spies.ruleFindBy.mockResolvedValue([
+      fakeRule({ serviceLevelObjectiveId: SLO_ID, labelIds: [LABEL_TIER1_ID] }),
+    ]);
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({
+        holdingAutoAddedMonitor: [fakeSlo({ id: OTHER_SLO_ID })],
+        byId: [fakeSlo({ id: SLO_ID }), fakeSlo({ id: OTHER_SLO_ID })],
+      }) as never,
+    );
+
+    await syncMonitor();
+
+    expect(spies.legacyLabelAdoption).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      serviceLevelObjectiveIds: [OTHER_SLO_ID.toString()],
+    });
+
+    spies.legacyLabelAdoption.mockClear();
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({ byId: [fakeSlo({ id: SLO_ID })] }) as never,
+    );
+
+    await syncMonitor();
+
+    // The normal path pays nothing for the rolling-deploy guard.
+    expect(spies.legacyLabelAdoption).not.toHaveBeenCalled();
+  });
+
+  it("a failed adoption releases nothing from SLOs without a rule, and still syncs the SLOs that have one", async () => {
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    spies.ruleFindBy.mockResolvedValue([
+      fakeRule({
+        serviceLevelObjectiveId: SLO_ID,
+        labelIds: [LABEL_PRODUCTION_ID],
+      }),
+    ]);
+    // The by-id read answers what its _id filter asks for (asserted below).
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({
+        holdingAutoAddedMonitor: [fakeSlo({ id: OTHER_SLO_ID })],
+        byId: [fakeSlo({ id: SLO_ID })],
+      }) as never,
+    );
+    spies.legacyLabelAdoption.mockRejectedValue(
+      new Error("connection terminated"),
+    );
+
+    await syncMonitor();
+
+    const byIdRead: { query: Record<string, unknown> } = spies.sloFindBy.mock
+      .calls[1]![0] as { query: Record<string, unknown> };
+
+    // OTHER_SLO_ID is dropped from the candidates, so it is not even read.
+    expect(JSON.stringify(byIdRead.query["_id"])).toContain(SLO_ID.toString());
+    expect(JSON.stringify(byIdRead.query["_id"])).not.toContain(
+      OTHER_SLO_ID.toString(),
+    );
+
+    // SLO_ID still gets the monitor; OTHER_SLO_ID is not written at all.
+    expect(updatedSloIds()).toEqual([SLO_ID.toString()]);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Error adopting legacy SLO monitor labels"),
+      expect.anything(),
+    );
+  });
+
+  it("the rule-side sync never adopts: after a rule delete, 'no rule, monitors still attached' is what a deliberate delete looks like", async () => {
+    spies.sloFindOneById.mockResolvedValue(
+      fakeSlo({
+        monitors: [MONITOR_A_ID],
+        autoAddedMonitors: [MONITOR_A_ID],
+      }),
+    );
+    spies.ruleFindBy.mockResolvedValue([]);
+
+    await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
+      serviceLevelObjectiveId: SLO_ID,
+    });
+
+    expect(spies.legacyLabelAdoption).not.toHaveBeenCalled();
+    expect(writtenIds(spies.sloUpdateOneById, "monitors")).toEqual([]);
   });
 });
 

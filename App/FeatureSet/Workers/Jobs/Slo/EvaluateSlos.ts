@@ -47,6 +47,14 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
+import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import OwnerRuleAssignment, {
+  OwnersToAssign,
+} from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
@@ -252,12 +260,15 @@ interface SloEvaluationContext {
    */
   isAnyMonitorUnderOngoingMaintenance: () => Promise<boolean>;
   /*
-   * Lazily resolved (and memoized) "is this SLO still enabled and unarchived
-   * right now?" — re-read from the database at most once per SLO, and only
-   * when a burn rate rule is about to fire. See isSloStillEvaluated.
+   * The evaluation's memoized "is this SLO still enabled and unarchived right
+   * now?". By the time a burn rate rule runs it has already been read once,
+   * right before the state write, so firing reuses that answer rather than
+   * reading again. See isSloStillEvaluated.
    */
-  isSloStillEvaluated: () => Promise<boolean>;
+  isSloStillEvaluated: SloStillEvaluatedCheckFunction;
 }
+
+type SloStillEvaluatedCheckFunction = () => Promise<boolean>;
 
 async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   if (!slo.id || !slo.projectId) {
@@ -292,6 +303,29 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     },
   });
 
+  /*
+   * "Is this SLO still enabled and unarchived?" - read from the database at
+   * most once per evaluation, and only right before this evaluation would
+   * first write something that describes the SLO (see isSloStillEvaluated).
+   * Every gate below shares this one memoized read, burn rate firing included,
+   * so they can never disagree about the answer.
+   *
+   * The cadence stamp above deliberately stays ungated: it is the worker's own
+   * bookkeeping, and a disabled or archived SLO is out of getDueSlos anyway.
+   */
+  let stillEvaluatedCheckPromise: Promise<boolean> | null = null;
+
+  const checkSloStillEvaluated: SloStillEvaluatedCheckFunction =
+    (): Promise<boolean> => {
+      if (!stillEvaluatedCheckPromise) {
+        stillEvaluatedCheckPromise = isSloStillEvaluated({
+          sloId: sloId,
+        });
+      }
+
+      return stillEvaluatedCheckPromise;
+    };
+
   const monitorIds: Array<ObjectID> = (slo.monitors || [])
     .map((monitor: Monitor) => {
       return monitor.id!;
@@ -320,6 +354,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       projectId: projectId,
       status: SloStatus.Misconfigured,
       now: now,
+      isSloStillEvaluated: checkSloStillEvaluated,
       reason: getMisconfiguredGuardReason({
         sliType: slo.sliType,
         monitorCount: monitorIds.length,
@@ -359,6 +394,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       projectId: projectId,
       status: SloStatus.Misconfigured,
       now: now,
+      isSloStillEvaluated: checkSloStillEvaluated,
       reason: "None of the monitors attached to this SLO exist any more.",
     });
     return;
@@ -379,6 +415,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       projectId: projectId,
       status: SloStatus.Paused,
       now: now,
+      isSloStillEvaluated: checkSloStillEvaluated,
       reason:
         "Every monitor attached to this SLO is disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
     });
@@ -591,6 +628,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       projectId: projectId,
       status: SloStatus.Misconfigured,
       now: now,
+      isSloStillEvaluated: checkSloStillEvaluated,
       reason:
         "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.",
     });
@@ -708,6 +746,25 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   };
 
   /*
+   * The re-read, as late as it can be: everything above only read, and the
+   * state write below is the evaluation's first write. An SLO disabled,
+   * archived or deleted after the sweep took its snapshot stops here - before
+   * its status, the StatusChanged feed item, history rows, oneuptime.slo.*
+   * metrics, owner notifications and burn rate rules. Its update hook has
+   * already resolved whatever was open, and an archived SLO's numbers are
+   * promised to stay as they were at archive time. A failed read throws into
+   * the sweep's per-SLO catch: nothing is written this tick, and the SLO is
+   * measured again on its next cadence.
+   */
+  if (!(await checkSloStillEvaluated())) {
+    logSloNoLongerEvaluated({
+      sloId: sloId,
+      projectId: projectId,
+    });
+    return;
+  }
+
+  /*
    * This one write stays on the HOOKED path on purpose. Unlike the cadence and
    * notification stamps it carries user-facing state — above all the sloStatus
    * transition, the one event in this job with real semantic meaning, which
@@ -796,8 +853,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    * The same reading as oneuptime.slo.* metrics, so an SLO charts, filters
    * and dashboards like any monitor series. The values are the ones the
    * history rows above just recorded (unrounded), plus the target and the
-   * status as an ordinal; the Paused / Misconfigured / zero-data guards
-   * returned before this point, so they post nothing.
+   * status as an ordinal. The Paused / Misconfigured / zero-data guards
+   * returned before this point and post only their target, through
+   * setGuardStatusAndResolveOpenAlerts: no SLI, budget, burn rate or status.
    *
    * Its own try/catch, and after the history write rather than instead of
    * it: SloHistory keeps 400 days for the long-range charts while metric rows
@@ -865,7 +923,6 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   // Burn rate rules.
   let maintenanceCheckPromise: Promise<boolean> | null = null;
-  let stillEvaluatedCheckPromise: Promise<boolean> | null = null;
 
   /*
    * Data age of this SLO, computed ONCE for all rules over the full fetched
@@ -902,14 +959,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       }
       return maintenanceCheckPromise;
     },
-    isSloStillEvaluated: (): Promise<boolean> => {
-      if (!stillEvaluatedCheckPromise) {
-        stillEvaluatedCheckPromise = isSloStillEvaluated({
-          sloId: sloId,
-        });
-      }
-      return stillEvaluatedCheckPromise;
-    },
+    // The same memoized read the state write already made: never a second one.
+    isSloStillEvaluated: checkSloStillEvaluated,
   };
 
   for (const rule of burnRateRules) {
@@ -1093,11 +1144,44 @@ async function setGuardStatusAndResolveOpenAlerts(data: {
   // The evaluation clock and the why, for the StatusChanged feed item.
   now?: Date | undefined;
   reason?: string | undefined;
+  // The evaluation's one shared re-read of isEnabled / isArchived.
+  isSloStillEvaluated: SloStillEvaluatedCheckFunction;
 }): Promise<void> {
   if (data.slo.sloStatus === data.status) {
-    // already committed: this transition was handled by an earlier tick.
+    /*
+     * Already committed: this transition was handled by an earlier tick.
+     *
+     * The target point still goes out on every such tick. The SLO dashboard
+     * picker lists only the names posted in the last day, and an SLO can sit
+     * Paused or Misconfigured for weeks. It is deliberately not gated on the
+     * mid-sweep re-read, which this branch never pays for: the point is
+     * configuration rather than a measurement, so for an SLO retired after
+     * the sweep started it only keeps the name pickable one cadence longer.
+     */
+    await saveGuardTargetMetric(data);
     return;
   }
+
+  /*
+   * A guard transition resolves, commits a status and posts a feed item, so
+   * it re-reads first, the same as the measured path does before its state
+   * write. Only a real transition pays for the read: an unchanged status
+   * already returned above.
+   */
+  if (!(await data.isSloStillEvaluated())) {
+    logSloNoLongerEvaluated({
+      sloId: data.sloId,
+      projectId: data.projectId,
+    });
+    return;
+  }
+
+  /*
+   * Before the resolve, not after the status commit: saveSloGuardMetrics never
+   * throws, and a resolve that keeps failing (retried every tick, see ORDER
+   * MATTERS above) must not also keep the SLO out of the dashboard picker.
+   */
+  await saveGuardTargetMetric(data);
 
   /*
    * No rootCause is passed, so the service applies its own "SLO was disabled
@@ -1114,6 +1198,27 @@ async function setGuardStatusAndResolveOpenAlerts(data: {
   await setSloStatusIfChanged(data.slo, data.status, {
     now: data.now,
     reason: data.reason,
+  });
+}
+
+/*
+ * The guard paths' only metric: the SLO's target, with the same name, id and
+ * label attributes as an evaluation, so the SLO dashboard's toolbar picker
+ * keeps listing an SLO that is Paused, Misconfigured or not yet measured. See
+ * SloMetricUtil.saveSloGuardMetrics for why nothing else is posted. It never
+ * throws, so no call site needs its own try/catch.
+ */
+async function saveGuardTargetMetric(data: {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  projectId: ObjectID;
+}): Promise<void> {
+  await SloMetricUtil.saveSloGuardMetrics({
+    projectId: data.projectId,
+    sloId: data.sloId,
+    sloName: data.slo.name,
+    labels: data.slo.labels,
+    targetPercentage: data.slo.targetPercentage,
   });
 }
 
@@ -1331,14 +1436,35 @@ async function isAnySloMonitorUnderOngoingMaintenance(data: {
  * Why it exists: the sweep evaluates a SNAPSHOT of due SLOs taken when it
  * started, and a large sweep can take minutes to reach the last one. An SLO a
  * user disables or archives in that gap has already had everything open
- * resolved by the service's update hook — so firing from the stale snapshot
- * would open a fresh alert or incident on an SLO nobody is measuring any more,
- * and nothing would ever resolve it, because the worker will not look at that
- * SLO again. A deleted SLO (no row) is treated the same way.
+ * resolved by the service's update hook, and an archived SLO is promised to
+ * keep the numbers it had at archive time. Evaluating it from the stale
+ * snapshot would overwrite its status and budget, post a StatusChanged item
+ * under the "Archived" one, write history and metrics, email, text and call
+ * its owners - and open a fresh alert or incident that nothing would ever
+ * resolve, because the worker will not look at that SLO again. A deleted SLO
+ * (no row) is treated the same way.
  *
- * Only firing is gated. Resolution needs no re-read: closing a record is the
- * right outcome whatever state the SLO is in now.
+ * So every write an evaluation makes is gated on it, through one memoized read
+ * per evaluation: the measured path reads right before its state write, a
+ * guard right before it commits a transition, and burn rate firing reuses that
+ * answer. Resolving is gated too - the disable, archive and delete hooks have
+ * already resolved what was open, so the worker would only post a second
+ * "resolved" for it. The read and the writes are not atomic: this narrows the
+ * window from a whole sweep to a single evaluation, it does not close it.
  */
+function logSloNoLongerEvaluated(data: {
+  sloId: ObjectID;
+  projectId: ObjectID;
+}): void {
+  logger.debug(
+    `Slo:EvaluateSlos - Skipping SLO ${data.sloId.toString()}: it was disabled, archived or deleted after this sweep started, so this evaluation writes nothing for it.`,
+    {
+      projectId: data.projectId.toString(),
+      sloId: data.sloId.toString(),
+    } as LogAttributes,
+  );
+}
+
 async function isSloStillEvaluated(data: {
   sloId: ObjectID;
 }): Promise<boolean> {
@@ -1466,10 +1592,10 @@ async function evaluateBurnRateRule(data: {
     if (isFiring) {
       /*
        * Last check before anything is created: was this SLO disabled,
-       * archived or deleted after the sweep took its snapshot? A failed read
-       * throws into this rule's own catch — the rule is skipped for this tick
-       * and retried on the next, rather than paging on a state it could not
-       * confirm.
+       * archived or deleted after the sweep took its snapshot? The evaluation
+       * already asked right before its state write, and stopped there if so,
+       * so this reuses that memoized answer instead of reading again. It stays
+       * so that no path can ever reach a page without passing the gate.
        */
       if (!(await context.isSloStillEvaluated())) {
         logger.debug(
@@ -2313,6 +2439,8 @@ async function createBurnRateAlert(data: {
       createdAlert?.alertNumberWithPrefix,
       createdAlert?.alertNumber,
     ),
+    // The rule's flag, or a create hook that already made it private.
+    isPrivate: alert.isPrivate === true || createdAlert?.isPrivate === true,
     declaration: declaration,
     copy: declaration.alert,
     logAttributes: logAttributes,
@@ -2490,6 +2618,8 @@ async function declareBurnRateIncident(data: {
       createdIncident?.incidentNumberWithPrefix,
       createdIncident?.incidentNumber,
     ),
+    isPrivate:
+      incident.isPrivate === true || createdIncident?.isPrivate === true,
     declaration: declaration,
     copy: declaration.incident,
     logAttributes: logAttributes,
@@ -2630,13 +2760,13 @@ async function addBurnRateRecordOwners(data: {
       ? await data.fire.getSloOwnerUsers()
       : [];
 
-    const userIds: Array<ObjectID> = uniqueIdsOf([
+    const requestedUserIds: Array<ObjectID> = uniqueIdsOf([
       ...(data.ownerUsers || []),
       ...sloOwnerUsers,
     ]);
-    const teamIds: Array<ObjectID> = uniqueIdsOf(data.ownerTeams);
+    const requestedTeamIds: Array<ObjectID> = uniqueIdsOf(data.ownerTeams);
 
-    if (userIds.length === 0 && teamIds.length === 0) {
+    if (requestedUserIds.length === 0 && requestedTeamIds.length === 0) {
       return;
     }
 
@@ -2648,12 +2778,24 @@ async function addBurnRateRecordOwners(data: {
       return;
     }
 
+    const owners: OwnersToAssign = await getBurnRateOwnersToAssign({
+      output: data.output,
+      recordId: data.recordId,
+      userIds: requestedUserIds,
+      teamIds: requestedTeamIds,
+      logAttributes: data.logAttributes,
+    });
+
+    if (owners.userIds.length === 0 && owners.teamIds.length === 0) {
+      return;
+    }
+
     if (data.output === "alert") {
       await AlertService.addOwners(
         data.context.projectId,
         data.recordId,
-        userIds,
-        teamIds,
+        owners.userIds,
+        owners.teamIds,
         true,
         {
           isRoot: true,
@@ -2663,8 +2805,8 @@ async function addBurnRateRecordOwners(data: {
       await IncidentService.addOwners(
         data.context.projectId,
         data.recordId,
-        userIds,
-        teamIds,
+        owners.userIds,
+        owners.teamIds,
         true,
         {
           isRoot: true,
@@ -2676,6 +2818,89 @@ async function addBurnRateRecordOwners(data: {
       `Slo:EvaluateSlos - Error adding owners to the ${data.output} created by burn rate rule ${data.ruleId.toString()}: ${err}`,
       data.logAttributes,
     );
+  }
+}
+
+/*
+ * The owners actually worth adding. Owner rows have no unique constraint, and
+ * the owner-added jobs notify every member of a team row and every user row
+ * independently, so two overlaps would each add - and notify - one person
+ * twice:
+ *
+ *   - an owner already on the record. The project's own alert and incident
+ *     owner rules run from the create hook and can get there first; the rule
+ *     engines skip owners already present through this same helper.
+ *   - a user who is a member of a team being added. With "add SLO owners" on,
+ *     the SLO's owner teams arrive expanded into users (see
+ *     ServiceLevelObjectiveService.findOwners), so a team that owns both the
+ *     SLO and the rule's output reached each of its members twice. The team
+ *     row already covers them: TeamMemberService.getUsersInTeams is the same
+ *     membership the owner-added job notifies from.
+ *
+ * A failed read must not cost the record its owners, so it falls back to the
+ * requested set: a duplicate notification beats an owner nobody told.
+ */
+async function getBurnRateOwnersToAssign(data: {
+  output: BurnRateOutputKind;
+  recordId: ObjectID;
+  userIds: Array<ObjectID>;
+  teamIds: Array<ObjectID>;
+  logAttributes: LogAttributes;
+}): Promise<OwnersToAssign> {
+  try {
+    const notYetAssigned: OwnersToAssign =
+      data.output === "alert"
+        ? await OwnerRuleAssignment.getOwnersNotYetAssigned({
+            ownerUserService: AlertOwnerUserService,
+            ownerTeamService: AlertOwnerTeamService,
+            resourceIdColumn: "alertId",
+            resourceId: data.recordId,
+            userIds: data.userIds,
+            teamIds: data.teamIds,
+          })
+        : await OwnerRuleAssignment.getOwnersNotYetAssigned({
+            ownerUserService: IncidentOwnerUserService,
+            ownerTeamService: IncidentOwnerTeamService,
+            resourceIdColumn: "incidentId",
+            resourceId: data.recordId,
+            userIds: data.userIds,
+            teamIds: data.teamIds,
+          });
+
+    if (notYetAssigned.userIds.length === 0 || data.teamIds.length === 0) {
+      return notYetAssigned;
+    }
+
+    /*
+     * Every requested team counts, including one already on the record: its
+     * row covers its members just the same.
+     */
+    const teamMembers: Array<User> = await TeamMemberService.getUsersInTeams(
+      data.teamIds,
+    );
+
+    const coveredUserIds: Set<string> = new Set<string>(
+      teamMembers.map((member: User): string => {
+        return member.id?.toString().toLowerCase() || "";
+      }),
+    );
+
+    return {
+      userIds: notYetAssigned.userIds.filter((userId: ObjectID): boolean => {
+        return !coveredUserIds.has(userId.toString().toLowerCase());
+      }),
+      teamIds: notYetAssigned.teamIds,
+    };
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Could not de-duplicate the owners of the ${data.output} ${data.recordId.toString()}; adding them as requested: ${err}`,
+      data.logAttributes,
+    );
+
+    return {
+      userIds: data.userIds,
+      teamIds: data.teamIds,
+    };
   }
 }
 
@@ -2705,6 +2930,13 @@ function formatRecordNumber(
  * whole post is caught here. Every user-controlled name is escaped: feeds
  * render without safe mode. `postedAt` is the evaluation clock, so the item
  * sits at the moment the rule fired.
+ *
+ * A PRIVATE record is redacted: no title, no number, no link. Only its owners
+ * and project admins may see a private alert or incident, but the SLO feed is
+ * readable by every project member and viewer, and no alert or incident
+ * privacy filter applies to feed rows. So the item says only that the rule
+ * raised a private record, plus the burn numbers - SLO data those readers can
+ * already see on the SLO itself.
  */
 async function postBurnRateRaisedFeedItem(data: {
   output: BurnRateOutputKind;
@@ -2712,6 +2944,7 @@ async function postBurnRateRaisedFeedItem(data: {
   rule: ServiceLevelObjectiveBurnRateRule;
   recordId: ObjectID | undefined;
   recordNumber: string | undefined;
+  isPrivate: boolean;
   declaration: BurnRateDeclaration;
   copy: BurnRateOutputCopy;
   logAttributes: LogAttributes;
@@ -2720,6 +2953,33 @@ async function postBurnRateRaisedFeedItem(data: {
   const isAlert: boolean = data.output === "alert";
 
   try {
+    if (data.isPrivate) {
+      const variables: SloBurnRateTemplateVariables =
+        data.declaration.variables;
+
+      await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
+        {
+          serviceLevelObjectiveId: context.sloId,
+          projectId: context.projectId,
+          serviceLevelObjectiveFeedEventType: isAlert
+            ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
+            : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+          feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`,
+          moreInformationInMarkdown: [
+            `**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
+            ...getBurnRateFeedMeasurementLines(variables),
+          ]
+            .map((line: string): string => {
+              return `- ${line}`;
+            })
+            .join("\n"),
+          displayColor: Red500,
+          postedAt: context.now,
+        },
+      );
+      return;
+    }
+
     const recordLabel: string = data.recordNumber
       ? `${isAlert ? "Alert" : "Incident"} ${escapeMarkdownInline(data.recordNumber)}`
       : isAlert
@@ -2750,10 +3010,7 @@ async function postBurnRateRaisedFeedItem(data: {
 
     const moreInformation: Array<string> = [
       `**Title:** ${escapeMarkdownInline(data.copy.title)}`,
-      `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
-      `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
-      `**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
-      `**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+      ...getBurnRateFeedMeasurementLines(variables),
     ];
 
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
@@ -2777,6 +3034,22 @@ async function postBurnRateRaisedFeedItem(data: {
       data.logAttributes,
     );
   }
+}
+
+/*
+ * The burn numbers a raised item quotes - the same ones the record carries.
+ * All of it is SLO data (windows, rates, threshold, budget), which is why a
+ * private record's redacted item may still show it.
+ */
+function getBurnRateFeedMeasurementLines(
+  variables: SloBurnRateTemplateVariables,
+): Array<string> {
+  return [
+    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
+    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
+    `**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
+    `**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+  ];
 }
 
 /*

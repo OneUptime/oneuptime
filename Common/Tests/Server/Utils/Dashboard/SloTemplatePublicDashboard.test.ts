@@ -570,11 +570,14 @@ describe("SLO dashboard template on a public dashboard", () => {
         isArchived: false,
         projectId: DASHBOARD_PROJECT_ID,
       });
+      // Enabled first: a disabled SLO's frozen budget never tops the list.
       expect(policy.sort).toEqual({
+        isEnabled: SortOrder.Descending,
         errorBudgetRemainingPercentage: SortOrder.Ascending,
         name: SortOrder.Ascending,
       });
       expect(Object.keys(policy.sort)).toEqual([
+        "isEnabled",
         "errorBudgetRemainingPercentage",
         "name",
       ]);
@@ -600,18 +603,28 @@ describe("SLO dashboard template on a public dashboard", () => {
       });
     });
 
-    it("publishes the same seven display fields as the SLO widget, and nothing else", () => {
+    /*
+     * The SLO widget's seven display fields plus `isEnabled`. A disabled SLO
+     * keeps the status it was frozen at, so without the flag the public list
+     * published that status as live (regression). The flag is withheld from
+     * the single-SLO widget, which has no use for it.
+     */
+    it("publishes the SLO widget's seven display fields plus isEnabled, and nothing else", () => {
       const config: DashboardViewConfig = storedConfig();
       const select: JSONObject = buildPolicy({
         config,
         component: sloList(config),
       }).select;
 
-      expect(select).toEqual(PUBLISHED_SLO_SELECT);
+      expect(select).toEqual({ ...PUBLISHED_SLO_SELECT, isEnabled: true });
       expectSelectPublishesNothingSensitive({
         model: new ServiceLevelObjective(),
         select,
-        sensitiveColumns: SENSITIVE_SLO_COLUMNS,
+        sensitiveColumns: SENSITIVE_SLO_COLUMNS.filter(
+          (column: string): boolean => {
+            return column !== "isEnabled";
+          },
+        ),
       });
     });
 
@@ -635,6 +648,15 @@ describe("SLO dashboard template on a public dashboard", () => {
         SloStatus.AtRisk,
         SloStatus.BudgetExhausted,
       ]);
+      /*
+       * A disabled SLO's status is frozen, so a status filter matches enabled
+       * SLOs only — the same predicate the browser list sends.
+       */
+      expect(filtered.query["isEnabled"]).toBe(true);
+      expect(routeQuery(buildPolicy({ config, component: list }))).toEqual({
+        isArchived: false,
+        projectId: DASHBOARD_PROJECT_ID,
+      });
 
       for (const brokenStatuses of [["Everything"], "At Risk", [3]]) {
         expect(() => {

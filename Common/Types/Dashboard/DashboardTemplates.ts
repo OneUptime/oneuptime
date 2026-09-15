@@ -20,6 +20,7 @@ import {
 } from "./DashboardComponents/DashboardSloComponent";
 import SloMetricType from "../ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil, {
+  SLO_METRIC_SLO_ID_ATTRIBUTE,
   SLO_METRIC_SLO_NAME_ATTRIBUTE,
 } from "../../Utils/Slo/SloMetricType";
 import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../Utils/Slo/SloListWidgetFormat";
@@ -966,6 +967,25 @@ function createSloComponent(data: {
     },
   };
 }
+
+/*
+ * What the SLO template's fleet charts fan out by: one line per OBJECTIVE.
+ *
+ * `sloName` alone is not an objective. Names are not unique within a project
+ * (only the slug is), so two SLOs sharing a name would be one line — the Avg
+ * of both budgets, the Max of both burn rates — under a single legend entry.
+ * `sloId` splits them; `sloName` leads so the legend reads by name and stays
+ * the key the toolbar variable binds to. SloMetricUtil stamps both on every
+ * row it writes, which SloTemplateMetricEmitterContract pins.
+ *
+ * Renaming an SLO does start a new line under the new name, because the
+ * old rows keep the old one; grouping by id alone would avoid that but would
+ * label every line with a UUID.
+ */
+export const SLO_TEMPLATE_CHART_GROUP_BY_KEYS: ReadonlyArray<string> = [
+  SLO_METRIC_SLO_NAME_ATTRIBUTE,
+  SLO_METRIC_SLO_ID_ATTRIBUTE,
+];
 
 /*
  * Every active SLO with its status, SLI against target, error budget and
@@ -2962,6 +2982,26 @@ function createSloDashboardConfig(): DashboardViewConfig {
    *   single pick while the charts above compared. It ships no default,
    *   because a template cannot know a project's SLO names.
    *
+   * - The picker's options are the `sloName` values posted in the last day,
+   *   not a read of the SLO table. That is the trade-off of using a Telemetry
+   *   Attribute variable, and it is deliberate: it is the one variable type
+   *   that scopes metric widgets, the SLO List and the Selected SLO widgets
+   *   alike, and that the public dashboard route resolves for anonymous
+   *   viewers. So every SLO the worker evaluates must post a point, including
+   *   the ones it can only guard — Paused, Misconfigured and not yet measured
+   *   (SloMetricUtil.saveSloGuardMetrics writes their target) — or they would
+   *   be listed below and unpickable here. What still leaves the picker is
+   *   what the worker does not evaluate at all: a disabled or archived SLO
+   *   drops out about a day after its last point, and a brand-new SLO appears
+   *   after its first evaluation tick.
+   *
+   * - The picker offers NAMES, because a list of ids would be unreadable, and
+   *   names are not unique. The fleet charts therefore group by name AND id
+   *   (SLO_TEMPLATE_CHART_GROUP_BY_KEYS), so two same-named objectives stay
+   *   two lines. Picking a shared name narrows the charts to both lines, the
+   *   SLO List to both rows and the tiles to the worse of the two, while the
+   *   Selected SLO widgets refuse to guess and say the name is ambiguous.
+   *
    * - The Selected SLO widgets are the only ones that wait for a pick, and
    *   they ask for it in terms of the toolbar ("Choose an SLO in the toolbar
    *   to see it here") — the one control that works in the view mode a new
@@ -3001,6 +3041,13 @@ function createSloDashboardConfig(): DashboardViewConfig {
    *   new `oneuptime.slo.*` points (and leave the SLO picker as their last
    *   points age out); the SLO List excludes them; and a Selected SLO widget
    *   will not resolve a name to one.
+   *
+   * - Disabled SLOs are not evaluated either, but they are still the
+   *   project's objectives, so the SLO List keeps them: marked Disabled
+   *   rather than showing the status they were frozen at, counted apart in
+   *   its status strip, and ordered after every enabled objective so a frozen
+   *   overspent budget never tops the list (SloListWidgetFormat). Like
+   *   archived ones, they leave the picker as their last points age out.
    */
   const sloVariable: DashboardVariable = createTelemetryAttributeVariable({
     name: "slo",
@@ -3022,8 +3069,9 @@ function createSloDashboardConfig(): DashboardViewConfig {
 
     /*
      * Rows 1-5: every active objective — status, SLI against its target, an
-     * error-budget bar and the burn rate — least budget first, so the
-     * objectives in trouble lead and a capped list drops the healthiest.
+     * error-budget bar and the burn rate — enabled first, least budget first,
+     * so the objectives in trouble lead and a capped list drops disabled ones
+     * and then the healthiest.
      * Full width because each row carries five columns and the budget bar
      * has to read as a bar.
      *
@@ -3098,11 +3146,17 @@ function createSloDashboardConfig(): DashboardViewConfig {
 
     /*
      * Rows 8-11: the same two normalised numbers over the dashboard's time
-     * range, one line per objective. Grouped by the same `sloName` key the
-     * toolbar variable binds to, so a pick leaves exactly that objective's
-     * line. Aggregation, legend and unit all come from SloMetricTypeUtil —
-     * the table the worker registers each series' MetricType row from — so
-     * the chart cannot label a series differently from the catalog.
+     * range, one line per objective. Grouped by `sloName` AND `sloId`
+     * (SLO_TEMPLATE_CHART_GROUP_BY_KEYS): names are not unique within a
+     * project, and grouped by name alone two objectives sharing one would be
+     * drawn as a single line — the average of both budgets, the peak of both
+     * burn rates — under one legend entry, hiding the one in trouble. The name
+     * leads, so the legend still reads by name, and it is the same key the
+     * toolbar variable binds to, so a pick leaves that objective's line (or
+     * both same-named lines, told apart by id). Aggregation, legend and unit
+     * all come from SloMetricTypeUtil — the table the worker registers each
+     * series' MetricType row from — so the chart cannot label a series
+     * differently from the catalog.
      */
     createChartComponent({
       title: "Error Budget Remaining by SLO",
@@ -3122,7 +3176,7 @@ function createSloDashboardConfig(): DashboardViewConfig {
         legendUnit: SloMetricTypeUtil.getLegendUnit(
           SloMetricType.ErrorBudgetRemainingPercent,
         ),
-        groupByAttributeKeys: [SLO_METRIC_SLO_NAME_ATTRIBUTE],
+        groupByAttributeKeys: [...SLO_TEMPLATE_CHART_GROUP_BY_KEYS],
       },
     }),
     createChartComponent({
@@ -3139,7 +3193,7 @@ function createSloDashboardConfig(): DashboardViewConfig {
         ),
         legend: SloMetricTypeUtil.getLegend(SloMetricType.BurnRate),
         legendUnit: SloMetricTypeUtil.getLegendUnit(SloMetricType.BurnRate),
-        groupByAttributeKeys: [SLO_METRIC_SLO_NAME_ATTRIBUTE],
+        groupByAttributeKeys: [...SLO_TEMPLATE_CHART_GROUP_BY_KEYS],
       },
     }),
 

@@ -4,6 +4,7 @@ import SloViewLayout from "../Pages/Slo/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SloRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
@@ -83,6 +84,25 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             <SloMonitorRules
               {...props}
               pageRoute={RouteMap[PageMap.SLO_VIEW_MONITOR_RULES] as Route}
+            />
+          }
+        />
+
+        {/*
+         * A rule's own page is the Monitor Rules page rendered for one rule.
+         * Two segments below the `:id` layout (monitor-rules/:subModelId), so
+         * getLastPathForKey must keep both.
+         */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SLO_VIEW_MONITOR_RULE_VIEW,
+            2,
+          )}
+          element={
+            <SloMonitorRules
+              {...props}
+              pageRoute={RouteMap[PageMap.SLO_VIEW_MONITOR_RULE_VIEW] as Route}
+              ruleViewModelType={ServiceLevelObjectiveMonitorRule}
             />
           }
         />

@@ -83,6 +83,8 @@ const products: Array<Product> = [
 ];
 
 const modelId: string = "7b3b1548-23cd-46ab-8359-280eb34362af";
+// A rule's view page nested below its resource (an SLO's monitor rules) also carries :subModelId.
+const subModelId: string = "9c4a2b1e-7d3f-4e8a-9b6c-1f2e3d4c5b6a";
 const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
   .map((route: Route): { path: string } => {
     return { path: route.toString() };
@@ -94,7 +96,8 @@ const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
 function visit(page: string): string {
   const path: string = RouteUtil.getRouteString(page)
     .replace(":projectId", PROJECT_ID)
-    .replace(":id", modelId);
+    .replace(":id", modelId)
+    .replace(":subModelId", subModelId);
   goTo(path);
   return path;
 }

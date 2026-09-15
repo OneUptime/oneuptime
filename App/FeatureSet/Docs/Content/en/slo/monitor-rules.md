@@ -40,12 +40,20 @@ A monitor rule describes the monitors an SLO should measure — "every monitor l
 2. Click **Create SLO Monitor Rule**
 3. Work through the steps:
 
-| Step               | What you set                                                                                                        |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Step               | What you set                                                                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Basic Info**     | The **name**, an optional **description** (why these monitors belong to this SLO), and whether the rule is **enabled** (on by default). |
-| **Match Criteria** | The conditions a monitor must meet to be attached.                                                                  |
+| **Match Criteria** | The conditions a monitor must meet to be attached.                                                                                      |
 
 The rules table shows each rule's name, its match criteria in plain words, and whether it is enabled. **View Monitors** opens the SLO's **Monitors** page.
+
+### Viewing and running a rule
+
+Select **View** on a rule's row to open the rule's own page, with its details (editable with the same form), **Run Now** and **Delete**.
+
+Rules already re-sync the SLO whenever they are saved, so **Run Now** is for picking up anything the SLO missed. It is on the rule's page, on each row, and in the table's bulk actions. Because an SLO measures every monitor that any of its enabled rules matches, running one rule re-evaluates **all** of the SLO's enabled monitor rules together: it attaches the monitors they match and detaches monitors a rule attached that no enabled rule matches any more. Monitors attached by hand are never touched, and a disabled rule does not run. When it finishes, the dialog says how many monitors were attached and detached.
+
+Running a rule needs permission to edit SLO monitor rules. See [Run Rules on Existing Resources](/docs/configuration/run-rules-now).
 
 ### Match criteria
 
@@ -56,11 +64,11 @@ Add one or more conditions, then choose how they combine:
 
 Each condition compares one field of the monitor:
 
-| Field                           | Compared with                  |
-| ------------------------------- | ------------------------------ |
-| **Monitor Labels**              | The monitor's labels.          |
-| **Monitor Name Pattern**        | The monitor's name.            |
-| **Monitor Description Pattern** | The monitor's description.     |
+| Field                           | Compared with              |
+| ------------------------------- | -------------------------- |
+| **Monitor Labels**              | The monitor's labels.      |
+| **Monitor Name Pattern**        | The monitor's name.        |
+| **Monitor Description Pattern** | The monitor's description. |
 
 The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**.
 
@@ -70,11 +78,11 @@ A rule needs at least one condition. To attach every monitor in the project, add
 
 Some examples:
 
-| You want                                   | Conditions                                                                                                     |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Every production monitor                   | **Monitor Labels** has any of _Production_                                                                     |
-| Every API monitor                          | **Monitor Name Pattern** matches pattern `^api-`                                                               |
-| Checkout monitors, but not staging ones    | **Match all (AND)**: **Monitor Name Pattern** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
+| You want                                | Conditions                                                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Every production monitor                | **Monitor Labels** has any of _Production_                                                                               |
+| Every API monitor                       | **Monitor Name Pattern** matches pattern `^api-`                                                                         |
+| Checkout monitors, but not staging ones | **Match all (AND)**: **Monitor Name Pattern** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
 
 ### When rules run
 

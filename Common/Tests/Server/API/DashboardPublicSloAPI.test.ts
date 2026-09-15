@@ -31,6 +31,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -1089,11 +1090,16 @@ describe("DashboardAPI public SLO", () => {
         projectId: projectId,
       });
       expect(findByArgs["sort"]).toEqual({
+        isEnabled: SortOrder.Descending,
         errorBudgetRemainingPercentage: SortOrder.Ascending,
         name: SortOrder.Ascending,
       });
       expect(findByArgs["limit"]).toBe(50);
       expect(findByArgs["props"]).toEqual({ isRoot: true });
+      /*
+       * The seven display fields plus isEnabled, so a disabled SLO reads
+       * Disabled on the public page instead of its frozen status.
+       */
       expect(findByArgs["select"]).toEqual({
         _id: true,
         name: true,
@@ -1103,7 +1109,28 @@ describe("DashboardAPI public SLO", () => {
         errorBudgetRemainingSeconds: true,
         currentBurnRate: true,
         sloStatus: true,
+        isEnabled: true,
       });
+    });
+
+    it("pins a stored status filter to enabled SLOs, as the browser list does", async () => {
+      const list: BuiltWidget = buildSloListWidget({
+        sloStatuses: [SloStatus.BudgetExhausted],
+      });
+      setWidgets([list.widget]);
+
+      await callResourceListAs("slo-list", {
+        componentId: list.componentId.toString(),
+        query: { isEnabled: false },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const query: JSONObject = getFindByArgs()["query"] as JSONObject;
+
+      expect(query["isArchived"]).toBe(false);
+      expect(query["isEnabled"]).toBe(true);
+      expect(query["projectId"]).toEqual(projectId);
     });
 
     it("is not served through the single-SLO resource, nor an SLO widget through slo-list", async () => {

@@ -925,6 +925,13 @@ export class Service extends DatabaseService<Model> {
    * Pass `sloName` whenever the caller already has it (the worker always
    * does); the lookup is only a fallback for callers holding just an id. An
    * SLO that cannot be found still gets a working link, labelled "SLO".
+   *
+   * The lookup is pinned to `projectId`. Its callers are feed writers running
+   * after a write, and several of them hold an SLO id nobody checked against
+   * the tenant (an owner row or burn rate rule created with another project's
+   * SLO id). Read as root without the pin, that id would copy another
+   * project's SLO name into a feed item the caller's project can read. An SLO
+   * outside the project is treated exactly like one that does not exist.
    */
   @CaptureSpan()
   public async getSloMarkdownLink(data: {
@@ -935,8 +942,11 @@ export class Service extends DatabaseService<Model> {
     let sloName: string | undefined = data.sloName;
 
     if (sloName === undefined) {
-      const slo: Model | null = await this.findOneById({
-        id: data.sloId,
+      const slo: Model | null = await this.findOneBy({
+        query: {
+          _id: data.sloId.toString(),
+          projectId: data.projectId,
+        },
         select: {
           name: true,
         },

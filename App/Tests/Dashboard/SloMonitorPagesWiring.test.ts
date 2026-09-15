@@ -63,14 +63,22 @@ function listSourceFiles(directory: string): Array<string> {
 describe("SLO Monitor Rules page", () => {
   const code: string = readCode(MONITOR_RULES_PAGE);
 
-  test("is a ModelTable over the rule model, typed and bound in the same opening tag", () => {
+  /*
+   * RuleTable renders a ModelTable with the same props (so the form still
+   * swaps in the condition builder) and adds Run Now plus a per-rule view
+   * page. RuleViewPagesWiring.test.ts pins the view routing itself.
+   */
+  test("is a RuleTable over the rule model, typed and bound in the same opening tag", () => {
     expect(code).toMatch(
-      /<ModelTable<ServiceLevelObjectiveMonitorRule> modelType=\{ServiceLevelObjectiveMonitorRule\}/,
+      /<RuleTable<ServiceLevelObjectiveMonitorRule> modelType=\{ServiceLevelObjectiveMonitorRule\}/,
     );
+    expect(code).not.toContain("<ModelTable");
   });
 
-  test("reads the SLO id one segment back from <sloId>/monitor-rules", () => {
-    expect(code).toContain("Navigation.getLastParamAsObjectID(1)");
+  test("reads the SLO id one segment back from <sloId>/monitor-rules, two back on a rule's view page", () => {
+    expect(code).toContain(
+      "Navigation.getLastParamAsObjectID( props.ruleViewModelType ? 2 : 1, )",
+    );
   });
 
   test("lists and creates rules for this SLO in this project only", () => {

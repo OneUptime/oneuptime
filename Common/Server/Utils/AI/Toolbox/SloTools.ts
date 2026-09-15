@@ -8,6 +8,7 @@ import {
 } from "../../../../Utils/Slo/SloMonitorRuleCriteria";
 import LabelService from "../../../Services/LabelService";
 import ServiceLevelObjectiveMonitorRuleService from "../../../Services/ServiceLevelObjectiveMonitorRuleService";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -123,6 +124,59 @@ function formatPercent(value: number | undefined | null): string {
   }
   return `${Math.round(value * 100) / 100}%`;
 }
+
+/*
+ * The two rule tables have their own read permissions
+ * (ReadServiceLevelObjectiveMonitorRule, ReadServiceLevelObjectiveBurnRateRule),
+ * separate from ReadServiceLevelObjective, which gates this tool. A custom role
+ * can read SLOs without being able to read one or both rule tables. Every
+ * custom role created before monitor rules shipped is in that position, since
+ * it cannot hold a permission that did not exist yet. For such a caller the
+ * rule read throws NotAuthorizedException. Letting that escape fails the whole
+ * tool call, and the model loses the SLO definition it was allowed to see. So
+ * a denied rule read is reported as "not visible" and the rest is returned.
+ *
+ * Only a permission denial is absorbed. Any other failure (a lost database
+ * connection, a bad query) still fails the call, so it is never presented as
+ * "this SLO has no rules".
+ */
+interface ChildRowsRead<T> {
+  rows: Array<T>;
+  isPermitted: boolean;
+}
+
+async function readChildRowsIfPermitted<T>(
+  read: () => Promise<Array<T>>,
+): Promise<ChildRowsRead<T>> {
+  try {
+    return {
+      rows: await read(),
+      isPermitted: true,
+    };
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return {
+        rows: [],
+        isPermitted: false,
+      };
+    }
+
+    throw error;
+  }
+}
+
+/*
+ * Travels with the result when a rule table was not readable. Without it the
+ * model would read the missing rows as "this SLO has no rules" and tell the
+ * user so.
+ */
+const MONITOR_RULES_NOT_VISIBLE_NOTE: string =
+  "Note: this SLO's monitor rules are left out because the current user does not have permission to read SLO Monitor Rules (ReadServiceLevelObjectiveMonitorRule). Do not conclude that the SLO has no monitor rules; say which permission is missing if the user asks about them.\n";
+
+const BURN_RATE_RULES_NOT_VISIBLE_NOTE: string =
+  "Note: this SLO's burn-rate rules are left out because the current user does not have permission to read SLO Burn Rate Rules (ReadServiceLevelObjectiveBurnRateRule). Do not conclude that the SLO has no burn-rate rules; say which permission is missing if the user asks about them.\n";
+
+const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
 
 /*
  * Label names for the monitor rule descriptions. Legacy rules carry their
@@ -305,33 +359,46 @@ export const QuerySlosTool: ObservabilityTool = {
        * Monitor rules decide which of those monitors the SLO measures, so the
        * model can explain why a monitor is (or is not) on it. Fetched only
        * when the SLO itself is visible - the rule table is OwnedThrough the
-       * SLO, exactly like the burn-rate rules below.
+       * SLO, exactly like the burn-rate rules below. A caller who may read
+       * the SLO but not its monitor rules still gets the SLO; see
+       * readChildRowsIfPermitted.
        */
-      const monitorRules: Array<ServiceLevelObjectiveMonitorRule> = slo
-        ? await ServiceLevelObjectiveMonitorRuleService.findBy({
-            query: {
-              serviceLevelObjectiveId: sloId,
+      let monitorRules: Array<ServiceLevelObjectiveMonitorRule> = [];
+      let areMonitorRulesVisible: boolean = true;
+
+      if (slo) {
+        const monitorRulesRead: ChildRowsRead<ServiceLevelObjectiveMonitorRule> =
+          await readChildRowsIfPermitted<ServiceLevelObjectiveMonitorRule>(
+            (): Promise<Array<ServiceLevelObjectiveMonitorRule>> => {
+              return ServiceLevelObjectiveMonitorRuleService.findBy({
+                query: {
+                  serviceLevelObjectiveId: sloId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  isEnabled: true,
+                  monitorLabels: {
+                    _id: true,
+                    name: true,
+                  },
+                  monitorNamePattern: true,
+                  monitorDescriptionPattern: true,
+                  criteria: true,
+                },
+                sort: {
+                  name: SortOrder.Ascending,
+                },
+                limit: 25,
+                skip: 0,
+                props: ctx.props,
+              });
             },
-            select: {
-              _id: true,
-              name: true,
-              isEnabled: true,
-              monitorLabels: {
-                _id: true,
-                name: true,
-              },
-              monitorNamePattern: true,
-              monitorDescriptionPattern: true,
-              criteria: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-            limit: 25,
-            skip: 0,
-            props: ctx.props,
-          })
-        : [];
+          );
+
+        monitorRules = monitorRulesRead.rows;
+        areMonitorRulesVisible = monitorRulesRead.isPermitted;
+      }
 
       const monitorRuleLabelNameById: Map<string, string> =
         await resolveMonitorRuleLabelNames({
@@ -356,79 +423,90 @@ export const QuerySlosTool: ObservabilityTool = {
       /*
        * Burn-rate rules are only fetched when the SLO itself is visible to
        * the user — the rule table is OwnedThrough the SLO, so this also
-       * avoids leaking rule names for an SLO the user cannot read.
+       * avoids leaking rule names for an SLO the user cannot read. Same
+       * degradation as the monitor rules above when the rule table is not
+       * readable.
        */
       let rules: Array<ServiceLevelObjectiveBurnRateRule> = [];
+      let areBurnRateRulesVisible: boolean = true;
 
       if (slo) {
-        rules = await ServiceLevelObjectiveBurnRateRuleService.findBy({
-          query: {
-            serviceLevelObjectiveId: sloId,
-          },
-          select: {
-            _id: true,
-            name: true,
-            isEnabled: true,
-            burnRateThreshold: true,
-            longWindowInMinutes: true,
-            shortWindowInMinutes: true,
-            minimumSampleCount: true,
-            refireSuppressionMinutes: true,
-            shouldCreateAlert: true,
-            alertSeverity: {
-              name: true,
+        const burnRateRulesRead: ChildRowsRead<ServiceLevelObjectiveBurnRateRule> =
+          await readChildRowsIfPermitted<ServiceLevelObjectiveBurnRateRule>(
+            (): Promise<Array<ServiceLevelObjectiveBurnRateRule>> => {
+              return ServiceLevelObjectiveBurnRateRuleService.findBy({
+                query: {
+                  serviceLevelObjectiveId: sloId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  isEnabled: true,
+                  burnRateThreshold: true,
+                  longWindowInMinutes: true,
+                  shortWindowInMinutes: true,
+                  minimumSampleCount: true,
+                  refireSuppressionMinutes: true,
+                  shouldCreateAlert: true,
+                  alertSeverity: {
+                    name: true,
+                  },
+                  shouldCreateIncident: true,
+                  incidentSeverity: {
+                    name: true,
+                  },
+                  /*
+                   * The options each output is created with. Remediation notes and
+                   * on-call policies are left out: they do not change what the
+                   * alert or incident is, and remediation notes are the longest
+                   * text on the row. The many-to-many lists select ids only - they
+                   * are reported as counts - so no label, team or user row is
+                   * loaded for them.
+                   */
+                  alertTitleTemplate: true,
+                  alertDescriptionTemplate: true,
+                  isAlertPrivate: true,
+                  autoResolveAlert: true,
+                  alertLabels: {
+                    _id: true,
+                  },
+                  alertOwnerTeams: {
+                    _id: true,
+                  },
+                  alertOwnerUsers: {
+                    _id: true,
+                  },
+                  incidentTitleTemplate: true,
+                  incidentDescriptionTemplate: true,
+                  isIncidentPrivate: true,
+                  autoResolveIncident: true,
+                  incidentLabels: {
+                    _id: true,
+                  },
+                  incidentOwnerTeams: {
+                    _id: true,
+                  },
+                  incidentOwnerUsers: {
+                    _id: true,
+                  },
+                  addSloOwnersAsOwners: true,
+                  lastAlertCreatedAt: true,
+                  lastAlertResolvedAt: true,
+                  lastIncidentCreatedAt: true,
+                  lastIncidentResolvedAt: true,
+                },
+                sort: {
+                  burnRateThreshold: SortOrder.Descending,
+                },
+                limit: 25,
+                skip: 0,
+                props: ctx.props,
+              });
             },
-            shouldCreateIncident: true,
-            incidentSeverity: {
-              name: true,
-            },
-            /*
-             * The options each output is created with. Remediation notes and
-             * on-call policies are left out: they do not change what the
-             * alert or incident is, and remediation notes are the longest
-             * text on the row. The many-to-many lists select ids only - they
-             * are reported as counts - so no label, team or user row is
-             * loaded for them.
-             */
-            alertTitleTemplate: true,
-            alertDescriptionTemplate: true,
-            isAlertPrivate: true,
-            autoResolveAlert: true,
-            alertLabels: {
-              _id: true,
-            },
-            alertOwnerTeams: {
-              _id: true,
-            },
-            alertOwnerUsers: {
-              _id: true,
-            },
-            incidentTitleTemplate: true,
-            incidentDescriptionTemplate: true,
-            isIncidentPrivate: true,
-            autoResolveIncident: true,
-            incidentLabels: {
-              _id: true,
-            },
-            incidentOwnerTeams: {
-              _id: true,
-            },
-            incidentOwnerUsers: {
-              _id: true,
-            },
-            addSloOwnersAsOwners: true,
-            lastAlertCreatedAt: true,
-            lastAlertResolvedAt: true,
-            lastIncidentCreatedAt: true,
-            lastIncidentResolvedAt: true,
-          },
-          sort: {
-            burnRateThreshold: SortOrder.Descending,
-          },
-          limit: 25,
-          skip: 0,
-          props: ctx.props,
-        });
+          );
+
+        rules = burnRateRulesRead.rows;
+        areBurnRateRulesVisible = burnRateRulesRead.isPermitted;
       }
 
       for (const rule of rules) {
@@ -512,7 +590,7 @@ export const QuerySlosTool: ObservabilityTool = {
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,
@@ -555,8 +633,13 @@ export const QuerySlosTool: ObservabilityTool = {
                 { label: "Monitors", value: joinNames(slo.monitors) || "none" },
                 {
                   label: "Monitor rules",
-                  value:
-                    monitorRules.length === 0
+                  /*
+                   * Not "none" when the rules could not be read: that would
+                   * claim the monitors are picked by hand.
+                   */
+                  value: !areMonitorRulesVisible
+                    ? NOT_VISIBLE_WIDGET_VALUE
+                    : monitorRules.length === 0
                       ? "none - monitors are picked by hand"
                       : `${
                           monitorRules.filter(
@@ -566,7 +649,13 @@ export const QuerySlosTool: ObservabilityTool = {
                           ).length
                         } of ${monitorRules.length} enabled`,
                 },
-                { label: "Burn-rate rules", value: String(rules.length) },
+                {
+                  label: "Burn-rate rules",
+                  // Not "0" when the rules could not be read.
+                  value: areBurnRateRulesVisible
+                    ? String(rules.length)
+                    : NOT_VISIBLE_WIDGET_VALUE,
+                },
               ],
               link: {
                 type: AIChatCitationTargetType.SloView,

@@ -32,6 +32,9 @@ const DASHBOARD: string = "https://oneuptime.example/dashboard";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-bbbb-4aaa-8bbb-000000000001",
 );
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-bbbb-4aaa-8bbb-000000000009",
+);
 const INCIDENT_ID: ObjectID = new ObjectID(
   "0193c0de-bbbb-4aaa-8bbb-000000000002",
 );
@@ -78,6 +81,15 @@ function buildSlo(id: string, name: string): ServiceLevelObjective {
   const slo: ServiceLevelObjective = new ServiceLevelObjective();
   slo._id = id;
   slo.name = name;
+  // The record's own project, as the feed's root read now selects it.
+  slo.projectId = PROJECT_ID;
+  return slo;
+}
+
+// An SLO linked before the write guard existed, belonging to another project.
+function buildForeignSlo(id: string, name: string): ServiceLevelObjective {
+  const slo: ServiceLevelObjective = buildSlo(id, name);
+  slo.projectId = OTHER_PROJECT_ID;
   return slo;
 }
 
@@ -285,6 +297,37 @@ describe("incident created feed item", () => {
     ]);
   });
 
+  test("another project's SLO, linked before the write guard, is not named in this project's feed", async () => {
+    await createIncidentFeed(
+      buildIncident({
+        serviceLevelObjectives: [
+          buildForeignSlo(OTHER_SLO_ID, "Payments SLO of another project"),
+          buildSlo(SLO_ID, "Checkout availability"),
+        ],
+      }),
+    );
+
+    const markdown: string = postedMarkdown(incidentFeedItem);
+
+    expect(resourcesAffectedLines(markdown)).toEqual([
+      `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
+    ]);
+    expect(markdown).not.toContain("Payments SLO of another project");
+    expect(markdown).not.toContain(OTHER_SLO_ID);
+  });
+
+  test("an incident linked only to another project's SLO has no Resources Affected section", async () => {
+    await createIncidentFeed(
+      buildIncident({
+        serviceLevelObjectives: [
+          buildForeignSlo(OTHER_SLO_ID, "Payments SLO of another project"),
+        ],
+      }),
+    );
+
+    expect(resourcesAffectedLines(postedMarkdown(incidentFeedItem))).toBeNull();
+  });
+
   test("onCreateSuccess reads the incident's SLOs for the feed item", async () => {
     jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
       // no analytics in tests
@@ -318,7 +361,15 @@ describe("incident created feed item", () => {
       findOneById.mock.calls[0]![0] as { select: JSONObject }
     ).select;
 
-    expect(select["serviceLevelObjectives"]).toEqual({ name: true, _id: true });
+    /*
+     * projectId too: the read runs as root, and the feed names only SLOs of
+     * the record's own project.
+     */
+    expect(select["serviceLevelObjectives"]).toEqual({
+      name: true,
+      _id: true,
+      projectId: true,
+    });
     // The monitors the section already listed are still read.
     expect(select["monitors"]).toEqual({ name: true, _id: true });
   });
@@ -340,7 +391,15 @@ describe("alert created feed item", () => {
       findOneById.mock.calls[0]![0] as { select: JSONObject }
     ).select;
 
-    expect(select["serviceLevelObjectives"]).toEqual({ name: true, _id: true });
+    /*
+     * projectId too: the read runs as root, and the feed names only SLOs of
+     * the record's own project.
+     */
+    expect(select["serviceLevelObjectives"]).toEqual({
+      name: true,
+      _id: true,
+      projectId: true,
+    });
     expect(select["monitor"]).toEqual({ name: true, _id: true });
   });
 
@@ -396,6 +455,27 @@ describe("alert created feed item", () => {
     await createAlertFeed(ALERT_ID);
 
     expect(resourcesAffectedLines(postedMarkdown(alertFeedItem))).toBeNull();
+  });
+
+  test("another project's SLO, linked before the write guard, is not named in this project's alert feed", async () => {
+    mockAlertRow(
+      buildAlert({
+        serviceLevelObjectives: [
+          buildForeignSlo(OTHER_SLO_ID, "Payments SLO of another project"),
+          buildSlo(SLO_ID, "Checkout availability"),
+        ],
+      }),
+    );
+
+    await createAlertFeed(ALERT_ID);
+
+    const markdown: string = postedMarkdown(alertFeedItem);
+
+    expect(resourcesAffectedLines(markdown)).toEqual([
+      `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
+    ]);
+    expect(markdown).not.toContain("Payments SLO of another project");
+    expect(markdown).not.toContain(OTHER_SLO_ID);
   });
 
   test("a hostile SLO name is escaped in the alert feed too", async () => {

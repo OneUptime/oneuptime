@@ -124,10 +124,22 @@ const SLO_PAGE_KEYS: Array<string> = Object.keys(PageMap).filter(
   },
 );
 
-// Charts left the menu when its history moved into Metrics.
+// A rule id for view pages nested below a list, e.g. monitor-rules/:subModelId.
+const SUB_MODEL_ID: ObjectID = new ObjectID(
+  "0193c0de-5555-4aaa-8bbb-000000000006",
+);
+
+/*
+ * Charts left the menu when its history moved into Metrics. A monitor rule's
+ * view page is reached from its row's View button, not the menu - it has a
+ * rule id no menu could know.
+ */
 const SLO_MENU_KEYS: Array<string> = SLO_PAGE_KEYS.filter(
   (key: string): boolean => {
-    return key !== PageMap.SLO_VIEW_CHARTS;
+    return (
+      key !== PageMap.SLO_VIEW_CHARTS &&
+      key !== PageMap.SLO_VIEW_MONITOR_RULE_VIEW
+    );
   },
 );
 
@@ -144,6 +156,7 @@ function layoutOf(key: string): SloLayoutKind {
 function pathFor(key: string): string {
   return RouteUtil.populateRouteParams(RouteMap[key] as Route, {
     modelId: MODEL_ID,
+    subModelId: SUB_MODEL_ID,
   }).toString();
 }
 

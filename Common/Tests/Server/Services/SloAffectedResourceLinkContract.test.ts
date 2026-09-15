@@ -75,7 +75,10 @@ describe("inline SLO links match ServiceLevelObjectiveService", () => {
         getSloAffectedResourceMarkdownLines({
           dashboardUrl: URL.fromString(DASHBOARD),
           projectId: PROJECT_ID,
-          serviceLevelObjectives: [{ _id: SLO_ID.toString(), name: sloName }],
+          // Linked SLOs carry their project: the helper names only this project's.
+          serviceLevelObjectives: [
+            { _id: SLO_ID.toString(), name: sloName, projectId: PROJECT_ID },
+          ],
         }),
       ).toEqual([`- ${canonical}`]);
     },
