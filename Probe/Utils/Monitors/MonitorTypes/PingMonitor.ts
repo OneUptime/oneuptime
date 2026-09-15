@@ -8,6 +8,11 @@ import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import ObjectID from "Common/Types/ObjectID";
 import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorResponse";
+import {
+  NETWORK_DEVICE_DIAGNOSTIC_PING_PACKET_COUNT,
+  NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS,
+  NetworkDeviceDiagnosticPingResult,
+} from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
@@ -375,6 +380,120 @@ export default class PingMonitor {
     }
 
     return `No ICMP echo reply from ${hostAddress} (${packetCount} sent)`;
+  }
+
+  /*
+   * One-shot ping for an on-demand device diagnostic (issue #3745): the
+   * "Ping" button on the topology map and the device page, run by
+   * Probe/Jobs/NetworkDevice/FetchDiagnostics.ts. A person is watching a
+   * spinner, so this answers ONCE, promptly, with the full packet statistics.
+   *
+   * Not ping() below. That is the Ping-MONITOR path, and three of its
+   * choices are wrong for a diagnostic: it retries up to five times with a
+   * one-second sleep in between (a dead device would take most of a minute
+   * to be called dead); when the host fails it asks OnlineCheck whether the
+   * probe itself is online and returns null if not (for a monitor, null is
+   * "no verdict, keep the previous status" — for a diagnostic it would leave
+   * the dashboard waiting until its own timeout); and it reports a timeout
+   * as isOnline true ("slow, not down"), which is the opposite of what the
+   * person clicked the button to learn.
+   *
+   * Not checkReachability() above either. That is the fleet-poll check,
+   * tuned to be cheap because it runs once per device per cycle: two
+   * packets, one retry, and only the average RTT and the loss survive. A
+   * diagnostic sends the Ping monitor's five packets and keeps the whole
+   * PingMonitorResponse — min/max/jitter are exactly what somebody is
+   * looking for when a device is "reachable but flaky".
+   *
+   * Never throws and never returns null: the job reports every claimed
+   * diagnostic, and a device that answered no echo is a COMPLETED ping
+   * (isOnline false, 100% loss, the statistics still attached), not a
+   * failed diagnostic. pingResponse is undefined only when ping itself
+   * could not run (the library threw, the target is unusable), with the
+   * cause in failureCause.
+   */
+  public static async runDiagnosticPing(data: {
+    host: Hostname | IPv4 | IPv6;
+    packetCount?: number | undefined;
+    timeoutMs?: number | undefined;
+  }): Promise<NetworkDeviceDiagnosticPingResult> {
+    /*
+     * The job's numbers arrive as JSON from the server, so a missing or
+     * malformed value falls back to the shared default rather than becoming
+     * NaN in a shell argument.
+     */
+    const packetCount: number = Math.max(
+      1,
+      Math.floor(
+        Number.isFinite(data.packetCount)
+          ? (data.packetCount as number)
+          : NETWORK_DEVICE_DIAGNOSTIC_PING_PACKET_COUNT,
+      ),
+    );
+    // The ping library takes whole seconds; never let a small ms value round to 0 (= the library default).
+    const timeoutInSeconds: number = Math.max(
+      1,
+      Math.ceil(
+        (data.timeoutMs || NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS) / 1000,
+      ),
+    );
+
+    let hostAddress: string;
+    let isIPv6Target: boolean;
+
+    try {
+      const target: { hostAddress: string; isIPv6Target: boolean } =
+        this.getReachabilityTarget(data.host);
+      hostAddress = target.hostAddress;
+      isIPv6Target = target.isIPv6Target;
+    } catch (err: unknown) {
+      return {
+        isOnline: false,
+        failureCause: (err as Error).message || String(err),
+        pingResponse: undefined,
+      };
+    }
+
+    const config: ping.PingConfig = this.getReachabilityPingConfig({
+      isIPv6Target: isIPv6Target,
+      packetCount: packetCount,
+      timeoutInSeconds: timeoutInSeconds,
+      platform: process.platform,
+    });
+
+    try {
+      // A fresh copy: the library fills defaults into the object it is handed.
+      const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
+        ...config,
+      });
+
+      const stats: PingMonitorResponse = this.getPacketStatistics(
+        res,
+        packetCount,
+      );
+
+      logger.debug(
+        `Diagnostic ping ${hostAddress}: ${res.alive ? "alive" : "no reply"} (${stats.packetsReceived}/${stats.packetsSent} received)`,
+      );
+
+      return {
+        isOnline: res.alive,
+        failureCause: res.alive
+          ? ""
+          : this.describeDeadHost(hostAddress, packetCount, res),
+        pingResponse: stats,
+      };
+    } catch (err: unknown) {
+      const failureCause: string = (err as Error).message || String(err);
+
+      logger.debug(`Diagnostic ping ${hostAddress} failed: ${failureCause}`);
+
+      return {
+        isOnline: false,
+        failureCause: failureCause,
+        pingResponse: undefined,
+      };
+    }
   }
 
   public static async ping(

@@ -641,6 +641,20 @@ For the map to populate:
 
 Clicking an unmanaged peer offers **Add to Monitoring**, which registers it as a probe-polled device: it inherits the probe its neighbours agree on, so it is pinged from its first poll, and you add credentials afterwards if it turns out to have them.
 
+### Ping and traceroute from the map
+
+Clicking a managed device on the map opens its drawer, and the drawer's **Connectivity** section answers the two questions that usually follow "is it up?": how has it been, and can I reach it right now.
+
+- **Round-trip time, past hour** is a sparkline of the device's ping round-trip time from its own polls, with the current, average and peak values under it and the hour's worst packet loss beside them. It reads the same series the device's Metrics page charts, and **Open metrics** takes you there. A device that has not been pinged in the last hour shows "No ping data in the last hour."
+- **Ping** sends five ICMP echo requests to the device and reports whether it answered, the minimum, average and maximum round-trip time, the jitter, and the packet loss. A device that answers some but not all of them is reported as reachable with packet loss.
+- **Traceroute** reports the hop-by-hop path from the probe to the device — the hop number, the host that answered and its round-trip time — with timed-out hops marked `* * *` and the hop the route broke at named when it did not reach the device.
+
+Both run from the device's **assigned probe** (Device -> **Settings**), not from the OneUptime server, so the answer is the view from where the device is actually monitored. The probe picks the request up within about ten seconds and the result appears in the drawer as soon as it reports back; if the probe has not answered within two minutes the drawer says so and suggests checking that the probe is online and running a version that supports on-demand diagnostics. A device with no probe assigned shows a note pointing at Settings instead of the buttons. Running a diagnostic needs the **Create Network Device Diagnostic** permission (project members have it); without it the buttons are not shown, though the round-trip trend still is.
+
+Results are transient: each run is kept for two days and then deleted.
+
+The same tools are on the device's Overview page, in the **Connectivity tools** card, for when you arrive at the device rather than at the map.
+
 ### Ping-only devices and their switch port
 
 A register, a handset, a kiosk or a camera speaks neither LLDP nor CDP, so nothing it reports can place it on the map. Its switch knows, though: every walked switch reports its forwarding table — which MAC it learned on which port — and the map uses that to draw the device's cable, from the switch to the device's own node, with the port and VLAN it was learned on. The link is worked out each time the map loads from the latest walk, so when the device is moved to another port or another switch the map follows on the next poll; nothing has to be redrawn.

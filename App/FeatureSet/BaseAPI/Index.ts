@@ -1718,6 +1718,12 @@ import NetworkDeviceDiscoveryScanService, {
   Service as NetworkDeviceDiscoveryScanServiceType,
 } from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 
+// NetworkDeviceDiagnostic
+import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
+import NetworkDeviceDiagnosticService, {
+  Service as NetworkDeviceDiagnosticServiceType,
+} from "Common/Server/Services/NetworkDeviceDiagnosticService";
+
 // NetworkSite
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteService, {
@@ -5445,6 +5451,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         NetworkDeviceDiscoveryScan,
         NetworkDeviceDiscoveryScanService,
+      ).getRouter(),
+    );
+
+    // network device diagnostic (on-demand ping / traceroute)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceDiagnostic, NetworkDeviceDiagnosticServiceType>(
+        NetworkDeviceDiagnostic,
+        NetworkDeviceDiagnosticService,
       ).getRouter(),
     );
 

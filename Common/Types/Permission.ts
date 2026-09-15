@@ -1399,6 +1399,11 @@ enum Permission {
   EditNetworkDeviceDiscoveryScan = "EditNetworkDeviceDiscoveryScan",
   ReadNetworkDeviceDiscoveryScan = "ReadNetworkDeviceDiscoveryScan",
 
+  CreateNetworkDeviceDiagnostic = "CreateNetworkDeviceDiagnostic",
+  DeleteNetworkDeviceDiagnostic = "DeleteNetworkDeviceDiagnostic",
+  EditNetworkDeviceDiagnostic = "EditNetworkDeviceDiagnostic",
+  ReadNetworkDeviceDiagnostic = "ReadNetworkDeviceDiagnostic",
+
   CreateNetworkSite = "CreateNetworkSite",
   DeleteNetworkSite = "DeleteNetworkSite",
   EditNetworkSite = "EditNetworkSite",
@@ -8568,6 +8573,46 @@ export class PermissionHelper {
         title: "Read Network Device Discovery Scan",
         description:
           "This permission can read Network Device Discovery Scan of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceDiagnostic,
+        title: "Create Network Device Diagnostic",
+        description:
+          "This permission can run an on-demand ping or traceroute against a Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceDiagnostic,
+        title: "Delete Network Device Diagnostic",
+        description:
+          "This permission can delete Network Device Diagnostic of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceDiagnostic,
+        title: "Edit Network Device Diagnostic",
+        description:
+          "This permission can edit Network Device Diagnostic of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceDiagnostic,
+        title: "Read Network Device Diagnostic",
+        description:
+          "This permission can read Network Device Diagnostic of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

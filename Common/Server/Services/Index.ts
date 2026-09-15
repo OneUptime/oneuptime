@@ -66,6 +66,7 @@ import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
+import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
@@ -529,6 +530,7 @@ const services: Array<BaseService> = [
   NetworkAlertPolicyService,
   NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
+  NetworkDeviceDiagnosticService,
   NetworkInterfaceService,
   NetworkSiteService,
   NetworkSiteTypeService,
