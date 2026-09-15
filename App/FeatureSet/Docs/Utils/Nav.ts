@@ -394,12 +394,24 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/introduction",
       },
       {
+        title: "Monitors and Monitor Rules",
+        url: "/docs/slo/monitor-rules",
+      },
+      {
         title: "Error Budgets",
         url: "/docs/slo/error-budget",
       },
       {
         title: "Burn Rate Alerts and Incidents",
         url: "/docs/slo/burn-rate-alerts",
+      },
+      {
+        title: "SLO Metrics and Dashboards",
+        url: "/docs/slo/metrics",
+      },
+      {
+        title: "SLO Feed and Audit Logs",
+        url: "/docs/slo/feed-and-audit-logs",
       },
     ],
   },

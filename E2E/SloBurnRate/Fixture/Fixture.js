@@ -21,8 +21,13 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import UserModel from "Common/Models/DatabaseModels/User";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
@@ -94,10 +99,61 @@ const onCallPolicies = [
   policy("50000000-0000-4000-8000-000000000002", "Major incident commander"),
 ];
 
+function label(id, name, color) {
+  const record = new Label();
+  record._id = id;
+  record.name = name;
+  record.color = Color.fromString(color);
+  return record;
+}
+
+const labels = [
+  label("90000000-0000-4000-8000-000000000001", "checkout", "#4f46e5"),
+  label("90000000-0000-4000-8000-000000000002", "customer-impact", "#dc2626"),
+];
+
+function team(id, name) {
+  const record = new Team();
+  record._id = id;
+  record.name = name;
+  return record;
+}
+
+const teams = [
+  team("a0000000-0000-4000-8000-000000000001", "Checkout team"),
+  team("a0000000-0000-4000-8000-000000000002", "Major incident team"),
+];
+
+function person(id, name, email) {
+  const record = new UserModel();
+  record._id = id;
+  record.name = name;
+  record.email = email;
+  return record;
+}
+
+const people = [
+  person("b0000000-0000-4000-8000-000000000001", "Jane Doe", "jane@example.com"),
+  person("b0000000-0000-4000-8000-000000000002", "Sam Lee", "sam@example.com"),
+];
+
+/*
+ * The owner-user pickers list the project's users through its team members
+ * (User itself is not project-listable), so the fixture serves those.
+ */
+const teamMembers = people.map((member, index) => {
+  const record = new TeamMember();
+  record._id = `c0000000-0000-4000-8000-00000000000${index + 1}`;
+  record.user = member;
+  return record;
+});
+
 /*
  * Three rules, one per shape the "Declares" column can report: alert only
  * (the pre-incident default), both, and incident only. The middle one is
- * mid-lifecycle so the status cell renders the live "Firing" pill.
+ * mid-lifecycle so the status cell renders the live "Firing" pill. Between
+ * them they carry every option a cell reports: owners, labels, an alert that
+ * is resolved by hand, a private incident, and SLO owners added as owners.
  */
 function rule(data) {
   const record = new ServiceLevelObjectiveBurnRateRule();
@@ -118,6 +174,17 @@ function rule(data) {
   record.incidentSeverityId = data.incidentSeverity && data.incidentSeverity.id;
   record.onCallDutyPolicies = data.onCallDutyPolicies || [];
   record.incidentOnCallDutyPolicies = data.incidentOnCallDutyPolicies || [];
+  record.alertLabels = data.alertLabels || [];
+  record.incidentLabels = data.incidentLabels || [];
+  record.alertOwnerTeams = data.alertOwnerTeams || [];
+  record.alertOwnerUsers = data.alertOwnerUsers || [];
+  record.incidentOwnerTeams = data.incidentOwnerTeams || [];
+  record.incidentOwnerUsers = data.incidentOwnerUsers || [];
+  record.isAlertPrivate = data.isAlertPrivate === true;
+  record.autoResolveAlert = data.autoResolveAlert !== false;
+  record.isIncidentPrivate = data.isIncidentPrivate === true;
+  record.autoResolveIncident = data.autoResolveIncident !== false;
+  record.addSloOwnersAsOwners = data.addSloOwnersAsOwners === true;
   record.lastAlertCreatedAt = data.lastAlertCreatedAt;
   record.lastAlertResolvedAt = data.lastAlertResolvedAt;
   record.lastIncidentCreatedAt = data.lastIncidentCreatedAt;
@@ -138,6 +205,11 @@ const rules = [
     incidentSeverity: incidentSeverities[0],
     onCallDutyPolicies: [onCallPolicies[0]],
     incidentOnCallDutyPolicies: [onCallPolicies[1]],
+    alertOwnerTeams: [teams[0]],
+    incidentOwnerUsers: [people[0]],
+    alertLabels: [labels[0]],
+    incidentLabels: [labels[0], labels[1]],
+    addSloOwnersAsOwners: true,
     // Fired 12 minutes ago and still open: the live "Firing" pill.
     lastAlertCreatedAt: minutesBefore(12),
     lastIncidentCreatedAt: minutesBefore(12),
@@ -152,6 +224,8 @@ const rules = [
     shouldCreateIncident: false,
     alertSeverity: alertSeverities[1],
     onCallDutyPolicies: [onCallPolicies[0]],
+    // Stays open until someone resolves it.
+    autoResolveAlert: false,
     lastAlertCreatedAt: minutesBefore(2880),
     lastAlertResolvedAt: minutesBefore(2760),
   }),
@@ -166,6 +240,8 @@ const rules = [
     shouldCreateIncident: true,
     incidentSeverity: incidentSeverities[0],
     incidentOnCallDutyPolicies: [onCallPolicies[1]],
+    incidentOwnerTeams: [teams[1]],
+    isIncidentPrivate: true,
   }),
 ];
 
@@ -209,6 +285,9 @@ ModelAPI.getList = async (options) => {
     AlertSeverity: alertSeverities,
     IncidentSeverity: incidentSeverities,
     OnCallDutyPolicy: onCallPolicies,
+    Label: labels,
+    Team: teams,
+    TeamMember: teamMembers,
   };
   const items = itemsByTable[tableName] || [];
   return {

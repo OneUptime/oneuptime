@@ -1,6 +1,6 @@
 # Burn Rate Alerts and Incidents
 
-Error budgets tell you where you stand; burn rate rules tell you when to get out of bed. When an SLO is consuming its error budget fast enough to matter, a burn rate rule raises a regular OneUptime **Alert**, declares a regular OneUptime **Incident**, or both — with severity, on-call escalation, and workspace notifications.
+Error budgets tell you where you stand; burn rate rules tell you when to get out of bed. When an SLO is consuming its error budget fast enough to matter, a burn rate rule raises a regular OneUptime **Alert**, declares a regular OneUptime **Incident**, or both — with your own title and description, severity, owners, labels, on-call escalation, and workspace notifications.
 
 If you have not read them yet, start with the [SLOs Overview](/docs/slo/introduction) and [Error Budgets](/docs/slo/error-budget).
 
@@ -36,7 +36,7 @@ This is the multi-window, multi-burn-rate pattern from the Google SRE Workbook, 
 
 A rule cannot fire until the SLO has at least a full long window of monitoring history behind it — otherwise a monitor's very first bad check, with only minutes of history to divide by, would compute an enormous burn rate and page someone. In practice that means a freshly created SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six.
 
-The same rule works in reverse: if an SLO stops having enough history to evaluate a rule's long window, anything that rule has open is auto-resolved rather than left hanging.
+The same rule works in reverse: if an SLO stops having enough history to evaluate a rule's long window, anything that rule has open is resolved rather than left hanging.
 
 ## Default rules
 
@@ -58,23 +58,36 @@ The canonical 14.4x and 6x constants are derived from a 30-day budget, so OneUpt
 
 Calendar-month SLOs are seeded with the 30-day values. You can edit or delete the seeded rules and add your own.
 
+Seeded rules raise an alert with the built-in title and description, resolve it automatically, and add no owners or labels — exactly what burn rate rules did before these options existed.
+
 ## What a rule declares
 
 Every rule declares at least one of two things, and you choose which:
 
-|              | **Create Alert**                                  | **Declare Incident**                                                                |
-| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Default      | On                                                | Off                                                                                 |
-| Weight       | The lightweight signal — lands in the alert inbox | The heavyweight one — takes an incident number and opens the full response workflow |
-| Severity     | Its own **alert severity**                        | Its own **incident severity**                                                       |
-| Escalation   | Its own **alert on-call policies**                | Its own **incident on-call policies**                                               |
-| Status pages | Not published                                     | Not published                                                                       |
+|                       | **Create Alert**                                  | **Declare Incident**                                                                |
+| --------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Default               | On                                                | Off                                                                                 |
+| Weight                | The lightweight signal — lands in the alert inbox | The heavyweight one — takes an incident number and opens the full response workflow |
+| Title and description | Its own, or the built-in text                     | Its own, or the built-in text                                                       |
+| Severity              | Its own **alert severity**                        | Its own **incident severity**                                                       |
+| Escalation            | Its own **alert on-call policies**                | Its own **incident on-call policies**                                               |
+| Owners and labels     | Its own owner teams, owner users and labels       | Its own owner teams, owner users and labels                                         |
+| Private               | Off by default                                    | Off by default                                                                      |
+| Auto-resolve          | On by default                                     | On by default                                                                       |
+| Remediation notes     | Its own                                           | Its own                                                                             |
+| Status pages          | Not published                                     | Not published                                                                       |
 
 A rule must do at least one of the two — OneUptime rejects a rule with both switched off, because it would consume an evaluation every minute and declare nothing.
 
-The two severities and the two on-call lists are deliberately separate, so you can route the alert to the owning team's rotation and the incident to your major-incident rotation. Leave a severity blank and OneUptime uses the project's most severe one.
+Everything is configured separately for the two, so you can send a terse alert to the owning team's rotation and a detailed incident to your major-incident rotation. Leave a severity blank and OneUptime uses the project's most severe one.
 
 They also have separate lifecycles: each is deduplicated on its own, each resolves on its own, and each has its own quiet period after it resolves. Resolving the incident does not reset the alert's suppression, or the other way around.
+
+### The SLO is an affected resource
+
+Every alert and incident a burn rate rule creates lists its SLO under **Affected Resources** and links back to it. The **Affected Resources** filter on alert and incident lists can narrow them to one SLO, and the SLO's **Alerts** and **Incidents** pages list them, with side menu badges counting the open ones.
+
+OneUptime sets this link itself when the rule creates the record. It is not offered when you edit an alert or incident, and editing one never removes it. See [SLOs Overview](/docs/slo/introduction) for every place the link shows up.
 
 ### Burn rate incidents are not customer-facing
 
@@ -84,26 +97,68 @@ An error budget burning fast is an internal engineering signal, not a declared o
 
 Nothing re-declares it. The rule will not open another incident until the burn recovers and the rule genuinely fires again, so you are never fighting the worker while you work an incident.
 
-## Burn rate alerts and incidents are regular OneUptime records
+## What each alert and incident says
 
-When a rule fires, OneUptime creates a standard **Alert** and/or a standard **Incident** — the same objects your monitors create — so everything you have built around them applies:
+Leave the **title** and **description** empty and the rule uses its built-in text. The title is:
 
-- **Severity** — each rule has its own severity, so a fast burn can page as critical while a slow burn opens a warning.
-- **On-call policies** — attach on-call duty policies to the rule and the record executes them: escalation rules, rotations, call/SMS/push/email, the works.
-- **Slack and Microsoft Teams** — workspace notification rules apply, so burn alerts and incidents land in the right channels automatically.
-- **Acknowledge and resolve** — the normal state timeline; your team can ack from the dashboard or mobile app, add notes, and track to resolution.
+```
+SLO burn rate: {{sloName}} — {{ruleName}}
+```
 
-The description includes the SLO's numbers at fire time — current SLI, burn rates over both windows, and budget remaining — so the person paged starts with context. Both records carry the same description, so the two are easy to correlate.
+and the description names the rule, states the burn rate over both windows against the threshold, and gives the error budget remaining.
 
-Only one alert and one incident per rule is open at a time: while either is unresolved, the rule will not stack duplicates on top of it.
+To write your own, use template variables in the title, the description and the remediation notes. They are filled in at the moment the rule fires:
 
-The SLO's **Alerts** and **Incidents** tabs list everything its burn rate rules have declared.
+| Variable                             | What it holds                                                                                   | Example                                                  |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `{{sloName}}`                        | Name of the SLO.                                                                                | Checkout availability                                    |
+| `{{sloId}}`                          | ID of the SLO.                                                                                  | b7f4c2d8-1f3e-4a5b-9c6d-7e8f9a0b1c2d                     |
+| `{{sloLink}}`                        | Link to the SLO in the OneUptime Dashboard.                                                     | https://oneuptime.com/dashboard/project-id/slos/slo-id   |
+| `{{sloStatus}}`                      | Status of the SLO after this evaluation.                                                        | At Risk                                                  |
+| `{{ruleName}}`                       | Name of the burn rate rule that fired.                                                          | Fast burn                                                |
+| `{{burnRateThreshold}}`              | The rule's burn rate threshold (a multiple of the sustainable pace).                            | 14.4                                                     |
+| `{{longWindowBurnRate}}`             | Burn rate measured over the rule's long window.                                                 | 21.5                                                     |
+| `{{shortWindowBurnRate}}`            | Burn rate measured over the rule's short window.                                                | 36                                                       |
+| `{{longWindowInMinutes}}`            | Length of the rule's long window, in minutes.                                                   | 60                                                       |
+| `{{shortWindowInMinutes}}`           | Length of the rule's short window, in minutes.                                                  | 5                                                        |
+| `{{targetPercentage}}`               | The SLO's target, as a percentage.                                                              | 99.9                                                     |
+| `{{currentSliPercentage}}`           | The SLI measured over the SLO's compliance window, as a percentage.                             | 99.87                                                    |
+| `{{errorBudgetRemainingPercentage}}` | Share of the error budget still left, as a percentage. Negative once the budget is overspent.   | 42.5                                                     |
+| `{{errorBudgetRemaining}}`           | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent.  | 18m 22s                                                  |
+| `{{errorBudgetRemainingMinutes}}`    | Error budget still left, in minutes.                                                            | 18.37                                                    |
+| `{{windowDescription}}`              | The SLO's compliance window, in words.                                                          | rolling 30-day window                                    |
+
+For example, an alert title of `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` becomes "Fast burn: Checkout availability is burning 21.5x".
+
+A few details worth knowing:
+
+- Numbers are rounded to two decimals.
+- Spaces inside the braces are fine: `{{ sloName }}` works.
+- A variable that is misspelled is left exactly as written, so a typo shows up in the alert instead of silently disappearing.
+- Titles are limited to 500 characters and descriptions and remediation notes to 50,000. If a title grows past 500 characters once its variables are filled in, it is folded onto one line and shortened with an ellipsis rather than failing to create the alert or incident.
+- If the link to the SLO cannot be built when the rule fires, `{{sloLink}}` is left empty and the alert or incident is still created.
+
+## Owners, labels and privacy
+
+- **Owner teams** and **owner users** are added to the alert or incident as soon as it is created, and are notified. Owner users must be members of the project.
+- **Add SLO Owners as Owners** also adds the SLO's owners — its owner users and the members of its owner teams — to every alert and incident the rule creates. SLO owners already hear about the SLO's own status changes, so turning this on can notify them twice. It is off by default.
+- **Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.
+- A **private** alert or incident is visible only to its owners, project admins and project owners.
+
+Labels, owner teams and on-call policies must belong to the same project as the SLO.
 
 ## Resolution and re-fire suppression
 
-- **Resolution follows the long window.** OneUptime auto-resolves a rule's alert and incident when the _long-window_ burn rate drops back below the threshold. Resolving on the short window would flap — a recurring outage would resolve after five quiet minutes and re-page all night.
+- **Resolution follows the long window.** With **Auto Resolve** on (the default), OneUptime resolves a rule's alert and incident when the _long-window_ burn rate drops back below the threshold. Resolving on the short window would flap — a recurring outage would resolve after five quiet minutes and re-page all night.
+- **Auto Resolve off.** Turn it off for the alert, the incident, or both, and that record stays open until someone resolves it, even after the burn recovers. The rule will not open another one on top of it. Once it has been resolved by hand and the long-window burn rate is back below the threshold, the rule's re-fire suppression starts, and the rule can fire again after it. Auto Resolve only decides what happens on recovery: the cases in the last bullet always resolve.
 - **Re-fire suppression.** After a record resolves, the rule will not declare that record again for a suppression period (by default, the length of the long window). This gives a recovering system room to actually recover without re-paging on residual noise. The alert and the incident are suppressed independently, each measured from its own resolve.
-- **Turning an output off closes what it opened.** Switch off Create Alert, switch off Declare Incident, or disable the rule entirely, and anything that output has open is resolved immediately — nothing is left escalating for a rule that can no longer justify it. Deleting the rule, or disabling or deleting the SLO, does the same.
+- **Turning an output off closes what it opened.** Switch off Create Alert, switch off Declare Incident, or disable the rule entirely, and anything that output has open is resolved immediately — nothing is left escalating for a rule that can no longer justify it. Deleting the rule, or disabling, archiving or deleting the SLO, does the same, and so does a rule losing its threshold or windows. These always resolve, whatever the auto-resolve setting says. An SLO disabled or archived while an evaluation is running does not fire its rules either.
+
+## The SLO feed
+
+The SLO's **Feed** page records each alert a rule raises and each incident it declares — with a link to the record and the burn rates behind it — and when each one resolves, automatically or by hand. A record that was already open and simply picked up again by the rule is not posted twice.
+
+Creating, changing and deleting a rule is posted too, and recorded in the SLO's **Audit Logs**. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs).
 
 ## Low traffic and minimum sample count
 
@@ -113,7 +168,7 @@ The setting becomes relevant with event-based (metric) SLIs, which are not avail
 
 ## Scheduled maintenance
 
-While any monitor attached to the SLO is in an active scheduled maintenance window, the rule is suppressed entirely — neither an alert nor an incident is created, because planned work should not page anyone. Note that the underlying time still counts toward the error budget according to the SLO's downtime statuses.
+While any monitor attached to the SLO is in an active scheduled maintenance window, the rule is suppressed entirely — neither an alert nor an incident is created, because planned work should not page anyone. Records the rule already has open still resolve as usual. Note that the underlying time still counts toward the error budget according to the SLO's downtime statuses.
 
 ## Configuring burn rate rules
 
@@ -122,15 +177,19 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 3. Click **Create SLO Burn Rate Rule** (or edit one of the seeded defaults)
 4. Work through the steps:
 
-| Step                 | What you set                                                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                  |
-| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes. |
-| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default). At least one must be on.                                 |
-| **Alert Routing**    | The **alert severity** and **alert on-call duty policies**. Shown only when the rule raises an alert.                                |
-| **Incident Routing** | The **incident severity** and **incident on-call duty policies**. Shown only when the rule declares an incident.                     |
+| Step                 | What you set                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                                      |
+| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.                     |
+| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.                  |
+| **Alert Details**    | The alert's **title**, **description** and **severity**. Shown only when the rule raises an alert.                                                       |
+| **Alert Routing**    | The alert's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.             |
+| **Incident Details** | The incident's **title**, **description** and **severity**. Shown only when the rule declares an incident.                                               |
+| **Incident Routing** | The incident's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.          |
 
-The two routing steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incident severity.
+The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
+
+The rules table shows, per rule, what it declares (and whether a record stays open until resolved by hand or is private), its severities, on-call policies, owners and labels.
 
 A good starting point is to keep the two seeded rules, route the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule create a lower-severity alert for working-hours follow-up. If your team runs everything through the incident workflow, turn on **Declare incident** for the fast-burn rule — and turn off **Create alert** on it if you would rather not get both.
 
