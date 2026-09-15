@@ -29,9 +29,18 @@ import {
   serializeTypedLogFilter,
 } from "./LogsHistogramRequest";
 import {
+  LOGS_SIGNAL,
   attachLogsLockedFilterDetails,
   buildLogsLockedFilterActions,
 } from "./LogsLockedScope";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "../../Utils/LockedEntityKeyChips";
+import {
+  LOCKED_FILTER_SOURCE_PAGE,
+  LOCKED_FILTER_SOURCE_STORED_QUERY,
+} from "../../Utils/LockedTelemetryScope";
 import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   resolveLogSavedViewTimeRange,
@@ -187,6 +196,24 @@ export interface ComponentProps {
         attributeValue: string;
       }
     | undefined;
+  /*
+   * How the locked chips of an entity-key scope (`logQuery.entityKeys`, what
+   * an Inventory item's page pins) name their entity — "Kubernetes Pod:
+   * checkout-7d9f" rather than the key hash the filter matches on. Keyed by
+   * entity key; display only. A key without an entry still gets its chip,
+   * as "Resource: <key>": a filtered list under an empty chip bar is exactly
+   * what this exists to prevent.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  /*
+   * Whether `logQuery.entityKeys` is the page's own scope (an Inventory
+   * item's Logs tab) rather than a stored query the view was opened with.
+   * Log monitors write the same field from their "Filter by Infrastructure
+   * Entity" picker, so an incident's log snapshot, a companion Logs tab and
+   * the monitor preview carry entity keys nobody on the page pinned. Left
+   * unset, the chips say the stored query pinned them.
+   */
+  entityKeysPinnedByPage?: boolean | undefined;
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
@@ -2151,7 +2178,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       [handleFacetInclude],
     );
 
-  // Build read-only base filter chips from props (serviceIds, traceIds, spanIds, logQuery attributes)
+  // Build read-only base filter chips from props (serviceIds, logQuery entityKeys, traceIds, spanIds, logQuery attributes)
   const baseActiveFilters: Array<ActiveFilter> = useMemo(() => {
     /*
      * The scope chip names the entity with its real type — "RUM Application"
@@ -2163,6 +2190,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       nameMap: entityNameMap,
       scopeEntityType: props.scopeEntityType,
     });
+
+    /*
+     * An entity-key scope — `logQuery.entityKeys`, which the server compiles
+     * to `hasAny(entityKeys, [...])` and an Inventory item's page pins alone
+     * — gets its own locked chip; without one the list was filtered under an
+     * empty chip bar. It sits with the entity chip because both say WHICH
+     * resource the page is about, ahead of the narrower trace / span /
+     * session ids.
+     *
+     * Built from the pinned logQuery only, never from `entityScope`: a
+     * Kubernetes-style page's attribute chip already explains its entity
+     * keys, and a second chip for the same scope would read as a second
+     * filter.
+     *
+     * The same source reaches the decoration step below, which re-describes
+     * every entity-key chip and would otherwise restore the page wording.
+     */
+    const entityKeysSource: string = props.entityKeysPinnedByPage
+      ? LOCKED_FILTER_SOURCE_PAGE
+      : LOCKED_FILTER_SOURCE_STORED_QUERY;
+
+    filters.push(
+      ...buildLockedEntityKeyChips({
+        rows: LOGS_SIGNAL,
+        entityKeys: logQueryEntityKeys,
+        displays: props.entityKeyDisplays,
+        source: entityKeysSource,
+      }),
+    );
 
     if (props.traceIds && props.traceIds.length > 0) {
       for (const traceId of props.traceIds) {
@@ -2217,6 +2273,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return attachLogsLockedFilterDetails(filters, {
       logQueryAttributes,
       entityScope: props.entityScope,
+      entityKeysSource,
     });
   }, [
     props.serviceIds,
@@ -2225,6 +2282,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props.spanIds,
     props.sessionIds,
     props.entityScope,
+    logQueryEntityKeys,
+    props.entityKeyDisplays,
+    props.entityKeysPinnedByPage,
     traceIdStrings,
     logQueryAttributes,
     props.attributeFilterDisplayKeys,

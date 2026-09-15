@@ -49,7 +49,14 @@ import {
   getProfileEntityDisplay,
   getProfileEntityRefsKey,
   getProfileServiceFilterChipDisplay,
+  hasProfileTableFilterRow,
 } from "../../Utils/ProfilesEntityDisplay";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "../../Utils/LockedEntityKeyChips";
+import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
+import LockedFilterChip from "Common/UI/Components/TelemetryViewer/components/LockedFilterChip";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -76,6 +83,12 @@ export interface ComponentProps {
    * compiles to `hasAny(entityKeys, [...])` server-side.
    */
   entityKeys?: Array<string> | undefined;
+  /*
+   * How the locked pill names each of `entityKeys` ("Kubernetes Pod:
+   * checkout-7d9f"). Display only; without it the pill reads
+   * "Resource: <key>" — it is never left out.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
 }
 
 const ProfileTable: FunctionComponent<ComponentProps> = (
@@ -292,6 +305,21 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     profileTypeFilter,
   ]);
 
+  /*
+   * The locked pill for an entity-key scope — an Inventory item's Profiles
+   * page. The query above already narrows the list by `entityKeys`; without
+   * a pill the table looked like every profile in the project. Built from
+   * the same `props.entityKeys` the query reads, but never fed back into it:
+   * these chips are rendered and counted, nothing else.
+   */
+  const lockedEntityKeyChips: Array<ActiveFilter> = useMemo(() => {
+    return buildLockedEntityKeyChips({
+      rows: "profiles",
+      entityKeys: props.entityKeys,
+      displays: props.entityKeyDisplays,
+    });
+  }, [props.entityKeys, props.entityKeyDisplays]);
+
   const loadServices: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
@@ -421,6 +449,13 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       })
     : null;
 
+  const showFilterRow: boolean = hasProfileTableFilterRow({
+    lockedChips: lockedEntityKeyChips,
+    traceIdFilter,
+    serviceIdFilter,
+    profileTypeFilter,
+  });
+
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -450,8 +485,24 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {(traceIdFilter || serviceIdFilter || profileTypeFilter) && (
+      {showFilterRow && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          {/*
+           * Locked pills lead, like every other viewer's locked chips, and
+           * have no remove button: the page owns this scope, so there is
+           * no query string for them to clear.
+           */}
+          {lockedEntityKeyChips.map((chip: ActiveFilter): ReactElement => {
+            return (
+              <LockedFilterChip
+                key={`readonly:${chip.facetKey}:${chip.value}`}
+                displayKey={chip.displayKey}
+                displayValue={chip.displayValue}
+                lockedDetail={chip.lockedDetail}
+              />
+            );
+          })}
+
           {traceIdFilter && (
             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
               Filtered by trace

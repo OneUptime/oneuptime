@@ -21,6 +21,10 @@ import {
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "./LockedTelemetryScope";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+} from "./LockedEntityKeyChips";
 
 /*
  * Display rules for the metrics explorer's filter chips.
@@ -526,8 +530,18 @@ export const buildMetricsLockedScopeChips: (data: {
 
 /*
  * Everything the explorer's chip bar shows: the page's locked entity scope,
- * its locked attribute scope, then the user's own chips (facet includes,
- * URL-restored and saved-view-restored alike).
+ * its locked entity-key scope, its locked attribute scope, then the user's
+ * own chips (facet includes, URL-restored and saved-view-restored alike).
+ *
+ * The entity-key chips sit with the entity-id chips, ahead of the
+ * attributes: both name the entity the page is about, and a stored query's
+ * chips on the traces viewer (SpanQueryScope) put the entity-key chip right
+ * after the entity-id chip in the same way.
+ *
+ * Only `entityKeysFilter` becomes an entity-key chip. The `entityScope` of a
+ * Kubernetes / host / Docker page carries entity keys too, but it is
+ * explained on the attribute chip it names ("Cluster: prod"); a second chip
+ * for the same scope would read as a second, AND-ed filter.
  */
 export const buildMetricsActiveFilterChips: (data: {
   scopeIds: Array<ObjectID | string> | undefined;
@@ -537,6 +551,10 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilterDisplayValues?: Record<string, string> | undefined;
   // The page's entity scope, explained on the attribute chip it names.
   entityScope?: LockedEntityScope | undefined;
+  // The page's bare entity-key scope (an Inventory item), one chip per key.
+  entityKeysFilter?: ReadonlyArray<string> | undefined;
+  // How each of those chips reads; a key without an entry reads "Resource".
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
@@ -547,6 +565,8 @@ export const buildMetricsActiveFilterChips: (data: {
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   attributeFilterDisplayValues?: Record<string, string> | undefined;
   entityScope?: LockedEntityScope | undefined;
+  entityKeysFilter?: ReadonlyArray<string> | undefined;
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
@@ -557,6 +577,11 @@ export const buildMetricsActiveFilterChips: (data: {
       scopeEntityType: data.scopeEntityType,
       facetConfigs: data.facetConfigs,
       nameMap: data.nameMap,
+    }),
+    ...buildLockedEntityKeyChips({
+      rows: "metrics",
+      entityKeys: data.entityKeysFilter,
+      displays: data.entityKeyDisplays,
     }),
     ...buildMetricsLockedAttributeChips({
       attributeFilters: data.attributeFilters,

@@ -125,14 +125,13 @@ const TRACES_ENTITY_DISPLAY: string = readSource(
 );
 
 describe("TracesViewer imports the locked-scope helpers", () => {
-  test("describers come from the pure utility, the link builder from its route-aware sibling, and the stored-query dispatcher from the display module", () => {
+  test("describers come from the pure utility, the Copy / Open actions from the route-aware link module, and the stored-query dispatcher from the display module", () => {
     const pureImports: string = importListFrom(
       TRACES_VIEWER,
       "../../Utils/LockedTelemetryScope",
     );
 
     for (const name of [
-      "buildLockedScopeCopyText",
       "describeLockedAttributeFilter",
       "describeLockedEntityFilter",
     ]) {
@@ -141,7 +140,7 @@ describe("TracesViewer imports the locked-scope helpers", () => {
 
     expect(
       importListFrom(TRACES_VIEWER, "../../Utils/LockedTelemetryScopeLink"),
-    ).toContain("buildLockedScopeExplorerLink");
+    ).toContain("buildLockedScopeFilterActions");
 
     const displayImports: string = importListFrom(
       TRACES_VIEWER,
@@ -152,9 +151,24 @@ describe("TracesViewer imports the locked-scope helpers", () => {
       "describeStoredQueryChip",
       "entityScopeForAttributeKey",
       "buildLockedAttributeChip",
+      "buildTracesLockedEntityKeyChips",
     ]) {
       expect(displayImports).toContain(name);
     }
+  });
+
+  test("the entity-key chip names arrive as the shared display map, and the display module builds the chip through the shared entity-key builder", () => {
+    expect(
+      importListFrom(TRACES_VIEWER, "../../Utils/LockedEntityKeyChips"),
+    ).toContain("LockedEntityKeyDisplayMap");
+
+    const sharedImports: string = importListFrom(
+      TRACES_ENTITY_DISPLAY,
+      "../../Utils/LockedEntityKeyChips",
+    );
+
+    expect(sharedImports).toContain("buildLockedEntityKeyChips");
+    expect(sharedImports).toContain("LockedEntityKeyDisplayMap");
   });
 
   test("the renderer-free display module never loads the explorer link builder — it reads `window` at load", () => {
@@ -275,30 +289,23 @@ describe("Copy filter / Open in Traces", () => {
     "}",
   );
 
-  test("are built from the LOCKED chips alone, plus the current window", () => {
-    expect(actionsMemo).toContain(
-      "if (lockedChips.length === 0) { return undefined; }",
-    );
-    expect(actionsMemo).toContain(
-      'const copyText: string = buildLockedScopeCopyText("traces", lockedChips);',
-    );
-
-    const linkCall: string = blockAfter(
+  test("are built by the shared builder from the LOCKED chips alone, plus the current window", () => {
+    /*
+     * The builder's own rules (locked chips only, no link that carries none
+     * of the scope, copy text kept when the route cannot resolve) run on
+     * real chips in TracesEntityKeyLockedScope.test.ts and
+     * LockedTelemetryScopeLink.test.ts; this pins what the viewer hands it.
+     */
+    const call: string = blockAfter(
       actionsMemo,
-      "buildLockedScopeExplorerLink(",
+      "buildLockedScopeFilterActions(",
       "{",
       "}",
     );
 
-    expect(linkCall).toContain('signal: "traces"');
-    expect(linkCall).toContain("timeRange");
-    // The link is built from facetKey / value pairs, never from display text.
-    expect(linkCall).toContain(
-      "return { facetKey: chip.facetKey, value: chip.value };",
-    );
-
-    expect(actionsMemo).toContain("openExplorerRoute: link.url");
-    expect(actionsMemo).toContain("notCarried: link.notCarried");
+    expect(call).toContain('signal: "traces"');
+    expect(call).toContain("chips: lockedChips");
+    expect(call).toContain("timeRange");
 
     const dependencies: string = dependenciesOf(
       TRACES_VIEWER,
@@ -307,10 +314,6 @@ describe("Copy filter / Open in Traces", () => {
 
     expect(dependencies).toContain("lockedChips");
     expect(dependencies).toContain("timeRange");
-  });
-
-  test("a link builder that cannot resolve the project route degrades to copy only, never to a crashed chip bar", () => {
-    expect(actionsMemo).toContain("catch { return { copyText }; }");
   });
 
   test("reach the shared viewer under the traces signal", () => {
@@ -342,6 +345,203 @@ describe("Copy filter / Open in Traces", () => {
   });
 });
 
+/*
+ * Where `pattern` occurs in `source`, so an assertion can say "only inside
+ * these regions" about an identifier.
+ */
+function indexesOf(source: string, pattern: RegExp): Array<number> {
+  const global: RegExp = new RegExp(pattern.source, "g");
+  const indexes: Array<number> = [];
+  let match: RegExpExecArray | null = global.exec(source);
+
+  while (match) {
+    indexes.push(match.index);
+    match = global.exec(source);
+  }
+
+  return indexes;
+}
+
+/*
+ * The span of a hook from its declaration to the `]);` that closes its
+ * dependency array.
+ */
+function hookRegion(source: string, marker: string): [number, number] {
+  const start: number = source.indexOf(marker);
+
+  if (start < 0) {
+    throw new Error(`Marker not found in source: ${marker}`);
+  }
+
+  return [start, source.indexOf("]);", start) + "]);".length];
+}
+
+describe("an entity-key scope (an Inventory item's Traces tab) gets its locked chip", () => {
+  /*
+   * The Inventory pages scope the viewer by `entityKeysFilter` alone, which
+   * the server compiles to `hasAny(entityKeys, [item key])`. The viewer only
+   * built chips from entity ids, stored queries and attribute filters, so the
+   * list was narrowed behind an empty chip bar. The chip's wording and its
+   * duplicate rule are unit-tested in TracesEntityDisplay.test.ts; what this
+   * pins is that the viewer builds it, from the right inputs, and that it
+   * stays display only.
+   */
+  const LOCKED_CHIPS_MARKER: string =
+    "const lockedChips: Array<ActiveFilter> = useMemo(";
+
+  const lockedChipsMemo: string = blockAfter(
+    TRACES_VIEWER,
+    LOCKED_CHIPS_MARKER,
+    "{",
+    "}",
+  );
+
+  const entityKeyCall: string = blockAfter(
+    lockedChipsMemo,
+    "buildTracesLockedEntityKeyChips(",
+    "{",
+    "}",
+  );
+
+  test("the viewer declares the display map next to the filter it names", () => {
+    const props: string = blockAfter(
+      TRACES_VIEWER,
+      "interface Props",
+      "{",
+      "}",
+    );
+
+    expect(props).toContain("entityKeysFilter?: Array<string> | undefined;");
+    expect(props).toContain(
+      "entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;",
+    );
+  });
+
+  test("the chip joins the locked chips, built from the page's filter, its names and the stored scope", () => {
+    expect(lockedChipsMemo).toContain(
+      "base.push( ...buildTracesLockedEntityKeyChips({",
+    );
+
+    for (const argument of [
+      "entityKeysFilter: props.entityKeysFilter",
+      "displays: props.entityKeyDisplays",
+      "storedQueryEntityKeys: spanScope.entityKeys",
+      "lockedChips: base",
+    ]) {
+      expect(entityKeyCall).toContain(argument);
+    }
+  });
+
+  test("the chip is built AFTER the stored query's chips, so the duplicate check sees them", () => {
+    /*
+     * `lockedChips: base` is how a key the stored query's own chip already
+     * shows is kept from rendering twice. Called before that loop, `base`
+     * would not hold those chips yet and the check would silently pass
+     * everything, so the order is the invariant here.
+     */
+    const loopMarker: string =
+      "for (const chip of spanScope.chips as Array<SpanScopeChip>)";
+    const loopAt: number = lockedChipsMemo.indexOf(loopMarker);
+    const loopBody: string = blockAfter(lockedChipsMemo, loopMarker, "{", "}");
+    const loopEnd: number =
+      lockedChipsMemo.indexOf(loopBody, loopAt) + loopBody.length;
+
+    expect(loopAt).toBeGreaterThanOrEqual(0);
+    expect(
+      lockedChipsMemo.indexOf("buildTracesLockedEntityKeyChips("),
+    ).toBeGreaterThan(loopEnd);
+  });
+
+  test("REGRESSION: a Kubernetes / Host page's entityScope is never turned into an entity-key chip", () => {
+    /*
+     * Those pages pass `entityScope` (entity keys OR attribute) next to the
+     * attribute filter, and the attribute chip already explains both halves.
+     * A second "Resource: <key>" pill would claim a filter the attribute
+     * chip already describes.
+     */
+    expect(entityKeyCall).not.toContain("entityScope");
+    expect(lockedChipsMemo).not.toContain("entityScope.entityKeys");
+  });
+
+  test("a new filter or new names re-render the chip bar", () => {
+    const dependencies: string = dependenciesOf(
+      TRACES_VIEWER,
+      LOCKED_CHIPS_MARKER,
+    );
+
+    for (const dependency of [
+      "props.entityKeysFilter",
+      "props.entityKeyDisplays",
+      "spanScope",
+    ]) {
+      expect(dependencies).toContain(dependency);
+    }
+  });
+
+  test("display only: the names reach nothing but the locked chips", () => {
+    const [start, end]: [number, number] = hookRegion(
+      TRACES_VIEWER,
+      LOCKED_CHIPS_MARKER,
+    );
+    const uses: Array<number> = indexesOf(
+      TRACES_VIEWER,
+      /props\.entityKeyDisplays\b/,
+    );
+
+    // The call and the dependency array.
+    expect(uses.length).toBeGreaterThanOrEqual(2);
+
+    for (const index of uses) {
+      expect(index).toBeGreaterThan(start);
+      expect(index).toBeLessThan(end);
+    }
+  });
+
+  test("display only: nothing but the chip bar and its Copy / Open actions reads the locked chips", () => {
+    /*
+     * The list query, the chart payload, URL state and saved views are all
+     * built from props, `spanScope` and the user's own `activeFilters`. A
+     * new reader of `lockedChips` is a place the new chip could leak into a
+     * query, so it has to be one of these three.
+     */
+    const regions: Array<[number, number]> = [
+      hookRegion(TRACES_VIEWER, LOCKED_CHIPS_MARKER),
+      hookRegion(
+        TRACES_VIEWER,
+        "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+      ),
+      hookRegion(
+        TRACES_VIEWER,
+        "const lockedFilterActions: LockedFilterActionOptions | undefined =",
+      ),
+    ];
+
+    const uses: Array<number> = indexesOf(TRACES_VIEWER, /\blockedChips\b/);
+
+    expect(uses.length).toBeGreaterThan(0);
+
+    for (const index of uses) {
+      expect(
+        regions.some(([start, end]: [number, number]): boolean => {
+          return index >= start && index < end;
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("the locked chips reach the bar as built, never re-labelled by the chip resolver", () => {
+    const mergedMemo: string = blockAfter(
+      TRACES_VIEWER,
+      "const mergedActiveFilters: Array<ActiveFilter> = useMemo(",
+      "{",
+      "}",
+    );
+
+    expect(mergedMemo).toContain("...lockedChips,");
+    expect(mergedMemo).not.toContain("lockedChips.map(");
+  });
+});
+
 describe("the Logs / Metrics pivots know the entity scope is carried by its attribute", () => {
   test("buildTracesPivotScope receives the attribute half of the page's entityScope", () => {
     const pivotCall: string = blockAfter(
@@ -357,5 +557,149 @@ describe("the Logs / Metrics pivots know the entity scope is carried by its attr
     // The legacy flag is still passed, so an entityKeys-only scope is still reported.
     expect(pivotCall).toContain("hasEntityScope: Boolean(");
     expect(pivotCall).toContain("props.entityKeysFilter");
+  });
+});
+
+/*
+ * An Inventory item's entity-key scope is one no explorer URL can spell, so
+ * the only link the link builder can make for it is the window alone — every
+ * span in the project under "Open in Traces". buildLockedScopeFilterActions
+ * withholds that link (on real chips in TracesEntityKeyLockedScope.test.ts);
+ * this pins that the viewer has no second path around it.
+ */
+describe("Open in Traces is withheld when the link carries none of the locked scope", () => {
+  test("the viewer builds neither a link nor copy text of its own, so the shared builder decides both", () => {
+    expect(TRACES_VIEWER).not.toContain("buildLockedScopeExplorerLink(");
+    expect(TRACES_VIEWER).not.toContain("buildLockedScopeCopyText(");
+    expect(TRACES_VIEWER).toContain(
+      "lockedFilterActions={lockedFilterActions}",
+    );
+  });
+});
+
+/*
+ * The Inventory item's Traces tab pins `entityKeysFilter` alone. Offering
+ * Saved Views there let the project's DEFAULT view auto-apply over the
+ * item's scope a tick after mount — only the mounted control resolves and
+ * applies one. The service / host / Kubernetes pages are protected by the
+ * same gate, and they do NOT count as host-owned: their URL state survives
+ * refresh and Back, and the Inventory tab's must too.
+ */
+describe("an entity-key scope keeps saved views away, exactly as an entity id or an entity scope does", () => {
+  const ENABLE_MARKER: string = "const enableSavedViews: boolean =";
+
+  type StatementAfterFunction = (source: string, marker: string) => string;
+
+  // From the marker to the `;` ending the statement (comments are stripped).
+  const statementAfter: StatementAfterFunction = (
+    source: string,
+    marker: string,
+  ): string => {
+    const start: number = source.indexOf(marker);
+
+    if (start < 0) {
+      throw new Error(`Marker not found in source: ${marker}`);
+    }
+
+    return source.slice(start, source.indexOf(";", start) + 1);
+  };
+
+  interface ScopeMentions {
+    entityKeys: boolean;
+    primaryEntityId: boolean;
+    entityScope: boolean;
+  }
+
+  type ScopeMentionsOfFunction = (region: string) => ScopeMentions;
+
+  const scopeMentionsOf: ScopeMentionsOfFunction = (
+    region: string,
+  ): ScopeMentions => {
+    return {
+      entityKeys:
+        region.includes("props.entityKeysFilter") ||
+        region.includes("hasEntityKeysScope"),
+      primaryEntityId: region.includes("props.primaryEntityId"),
+      entityScope: region.includes("props.entityScope"),
+    };
+  };
+
+  test("the entity-key scope is counted by its length, like the page's other array scopes", () => {
+    const hasEntityKeysScope: string = statementAfter(
+      TRACES_VIEWER,
+      "const hasEntityKeysScope: boolean =",
+    );
+
+    expect(hasEntityKeysScope).toContain("props.entityKeysFilter");
+    expect(hasEntityKeysScope).toContain(".length > 0");
+  });
+
+  test("saved views are withheld for it, in the same gate as the entity id and the entity scope", () => {
+    const enableSavedViews: string = statementAfter(
+      TRACES_VIEWER,
+      ENABLE_MARKER,
+    );
+
+    for (const condition of [
+      "!hasEntityKeysScope",
+      "!props.primaryEntityId",
+      "!props.entityScope",
+    ]) {
+      expect(enableSavedViews).toContain(condition);
+    }
+  });
+
+  test("the saved-views control, the only thing that applies a default view, mounts once and behind that gate", () => {
+    expect(TRACES_VIEWER.split("<TelemetrySavedViewsControl").length - 1).toBe(
+      1,
+    );
+
+    const toolbar: string = blockAfter(
+      TRACES_VIEWER,
+      "toolbarLeadingActions={",
+      "{",
+      "}",
+    );
+
+    expect(toolbar).toContain("enableSavedViews");
+    expect(toolbar).toContain("<TelemetrySavedViewsControl");
+  });
+
+  test("the URL-ownership gates give the entity-key scope whatever they give the entity id and the entity scope", () => {
+    expect(
+      scopeMentionsOf(statementAfter(TRACES_VIEWER, ENABLE_MARKER)),
+    ).toEqual({ entityKeys: true, primaryEntityId: true, entityScope: true });
+
+    const [initialStart, initialEnd]: [number, number] = hookRegion(
+      TRACES_VIEWER,
+      "const hasInitialUrlState: boolean = useMemo(",
+    );
+
+    const gates: Array<[string, string]> = [
+      [
+        "hostOwnsView",
+        blockAfter(
+          TRACES_VIEWER,
+          "const hostOwnsView: boolean = Boolean",
+          "(",
+          ")",
+        ),
+      ],
+      ["hasInitialUrlState", TRACES_VIEWER.slice(initialStart, initialEnd)],
+    ];
+
+    for (const [gate, region] of gates) {
+      const mentions: ScopeMentions = scopeMentionsOf(region);
+
+      // The gate name rides along so a failure says which one diverged.
+      expect({ gate, entityKeys: mentions.entityKeys }).toEqual({
+        gate,
+        entityKeys: mentions.primaryEntityId,
+      });
+      expect({ gate, entityKeys: mentions.entityKeys }).toEqual({
+        gate,
+        entityKeys: mentions.entityScope,
+      });
+    }
   });
 });

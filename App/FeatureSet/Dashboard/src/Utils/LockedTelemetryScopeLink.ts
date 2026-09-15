@@ -7,6 +7,8 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import { TelemetrySignal } from "Common/Utils/Telemetry/LockedFilterSearch";
+import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
+import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "./PageMap";
@@ -15,6 +17,7 @@ import {
   ATTRIBUTE_FACET_PREFIX,
   CARRIED_FACET_KEYS_BY_SIGNAL,
   SERVICE_FACET_KEYS,
+  buildLockedScopeCopyText,
   isScalar,
 } from "./LockedTelemetryScope";
 
@@ -50,6 +53,21 @@ export interface LockedScopeExplorerLink {
   url: URL;
   /** Human labels of the locked filters the link could not carry. */
   notCarried: Array<string>;
+  /*
+   * How many locked filter values the URL actually carries: one per distinct
+   * facet key + value in its `filters` param (so a repeated chip, or a
+   * `serviceId` chip naming the same entity as a `primaryEntityId` one,
+   * counts once — exactly as it appears once in the URL).
+   *
+   * Zero while the caller handed over at least one locked filter means the
+   * URL holds the time window and nothing else: an "Open in <explorer>" link
+   * built from it would open the UNFILTERED explorer under a label that
+   * promises this page's scope. That is an Inventory item's entity-key scope
+   * (no explorer URL grammar can spell an entity key), and the viewers read
+   * this count to withhold the link rather than infer it from `notCarried`,
+   * which is deduplicated by label and silent about blank chips.
+   */
+  carriedFilterCount: number;
 }
 
 export interface BuildLockedScopeExplorerLinkInput {
@@ -266,5 +284,101 @@ export const buildLockedScopeExplorerLink: BuildLockedScopeExplorerLinkFunction 
       url.addQueryParam("range", input.timeRange.range, true);
     }
 
-    return { url, notCarried };
+    let carriedFilterCount: number = 0;
+
+    for (const values of carried.values()) {
+      carriedFilterCount += values.length;
+    }
+
+    return { url, notCarried, carriedFilterCount };
+  };
+
+/** A chip as the "Copy filter" / "Open in <explorer>" actions read it. */
+export interface LockedScopeActionChip {
+  facetKey: string;
+  value: string;
+  readOnly?: boolean | undefined;
+  lockedDetail?: LockedFilterDetail | undefined;
+}
+
+export interface BuildLockedScopeFilterActionsInput {
+  signal: TelemetrySignal;
+  /*
+   * The chips on the viewer's bar. Only the read-only (locked) ones travel:
+   * the user's own chips already live in the explorer's URL.
+   */
+  chips: ReadonlyArray<LockedScopeActionChip>;
+  /** The viewer's current window, carried to the explorer as-is. */
+  timeRange: RangeStartAndEndDateTime;
+}
+
+type BuildLockedScopeFilterActionsFunction = (
+  input: BuildLockedScopeFilterActionsInput,
+) => LockedFilterActionOptions | undefined;
+
+/**
+ * "Copy filter" and "Open in <Traces | Metrics>" for a viewer's locked scope,
+ * or undefined when nothing is locked (the main explorer). The traces and
+ * metrics viewers call this from their `lockedFilterActions` memo, so the
+ * rules below are tested here on real chips rather than on a copy of a memo.
+ * The logs viewer has its own glue (buildLogsLockedFilterActions), which also
+ * hands the link each attribute's raw pinned value.
+ *
+ * Lives beside the link builder rather than with the describers because it
+ * resolves the explorer route, which reads `window` at load.
+ */
+export const buildLockedScopeFilterActions: BuildLockedScopeFilterActionsFunction =
+  (
+    input: BuildLockedScopeFilterActionsInput,
+  ): LockedFilterActionOptions | undefined => {
+    const lockedChips: Array<LockedScopeActionChip> = input.chips.filter(
+      (chip: LockedScopeActionChip): boolean => {
+        return Boolean(chip.readOnly);
+      },
+    );
+
+    if (lockedChips.length === 0) {
+      return undefined;
+    }
+
+    const copyText: string = buildLockedScopeCopyText(
+      input.signal,
+      lockedChips,
+    );
+
+    try {
+      const link: LockedScopeExplorerLink = buildLockedScopeExplorerLink({
+        signal: input.signal,
+        filters: lockedChips.map(
+          (chip: LockedScopeActionChip): LockedScopeLinkFilter => {
+            return { facetKey: chip.facetKey, value: chip.value };
+          },
+        ),
+        timeRange: input.timeRange,
+      });
+
+      /*
+       * No link when none of the locked filters could be carried (an
+       * Inventory item's entity-key scope): the URL would hold the window
+       * alone and open the UNFILTERED explorer under a label that promises
+       * this page's scope. Copy stays governed by its own text — an empty one
+       * renders no button, so the whole group disappears. A mixed scope keeps
+       * its link and names what was left behind.
+       */
+      if (link.carriedFilterCount === 0) {
+        return { copyText };
+      }
+
+      return {
+        copyText,
+        openExplorerRoute: link.url,
+        notCarried: link.notCarried,
+      };
+    } catch {
+      /*
+       * No resolvable explorer route here (a preview outside the dashboard
+       * shell): keep the copy affordance rather than take the chip bar down.
+       */
+      return { copyText };
+    }
   };
