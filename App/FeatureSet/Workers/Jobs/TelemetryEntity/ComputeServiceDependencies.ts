@@ -1,86 +1,91 @@
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
+import MetricService from "Common/Server/Services/MetricService";
 import ServiceService from "Common/Server/Services/ServiceService";
+import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import Service from "Common/Models/DatabaseModels/Service";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
-import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityType from "Common/Types/Telemetry/EntityType";
+import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
 import {
-  EntityRelationshipEdge,
-  EntityRelationshipMetrics,
-} from "Common/Utils/Telemetry/EntityRelationship";
-import { keyForService } from "Common/Utils/Telemetry/EntityKey";
+  canonicalizeEntityValue,
+  keyForService,
+} from "Common/Utils/Telemetry/EntityKey";
+import { ExtractedEntity } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import {
+  ClientSpanDependencyRow,
+  DependencyEdgeCollector,
+  DependencyQueryWindow,
+  DependencyTarget,
+  QUERY_SETTINGS,
+  ServiceGraphMetricRow,
+  TraceLinkedDependencyRow,
+  buildClientSpanDependencySql,
+  buildServiceGraphMetricSql,
+  buildTraceLinkedDependencySql,
+  isUuid,
+  mergeDependencySources,
+  resolveClientSpanTarget,
+  resolveServiceGraphPeer,
+  toEdgeMetrics,
+  toExtractedDependencyEntity,
+} from "Common/Server/Utils/Telemetry/ServiceDependencyDiscovery";
 
 /*
- * InventoryItem:ComputeServiceDependencies
+ * TelemetryEntity:ComputeServiceDependencies
  *
- * Service → service `depends-on` edges for the topology graph (the
- * resurrected ServiceDependency capability — doc §4: "service→service
- * dependency edges fall out of the same table once we derive them from
- * span client/server pairs"). Co-occurrence inference cannot produce
- * these: a caller and its callee never share one resource. Instead,
- * every ~10 minutes this aggregates the recent span window in ClickHouse:
- * parent/child span pairs joined on (traceId, parentSpanId = spanId)
- * whose primaryEntityId differs and whose primaryEntityType is the
- * Service discriminator on BOTH sides, grouped to distinct
- * (caller, callee) service-id pairs.
+ * Every ~10 minutes, derive the `depends-on` edges of the Service Map from
+ * the recent telemetry window and upsert them — plus a registry row for every
+ * database and remote endpoint they point at — through the same reconcile
+ * scaffold as the co-occurrence graph (forward-only, lastSeenAt-bumped,
+ * pruned by TTL).
  *
- * The service *entity key* hashes the service NAME (keyForService), so
- * the distinct primaryEntityIds are resolved to Service rows in Postgres
- * and hashed from their names — never from the ids. Edges are upserted
- * through the same reconcile scaffold as the co-occurrence graph
- * (forward-only, lastSeenAt-bumped, pruned by TTL), and reference
- * service entity keys that ingest already registered, so endpoints
- * resolve in the registry.
+ * Edges come from three sources, precise first (see
+ * ServiceDependencyDiscovery for why one source was not enough):
  *
- * Query shape (sanity-checked against dev ClickHouse): both join sides
- * are pre-filtered subqueries pruned by the (projectId, startTime) sort
- * key with LIMIT guards, so memory stays bounded on busy projects.
+ *   1. trace-linked calls   — SERVER/CONSUMER spans whose parent is another
+ *                             service's span;
+ *   2. unanswered clients   — CLIENT/PRODUCER spans into a database, broker
+ *                             or endpoint that reported nothing itself;
+ *   3. service graph metrics — eBPF `traces_service_graph_request_total`.
+ *
+ * A service's entity key hashes its NAME (keyForService), so span
+ * primaryEntityIds are resolved to Service rows and the registry's service
+ * rows are matched by name — never by id.
  */
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
 const EVERY_TEN_MINUTES: string = "*/10 * * * *";
 
 // Look slightly past the cron period so a slow/missed run leaves no gap.
-const WINDOW_MINUTES: number = 15;
+export const WINDOW_MINUTES: number = 15;
 
-// LIMIT guards: per-side span sample and max distinct edges per project.
-const MAX_SPANS_PER_SIDE: number = 500000;
-const MAX_EDGES_PER_PROJECT: number = 1000;
+const MAX_ENTRY_SPANS: number = 500000;
+const MAX_ROWS_PER_SOURCE: number = 1000;
 const MAX_PROJECTS_PER_RUN: number = 1000;
 
-const QUERY_SETTINGS: string =
-  "SETTINGS max_execution_time = 60, timeout_overflow_mode = 'break', max_memory_usage = 2000000000, max_bytes_before_external_group_by = 1000000000, max_bytes_before_external_sort = 1000000000";
-
-const UUID_REGEX: RegExp =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-function escapeSql(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+interface JsonResultSet<T> {
+  json: () => Promise<{ data: Array<T> }>;
 }
 
-interface DependencyRow {
-  callerServiceId: string;
-  calleeServiceId: string;
-  /*
-   * ClickHouse serializes UInt64/Float64 aggregates as JSON strings, so
-   * these arrive as strings and are Number()-coerced before use.
-   */
-  callCount: string;
-  errorCount: string;
-  avgDurationNano: string;
+async function readRows<T>(execute: Promise<unknown>): Promise<Array<T>> {
+  const resultSet: JsonResultSet<T> =
+    (await execute) as unknown as JsonResultSet<T>;
+  const parsed: { data: Array<T> } = await resultSet.json();
+  return Array.isArray(parsed?.data) ? parsed.data : [];
 }
 
-async function findProjectsWithRecentSpans(window: {
+async function findProjectsWithRecentTelemetry(window: {
   startSql: string;
   endSql: string;
 }): Promise<Array<string>> {
-  const sql: string = `
+  const spanSql: string = `
     SELECT DISTINCT projectId
     FROM oneuptime.SpanItemV3
     WHERE startTime >= ${window.startSql}
@@ -88,207 +93,302 @@ async function findProjectsWithRecentSpans(window: {
     LIMIT ${MAX_PROJECTS_PER_RUN}
     ${QUERY_SETTINGS}
   `;
-
-  const resultSet: {
-    json: () => Promise<{ data: Array<{ projectId: string }> }>;
-  } = (await SpanService.executeQuery(sql)) as unknown as {
-    json: () => Promise<{ data: Array<{ projectId: string }> }>;
-  };
-
-  const parsed: { data: Array<{ projectId: string }> } = await resultSet.json();
-
-  return parsed.data
-    .map((row: { projectId: string }) => {
-      return row.projectId;
-    })
-    .filter((projectId: string) => {
-      return UUID_REGEX.test(projectId);
-    });
-}
-
-async function findServiceDependencyPairs(args: {
-  projectId: string;
-  startSql: string;
-  endSql: string;
-}): Promise<Array<DependencyRow>> {
-  const projectIdSql: string = escapeSql(args.projectId);
-  const serviceTypeSql: string = escapeSql(ServiceType.OpenTelemetry);
-
-  /*
-   * caller = parent span, callee = child span; the pair crosses a service
-   * boundary when the primary entity differs. Both sides prune on the
-   * (projectId, startTime) sort-key prefix.
-   */
-  /*
-   * Traffic metrics come from the callee side: the child span's status and
-   * duration describe how the callee handled the call. statusCode 2 is the
-   * OTel STATUS_CODE_ERROR (SpanStatus.Error).
-   */
-  const sql: string = `
-    SELECT
-      caller.primaryEntityId AS callerServiceId,
-      callee.primaryEntityId AS calleeServiceId,
-      count() AS callCount,
-      countIf(callee.statusCode = 2) AS errorCount,
-      avg(callee.durationUnixNano) AS avgDurationNano
-    FROM
-    (
-      SELECT traceId, spanId, primaryEntityId
-      FROM oneuptime.SpanItemV3
-      WHERE projectId = '${projectIdSql}'
-        AND startTime >= ${args.startSql}
-        AND startTime < ${args.endSql}
-        AND primaryEntityType = '${serviceTypeSql}'
-      LIMIT ${MAX_SPANS_PER_SIDE}
-    ) AS caller
-    INNER JOIN
-    (
-      SELECT traceId, parentSpanId, primaryEntityId, statusCode, durationUnixNano
-      FROM oneuptime.SpanItemV3
-      WHERE projectId = '${projectIdSql}'
-        AND startTime >= ${args.startSql}
-        AND startTime < ${args.endSql}
-        AND primaryEntityType = '${serviceTypeSql}'
-        AND parentSpanId IS NOT NULL
-        AND parentSpanId != ''
-      LIMIT ${MAX_SPANS_PER_SIDE}
-    ) AS callee
-    ON caller.traceId = callee.traceId AND caller.spanId = callee.parentSpanId
-    WHERE caller.primaryEntityId != callee.primaryEntityId
-    GROUP BY callerServiceId, calleeServiceId
-    LIMIT ${MAX_EDGES_PER_PROJECT}
+  const metricSql: string = `
+    SELECT DISTINCT projectId
+    FROM oneuptime.MetricItemV3
+    WHERE name = 'traces_service_graph_request_total'
+      AND time >= ${window.startSql}
+      AND time < ${window.endSql}
+    LIMIT ${MAX_PROJECTS_PER_RUN}
     ${QUERY_SETTINGS}
   `;
 
-  const resultSet: {
-    json: () => Promise<{ data: Array<DependencyRow> }>;
-  } = (await SpanService.executeQuery(sql)) as unknown as {
-    json: () => Promise<{ data: Array<DependencyRow> }>;
-  };
+  const [spanProjects, metricProjects]: [
+    Array<{ projectId: string }>,
+    Array<{ projectId: string }>,
+  ] = await Promise.all([
+    readRows<{ projectId: string }>(SpanService.executeQuery(spanSql)),
+    readRows<{ projectId: string }>(
+      MetricService.executeQuery(metricSql),
+    ).catch((err: unknown): Array<{ projectId: string }> => {
+      // Metrics are an optional source; never let them block span edges.
+      logger.error(
+        `ComputeServiceDependencies: service graph project scan failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }),
+  ]);
 
-  const parsed: { data: Array<DependencyRow> } = await resultSet.json();
-
-  return parsed.data.filter((row: DependencyRow) => {
-    return (
-      UUID_REGEX.test(row.callerServiceId) &&
-      UUID_REGEX.test(row.calleeServiceId)
-    );
-  });
-}
-
-async function computeDependenciesForProject(args: {
-  projectId: string;
-  startSql: string;
-  endSql: string;
-}): Promise<number> {
-  const pairs: Array<DependencyRow> = await findServiceDependencyPairs(args);
-
-  if (pairs.length === 0) {
-    return 0;
-  }
-
-  const distinctServiceIds: Array<string> = Array.from(
+  return Array.from(
     new Set<string>(
-      pairs.flatMap((pair: DependencyRow) => {
-        return [pair.callerServiceId, pair.calleeServiceId];
-      }),
+      [...spanProjects, ...metricProjects]
+        .map((row: { projectId: string }): string => {
+          return row.projectId;
+        })
+        .filter(isUuid),
     ),
   );
+}
 
-  /*
-   * Resolve primaryEntityId → Service name (the entity key hashes the
-   * name, not the id). Ids without a row (service deleted since the
-   * window) drop their edges.
-   */
-  const services: Array<Service> = await ServiceService.findBy({
+/** Registry service rows by canonical name → entity key. */
+async function loadServiceEntityKeys(
+  projectId: string,
+): Promise<Map<string, string>> {
+  const rows: Array<InventoryItem> = await InventoryItemService.findBy({
     query: {
-      projectId: new ObjectID(args.projectId),
-      _id: new Includes(distinctServiceIds),
+      projectId: new ObjectID(projectId),
+      entityType: EntityType.Service,
     },
-    select: { _id: true, name: true },
+    select: { entityKey: true, displayName: true },
     skip: 0,
     limit: LIMIT_MAX,
     props: { isRoot: true },
   });
 
-  const entityKeyByServiceId: Map<string, string> = new Map<string, string>();
-  for (const service of services) {
-    if (!service._id || !service.name) {
+  const keyByName: Map<string, string> = new Map<string, string>();
+  for (const row of rows) {
+    const name: string = canonicalizeEntityValue(row.displayName || "");
+    if (!name || !row.entityKey) {
       continue;
     }
-    entityKeyByServiceId.set(
-      service._id.toString(),
-      keyForService(args.projectId, service.name),
-    );
+    /*
+     * Several registry rows can share a name (service.namespace is part of
+     * service identity). Prefer the namespace-less one, whose key is exactly
+     * keyForService(name); otherwise keep the first seen.
+     */
+    const plainKey: string = keyForService(projectId, name);
+    if (!keyByName.has(name) || row.entityKey === plainKey) {
+      keyByName.set(name, row.entityKey);
+    }
+  }
+  return keyByName;
+}
+
+export async function computeDependenciesForProject(args: {
+  projectId: string;
+  startSql: string;
+  endSql: string;
+}): Promise<number> {
+  const window: DependencyQueryWindow = {
+    projectId: args.projectId,
+    startSql: args.startSql,
+    endSql: args.endSql,
+    maxEntrySpans: MAX_ENTRY_SPANS,
+    maxRows: MAX_ROWS_PER_SOURCE,
+  };
+
+  const runSource: <T>(
+    name: string,
+    run: () => Promise<Array<T>>,
+  ) => Promise<Array<T>> = async <T>(
+    name: string,
+    run: () => Promise<Array<T>>,
+  ): Promise<Array<T>> => {
+    try {
+      return await run();
+    } catch (err) {
+      // One failing source must not cost the project the other two.
+      logger.error(
+        `ComputeServiceDependencies: ${name} failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }
+  };
+
+  const [traceRows, clientRows, graphRows]: [
+    Array<TraceLinkedDependencyRow>,
+    Array<ClientSpanDependencyRow>,
+    Array<ServiceGraphMetricRow>,
+  ] = await Promise.all([
+    runSource<TraceLinkedDependencyRow>("trace-linked calls", () => {
+      return readRows<TraceLinkedDependencyRow>(
+        SpanService.executeQuery(buildTraceLinkedDependencySql(window)),
+      );
+    }),
+    runSource<ClientSpanDependencyRow>("client span dependencies", () => {
+      return readRows<ClientSpanDependencyRow>(
+        SpanService.executeQuery(buildClientSpanDependencySql(window)),
+      );
+    }),
+    runSource<ServiceGraphMetricRow>("service graph metrics", () => {
+      return readRows<ServiceGraphMetricRow>(
+        MetricService.executeQuery(
+          buildServiceGraphMetricSql({
+            projectId: args.projectId,
+            startSql: args.startSql,
+            endSql: args.endSql,
+            maxRows: MAX_ROWS_PER_SOURCE,
+          }),
+        ),
+      );
+    }),
+  ]);
+
+  if (
+    traceRows.length === 0 &&
+    clientRows.length === 0 &&
+    graphRows.length === 0
+  ) {
+    return 0;
   }
 
   /*
-   * Distinct service ids can hash to one entity key (duplicate names), so
-   * rows folding into the same edge merge their metrics: counts sum,
-   * durations combine call-count-weighted.
+   * Span rows name services by Service row id; resolve every id either
+   * source mentions to its name once.
    */
-  const edgeByKey: Map<string, EntityRelationshipEdge> = new Map<
+  const serviceIds: Array<string> = Array.from(
+    new Set<string>([
+      ...traceRows.flatMap((row: TraceLinkedDependencyRow): Array<string> => {
+        return [row.callerServiceId, row.calleeServiceId];
+      }),
+      ...clientRows.map((row: ClientSpanDependencyRow): string => {
+        return row.callerServiceId;
+      }),
+    ]),
+  ).filter(isUuid);
+
+  const services: Array<Service> =
+    serviceIds.length > 0
+      ? await ServiceService.findBy({
+          query: {
+            projectId: new ObjectID(args.projectId),
+            _id: new Includes(serviceIds),
+          },
+          select: { _id: true, name: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: { isRoot: true },
+        })
+      : [];
+
+  const serviceKeyByName: Map<string, string> = await loadServiceEntityKeys(
+    args.projectId,
+  );
+  const knownServiceNames: Set<string> = new Set<string>(
+    serviceKeyByName.keys(),
+  );
+
+  const keyForServiceName: (name: string) => string = (
+    name: string,
+  ): string => {
+    const canonical: string = canonicalizeEntityValue(name);
+    return (
+      serviceKeyByName.get(canonical) || keyForService(args.projectId, name)
+    );
+  };
+
+  const serviceKeyById: Map<string, string> = new Map<string, string>();
+  for (const service of services) {
+    if (service._id && service.name) {
+      serviceKeyById.set(
+        service._id.toString(),
+        keyForServiceName(service.name),
+      );
+    }
+  }
+
+  const dependencyEntities: Map<string, ExtractedEntity> = new Map<
     string,
-    EntityRelationshipEdge
+    ExtractedEntity
   >();
-  for (const pair of pairs) {
-    const fromEntityKey: string | undefined = entityKeyByServiceId.get(
-      pair.callerServiceId,
-    );
-    const toEntityKey: string | undefined = entityKeyByServiceId.get(
-      pair.calleeServiceId,
-    );
+  const keyForTarget: (target: DependencyTarget) => string = (
+    target: DependencyTarget,
+  ): string => {
+    if (target.kind === "service") {
+      return keyForServiceName(target.serviceName);
+    }
+    const entity: ExtractedEntity = toExtractedDependencyEntity({
+      projectId: args.projectId,
+      entity: target.entity,
+    });
+    dependencyEntities.set(entity.entityKey, entity);
+    return entity.entityKey;
+  };
 
-    // Same-key guard: distinct ids can map to one identity post-hash.
-    if (!fromEntityKey || !toEntityKey || fromEntityKey === toEntityKey) {
+  const traced: DependencyEdgeCollector = new DependencyEdgeCollector();
+  for (const row of traceRows) {
+    const fromEntityKey: string | undefined = serviceKeyById.get(
+      row.callerServiceId,
+    );
+    const toEntityKey: string | undefined = serviceKeyById.get(
+      row.calleeServiceId,
+    );
+    if (fromEntityKey && toEntityKey) {
+      traced.add({ fromEntityKey, toEntityKey, metrics: toEdgeMetrics(row) });
+    }
+  }
+
+  const inferred: DependencyEdgeCollector = new DependencyEdgeCollector();
+  for (const row of clientRows) {
+    const fromEntityKey: string | undefined = serviceKeyById.get(
+      row.callerServiceId,
+    );
+    const target: DependencyTarget | null = resolveClientSpanTarget(
+      row,
+      knownServiceNames,
+    );
+    if (fromEntityKey && target) {
+      inferred.add({
+        fromEntityKey,
+        toEntityKey: keyForTarget(target),
+        metrics: toEdgeMetrics(row),
+      });
+    }
+  }
+
+  const graphed: DependencyEdgeCollector = new DependencyEdgeCollector();
+  for (const row of graphRows) {
+    const client: DependencyTarget | null = resolveServiceGraphPeer(
+      row.client,
+      knownServiceNames,
+    );
+    const server: DependencyTarget | null = resolveServiceGraphPeer(
+      row.server,
+      knownServiceNames,
+    );
+    // An edge needs a service on the calling side to belong on a service map.
+    if (!client || client.kind !== "service" || !server) {
       continue;
     }
-
-    const callCount: number = Math.max(0, Math.round(Number(pair.callCount)));
-    const errorCount: number = Math.max(0, Math.round(Number(pair.errorCount)));
-    const avgDurationMs: number = Number(pair.avgDurationNano) / 1_000_000;
-    const metrics: EntityRelationshipMetrics = {
-      callCount: Number.isFinite(callCount) ? callCount : 0,
-      errorCount: Number.isFinite(errorCount) ? errorCount : 0,
-      avgDurationMs:
-        Number.isFinite(avgDurationMs) && avgDurationMs >= 0
-          ? Math.round(avgDurationMs)
-          : 0,
-    };
-
-    const dedupeKey: string = `${fromEntityKey}|${toEntityKey}`;
-    const existing: EntityRelationshipEdge | undefined =
-      edgeByKey.get(dedupeKey);
-    if (existing && existing.metrics) {
-      const mergedCalls: number =
-        existing.metrics.callCount + metrics.callCount;
-      existing.metrics = {
-        callCount: mergedCalls,
-        errorCount: existing.metrics.errorCount + metrics.errorCount,
-        avgDurationMs:
-          mergedCalls > 0
-            ? Math.round(
-                (existing.metrics.avgDurationMs * existing.metrics.callCount +
-                  metrics.avgDurationMs * metrics.callCount) /
-                  mergedCalls,
-              )
-            : 0,
-      };
-      continue;
-    }
-
-    edgeByKey.set(dedupeKey, {
-      fromEntityKey,
-      toEntityKey,
-      relationshipType: EntityRelationshipType.DependsOn,
-      metrics,
+    graphed.add({
+      fromEntityKey: keyForTarget(client),
+      toEntityKey: keyForTarget(server),
+      metrics: toEdgeMetrics({
+        callCount: row.requestCount,
+        errorCount: row.failedCount,
+      }),
     });
   }
 
-  const edges: Array<EntityRelationshipEdge> = Array.from(edgeByKey.values());
+  const edges: Array<EntityRelationshipEdge> = mergeDependencySources([
+    traced.edges(),
+    inferred.edges(),
+    graphed.edges(),
+  ]);
 
   if (edges.length === 0) {
     return 0;
+  }
+
+  /*
+   * Register the endpoints first, and only those an edge still references,
+   * so no edge is written pointing at a row that does not exist.
+   */
+  const referenced: Set<string> = new Set<string>(
+    edges.flatMap((edge: EntityRelationshipEdge): Array<string> => {
+      return [edge.fromEntityKey, edge.toEntityKey];
+    }),
+  );
+  const entities: Array<ExtractedEntity> = Array.from(
+    dependencyEntities.values(),
+  ).filter((entity: ExtractedEntity): boolean => {
+    return referenced.has(entity.entityKey);
+  });
+  if (entities.length > 0) {
+    await InventoryItemService.reconcileEntities({
+      projectId: new ObjectID(args.projectId),
+      entities,
+    });
   }
 
   await InventoryItemRelationshipService.reconcileRelationships({
@@ -310,14 +410,10 @@ RunCron(
       const startSql: string = `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(startTime)}', 9)`;
       const endSql: string = `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(endTime)}', 9)`;
 
-      const projectIds: Array<string> = await findProjectsWithRecentSpans({
+      const projectIds: Array<string> = await findProjectsWithRecentTelemetry({
         startSql,
         endSql,
       });
-
-      if (projectIds.length === 0) {
-        return;
-      }
 
       let totalEdges: number = 0;
       for (const projectId of projectIds) {

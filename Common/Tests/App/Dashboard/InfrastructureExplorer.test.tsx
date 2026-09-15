@@ -21,8 +21,17 @@ import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
+import EntitySource from "../../../Types/Telemetry/EntitySource";
 import ObjectID from "../../../Types/ObjectID";
 import InfrastructureExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * The Infrastructure explorer: a tree of things that contain things, a table
+ * of what is inside the selected scope, a map of one level, and search. The
+ * estate used here is the one that motivated the redesign — application pods
+ * that reported themselves as hosts, most of them long gone.
+ */
 
 jest.mock("react-i18next", () => {
   return {
@@ -51,24 +60,38 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: {
-        entities: Array<InventoryItem>;
-        onSelectResource?: (key: string) => void;
+        nodeIds: Array<string>;
+        onOpenNode: (id: string) => void;
+        onOpenService?: (key: string) => void;
+        onShowAll?: () => void;
       }): React.ReactElement => {
         return (
-          <div data-testid="infrastructure-map">
-            {props.entities.map((item: InventoryItem): React.ReactElement => {
+          <div data-testid="infrastructure-map-stub">
+            {props.nodeIds.map((id: string): React.ReactElement => {
               return (
                 <button
                   type="button"
-                  key={item.entityKey}
+                  key={id}
+                  data-testid={`map-card-${id}`}
                   onClick={() => {
-                    props.onSelectResource?.(item.entityKey!);
+                    props.onOpenNode(id);
                   }}
                 >
-                  {item.displayName}
+                  {id}
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => {
+                props.onOpenService?.("api");
+              }}
+            >
+              Map service api
+            </button>
+            <button type="button" onClick={props.onShowAll}>
+              Map show all
+            </button>
           </div>
         );
       },
@@ -84,6 +107,7 @@ jest.mock(
         entity: InventoryItem;
         onClose: () => void;
         onFocus: (key: string) => void;
+        focusButtonLabel?: string;
       }): React.ReactElement => {
         return (
           <div role="dialog" aria-label={props.entity.displayName}>
@@ -96,7 +120,7 @@ jest.mock(
                 props.onFocus(props.entity.entityKey!);
               }}
             >
-              Explore this resource
+              {props.focusButtonLabel}
             </button>
           </div>
         );
@@ -105,65 +129,95 @@ jest.mock(
   },
 );
 
+const NOW: Date = new Date();
+const LONG_AGO: Date = new Date(NOW.getTime() - 20 * 24 * 60 * 60 * 1000);
+const RANGE_START: Date = new Date(NOW.getTime() - 24 * 60 * 60 * 1000);
+
 function entity(
   key: string,
-  type: EntityType = EntityType.Host,
+  type: EntityType,
   name: string = key,
+  lastSeenAt: Date = NOW,
 ): InventoryItem {
   const item: InventoryItem = new InventoryItem();
   item.entityKey = key;
   item.entityType = type;
   item.displayName = name;
+  item.lastSeenAt = lastSeenAt;
+  item.source = EntitySource.Discovered;
   return item;
 }
-function edge(from: string, to: string): InventoryItemRelationship {
+function hostedOn(from: string, to: string): InventoryItemRelationship {
   const item: InventoryItemRelationship = new InventoryItemRelationship();
   item.fromEntityKey = from;
   item.toEntityKey = to;
   item.relationshipType = EntityRelationshipType.HostedOn;
   return item;
 }
+
+const APP_GROUP: string = "group:category:compute:host|oneuptime-app";
+
 function fixtures(): {
   entities: Array<InventoryItem>;
   relationships: Array<InventoryItemRelationship>;
 } {
   return {
     entities: [
-      entity("api", EntityType.Service, "Checkout API"),
-      entity("web", EntityType.Service, "Web frontend"),
-      entity("api-host", EntityType.Host, "API worker"),
-      entity("shared", EntityType.Host, "Shared worker"),
-      entity("web-host", EntityType.Host, "Web worker"),
-      entity("quiet", EntityType.Host, "Quiet host"),
+      entity("api", EntityType.Service),
+      entity("home", EntityType.Service),
+      entity("h1", EntityType.Host, "oneuptime-app-685856b7d7-48xkt"),
+      entity("h2", EntityType.Host, "oneuptime-app-685856b7d7-4vnkt"),
+      entity("h3", EntityType.Host, "oneuptime-app-7bf488c9d5-5jgp4"),
+      entity(
+        "gone",
+        EntityType.Host,
+        "oneuptime-app-6f8cc8d9b4-6652k",
+        LONG_AGO,
+      ),
+      entity("home-1", EntityType.Host, "oneuptime-home-56d657f4b4-7kslf"),
+      entity("home-2", EntityType.Host, "oneuptime-home-56d657f4b4-zvcr6"),
+      entity("builder", EntityType.Host, "build-server"),
     ],
     relationships: [
-      edge("api", "api-host"),
-      edge("api", "shared"),
-      edge("web", "shared"),
-      edge("web", "web-host"),
+      hostedOn("api", "h1"),
+      hostedOn("api", "h2"),
+      hostedOn("api", "h3"),
+      hostedOn("api", "gone"),
+      hostedOn("home", "home-1"),
+      hostedOn("home", "home-2"),
     ],
   };
 }
+
 function renderExplorer(
-  data: {
-    entities: Array<InventoryItem>;
-    relationships: Array<InventoryItemRelationship>;
-  } = fixtures(),
-): ReturnType<typeof render> {
-  return render(
+  options: {
+    data?: ReturnType<typeof fixtures>;
+    includeInactive?: boolean;
+    onOpenServiceMap?: (key: string) => void;
+  } = {},
+): void {
+  render(
     <MemoryRouter>
-      <InfrastructureExplorer {...data} metricsWindowSeconds={900} />
+      <InfrastructureExplorer
+        {...(options.data || fixtures())}
+        metricsWindowSeconds={900}
+        rangeStart={RANGE_START}
+        includeInactive={options.includeInactive}
+        onOpenServiceMap={options.onOpenServiceMap}
+      />
     </MemoryRouter>,
   );
 }
+
 function search(value: string): void {
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Search infrastructure" }),
     { target: { value } },
   );
 }
-function types(): ReturnType<typeof within> {
-  return within(screen.getByRole("complementary", { name: "Resource types" }));
+
+function rows(): Array<HTMLElement> {
+  return screen.queryAllByTestId("infrastructure-row");
 }
 
 beforeEach(() => {
@@ -178,224 +232,217 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("Infrastructure explorer", () => {
-  test("starts with meaningful groups and resource categories instead of a dense canvas", () => {
+describe("overview", () => {
+  test("groups replicas by workload and hides resources that went quiet", () => {
     renderExplorer();
-    expect(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Explore Web frontend" }),
-    ).toBeVisible();
-    expect(screen.getByText("Browse resources")).toBeVisible();
-    expect(screen.getByText("Unlinked resources")).toBeVisible();
-    expect(screen.queryByTestId("infrastructure-map")).not.toBeInTheDocument();
-  });
-  test("drills into one group's resources and returns through a breadcrumb", () => {
-    renderExplorer();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    );
-    expect(screen.getByText("API worker")).toBeVisible();
-    expect(screen.getByText("Shared worker")).toBeVisible();
-    expect(screen.queryByText("Web worker")).not.toBeInTheDocument();
-    expect(new URLSearchParams(window.location.search).get("infraFocus")).toBe(
-      "api",
-    );
-    const breadcrumb: HTMLElement = screen.getByRole("navigation", {
-      name: "Infrastructure location",
+    const names: Array<string> = rows().map((row: HTMLElement) => {
+      return row.querySelector("button")!.textContent || "";
     });
-    expect(
-      within(breadcrumb).getByRole("button", { name: "Checkout API" }),
-    ).toHaveAttribute("aria-current", "location");
-    fireEvent.click(screen.getByRole("button", { name: "All infrastructure" }));
-    expect(
-      screen.getByRole("button", { name: "Explore Web frontend" }),
-    ).toBeVisible();
-    expect(new URLSearchParams(window.location.search).has("infraFocus")).toBe(
-      false,
-    );
+    expect(names).toEqual(["oneuptime-app", "oneuptime-home", "build-server"]);
+    expect(rows()[0]).toHaveTextContent("Host replicas");
+    expect(rows()[0]).toHaveTextContent("3 hosts");
+    expect(rows()[0]).toHaveTextContent("api");
+    expect(rows()[2]).toHaveTextContent("Active");
   });
-  test("search reports matches and combines them with a resource-type filter", () => {
+
+  test("summarizes resources, workloads, placed services and what was hidden", () => {
     renderExplorer();
-    fireEvent.click(types().getByRole("button", { name: /^Host / }));
-    search("worker");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "3 matching resources",
-    );
-    expect(screen.getByText("API worker")).toBeVisible();
-    expect(screen.queryByText("Quiet host")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Explore Checkout API/ }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(screen.getByRole("searchbox")).toHaveValue("");
-    expect(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    ).toBeVisible();
+    const cards: HTMLElement = screen.getByTestId("infrastructure-explorer");
+    expect(cards).toHaveTextContent("Resources6");
+    expect(cards).toHaveTextContent("Workloads2");
+    expect(cards).toHaveTextContent("Services placed2");
+    expect(cards).toHaveTextContent("Inactive not shown1");
   });
-  test("a search with no matches has an actionable reset and can expand beyond the group", () => {
-    renderExplorer();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    );
-    search("web worker");
-    expect(screen.getByText("No resources match your filters")).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Search all infrastructure" }),
-    );
-    expect(screen.getByRole("searchbox")).toHaveValue("");
-    expect(
-      screen.getByRole("button", { name: "Explore Web frontend" }),
-    ).toBeVisible();
+
+  test("show inactive includes quiet resources, marked as inactive", () => {
+    renderExplorer({ includeInactive: true });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${APP_GROUP}`));
+    expect(rows()).toHaveLength(4);
+    const gone: HTMLElement = rows().find((row: HTMLElement) => {
+      return row.textContent?.includes("6652k");
+    })!;
+    expect(gone).toHaveTextContent("Inactive");
   });
-  test("restores shareable scope, search, type, and map state and preserves service search parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "?tab=Infrastructure&infraFocus=api&infraSearch=worker&infraType=host&infraView=map&search=checkout&focus=service-id",
-    );
-    renderExplorer();
-    expect(screen.getByRole("searchbox")).toHaveValue("worker");
-    const map: HTMLElement = screen.getByTestId("infrastructure-map");
-    expect(within(map).getByText("API worker")).toBeVisible();
-    expect(within(map).getByText("Shared worker")).toBeVisible();
-    expect(within(map).queryByText("Web worker")).not.toBeInTheDocument();
-    search("api");
-    await waitFor(() => {
-      expect(
-        new URLSearchParams(window.location.search).get("infraSearch"),
-      ).toBe("api");
-    });
-    expect(new URLSearchParams(window.location.search).get("search")).toBe(
-      "checkout",
-    );
-    expect(new URLSearchParams(window.location.search).get("focus")).toBe(
-      "service-id",
-    );
-  });
-  test("switches views without losing a selected group or its resource filter", () => {
-    renderExplorer();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    );
-    search("api worker");
-    fireEvent.click(
-      within(
-        screen.getByRole("group", { name: "Infrastructure view" }),
-      ).getByRole("button", { name: "Map" }),
-    );
-    expect(screen.getByTestId("infrastructure-map")).toHaveTextContent(
-      "API worker",
-    );
-    expect(screen.getByTestId("infrastructure-map")).not.toHaveTextContent(
-      "Shared worker",
-    );
-    expect(new URLSearchParams(window.location.search).get("infraView")).toBe(
-      "map",
-    );
-    fireEvent.click(
-      within(
-        screen.getByRole("group", { name: "Infrastructure view" }),
-      ).getByRole("button", { name: "Explore" }),
-    );
-    expect(screen.queryByTestId("infrastructure-map")).not.toBeInTheDocument();
-    expect(screen.getByRole("searchbox")).toHaveValue("api worker");
-    expect(new URLSearchParams(window.location.search).get("infraFocus")).toBe(
-      "api",
-    );
-  });
-  test("opens inventory details from a result and uses the same selection action from the map", () => {
-    renderExplorer();
-    search("api worker");
-    fireEvent.click(screen.getByRole("button", { name: /API worker Host/ }));
-    expect(screen.getByRole("dialog", { name: "API worker" })).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Close resource details" }),
-    );
-    fireEvent.click(
-      within(
-        screen.getByRole("group", { name: "Infrastructure view" }),
-      ).getByRole("button", { name: "Map" }),
-    );
-    fireEvent.click(
-      within(screen.getByTestId("infrastructure-map")).getByRole("button", {
-        name: "API worker",
-      }),
-    );
-    expect(screen.getByRole("dialog", { name: "API worker" })).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Explore this resource" }),
-    );
-    expect(new URLSearchParams(window.location.search).get("infraFocus")).toBe(
-      "api-host",
-    );
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-  test("explains missing inventory details and shows known connections for an unresolved endpoint", () => {
+
+  test("a catalog with nothing active explains how to see it", () => {
     renderExplorer({
-      entities: [entity("api", EntityType.Service, "Checkout API")],
-      relationships: [edge("api", "missing-host")],
-    });
-    search("missing-host");
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Undiscovered resource · missing-host/,
-      }),
-    );
-    const panel: HTMLElement = screen.getByRole("dialog", {
-      name: "Undiscovered resource",
-    });
-    expect(within(panel).getByText("Known connections")).toBeVisible();
-    expect(
-      within(panel).getByText(/inventory details have not been discovered yet/),
-    ).toBeVisible();
-    expect(within(panel).getByText(/Checkout API hosted on/)).toBeVisible();
-  });
-  test("paginates large inventories and returns to the first page when search changes", () => {
-    const entities: Array<InventoryItem> = Array.from(
-      { length: 85 },
-      (_value: unknown, index: number): InventoryItem => {
-        return entity(
-          `host-${String(index).padStart(3, "0")}`,
-          EntityType.Host,
-          `Host ${String(index).padStart(3, "0")}`,
-        );
+      data: {
+        entities: [entity("gone", EntityType.Host, "old-host", LONG_AGO)],
+        relationships: [],
       },
+    });
+    expect(screen.getByTestId("infrastructure-all-inactive")).toHaveTextContent(
+      "Nothing reported in this time range",
     );
-    renderExplorer({ entities, relationships: [] });
-    fireEvent.click(types().getByRole("button", { name: /^Host 85$/ }));
-    expect(
-      within(screen.getByRole("list")).getAllByRole("listitem"),
-    ).toHaveLength(40);
-    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Page 2 / 3")).toBeVisible();
-    expect(screen.queryByText("Host 000")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(
-      within(screen.getByRole("list")).getAllByRole("listitem"),
-    ).toHaveLength(5);
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-    search("host-000");
-    expect(screen.getByText("Host 000")).toBeVisible();
-    expect(
-      screen.queryByRole("button", { name: "Next" }),
-    ).not.toBeInTheDocument();
   });
-  test("falls back from stale scope links and explains how to populate an empty catalog", () => {
-    window.history.replaceState({}, "", "?infraFocus=deleted-item");
-    const view: ReturnType<typeof render> = renderExplorer();
-    expect(
-      screen.getByRole("button", { name: "Explore Checkout API" }),
-    ).toBeVisible();
-    view.unmount();
-    renderExplorer({ entities: [], relationships: [] });
+
+  test("an empty catalog explains how to populate it", () => {
+    renderExplorer({ data: { entities: [], relationships: [] } });
     expect(
       screen.getByText("No infrastructure topology discovered yet"),
-    ).toBeVisible();
+    ).toBeInTheDocument();
+  });
+});
+
+describe("navigation", () => {
+  test("opening a group lists its members and breadcrumbs lead back", () => {
+    renderExplorer();
+    fireEvent.click(screen.getByRole("button", { name: "Open oneuptime-app" }));
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "oneuptime-app",
+    );
+    expect(rows()).toHaveLength(3);
+    expect(window.location.search).toContain(
+      `infraFocus=${encodeURIComponent(APP_GROUP)}`,
+    );
+    const location: HTMLElement = screen.getByRole("navigation", {
+      name: "Infrastructure location",
+    });
+    expect(location).toHaveTextContent("Hosts & containers");
+    fireEvent.click(
+      within(location).getByRole("button", { name: "All infrastructure" }),
+    );
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "All infrastructure",
+    );
+  });
+
+  test("the tree holds only containers and can be collapsed", () => {
+    renderExplorer();
+    const tree: HTMLElement = screen.getByRole("complementary", {
+      name: "Infrastructure tree",
+    });
     expect(
-      screen.getByRole("link", { name: "Connect your infrastructure" }),
-    ).toBeVisible();
+      within(tree).getByTestId(`infrastructure-tree-${APP_GROUP}`),
+    ).toBeInTheDocument();
+    expect(within(tree).queryByText("build-server")).not.toBeInTheDocument();
+    fireEvent.click(
+      within(tree).getByRole("button", { name: "Collapse Hosts & containers" }),
+    );
+    expect(
+      within(tree).queryByTestId(`infrastructure-tree-${APP_GROUP}`),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(tree).getByRole("button", { name: "Expand Hosts & containers" }),
+    );
+    expect(
+      within(tree).getByTestId(`infrastructure-tree-${APP_GROUP}`),
+    ).toBeInTheDocument();
+  });
+
+  test("a plain resource opens its details", () => {
+    renderExplorer();
+    fireEvent.click(
+      screen.getByRole("button", { name: "View details for build-server" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "build-server" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show where it is" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "Hosts & containers",
+    );
+  });
+
+  test("a shared link to a resource opens its scope and its details", async () => {
+    window.history.replaceState({}, "", "?tab=Infrastructure&infraFocus=h2");
+    renderExplorer();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("infrastructure-scope-title"),
+      ).toHaveTextContent("oneuptime-app");
+    });
+    expect(
+      screen.getByRole("dialog", { name: "oneuptime-app-685856b7d7-4vnkt" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a stale shared link falls back to the overview", () => {
+    window.history.replaceState({}, "", "?infraFocus=missing");
+    renderExplorer();
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "All infrastructure",
+    );
+  });
+
+  test("service chips open the service on the Service Map", () => {
+    const onOpenServiceMap: MockFunction = getJestMockFunction();
+    renderExplorer({ onOpenServiceMap });
+    fireEvent.click(
+      within(rows()[0]!).getByRole("button", {
+        name: "Show api on the service map",
+      }),
+    );
+    expect(onOpenServiceMap).toHaveBeenCalledWith("api");
+    // The chip does not also open the row it sits in.
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "All infrastructure",
+    );
+  });
+});
+
+describe("search", () => {
+  test("finds resources by name, type and the services running on them", () => {
+    renderExplorer();
+    search("home");
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "Search results",
+    );
+    expect(
+      rows().map((row: HTMLElement) => {
+        return row.querySelector("button")!.textContent;
+      }),
+    ).toEqual([
+      "oneuptime-home",
+      "oneuptime-home-56d657f4b4-7kslf",
+      "oneuptime-home-56d657f4b4-zvcr6",
+    ]);
+    expect(rows()[1]).toHaveTextContent("in oneuptime-home");
+    search("api");
+    expect(rows().length).toBeGreaterThanOrEqual(4);
+  });
+
+  test("a miss can be cleared", () => {
+    renderExplorer();
+    search("nothing-like-this");
+    expect(
+      screen.getByText("No resources match your search"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(rows()).toHaveLength(3);
+  });
+});
+
+describe("map", () => {
+  test("draws the workloads of the scope and opens groups from their cards", () => {
+    const onOpenServiceMap: MockFunction = getJestMockFunction();
+    renderExplorer({ onOpenServiceMap });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    expect(window.location.search).toContain("infraView=map");
+    expect(screen.getByTestId(`map-card-${APP_GROUP}`)).toBeInTheDocument();
+    expect(screen.getByTestId("map-card-builder")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(`map-card-${APP_GROUP}`));
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "oneuptime-app",
+    );
+    expect(screen.getByTestId("map-card-h1")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("map-card-h1"));
+    expect(
+      screen.getByRole("dialog", { name: "oneuptime-app-685856b7d7-48xkt" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Map service api" }));
+    expect(onOpenServiceMap).toHaveBeenCalledWith("api");
+  });
+
+  test("the overflow card switches to the complete list", () => {
+    window.history.replaceState({}, "", "?infraView=map");
+    renderExplorer();
+    fireEvent.click(screen.getByRole("button", { name: "Map show all" }));
+    expect(screen.getByTestId("infrastructure-view-list")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(rows()).toHaveLength(3);
   });
 });

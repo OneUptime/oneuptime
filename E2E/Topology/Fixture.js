@@ -20,6 +20,7 @@ import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipTyp
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import { loadDataset } from "./Datasets";
 
 // These are deliberately synthetic records. Only data access is replaced:
 // the page, filters, layout engines, graph components and drawers are real.
@@ -34,6 +35,7 @@ function addEntity(key, name, type) {
   entity.entityType = type;
   entity.firstSeenAt = new Date("2026-09-01T08:00:00Z");
   entity.lastSeenAt = new Date("2026-09-07T10:00:00Z");
+  entity.source = "discovered";
   entities.push(entity);
   return entity;
 }
@@ -42,82 +44,98 @@ function connect(from, to, type, metrics = {}) {
   edge.fromEntityKey = from;
   edge.toEntityKey = to;
   edge.relationshipType = type;
+  edge.lastSeenAt = new Date("2026-09-07T10:00:00Z");
   Object.assign(edge, metrics);
   relationships.push(edge);
+  return edge;
 }
 
-addEntity("cluster-europe", "Production Europe", EntityType.KubernetesCluster);
-addEntity("cluster-us", "Production US", EntityType.KubernetesCluster);
-for (let node = 1; node <= 3; node++) {
-  const key = `node-europe-${node}`;
-  addEntity(key, `eu-worker-0${node}`, EntityType.KubernetesNode);
-  connect(key, "cluster-europe", EntityRelationshipType.MemberOf);
-  for (let pod = 1; pod <= 20; pod++) {
-    const podKey = `pod-${node}-${pod}`;
-    addEntity(
-      podKey,
-      `${pod % 2 === 0 ? "checkout" : "catalog"}-${node}-${String(pod).padStart(2, "0")}`,
-      EntityType.KubernetesPod,
-    );
-    connect(podKey, key, EntityRelationshipType.RunsOn);
-  }
-}
-addEntity("node-us-1", "us-worker-01", EntityType.KubernetesNode);
-connect("node-us-1", "cluster-us", EntityRelationshipType.MemberOf);
-addEntity("pod-us-1", "payments-us-01", EntityType.KubernetesPod);
-connect("pod-us-1", "node-us-1", EntityRelationshipType.RunsOn);
-for (let host = 1; host <= 3; host++) {
+const selectedDataset = new URLSearchParams(window.location.search).get(
+  "dataset",
+);
+const usesNamedDataset = loadDataset(selectedDataset, { addEntity, connect });
+
+function buildDefaultDataset() {
   addEntity(
-    `host-${host}`,
-    ["database-primary", "cache-primary", "build-runner"][host - 1],
-    EntityType.Host,
+    "cluster-europe",
+    "Production Europe",
+    EntityType.KubernetesCluster,
   );
+  addEntity("cluster-us", "Production US", EntityType.KubernetesCluster);
+  for (let node = 1; node <= 3; node++) {
+    const key = `node-europe-${node}`;
+    addEntity(key, `eu-worker-0${node}`, EntityType.KubernetesNode);
+    connect(key, "cluster-europe", EntityRelationshipType.MemberOf);
+    for (let pod = 1; pod <= 20; pod++) {
+      const podKey = `pod-${node}-${pod}`;
+      addEntity(
+        podKey,
+        `${pod % 2 === 0 ? "checkout" : "catalog"}-${node}-${String(pod).padStart(2, "0")}`,
+        EntityType.KubernetesPod,
+      );
+      connect(podKey, key, EntityRelationshipType.RunsOn);
+    }
+  }
+  addEntity("node-us-1", "us-worker-01", EntityType.KubernetesNode);
+  connect("node-us-1", "cluster-us", EntityRelationshipType.MemberOf);
+  addEntity("pod-us-1", "payments-us-01", EntityType.KubernetesPod);
+  connect("pod-us-1", "node-us-1", EntityRelationshipType.RunsOn);
+  for (let host = 1; host <= 3; host++) {
+    addEntity(
+      `host-${host}`,
+      ["database-primary", "cache-primary", "build-runner"][host - 1],
+      EntityType.Host,
+    );
+  }
+  connect("host-2", "unknown-cache-peer", EntityRelationshipType.MemberOf);
+  const services = [
+    "web-frontend",
+    "api-gateway",
+    "checkout",
+    "payments",
+    "catalog",
+    "notifications",
+    "scheduled-reports",
+    "audit-worker",
+  ];
+  services.forEach((name) => {
+    addEntity(`service-${name}`, name, EntityType.Service);
+  });
+  connect(
+    "service-web-frontend",
+    "service-api-gateway",
+    EntityRelationshipType.DependsOn,
+    { callCount: 45000, errorCount: 90, avgDurationMs: 42 },
+  );
+  connect(
+    "service-api-gateway",
+    "service-checkout",
+    EntityRelationshipType.DependsOn,
+    { callCount: 18000, errorCount: 180, avgDurationMs: 127 },
+  );
+  connect(
+    "service-api-gateway",
+    "service-catalog",
+    EntityRelationshipType.DependsOn,
+    { callCount: 27000, errorCount: 27, avgDurationMs: 24 },
+  );
+  connect(
+    "service-checkout",
+    "service-payments",
+    EntityRelationshipType.DependsOn,
+    { callCount: 15000, errorCount: 900, avgDurationMs: 340 },
+  );
+  connect(
+    "service-payments",
+    "service-notifications",
+    EntityRelationshipType.DependsOn,
+    { callCount: 12000, errorCount: 12, avgDurationMs: 18 },
+  );
+  connect("service-catalog", "host-2", EntityRelationshipType.HostedOn);
 }
-connect("host-2", "unknown-cache-peer", EntityRelationshipType.MemberOf);
-const services = [
-  "web-frontend",
-  "api-gateway",
-  "checkout",
-  "payments",
-  "catalog",
-  "notifications",
-  "scheduled-reports",
-  "audit-worker",
-];
-services.forEach((name) => {
-  addEntity(`service-${name}`, name, EntityType.Service);
-});
-connect(
-  "service-web-frontend",
-  "service-api-gateway",
-  EntityRelationshipType.DependsOn,
-  { callCount: 45000, errorCount: 90, avgDurationMs: 42 },
-);
-connect(
-  "service-api-gateway",
-  "service-checkout",
-  EntityRelationshipType.DependsOn,
-  { callCount: 18000, errorCount: 180, avgDurationMs: 127 },
-);
-connect(
-  "service-api-gateway",
-  "service-catalog",
-  EntityRelationshipType.DependsOn,
-  { callCount: 27000, errorCount: 27, avgDurationMs: 24 },
-);
-connect(
-  "service-checkout",
-  "service-payments",
-  EntityRelationshipType.DependsOn,
-  { callCount: 15000, errorCount: 900, avgDurationMs: 340 },
-);
-connect(
-  "service-payments",
-  "service-notifications",
-  EntityRelationshipType.DependsOn,
-  { callCount: 12000, errorCount: 12, avgDurationMs: 18 },
-);
-connect("service-catalog", "host-2", EntityRelationshipType.HostedOn);
+if (!usesNamedDataset) {
+  buildDefaultDataset();
+}
 
 const networkNodes = [
   {
@@ -247,17 +265,28 @@ const sites = [
 ];
 
 window.__topologyFixtureRequests = [];
-ModelAPI.getList = async ({ modelType }) => {
+// Honour the one query bound the topology hook sends: `lastSeenAt >= start`.
+function matchesQuery(row, query) {
+  const lowerBound = query?.lastSeenAt?.value;
+  if (lowerBound instanceof Date && row.lastSeenAt instanceof Date) {
+    return row.lastSeenAt.getTime() >= lowerBound.getTime();
+  }
+  return true;
+}
+ModelAPI.getList = async ({ modelType, query }) => {
   window.__topologyFixtureRequests.push({
     operation: "list",
     model: modelType.name,
   });
-  const data =
+  const rows =
     modelType === InventoryItem
       ? entities
       : modelType === InventoryItemRelationship
         ? relationships
         : [];
+  const data = rows.filter((row) => {
+    return matchesQuery(row, query);
+  });
   return { data, count: data.length, skip: 0, limit: 10000 };
 };
 ModelAPI.getCommonHeaders = () => ({});

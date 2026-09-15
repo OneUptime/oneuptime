@@ -140,6 +140,28 @@ export interface APIFetchOptions {
   options?: RequestOptions;
 }
 
+/** One logical outgoing request, as seen by an OutgoingRequestTracer. */
+export interface OutgoingRequest {
+  method: HTTPMethod;
+  url: string;
+  /*
+   * Extra headers to send. The tracer may add to this object (e.g. a W3C
+   * `traceparent`) before calling `send`; nothing else reads it.
+   */
+  headers: Dictionary<string>;
+}
+
+/*
+ * Server-only seam for distributed tracing. The shared client stays free of
+ * any tracing SDK (it also runs in the browser, where the fetch/XHR
+ * instrumentations own propagation); a server process installs a tracer that
+ * wraps each request — every retry included — in a span and decides whether
+ * trace context may be sent to that destination at all.
+ */
+export interface OutgoingRequestTracer {
+  trace<T>(request: OutgoingRequest, send: () => Promise<T>): Promise<T>;
+}
+
 export interface AuthRetryContext {
   error: HTTPErrorResponse;
   request: {
@@ -171,6 +193,14 @@ export default class API {
       425, // Too Early
       429, // Too Many Requests
     ]);
+
+  private static outgoingRequestTracer: OutgoingRequestTracer | null = null;
+
+  public static setOutgoingRequestTracer(
+    tracer: OutgoingRequestTracer | null,
+  ): void {
+    API.outgoingRequestTracer = tracer;
+  }
 
   private _protocol: Protocol = Protocol.HTTPS;
   public get protocol(): Protocol {
@@ -455,6 +485,58 @@ export default class API {
   }
 
   private static async fetchInternal<
+    T extends
+      | JSONObject
+      | JSONArray
+      | BaseModel
+      | Array<BaseModel>
+      | AnalyticsBaseModel
+      | Array<AnalyticsBaseModel>,
+  >(
+    method: HTTPMethod,
+    url: URL,
+    data?: JSONObject | JSONArray,
+    headers?: Headers,
+    params?: Dictionary<string>,
+    options?: RequestOptions,
+  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const tracer: OutgoingRequestTracer | null = API.outgoingRequestTracer;
+
+    if (!tracer) {
+      return await this.fetchUntraced<T>(
+        method,
+        url,
+        data,
+        headers,
+        params,
+        options,
+      );
+    }
+
+    const tracingHeaders: Dictionary<string> = {};
+
+    return await tracer.trace<HTTPResponse<T> | HTTPErrorResponse>(
+      {
+        method,
+        url: options?.dispatchUrl ?? url.toString(),
+        headers: tracingHeaders,
+      },
+      () => {
+        return this.fetchUntraced<T>(
+          method,
+          url,
+          data,
+          Object.keys(tracingHeaders).length > 0
+            ? { ...(headers || {}), ...tracingHeaders }
+            : headers,
+          params,
+          options,
+        );
+      },
+    );
+  }
+
+  private static async fetchUntraced<
     T extends
       | JSONObject
       | JSONArray
